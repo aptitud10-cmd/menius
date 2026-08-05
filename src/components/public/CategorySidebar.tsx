@@ -18,6 +18,15 @@ interface CategorySidebarProps {
   /** Overrides the product count. Group entries carry a synthetic id, so the
    *  default count-by-category_id would return 0 and hide them. */
   countFor?: (cat: Category) => number;
+  /** Subsections of the currently open group, rendered indented underneath it.
+   *  On mobile the same list is reached through a floating button and a sheet;
+   *  desktop has a permanent sidebar, so nesting them here is the natural
+   *  equivalent — without it a group like Breakfast is 81 products deep with no
+   *  way to jump to "French Toast". Empty = nothing to nest. */
+  subcategories?: { category: Category; items: unknown[] }[];
+  /** Scrolls to a subsection. Distinct from `onSelect`, which switches the
+   *  active group filter and would collapse the very list being clicked. */
+  onSelectSubcategory?: (catId: string) => void;
 }
 
 function isCategoryAvailableNow(cat: Category): boolean {
@@ -37,6 +46,8 @@ export const CategorySidebar = memo(function CategorySidebar({
   locale = 'es',
   defaultLocale = 'es',
   countFor,
+  subcategories,
+  onSelectSubcategory,
 }: CategorySidebarProps) {
   return (
     <nav className="py-5 pr-3 font-sidebar">
@@ -50,7 +61,12 @@ export const CategorySidebar = memo(function CategorySidebar({
           const available = isCategoryAvailableNow(cat);
           const hasSchedule = !!(cat.available_from && cat.available_to);
 
-          return (
+          const nested =
+            isActive && available && subcategories && subcategories.length > 0
+              ? subcategories
+              : null;
+
+          const entry = (
             <button
               key={cat.id}
               data-sidebar-cat={cat.id}
@@ -97,6 +113,33 @@ export const CategorySidebar = memo(function CategorySidebar({
                 {count}
               </span>
             </button>
+          );
+
+          // No wrapper unless something is actually nested: the parent's
+          // `space-y-0.5` targets its direct children, so wrapping every entry
+          // would silently restyle the sidebar of every restaurant.
+          if (!nested) return entry;
+
+          return (
+            <div key={cat.id}>
+              {entry}
+              <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-gray-200 space-y-px">
+                {nested.map(({ category: sub, items }) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => onSelectSubcategory?.(sub.id)}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-gray-500 font-medium hover:text-gray-900 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <span className="truncate flex-1">
+                      {tName(sub, locale, defaultLocale)}
+                    </span>
+                    <span className="text-[11px] tabular-nums text-gray-300 flex-shrink-0">
+                      {items.length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           );
         })}
       </div>

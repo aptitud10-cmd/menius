@@ -1880,6 +1880,8 @@ export function MenuShell({
                 locale={locale}
                 defaultLocale={defaultLocale}
                 countFor={groupsActive ? countForSidebar : undefined}
+                subcategories={subcatsOfActiveGroup}
+                onSelectSubcategory={scrollToSection}
               />
             </aside>
 

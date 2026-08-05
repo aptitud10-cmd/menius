@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, Loader2, Check, Camera, Trash2, X,
   ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages, Sparkles, Link2, ExternalLink, Anchor,
+  ArrowRightLeft,
 } from 'lucide-react';
-import { createProduct, updateProduct, deleteProduct, deleteVariant, deleteExtra } from '@/lib/actions/restaurant';
+import { createProduct, updateProduct, deleteProduct, deleteVariant, deleteExtra, migrateLegacyOptions } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/dashboard/DashToast';
 import type { Product, Category, DietaryTag, ContentTranslation, ProductVariant, ProductExtra, ModifierGroup } from '@/types';
@@ -41,18 +42,35 @@ interface Props {
 }
 
 function LegacyOptionsSection({
+  productId,
   variants,
   extras,
   currency,
   t,
 }: {
+  productId: string;
   variants: ProductVariant[];
   extras: ProductExtra[];
   currency: string;
   t: DashboardTranslations;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, setPending] = useState<string | null>(null);
+  const [migrating, setMigrating] = useState(false);
+
+  const handleMigrate = async () => {
+    if (!confirm(t.editor_legacyMigrateConfirm)) return;
+    setMigrating(true);
+    const res = await migrateLegacyOptions(productId);
+    setMigrating(false);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(t.editor_legacyMigrateDone);
+    router.refresh();
+  };
 
   const handleDeleteVariant = async (id: string) => {
     if (!confirm(t.editor_legacyDeleteConfirm)) return;
@@ -72,7 +90,19 @@ function LegacyOptionsSection({
 
   return (
     <div className="bg-amber-50 rounded-xl border border-amber-200 p-5">
-      <p className="text-xs text-amber-600 mb-3">{t.editor_legacyHint}</p>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <p className="text-xs text-amber-600">{t.editor_legacyHint}</p>
+        <button
+          onClick={handleMigrate}
+          disabled={migrating}
+          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50"
+        >
+          {migrating
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : <ArrowRightLeft className="w-3.5 h-3.5" />}
+          {migrating ? t.editor_legacyMigrating : t.editor_legacyMigrate}
+        </button>
+      </div>
 
       {variants.length > 0 && (
         <div className="mb-4">
@@ -793,6 +823,7 @@ export function ProductEditor({
             {/* Legacy Variants & Extras */}
             {isEditing && product && ((product.variants?.length ?? 0) > 0 || (product.extras?.length ?? 0) > 0) && (
               <LegacyOptionsSection
+                productId={product.id}
                 variants={product.variants ?? []}
                 extras={product.extras ?? []}
                 currency={currency}

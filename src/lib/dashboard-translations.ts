@@ -477,6 +477,10 @@ export interface DashboardTranslations {
   editor_legacyExtras: string;
   editor_legacyHint: string;
   editor_legacyDeleteConfirm: string;
+  editor_legacyMigrate: string;
+  editor_legacyMigrating: string;
+  editor_legacyMigrateConfirm: string;
+  editor_legacyMigrateDone: string;
   editor_basicInfo: string;
   editor_uploading: string;
   editor_productUpdated: string;
@@ -1729,8 +1733,13 @@ const es: DashboardTranslations = {
   editor_legacyVariants: "Variantes existentes",
   editor_legacyExtras: "Extras existentes",
   editor_legacyHint:
-    "Estas opciones fueron creadas con el sistema anterior. Puedes eliminarlas aquí.",
+    "Estas opciones fueron creadas con el sistema anterior. Puedes convertirlas al nuevo sistema o eliminarlas.",
   editor_legacyDeleteConfirm: "¿Eliminar esta opción?",
+  editor_legacyMigrate: "Convertir a grupos",
+  editor_legacyMigrating: "Convirtiendo...",
+  editor_legacyMigrateConfirm:
+    "Se crearán grupos de opciones con estos datos y se eliminarán los originales. ¿Continuar?",
+  editor_legacyMigrateDone: "Opciones convertidas",
   editor_basicInfo: "Información básica",
   editor_uploading: "Subiendo...",
   editor_productUpdated: "Producto actualizado",
@@ -3045,8 +3054,13 @@ const en: DashboardTranslations = {
   editor_legacyVariants: "Existing variants",
   editor_legacyExtras: "Existing extras",
   editor_legacyHint:
-    "These options were created with the previous system. You can delete them here.",
+    "These options were created with the previous system. You can convert them to the new system or delete them.",
   editor_legacyDeleteConfirm: "Delete this option?",
+  editor_legacyMigrate: "Convert to groups",
+  editor_legacyMigrating: "Converting...",
+  editor_legacyMigrateConfirm:
+    "This will create option groups from this data and delete the originals. Continue?",
+  editor_legacyMigrateDone: "Options converted",
   editor_basicInfo: "Basic information",
   editor_uploading: "Uploading...",
   editor_productUpdated: "Product updated",
