@@ -158,6 +158,11 @@ export interface ModifierGroup {
   is_required: boolean;
   sort_order: number;
   display_type?: 'list' | 'grid';
+  /** When set, this group is only shown — and only required — while that option
+   *  of another group is selected. Buccaneer's "Choice of Side" hangs off the
+   *  "Deluxe" option: a Regular burger comes with no side, so asking for one
+   *  charged the customer for food they'd never receive. NULL = always visible. */
+  depends_on_option_id?: string | null;
   options: ModifierOption[];
 }
 

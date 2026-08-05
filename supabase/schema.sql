@@ -281,7 +281,8 @@ CREATE TABLE public.modifier_groups (
   max_select integer NOT NULL DEFAULT 1,
   is_required boolean NOT NULL DEFAULT false,
   sort_order integer DEFAULT 0,
-  display_type text NOT NULL DEFAULT 'list'::text
+  display_type text NOT NULL DEFAULT 'list'::text,
+  depends_on_option_id uuid
 );
 
 CREATE TABLE public.modifier_options (
