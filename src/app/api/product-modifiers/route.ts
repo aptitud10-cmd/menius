@@ -46,6 +46,23 @@ export async function GET(request: NextRequest) {
         .order('sort_order', { ascending: true }),
     ]);
 
+    // A failed query must NOT be served as "this product has no options".
+    // On 2026-08-05 a bad migration made this query error out and the old
+    // `?? []` turned it into an empty array: every restaurant silently lost
+    // every modifier group while the endpoint kept answering 200, so nothing
+    // surfaced until a customer noticed they couldn't pick their cooking
+    // temperature. Failing loudly is the only way this stays visible.
+    if (modGroupsResult.error || variantsResult.error || extrasResult.error) {
+      const err =
+        modGroupsResult.error || variantsResult.error || extrasResult.error;
+      console.error('[product-modifiers] query failed', {
+        productId,
+        error: err?.message,
+        code: (err as { code?: string })?.code,
+      });
+      return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    }
+
     const modifier_groups: ModifierGroup[] = ((modGroupsResult.data ?? []) as any[]).map((g) => ({
       id: g.id,
       product_id: g.product_id,
