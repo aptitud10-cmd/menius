@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `/api/public/restaurant-menu` endpoint provides comprehensive restaurant data including menu items, reviews, delivery information, payment methods, and 30+ additional data categories. This endpoint is designed for mobile apps, web applications, and external integrations.
+The `/api/public/restaurant-menu` endpoint returns a restaurant's menu, reviews, and active promotions. It is public, rate-limited, and designed for read-only integrations (mobile apps, external sites).
 
 **Base URL:** `https://menius.app`
 
@@ -31,45 +31,55 @@ curl "https://menius.app/api/public/restaurant-menu?slug=tamales"
     "restaurant": { /* Restaurant info */ },
     "categories": [ /* Menu categories */ ],
     "products": [ /* Menu items */ ],
+    "variants": [ /* Product size/type variations */ ],
+    "extras": [ /* Extra add-ons */ ],
+    "modifierGroups": [ /* Customization groups */ ],
+    "modifierOptions": [ /* Options within each group */ ],
     "reviews": [ /* Customer reviews */ ],
-    "statistics": { /* Restaurant stats */ },
-    "timestamp": "2026-03-25T03:50:00.000Z",
-    "version": "2.0.0"
+    "statistics": { /* Rating summary */ },
+    "bestsellers": [ /* Featured products */ ],
+    "promotions": [ /* Active promotions */ ],
+    "timestamp": "2026-08-06T03:50:00.000Z",
+    "version": "2.2.0"
   }
 }
 ```
 
 ## Response Data Structure
 
-### 1. Restaurant Information
+### 1. Restaurant
 
 **Key:** `restaurant`
 
-Core restaurant details including name, description, contact info, and configuration.
+Only public-safe columns are returned. Internal fields (owner id, Stripe ids, fiscal data) are excluded.
 
 ```json
 {
   "id": "071be5c3-1273-45d8-a30f-2bf63e63d7f9",
   "name": "tamales",
   "slug": "tamales",
-  "currency": "USD",
   "description": "Traditional Mexican tamales...",
-  "image_url": "https://...",
+  "logo_url": "https://...",
+  "cover_image_url": "https://...",
+  "address": "123 Main St, City, State",
   "phone": "+1-555-0123",
   "email": "contact@tamales.com",
-  "address": "123 Main St, City, State",
-  "website": "https://tamales.com",
-  "instagram": "@tamales",
-  "facebook": "tamales.official",
-  "tiktok": "@tamales",
-  "operating_hours": { /* JSON object */ },
+  "currency": "USD",
+  "timezone": "America/Chicago",
   "is_active": true,
-  "rating": 4.5,
-  "review_count": 127,
-  "min_order_value": 15.00,
+  "estimated_delivery_minutes": 30,
   "delivery_fee": 3.50,
-  "delivery_time_minutes": 30,
-  "timezone": "America/Chicago"
+  "order_types_enabled": ["delivery", "pickup"],
+  "custom_domain": null,
+  "locale": "es",
+  "country_code": "MX",
+  "tax_rate": 8.5,
+  "tax_included": false,
+  "tax_label": "IVA",
+  "instagram_url": "https://instagram.com/tamales",
+  "notification_whatsapp": "+1-555-0123",
+  "orders_paused_until": null,
+  "created_at": "2025-01-15T10:00:00Z"
 }
 ```
 
@@ -77,35 +87,42 @@ Core restaurant details including name, description, contact info, and configura
 
 **Keys:** `categories`, `products`, `variants`, `extras`, `modifierGroups`, `modifierOptions`
 
-Complete menu hierarchy with products and customization options.
-
 ```json
 {
   "categories": [
     {
       "id": "cat-123",
+      "restaurant_id": "071be5c3-1273-45d8-a30f-2bf63e63d7f9",
       "name": "Tamales",
+      "name_en": "Tamales",
       "description": "Traditional tamales",
-      "icon": "🌮",
+      "description_en": "Traditional tamales",
+      "image_url": "https://...",
       "sort_order": 1,
-      "is_active": true
+      "is_active": true,
+      "available_from": null,
+      "available_to": null
     }
   ],
   "products": [
     {
       "id": "prod-456",
-      "name": "Tamales Verdes",
-      "description": "Green sauce tamales",
-      "price": 12.99,
+      "restaurant_id": "071be5c3-1273-45d8-a30f-2bf63e63d7f9",
       "category_id": "cat-123",
+      "name": "Tamales Verdes",
+      "name_en": "Green Tamales",
+      "description": "Green sauce tamales",
+      "description_en": "Green sauce tamales",
+      "price": 12.99,
       "image_url": "https://...",
+      "sort_order": 1,
       "is_active": true,
       "in_stock": true,
+      "is_featured": true,
       "dietary_tags": ["vegetarian"],
       "calories": 250,
-      "protein": 8,
-      "fat": 10,
-      "carbs": 35
+      "preparation_time_minutes": 15,
+      "allergens": ["gluten"]
     }
   ],
   "variants": [
@@ -113,8 +130,10 @@ Complete menu hierarchy with products and customization options.
       "id": "var-789",
       "product_id": "prod-456",
       "name": "Large",
-      "price_delta": 2.00,
-      "is_default": false
+      "name_en": "Large",
+      "price": 14.99,
+      "is_active": true,
+      "sort_order": 1
     }
   ],
   "extras": [
@@ -122,7 +141,10 @@ Complete menu hierarchy with products and customization options.
       "id": "extra-101",
       "product_id": "prod-456",
       "name": "Extra Cheese",
-      "price": 1.50
+      "name_en": "Extra Cheese",
+      "price": 1.50,
+      "is_active": true,
+      "sort_order": 1
     }
   ],
   "modifierGroups": [
@@ -130,16 +152,22 @@ Complete menu hierarchy with products and customization options.
       "id": "mod-group-202",
       "product_id": "prod-456",
       "name": "Sauce",
+      "selection_type": "single",
       "is_required": true,
-      "allow_multiple": false
+      "min_select": 1,
+      "max_select": 1,
+      "sort_order": 1,
+      "display_type": "radio"
     }
   ],
   "modifierOptions": [
     {
       "id": "mod-opt-303",
-      "modifier_group_id": "mod-group-202",
+      "group_id": "mod-group-202",
       "name": "Green Sauce",
-      "price_delta": 0
+      "price_delta": 0,
+      "is_default": true,
+      "sort_order": 1
     }
   ]
 }
@@ -149,26 +177,23 @@ Complete menu hierarchy with products and customization options.
 
 **Keys:** `reviews`, `statistics`, `bestsellers`
 
-Customer feedback and performance metrics.
+`statistics` is calculated only from approved reviews — no order/revenue data is exposed publicly.
 
 ```json
 {
   "reviews": [
     {
       "id": "rev-404",
-      "customer_name": "John Doe",
       "rating": 5,
       "comment": "Amazing tamales!",
+      "customer_name": "John Doe",
       "created_at": "2026-03-24T10:30:00Z",
       "is_approved": true
     }
   ],
   "statistics": {
-    "totalOrders": 1250,
     "averageRating": 4.6,
     "totalReviews": 127,
-    "totalRevenue": 15750.00,
-    "responseRate": 95,
     "averagePreparationTime": 30
   },
   "bestsellers": [
@@ -176,319 +201,49 @@ Customer feedback and performance metrics.
       "id": "prod-456",
       "name": "Tamales Verdes",
       "price": 12.99,
-      "orders": 342
-    }
-  ]
-}
-```
-
-### 4. Delivery & Logistics
-
-**Keys:** `deliveryZones`, `specialHours`, `deliveryRestrictions`
-
-Delivery coverage and operational constraints.
-
-```json
-{
-  "deliveryZones": [
-    {
-      "id": "zone-505",
-      "name": "Downtown",
-      "polygon": { /* GeoJSON */ },
-      "delivery_fee": 3.50,
-      "estimated_time_minutes": 25
-    }
-  ],
-  "specialHours": [
-    {
-      "id": "sh-606",
-      "date": "2026-03-25",
-      "opening_time": "10:00",
-      "closing_time": "22:00",
-      "reason": "Holiday"
-    }
-  ],
-  "deliveryRestrictions": {
-    "id": "dr-707",
-    "min_order_value": 15.00,
-    "max_orders_per_hour": 50,
-    "delivery_hours_start": "11:00",
-    "delivery_hours_end": "23:00"
-  }
-}
-```
-
-### 5. Bundles & Offers
-
-**Keys:** `bundles`, `promoCodes`
-
-Special deals and promotional offers.
-
-```json
-{
-  "bundles": [
-    {
-      "id": "bundle-808",
-      "name": "Family Pack",
-      "description": "6 tamales + sides",
-      "price": 45.99,
-      "original_price": 59.99,
-      "discount_percentage": 23,
-      "is_active": true
-    }
-  ],
-  "promoCodes": [
-    {
-      "id": "promo-909",
-      "code": "WELCOME10",
-      "discount_type": "percentage",
-      "discount_value": 10,
-      "valid_until": "2026-12-31",
-      "is_active": true
-    }
-  ]
-}
-```
-
-### 6. Payment & Financial
-
-**Keys:** `paymentMethods`, `taxInfo`
-
-Accepted payment methods and tax configuration.
-
-```json
-{
-  "paymentMethods": [
-    {
-      "id": "pm-1010",
-      "type": "credit_card",
-      "provider": "stripe",
-      "is_enabled": true,
-      "display_name": "Credit Card"
-    },
-    {
-      "id": "pm-1111",
-      "type": "cash",
-      "is_enabled": true,
-      "display_name": "Cash on Delivery"
-    }
-  ],
-  "taxInfo": [
-    {
-      "id": "tax-1212",
-      "name": "Sales Tax",
-      "rate": 8.5,
-      "type": "percentage",
-      "is_active": true
-    }
-  ]
-}
-```
-
-### 7. Location & Contact
-
-**Keys:** `location`, `contactMethods`
-
-Geographic and communication information.
-
-```json
-{
-  "location": {
-    "id": "loc-1313",
-    "latitude": 40.7128,
-    "longitude": -74.0060,
-    "address": "123 Main St, City, State",
-    "zip_code": "10001",
-    "country": "USA",
-    "map_url": "https://maps.google.com/..."
-  },
-  "contactMethods": [
-    {
-      "id": "cm-1414",
-      "type": "phone",
-      "value": "+1-555-0123",
-      "is_active": true,
-      "response_hours": "11:00-23:00"
-    },
-    {
-      "id": "cm-1515",
-      "type": "whatsapp",
-      "value": "+1-555-0123",
-      "is_active": true
-    },
-    {
-      "id": "cm-1616",
-      "type": "email",
-      "value": "contact@tamales.com",
-      "is_active": true
-    }
-  ]
-}
-```
-
-### 8. Policies & Compliance
-
-**Keys:** `policies`, `certifications`, `allergens`, `dietaryOptions`
-
-Legal information and dietary/health details.
-
-```json
-{
-  "policies": {
-    "id": "pol-1717",
-    "terms_of_service": "...",
-    "privacy_policy": "...",
-    "refund_policy": "...",
-    "cancellation_policy": "..."
-  },
-  "certifications": [
-    {
-      "id": "cert-1818",
-      "name": "Health Department Certified",
-      "issuer": "City Health Dept",
-      "issue_date": "2025-01-15",
-      "expiry_date": "2026-01-15",
-      "is_active": true
-    }
-  ],
-  "allergens": [
-    {
-      "id": "allergen-1919",
-      "name": "Peanuts",
-      "products": ["prod-456"]
-    }
-  ],
-  "dietaryOptions": [
-    {
-      "id": "diet-2020",
-      "name": "Vegetarian",
-      "products": ["prod-456", "prod-789"]
-    }
-  ]
-}
-```
-
-### 9. AI & Automation
-
-**Keys:** `aiSettings`, `whatsappSettings`
-
-AI-powered features and messaging integration.
-
-```json
-{
-  "aiSettings": {
-    "id": "ai-2121",
-    "ai_enabled": true,
-    "ai_model": "gpt-4",
-    "auto_responses_enabled": true,
-    "chatbot_enabled": true
-  },
-  "whatsappSettings": {
-    "id": "wa-2222",
-    "whatsapp_enabled": true,
-    "whatsapp_number": "+1-555-0123",
-    "auto_reply_enabled": true,
-    "business_account": true
-  }
-}
-```
-
-### 10. Community & Engagement
-
-**Keys:** `socialMedia`, `loyaltyProgram`, `team`, `events`
-
-Social presence and customer engagement features.
-
-```json
-{
-  "socialMedia": [
-    {
-      "id": "sm-2323",
-      "platform": "instagram",
-      "handle": "@tamales",
-      "followers": 5000,
-      "url": "https://instagram.com/tamales"
-    }
-  ],
-  "loyaltyProgram": {
-    "id": "lp-2424",
-    "name": "Tamales Rewards",
-    "is_enabled": true,
-    "points_per_dollar": 1,
-    "redemption_rate": 100
-  },
-  "team": [
-    {
-      "id": "team-2525",
-      "name": "Chef Maria",
-      "role": "Head Chef",
-      "bio": "20 years of experience",
-      "image_url": "https://...",
       "is_featured": true
     }
-  ],
-  "events": [
+  ]
+}
+```
+
+`bestsellers` is simply the list of products with `is_featured: true` (set manually by the restaurant owner in the dashboard), capped at 10. It is not computed from order volume.
+
+### 4. Promotions
+
+**Key:** `promotions`
+
+```json
+{
+  "promotions": [
     {
-      "id": "event-2626",
-      "name": "Tamale Festival",
-      "date": "2026-04-15",
-      "description": "Annual celebration",
-      "is_active": true
+      "id": "promo-909",
+      "restaurant_id": "071be5c3-1273-45d8-a30f-2bf63e63d7f9",
+      "title": "10% off your first order",
+      "title_en": "10% off your first order",
+      "description": "...",
+      "description_en": "...",
+      "discount_type": "percentage",
+      "discount_value": 10,
+      "code": "WELCOME10",
+      "is_active": true,
+      "start_date": "2026-01-01",
+      "end_date": "2026-12-31",
+      "min_order_amount": 15.00,
+      "image_url": "https://..."
     }
   ]
 }
 ```
 
-### 11. Gallery & Media
+### 5. Metadata
 
-**Key:** `gallery`
-
-Restaurant photos and media assets.
+**Keys:** `timestamp`, `version`
 
 ```json
 {
-  "gallery": [
-    {
-      "id": "img-2727",
-      "url": "https://...",
-      "caption": "Our kitchen",
-      "sort_order": 1
-    }
-  ]
-}
-```
-
-### 12. Integrations & Analytics
-
-**Keys:** `integrations`, `priceHistory`, `customization`
-
-Third-party integrations and historical data.
-
-```json
-{
-  "integrations": [
-    {
-      "id": "int-2828",
-      "type": "google_analytics",
-      "is_enabled": true,
-      "config": { /* Integration config */ }
-    }
-  ],
-  "priceHistory": [
-    {
-      "id": "ph-2929",
-      "product_id": "prod-456",
-      "old_price": 11.99,
-      "new_price": 12.99,
-      "changed_at": "2026-03-20T10:00:00Z"
-    }
-  ],
-  "customization": {
-    "id": "custom-3030",
-    "theme_color": "#FF6B35",
-    "logo_url": "https://...",
-    "banner_url": "https://..."
-  }
+  "timestamp": "2026-08-06T03:50:00.000Z",
+  "version": "2.2.0"
 }
 ```
 
@@ -523,77 +278,65 @@ Third-party integrations and historical data.
 
 ```json
 {
-  "error": "Internal server error",
-  "message": "Detailed error message"
+  "error": "Internal server error"
 }
 ```
+
+Note: the error message is intentionally generic — the raw error is never returned to the client, only logged server-side.
 
 ## Rate Limiting
 
 - **Limit:** 120 requests per minute per IP address
-- **Header:** Rate limit information included in response headers
 
-## Caching Recommendations
+## Caching
 
-- **Cache Duration:** 5-10 minutes for optimal performance
-- **Stale Time:** 5 minutes before re-fetching
-- **Garbage Collection:** 10 minutes
+- **CDN:** `s-maxage=60, stale-while-revalidate=300` (set via the `Cache-Control` response header)
+- Recommend client-side caching of 1-5 minutes on top of that.
 
 ## Usage Examples
 
 ### JavaScript/TypeScript
 
 ```typescript
-import { useQuery } from '@tanstack/react-query';
-
 interface RestaurantMenuData {
   success: boolean;
   data: {
-    restaurant: any;
-    categories: any[];
-    products: any[];
-    reviews: any[];
-    statistics: any;
-    // ... 30+ more categories
+    restaurant: Record<string, unknown>;
+    categories: Record<string, unknown>[];
+    products: Record<string, unknown>[];
+    variants: Record<string, unknown>[];
+    extras: Record<string, unknown>[];
+    modifierGroups: Record<string, unknown>[];
+    modifierOptions: Record<string, unknown>[];
+    reviews: Record<string, unknown>[];
+    statistics: { averageRating: number; totalReviews: number; averagePreparationTime: number };
+    bestsellers: Record<string, unknown>[];
+    promotions: Record<string, unknown>[];
+    timestamp: string;
+    version: string;
   };
 }
 
-function useRestaurantMenu(slug: string | null) {
-  return useQuery<RestaurantMenuData>({
-    queryKey: ['restaurant-menu', slug],
-    queryFn: async () => {
-      if (!slug) throw new Error('Restaurant slug is required');
-
-      const response = await fetch(
-        `https://menius.app/api/public/restaurant-menu?slug=${encodeURIComponent(slug)}`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.statusText}`);
-      }
-
-      return response.json();
-    },
-    enabled: !!slug,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
+async function getRestaurantMenu(slug: string): Promise<RestaurantMenuData> {
+  const response = await fetch(
+    `https://menius.app/api/public/restaurant-menu?slug=${encodeURIComponent(slug)}`
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch: ${response.statusText}`);
+  }
+  return response.json();
 }
-
-// Usage in component
-const { data, isLoading, error } = useRestaurantMenu('tamales');
 ```
 
 ### Python
 
 ```python
 import requests
-from typing import TypedDict
 
 def get_restaurant_menu(slug: str) -> dict:
-    """Fetch complete restaurant menu data"""
+    """Fetch restaurant menu data"""
     response = requests.get(
-        f"https://menius.app/api/public/restaurant-menu",
+        "https://menius.app/api/public/restaurant-menu",
         params={"slug": slug},
         timeout=10
     )
@@ -614,56 +357,38 @@ curl "https://menius.app/api/public/restaurant-menu?slug=tamales"
 
 # Pretty-printed JSON
 curl "https://menius.app/api/public/restaurant-menu?slug=tamales" | jq '.'
-
-# Save to file
-curl "https://menius.app/api/public/restaurant-menu?slug=tamales" > restaurant.json
 ```
 
 ## Data Categories Summary
 
-The endpoint returns **30+ data categories**:
+The endpoint returns **12 data keys** under `data`:
 
-1. **Core Data** (5): restaurant, categories, products, variants, extras
-2. **Customization** (2): modifierGroups, modifierOptions
-3. **Reviews & Ratings** (3): reviews, statistics, bestsellers
-4. **Delivery & Logistics** (3): deliveryZones, specialHours, deliveryRestrictions
-5. **Bundles & Offers** (2): bundles, promoCodes
-6. **Payment & Financial** (2): paymentMethods, taxInfo
-7. **Location & Contact** (2): location, contactMethods
-8. **Policies & Compliance** (4): policies, certifications, allergens, dietaryOptions
-9. **AI & Automation** (2): aiSettings, whatsappSettings
-10. **Community & Engagement** (4): socialMedia, loyaltyProgram, team, events
-11. **Gallery & Media** (1): gallery
-12. **Integrations & Analytics** (3): integrations, priceHistory, customization
-13. **Metadata** (2): timestamp, version
+1. **Core menu** (7): `restaurant`, `categories`, `products`, `variants`, `extras`, `modifierGroups`, `modifierOptions`
+2. **Reviews & analytics** (3): `reviews`, `statistics`, `bestsellers`
+3. **Offers** (1): `promotions`
+4. **Metadata** (2): `timestamp`, `version`
+
+Fields **not** returned by this endpoint (do not build against them): payment methods, tax settings as a separate object, delivery zones/polygons, special hours, loyalty program config, team/staff, events, gallery, price history, AI/WhatsApp settings, bundles, promo-code objects beyond `promotions`, location/coordinates.
 
 ## Best Practices
 
-1. **Always include error handling** for network failures and invalid responses
-2. **Implement caching** to reduce API calls and improve performance
-3. **Use pagination** if implementing search or filtering
-4. **Validate data** before displaying to users
-5. **Handle null values** gracefully in your UI
-6. **Monitor rate limits** and implement backoff strategies
-7. **Use HTTPS** for all requests
-8. **Include user-agent** headers in requests
+1. Always include error handling for network failures and non-200 responses.
+2. Cache responses client-side for at least a minute — the endpoint is already CDN-cached at 60s.
+3. Handle null/empty arrays gracefully (a new restaurant may have zero categories, reviews, or promotions).
+4. Use HTTPS for all requests.
 
 ## Support
 
 For issues or questions about the API:
-- Check the error response for detailed error messages
+- Check the error response for details
 - Verify the restaurant slug is correct
-- Ensure you're using the correct endpoint URL
 - Contact support if problems persist
 
 ## Version History
 
-### v2.0.0 (Current)
-- Added 30+ data categories
-- Improved error handling
-- Enhanced caching support
-- Added comprehensive documentation
+### v2.2.0 (Current)
+- Restaurant query trimmed to columns that actually exist in production (removed 14 non-existent columns that caused 500s).
+- Response documented to match exactly what the route returns.
 
-### v1.0.0
-- Initial release
-- Basic restaurant and menu data
+### v2.0.0
+- Initial public release with core menu, reviews, and promotions.

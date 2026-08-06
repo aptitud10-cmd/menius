@@ -2505,12 +2505,11 @@ La buena noticia: con las herramientas correctas, el marketing puede funcionar *
 
 ## ¿Qué es el Marketing Hub de MENIUS?
 
-El Marketing Hub es un panel centralizado dentro de tu dashboard de MENIUS que agrupa todas las herramientas de comunicación con tus clientes en un solo lugar. Cuatro módulos principales:
+El Marketing Hub es un panel centralizado dentro de tu dashboard de MENIUS que agrupa todas las herramientas de comunicación con tus clientes en un solo lugar. Tres módulos principales:
 
 1. **Campañas de Email** — Newsletters y promociones
 2. **Redes Sociales** — Generador de posts con IA
-3. **Campañas SMS** — Mensajes directos al celular
-4. **Automatizaciones** — Secuencias que trabajan solas
+3. **Automatizaciones** — Secuencias que trabajan solas
 
 ## Módulo 1: Campañas de Email
 
@@ -2527,8 +2526,7 @@ El email marketing tiene el ROI más alto de cualquier canal digital: **$42 por 
 1. Ve a **Marketing > Campañas de Email** en tu dashboard
 2. Elige a quién enviar: todos los clientes, o segmentos (frecuentes, VIP, nuevos)
 3. Escribe el asunto y el contenido
-4. Elige la fecha y hora de envío
-5. Revisa las estadísticas: aperturas, clics, conversiones
+4. Envía — el envío es inmediato, no hay opción de programar fecha/hora
 
 > **Tip profesional:** Los emails con nombre del cliente en el asunto tienen un 26% más de tasa de apertura. MENIUS personaliza automáticamente el saludo.
 
@@ -2552,65 +2550,45 @@ Publicar en Instagram, Facebook y TikTok de forma consistente es difícil. Con e
 **TikTok:**
 *"¿Quién más necesita una hamburguesa los lunes? 🤤 Tenemos la oferta que buscabas... link en bio 🔗"*
 
-## Módulo 3: Campañas SMS
+## Módulo 3: Campañas SMS (próximamente)
 
-El SMS tiene la tasa de apertura más alta de cualquier canal: **98%** en los primeros 3 minutos.
+El SMS tiene la tasa de apertura más alta de cualquier canal: **98%** en los primeros 3 minutos. Es un canal que tiene sentido para avisos urgentes de corta duración (happy hour de hoy, cierre de emergencia).
 
-### Cuándo usar SMS (no email)
-- Promoción de solo 24 horas ("Happy hour hoy de 5-7pm")
-- Último aviso de oferta que termina hoy
-- Cierre por emergencia o cambio de horario
-- Evento especial esta noche
+Hoy este módulo todavía no está disponible en MENIUS — el Marketing Hub actual cubre email y redes sociales. Si te interesa, hablá con soporte para que te avisemos cuando esté listo.
 
-### Cómo funciona
-Requiere conectar tu cuenta de Twilio desde **Configuración > Integraciones**. Una vez conectado, puedes enviar mensajes a toda tu base de clientes o a segmentos específicos.
+## Módulo 4: Las 9 Automatizaciones
 
-> **Importante:** Incluye siempre la opción de darse de baja. MENIUS agrega automáticamente "Responde STOP para no recibir mensajes" al final de cada SMS.
-
-## Módulo 4: Las 9 Automatizaciones (el verdadero oro)
-
-Aquí es donde la magia ocurre. Las automatizaciones son secuencias de emails que se activan solas según el comportamiento del cliente. **Configúralas una vez y funcionan para siempre.**
+Aquí es donde la magia ocurre. Las automatizaciones son notificaciones automáticas por email que se disparan según eventos del negocio o el comportamiento del cliente. Vienen preconfiguradas — no armás secuencias ni las personalizás, se activan solas apenas tenés notificaciones y un email configurados.
 
 ### Las 9 automatizaciones disponibles en MENIUS
 
-| # | Nombre | Trigger | Objetivo |
+| # | Nombre | Trigger | Para quién |
 |---|---|---|---|
-| 1 | Bienvenida | Cliente hace primer pedido | Presentar el restaurante, pedir reseña |
-| 2 | Segundo pedido | 3 días sin volver | Invitar a regresar con oferta |
-| 3 | Reactivación | 30 días sin pedido | Recuperar cliente perdido |
-| 4 | Reconocimiento VIP | Cliente supera X pedidos | Fidelizar y hacer sentir especial |
-| 5 | Recordatorio trial | 7 días antes de vencer | Solo para ti como dueño del restaurante |
-| 6 | Cumpleaños | Día del cumpleaños del cliente | Cupón especial |
-| 7 | Encuesta post-pedido | 2 horas después de entregar | Obtener reseña en Google |
-| 8 | Carrito abandonado | Cliente no completó checkout | Recuperar venta perdida |
-| 9 | Cliente frecuente | Cada 10 pedidos | Recompensar lealtad |
+| 1 | Confirmación de pedido | Cada nuevo pedido | Cliente |
+| 2 | Actualización de estado | Cambio de estado del pedido | Cliente |
+| 3 | Alerta de nuevo pedido | Cada nuevo pedido | Dueño del restaurante |
+| 4 | Bienvenida a nuevos clientes | Cliente hace su primer pedido | Cliente |
+| 5 | Reactivación de inactivos | 30+ días sin ordenar | Cliente |
+| 6 | Solicitud de reseña | 1-2 días después de entregado | Cliente |
+| 7 | Trial por vencer | Quedan 3 días o menos de prueba | Dueño (MENIUS) |
+| 8 | Menú vacío | 2+ días sin productos configurados | Dueño (MENIUS) |
+| 9 | Sin pedidos | Productos configurados pero sin pedidos en 14 días | Dueño (MENIUS) |
 
-### Cómo activarlas
+### Cómo funcionan
 
-1. Ve a **Marketing > Automatizaciones**
-2. Haz clic en la automatización que quieres activar
-3. Revisa el mensaje predeterminado (puedes personalizarlo)
-4. Activa el toggle
-5. Listo — trabaja sola
-
-## Resultados reales
-
-Los restaurantes que usan automatizaciones reportan:
-- **+23% de retención de clientes** en los primeros 3 meses
-- **+18% de ticket promedio** por upsell en emails de seguimiento
-- **-40% de tiempo** dedicado a marketing manual
+1. Ve a **Marketing > Automatizaciones** para ver el estado de cada una (activa o inactiva)
+2. Si están inactivas, revisá que tengas las notificaciones por email habilitadas y un email configurado
+3. No hay toggle ni edición de mensaje — el panel es informativo, las automatizaciones ya corren solas en segundo plano
 
 ## Plan de acción: tu semana 1 con Marketing Hub
 
-**Día 1:** Activa las 3 automatizaciones más importantes: Bienvenida, Reactivación y VIP.
+**Día 1:** Verificá en **Marketing > Automatizaciones** que las notificaciones por email estén habilitadas y con tu dirección configurada — así arrancan a correr Bienvenida, Reactivación y las demás.
 
 **Día 2:** Crea tu primer post con el generador de IA y publícalo en Instagram.
 
 **Día 3:** Diseña tu primera campaña de email con la promoción de la semana.
 
-**Día 5:** Revisa las métricas: aperturas, clics, conversiones.
-
-**Semana 2 en adelante:** Las automatizaciones ya trabajan solas. Solo ajusta y optimiza.
+**Semana 2 en adelante:** Las automatizaciones ya trabajan solas en segundo plano.
 
 ## Conclusión
 
@@ -2629,12 +2607,11 @@ The good news: with the right tools, marketing can work **on its own**.
 
 ## What is the MENIUS Marketing Hub?
 
-The Marketing Hub is a centralized panel inside your MENIUS dashboard that brings all customer communication tools into one place. Four main modules:
+The Marketing Hub is a centralized panel inside your MENIUS dashboard that brings all customer communication tools into one place. Three main modules:
 
 1. **Email Campaigns** — Newsletters and promotions
 2. **Social Media** — AI post generator
-3. **SMS Campaigns** — Direct messages to phones
-4. **Automations** — Sequences that run themselves
+3. **Automations** — Sequences that run themselves
 
 ## Module 1: Email Campaigns
 
@@ -2650,20 +2627,15 @@ Email marketing has the highest ROI of any digital channel: **$42 for every $1 s
 
 Posting consistently on Instagram, Facebook, and TikTok is hard. With MENIUS AI's generator, in 10 seconds you have an optimized caption ready to publish.
 
-## Module 3: SMS Campaigns
+## Module 3: SMS Campaigns (coming soon)
 
-SMS has the highest open rate of any channel: **98% within the first 3 minutes**.
+SMS has the highest open rate of any channel: **98% within the first 3 minutes**. It's not available in MENIUS yet — today the Marketing Hub covers email and social media.
 
-## Module 4: The 9 Automations (the real gold)
+## Module 4: The 9 Automations
 
-Automations are email sequences that trigger automatically based on customer behavior. **Set them up once and they work forever.**
+Automations are automatic email notifications tied to specific events. You don't build or edit sequences — they're pre-built and turn on automatically once notifications and an email address are configured.
 
-The 9 available automations: Welcome, Second visit nudge, Reactivation (30-day lapse), VIP recognition, Trial reminder, Birthday coupon, Post-order survey, Abandoned cart, and Frequent customer reward.
-
-Restaurants using automations report:
-- **+23% customer retention** in the first 3 months
-- **+18% higher average ticket** through email upsells
-- **-40% less time** spent on manual marketing
+The 9 automations: order confirmation, order status updates, new order alert (for the owner), welcome email for new customers, reactivation for customers inactive 30+ days, review request after delivery, trial-expiring reminder (MENIUS to the owner), empty-menu reminder (MENIUS to the owner), and no-orders-in-14-days tips (MENIUS to the owner).
     `,
   },
   {
@@ -3282,7 +3254,7 @@ Si el repartidor abre la app sin internet antes de cargarla, ve una pantalla de 
 - **Cero entregas perdidas** — aunque el repartidor pase por un túnel de 10 minutos
 - **Tracking confiable para tus clientes** — la posición GPS siempre llega cuando hay señal
 - **Sin fricción para tu equipo** — los repartidores no necesitan saber de tecnología, la app funciona sola
-- **Comprobante de entrega offline** — la foto de entrega se sube automáticamente cuando regresa la señal
+- **Acciones que no se pierden** — recoger, marcar en camino y marcar entregado funcionan sin señal y se sincronizan solas cuando vuelve la conexión (la foto de entrega sí requiere conexión para subirse)
 
 ## Conclusión
 
@@ -3342,7 +3314,7 @@ If the driver opens the app without internet before it's cached, they see a clea
 - **Zero lost deliveries** — even if the driver goes through a 10-minute tunnel
 - **Reliable tracking for your customers** — GPS position always arrives when signal returns
 - **No friction for your team** — drivers don't need tech knowledge, the app just works
-- **Offline proof-of-delivery** — the delivery photo uploads automatically when signal returns
+- **Actions that never get lost** — picked up, on the way, and delivered work with no signal and sync automatically once connection returns (the delivery photo still needs a connection to upload)
 
 ## Conclusion
 

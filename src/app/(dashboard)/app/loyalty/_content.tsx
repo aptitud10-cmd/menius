@@ -234,8 +234,7 @@ export default function LoyaltyContent() {
             </div>
           </div>
 
-          {/* Referidos: oculto hasta que exista el flujo de canje del cliente — ver AUDIT_GENERAL.md */}
-          {false && (
+          {/* Referidos: oculto hasta que exista el flujo de canje del cliente — ver AUDIT_GENERAL.md
           <div className="border border-gray-100 rounded-2xl p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -277,7 +276,7 @@ export default function LoyaltyContent() {
               </div>
             )}
           </div>
-          )}
+          */}
 
           <button
             onClick={saveConfig}
