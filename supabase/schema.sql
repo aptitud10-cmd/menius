@@ -154,6 +154,17 @@ CREATE TABLE public.dev_conversations (
   user_id text DEFAULT 'admin'::text
 );
 
+CREATE TABLE public.dev_alerts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  type text NOT NULL DEFAULT 'system'::text,
+  title text NOT NULL,
+  message text NOT NULL DEFAULT ''::text,
+  severity text NOT NULL DEFAULT 'medium'::text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  resolved_at timestamp with time zone
+);
+
 CREATE TABLE public.drivers (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   restaurant_id uuid NOT NULL,

@@ -62,6 +62,17 @@ export async function GET(request: NextRequest) {
     .limit(20);
 
   for (const order of stuckDeliveries ?? []) {
+    // Dedupe: the cron runs repeatedly while the order stays stuck — one open
+    // alert per (order, status) is enough.
+    const { data: existingAlert } = await db
+      .from('dev_alerts')
+      .select('id')
+      .contains('metadata', { orderId: order.id, status: order.status })
+      .is('resolved_at', null)
+      .limit(1)
+      .maybeSingle();
+    if (existingAlert) continue;
+
     const { data: rest } = await db
       .from('restaurants')
       .select('slug, name')

@@ -164,6 +164,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // Enforced server-side too; this is the UX guard so the customer sees why before submitting.
   const dineInOnlyItems = items.filter((i) => i.product.dine_in_only === true);
   const dineInOnlyBlocked = orderType !== 'dine_in' && dineInOnlyItems.length > 0;
+  // Delivery minimum — enforced server-side in /api/orders; this is the UX guard
+  // so the customer finds out here, not after filling the whole form.
+  const deliveryMinOrder = restaurant.delivery_min_order ?? 0;
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -342,12 +345,15 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   }, [step, orderNumber, orderId, paymentMethod, router, slug, trackingToken]);
 
 
+  const belowDeliveryMin = orderType === 'delivery' && deliveryMinOrder > 0 && cartTotal < deliveryMinOrder;
+
   // Reactive form validation — drives CTA disabled state
   const isFormReady = Boolean(
     customerName.trim().length >= 2 &&
     customerPhone.trim().length >= 7 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) &&
-    (orderType !== 'delivery' || deliveryAddress.trim().length > 0)
+    (orderType !== 'delivery' || deliveryAddress.trim().length > 0) &&
+    !belowDeliveryMin
   );
 
   const promoDiscount = promoResult?.valid ? promoResult.discount : 0;
@@ -1653,6 +1659,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+            {belowDeliveryMin && (
+              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3.5">
+                <p className="text-[13px] font-medium text-amber-900">
+                  {t.deliveryMinimum}: <strong>{fmtPrice(deliveryMinOrder)}</strong>
+                  {' — '}{t.deliveryMinimumMissing} {fmtPrice(Math.max(0, deliveryMinOrder - cartTotal))}
+                </p>
               </div>
             )}
             {orderType === 'delivery' && (

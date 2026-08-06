@@ -154,15 +154,19 @@ export async function POST(request: NextRequest) {
     const delivery_address = sanitizeMultiline(body.delivery_address, 300);
     // Destination coords from the checkout's Places selection. Optional — manual
     // (non-autocomplete) addresses arrive without them and skip the radius check.
-    const deliveryLatNum = Number(body.delivery_lat);
-    const deliveryLngNum = Number(body.delivery_lng);
+    // typeof guard first: Number(null) is 0, which would silently become a valid
+    // coordinate (0,0) and falsely reject the order as out of range.
     const deliveryLat =
-      Number.isFinite(deliveryLatNum) && Math.abs(deliveryLatNum) <= 90
-        ? deliveryLatNum
+      typeof body.delivery_lat === "number" &&
+      Number.isFinite(body.delivery_lat) &&
+      Math.abs(body.delivery_lat) <= 90
+        ? body.delivery_lat
         : null;
     const deliveryLng =
-      Number.isFinite(deliveryLngNum) && Math.abs(deliveryLngNum) <= 180
-        ? deliveryLngNum
+      typeof body.delivery_lng === "number" &&
+      Number.isFinite(body.delivery_lng) &&
+      Math.abs(body.delivery_lng) <= 180
+        ? body.delivery_lng
         : null;
     const table_name = sanitizeText(body.table_name, 50);
 
@@ -666,12 +670,6 @@ export async function POST(request: NextRequest) {
       item.line_total = expectedUnitPrice * item.qty;
     }
 
-    const { data: orderNum } = await supabase.rpc("generate_order_number", {
-      rest_id: restaurant_id,
-    });
-    const orderNumber =
-      orderNum ?? `ORD-${Date.now().toString(36).toUpperCase()}`;
-
     const serverDeliveryFee = Number(restaurant.delivery_fee) || 0;
     const rawTip = Math.max(0, Number(parsed.data.tip_amount) || 0);
     const subtotal = parsed.data.items.reduce(
@@ -679,7 +677,8 @@ export async function POST(request: NextRequest) {
       0,
     );
 
-    // Delivery minimum order — checked against the server-recomputed subtotal
+    // Delivery minimum order — checked against the server-recomputed subtotal,
+    // BEFORE generate_order_number so rejections don't burn sequence numbers.
     const minOrder = Number(restaurant.delivery_min_order) || 0;
     if (parsed.data.order_type === "delivery" && minOrder > 0 && subtotal < minOrder) {
       const minFormatted = formatPrice(minOrder, restaurant.currency ?? "MXN");
@@ -692,6 +691,12 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    const { data: orderNum } = await supabase.rpc("generate_order_number", {
+      rest_id: restaurant_id,
+    });
+    const orderNumber =
+      orderNum ?? `ORD-${Date.now().toString(36).toUpperCase()}`;
 
     let discountAmt = 0;
     if (promo_code) {

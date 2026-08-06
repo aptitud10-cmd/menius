@@ -450,35 +450,19 @@ export function CartPanel({
           </div>
         )}
 
-        {/* Price breakdown — only show rows when there's more than subtotal */}
+        {/* The order type is chosen at checkout, so the fee is never added to
+            the cart total here (it was misleading for pickup/dine-in customers).
+            fee > 0 → hint line under the total, NOT a summable-looking row.
+            fee === 0 → keep the "free delivery" marketing badge. */}
         {deliveryFee != null && deliveryFee >= 0 ? (
-          <div className="space-y-1 mb-3">
+          <div className="mb-3">
+            {deliveryFee === 0 && (
+              <div className="flex justify-between items-baseline mb-1">
+                <span className="text-xs text-gray-500">{t.delivery}</span>
+                <span className="text-xs font-semibold text-[#05c8a7]">{t.freeDelivery}</span>
+              </div>
+            )}
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-gray-500">{t.subtotal}</span>
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={cartTotal}
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.15 }}
-                  className="text-xs font-semibold text-gray-600 tabular-nums"
-                >
-                  {fmtPrice(cartTotal)}
-                </motion.span>
-              </AnimatePresence>
-            </div>
-            {/* Informational only — the order type is chosen at checkout, so the
-                fee is never added to the cart total here (it was misleading for
-                pickup/dine-in customers). The checkout computes the real total. */}
-            <div className="flex justify-between items-baseline">
-              <span className="text-xs text-gray-500">{deliveryFee > 0 ? t.deliveryIfSelected : t.delivery}</span>
-              {deliveryFee > 0
-                ? <span className="text-xs font-semibold text-gray-600 tabular-nums">+{fmtPrice(deliveryFee)}</span>
-                : <span className="text-xs font-semibold text-[#05c8a7]">{t.freeDelivery}</span>
-              }
-            </div>
-            <div className="flex justify-between items-baseline border-t border-gray-100 pt-1.5 mt-1">
               <span className="text-sm font-bold text-gray-900">{t.total}</span>
               <AnimatePresence mode="wait">
                 <motion.span
@@ -493,6 +477,11 @@ export function CartPanel({
                 </motion.span>
               </AnimatePresence>
             </div>
+            {deliveryFee > 0 && (
+              <p className="text-[11px] text-gray-400 mt-1 text-right">
+                {t.deliveryIfSelected}: +{fmtPrice(deliveryFee)}
+              </p>
+            )}
           </div>
         ) : (
           <div className="flex justify-between items-baseline mb-3">

@@ -3032,7 +3032,7 @@ export function MenuShell({
                   estimatedMinutes={
                     restaurant.estimated_delivery_minutes ?? undefined
                   }
-                  deliveryFee={restaurant.delivery_fee ?? undefined}
+                  deliveryFee={restaurant.order_types_enabled?.includes('delivery') ? (restaurant.delivery_fee ?? undefined) : undefined}
                   lastOrder={
                     lastOrder?.restaurantId === restaurant.id ? lastOrder : null
                   }
@@ -3212,7 +3212,7 @@ export function MenuShell({
                     estimatedMinutes={
                       restaurant.estimated_delivery_minutes ?? undefined
                     }
-                    deliveryFee={restaurant.delivery_fee ?? undefined}
+                    deliveryFee={restaurant.order_types_enabled?.includes('delivery') ? (restaurant.delivery_fee ?? undefined) : undefined}
                     lastOrder={
                       lastOrder?.restaurantId === restaurant.id
                         ? lastOrder

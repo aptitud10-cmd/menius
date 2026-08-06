@@ -132,6 +132,8 @@ export interface Translations {
   peopleAlsoOrder: string;
   freeDelivery: string;
   deliveryIfSelected: string;
+  deliveryMinimum: string;
+  deliveryMinimumMissing: string;
   // Product sheet
   maxReached: string;
   added: string;
@@ -493,6 +495,8 @@ const es: Translations = {
   peopleAlsoOrder: 'También piden con esto',
   freeDelivery: 'Gratis',
   deliveryIfSelected: 'Envío (si eliges domicilio)',
+  deliveryMinimum: 'Pedido mínimo para domicilio',
+  deliveryMinimumMissing: 'Te falta agregar',
   maxReached: 'Máximo alcanzado',
   added: '✓ Agregado',
   updateItem: 'Actualizar',
@@ -837,6 +841,8 @@ const en: Translations = {
   peopleAlsoOrder: 'People also order',
   freeDelivery: 'Free',
   deliveryIfSelected: 'Delivery (if selected)',
+  deliveryMinimum: 'Minimum order for delivery',
+  deliveryMinimumMissing: 'Add',
   maxReached: 'Max reached',
   added: '✓ Added',
   updateItem: 'Update',

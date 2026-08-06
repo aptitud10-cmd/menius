@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
     .select(
-      "id, status, order_type, customer_phone, customer_name, customer_email, customer_locale, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, restaurants(name, locale, slug, currency)",
+      "id, status, order_type, customer_phone, customer_name, customer_email, customer_locale, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, restaurants(name, locale, slug, currency, notifications_enabled)",
     )
     .eq("driver_tracking_token", token)
     .maybeSingle();
@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
     locale: string | null;
     slug: string;
     currency: string | null;
+    notifications_enabled: boolean | null;
   };
   const rawRest = (order as any).restaurants as RestRow[] | RestRow | null;
   const restaurant: RestRow | null = Array.isArray(rawRest)
@@ -235,7 +236,15 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      if (action === "at_door" && restaurant) {
+      // Only the FIRST at_door (the endpoint is token-public and overwrites the
+      // timestamp on retries), and only if the restaurant has notifications on
+      // (notifyStatusChange checks this internally; this direct path must too).
+      if (
+        action === "at_door" &&
+        restaurant &&
+        restaurant.notifications_enabled !== false &&
+        !(order as any).driver_at_door_at
+      ) {
         import("@/lib/notifications/push")
           .then(({ sendPushToOrder, sendExpoPushToCustomerByPhone, getStatusPushPayload }) => {
             const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";

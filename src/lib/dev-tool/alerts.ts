@@ -14,12 +14,20 @@ interface AlertPayload {
 export async function createAlert(payload: AlertPayload): Promise<void> {
   try {
     const db = createAdminClient();
+    // Callers pass context via `data`/`store_slug` — fold them into metadata
+    // (the table has no dedicated columns for them; before this they were
+    // silently dropped).
+    const metadata: Record<string, unknown> = {
+      ...((payload.data as Record<string, unknown> | undefined) ?? {}),
+      ...(payload.store_slug ? { store_slug: payload.store_slug } : {}),
+      ...(payload.metadata ?? {}),
+    };
     await db.from('dev_alerts').insert({
       type: payload.type ?? payload.source ?? 'system',
       title: payload.title,
       message: payload.message ?? payload.description ?? '',
       severity: payload.severity ?? 'medium',
-      metadata: payload.metadata ?? {},
+      metadata,
       created_at: new Date().toISOString(),
     });
   } catch {
