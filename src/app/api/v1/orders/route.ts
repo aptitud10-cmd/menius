@@ -20,7 +20,15 @@ import { validateApiKey } from '@/lib/auth/validate-api-key';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 
-const VALID_STATUSES = ['pending', 'accepted', 'preparing', 'ready', 'delivering', 'delivered', 'completed', 'cancelled'] as const;
+// Mirrors the DB CHECK constraint (migration-new-order-statuses.sql) — these are
+// the only values that exist in orders.status.
+const VALID_STATUSES = ['pending', 'confirmed', 'preparing', 'almost_ready', 'ready', 'out_for_delivery', 'served', 'delivered', 'completed', 'cancelled'] as const;
+// Backwards-compat aliases from the original v1 docs — mapped to real statuses
+// so existing integrations keep working.
+const STATUS_ALIASES: Record<string, string> = {
+  accepted: 'confirmed',
+  delivering: 'out_for_delivery',
+};
 
 export async function GET(req: NextRequest) {
   // Rate limit per IP before auth (prevents key enumeration)
@@ -37,7 +45,8 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = req.nextUrl;
-  const statusFilter = searchParams.get('status');
+  const rawStatus = searchParams.get('status');
+  const statusFilter = rawStatus ? (STATUS_ALIASES[rawStatus] ?? rawStatus) : rawStatus;
   const rawLimit = parseInt(searchParams.get('limit') ?? '', 10);
   const rawPage = parseInt(searchParams.get('page') ?? '', 10);
   const limit = Math.min(200, Math.max(1, isNaN(rawLimit) ? 50 : rawLimit));
@@ -64,7 +73,6 @@ export async function GET(req: NextRequest) {
       order_type,
       payment_method,
       payment_status,
-      subtotal,
       tax_amount,
       tip_amount,
       delivery_fee,
