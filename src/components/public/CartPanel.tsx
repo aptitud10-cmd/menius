@@ -468,8 +468,11 @@ export function CartPanel({
                 </motion.span>
               </AnimatePresence>
             </div>
+            {/* Informational only — the order type is chosen at checkout, so the
+                fee is never added to the cart total here (it was misleading for
+                pickup/dine-in customers). The checkout computes the real total. */}
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-gray-500">{t.delivery}</span>
+              <span className="text-xs text-gray-500">{deliveryFee > 0 ? t.deliveryIfSelected : t.delivery}</span>
               {deliveryFee > 0
                 ? <span className="text-xs font-semibold text-gray-600 tabular-nums">+{fmtPrice(deliveryFee)}</span>
                 : <span className="text-xs font-semibold text-[#05c8a7]">{t.freeDelivery}</span>
@@ -479,14 +482,14 @@ export function CartPanel({
               <span className="text-sm font-bold text-gray-900">{t.total}</span>
               <AnimatePresence mode="wait">
                 <motion.span
-                  key={cartTotal + (deliveryFee ?? 0)}
+                  key={cartTotal}
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
                   transition={{ duration: 0.15 }}
                   className="text-lg font-extrabold text-gray-900 tabular-nums"
                 >
-                  {fmtPrice(cartTotal + (deliveryFee > 0 ? deliveryFee : 0))}
+                  {fmtPrice(cartTotal)}
                 </motion.span>
               </AnimatePresence>
             </div>
@@ -524,7 +527,7 @@ export function CartPanel({
               transition={{ duration: 0.15 }}
               className="tabular-nums"
             >
-              {fmtPrice(cartTotal + (deliveryFee && deliveryFee > 0 ? deliveryFee : 0))}
+              {fmtPrice(cartTotal)}
             </motion.span>
           </AnimatePresence>
         </motion.button>

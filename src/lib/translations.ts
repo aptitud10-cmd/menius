@@ -131,6 +131,7 @@ export interface Translations {
   youMayAlsoLike: string;
   peopleAlsoOrder: string;
   freeDelivery: string;
+  deliveryIfSelected: string;
   // Product sheet
   maxReached: string;
   added: string;
@@ -491,6 +492,7 @@ const es: Translations = {
   youMayAlsoLike: 'También te puede gustar',
   peopleAlsoOrder: 'También piden con esto',
   freeDelivery: 'Gratis',
+  deliveryIfSelected: 'Envío (si eliges domicilio)',
   maxReached: 'Máximo alcanzado',
   added: '✓ Agregado',
   updateItem: 'Actualizar',
@@ -834,6 +836,7 @@ const en: Translations = {
   youMayAlsoLike: 'You may also like',
   peopleAlsoOrder: 'People also order',
   freeDelivery: 'Free',
+  deliveryIfSelected: 'Delivery (if selected)',
   maxReached: 'Max reached',
   added: '✓ Added',
   updateItem: 'Update',
