@@ -23,7 +23,7 @@ interface RestaurantDetail {
   subscription: {
     plan_id: string; status: string; trial_end: string | null;
     stripe_customer_id: string | null; current_period_end: string | null;
-    cancel_at_period_end: boolean;
+    cancel_at: string | null;
   } | null;
   stats: {
     totalOrders: number; ordersThisMonth: number; ordersThisWeek: number;
@@ -339,7 +339,7 @@ export default function RestaurantDetailPage() {
                   </span>
                 </div>
               )}
-              {subscription?.cancel_at_period_end && (
+              {subscription?.cancel_at && (
                 <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-400">
                   <AlertTriangle className="w-3 h-3" /> Cancelación programada
                 </div>
@@ -395,7 +395,7 @@ export default function RestaurantDetailPage() {
         </div>
 
         {/* ── Alerts ──────────────────────────────────────────────────── */}
-        {(atRisk || trialDaysLeft !== null && trialDaysLeft <= 3 || subscription?.status === 'past_due' || subscription?.cancel_at_period_end) && (
+        {(atRisk || trialDaysLeft !== null && trialDaysLeft <= 3 || subscription?.status === 'past_due' || subscription?.cancel_at) && (
           <div className="space-y-2">
             {atRisk && (
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300">
@@ -415,10 +415,10 @@ export default function RestaurantDetailPage() {
                 Pago vencido — revisar en Stripe
               </div>
             )}
-            {subscription?.cancel_at_period_end && (
+            {subscription?.cancel_at && (
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                Cancelación programada al final del período
+                Cancelación programada: {new Date(subscription.cancel_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
               </div>
             )}
           </div>

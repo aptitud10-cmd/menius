@@ -70,8 +70,12 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
     setError('');
     setLoading(true);
     try {
+      // Tracking token saved by the order page (OrderTracker) — proves ownership
+      // to the API, which otherwise degrades the payload (no images/tags/payment).
+      let token = '';
+      try { token = localStorage.getItem(`menius-track-token-${restaurantSlug}`) ?? ''; } catch {}
       const res = await fetch(
-        `/api/orders/history?restaurant_id=${encodeURIComponent(restaurantId)}&email=${encodeURIComponent(trimmed)}`
+        `/api/orders/history?restaurant_id=${encodeURIComponent(restaurantId)}&email=${encodeURIComponent(trimmed)}${token ? `&t=${encodeURIComponent(token)}` : ''}`
       );
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? t.orderConnectionError); return; }

@@ -22,6 +22,10 @@
  *   - driver/location route (GPS coordinates — triggers map refresh)
  *   - cron/auto-complete-pickup
  */
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('broadcast-order');
+
 export async function broadcastOrderUpdate(
   orderId: string,
   status: string,
@@ -52,7 +56,7 @@ export async function broadcastOrderUpdate(
     // Without this check a rotated key / API change kills realtime silently and
     // the 5s polling masks it forever — degrade visibly, not invisibly.
     if (!res.ok) {
-      console.warn(`[broadcast-order] status_change broadcast failed: HTTP ${res.status}`);
+      logger.warn('status_change broadcast failed', { orderId, status: res.status });
     }
   } catch {
     // Non-critical — the 5-second polling fallback in OrderTracker covers it.
@@ -95,7 +99,7 @@ export async function broadcastDriverLocation(
       }),
     });
     if (!res.ok) {
-      console.warn(`[broadcast-order] location_update broadcast failed: HTTP ${res.status}`);
+      logger.warn('location_update broadcast failed', { orderId, status: res.status });
     }
   } catch {
     // Non-critical — polling fallback covers missed packets.

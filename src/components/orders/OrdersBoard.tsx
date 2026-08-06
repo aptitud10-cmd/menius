@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect, useCallback, useMemo } from 'react';
+import { useState, useTransition, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   Clock, ChefHat, CheckCircle, Package, XCircle, User, ArrowRight, Bell,
@@ -13,6 +13,7 @@ import { updateOrderStatus } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useLeaderTab } from '@/hooks/use-leader-tab';
 import { OrderReceipt } from './OrderReceipt';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { DashboardTranslations } from '@/lib/dashboard-translations';
@@ -121,22 +122,29 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
 
   const [statusError, setStatusError] = useState<string | null>(null);
 
+  // Only the leader tab notifies/prints; visual highlights stay per-tab.
+  const isLeader = useLeaderTab(`menius-board-leader:${restaurantId}`);
+  const isLeaderRef = useRef(isLeader);
+  isLeaderRef.current = isLeader;
+
   const { orders, updateOrderLocally, rtStatus } = useRealtimeOrders({
     restaurantId,
     initialOrders,
     onNewOrder: useCallback((order: Order) => {
-      const total = formatPrice(Number(order.total), currency);
-      notifyNewOrder(order.order_number, total);
+      if (isLeaderRef.current) {
+        const total = formatPrice(Number(order.total), currency);
+        notifyNewOrder(order.order_number, total);
+        if (localStorage.getItem('menius-auto-print') === 'true') {
+          import('./OrderReceipt').then(({ quickPrintOrder }) => {
+            quickPrintOrder(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale);
+          });
+        }
+      }
       setNewOrderIds((prev) => new Set(Array.from(prev).concat(order.id)));
       setMobileTab('pending');
       setTimeout(() => {
         setNewOrderIds((prev) => { const next = new Set(prev); next.delete(order.id); return next; });
       }, 12000);
-      if (localStorage.getItem('menius-auto-print') === 'true') {
-        import('./OrderReceipt').then(({ quickPrintOrder }) => {
-          quickPrintOrder(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale);
-        });
-      }
     }, [currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress, taxLabel, taxIncluded, locale]),
   });
 
@@ -207,7 +215,13 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       if (result?.error) {
         // Revert optimistic update on failure
         if (prevOrder) updateOrderLocally(orderId, { status: prevOrder.status });
-        setStatusError(result.error);
+        // Map internal sentinels to operator-readable messages
+        const msg = result.error === 'PAID_ORDER_NEEDS_REFUND'
+          ? (locale === 'en'
+            ? 'This order is paid — cancel it from Counter to refund the customer'
+            : 'Esta orden está pagada — cancelala desde Counter para reembolsar al cliente')
+          : result.error;
+        setStatusError(msg);
         setTimeout(() => setStatusError(null), 4000);
       }
     });

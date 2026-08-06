@@ -198,7 +198,15 @@ export async function POST(req: NextRequest) {
     const expectedAmount = Number(order.total);
     const receivedAmount = Number(payment.transaction_amount ?? 0);
     if (Math.abs(receivedAmount - expectedAmount) > 0.01) {
+      // A mismatch is money charged with no order marked paid — someone must
+      // find out, not just a log line.
       logger.warn("MP amount mismatch — rejecting", {
+        orderId: order.id,
+        expected: expectedAmount,
+        received: receivedAmount,
+      });
+      captureError(new Error("MP amount mismatch — order left unpaid"), {
+        route: "/api/payments/mercadopago-webhook",
         orderId: order.id,
         expected: expectedAmount,
         received: receivedAmount,

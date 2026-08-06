@@ -6,14 +6,15 @@ import {
   Printer, CheckCircle, Package, Clock, Check,
   ArrowRight, XCircle, X, Search, Wifi, WifiOff, Volume2, VolumeX,
   Pause, Utensils, ShoppingBag, Truck,
-  CreditCard, Banknote, Phone, StickyNote, ChevronDown, ChevronUp,
+  CreditCard, Banknote, Phone, ChevronDown, ChevronUp,
   Undo2, AlertTriangle, User, MapPin, History, LogOut,
-  Hash, MessageSquare, PhoneCall, Send, Loader2,
+  Hash, MessageSquare, PhoneCall,
 } from 'lucide-react';
 import { updateOrderStatus, undoOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useLeaderTab } from '@/hooks/use-leader-tab';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { OrderReceipt } from './OrderReceipt';
 import type { Order, OrderStatus } from '@/types';
@@ -163,16 +164,22 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
   /* Notifications & realtime */
   const { soundEnabled, setSoundEnabled, notifyNewOrder, updateTabTitle, playSound } = useNotifications({ defaultTitle: 'KDS — MENIUS' });
+  // Only the leader tab notifies/prints; visual highlights stay per-tab.
+  const isLeader = useLeaderTab(`menius-kds-leader:${restaurantId}`);
+  const isLeaderRef = useRef(isLeader);
+  isLeaderRef.current = isLeader;
   const localRef = useRef<(id: string, u: Partial<Order>) => void>(() => {});
   const { orders, updateOrderLocally } = useRealtimeOrders({
     restaurantId, initialOrders,
     onNewOrder: useCallback((o: Order) => {
-      notifyNewOrder(o.order_number, formatPrice(Number(o.total), currency), o.order_type ?? undefined);
+      if (isLeaderRef.current) {
+        notifyNewOrder(o.order_number, formatPrice(Number(o.total), currency), o.order_type ?? undefined);
+        if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale));
+      }
       setNewIds(p => { const n = new Set(p); n.add(o.id); return n; });
       setTimeout(() => setNewIds(p => { const n = new Set(p); n.delete(o.id); return n; }), 8000);
       setOverlayCount(c => c + 1);
       setShowOverlay(true);
-      if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale));
     }, [autoPrint, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress, taxLabel, taxIncluded, locale]),
   });
   localRef.current = updateOrderLocally;
@@ -237,6 +244,11 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   useEffect(() => { updateTabTitle(active.length); }, [active.length, updateTabTitle]);
 
   /* Actions */
+  // updateOrderStatus returns internal sentinels (e.g. PAID_ORDER_NEEDS_REFUND);
+  // never show them raw to the operator.
+  const friendlyStatusError = useCallback((e: string) => e === 'PAID_ORDER_NEEDS_REFUND'
+    ? (isEn ? 'This order is paid — cancel it from Counter to refund the customer' : 'Esta orden está pagada — cancelala desde Counter para reembolsar al cliente')
+    : e, [isEn]);
   const bump = useCallback(async (id: string, next: OrderStatus) => {
     const o = orders.find(x => x.id === id); if (!o) return;
     updateOrderLocally(id, { status: next });
@@ -244,7 +256,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       const result = await updateOrderStatus(id, next);
       if (result?.error) {
         updateOrderLocally(id, { status: o.status });
-        setOosToast({ msg: result.error, ok: false });
+        setOosToast({ msg: friendlyStatusError(result.error), ok: false });
         setTimeout(() => setOosToast(null), 4000);
         return;
       }
@@ -255,7 +267,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     if (undoRef.current) clearTimeout(undoRef.current);
     setUndo({ orderId: id, num: o.order_number, prev: o.status, next, ts: Date.now() });
     undoRef.current = setTimeout(() => setUndo(null), 5000);
-  }, [orders, updateOrderLocally, playSound]);
+  }, [orders, updateOrderLocally, playSound, friendlyStatusError]);
 
   const doUndo = useCallback(async () => {
     if (!undo) return;
@@ -267,10 +279,10 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     const result = await undoOrderStatus(orderId, prev);
     if (result?.error) {
       updateOrderLocally(orderId, { status: next });
-      setOosToast({ msg: result.error, ok: false });
+      setOosToast({ msg: friendlyStatusError(result.error), ok: false });
       setTimeout(() => setOosToast(null), 4000);
     }
-  }, [undo, updateOrderLocally]);
+  }, [undo, updateOrderLocally, friendlyStatusError]);
 
   const doPause = () => {
     let ms = pauseOpt * 60000;
@@ -285,10 +297,10 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     const result = await updateOrderStatus(id, 'ready');
     if (result?.error) {
       updateOrderLocally(id, { status: 'delivered' });
-      setOosToast({ msg: result.error, ok: false });
+      setOosToast({ msg: friendlyStatusError(result.error), ok: false });
       setTimeout(() => setOosToast(null), 4000);
     }
-  }, [updateOrderLocally]);
+  }, [updateOrderLocally, friendlyStatusError]);
 
   /* Keyboard shortcuts */
   useEffect(() => {
@@ -987,144 +999,5 @@ function HRow({ order, currency, open, onToggle, onPrint, onRecall }: {
         <button onClick={onToggle} className="p-3 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 touch-manipulation" title={t.kds_collapse}><ChevronUp className="w-5 h-5" /></button>
       </div>
     </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   SMS Quick Send — send predefined messages without leaving KDS
-   ══════════════════════════════════════════════════════════════════════ */
-
-const SMS_TEMPLATES = [
-  { id: 'ready', label: '✅ Tu orden está lista', msg: 'Tu orden #{order} está lista para recoger. ¡Te esperamos!' },
-  { id: 'preparing', label: '👨‍🍳 Estamos preparando', msg: 'Tu orden #{order} se está preparando. Tiempo estimado: ~15 min.' },
-  { id: 'delay', label: '⏰ Demora', msg: 'Tu orden #{order} tiene un pequeño retraso. Gracias por tu paciencia, estará lista pronto.' },
-  { id: 'arrive', label: '🏪 Ya puedes pasar', msg: 'Tu orden #{order} te espera. Ya puedes pasar a recogerla.' },
-  { id: 'thanks', label: '🙏 Gracias', msg: '¡Gracias por tu compra! Esperamos verte pronto. - #{restaurant}' },
-];
-
-function SMSQuickSend({ order, restaurantName, onClose }: { order: Order; restaurantName: string; onClose: () => void }) {
-  const { t } = useDashboardLocale();
-  const smsLabels: Record<string, string> = {
-    ready: t.kds_smsReadyLabel, preparing: t.kds_smsPreparingLabel,
-    delay: t.kds_smsDelayLabel, arrive: t.kds_smsArriveLabel, thanks: t.kds_smsThanksLabel,
-  };
-  const [sending, setSending] = useState<string | null>(null);
-  const [sent, setSent] = useState<Set<string>>(new Set());
-  const [error, setError] = useState('');
-  const [custom, setCustom] = useState('');
-  const [showCustom, setShowCustom] = useState(false);
-
-  const send = async (templateId: string, rawMsg: string) => {
-    if (!order.customer_phone) return;
-    setSending(templateId);
-    setError('');
-    const message = `[${restaurantName}] ${rawMsg
-      .replace('#{order}', order.order_number)
-      .replace('#{restaurant}', restaurantName)}`;
-    try {
-      const res = await fetch('/api/orders/sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: order.customer_phone, message }),
-      });
-      if (res.ok) {
-        setSent(p => { const n = new Set(p); n.add(templateId); return n; });
-      } else {
-        const d = await res.json().catch(() => ({}));
-        setError(d.error || t.kds_sendError);
-      }
-    } catch {
-      setError(t.kds_connError);
-    }
-    setSending(null);
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/70 z-50" onClick={onClose} />
-      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-gray-900 border border-gray-700 rounded-2xl z-50 shadow-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-white">{t.kds_sendSms}</h2>
-            <p className="text-xs text-gray-500">#{order.order_number} · {order.customer_name || order.customer_phone}</p>
-          </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
-        </div>
-
-        <div className="p-3 space-y-1.5 max-h-[50vh] overflow-y-auto">
-          {SMS_TEMPLATES.map(tmpl => (
-            <button
-              key={tmpl.id}
-              onClick={() => send(tmpl.id, tmpl.msg)}
-              disabled={sending !== null}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all touch-manipulation',
-                sent.has(tmpl.id)
-                  ? 'bg-emerald-500/15 border border-emerald-500/30'
-                  : 'bg-gray-800 border border-gray-700/50 hover:bg-gray-750 hover:border-gray-600',
-                sending === tmpl.id && 'opacity-70'
-              )}
-            >
-              <span className="flex-1">
-                <span className="text-sm font-medium text-white block">{smsLabels[tmpl.id] ?? tmpl.label}</span>
-                <span className="text-[11px] text-gray-500 block mt-0.5">{tmpl.msg.replace('#{order}', order.order_number).replace('#{restaurant}', restaurantName)}</span>
-              </span>
-              {sending === tmpl.id ? (
-                <Loader2 className="w-4 h-4 text-gray-400 animate-spin flex-shrink-0" />
-              ) : sent.has(tmpl.id) ? (
-                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              ) : (
-                <Send className="w-4 h-4 text-gray-500 flex-shrink-0" />
-              )}
-            </button>
-          ))}
-
-          {/* Custom message */}
-          {showCustom ? (
-            <div className="space-y-2 pt-1">
-              <textarea
-                value={custom}
-                onChange={e => setCustom(e.target.value)}
-                placeholder={t.kds_customMsgPlaceholder}
-                rows={2}
-                maxLength={300}
-                className="w-full px-3 py-2.5 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 resize-none"
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <button onClick={() => setShowCustom(false)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800">{t.general_cancel}</button>
-                <button
-                  onClick={() => custom.trim() && send('custom', custom.trim())}
-                  disabled={!custom.trim() || sending !== null}
-                  className="flex-1 py-2 rounded-lg bg-violet-600 text-white text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-1.5"
-                >
-                  {sending === 'custom' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  {t.kds_send}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowCustom(true)}
-              className="w-full py-2.5 rounded-xl border border-dashed border-gray-700 text-sm text-gray-500 hover:text-gray-300 hover:border-gray-500 transition-colors"
-            >
-              {t.kds_customMsg}
-            </button>
-          )}
-        </div>
-
-        {error && (
-          <div className="px-4 py-2 bg-red-500/10 border-t border-red-500/20">
-            <p className="text-xs text-red-400">{error}</p>
-          </div>
-        )}
-
-        {sent.size > 0 && (
-          <div className="px-4 py-2 bg-emerald-500/10 border-t border-emerald-500/20">
-            <p className="text-xs text-emerald-400">{sent.size} {sent.size !== 1 ? t.kds_msgsSent : t.kds_msgSent}</p>
-          </div>
-        )}
-      </div>
-    </>
   );
 }

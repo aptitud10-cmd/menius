@@ -526,6 +526,9 @@ CREATE TABLE public.promotions (
   created_at timestamp with time zone DEFAULT now()
 );
 
+-- Indices unicos verificados en prod (2026-08-06, pg_constraint):
+--   push_subscriptions_endpoint_key UNIQUE (endpoint)  <- usado por onConflict en /api/push/subscribe
+--   push_subscriptions_order_endpoint UNIQUE (order_id, endpoint)
 CREATE TABLE public.push_subscriptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   endpoint text NOT NULL,

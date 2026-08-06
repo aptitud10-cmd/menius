@@ -1583,7 +1583,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         </Link>
 
         {/* Save order to local history */}
-        <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} />
+        <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} trackingToken={trackingToken} />
       </div>
     </div>
   );
@@ -1889,7 +1889,7 @@ function OrderSuccessRedirect({ restaurantSlug, locale }: { restaurantSlug: stri
   );
 }
 
-function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, currency }: { order: any; restaurantSlug: string; restaurantName: string; locale?: string; currency?: string }) {
+function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, currency, trackingToken }: { order: any; restaurantSlug: string; restaurantName: string; locale?: string; currency?: string; trackingToken?: string | null }) {
   const t = getT(locale);
   const displayCurrency = currency ?? 'MXN';
   const dateLocale = locale === 'en' ? 'en-US' : 'es-MX';
@@ -1907,8 +1907,15 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, curr
         history.unshift({ id: order.id, number: order.order_number, status: order.status, total: order.total, date: order.created_at, items: order.order_items?.length ?? 0 });
       }
       localStorage.setItem(key, JSON.stringify(history.slice(0, 20)));
+      // Keep the latest tracking token so "Mis pedidos" can prove ownership to
+      // /api/orders/history (which authorizes against the most recent order's
+      // token) and get the full payload (images, dietary tags, payment method).
+      // The server re-validates it, so persisting an unverified token is harmless.
+      if (trackingToken) {
+        localStorage.setItem(`menius-track-token-${restaurantSlug}`, trackingToken);
+      }
     } catch {}
-  }, [order, restaurantSlug]);
+  }, [order, restaurantSlug, trackingToken]);
 
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);

@@ -2,15 +2,16 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('api:branches');
 
-/** "Hasta 3 sucursales incluidas" en Business (src/lib/plans.ts) — cuenta el
- * restaurante principal + sucursales, igual que lo que el GET ya lista. */
-const MAX_BRANCHES_PER_OWNER = 3;
+/** "Hasta 3 sucursales incluidas" en Business (src/lib/plans.ts) se refiere a
+ * sucursales ADICIONALES al restaurante principal → tope de 4 filas por owner. */
+const MAX_ADDITIONAL_BRANCHES = 3;
 
 export async function GET() {
   try {
@@ -70,23 +71,26 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = await createClient();
+    // Admin client for the limit/uniqueness checks: RLS could hide rows
+    // (undercount → limit not enforced; hidden slug → 500 en vez de 409).
+    const adminDb = createAdminClient();
 
-    // Enforce the plan limit: same count the GET lists (all restaurants owned by this user).
-    const { count: branchCount, error: countErr } = await supabase
+    // Enforce the plan limit: principal + up to 3 additional branches.
+    const { count: ownedCount, error: countErr } = await adminDb
       .from('restaurants')
       .select('id', { count: 'exact', head: true })
       .eq('owner_user_id', tenant.userId);
 
     if (countErr) return NextResponse.json({ error: countErr.message }, { status: 500 });
-    if ((branchCount ?? 0) >= MAX_BRANCHES_PER_OWNER) {
+    if ((ownedCount ?? 0) >= 1 + MAX_ADDITIONAL_BRANCHES) {
       return NextResponse.json(
-        { error: 'Tu plan incluye hasta 3 sucursales' },
+        { error: 'Tu plan incluye hasta 3 sucursales además del restaurante principal' },
         { status: 403 },
       );
     }
 
     // Check slug uniqueness
-    const { data: existing } = await supabase
+    const { data: existing } = await adminDb
       .from('restaurants')
       .select('id')
       .eq('slug', normalizedSlug)

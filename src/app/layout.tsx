@@ -206,6 +206,10 @@ function ServiceWorkerRegister() {
       dangerouslySetInnerHTML={{
         __html: `
           if ('serviceWorker' in navigator) {
+            // Captured BEFORE register: on a first visit the fresh SW's
+            // clients.claim() fires controllerchange on this same page — that
+            // is not a deploy, so it must not trigger a reload.
+            var hadController = !!navigator.serviceWorker.controller;
             window.addEventListener('load', function() {
               navigator.serviceWorker.register('/sw.js');
             });
@@ -215,7 +219,7 @@ function ServiceWorkerRegister() {
             // on all-day KDS/Counter tablets). Guard avoids reload loops.
             var reloaded = false;
             navigator.serviceWorker.addEventListener('controllerchange', function() {
-              if (reloaded) return;
+              if (!hadController || reloaded) return;
               reloaded = true;
               window.location.reload();
             });
