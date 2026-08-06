@@ -27,7 +27,9 @@ ALTER TABLE orders
 
 ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "shifts_owner" ON shifts
+-- APLICADA A PROD 2026-08-06 vía MCP (con CREATE POLICY sin IF NOT EXISTS,
+-- que no es sintaxis válida de Postgres)
+CREATE POLICY "shifts_owner" ON shifts
   USING (
     restaurant_id IN (
       SELECT r.id FROM restaurants r

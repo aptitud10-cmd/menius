@@ -154,6 +154,17 @@ CREATE TABLE public.dev_conversations (
   user_id text DEFAULT 'admin'::text
 );
 
+CREATE TABLE public.api_keys (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  restaurant_id uuid NOT NULL,
+  name text NOT NULL,
+  key_hash text NOT NULL,
+  prefix text NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  last_used_at timestamp with time zone
+);
+
 CREATE TABLE public.dev_alerts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   type text NOT NULL DEFAULT 'system'::text,
@@ -428,7 +439,8 @@ CREATE TABLE public.orders (
   delivery_instructions text,
   delivery_lat double precision,
   delivery_lng double precision,
-  customer_id uuid
+  customer_id uuid,
+  shift_id uuid
 );
 
 CREATE TABLE public.processed_webhook_events (
@@ -598,6 +610,11 @@ CREATE TABLE public.restaurants (
   available_locales jsonb,
   delivery_radius_km numeric DEFAULT NULL::numeric,
   delivery_min_order numeric DEFAULT 0,
+  tags jsonb NOT NULL DEFAULT '[]'::jsonb,
+  mp_access_token text,
+  mp_enabled boolean NOT NULL DEFAULT false,
+  google_business_url text,
+  domain_verified boolean NOT NULL DEFAULT false,
   config_overrides jsonb DEFAULT '{}'::jsonb,
   commission_plan boolean NOT NULL DEFAULT false,
   cuisine_type text,
@@ -619,6 +636,24 @@ CREATE TABLE public.reviews (
   comment text DEFAULT ''::text,
   is_visible boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE public.shifts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  restaurant_id uuid NOT NULL,
+  opened_by uuid,
+  closed_by uuid,
+  opening_cash numeric NOT NULL DEFAULT 0,
+  closing_cash numeric,
+  expected_cash numeric,
+  cash_difference numeric,
+  total_orders integer NOT NULL DEFAULT 0,
+  total_revenue numeric NOT NULL DEFAULT 0,
+  total_cash numeric NOT NULL DEFAULT 0,
+  total_card numeric NOT NULL DEFAULT 0,
+  notes text,
+  opened_at timestamp with time zone NOT NULL DEFAULT now(),
+  closed_at timestamp with time zone
 );
 
 CREATE TABLE public.staff_members (
