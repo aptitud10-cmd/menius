@@ -45,12 +45,15 @@ function getT(lang: string) {
     screenOn:      en ? '🔆 Screen stays on'        : '🔆 Pantalla activa',
     pocketBtn:     en ? '🌙 Pocket mode'            : '🌙 Modo bolsillo',
     pocketHint:    en ? 'Black screen, GPS keeps working — pocket the phone WITHOUT locking it' : 'Pantalla negra, el GPS sigue activo — guarda el celular SIN bloquearlo',
-    pocketActive:  en ? 'GPS active'                : 'GPS activo',
     pocketHold:    en ? 'Press and hold to exit'    : 'Mantén presionado para salir',
   };
 }
 
 const STEPS: DeliveryStep[] = ['start', 'picked_up', 'at_door', 'delivered'];
+
+// Continuous press required to exit pocket mode. Also drives the CSS progress
+// bar — keep both in sync via this constant.
+const POCKET_HOLD_MS = 1500;
 
 // ── IndexedDB helpers for offline status queue ────────────────────────────────
 
@@ -136,6 +139,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [pocketMode, setPocketMode] = useState(false);
   const [pocketHolding, setPocketHolding] = useState(false);
   const pocketHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pocketPointerIdRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastSendRef = useRef<{ lat: number; lng: number; ts: number } | null>(null);
@@ -336,30 +340,52 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gpsStatus]);
 
-  // Exit pocket mode whenever the delivery is no longer in transit (cancelled,
-  // at door, delivered, GPS dead) — the driver must see the real screen state.
+  // Exit pocket mode when the delivery leaves the in-transit state (cancelled,
+  // at door, delivered) or GPS is irrecoverably dead (permission denied).
+  // Transient GPS errors (tunnel, elevator → TIMEOUT) do NOT exit: watchPosition
+  // stays alive and recovers alone — exiting would leave the bright tappable UI
+  // rubbing against pocket fabric, which is exactly what this mode prevents.
   useEffect(() => {
-    if (pocketMode && (deliveryStep !== 'picked_up' || orderCancelled || gpsStatus !== 'sharing')) {
+    if (pocketMode && (deliveryStep !== 'picked_up' || orderCancelled || gpsStatus === 'unsupported')) {
+      cancelPocketHold();
       setPocketMode(false);
-      if (orderCancelled && navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+      if (orderCancelled) {
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+        window.scrollTo({ top: 0 }); // the red cancellation banner lives at the top
+      }
     }
+  // cancelPocketHold only touches refs — stable, safe to omit
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pocketMode, deliveryStep, orderCancelled, gpsStatus]);
+
+  // Clear a pending hold timer on unmount (e.g. jump to the delivered screen)
+  useEffect(() => () => {
+    if (pocketHoldTimerRef.current) clearTimeout(pocketHoldTimerRef.current);
+  }, []);
 
   const enterPocketMode = () => {
     acquireWakeLock(); // re-assert — entering the mode is pointless without it
     setPocketMode(true);
   };
 
-  const startPocketHold = () => {
+  const startPocketHold = (e: React.PointerEvent) => {
+    // Multi-touch guard: pocket fabric can touch in two spots. The first pointer
+    // owns the hold; extra pointers must not overwrite (and orphan) its timer.
+    if (pocketPointerIdRef.current !== null) return;
+    pocketPointerIdRef.current = e.pointerId;
     setPocketHolding(true);
     pocketHoldTimerRef.current = setTimeout(() => {
+      pocketPointerIdRef.current = null;
       setPocketMode(false);
       setPocketHolding(false);
       if (navigator.vibrate) navigator.vibrate(60);
-    }, 1500);
+    }, POCKET_HOLD_MS);
   };
 
-  const cancelPocketHold = () => {
+  const cancelPocketHold = (e?: React.PointerEvent) => {
+    // Ignore pointerup/cancel from pointers that don't own the hold
+    if (e && pocketPointerIdRef.current !== null && e.pointerId !== pocketPointerIdRef.current) return;
+    pocketPointerIdRef.current = null;
     setPocketHolding(false);
     if (pocketHoldTimerRef.current) {
       clearTimeout(pocketHoldTimerRef.current);
@@ -694,8 +720,11 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           are brief and random, so they never trigger it. */}
       {pocketMode && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t.pocketBtn}
           className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center select-none"
-          style={{ touchAction: 'none' }}
+          style={{ touchAction: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
           onContextMenu={(e) => e.preventDefault()}
           onPointerDown={startPocketHold}
           onPointerUp={cancelPocketHold}
@@ -703,17 +732,25 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           onPointerLeave={cancelPocketHold}
         >
           <span className="relative flex w-2.5 h-2.5 mb-4">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-800" />
+            {gpsStatus === 'sharing' ? (
+              <>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600" />
+              </>
+            ) : (
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+            )}
           </span>
-          <p className="text-gray-800 text-sm font-semibold">{t.pocketActive}</p>
-          <p className="text-gray-800 text-xs mt-8">{t.pocketHold}</p>
-          <div className="mt-3 w-32 h-1 rounded-full bg-gray-900 overflow-hidden">
+          <p className={`text-sm font-semibold ${gpsStatus === 'sharing' ? 'text-gray-500' : 'text-amber-500'}`}>
+            {gpsStatus === 'sharing' ? t.gpsSharing : t.gpsErr}
+          </p>
+          <p className="text-gray-500 text-xs mt-8">{t.pocketHold}</p>
+          <div className="mt-3 w-32 h-1 rounded-full bg-gray-800 overflow-hidden">
             <div
-              className="h-full bg-emerald-700 rounded-full"
+              className="h-full bg-emerald-600 rounded-full"
               style={{
                 width: pocketHolding ? '100%' : '0%',
-                transition: pocketHolding ? 'width 1.5s linear' : 'none',
+                transition: pocketHolding ? `width ${POCKET_HOLD_MS}ms linear` : 'none',
               }}
             />
           </div>
