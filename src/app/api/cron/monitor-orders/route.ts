@@ -49,6 +49,41 @@ export async function GET(request: NextRequest) {
     alertsCreated.push(`stuck:${order.id}`);
   }
 
+  // 1b. Stuck delivery orders: waiting for a driver in 'ready' >1h, or
+  // 'out_for_delivery' >3h without being closed. These never auto-complete
+  // (the auto-complete cron is pickup-only), so without this alert they
+  // stay open forever.
+  const h3ago = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
+  const { data: stuckDeliveries } = await db
+    .from('orders')
+    .select('id, order_number, restaurant_id, status, total, created_at, driver_name')
+    .eq('order_type', 'delivery')
+    .or(`and(status.eq.ready,created_at.lt.${h1ago}),and(status.eq.out_for_delivery,created_at.lt.${h3ago})`)
+    .limit(20);
+
+  for (const order of stuckDeliveries ?? []) {
+    const { data: rest } = await db
+      .from('restaurants')
+      .select('slug, name')
+      .eq('id', order.restaurant_id)
+      .single();
+
+    const waitingForDriver = order.status === 'ready';
+    await createAlert({
+      severity: 'warning',
+      source: 'orders',
+      title: waitingForDriver
+        ? `Delivery #${order.order_number ?? order.id.slice(0, 8)} lleva >1h en 'ready' sin salir`
+        : `Delivery #${order.order_number ?? order.id.slice(0, 8)} lleva >3h en 'out_for_delivery' sin cerrarse`,
+      description: waitingForDriver
+        ? `La orden está lista pero ${order.driver_name ? `el repartidor (${order.driver_name}) no ha confirmado la recogida` : 'no tiene repartidor asignado'}. Restaurante: ${rest?.name ?? order.restaurant_id}`
+        : `La orden salió a reparto pero nadie la marcó como entregada. Restaurante: ${rest?.name ?? order.restaurant_id}`,
+      store_slug: rest?.slug ?? undefined,
+      data: { orderId: order.id, status: order.status, total: order.total, createdAt: order.created_at },
+    });
+    alertsCreated.push(`stuck-delivery:${order.id}`);
+  }
+
   // 2. Restaurants with subscription but zero orders in 48h (possible issue)
   const { data: activeRestaurants } = await db
     .from('subscriptions')
