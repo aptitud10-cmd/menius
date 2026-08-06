@@ -35,6 +35,7 @@ export interface Restaurant {
   orders_paused_until?: string | null;
   estimated_delivery_minutes?: number | null;
   delivery_fee?: number | null;
+  delivery_min_order?: number | null;
   delivery_radius_km?: number | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -232,6 +233,7 @@ export interface Order {
   include_utensils?: boolean;
   payment_breakdown?: { cash?: number; card?: number; [key: string]: number | undefined } | null;
   // driver tracking
+  driver_id?: string | null;
   driver_name?: string | null;
   driver_phone?: string | null;
   driver_assigned_at?: string | null;

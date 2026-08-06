@@ -1481,7 +1481,7 @@ export async function updateOrderStatus(
     error?: string;
   } = { channel: "none", success: false };
   if (
-    ["confirmed", "preparing", "ready", "cancelled", "delivered"].includes(
+    ["confirmed", "preparing", "ready", "out_for_delivery", "cancelled", "delivered"].includes(
       status,
     )
   ) {
@@ -1681,7 +1681,8 @@ export async function assignDriver(
   orderId: string,
   driverName: string,
   driverPhone: string,
-  driverId?: string,
+  // string = link to pool driver · null = unlink · undefined = leave untouched
+  driverId?: string | null,
 ) {
   const {
     supabase,

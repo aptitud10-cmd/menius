@@ -417,6 +417,9 @@ export function CounterView({
   const [driverModal, setDriverModal] = useState<{ orderId: string; address?: string; trackingToken?: string } | null>(null);
   const [driverName, setDriverName] = useState('');
   const [driverPhone, setDriverPhone] = useState('');
+  // FK to drivers table — set only when picking from the pool, cleared on manual
+  // name edits. Links orders.driver_id so the driver batch API sees the order.
+  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
   const [assigningDriver, setAssigningDriver] = useState(false);
   const [driverPool, setDriverPool] = useState<{ id: string; name: string; phone: string }[]>([]);
 
@@ -978,17 +981,17 @@ export function CounterView({
     if (!driverModal) return;
     setAssigningDriver(true);
     try {
-      const res = await assignDriver(driverModal.orderId, driverName, driverPhone);
+      const res = await assignDriver(driverModal.orderId, driverName, driverPhone, selectedDriverId);
       if (res?.error) { showError(res.error); return; }
       // Update modal with new tracking token returned by server so print sheet works
       const newToken = (res as any)?.trackingToken ?? driverModal.trackingToken;
       setDriverModal(prev => prev ? { ...prev, trackingToken: newToken } : null);
-      setDriverName(''); setDriverPhone('');
+      setDriverName(''); setDriverPhone(''); setSelectedDriverId(null);
       showSuccess(t.en ? 'Driver assigned' : 'Repartidor asignado');
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setAssigningDriver(false); }
-  }, [driverModal, driverName, driverPhone, t]);
+  }, [driverModal, driverName, driverPhone, selectedDriverId, t]);
 
   const doPause = useCallback(async (mins: number) => {
     let ms = mins * 60_000;
@@ -1441,6 +1444,7 @@ export function CounterView({
                 });
                 setDriverName(o.driver_name ?? '');
                 setDriverPhone(o.driver_phone ?? '');
+                setSelectedDriverId(o.driver_id ?? null);
               }}
               onTipSaved={() => showSuccess(t.en ? 'Tip saved' : 'Propina guardada')}
               onNotify={async (order) => {
@@ -2149,7 +2153,7 @@ export function CounterView({
                 <div className="flex flex-wrap gap-2">
                   {driverPool.map(d => (
                     <button key={d.id}
-                      onClick={() => { setDriverName(d.name); setDriverPhone(d.phone); }}
+                      onClick={() => { setDriverName(d.name); setDriverPhone(d.phone); setSelectedDriverId(d.id); }}
                       className={cn(
                         'px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors',
                         driverName === d.name
@@ -2166,7 +2170,7 @@ export function CounterView({
             <div className="space-y-3 mb-5">
               <input
                 value={driverName}
-                onChange={e => setDriverName(e.target.value)}
+                onChange={e => { setDriverName(e.target.value); setSelectedDriverId(null); }}
                 placeholder={t.en ? 'Driver name' : 'Nombre del repartidor'}
                 className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#06C167]"
               />
