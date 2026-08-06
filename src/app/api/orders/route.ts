@@ -20,6 +20,8 @@ import {
   computeOrderTotals,
   resolveCommission,
 } from "@/lib/order-pricing";
+import { formatPrice } from "@/lib/utils";
+import { haversineKm } from "@/lib/utils/eta";
 
 const logger = createLogger("orders");
 
@@ -28,6 +30,10 @@ interface OrderRestaurantRow {
   slug: string;
   name: string;
   delivery_fee: number | null;
+  delivery_radius_km: number | null;
+  delivery_min_order: number | null;
+  latitude: number | null;
+  longitude: number | null;
   currency: string | null;
   locale: string | null;
   notification_email: string | null;
@@ -146,6 +152,18 @@ export async function POST(request: NextRequest) {
     const order_type = sanitizeText(body.order_type, 20);
     const payment_method = sanitizeText(body.payment_method, 20);
     const delivery_address = sanitizeMultiline(body.delivery_address, 300);
+    // Destination coords from the checkout's Places selection. Optional — manual
+    // (non-autocomplete) addresses arrive without them and skip the radius check.
+    const deliveryLatNum = Number(body.delivery_lat);
+    const deliveryLngNum = Number(body.delivery_lng);
+    const deliveryLat =
+      Number.isFinite(deliveryLatNum) && Math.abs(deliveryLatNum) <= 90
+        ? deliveryLatNum
+        : null;
+    const deliveryLng =
+      Number.isFinite(deliveryLngNum) && Math.abs(deliveryLngNum) <= 180
+        ? deliveryLngNum
+        : null;
     const table_name = sanitizeText(body.table_name, 50);
 
     if (
@@ -205,7 +223,7 @@ export async function POST(request: NextRequest) {
     const { data: restaurant, error: restaurantDbError } = await adminDb
       .from("restaurants")
       .select(
-        "id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled",
+        "id, slug, delivery_fee, delivery_radius_km, delivery_min_order, latitude, longitude, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled",
       )
       .eq("id", restaurant_id)
       .eq("is_active", true)
@@ -258,6 +276,32 @@ export async function POST(request: NextRequest) {
           },
           { status: 400 },
         );
+      }
+
+      // Delivery-radius enforcement. Only possible when the restaurant is
+      // geocoded AND the customer picked an autocompleted address (coords
+      // present) — manually-typed addresses keep the legacy advisory behavior.
+      const restLat = Number(restaurant.latitude);
+      const restLng = Number(restaurant.longitude);
+      const radiusKm = Number(restaurant.delivery_radius_km) || 0;
+      if (
+        radiusKm > 0 &&
+        Number.isFinite(restLat) &&
+        Number.isFinite(restLng) &&
+        deliveryLat !== null &&
+        deliveryLng !== null
+      ) {
+        const distKm = haversineKm(restLat, restLng, deliveryLat, deliveryLng);
+        if (distKm > radiusKm) {
+          return NextResponse.json(
+            {
+              error: en
+                ? "This address is outside the restaurant's delivery area."
+                : "Esta dirección está fuera del área de entrega del restaurante.",
+            },
+            { status: 400 },
+          );
+        }
       }
     }
 
@@ -635,6 +679,20 @@ export async function POST(request: NextRequest) {
       0,
     );
 
+    // Delivery minimum order — checked against the server-recomputed subtotal
+    const minOrder = Number(restaurant.delivery_min_order) || 0;
+    if (parsed.data.order_type === "delivery" && minOrder > 0 && subtotal < minOrder) {
+      const minFormatted = formatPrice(minOrder, restaurant.currency ?? "MXN");
+      return NextResponse.json(
+        {
+          error: en
+            ? `Minimum order for delivery is ${minFormatted}.`
+            : `El pedido mínimo para domicilio es ${minFormatted}.`,
+        },
+        { status: 400 },
+      );
+    }
+
     let discountAmt = 0;
     if (promo_code) {
       const { data: promo } = await supabase
@@ -811,6 +869,10 @@ export async function POST(request: NextRequest) {
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
+    if (isDelivery && deliveryLat !== null && deliveryLng !== null) {
+      orderInsert.delivery_lat = deliveryLat;
+      orderInsert.delivery_lng = deliveryLng;
+    }
     if (taxAmt > 0) orderInsert.tax_amount = taxAmt;
     if (loyaltyDiscountAmt > 0) {
       orderInsert.loyalty_discount = loyaltyDiscountAmt;

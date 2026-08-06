@@ -168,6 +168,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  // Coordinates from Google Places selection — cleared on manual edits so stale
+  // coords never outlive the address they belonged to. Sent to the server for
+  // delivery-radius validation and driver routing.
+  const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [manualTableName, setManualTableName] = useState('');
   const [arrivalTime, setArrivalTime] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -503,6 +507,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           order_type: orderType,
           payment_method: 'wallet',
           delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
+          delivery_lat: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lat : undefined,
+          delivery_lng: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lng : undefined,
           table_name: orderType === 'dine_in' ? (tableName || manualTableName.trim() || undefined) : undefined,
           promo_code: promoResult?.valid ? promoCode.trim() : undefined,
           discount_amount: discount,
@@ -525,7 +531,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     } catch {
       return { error: t.noConnectionRetry };
     }
-  }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, customerEmail, orderNotes, arrivalTime, orderType, deliveryAddress, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
+  }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, customerEmail, orderNotes, arrivalTime, orderType, deliveryAddress, deliveryCoords, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
 
   // Wallet success: order already created + charged. Mirror the confirmation
   // bookkeeping from handleSubmitOrder (snapshot, save customer, track, confetti).
@@ -650,6 +656,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           order_type: orderType,
           payment_method: paymentMethod,
           delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
+          delivery_lat: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lat : undefined,
+          delivery_lng: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lng : undefined,
           table_name: orderType === 'dine_in' ? (tableName || manualTableName.trim() || undefined) : undefined,
           promo_code: promoResult?.valid ? promoCode.trim() : undefined,
           discount_amount: discount,
@@ -1652,7 +1660,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <AddressAutocomplete
                   label={t.deliveryAddress}
                   value={deliveryAddress}
-                  onChange={setDeliveryAddress}
+                  onChange={(v) => { setDeliveryAddress(v); setDeliveryCoords(null); }}
+                  onPlaceSelect={(p) => {
+                    if (p.lat != null && p.lng != null) setDeliveryCoords({ lat: p.lat, lng: p.lng });
+                  }}
                   onBlur={() => validateField('delivery_address', deliveryAddress)}
                   placeholder={t.deliveryAddressPlaceholder}
                   dark={false}

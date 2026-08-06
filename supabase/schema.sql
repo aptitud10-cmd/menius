@@ -586,6 +586,7 @@ CREATE TABLE public.restaurants (
   tax_label text DEFAULT 'Tax'::text,
   available_locales jsonb,
   delivery_radius_km numeric DEFAULT NULL::numeric,
+  delivery_min_order numeric DEFAULT 0,
   config_overrides jsonb DEFAULT '{}'::jsonb,
   commission_plan boolean NOT NULL DEFAULT false,
   cuisine_type text,

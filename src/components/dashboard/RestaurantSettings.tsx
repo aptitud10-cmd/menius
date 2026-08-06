@@ -53,6 +53,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     payment_methods_enabled: initialData.payment_methods_enabled ?? ['cash'],
     estimated_delivery_minutes: initialData.estimated_delivery_minutes ?? '',
     delivery_fee: initialData.delivery_fee ?? '',
+    delivery_min_order: initialData.delivery_min_order ?? '',
     delivery_radius_km: initialData.delivery_radius_km ?? 5,
     latitude: initialData.latitude ?? '',
     longitude: initialData.longitude ?? '',
@@ -302,6 +303,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           cover_image_url: coverUrl || null,
           estimated_delivery_minutes: form.estimated_delivery_minutes ? Number(form.estimated_delivery_minutes) : null,
           delivery_fee: form.delivery_fee ? Number(form.delivery_fee) : null,
+          delivery_min_order: form.delivery_min_order ? Number(form.delivery_min_order) : null,
           delivery_radius_km: form.delivery_radius_km ? Number(form.delivery_radius_km) : null,
           latitude: form.latitude ? Number(form.latitude) : null,
           longitude: form.longitude ? Number(form.longitude) : null,
@@ -937,6 +939,28 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
                 />
               </div>
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <CreditCard className="w-4 h-4 text-gray-500" />
+                  <label className="text-xs font-medium text-gray-500">
+                    {locale === 'en' ? 'Minimum order (delivery)' : 'Pedido mínimo (domicilio)'}
+                  </label>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.delivery_min_order}
+                  onChange={(e) => { setForm((prev) => ({ ...prev, delivery_min_order: e.target.value })); setSaved(false); }}
+                  placeholder="0.00"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  {locale === 'en'
+                    ? 'Delivery orders below this subtotal are rejected. 0 = no minimum.'
+                    : 'Pedidos a domicilio por debajo de este subtotal se rechazan. 0 = sin mínimo.'}
+                </p>
+              </div>
             </div>
             <p className="text-[11px] text-gray-400 mt-2">
               {t.settings_deliveryFeeNote}
@@ -1010,9 +1034,13 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                       : `Cobertura: radio de ${displayVal} ${unit}`}
                   </p>
                   <p className="text-[10px] text-emerald-600 mt-0.5">
-                    {locale === 'en'
-                      ? 'Orders outside this radius can still be placed (advisory only)'
-                      : 'Las órdenes fuera de este radio aún se pueden hacer (solo referencial)'}
+                    {form.latitude && form.longitude
+                      ? (locale === 'en'
+                          ? 'Enforced: autocompleted addresses outside this radius are rejected at checkout'
+                          : 'Se aplica: direcciones autocompletadas fuera de este radio se rechazan en el checkout')
+                      : (locale === 'en'
+                          ? 'Set your restaurant address above to enforce this radius at checkout'
+                          : 'Configura la dirección de tu restaurante arriba para aplicar este radio en el checkout')}
                   </p>
                 </div>
               </div>
