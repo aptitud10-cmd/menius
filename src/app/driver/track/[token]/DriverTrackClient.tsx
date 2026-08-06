@@ -43,6 +43,10 @@ function getT(lang: string) {
     navigateGmaps: en ? 'Navigate with Google Maps' : 'Navegar con Google Maps',
     navigateWaze:  en ? 'Open in Waze'              : 'Abrir en Waze',
     screenOn:      en ? '🔆 Screen stays on'        : '🔆 Pantalla activa',
+    pocketBtn:     en ? '🌙 Pocket mode'            : '🌙 Modo bolsillo',
+    pocketHint:    en ? 'Black screen, GPS keeps working — pocket the phone WITHOUT locking it' : 'Pantalla negra, el GPS sigue activo — guarda el celular SIN bloquearlo',
+    pocketActive:  en ? 'GPS active'                : 'GPS activo',
+    pocketHold:    en ? 'Press and hold to exit'    : 'Mantén presionado para salir',
   };
 }
 
@@ -126,6 +130,12 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderCancelled, setOrderCancelled] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
+  // Pocket mode: black overlay with the wake lock held, so the driver can pocket
+  // the phone screen-on and GPS keeps reporting. Browsers suspend geolocation
+  // when the screen locks — this is the PWA's answer to "phone goes in the pocket".
+  const [pocketMode, setPocketMode] = useState(false);
+  const [pocketHolding, setPocketHolding] = useState(false);
+  const pocketHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastSendRef = useRef<{ lat: number; lng: number; ts: number } | null>(null);
@@ -325,6 +335,37 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   // acquireWakeLock only uses refs — stable reference, safe to omit
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gpsStatus]);
+
+  // Exit pocket mode whenever the delivery is no longer in transit (cancelled,
+  // at door, delivered, GPS dead) — the driver must see the real screen state.
+  useEffect(() => {
+    if (pocketMode && (deliveryStep !== 'picked_up' || orderCancelled || gpsStatus !== 'sharing')) {
+      setPocketMode(false);
+      if (orderCancelled && navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+    }
+  }, [pocketMode, deliveryStep, orderCancelled, gpsStatus]);
+
+  const enterPocketMode = () => {
+    acquireWakeLock(); // re-assert — entering the mode is pointless without it
+    setPocketMode(true);
+  };
+
+  const startPocketHold = () => {
+    setPocketHolding(true);
+    pocketHoldTimerRef.current = setTimeout(() => {
+      setPocketMode(false);
+      setPocketHolding(false);
+      if (navigator.vibrate) navigator.vibrate(60);
+    }, 1500);
+  };
+
+  const cancelPocketHold = () => {
+    setPocketHolding(false);
+    if (pocketHoldTimerRef.current) {
+      clearTimeout(pocketHoldTimerRef.current);
+      pocketHoldTimerRef.current = null;
+    }
+  };
 
   const callDriverStatus = async (action: 'picked_up' | 'at_door' | 'delivered'): Promise<boolean> => {
     setActionLoading(true);
@@ -616,9 +657,20 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
             </BigButton>
           )}
           {deliveryStep === 'picked_up' && (
-            <BigButton loading={actionLoading} onClick={handleAtDoor} color="amber">
-              {t.step2Btn}
-            </BigButton>
+            <>
+              <BigButton loading={actionLoading} onClick={handleAtDoor} color="amber">
+                {t.step2Btn}
+              </BigButton>
+              {gpsStatus === 'sharing' && (
+                <button
+                  onClick={enterPocketMode}
+                  className="w-full py-3 rounded-xl bg-gray-900 border border-gray-700 text-gray-300 text-sm font-bold active:scale-[0.98] transition-all"
+                >
+                  {t.pocketBtn}
+                  <span className="block text-[11px] font-normal text-gray-500 mt-0.5">{t.pocketHint}</span>
+                </button>
+              )}
+            </>
           )}
           {deliveryStep === 'at_door' && (
             <SwipeToConfirm
@@ -636,6 +688,37 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           Powered by MENIUS · {token.slice(0, 8)}…
         </p>
       </div>
+
+      {/* Pocket mode overlay — near-black (OLED-friendly), wake lock held, GPS
+          running. Exit requires a continuous 1.5s hold: pocket-fabric touches
+          are brief and random, so they never trigger it. */}
+      {pocketMode && (
+        <div
+          className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center select-none"
+          style={{ touchAction: 'none' }}
+          onContextMenu={(e) => e.preventDefault()}
+          onPointerDown={startPocketHold}
+          onPointerUp={cancelPocketHold}
+          onPointerCancel={cancelPocketHold}
+          onPointerLeave={cancelPocketHold}
+        >
+          <span className="relative flex w-2.5 h-2.5 mb-4">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-800" />
+          </span>
+          <p className="text-gray-800 text-sm font-semibold">{t.pocketActive}</p>
+          <p className="text-gray-800 text-xs mt-8">{t.pocketHold}</p>
+          <div className="mt-3 w-32 h-1 rounded-full bg-gray-900 overflow-hidden">
+            <div
+              className="h-full bg-emerald-700 rounded-full"
+              style={{
+                width: pocketHolding ? '100%' : '0%',
+                transition: pocketHolding ? 'width 1.5s linear' : 'none',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* PWA install prompt — fixed bottom, shown when driver has picked up (most valuable moment) */}
       {canInstall && !installDismissed && deliveryStep === 'picked_up' && (
