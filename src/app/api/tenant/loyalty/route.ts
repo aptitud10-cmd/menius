@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { hasPlanAccess } from '@/lib/auth/check-plan';
 
 export async function GET() {
   try {
@@ -52,6 +53,14 @@ export async function PUT(req: NextRequest) {
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     const rid = tenant.restaurantId;
 
+    const allowed = await hasPlanAccess(rid, 'pro');
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'El programa de lealtad es una función del plan Pro' },
+        { status: 403 },
+      );
+    }
+
     const body = await req.json();
     const clamp = (val: unknown, min: number, max: number, fallback: number): number => {
       const n = Number(val);
@@ -89,6 +98,14 @@ export async function POST(req: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     const rid = tenant.restaurantId;
+
+    const allowed = await hasPlanAccess(rid, 'pro');
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'El programa de lealtad es una función del plan Pro' },
+        { status: 403 },
+      );
+    }
 
     const { account_id, points, description, type } = await req.json();
     if (!account_id || !points || !type) {

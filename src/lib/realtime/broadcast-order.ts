@@ -32,7 +32,7 @@ export async function broadcastOrderUpdate(
   if (!url || !key) return;
 
   try {
-    await fetch(`${url}/realtime/v1/api/broadcast`, {
+    const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49,6 +49,11 @@ export async function broadcastOrderUpdate(
         ],
       }),
     });
+    // Without this check a rotated key / API change kills realtime silently and
+    // the 5s polling masks it forever — degrade visibly, not invisibly.
+    if (!res.ok) {
+      console.warn(`[broadcast-order] status_change broadcast failed: HTTP ${res.status}`);
+    }
   } catch {
     // Non-critical — the 5-second polling fallback in OrderTracker covers it.
   }
@@ -72,7 +77,7 @@ export async function broadcastDriverLocation(
   if (!url || !key) return;
 
   try {
-    await fetch(`${url}/realtime/v1/api/broadcast`, {
+    const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -89,6 +94,9 @@ export async function broadcastDriverLocation(
         ],
       }),
     });
+    if (!res.ok) {
+      console.warn(`[broadcast-order] location_update broadcast failed: HTTP ${res.status}`);
+    }
   } catch {
     // Non-critical — polling fallback covers missed packets.
   }

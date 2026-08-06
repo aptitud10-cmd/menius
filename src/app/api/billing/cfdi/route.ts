@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { UUID_RE } from '@/lib/constants';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('billing-cfdi');
 
@@ -231,6 +232,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     logger.error('Unexpected error', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/billing/cfdi' });
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

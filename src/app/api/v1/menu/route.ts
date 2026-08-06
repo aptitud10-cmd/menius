@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   const [categoriesRes, productsRes] = await Promise.all([
     db
       .from('categories')
-      .select('id, name, description, image_url, sort_order, is_active')
+      .select('id, name, sort_order, is_active')
       .eq('restaurant_id', auth.restaurantId)
       .eq('is_active', true)
       .order('sort_order'),
@@ -52,14 +52,14 @@ export async function GET(req: NextRequest) {
         dietary_tags,
         sort_order,
         category_id,
-        product_variants ( id, name, price_delta, in_stock ),
-        product_extras ( id, name, price, max_qty ),
+        product_variants ( id, name, price_delta ),
+        product_extras ( id, name, price ),
         modifier_groups (
           id,
           name,
-          required,
-          min_selections,
-          max_selections,
+          is_required,
+          min_select,
+          max_select,
           modifier_options ( id, name, price_delta )
         )
       `)

@@ -25,7 +25,9 @@ interface CreateNotificationParams {
 export async function createDashboardNotification(params: CreateNotificationParams): Promise<void> {
   try {
     const adminDb = createAdminClient();
-    await adminDb.from('dashboard_notifications').insert({
+    // supabase-js does NOT throw on DB errors — it returns { error }. Without
+    // destructuring it, failures vanished and the catch below never fired.
+    const { error } = await adminDb.from('dashboard_notifications').insert({
       restaurant_id: params.restaurantId,
       type: params.type,
       title: params.title,
@@ -33,6 +35,13 @@ export async function createDashboardNotification(params: CreateNotificationPara
       action_url: params.actionUrl ?? null,
       metadata: params.metadata ?? {},
     });
+    if (error) {
+      logger.error('Failed to create dashboard notification', {
+        error: error.message,
+        type: params.type,
+        restaurant: params.restaurantId,
+      });
+    }
   } catch (err) {
     logger.error('Failed to create dashboard notification', {
       error: err instanceof Error ? err.message : String(err),

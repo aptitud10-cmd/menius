@@ -68,9 +68,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const tax = Number(orderFees?.tax_amount ?? 0);
     const tip = Number(orderFees?.tip_amount ?? 0);
     const deliveryFee = Number(orderFees?.delivery_fee ?? 0);
+    // discount_amount ALREADY includes the loyalty discount (order-pricing.ts
+    // stores promo + loyalty combined there; loyalty_discount is a breakdown
+    // column, not an additional charge). Subtracting both double-counted it.
     const discount = Number(orderFees?.discount_amount ?? 0);
-    const loyaltyDiscount = Number(orderFees?.loyalty_discount ?? 0);
-    const newSubtotalAfterDiscount = Math.max(0, newSubtotal - discount - loyaltyDiscount);
+    const newSubtotalAfterDiscount = Math.max(0, newSubtotal - discount);
     const newTotal = Math.max(0, newSubtotalAfterDiscount + tax + tip + deliveryFee);
 
     await supabase
@@ -141,9 +143,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const tax = Number(orderFees?.tax_amount ?? 0);
     const tip = Number(orderFees?.tip_amount ?? 0);
     const deliveryFee = Number(orderFees?.delivery_fee ?? 0);
+    // discount_amount ALREADY includes the loyalty discount (order-pricing.ts
+    // stores promo + loyalty combined there; loyalty_discount is a breakdown
+    // column, not an additional charge). Subtracting both double-counted it.
     const discount = Number(orderFees?.discount_amount ?? 0);
-    const loyaltyDiscount = Number(orderFees?.loyalty_discount ?? 0);
-    const newSubtotalAfterDiscount = Math.max(0, newSubtotal - discount - loyaltyDiscount);
+    const newSubtotalAfterDiscount = Math.max(0, newSubtotal - discount);
     const newTotal = Math.max(0, newSubtotalAfterDiscount + tax + tip + deliveryFee);
 
     await supabase.from('orders').update({ total: newTotal }).eq('id', orderId);

@@ -128,8 +128,20 @@ export async function checkRateLimitAsync(
 }
 
 export function getClientIP(request: Request): string {
+  // x-vercel-forwarded-for is set by Vercel's edge network itself, so it can't
+  // be spoofed by the client. Prefer it when present.
+  const vercelForwarded = request.headers.get('x-vercel-forwarded-for');
+  if (vercelForwarded) return vercelForwarded.split(',')[0].trim();
+
+  // x-forwarded-for is attacker-controllable: a client can prepend arbitrary
+  // values, so the FIRST entry is spoofable. The trusted entry is the LAST
+  // one — appended by our own edge/proxy right before reaching the app.
   const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
+  if (forwarded) {
+    const parts = forwarded.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
+
   const real = request.headers.get('x-real-ip');
   if (real) return real;
   return '127.0.0.1';

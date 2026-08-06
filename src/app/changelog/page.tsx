@@ -324,8 +324,8 @@ const releases: Release[] = [
     changes: [
       {
         type: "new",
-        es: "Mapa de entrega en tiempo real en la página de seguimiento (react-leaflet + OpenStreetMap).",
-        en: "Real-time delivery map on the order tracking page (react-leaflet + OpenStreetMap).",
+        es: "Mapa de entrega en tiempo real en la página de seguimiento (Mapbox).",
+        en: "Real-time delivery map on the order tracking page (Mapbox).",
       },
       {
         type: "new",
@@ -393,21 +393,21 @@ const releases: Release[] = [
     badgeColor: "bg-blue-500",
     highlightsEs: [
       "Marketing Hub completo",
-      "Campañas Email y SMS",
+      "Campañas de Email",
       "Generador de posts con IA",
       "9 Automatizaciones",
     ],
     highlightsEn: [
       "Full Marketing Hub",
-      "Email & SMS Campaigns",
+      "Email Campaigns",
       "AI post generator",
       "9 Automations",
     ],
     changes: [
       {
         type: "new",
-        es: "Marketing Hub: panel centralizado con 4 módulos — Campañas de Email, Redes Sociales, SMS y Automatizaciones.",
-        en: "Marketing Hub: centralized panel with 4 modules — Email Campaigns, Social Media, SMS, and Automations.",
+        es: "Marketing Hub: panel centralizado con 3 módulos — Campañas de Email, Redes Sociales y Automatizaciones.",
+        en: "Marketing Hub: centralized panel with 3 modules — Email Campaigns, Social Media, and Automations.",
       },
       {
         type: "new",
@@ -421,13 +421,8 @@ const releases: Release[] = [
       },
       {
         type: "new",
-        es: "Campañas SMS: envío de mensajes de texto a clientes registrados vía Twilio.",
-        en: "SMS Campaigns: send text messages to registered customers via Twilio integration.",
-      },
-      {
-        type: "new",
-        es: "9 Automatizaciones preconfiguradas: bienvenida, reactivación, VIP, recordatorio de trial, y más. Solo actívalas y trabajan solas.",
-        en: "9 pre-built Automations: welcome, reactivation, VIP, trial reminder, and more. Just activate them and they run automatically.",
+        es: "9 Automatizaciones preconfiguradas: confirmación de pedido, bienvenida, reactivación, solicitud de reseña, y más. Corren solas apenas tenés notificaciones por email habilitadas.",
+        en: "9 pre-built Automations: order confirmation, welcome, reactivation, review request, and more. They run automatically once email notifications are enabled.",
       },
       {
         type: "improved",

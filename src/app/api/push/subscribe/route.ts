@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
     if (typeof subscription !== 'object' || !subscription.endpoint || typeof subscription.endpoint !== 'string') {
       return NextResponse.json({ error: 'Invalid subscription object' }, { status: 400 });
     }
+    const p256dh = subscription.keys?.p256dh;
+    const auth = subscription.keys?.auth;
+    if (typeof p256dh !== 'string' || typeof auth !== 'string' || !p256dh || !auth) {
+      return NextResponse.json({ error: 'Invalid subscription keys' }, { status: 400 });
+    }
 
     const adminDb = createAdminClient();
 
@@ -42,12 +47,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Upsert — same endpoint+keys = same subscription
+    // Upsert by endpoint (globally UNIQUE in prod): one row per browser,
+    // re-pointed to its most recent order. The old payload wrote a
+    // `subscription` column that doesn't exist — no subscription was ever saved.
     const { error } = await adminDb
       .from('push_subscriptions')
       .upsert(
-        { order_id, subscription, created_at: new Date().toISOString() },
-        { onConflict: 'order_id,endpoint' }
+        {
+          order_id,
+          endpoint: subscription.endpoint,
+          keys_p256dh: p256dh,
+          keys_auth: auth,
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: 'endpoint' }
       );
 
     if (error) {

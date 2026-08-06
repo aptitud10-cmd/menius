@@ -30,13 +30,11 @@ export async function GET(request: NextRequest) {
   const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const riskThreshold = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Fetch all active restaurants with owner email
+  // Fetch all active restaurants with owner email (notification_email preferred, email as fallback)
   const { data: restaurants, error: restError } = await admin
     .from('restaurants')
-    .select('id, name, slug, email, locale, currency')
-    .eq('is_active', true)
-    .not('email', 'is', null)
-    .neq('email', '');
+    .select('id, name, slug, email, notification_email, locale, currency')
+    .eq('is_active', true);
 
   if (restError || !restaurants) {
     logger.error('Failed to fetch restaurants', { error: restError?.message });
@@ -50,10 +48,15 @@ export async function GET(request: NextRequest) {
     try {
       const rid = restaurant.id;
 
+      const recipientEmail = restaurant.notification_email ?? restaurant.email;
+      if (!recipientEmail) {
+        skipped++;
+        continue;
+      }
+
       const [
         { data: weekOrders },
         { data: prevWeekOrders },
-        { data: topProductsRaw },
         { data: atRiskCustomers },
         { data: pendingOrders },
         { data: products },
@@ -61,7 +64,6 @@ export async function GET(request: NextRequest) {
       ] = await Promise.all([
         admin.from('orders').select('id, status, total').eq('restaurant_id', rid).gte('created_at', weekAgo),
         admin.from('orders').select('id, status, total').eq('restaurant_id', rid).gte('created_at', twoWeeksAgo).lt('created_at', weekAgo),
-        admin.from('order_items').select('product_id, line_total, products!inner(name, is_active)').eq('products.restaurant_id', rid).gte('created_at', weekAgo).limit(300),
         admin.from('customers').select('id').eq('restaurant_id', rid).lt('last_order_at', riskThreshold).gte('total_orders', 2),
         admin.from('orders').select('id').eq('restaurant_id', rid).eq('status', 'pending'),
         admin.from('products').select('id, is_active, image_url').eq('restaurant_id', rid).eq('is_active', true),
@@ -84,7 +86,13 @@ export async function GET(request: NextRequest) {
 
       const avgTicket = weekOrderCount > 0 ? weekRevenue / weekOrderCount : 0;
 
-      // Top product by revenue this week
+      // Top product by revenue this week — order_items has no created_at,
+      // so filter via the order ids already fetched above (weekOrders).
+      const weekOrderIds = (weekOrders ?? []).map(o => o.id);
+      const { data: topProductsRaw } = weekOrderIds.length > 0
+        ? await admin.from('order_items').select('product_id, line_total, products!inner(name, is_active)').eq('products.restaurant_id', rid).in('order_id', weekOrderIds).limit(300)
+        : { data: [] as { product_id: string; line_total: number; products: { name: string; is_active: boolean } }[] };
+
       const productRevMap: Record<string, { name: string; revenue: number }> = {};
       for (const item of topProductsRaw ?? []) {
         const prod = item as unknown as { product_id: string; line_total: number; products: { name: string } };
@@ -163,7 +171,7 @@ export async function GET(request: NextRequest) {
         : `Tu semana en ${restaurant.name} — ${weekOrderCount} órdenes, ${currency} ${weekRevenue.toFixed(2)}`;
 
       const success = await sendEmail({
-        to: restaurant.email,
+        to: recipientEmail,
         subject,
         html,
       });

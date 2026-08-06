@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { randomBytes, createHash } from 'crypto';
 import { createLogger } from '@/lib/logger';
 
@@ -46,6 +47,14 @@ export async function POST(req: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
+    const allowed = await hasPlanAccess(tenant.restaurantId, 'business');
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'El acceso API es una función del plan Business' },
+        { status: 403 },
+      );
+    }
+
     const { name } = await req.json();
     if (!name?.trim()) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 });
     if (name.trim().length > 100) return NextResponse.json({ error: 'Nombre demasiado largo (máx 100)' }, { status: 400 });
@@ -79,6 +88,14 @@ export async function DELETE(req: NextRequest) {
   try {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
+    const allowed = await hasPlanAccess(tenant.restaurantId, 'business');
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'El acceso API es una función del plan Business' },
+        { status: 403 },
+      );
+    }
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });

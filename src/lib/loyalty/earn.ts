@@ -40,12 +40,16 @@ export async function earnLoyaltyPoints({
     // Require at least a phone or email to identify the customer
     if (!customerPhone && !customerEmail) return;
 
-    // Prevent double-earn: check if points already credited for this order
+    // Prevent double-earn: check if points already credited for this order.
+    // MUST filter by type — a 'redeem' row for the same order is expected
+    // (customer paid with points) and must not block the earn. Without the
+    // type filter, any customer who redeemed once never earned again.
     const { data: existing } = await adminDb
       .from("loyalty_transactions")
       .select("id")
       .eq("restaurant_id", restaurantId)
       .eq("order_id", orderId)
+      .eq("type", "earn")
       .maybeSingle();
 
     if (existing) return; // Already credited

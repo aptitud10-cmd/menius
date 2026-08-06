@@ -26,7 +26,7 @@ export async function GET(req: Request) {
       .eq('id', restaurantId)
       .maybeSingle(),
     db.from('subscriptions')
-      .select('plan_id, status, trial_end, stripe_subscription_id, stripe_customer_id, current_period_end, cancel_at_period_end')
+      .select('plan_id, status, trial_end, stripe_subscription_id, stripe_customer_id, current_period_end, cancel_at')
       .eq('restaurant_id', restaurantId)
       .maybeSingle(),
   ]);

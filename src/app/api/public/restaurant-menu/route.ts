@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { t } from '@/lib/i18n';
+import type { ContentTranslation } from '@/types';
 
 /**
  * GET /api/public/restaurant-menu?slug=X
@@ -53,35 +55,44 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       adminDb
         .from('categories')
-        .select('id, restaurant_id, name, name_en, description, description_en, image_url, sort_order, is_active, available_from, available_to')
+        .select('id, restaurant_id, name, sort_order, is_active, available_from, available_to')
         .eq('restaurant_id', restaurantId)
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
 
       adminDb
         .from('products')
-        .select('id, restaurant_id, category_id, name, name_en, description, description_en, price, image_url, sort_order, is_active, in_stock, is_featured, dietary_tags, calories, preparation_time_minutes, allergens')
+        .select('id, restaurant_id, category_id, name, description, price, image_url, sort_order, is_active, in_stock, is_featured, dietary_tags, prep_time_minutes, translations')
         .eq('restaurant_id', restaurantId)
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
 
       adminDb
         .from('reviews')
-        .select('id, rating, comment, customer_name, created_at, is_approved')
+        .select('id, rating, comment, customer_name, created_at, is_visible')
         .eq('restaurant_id', restaurantId)
-        .eq('is_approved', true)
+        .eq('is_visible', true)
         .order('created_at', { ascending: false })
         .limit(30),
 
       adminDb
         .from('promotions')
-        .select('id, restaurant_id, title, title_en, description, description_en, discount_type, discount_value, code, is_active, start_date, end_date, min_order_amount, image_url')
+        .select('id, restaurant_id, description, discount_type, discount_value, code, is_active, starts_at, expires_at, min_order')
         .eq('restaurant_id', restaurantId)
         .eq('is_active', true),
     ]);
 
     const categories = categoriesData ?? [];
-    const products = productsData ?? [];
+    // Products with name_en/description_en derived from the `translations` JSONB
+    // (the real i18n mechanism — the old *_en columns never existed in prod).
+    const products = (productsData ?? []).map((p) => {
+      const translations = p.translations as Record<string, ContentTranslation> | undefined;
+      return {
+        ...p,
+        name_en: t(translations, 'name', 'en', p.name),
+        description_en: t(translations, 'description', 'en', p.description ?? ''),
+      };
+    });
     const reviews = reviewsData ?? [];
     const promotions = promotionsData ?? [];
 
@@ -94,8 +105,8 @@ export async function GET(request: NextRequest) {
       { data: extrasData },
       { data: modifierGroupsData },
     ] = await Promise.all([
-      adminDb.from('product_variants').select('id, product_id, name, name_en, price, is_active, sort_order').in('product_id', safeIds),
-      adminDb.from('product_extras').select('id, product_id, name, name_en, price, is_active, sort_order').in('product_id', safeIds),
+      adminDb.from('product_variants').select('id, product_id, name, price_delta, sort_order').in('product_id', safeIds),
+      adminDb.from('product_extras').select('id, product_id, name, price, sort_order').in('product_id', safeIds),
       adminDb.from('modifier_groups').select('id, product_id, name, selection_type, is_required, min_select, max_select, sort_order, display_type').in('product_id', safeIds),
     ]);
 

@@ -57,7 +57,6 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     { data: staff },
     { data: crmCustomers },
     { data: atRiskCustomers },
-    { data: topProductsRaw },
     { data: hourlyRaw },
   ] = await Promise.all([
     supabase
@@ -118,12 +117,12 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     supabase
       .from("promotions")
       .select(
-        "id, code, discount_type, discount_value, is_active, usage_count, max_uses, expires_at",
+        "id, code, discount_type, discount_value, is_active, current_uses, max_uses, expires_at",
       )
       .eq("restaurant_id", restaurantId),
     supabase
       .from("staff_members")
-      .select("id, name, role, is_active")
+      .select("id, full_name, role, status")
       .eq("restaurant_id", restaurantId),
     supabase
       .from("customers")
@@ -142,13 +141,6 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
       .gte("total_orders", 2)
       .order("last_order_at", { ascending: false })
       .limit(10),
-    // Top products by revenue in last 30 days via order_items join
-    supabase
-      .from("order_items")
-      .select("product_id, line_total, products!inner(name, is_active)")
-      .eq("products.restaurant_id", restaurantId)
-      .gte("created_at", monthAgo)
-      .limit(500),
     // Orders with hour info for peak hour calculation (last 30 days)
     supabase
       .from("orders")
@@ -159,6 +151,19 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
   ]);
 
   const allMonth = monthOrders ?? [];
+
+  // Top products by revenue in last 30 days — order_items has no created_at,
+  // so filter by the order ids already fetched above (monthOrders).
+  const monthOrderIds = allMonth.map((o) => o.id);
+  const { data: topProductsRaw } =
+    monthOrderIds.length > 0
+      ? await supabase
+          .from("order_items")
+          .select("product_id, line_total, products!inner(name, is_active)")
+          .eq("products.restaurant_id", restaurantId)
+          .in("order_id", monthOrderIds)
+          .limit(500)
+      : { data: [] as { product_id: string; line_total: number; products: { name: string; is_active: boolean } }[] };
   const completedMonth = allMonth.filter((o) =>
     isRevenueStatus(o.status),
   );
@@ -404,10 +409,10 @@ Total: ${(tables ?? []).length} (${activeTables.length} ${en ? "active" : "activ
 ${activeTables.map((t) => t.name).join(", ")}
 
 === ${en ? "PROMOTIONS" : "PROMOCIONES"} ===
-${activePromos.length > 0 ? activePromos.map((p) => `- ${p.code}: ${p.discount_type === "percentage" ? `${p.discount_value}%` : `$${p.discount_value}`} off (${en ? "used" : "usado"}: ${p.usage_count}/${p.max_uses ?? "∞"}${p.expires_at ? `, ${en ? "expires" : "expira"}: ${new Date(p.expires_at).toLocaleDateString()}` : ""})`).join("\n") : en ? "No active promotions" : "Sin promociones activas"}
+${activePromos.length > 0 ? activePromos.map((p) => `- ${p.code}: ${p.discount_type === "percentage" ? `${p.discount_value}%` : `$${p.discount_value}`} off (${en ? "used" : "usado"}: ${p.current_uses}/${p.max_uses ?? "∞"}${p.expires_at ? `, ${en ? "expires" : "expira"}: ${new Date(p.expires_at).toLocaleDateString()}` : ""})`).join("\n") : en ? "No active promotions" : "Sin promociones activas"}
 
 === ${en ? "TEAM" : "EQUIPO"} ===
-${(staff ?? []).length > 0 ? (staff ?? []).map((s) => `- ${s.name} (${s.role})${s.is_active ? "" : en ? " — inactive" : " — inactivo"}`).join("\n") : en ? "Owner only" : "Solo el propietario"}
+${(staff ?? []).length > 0 ? (staff ?? []).map((s) => `- ${s.full_name} (${s.role})${s.status === "accepted" ? "" : en ? ` — ${s.status}` : ` — ${s.status}`}`).join("\n") : en ? "Owner only" : "Solo el propietario"}
 
 === ${en ? "CUSTOMER DATABASE (CRM)" : "BASE DE DATOS DE CLIENTES (CRM)"} ===
 ${en ? "Total in database" : "Total en base de datos"}: ${(crmCustomers ?? []).length >= 20 ? "20+" : (crmCustomers ?? []).length}
@@ -843,7 +848,7 @@ async function executeTool(
       expires_at,
       max_uses,
       is_active: true,
-      usage_count: 0,
+      current_uses: 0,
     });
 
     if (error) {
@@ -1030,7 +1035,7 @@ async function executeTool(
     const { data: orders } = await supabase
       .from("orders")
       .select(
-        "id, order_number, status, total, order_type, customer_name, customer_phone, created_at, items_count",
+        "id, order_number, status, total, order_type, customer_name, customer_phone, created_at",
       )
       .eq("restaurant_id", restaurantId)
       .gte("created_at", todayStart)
@@ -1194,7 +1199,7 @@ async function executeTool(
   if (name === "get_inventory_status") {
     const { data: products } = await supabase
       .from("products")
-      .select("id, name, is_active, in_stock, stock_quantity, category_id")
+      .select("id, name, is_active, in_stock, stock_qty, category_id")
       .eq("restaurant_id", restaurantId)
       .eq("is_active", true);
 
@@ -1204,11 +1209,11 @@ async function executeTool(
     const lowStock = products.filter(
       (p) =>
         p.in_stock !== false &&
-        p.stock_quantity !== null &&
-        p.stock_quantity <= 5,
+        p.stock_qty !== null &&
+        p.stock_qty <= 5,
     );
     const noTracking = products.filter(
-      (p) => p.in_stock !== false && p.stock_quantity === null,
+      (p) => p.in_stock !== false && p.stock_qty === null,
     );
 
     const lines = [`INVENTORY: ${products.length} active products`];
@@ -1219,7 +1224,7 @@ async function executeTool(
     }
     if (lowStock.length > 0) {
       lines.push(
-        `\nLOW STOCK (≤5 units): ${lowStock.map((p) => `${p.name} (${p.stock_quantity})`).join(", ")}`,
+        `\nLOW STOCK (≤5 units): ${lowStock.map((p) => `${p.name} (${p.stock_qty})`).join(", ")}`,
       );
     }
     if (outOfStock.length === 0 && lowStock.length === 0) {

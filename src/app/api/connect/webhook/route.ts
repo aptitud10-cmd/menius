@@ -21,6 +21,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, getConnectWebhookSecret } from '@/lib/stripe';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('connect-webhook');
 
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error';
     logger.error('Connect webhook processing error', { error: message });
+    captureError(err, { route: '/api/connect/webhook' });
     return NextResponse.json({ received: true, warning: message });
   }
 }

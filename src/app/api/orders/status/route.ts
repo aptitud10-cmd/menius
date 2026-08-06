@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('orders-status');
 
@@ -100,6 +101,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ order: shaped });
   } catch (err) {
     logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/orders/status' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

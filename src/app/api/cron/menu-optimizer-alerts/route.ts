@@ -124,13 +124,17 @@ export async function GET(request: NextRequest) {
 
           if (!products || products.length === 0) return false;
 
+          // order_items has no created_at — filter via order_id in the 30d orders already fetched.
           const productIds = products.map((p) => p.id);
-          const { data: orderItems } = await supabase
-            .from("order_items")
-            .select("product_id, qty, line_total")
-            .gte("created_at", monthAgo)
-            .in("product_id", productIds)
-            .limit(1000);
+          const monthOrderIds = (monthOrders ?? []).map((o) => o.id);
+          const { data: orderItems } = monthOrderIds.length > 0
+            ? await supabase
+                .from("order_items")
+                .select("product_id, qty, line_total")
+                .in("order_id", monthOrderIds)
+                .in("product_id", productIds)
+                .limit(1000)
+            : { data: [] as { product_id: string; qty: number; line_total: number }[] };
 
           const productStats: Record<string, { qty: number; revenue: number }> =
             {};

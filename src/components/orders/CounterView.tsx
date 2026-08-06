@@ -9,6 +9,7 @@ import {
   Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus,
 } from 'lucide-react';
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
+import { useLeaderTab } from '@/hooks/use-leader-tab';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
   sendOrderNotification, updatePaymentBreakdown, openShift, closeShift,
@@ -409,8 +410,16 @@ export function CounterView({
   const printOnArrivalRef = useRef(printOnArrival);
   printOnArrivalRef.current = printOnArrival;
 
+  // One tab per restaurant owns sound/push/print side effects (see handleNewOrder)
+  const isLeader = useLeaderTab(`menius-counter-leader:${restaurantId}`);
+  const isLeaderRef = useRef(isLeader);
+  isLeaderRef.current = isLeader;
+
   // ── Cancel/reject ──
   const [cancelModal, setCancelModal] = useState<{ orderId: string; type: 'reject' | 'cancel' } | null>(null);
+  // Set when the server rejects a plain cancel because the order is paid —
+  // the modal then offers "refund & cancel" via /api/payments/refund.
+  const [refundRequired, setRefundRequired] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
   // ── Driver modal ──
@@ -502,9 +511,9 @@ export function CounterView({
   };
   const showNotif = useCallback((result: { channel: string; success: boolean; error?: string }, orderId?: string) => {
     let text: string;
-    if (result.channel === 'whatsapp' && result.success) text = t.notifSentWa;
-    else if (result.channel === 'sms' && result.success) text = t.notifSentSms;
-    else if (result.channel === 'email' && result.success && result.error?.includes('fallback')) text = t.notifFallback;
+    // notifyStatusChange only ever returns channel 'email' | 'none' — the
+    // whatsapp/sms branches were unreachable dead code.
+    if (result.channel === 'email' && result.success && result.error?.includes('fallback')) text = t.notifFallback;
     else if (result.channel === 'email' && result.success) text = t.notifSentEmail;
     else if (result.error === 'no_contact_info' || result.error === 'notifications_disabled') text = t.notifNoContact;
     else text = t.notifFailed;
@@ -582,17 +591,22 @@ export function CounterView({
   }, []);
 
   // ── New order handler ──
+  // Sound/push/print are gated to the LEADER tab only: every open Counter tab
+  // receives the realtime INSERT, so two tabs meant two printed tickets and a
+  // double chime per order. The splash stays per-tab (it's visual context).
   const handleNewOrder = useCallback((order: Order) => {
-    playNewOrderSound();
-    sendPushNotification(
-      `🔔 ${t.newOrder} · ${restaurantName}`,
-      `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`
-    );
-    setSplashQueue(q => [...q, order]);
-    // Print immediately on arrival if enabled
-    if (printOnArrivalRef.current) {
-      PrinterService.printOrder(order, undefined, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
+    if (isLeaderRef.current) {
+      playNewOrderSound();
+      sendPushNotification(
+        `🔔 ${t.newOrder} · ${restaurantName}`,
+        `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`
+      );
+      // Print immediately on arrival if enabled
+      if (printOnArrivalRef.current) {
+        PrinterService.printOrder(order, undefined, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
+      }
     }
+    setSplashQueue(q => [...q, order]);
   }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder]);
 
   const { orders, updateOrderLocally, rtStatus, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
@@ -968,6 +982,12 @@ export function CounterView({
     setUpdatingId(cancelModal.orderId);
     try {
       const res = await updateOrderStatus(cancelModal.orderId, 'cancelled', cancelReason || undefined);
+      if (res?.error === 'PAID_ORDER_NEEDS_REFUND') {
+        // Server refuses to cancel a paid order without refunding — switch the
+        // modal to the refund-and-cancel flow instead of a dead-end error.
+        setRefundRequired(true);
+        return;
+      }
       if (res?.error) { showError(res.error); return; }
       setCancelModal(null);
       setCancelReason('');
@@ -976,6 +996,26 @@ export function CounterView({
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
   }, [cancelModal, cancelReason, t, showNotif]);
+
+  const handleRefundAndCancel = useCallback(async () => {
+    if (!cancelModal) return;
+    setUpdatingId(cancelModal.orderId);
+    try {
+      const res = await fetch('/api/payments/refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: cancelModal.orderId, reason: 'requested_by_customer' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { showError(data.error ?? (t.en ? 'Refund failed' : 'El reembolso falló')); return; }
+      setCancelModal(null);
+      setCancelReason('');
+      setRefundRequired(false);
+      showSuccess(t.en ? 'Order refunded and cancelled' : 'Orden reembolsada y cancelada');
+    } catch {
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
+    } finally { setUpdatingId(null); }
+  }, [cancelModal, t]);
 
   const handleAssignDriver = useCallback(async () => {
     if (!driverModal) return;
@@ -1874,11 +1914,20 @@ export function CounterView({
       {/* ══ CANCEL MODAL ══ */}
       {cancelModal && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setCancelModal(null)} />
+          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => { setCancelModal(null); setRefundRequired(false); }} />
           <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl">
             <p className="text-base font-bold text-[#111] mb-1">
               {cancelModal.type === 'reject' ? t.rejectOrder : t.cancelOrder}
             </p>
+            {refundRequired && (
+              <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
+                <p className="text-xs font-semibold text-amber-900">
+                  {t.en
+                    ? 'This order was paid online. Cancelling it will refund the customer via Stripe.'
+                    : 'Esta orden fue pagada online. Cancelarla reembolsará al cliente vía Stripe.'}
+                </p>
+              </div>
+            )}
             <p className="text-xs text-[#888] mb-4">{t.rejectReason}</p>
             <div className="space-y-2 mb-4">
               {t.reasons.map(r => (
@@ -1892,16 +1941,26 @@ export function CounterView({
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setCancelModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
+              <button onClick={() => { setCancelModal(null); setRefundRequired(false); }} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
                 {t.no}
               </button>
-              <button
-                onClick={handleCancel}
-                disabled={!cancelReason || updatingId === cancelModal.orderId}
-                className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50"
-              >
-                {t.confirmCancel}
-              </button>
+              {refundRequired ? (
+                <button
+                  onClick={handleRefundAndCancel}
+                  disabled={updatingId === cancelModal.orderId}
+                  className="flex-1 py-3 rounded-xl bg-amber-500 text-white text-sm font-bold disabled:opacity-50"
+                >
+                  {t.en ? '💸 Refund & cancel' : '💸 Reembolsar y cancelar'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleCancel}
+                  disabled={!cancelReason || updatingId === cancelModal.orderId}
+                  className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50"
+                >
+                  {t.confirmCancel}
+                </button>
+              )}
             </div>
           </div>
         </>
@@ -2663,8 +2722,6 @@ function OrderDetail({
                     : 'bg-white/10 text-white/50'
                 )}>
                   <MessageCircle className="w-2.5 h-2.5" />
-                  {lastNotif.channel === 'whatsapp' && 'WhatsApp'}
-                  {lastNotif.channel === 'sms' && 'SMS'}
                   {lastNotif.channel === 'email' && 'Email'}
                   {lastNotif.channel === 'none' && (t.en ? 'Not sent' : 'No enviado')}
                   {lastNotif.success ? ` · ${t.en ? 'sent' : 'enviado'}` : ` · ${t.en ? 'failed' : 'fallido'}`}

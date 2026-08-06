@@ -68,7 +68,10 @@ export async function POST(request: NextRequest) {
     }
 
     const amountInCents = Math.round(Number(order.total) * 100);
-    const reference = order.order_number;
+    // Reference = order UUID, NOT order_number: order_number is not unique
+    // (per-restaurant daily counter with races — prod has triplicates), so the
+    // webhook lookup by number could miss or hit another restaurant's order.
+    const reference = order.id;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     const redirectUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).driver_tracking_token ? `&t=${(order as any).driver_tracking_token}` : ''}`;
 

@@ -240,7 +240,10 @@ async function logNotification(
   if (!orderId) return;
   try {
     const adminDb = createAdminClient();
-    await adminDb.from('order_notification_log').insert({
+    // { error } MUST be read: supabase-js never throws on DB errors, and the
+    // review-request email dedupe in cron/email-automations depends on this
+    // log actually being written — a silent failure means duplicate emails.
+    const { error } = await adminDb.from('order_notification_log').insert({
       order_id: orderId,
       restaurant_id: restaurantId,
       event,
@@ -248,6 +251,9 @@ async function logNotification(
       success: result.success,
       error_code: result.error ?? null,
     });
+    if (error) {
+      logger.error('order_notification_log insert failed', { orderId, event, error: error.message });
+    }
   } catch { /* non-critical — logging must never break the happy path */ }
 }
 

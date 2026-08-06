@@ -4,7 +4,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createLogger } from "@/lib/logger";
-import { captureWarning } from "@/lib/error-reporting";
+import { captureWarning, captureError } from "@/lib/error-reporting";
 import { getStripe } from "@/lib/stripe";
 import { getPlanByStripePrice } from "@/lib/plans";
 
@@ -199,6 +199,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logger.error("Reconciliation failed", { error: message });
+    captureError(err, { route: "/api/cron/billing-reconciliation" });
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

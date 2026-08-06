@@ -10,7 +10,7 @@ import {
   Undo2, AlertTriangle, User, MapPin, History, LogOut,
   Hash, MessageSquare, PhoneCall, Send, Loader2,
 } from 'lucide-react';
-import { updateOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
+import { updateOrderStatus, undoOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -97,7 +97,6 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const [filter, setFilter] = useState<Filter>('all');
   const [stationFilter, setStationFilter] = useState<string>('all');
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
-  const [smsOrder, setSmsOrder] = useState<Order | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [undo, setUndo] = useState<Undo | null>(null);
@@ -112,7 +111,6 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   /* Persisted settings */
   const ls = (k: string, def: boolean) => typeof window !== 'undefined' ? localStorage.getItem(k) !== (def ? 'false' : 'true') : def;
   const [autoPrint, setAutoPrint] = useState(() => typeof window !== 'undefined' && localStorage.getItem('menius-auto-print') === 'true');
-  const [smsEnabled, setSmsEnabled] = useState(() => ls('kds-sms-enabled', true));
   const [pausedUntil, setPausedUntil] = useState<number | null>(() => {
     if (typeof window === 'undefined') return null;
     const t = parseInt(localStorage.getItem('kds-paused-until') ?? '', 10);
@@ -264,7 +262,9 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     const { orderId, prev, next } = undo;
     updateOrderLocally(orderId, { status: prev });
     setUndo(null); if (undoRef.current) clearTimeout(undoRef.current);
-    const result = await updateOrderStatus(orderId, prev);
+    // undoOrderStatus, NOT updateOrderStatus: the state machine has no
+    // backward edges, so the regular action rejected every undo.
+    const result = await undoOrderStatus(orderId, prev);
     if (result?.error) {
       updateOrderLocally(orderId, { status: next });
       setOosToast({ msg: result.error, ok: false });
@@ -415,7 +415,6 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           </button>
           <Ctrl on={autoPrint} onClick={() => tog('menius-auto-print', setAutoPrint, !autoPrint)} icon={Printer} title={t.kds_autoPrint} />
           <Ctrl on={soundEnabled} onClick={() => setSoundEnabled(!soundEnabled)} icon={soundEnabled ? Volume2 : VolumeX} title={t.kds_sound} />
-          <Ctrl on={smsEnabled} onClick={() => tog('kds-sms-enabled', setSmsEnabled, !smsEnabled)} icon={MessageSquare} title="SMS" />
           <Ctrl on={!!pausedUntil} onClick={() => setShowPause(true)} icon={Pause} title={t.kds_pause} danger />
           <button onClick={() => setShowBusy(true)} className={cn('p-2.5 rounded-lg transition-colors touch-manipulation text-xs font-black', busyExtra > 0 ? 'text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800')} style={busyExtra > 0 ? { backgroundColor: '#06c167' } : undefined} title="Busy Mode">🔥</button>
           <button onClick={() => { setShowSearch(s => !s); if (showSearch) setSearch(''); }} className="p-2.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 touch-manipulation"><Search className="w-5 h-5" /></button>
@@ -525,7 +524,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
                     onBump={() => { const n = NEXT[o.status]; if (n) bump(o.id, n); }}
                     onCancel={() => bump(o.id, 'cancelled')} onPrint={() => setPrintOrder(o)}
                     onExpand={() => toggleExp(o.id)} onOOS={markOOS}
-                    onSMS={() => o.customer_phone ? setSmsOrder(o) : undefined} />
+                    />
                 </div>
               ))}
             </div>
@@ -632,7 +631,6 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
       {printOrder && <OrderReceipt order={printOrder} restaurantName={restaurantName} restaurantPhone={restaurantPhone} restaurantAddress={restaurantAddress} currency={currency} taxLabel={taxLabel} taxIncluded={taxIncluded} onClose={() => setPrintOrder(null)} />}
 
-      {smsOrder && <SMSQuickSend order={smsOrder} restaurantName={restaurantName} onClose={() => setSmsOrder(null)} />}
     </>
   );
 }
@@ -671,10 +669,10 @@ function NewOrderOverlay({ count, onDismiss }: { count: number; onDismiss: () =>
    TICKET — Toast/Fresh KDS style card
    Full-color header (green → yellow → red) + items-focused body + bump
    ══════════════════════════════════════════════════════════════════════ */
-function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected, onBump, onCancel, onPrint, onExpand, onOOS, onSMS }: {
+function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected, onBump, onCancel, onPrint, onExpand, onOOS }: {
   order: Order; currency: string; busyExtra?: number; isNew: boolean; isExpanded: boolean; isSelected: boolean;
   onBump: () => void; onCancel: () => void; onPrint: () => void; onExpand: () => void;
-  onOOS: (pid: string) => void; onSMS: () => void;
+  onOOS: (pid: string) => void;
 }) {
   const { t, locale } = useDashboardLocale();
   const isEn = locale === 'en';
@@ -741,7 +739,6 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
           <span className="text-sm font-semibold text-gray-900 truncate">{order.customer_name || order.customer_phone}</span>
           {order.customer_phone && (
             <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
-              <button onClick={(e) => { e.stopPropagation(); onSMS(); }} className="p-2 rounded-lg bg-violet-50 text-violet-500 hover:bg-violet-100 touch-manipulation" title={t.kds_sendSms}><StickyNote className="w-4 h-4" /></button>
               <a href={`tel:${order.customer_phone}`} className="p-2 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100 touch-manipulation"><PhoneCall className="w-4 h-4" /></a>
               <a href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
                 className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 touch-manipulation"><MessageSquare className="w-4 h-4" /></a>

@@ -108,15 +108,30 @@ export async function POST(req: NextRequest) {
       id: string;
       payment_status: string;
       restaurant_id: string;
+      total: number;
     } | null = null;
 
     if (externalRef) {
-      const { data } = await adminDb
-        .from("orders")
-        .select("id, payment_status, restaurant_id")
-        .eq("order_number", externalRef)
-        .maybeSingle();
-      order = data;
+      // New checkouts send the order UUID; legacy in-flight ones may still send
+      // order_number (NOT unique — take most recent; amount check below guards).
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (UUID_RE.test(externalRef)) {
+        const { data } = await adminDb
+          .from("orders")
+          .select("id, payment_status, restaurant_id, total")
+          .eq("id", externalRef)
+          .maybeSingle();
+        order = data;
+      } else {
+        const { data } = await adminDb
+          .from("orders")
+          .select("id, payment_status, restaurant_id, total")
+          .eq("order_number", externalRef)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        order = data;
+      }
     }
 
     if (!order) {
@@ -178,6 +193,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    // Validate amount against the order total — Wompi's webhook does this,
+    // MP's didn't (a wrong-order collision or partial payment marked it paid).
+    const expectedAmount = Number(order.total);
+    const receivedAmount = Number(payment.transaction_amount ?? 0);
+    if (Math.abs(receivedAmount - expectedAmount) > 0.01) {
+      logger.warn("MP amount mismatch — rejecting", {
+        orderId: order.id,
+        expected: expectedAmount,
+        received: receivedAmount,
+      });
+      return NextResponse.json({ received: true });
+    }
+
     // Mark order as paid
     const { error } = await adminDb
       .from("orders")
@@ -188,11 +216,16 @@ export async function POST(req: NextRequest) {
       .eq("id", order.id);
 
     if (error) {
+      // Release the idempotency claim so MP's retry isn't dropped as duplicate
+      await adminDb
+        .from("processed_webhook_events")
+        .delete()
+        .eq("event_id", eventId);
       logger.error("Failed to update order payment", {
         orderId: order.id,
         error: error.message,
       });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "update_failed" }, { status: 500 });
     }
 
     sendPaymentConfirmedNotifications(order.id).catch((err) => {

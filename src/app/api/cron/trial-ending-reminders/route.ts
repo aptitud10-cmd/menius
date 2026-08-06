@@ -71,7 +71,16 @@ export async function GET(request: NextRequest) {
               billingUrl,
               locale: rest.locale,
             }),
-          }).then(async () => {
+          }).then(async (ok) => {
+            // sendEmail NEVER rejects — it returns a boolean. Stamping
+            // sent_at unconditionally marked failed sends as delivered and
+            // the trial was never reminded. Only stamp on real success.
+            if (!ok) {
+              logger.error("Trial ending reminder failed to send", {
+                restaurantSlug: rest.slug,
+              });
+              return false;
+            }
             await adminDb
               .from("subscriptions")
               .update({
@@ -81,11 +90,14 @@ export async function GET(request: NextRequest) {
             logger.info("Trial ending reminder sent", {
               restaurantSlug: rest.slug,
             });
+            return true;
           });
         }),
     );
 
-    const sentCount = results.filter((r) => r.status === "fulfilled").length;
+    const sentCount = results.filter(
+      (r) => r.status === "fulfilled" && r.value === true,
+    ).length;
     results.forEach((r, i) => {
       if (r.status === "rejected") {
         logger.error("Failed to send trial ending reminder", {

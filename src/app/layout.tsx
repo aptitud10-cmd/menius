@@ -209,6 +209,16 @@ function ServiceWorkerRegister() {
             window.addEventListener('load', function() {
               navigator.serviceWorker.register('/sw.js');
             });
+            // Auto-reload when a new SW takes control (deploy happened): the SW
+            // does skipWaiting + clients.claim, so open tabs would keep serving
+            // stale HTML whose /_next chunks no longer exist (chunk-load errors
+            // on all-day KDS/Counter tablets). Guard avoids reload loops.
+            var reloaded = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function() {
+              if (reloaded) return;
+              reloaded = true;
+              window.location.reload();
+            });
           }
         `,
       }}

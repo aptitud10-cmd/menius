@@ -86,7 +86,9 @@ export async function POST(req: NextRequest) {
 
     const preference = await preferenceClient.create({
       body: {
-        external_reference: order.order_number,
+        // Order UUID, NOT order_number: order_number is not unique (prod has
+        // duplicates), the webhook must resolve the exact order.
+        external_reference: order.id,
         items: [
           {
             id: order.id,

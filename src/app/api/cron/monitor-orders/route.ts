@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createAlert } from '@/lib/dev-tool/alerts';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('monitor-orders');
 
@@ -15,6 +16,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  try {
+    return await runMonitorOrders();
+  } catch (err) {
+    logger.error('monitor-orders failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/cron/monitor-orders' });
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
+}
+
+async function runMonitorOrders(): Promise<NextResponse> {
   const db = createAdminClient();
   const now = new Date();
   const h1ago  = new Date(now.getTime() - 60 * 60 * 1000).toISOString();

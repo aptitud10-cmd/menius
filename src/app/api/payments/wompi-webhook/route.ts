@@ -78,6 +78,39 @@ export async function POST(request: NextRequest) {
 
       const adminDb = createAdminClient();
 
+      // Resolve the order FIRST, claim idempotency after: claiming before a
+      // failed lookup used to burn the event_id, so Wompi's retry was dropped
+      // as "duplicate" and the payment stayed unmarked forever.
+      // New references are the order UUID; legacy in-flight checkouts may still
+      // send order_number — accept it as fallback (amount check below guards it).
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      let order: { id: string; payment_status: string | null; total: number } | null = null;
+      if (UUID_RE.test(reference)) {
+        const { data } = await adminDb
+          .from("orders")
+          .select("id, payment_status, total")
+          .eq("id", reference)
+          .maybeSingle();
+        order = data;
+      } else {
+        // Legacy fallback: order_number is NOT unique (prod has duplicates) —
+        // take the most recent match; the amount validation below rejects a
+        // wrong-order collision.
+        const { data } = await adminDb
+          .from("orders")
+          .select("id, payment_status, total")
+          .eq("order_number", reference)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        order = data;
+      }
+
+      if (!order) {
+        logger.warn("Order not found for Wompi reference", { reference });
+        return NextResponse.json({ received: true });
+      }
+
       // Idempotency guard — duplicate event_id raises a 23505 unique violation, not a null row.
       const eventId = `wompi:${transaction.id}`;
       const { error: insertErr } = await adminDb
@@ -90,17 +123,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true });
         }
         throw insertErr;
-      }
-
-      const { data: order } = await adminDb
-        .from("orders")
-        .select("id, payment_status, total")
-        .eq("order_number", reference)
-        .maybeSingle();
-
-      if (!order) {
-        logger.warn("Order not found for Wompi reference", { reference });
-        return NextResponse.json({ received: true });
       }
 
       if (order.payment_status === "paid") {

@@ -3,9 +3,14 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('api:branches');
+
+/** "Hasta 3 sucursales incluidas" en Business (src/lib/plans.ts) — cuenta el
+ * restaurante principal + sucursales, igual que lo que el GET ya lista. */
+const MAX_BRANCHES_PER_OWNER = 3;
 
 export async function GET() {
   try {
@@ -44,6 +49,14 @@ export async function POST(req: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
+    const allowed = await hasPlanAccess(tenant.restaurantId, 'business');
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Las sucursales son una función del plan Business' },
+        { status: 403 },
+      );
+    }
+
     const { name, slug, address, phone } = await req.json();
     if (!name?.trim() || !slug?.trim()) {
       return NextResponse.json({ error: 'Nombre y slug requeridos' }, { status: 400 });
@@ -57,6 +70,20 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = await createClient();
+
+    // Enforce the plan limit: same count the GET lists (all restaurants owned by this user).
+    const { count: branchCount, error: countErr } = await supabase
+      .from('restaurants')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_user_id', tenant.userId);
+
+    if (countErr) return NextResponse.json({ error: countErr.message }, { status: 500 });
+    if ((branchCount ?? 0) >= MAX_BRANCHES_PER_OWNER) {
+      return NextResponse.json(
+        { error: 'Tu plan incluye hasta 3 sucursales' },
+        { status: 403 },
+      );
+    }
 
     // Check slug uniqueness
     const { data: existing } = await supabase

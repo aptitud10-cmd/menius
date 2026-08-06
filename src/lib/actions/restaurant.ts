@@ -1401,6 +1401,64 @@ export async function deleteTable(id: string) {
 }
 
 // ---- Orders ----
+/**
+ * Revert an order to its previous status (KDS "undo" within its 5s window).
+ * The forward state machine has no backward edges, so a plain
+ * updateOrderStatus(prev) always failed with "Transición inválida" — the undo
+ * button never worked. This validates the INVERSE instead: reverting to
+ * `toStatus` is legal only if `toStatus → current` is a valid forward
+ * transition (i.e. we're undoing exactly the step that just happened).
+ * Deliberately skips customer notifications — undoing a mis-tap should not
+ * email anyone.
+ */
+export async function undoOrderStatus(orderId: string, toStatus: string) {
+  const {
+    supabase,
+    restaurantId,
+    error: authErr,
+  } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  if (!ALL_STATUSES.includes(toStatus as never))
+    return { error: "Estado inválido" };
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id, status")
+    .eq("id", orderId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  if (!order) return { error: "Orden no encontrada" };
+
+  const current = order.status as string;
+  if (current === toStatus) return {};
+  if (!canTransition(toStatus as never, current as never)) {
+    return { error: `No se puede deshacer: ${current} → ${toStatus}` };
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ status: toStatus })
+    .eq("id", orderId)
+    .eq("restaurant_id", restaurantId);
+
+  if (error) return { error: error.message };
+
+  void broadcastOrderUpdate(orderId, toStatus);
+
+  try {
+    await supabase.from("order_status_history").insert({
+      order_id: orderId,
+      from_status: current,
+      to_status: toStatus,
+      note: "undo",
+    });
+  } catch { /* history is best-effort */ }
+
+  return {};
+}
+
 export async function updateOrderStatus(
   orderId: string,
   status: string,
@@ -1419,7 +1477,7 @@ export async function updateOrderStatus(
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, estimated_ready_minutes, restaurants ( slug, name )",
+      "id, status, payment_status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, estimated_ready_minutes, restaurants ( slug, name )",
     )
     .eq("id", orderId)
     .eq("restaurant_id", restaurantId)
@@ -1431,6 +1489,15 @@ export async function updateOrderStatus(
   const currentStatus = order.status as string;
   if (!canTransition(currentStatus, status)) {
     return { error: `Transición inválida: ${currentStatus} → ${status}` };
+  }
+
+  // A paid order must be refunded, not silently cancelled — otherwise the
+  // customer's money stays captured with no signal to anyone. The refund
+  // endpoint (/api/payments/refund) refunds AND cancels atomically.
+  if (status === "cancelled" && (order as any).payment_status === "paid") {
+    return {
+      error: "PAID_ORDER_NEEDS_REFUND",
+    };
   }
 
   const updatePayload: Record<string, unknown> = { status };

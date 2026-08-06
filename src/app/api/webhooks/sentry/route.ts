@@ -10,7 +10,9 @@ const logger = createLogger('webhook-sentry');
 // We verify it using SENTRY_WEBHOOK_SECRET
 async function verifySentrySignature(request: NextRequest, body: string): Promise<boolean> {
   const secret = process.env.SENTRY_WEBHOOK_SECRET;
-  if (!secret) return true; // if no secret configured, allow (set secret in Sentry dashboard)
+  // Fail-closed: reject all requests if the secret is not configured.
+  // Without this guard, any HTTP client can forge alerts (same pattern as wompi-webhook).
+  if (!secret) return false;
 
   const signature = request.headers.get('sentry-hook-signature');
   if (!signature) return false;
@@ -25,6 +27,11 @@ async function verifySentrySignature(request: NextRequest, body: string): Promis
 }
 
 export async function POST(request: NextRequest) {
+  if (!process.env.SENTRY_WEBHOOK_SECRET) {
+    logger.error('SENTRY_WEBHOOK_SECRET is not configured — rejecting webhook to prevent spoofed alerts');
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+  }
+
   const rawBody = await request.text();
 
   const valid = await verifySentrySignature(request, rawBody);

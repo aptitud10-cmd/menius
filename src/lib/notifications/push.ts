@@ -25,24 +25,34 @@ export async function sendPushToOrder(orderId: string, payload: PushPayload): Pr
 
   try {
     const adminDb = createAdminClient();
-    const { data: subs } = await adminDb
+    // Prod schema stores the subscription flattened (endpoint + keys columns),
+    // NOT as a single `subscription` json column — selecting the old shape was
+    // a 42703 on every send and web push never worked.
+    const { data: subs, error } = await adminDb
       .from('push_subscriptions')
-      .select('subscription')
+      .select('endpoint, keys_p256dh, keys_auth')
       .eq('order_id', orderId);
 
+    if (error) {
+      logger.error('sendPushToOrder query failed', { orderId, error: error.message });
+      return;
+    }
     if (!subs?.length) return;
 
     const message = JSON.stringify(payload);
 
     await Promise.allSettled(
-      subs.map(async ({ subscription }) => {
+      subs.map(async ({ endpoint, keys_p256dh, keys_auth }) => {
         try {
-          await webpush.sendNotification(subscription, message);
+          await webpush.sendNotification(
+            { endpoint, keys: { p256dh: keys_p256dh, auth: keys_auth } },
+            message,
+          );
         } catch (err) {
           const statusCode = (err as { statusCode?: number })?.statusCode;
           if (statusCode === 410 || statusCode === 404) {
             // Subscription expired — clean up
-            void adminDb.from('push_subscriptions').delete().eq('subscription', subscription);
+            void adminDb.from('push_subscriptions').delete().eq('endpoint', endpoint);
           }
         }
       })
