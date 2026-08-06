@@ -595,6 +595,16 @@ export function buildStatusUpdateEmail(params: {
       msgEs: "Tu pedido está listo y te espera. ¡Pásalo a recoger!",
       color: "#d97706",
     },
+    out_for_delivery: {
+      icon: "🛵",
+      titleEn: "Your order is on its way!",
+      titleEs: "¡Tu pedido va en camino!",
+      msgEn:
+        "The driver picked up your order and is heading your way. Track it live on the map!",
+      msgEs:
+        "El repartidor recogió tu pedido y va hacia ti. ¡Síguelo en vivo en el mapa!",
+      color: "#2563eb",
+    },
     delivered: (() => {
       if (orderType === "pickup")
         return {

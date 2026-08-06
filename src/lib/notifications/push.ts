@@ -191,6 +191,14 @@ export function getStatusPushPayload(
       title: en ? `🔔 Your order is ready!` : `🔔 ¡Tu pedido está listo!`,
       body: readyBody,
     },
+    out_for_delivery: {
+      title: en ? `🛵 On its way!` : `🛵 ¡Va en camino!`,
+      body: en ? `Your order #${orderNumber} is on its way — track it live` : `Tu pedido #${orderNumber} va en camino — síguelo en vivo`,
+    },
+    at_door: {
+      title: en ? `🚪 Your driver is at the door` : `🚪 Tu repartidor está en la puerta`,
+      body: en ? `Order #${orderNumber} has arrived!` : `¡Tu pedido #${orderNumber} llegó!`,
+    },
     delivered: (() => {
       if (orderType === 'pickup') return {
         title: en ? `🥡 Order picked up!` : `🥡 ¡Pedido recogido!`,

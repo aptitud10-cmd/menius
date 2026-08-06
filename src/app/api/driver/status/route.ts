@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
     .select(
-      "id, status, order_type, customer_phone, customer_name, customer_email, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, restaurants(name, locale, slug, currency)",
+      "id, status, order_type, customer_phone, customer_name, customer_email, customer_locale, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, restaurants(name, locale, slug, currency)",
     )
     .eq("driver_tracking_token", token)
     .maybeSingle();
@@ -208,6 +208,47 @@ export async function POST(req: NextRequest) {
       const newStatus =
         (updateData.status as string | undefined) ?? order.status;
       broadcastOrderUpdate(order.id, newStatus).catch(() => {});
+
+      // Customer notifications — the broadcast only reaches an open tracker tab.
+      // picked_up → full stack (email + push) as "out for delivery".
+      // at_door → push only; an email is useless when the driver is at the door.
+      if (action === "picked_up" && updateData.status === "out_for_delivery") {
+        try {
+          const { notifyStatusChange } =
+            await import("@/lib/notifications/order-notifications");
+          await notifyStatusChange({
+            orderId: order.id,
+            orderNumber: order.order_number,
+            restaurantId: order.restaurant_id,
+            status: "out_for_delivery",
+            customerName: order.customer_name,
+            customerEmail: (order as any).customer_email || undefined,
+            customerPhone: order.customer_phone || undefined,
+            customerLocale: (order as any).customer_locale || undefined,
+            orderType: (order as any).order_type || undefined,
+            deliveryAddress: (order as any).delivery_address || undefined,
+          });
+        } catch (err) {
+          logger.error("notifyStatusChange error on picked_up", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
+      if (action === "at_door" && restaurant) {
+        import("@/lib/notifications/push")
+          .then(({ sendPushToOrder, sendExpoPushToCustomerByPhone, getStatusPushPayload }) => {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";
+            const trackUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
+            const locale = (order as any).customer_locale || restaurant.locale || "es";
+            const payload = getStatusPushPayload("at_door", order.order_number, restaurant.name, trackUrl, locale, (order as any).order_type || undefined);
+            sendPushToOrder(order.id, payload).catch(() => {});
+            if (order.customer_phone) {
+              sendExpoPushToCustomerByPhone(order.customer_phone, payload).catch(() => {});
+            }
+          })
+          .catch(() => {});
+      }
     }
   }
 
