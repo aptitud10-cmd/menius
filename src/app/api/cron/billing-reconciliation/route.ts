@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createLogger } from "@/lib/logger";
 import { captureWarning, captureError } from "@/lib/error-reporting";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, getSubscriptionPeriod } from "@/lib/stripe";
 import { getPlanByStripePrice } from "@/lib/plans";
 
 const logger = createLogger("billing-reconciliation");
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     const { data: stripeSubs } = await supabase
       .from("subscriptions")
       .select(
-        "id, restaurant_id, stripe_subscription_id, status, plan_id, current_period_end",
+        "id, restaurant_id, stripe_subscription_id, status, plan_id, current_period_end, past_due_since",
       )
       .not("stripe_subscription_id", "is", null)
       .neq("stripe_subscription_id", "")
@@ -118,17 +118,41 @@ export async function GET(request: NextRequest) {
         const updates: Record<string, unknown> = { updated_at: nowIso };
 
         if (stripeSub.status !== dbSub.status) {
-          updates.status =
+          const newStatus =
             stripeSub.status === "incomplete_expired"
               ? "canceled"
               : stripeSub.status;
+          updates.status = newStatus;
           mismatch = true;
+
+          // Without past_due_since the grace window has no start: check-plan
+          // keeps the paid plan indefinitely and the dunning cron skips the row
+          // (it filters on this column). A webhook lost mid-failure used to end
+          // here — status corrected, restaurant delinquent and unbilled forever.
+          if (newStatus === "past_due" && !dbSub.past_due_since) {
+            updates.past_due_since = nowIso;
+            updates.dunning_stage = 0;
+          }
+          // Recovered: clear the clock so a later failure starts a fresh window.
+          if (
+            (newStatus === "active" || newStatus === "trialing") &&
+            dbSub.past_due_since
+          ) {
+            updates.past_due_since = null;
+            updates.dunning_stage = 0;
+          }
+          if (newStatus === "canceled") {
+            updates.canceled_at = nowIso;
+          }
         }
 
-        const stripePeriodEnd = new Date(
-          stripeSub.current_period_end * 1000,
-        ).toISOString();
-        if (dbSub.current_period_end !== stripePeriodEnd) {
+        // Period moved onto sub.items[] in Basil; reading the old path returned
+        // undefined and `new Date(undefined * 1000).toISOString()` threw
+        // RangeError, aborting this sync before ANY write — including the status
+        // fix above. Promise.allSettled swallowed it, so the whole Step 3 safety
+        // net had never corrected a single drift.
+        const { endIso: stripePeriodEnd } = getSubscriptionPeriod(stripeSub);
+        if (stripePeriodEnd && dbSub.current_period_end !== stripePeriodEnd) {
           updates.current_period_end = stripePeriodEnd;
           mismatch = true;
         }

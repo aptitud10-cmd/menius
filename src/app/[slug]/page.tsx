@@ -497,11 +497,49 @@ export default async function SlugMenuPage({ params }: PageProps) {
 
   const storeOverrides = getStoreOverrides(params.slug);
 
+  // Slim products: everything below is serialised into the HTML of a PUBLIC page,
+  // so this is an allow-list, not a strip-list. menu-data.ts must `select('*')`
+  // (see CLAUDE.md rule 11), which means the row carries columns the menu never
+  // renders — including the restaurant's own margins (`cost_price`) and
+  // inventory (`stock_qty`, `low_stock_threshold`, `track_inventory`). Those
+  // were readable in page source by any visitor, competitors included.
+  //
+  // Keep this in sync with the Product type: if a card needs a new field, add it
+  // here explicitly. variants/extras stay [] and modifier_groups is already []
+  // from menu-data.ts — CustomizationSheet lazy-loads them via
+  // /api/product-modifiers (product slim pattern, do not undo).
+  const slimProducts = data.products.map((p) => ({
+    id: p.id,
+    restaurant_id: p.restaurant_id,
+    category_id: p.category_id,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    compare_at_price: p.compare_at_price ?? null,
+    image_url: p.image_url,
+    is_active: p.is_active,
+    in_stock: p.in_stock,
+    is_featured: p.is_featured,
+    is_new: p.is_new,
+    dine_in_only: p.dine_in_only,
+    prep_time_minutes: p.prep_time_minutes ?? null,
+    dietary_tags: p.dietary_tags,
+    translations: p.translations,
+    sort_order: p.sort_order,
+    created_at: p.created_at,
+    popularity_rank: p.popularity_rank ?? null,
+    orders_last_7d: p.orders_last_7d ?? null,
+    has_modifiers: p.has_modifiers,
+    variants: [],
+    extras: [],
+    modifier_groups: [],
+  }));
+
   if (storeOverrides.layout_mode === "high_conversion" && data.restaurant) {
-    const mainProduct = data.products.find(
+    const mainProduct = slimProducts.find(
       (p) => p.id === storeOverrides.heroProductId,
     );
-    const packOptions = data.products.filter((p) =>
+    const packOptions = slimProducts.filter((p) =>
       storeOverrides.packProductIds?.includes(p.id),
     );
 
@@ -512,7 +550,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
             restaurant={data.restaurant}
             slug={params.slug}
             categories={data.categories}
-            products={data.products}
+            products={slimProducts}
             reviewStats={data.reviewStats}
           />
           <HighConversionLayout
@@ -525,24 +563,15 @@ export default async function SlugMenuPage({ params }: PageProps) {
     }
   }
 
-  // Slim products: strip variants/extras payload before serialising into the RSC client bundle.
-  // has_modifiers is already set in menu-data.ts from a lightweight modifier_groups presence check.
-  // modifier_groups is already [] from menu-data.ts (fetched lazily by CustomizationSheet).
-  // Full modifier data is fetched on-demand via /api/product-modifiers.
-  const slimProducts = data.products.map((p) => ({
-    ...p,
-    variants: [],
-    extras: [],
-  }));
-
   return (
     <>
-      {/* JsonLdScript is a server component — full products are fine here, no client payload impact */}
+      {/* Server component, but its output IS the page HTML — feed it the same
+          slimmed products so private columns don't reach the document twice. */}
       <JsonLdScript
         restaurant={data.restaurant}
         slug={params.slug}
         categories={data.categories}
-        products={data.products}
+        products={slimProducts}
         reviewStats={data.reviewStats}
       />
       <MenuShell

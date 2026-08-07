@@ -4,7 +4,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { getPlanByStripePrice, getIntervalByStripePrice } from "@/lib/plans";
 import { createLogger } from "@/lib/logger";
-import { getStripe, getWebhookSecret } from "@/lib/stripe";
+import {
+  getStripe,
+  getWebhookSecret,
+  getSubscriptionPeriod,
+  getInvoiceSubscriptionId,
+  unixToIso,
+} from "@/lib/stripe";
 import { captureError } from "@/lib/error-reporting";
 import { createDashboardNotification } from "@/lib/notifications/dashboard-notifications";
 import { sendTelegramAlert } from "@/lib/notifications/telegram";
@@ -142,25 +148,22 @@ export async function POST(request: NextRequest) {
             status = "trialing";
           }
 
+          // Period lives on sub.items[] since Basil — see getSubscriptionPeriod.
+          const { startIso, endIso } = getSubscriptionPeriod(sub);
+
           const updateData: Record<string, any> = {
             stripe_subscription_id: sub.id,
             status,
             stripe_price_id: priceId ?? null,
-            current_period_start: new Date(
-              sub.current_period_start * 1000,
-            ).toISOString(),
-            current_period_end: new Date(
-              sub.current_period_end * 1000,
-            ).toISOString(),
+            current_period_start: startIso,
+            current_period_end: endIso,
             updated_at: new Date().toISOString(),
           };
 
           // cancel_at_period_end means "will cancel at period end", NOT canceled yet.
           // Only set canceled_at when the subscription is actually deleted (handled below).
           if (sub.cancel_at_period_end) {
-            updateData.cancel_at = sub.cancel_at
-              ? new Date(sub.cancel_at * 1000).toISOString()
-              : new Date(sub.current_period_end * 1000).toISOString();
+            updateData.cancel_at = unixToIso(sub.cancel_at) ?? endIso;
           } else {
             updateData.cancel_at = null;
           }
@@ -523,7 +526,10 @@ export async function POST(request: NextRequest) {
         case "invoice.paid": {
           const invoice = event.data.object as any;
           const customerId = invoice.customer as string;
-          const subId = invoice.subscription as string;
+          // Basil moved this under invoice.parent.subscription_details; reading
+          // the old path returned undefined, so this recovery path silently did
+          // nothing and a restaurant that had just paid stayed in past_due.
+          const subId = getInvoiceSubscriptionId(invoice);
 
           if (customerId && subId) {
             const resolvedId = await resolveRestaurantId(null, customerId);

@@ -29,3 +29,57 @@ export function getStartOfDayUTC(timezone: string, daysAgo = 0): Date {
   const midnightUTC = new Date(`${targetDateStr}T00:00:00Z`);
   return new Date(midnightUTC.getTime() - offsetHours * 3600 * 1000);
 }
+
+/**
+ * Converts a wall-clock date+time stored in the restaurant's local timezone
+ * (columns typed `date` + `time without time zone`, e.g. reservations) into a
+ * real UTC instant.
+ *
+ * `new Date("2026-08-07T19:00")` on a UTC server reads that as 19:00 UTC, which
+ * for a UTC-4 restaurant is 3pm local — four hours off. That made the
+ * reservation auto-cancel cron fire hours BEFORE the guest was due.
+ *
+ * Returns null when the inputs are unusable, so callers can skip the row
+ * instead of acting on a bogus instant.
+ */
+export function localDateTimeToUTC(
+  dateStr: string,
+  timeStr: string,
+  timezone: string,
+): Date | null {
+  if (!dateStr || !timeStr) return null;
+
+  // Tolerate "19:00", "19:00:00" and "19:00:00.000"
+  const hms = timeStr.trim().split(':');
+  const hour = Number(hms[0]);
+  const minute = Number(hms[1] ?? 0);
+  const second = Number.parseInt(hms[2] ?? '0', 10);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute) || !Number.isFinite(second)) return null;
+
+  // Offset measured at noon UTC on that date — noon dodges the DST edge cases
+  // that midnight lands on. Same approach as getStartOfDayUTC above.
+  const noonUTC = new Date(`${dateStr}T12:00:00Z`);
+  if (Number.isNaN(noonUTC.getTime())) return null;
+
+  let hourAtNoon: number;
+  try {
+    hourAtNoon = parseInt(
+      new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', hour12: false }).format(noonUTC),
+      10,
+    );
+  } catch {
+    return null; // invalid IANA timezone
+  }
+  if (!Number.isFinite(hourAtNoon)) return null;
+
+  const offsetHours = (hourAtNoon === 24 ? 0 : hourAtNoon) - 12;
+
+  const asIfUTC = new Date(`${dateStr}T00:00:00Z`);
+  if (Number.isNaN(asIfUTC.getTime())) return null;
+
+  return new Date(
+    asIfUTC.getTime()
+      + (hour * 3600 + minute * 60 + second) * 1000
+      - offsetHours * 3600 * 1000,
+  );
+}
