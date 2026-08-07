@@ -3,15 +3,18 @@
 import { redirect } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { checkRateLimitAsync } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIPFromHeaders } from '@/lib/rate-limit';
 import { verifyTurnstile } from '@/lib/turnstile';
 import type { SignupInput, LoginInput } from '@/lib/validations';
 
+/**
+ * Uses the shared resolver — this file used to carry its own copy that read the
+ * FIRST x-forwarded-for entry (client-controllable), so any attacker sending a
+ * random XFF per request landed in a different bucket and the auth rate limits
+ * below never triggered.
+ */
 async function getIPFromHeaders(): Promise<string> {
-  const h = await headers();
-  return h.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || h.get('x-real-ip')
-    || '127.0.0.1';
+  return getClientIPFromHeaders(await headers());
 }
 
 export async function signup(data: SignupInput & { turnstileToken?: string }) {

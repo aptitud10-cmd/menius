@@ -164,7 +164,8 @@ export default function BillingPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<'success' | 'cancel' | null>(null);
-  const [showCommissionModal, setShowCommissionModal] = useState(false);
+  // El plan 4% es interno: se activa desde /admin (verifyAdmin), no self-service.
+  // Acá solo queda la desactivación — ver /api/billing/activate-commission-plan.
   const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
@@ -279,28 +280,23 @@ export default function BillingPage() {
     }
   }, [t.billing_connectionError, t.billing_noCheckout]);
 
-  const handleCommissionPlan = useCallback(async (deactivate = false) => {
-    setActionLoading(deactivate ? 'deactivate-commission' : 'commission');
+  // Solo desactivación: el alta del plan 4% es interna (/admin + verifyAdmin).
+  const handleDeactivateCommissionPlan = useCallback(async () => {
+    setActionLoading('deactivate-commission');
     setError(null);
-    if (!deactivate) setShowCommissionModal(false);
     try {
       const res = await fetch('/api/billing/activate-commission-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(deactivate ? { deactivate: true } : {}),
+        body: JSON.stringify({ deactivate: true }),
       });
       const data = await res.json();
       if (!data.success) {
         setError(data.error || (locale === 'en'
-          ? (deactivate ? 'Could not deactivate plan' : 'Could not activate plan')
-          : (deactivate ? 'No se pudo desactivar el plan' : 'No se pudo activar el plan')));
+          ? 'Could not deactivate plan'
+          : 'No se pudo desactivar el plan'));
         setActionLoading(null);
         return;
-      }
-      if (!deactivate) {
-        const connectRes = await fetch('/api/connect/onboard', { method: 'POST' });
-        const connectData = await connectRes.json();
-        if (connectData.url) { window.location.href = connectData.url; return; }
       }
       window.location.reload();
     } catch {
@@ -577,7 +573,7 @@ export default function BillingPage() {
                 )}
                 {commissions?.isCommissionPlan && (
                   <button
-                    onClick={() => handleCommissionPlan(true)}
+                    onClick={handleDeactivateCommissionPlan}
                     disabled={actionLoading !== null}
                     className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-300 disabled:opacity-50 transition-all"
                   >
@@ -1064,61 +1060,6 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* ─── Commission plan activation modal ─── */}
-      {showCommissionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowCommissionModal(false)}>
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setShowCommissionModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-teal-50 mb-4">
-              <CreditCard className="w-6 h-6 text-teal-600" />
-            </div>
-
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              {locale === 'en' ? 'Activate online payments — 4% per order' : 'Activar pagos online — 4% por orden'}
-            </h3>
-
-            <div className="space-y-3 mb-6">
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {locale === 'en'
-                  ? 'You\'ll pay $0/month to MENIUS. Instead, we charge 4% on each online card payment via Stripe Connect.'
-                  : 'Pagas $0/mes a MENIUS. En cambio, cobramos 4% de cada pago online con tarjeta vía Stripe Connect.'}
-              </p>
-              <div className="rounded-xl bg-teal-50 border border-teal-100 p-3 space-y-1.5 text-xs text-teal-800">
-                <p>✓ {locale === 'en' ? '~7% total (4% MENIUS + 2.9% Stripe) vs 25–30% on Rappi or Uber Eats' : '~7% total (4% MENIUS + 2.9% Stripe) vs 25–30% en Rappi o Uber Eats'}</p>
-                <p>✓ {locale === 'en' ? 'Cash orders are always free (0%)' : 'Órdenes en efectivo siempre gratis (0%)'}</p>
-                <p>✓ {locale === 'en' ? 'Includes all Starter features + Delivery' : 'Incluye todas las features de Starter + Delivery'}</p>
-                <p>✓ {locale === 'en' ? 'Breakeven vs Starter $39/mo at $975/mo in online sales' : 'Equivale a Starter $39/mes con $975/mes en ventas online'}</p>
-              </div>
-              <p className="text-xs text-gray-400">
-                {locale === 'en'
-                  ? 'Requires Stripe Connect setup to receive online payments.'
-                  : 'Requiere configurar Stripe Connect para recibir pagos online.'}
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCommissionModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                {locale === 'en' ? 'Cancel' : 'Cancelar'}
-              </button>
-              <button
-                onClick={() => handleCommissionPlan()}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-colors"
-              >
-                {locale === 'en' ? 'Activate 4% plan' : 'Activar plan 4%'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

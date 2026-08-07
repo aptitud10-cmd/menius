@@ -61,10 +61,24 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type') as 'magiclink' | 'email' | 'recovery' | null;
 
-  // Only allow relative paths to prevent open redirect attacks.
-  // An absolute URL like "https://evil.com" passed as `next` would bypass origin-based resolution.
+  // Only allow same-origin destinations — this is the landing path of every
+  // magic link and Google login, so an open redirect here turns a legit
+  // menius.app link into phishing with a real session attached.
+  //
+  // Resolve and compare the origin instead of pattern-matching the string:
+  // a `startsWith('/') && !startsWith('//')` check looks right but lets
+  // "/\evil.com" through, because the WHATWG URL parser normalizes backslashes
+  // to slashes in special schemes ("/\evil.com" resolves to https://evil.com/).
   const rawNext = searchParams.get('next') ?? '/app';
-  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app';
+  let next = '/app';
+  try {
+    const candidate = new URL(rawNext, origin);
+    if (candidate.origin === origin) {
+      next = candidate.pathname + candidate.search + candidate.hash;
+    }
+  } catch {
+    // Malformed `next` — keep the default.
+  }
 
   const cookieStore = await cookies();
 

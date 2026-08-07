@@ -16,9 +16,12 @@ const RETURN_COLS = 'id, device_uuid, display_name, phone, email, favorites, add
  * Guest-first device upsert for the Menius mobile app.
  *
  * Replaces the app's direct anon-key writes to `app_devices`. The table holds
- * customer PII (phone, email, addresses), so anon RLS on it was closed; all
- * writes now flow through this server endpoint with the admin client, keyed by
- * the app-generated `device_uuid`. A device can only ever touch its own row.
+ * customer PII (phone, email, addresses), so anon access to it is revoked
+ * (supabase/migration-close-anon-app-devices.sql — until 2026-08-07 this
+ * comment claimed the RLS was closed while the anon policies were still
+ * USING(true), which is exactly the gap an audit caught). All writes flow
+ * through this server endpoint with the admin client, keyed by the
+ * app-generated `device_uuid`. A device can only ever touch its own row.
  */
 export async function POST(request: NextRequest) {
   try {
