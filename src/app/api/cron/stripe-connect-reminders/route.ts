@@ -7,6 +7,11 @@ import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('cron:stripe-connect-reminders');
 
+// Each send is recorded as `stripe_reminder_1|2|3` in restaurants.tags, so the
+// nudge stops after three Mondays instead of running for the life of the account.
+const REMINDER_TAG_PREFIX = 'stripe_reminder_';
+const MAX_REMINDERS = 3;
+
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization');
@@ -17,12 +22,19 @@ export async function GET(request: NextRequest) {
   const adminDb = createAdminClient();
 
   try {
-    const { data: restaurants } = await adminDb
+    const { data: restaurants, error: restaurantsError } = await adminDb
       .from('restaurants')
-      .select('id, name, slug, notification_email, locale, stripe_account_id, stripe_onboarding_complete, created_at')
+      .select('id, name, slug, notification_email, locale, country_code, tags, stripe_account_id, stripe_onboarding_complete, created_at')
       .eq('is_active', true)
       .or('stripe_onboarding_complete.is.null,stripe_onboarding_complete.eq.false')
       .not('notification_email', 'is', null);
+
+    if (restaurantsError) {
+      logger.error('Failed to fetch restaurants for Stripe reminders', {
+        error: restaurantsError.message,
+      });
+      return NextResponse.json({ error: restaurantsError.message }, { status: 500 });
+    }
 
     if (!restaurants || restaurants.length === 0) {
       return NextResponse.json({ message: 'No restaurants need Stripe Connect reminders', sent: 0 });
@@ -30,9 +42,27 @@ export async function GET(request: NextRequest) {
 
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
     let sentCount = 0;
+    let skippedCountry = 0;
+    let skippedCapped = 0;
 
     for (const rest of restaurants) {
       if (new Date(rest.created_at) > new Date(threeDaysAgo)) continue;
+
+      // Colombia settles through Wompi, not Stripe Connect — nudging those
+      // owners to "connect their bank account" points at a flow they can't use.
+      if (rest.country_code === 'CO') {
+        skippedCountry++;
+        continue;
+      }
+
+      // This runs every Monday with no end condition: an owner who simply does
+      // not want online card payments received the same email forever. Cap it.
+      const tags: string[] = Array.isArray(rest.tags) ? (rest.tags as string[]) : [];
+      const alreadySent = tags.filter((t) => t.startsWith(REMINDER_TAG_PREFIX)).length;
+      if (alreadySent >= MAX_REMINDERS) {
+        skippedCapped++;
+        continue;
+      }
 
       const { count } = await adminDb
         .from('orders')
@@ -54,6 +84,18 @@ export async function GET(request: NextRequest) {
           html: buildStripeReminderEmail(rest.name, appUrl, en),
         });
         sentCount++;
+
+        const { error: tagError } = await adminDb.rpc('append_restaurant_tag', {
+          p_restaurant_id: rest.id,
+          p_tag: `${REMINDER_TAG_PREFIX}${alreadySent + 1}`,
+        });
+        if (tagError) {
+          // Without the tag the cap can't advance, so this must be visible.
+          logger.error('Failed to record Stripe reminder tag', {
+            restaurant: rest.slug,
+            error: tagError.message,
+          });
+        }
       } catch (err) {
         logger.error('Failed to send Stripe Connect reminder', {
           restaurant: rest.slug,
@@ -62,7 +104,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ message: `Sent ${sentCount} Stripe Connect reminders`, sent: sentCount });
+    return NextResponse.json({
+      message: `Sent ${sentCount} Stripe Connect reminders`,
+      sent: sentCount,
+      skippedCountry,
+      skippedCapped,
+    });
   } catch (err) {
     logger.error('Stripe Connect reminders cron failed', {
       error: err instanceof Error ? err.message : String(err),

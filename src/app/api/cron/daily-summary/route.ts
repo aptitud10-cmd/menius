@@ -1,4 +1,8 @@
 export const dynamic = 'force-dynamic';
+// The loop is sequential and does ~6 queries plus one email per restaurant.
+// Without this it inherited the default (10s on Vercel) and would die partway
+// through the list as soon as MENIUS has more than a handful of restaurants.
+export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -8,6 +12,22 @@ import { createLogger } from '@/lib/logger';
 import { isRevenueStatus } from '@/lib/order-state';
 
 const logger = createLogger('weekly-digest');
+
+/**
+ * ISO-8601 week key, e.g. "2026_W32". Used to make the weekly send idempotent:
+ * every run within the same week produces the same tag, so a retry is a no-op.
+ */
+function isoWeekKey(date: Date): string {
+  // Shift to the Thursday of the same ISO week — the year that Thursday falls
+  // in is the ISO week-numbering year (which can differ from the calendar year
+  // at the turn of January).
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const dayNum = d.getUTCDay() || 7; // Sunday = 7, not 0
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${d.getUTCFullYear()}_W${String(week).padStart(2, '0')}`;
+}
 
 /**
  * Weekly digest cron — runs every Monday at 9am UTC.
@@ -30,10 +50,15 @@ export async function GET(request: NextRequest) {
   const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const riskThreshold = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000).toISOString();
 
+  // Idempotency tag for this specific week (e.g. "weekly_digest_2026_W32").
+  // The loop is sequential, so a timeout or a manual re-run would otherwise
+  // mail the first N restaurants twice. Same approach as the monthly report.
+  const weekTag = `weekly_digest_${isoWeekKey(now)}`;
+
   // Fetch all active restaurants with owner email (notification_email preferred, email as fallback)
   const { data: restaurants, error: restError } = await admin
     .from('restaurants')
-    .select('id, name, slug, email, notification_email, locale, currency')
+    .select('id, name, slug, email, notification_email, locale, currency, tags')
     .eq('is_active', true);
 
   if (restError || !restaurants) {
@@ -50,6 +75,12 @@ export async function GET(request: NextRequest) {
 
       const recipientEmail = restaurant.notification_email ?? restaurant.email;
       if (!recipientEmail) {
+        skipped++;
+        continue;
+      }
+
+      const tags: string[] = Array.isArray(restaurant.tags) ? (restaurant.tags as string[]) : [];
+      if (tags.includes(weekTag)) {
         skipped++;
         continue;
       }
@@ -176,8 +207,21 @@ export async function GET(request: NextRequest) {
         html,
       });
 
-      if (success) sent++;
-      else skipped++;
+      if (success) {
+        sent++;
+        const { error: tagError } = await admin.rpc('append_restaurant_tag', {
+          p_restaurant_id: rid,
+          p_tag: weekTag,
+        });
+        if (tagError) {
+          logger.error('Failed to record weekly digest tag', {
+            restaurantId: rid,
+            error: tagError.message,
+          });
+        }
+      } else {
+        skipped++;
+      }
     } catch (err) {
       logger.error('Weekly digest failed for restaurant', {
         restaurantId: restaurant.id,

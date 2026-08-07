@@ -29,7 +29,17 @@ export async function GET(request: NextRequest) {
     onboarding_d7: 0,
     monthly_report: 0,
     errors: 0,
+    query_errors: 0,
   };
+
+  // Every section below reads a list and mails it. A failed read looks exactly
+  // like an empty list, so the cron used to report ok:true after doing nothing.
+  // Not sending is the safe failure here — but it must be visible.
+  function noteQueryError(section: string, error: { message: string } | null) {
+    if (!error) return;
+    results.query_errors++;
+    logger.error("Automations query failed", { section, error: error.message });
+  }
 
   // Restaurant cache to avoid N+1 queries across all sections
   const restaurantCache = new Map<
@@ -52,13 +62,14 @@ export async function GET(request: NextRequest) {
 
     // 1. Welcome emails: customers created in last 24h who haven't received a welcome
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: newCustomers } = await supabase
+    const { data: newCustomers, error: newCustomersError } = await supabase
       .from("customers")
       .select("id, name, email, restaurant_id, tags")
       .not("email", "is", null)
       .neq("email", "")
       .gte("created_at", oneDayAgo)
       .limit(100);
+    noteQueryError("welcome", newCustomersError);
 
     const welcomeOutcomes = await Promise.allSettled(
       (newCustomers ?? []).map(async (customer) => {
@@ -115,7 +126,7 @@ export async function GET(request: NextRequest) {
     const sixtyDaysAgo = new Date(
       Date.now() - 60 * 24 * 60 * 60 * 1000,
     ).toISOString();
-    const { data: inactiveCustomers } = await supabase
+    const { data: inactiveCustomers, error: inactiveError } = await supabase
       .from("customers")
       .select("id, name, email, restaurant_id, tags, last_order_at")
       .not("email", "is", null)
@@ -123,6 +134,7 @@ export async function GET(request: NextRequest) {
       .lt("last_order_at", thirtyDaysAgo)
       .gte("last_order_at", sixtyDaysAgo)
       .limit(50);
+    noteQueryError("reactivation", inactiveError);
 
     const reactivationOutcomes = await Promise.allSettled(
       (inactiveCustomers ?? []).map(async (customer) => {
@@ -176,7 +188,7 @@ export async function GET(request: NextRequest) {
     const twoDaysAgo = new Date(
       Date.now() - 2 * 24 * 60 * 60 * 1000,
     ).toISOString();
-    const { data: deliveredOrders } = await supabase
+    const { data: deliveredOrders, error: deliveredError } = await supabase
       .from("orders")
       .select("id, order_number, customer_name, customer_email, restaurant_id")
       .eq("status", "delivered")
@@ -185,6 +197,7 @@ export async function GET(request: NextRequest) {
       .gte("updated_at", twoDaysAgo)
       .lt("updated_at", oneDayAgo)
       .limit(50);
+    noteQueryError("review_request", deliveredError);
 
     const deliveredOrderIds = (deliveredOrders ?? []).map((o) => o.id);
     const reviewedOrderIds = new Set<string>();
@@ -276,13 +289,14 @@ export async function GET(request: NextRequest) {
     const sevenDaysAgoSetup = new Date(
       Date.now() - 7 * 24 * 60 * 60 * 1000,
     ).toISOString();
-    const { data: newRestaurants } = await supabase
+    const { data: newRestaurants, error: newRestaurantsError } = await supabase
       .from("restaurants")
       .select("id, name, notification_email, slug, locale, tags")
       .lte("created_at", twoDaysAgoSetup)
       .gte("created_at", sevenDaysAgoSetup)
       .not("notification_email", "is", null)
       .limit(50);
+    noteQueryError("platform_setup", newRestaurantsError);
 
     const setupOutcomes = await Promise.allSettled(
       (newRestaurants ?? []).map(async (restaurant) => {
@@ -329,12 +343,13 @@ export async function GET(request: NextRequest) {
     ).length;
 
     // 6. No orders nudge: restaurants with products but 0 orders in last 14 days
-    const { data: activeRestaurants } = await supabase
+    const { data: activeRestaurants, error: activeRestaurantsError } = await supabase
       .from("restaurants")
       .select("id, name, notification_email, slug, locale, tags")
       .eq("is_active", true)
       .not("notification_email", "is", null)
       .limit(100);
+    noteQueryError("platform_inactive", activeRestaurantsError);
 
     if (activeRestaurants && activeRestaurants.length > 0) {
       const restIds = activeRestaurants.map((r) => r.id);
@@ -526,12 +541,13 @@ export async function GET(request: NextRequest) {
         1,
       ).toISOString();
 
-      const { data: activeRests } = await supabase
+      const { data: activeRests, error: activeRestsError } = await supabase
         .from("restaurants")
         .select("id, name, notification_email, slug, locale, tags")
         .eq("is_active", true)
         .not("notification_email", "is", null)
         .limit(200);
+      noteQueryError("monthly_report", activeRestsError);
 
       if (activeRests && activeRests.length > 0) {
         const restIds = activeRests.map((r) => r.id);

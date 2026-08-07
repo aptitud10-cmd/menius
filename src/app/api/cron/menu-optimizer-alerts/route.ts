@@ -32,13 +32,20 @@ export async function GET(request: NextRequest) {
 
   try {
     // Obtener restaurantes activos con plan active o trialing, con email del owner
-    const { data: activeRestaurants } = await supabase
+    const { data: activeRestaurants, error: activeError } = await supabase
       .from("subscriptions")
       .select(
         "restaurant_id, restaurants(id, name, locale, currency, notification_email)",
       )
       .in("status", ["active", "trialing"])
       .not("restaurants.notification_email", "is", null);
+
+    if (activeError) {
+      logger.error("Failed to fetch active restaurants", {
+        error: activeError.message,
+      });
+      return NextResponse.json({ error: activeError.message }, { status: 500 });
+    }
 
     if (!activeRestaurants || activeRestaurants.length === 0) {
       logger.info("No active restaurants found for menu optimizer alerts");

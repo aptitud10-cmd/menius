@@ -36,11 +36,18 @@ export async function GET(request: NextRequest) {
   const billingUrl = `${appUrl}/app/billing`;
 
   try {
-    const { data: subs } = await adminDb
+    const { data: subs, error: subsError } = await adminDb
       .from('subscriptions')
       .select('id, plan_id, past_due_since, dunning_stage, restaurants(name, slug, locale, notification_email)')
       .eq('status', 'past_due')
       .not('past_due_since', 'is', null);
+
+    if (subsError) {
+      // Silently reading a failure as "nobody is past_due" means the whole
+      // dunning sequence stalls and morosos keep their paid plan.
+      logger.error('Failed to fetch past_due subscriptions', { error: subsError.message });
+      return NextResponse.json({ error: subsError.message }, { status: 500 });
+    }
 
     if (!subs || subs.length === 0) {
       return NextResponse.json({ message: 'No past_due subscriptions', sent: 0 });

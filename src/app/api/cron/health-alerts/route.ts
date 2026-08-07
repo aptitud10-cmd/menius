@@ -36,11 +36,11 @@ export async function GET(request: NextRequest) {
   const d7ahead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
-    { data: stuckOrders, count: stuckCount },
-    { data: trialsExpiring },
-    { data: cancelledSubs },
-    { data: allSubs },
-    { data: recentOrders7d },
+    { data: stuckOrders, count: stuckCount, error: stuckError },
+    { data: trialsExpiring, error: trialsError },
+    { data: cancelledSubs, error: cancelledError },
+    { data: allSubs, error: subsError },
+    { data: recentOrders7d, error: ordersError },
   ] = await Promise.all([
     supabase
       .from('orders')
@@ -75,6 +75,22 @@ export async function GET(request: NextRequest) {
       .in('status', ['completed', 'delivered', 'ready'])
       .gte('created_at', d7ago),
   ]);
+
+  // A failed query here reads as "zero stuck orders, zero churn, zero MRR" —
+  // the cron would mail an all-clear (or stay silent) precisely when the data
+  // is unavailable. Fail loudly instead of reporting a healthy business.
+  const queryErrors = [
+    stuckError && `orders: ${stuckError.message}`,
+    trialsError && `trials: ${trialsError.message}`,
+    cancelledError && `cancellations: ${cancelledError.message}`,
+    subsError && `subscriptions: ${subsError.message}`,
+    ordersError && `revenue: ${ordersError.message}`,
+  ].filter(Boolean);
+
+  if (queryErrors.length > 0) {
+    logger.error('health-alerts: queries failed — skipping report', { queryErrors });
+    return NextResponse.json({ error: 'Query failed', details: queryErrors }, { status: 500 });
+  }
 
   const PLAN_PRICES: Record<string, number> = Object.fromEntries(
     Object.values(PLANS).map(p => [p.id, p.price.monthly])

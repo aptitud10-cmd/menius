@@ -3,7 +3,7 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createAlert } from '@/lib/dev-tool/alerts';
+import { createAlertOnce } from '@/lib/dev-tool/alerts';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 
@@ -34,12 +34,17 @@ async function runMonitorOrders(): Promise<NextResponse> {
   const alertsCreated: string[] = [];
 
   // 1. Stuck pending orders (>1h in 'pending')
-  const { data: stuckOrders } = await db
+  const { data: stuckOrders, error: stuckErr } = await db
     .from('orders')
     .select('id, order_number, restaurant_id, total, created_at')
     .eq('status', 'pending')
     .lt('created_at', h1ago)
+    .order('created_at', { ascending: false })
     .limit(20);
+
+  if (stuckErr) {
+    logger.error('Failed to fetch stuck pending orders', { error: stuckErr.message });
+  }
 
   for (const order of stuckOrders ?? []) {
     // Fetch restaurant slug
@@ -47,9 +52,9 @@ async function runMonitorOrders(): Promise<NextResponse> {
       .from('restaurants')
       .select('slug, name')
       .eq('id', order.restaurant_id)
-      .single();
+      .maybeSingle();
 
-    await createAlert({
+    const created = await createAlertOnce(`stuck-pending:${order.id}`, {
       severity: 'warning',
       source: 'orders',
       title: `Orden #${order.order_number ?? order.id.slice(0, 8)} atascada en 'pending'`,
@@ -57,7 +62,7 @@ async function runMonitorOrders(): Promise<NextResponse> {
       store_slug: rest?.slug ?? undefined,
       data: { orderId: order.id, total: order.total, createdAt: order.created_at },
     });
-    alertsCreated.push(`stuck:${order.id}`);
+    if (created) alertsCreated.push(`stuck:${order.id}`);
   }
 
   // 1b. Stuck delivery orders: waiting for a driver in 'ready' >1h, or
@@ -65,33 +70,28 @@ async function runMonitorOrders(): Promise<NextResponse> {
   // (the auto-complete cron is pickup-only), so without this alert they
   // stay open forever.
   const h3ago = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
-  const { data: stuckDeliveries } = await db
+  const { data: stuckDeliveries, error: deliveriesErr } = await db
     .from('orders')
     .select('id, order_number, restaurant_id, status, total, created_at, driver_name')
     .eq('order_type', 'delivery')
     .or(`and(status.eq.ready,created_at.lt.${h1ago}),and(status.eq.out_for_delivery,created_at.lt.${h3ago})`)
     .limit(20);
 
-  for (const order of stuckDeliveries ?? []) {
-    // Dedupe: the cron runs repeatedly while the order stays stuck — one open
-    // alert per (order, status) is enough.
-    const { data: existingAlert } = await db
-      .from('dev_alerts')
-      .select('id')
-      .contains('metadata', { orderId: order.id, status: order.status })
-      .is('resolved_at', null)
-      .limit(1)
-      .maybeSingle();
-    if (existingAlert) continue;
+  if (deliveriesErr) {
+    logger.error('Failed to fetch stuck deliveries', { error: deliveriesErr.message });
+  }
 
+  for (const order of stuckDeliveries ?? []) {
     const { data: rest } = await db
       .from('restaurants')
       .select('slug, name')
       .eq('id', order.restaurant_id)
-      .single();
+      .maybeSingle();
 
     const waitingForDriver = order.status === 'ready';
-    await createAlert({
+    // One open alert per (order, status) — the cron re-detects the same stuck
+    // delivery every 10 minutes until someone moves it.
+    const created = await createAlertOnce(`stuck-delivery:${order.id}:${order.status}`, {
       severity: 'warning',
       source: 'orders',
       title: waitingForDriver
@@ -103,25 +103,33 @@ async function runMonitorOrders(): Promise<NextResponse> {
       store_slug: rest?.slug ?? undefined,
       data: { orderId: order.id, status: order.status, total: order.total, createdAt: order.created_at },
     });
-    alertsCreated.push(`stuck-delivery:${order.id}`);
+    if (created) alertsCreated.push(`stuck-delivery:${order.id}`);
   }
 
   // 2. Restaurants with subscription but zero orders in 48h (possible issue)
-  const { data: activeRestaurants } = await db
+  const { data: activeRestaurants, error: activeErr } = await db
     .from('subscriptions')
     .select('restaurant_id')
     .in('status', ['active', 'trialing'])
     .limit(100);
 
+  if (activeErr) {
+    logger.error('Failed to fetch active subscriptions', { error: activeErr.message });
+  }
+
   const activeIds = (activeRestaurants ?? []).map(s => s.restaurant_id);
 
   if (activeIds.length > 0) {
     // Get restaurants that had orders before but not in 48h
-    const { data: recentActivity } = await db
+    const { data: recentActivity, error: activityErr } = await db
       .from('orders')
       .select('restaurant_id')
       .in('restaurant_id', activeIds)
       .gte('created_at', h48ago);
+
+    if (activityErr) {
+      logger.error('Failed to fetch recent activity', { error: activityErr.message });
+    }
 
     const withRecentOrders = new Set((recentActivity ?? []).map(o => o.restaurant_id));
     const dormant = activeIds.filter(id => !withRecentOrders.has(id));
@@ -141,9 +149,11 @@ async function runMonitorOrders(): Promise<NextResponse> {
           .from('restaurants')
           .select('slug, name')
           .eq('id', restaurantId)
-          .single();
+          .maybeSingle();
 
-        await createAlert({
+        // A dormant store stays dormant for days. One open alert is enough —
+        // this one alone produced 173 duplicates for Buccaneer in 28h.
+        const created = await createAlertOnce(`dormant:${restaurantId}`, {
           severity: 'info',
           source: 'orders',
           title: `Tienda ${rest?.name ?? restaurantId} sin órdenes en 48h`,
@@ -151,22 +161,30 @@ async function runMonitorOrders(): Promise<NextResponse> {
           store_slug: rest?.slug ?? undefined,
           data: { restaurantId },
         });
-        alertsCreated.push(`dormant:${restaurantId}`);
+        if (created) alertsCreated.push(`dormant:${restaurantId}`);
       }
     }
   }
 
   // 3. High cancellation rate: >3 cancelled orders in last 24h for one restaurant
-  const { data: recentCancels } = await db
+  const { data: recentCancels, error: cancelsErr } = await db
     .from('orders')
     .select('restaurant_id')
     .eq('status', 'cancelled')
     .gte('created_at', h24ago);
 
+  if (cancelsErr) {
+    logger.error('Failed to fetch recent cancellations', { error: cancelsErr.message });
+  }
+
   const cancelCounts: Record<string, number> = {};
   for (const o of recentCancels ?? []) {
     cancelCounts[o.restaurant_id] = (cancelCounts[o.restaurant_id] ?? 0) + 1;
   }
+
+  // Keyed by UTC day: a fresh spike tomorrow is genuinely new information,
+  // but the same spike re-detected 144 times today is not.
+  const today = new Date().toISOString().slice(0, 10);
 
   for (const [restaurantId, count] of Object.entries(cancelCounts)) {
     if (count >= 3) {
@@ -174,9 +192,9 @@ async function runMonitorOrders(): Promise<NextResponse> {
         .from('restaurants')
         .select('slug, name')
         .eq('id', restaurantId)
-        .single();
+        .maybeSingle();
 
-      await createAlert({
+      const created = await createAlertOnce(`cancels:${restaurantId}:${today}`, {
         severity: 'warning',
         source: 'orders',
         title: `Alta tasa de cancelaciones en ${rest?.name ?? restaurantId} (${count} en 24h)`,
@@ -184,7 +202,7 @@ async function runMonitorOrders(): Promise<NextResponse> {
         store_slug: rest?.slug ?? undefined,
         data: { restaurantId, cancelCount: count },
       });
-      alertsCreated.push(`cancels:${restaurantId}`);
+      if (created) alertsCreated.push(`cancels:${restaurantId}`);
     }
   }
 

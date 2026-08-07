@@ -3,7 +3,7 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createAlert } from '@/lib/dev-tool/alerts';
+import { createAlertOnce } from '@/lib/dev-tool/alerts';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('monitor-stores');
@@ -19,15 +19,27 @@ export async function GET(request: NextRequest) {
   const db = createAdminClient();
 
   // Get all active restaurants (subscribed or trialing)
-  const { data: restaurants } = await db
+  const { data: restaurants, error: restError } = await db
     .from('restaurants')
     .select('id, slug, name')
     .not('slug', 'is', null)
     .limit(100);
 
+  if (restError) {
+    // Without this, a failed query looked exactly like "no stores to check"
+    // and the cron reported ok:true while monitoring nothing.
+    logger.error('Failed to fetch restaurants to monitor', { error: restError.message });
+    return NextResponse.json({ error: restError.message }, { status: 500 });
+  }
+
   if (!restaurants?.length) {
     return NextResponse.json({ ok: true, checked: 0 });
   }
+
+  // The cron runs every 10 minutes, so a store that stays down would otherwise
+  // produce 144 identical alerts a day. Key by the kind of failure, and by UTC
+  // day for slowness so a recurring problem still resurfaces tomorrow.
+  const today = new Date().toISOString().slice(0, 10);
 
   const results: Array<{ slug: string; status: number | 'error'; ok: boolean; ms: number }> = [];
   const TIMEOUT_MS = 10_000;
@@ -49,7 +61,7 @@ export async function GET(request: NextRequest) {
         results.push({ slug: r.slug, status: res.status, ok: res.ok, ms });
 
         if (!res.ok) {
-          await createAlert({
+          await createAlertOnce(`store-http:${r.slug}:${res.status}`, {
             severity: res.status >= 500 ? 'critical' : 'warning',
             source: 'uptime',
             title: `Tienda ${r.slug} devolvió HTTP ${res.status}`,
@@ -59,7 +71,7 @@ export async function GET(request: NextRequest) {
           });
           logger.warn('Store returned non-200', { slug: r.slug, status: res.status });
         } else if (ms > 5000) {
-          await createAlert({
+          await createAlertOnce(`store-slow:${r.slug}:${today}`, {
             severity: 'warning',
             source: 'uptime',
             title: `Tienda ${r.slug} responde lento (${ms}ms)`,
@@ -71,7 +83,7 @@ export async function GET(request: NextRequest) {
       } catch (err) {
         const ms = Date.now() - start;
         results.push({ slug: r.slug, status: 'error', ok: false, ms });
-        await createAlert({
+        await createAlertOnce(`store-unreachable:${r.slug}`, {
           severity: 'critical',
           source: 'uptime',
           title: `Tienda ${r.slug} no responde`,
