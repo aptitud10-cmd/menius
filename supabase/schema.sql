@@ -2,6 +2,13 @@
 -- Generado desde information_schema via MCP de Supabase.
 -- FUENTE DE VERDAD del schema. NO editar a mano: regenerar desde prod.
 -- Tablas: 49  -  Columnas: 523
+--
+-- ESTE ARCHIVO SOLO TIENE COLUMNAS. No sirve para auditar seguridad: no
+-- contiene ni una linea de RLS, POLICY o GRANT. Para eso esta
+-- supabase/security.sql, que lista las 69 policies reales de prod, las tablas
+-- con RLS y cero policies, y los grants a anon/authenticated.
+-- (En la ronda 2 de auditoria dos auditores casi reportan BLOCKERs falsos por
+--  leer solo este dump.)
 
 CREATE TABLE public.ai_enhance_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
