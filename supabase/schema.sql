@@ -429,6 +429,7 @@ CREATE TABLE public.orders (
   loyalty_discount numeric DEFAULT 0,
   loyalty_points_redeemed integer DEFAULT 0,
   driver_token_expires_at timestamp with time zone,
+  customer_token uuid DEFAULT gen_random_uuid(),
   driver_picked_up_at timestamp with time zone,
   driver_at_door_at timestamp with time zone,
   driver_delivered_at timestamp with time zone,

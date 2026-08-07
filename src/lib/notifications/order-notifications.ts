@@ -32,6 +32,9 @@ interface OrderNotificationPayload {
   tableNumber?: string | null;
   notes?: string | null;
   includeUtensils?: boolean;
+  /** View-only customer_token — appended to tracking links so the customer sees
+   *  their own PII (address/name) when opening from their email. */
+  customerToken?: string;
   total: number;
   items: { name: string; qty: number; price: number; variant?: string; modifiers?: string[]; extras?: string[]; notes?: string }[];
 }
@@ -100,7 +103,7 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
  * Non-blocking — errors are logged but don't affect the order flow.
  */
 export async function notifyNewOrder(payload: OrderNotificationPayload) {
-  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, customerLocale, orderType, deliveryAddress, paymentMethod, tableNumber, notes, includeUtensils, total, items } = payload;
+  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, customerLocale, orderType, deliveryAddress, paymentMethod, tableNumber, notes, includeUtensils, customerToken, total, items } = payload;
 
   try {
     let restaurant = restaurantData ?? null;
@@ -120,7 +123,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     const currency = restaurant.currency ?? 'MXN';
     const totalFormatted = formatPrice(total, currency);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
+    const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}${customerToken ? `?t=${customerToken}` : ''}`;
     const restaurantLocale = restaurant.locale ?? 'es';
     // Customer-facing comms use the locale from the checkout session; owner-facing use restaurant locale
     const customerEffectiveLocale = customerLocale ?? restaurantLocale;
@@ -290,18 +293,21 @@ export async function notifyStatusChange(params: {
     }
 
     const rLocale = restaurant.locale ?? 'es';
-    // If not explicitly provided, try to fetch from the stored order locale
+    // Fetch stored order locale (when not provided) + the view-only customer
+    // token, so email/push links open the tracker with the customer's own PII.
     let resolvedCustomerLocale = customerLocale ?? rLocale;
-    if (!customerLocale && orderId) {
+    let custToken: string | null = null;
+    if (orderId) {
       const { data: orderRow } = await adminDb
         .from('orders')
-        .select('customer_locale')
+        .select('customer_locale, customer_token')
         .eq('id', orderId)
         .maybeSingle();
-      if (orderRow?.customer_locale) resolvedCustomerLocale = orderRow.customer_locale;
+      if (!customerLocale && orderRow?.customer_locale) resolvedCustomerLocale = orderRow.customer_locale;
+      custToken = (orderRow as { customer_token?: string | null } | null)?.customer_token ?? null;
     }
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
+    const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}${custToken ? `?t=${custToken}` : ''}`;
     const reviewUrl = orderId ? `${appUrl}/${restaurant.slug}/review/${orderId}` : undefined;
 
     let result: NotifyStatusResult;
@@ -321,7 +327,7 @@ export async function notifyStatusChange(params: {
       const TERMINAL_STATUSES = ['delivered', 'completed', 'cancelled'];
       import('./push').then(({ sendPushToOrder, sendExpoPushToCustomerByPhone, getStatusPushPayload }) => {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-        const trackUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
+        const trackUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}${custToken ? `?t=${custToken}` : ''}`;
         const payload = getStatusPushPayload(status, orderNumber, restaurant.name, trackUrl, resolvedCustomerLocale, orderType);
         // Web push (browser notifications on menius.app tab)
         sendPushToOrder(orderId, payload).catch(() => {});
@@ -360,7 +366,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
     .from('orders')
     .select(`
       id, order_number, total, customer_name, customer_email, customer_phone,
-      order_type, delivery_address, customer_locale,
+      order_type, delivery_address, customer_locale, customer_token,
       restaurants ( name, slug, currency, locale, notification_email, notifications_enabled )
     `)
     .eq('id', orderId)
@@ -390,7 +396,8 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   const customerLocale = typedOrder.customer_locale ?? restaurantLocale;
   const en = customerLocale === 'en';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
+  const custToken = (order as { customer_token?: string | null }).customer_token ?? null;
+  const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}${custToken ? `?t=${custToken}` : ''}`;
   const totalFormatted = formatPrice(Number(order.total), currency);
 
   // Fetch rich items (variants, modifiers, extras) so the receipt shows full detail

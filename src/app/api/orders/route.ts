@@ -835,12 +835,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Opaque tracking token, generated for EVERY order. It serves two purposes:
-    //  1. delivery: QR for the driver tracking link (printed on the ticket)
-    //  2. all orders: authenticates the public order-track endpoint so the
-    //     guessable sequential order_number alone can't expose customer PII.
+    // TWO opaque tokens with separate privileges (never mix them):
+    //  - driver_tracking_token: ACTION token — the driver PWA can mark statuses,
+    //    post GPS and upload the POD photo with it. Only travels on the printed QR.
+    //  - customer_token: VIEW-ONLY token — gates customer PII on the public
+    //    tracker (order_number alone is sequential/guessable). This is the one
+    //    embedded in customer URLs and payment-gateway redirects.
     const isDelivery = parsed.data.order_type === "delivery";
     const preToken = crypto.randomUUID();
+    const custToken = crypto.randomUUID();
     // Driver-link expiry stays delivery-only (the customer tracker doesn't expire it).
     const preTokenExpiresAt = isDelivery
       ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -870,6 +873,7 @@ export async function POST(request: NextRequest) {
       include_utensils: body.include_utensils !== false,
       driver_tracking_token: preToken,
       driver_token_expires_at: preTokenExpiresAt,
+      customer_token: custToken,
       customer_locale: bodyLocale,
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
@@ -1462,6 +1466,7 @@ export async function POST(request: NextRequest) {
         tableNumber: table_name || undefined,
         notes: parsed.data.notes || null,
         includeUtensils: body.include_utensils !== false,
+        customerToken: custToken,
         total,
         items: notifItems,
       }).catch((err) => {
@@ -1487,8 +1492,9 @@ export async function POST(request: NextRequest) {
       slug: restaurant.slug,
       stripe_url: stripeUrl,
       driver_tracking_url: driverTrackingUrl,
-      // Opaque token the customer uses to view their own order PII on the tracker.
-      tracking_token: preToken,
+      // View-only token the customer uses to see their own order PII on the
+      // tracker. NOT the driver token — that one never leaves the printed QR.
+      tracking_token: custToken,
     });
   } catch (err) {
     captureError(err, { route: "/api/orders" });

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       .from('orders')
       .select(`
         id, order_number, total, customer_name, customer_email, customer_phone,
-        payment_status, restaurant_id, driver_tracking_token,
+        payment_status, restaurant_id, customer_token,
         restaurants ( currency, mp_access_token, mp_enabled, name, locale )
       `)
       .eq('id', order_id)
@@ -76,7 +76,8 @@ export async function POST(req: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const successUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).driver_tracking_token ? `&t=${(order as any).driver_tracking_token}` : ''}`;
+    // VIEW-ONLY customer_token — the driver action token never rides redirect URLs.
+    const successUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).customer_token ? `&t=${(order as any).customer_token}` : ''}`;
     const failureUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=false`;
     const pendingUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=pending`;
 

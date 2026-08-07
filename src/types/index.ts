@@ -240,6 +240,7 @@ export interface Order {
   driver_lat?: number | null;
   driver_lng?: number | null;
   driver_tracking_token?: string | null;
+  customer_token?: string | null;
   driver_token_expires_at?: string | null;
   driver_picked_up_at?: string | null;
   driver_at_door_at?: string | null;

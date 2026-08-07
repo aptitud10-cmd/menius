@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const adminDb = createAdminClient();
     const { data: order, error } = await adminDb
       .from('orders')
-      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, driver_tracking_token, restaurants ( currency, country_code )')
+      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, customer_token, restaurants ( currency, country_code )')
       .eq('id', order_id)
       .maybeSingle();
 
@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
     // webhook lookup by number could miss or hit another restaurant's order.
     const reference = order.id;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const redirectUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).driver_tracking_token ? `&t=${(order as any).driver_tracking_token}` : ''}`;
+    // VIEW-ONLY customer_token — the driver action token never rides redirect URLs.
+    const redirectUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).customer_token ? `&t=${(order as any).customer_token}` : ''}`;
 
     // Generate SHA256 integrity hash: reference + amountInCents + currency + integritySecret
     const toHash = `${reference}${amountInCents}${currency}${integritySecret}`;

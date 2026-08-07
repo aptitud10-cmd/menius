@@ -40,11 +40,24 @@ export async function POST(req: NextRequest) {
   // Find order by token
   const { data: order } = await supabase
     .from('orders')
-    .select('id, order_number, status')
+    .select('id, order_number, status, driver_delivered_at')
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
   if (!order) return NextResponse.json({ error: 'Invalid token' }, { status: 404 });
+
+  // Bound the upload window. Expired driver tokens are deliberately accepted for
+  // late deliveries (same policy as marking delivered), but a token must not be
+  // able to overwrite the POD photo forever: cancelled orders never accept one,
+  // and delivered orders stop accepting 24h after delivery.
+  if (order.status === 'cancelled') {
+    return NextResponse.json({ error: 'Order cancelled' }, { status: 403 });
+  }
+  const deliveredAt = (order as { driver_delivered_at?: string | null }).driver_delivered_at;
+  if (order.status === 'delivered' && deliveredAt
+    && Date.now() - new Date(deliveredAt).getTime() > 24 * 60 * 60 * 1000) {
+    return NextResponse.json({ error: 'Upload window closed' }, { status: 403 });
+  }
 
   // Upload photo to Supabase Storage
   // Sanitize extension: only allow alphanumeric chars to prevent path traversal

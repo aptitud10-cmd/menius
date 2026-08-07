@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
       total,
       created_at,
       driver_tracking_token,
+      customer_token,
       order_items (
         id,
         product_id,
@@ -78,11 +79,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Authorized only if the caller presents the token of the MOST RECENT order
+  // Authorized only if the caller presents a token of the MOST RECENT order
   // for this email at this restaurant (the one the customer actually has in
-  // their tracking URL).
-  const mostRecentToken = (orders ?? [])[0]?.driver_tracking_token ?? null;
-  const authorized = !!token && !!mostRecentToken && token === mostRecentToken;
+  // their tracking URL). customer_token is the canonical view token; the driver
+  // action token is also accepted (old URLs still in the wild).
+  const mostRecent = (orders ?? [])[0] as { customer_token?: string | null; driver_tracking_token?: string | null } | undefined;
+  const authorized = !!token && !!mostRecent
+    && ((!!mostRecent.customer_token && token === mostRecent.customer_token)
+      || (!!mostRecent.driver_tracking_token && token === mostRecent.driver_tracking_token));
 
   const normalized = (orders ?? []).map((o: any) => {
     const items = (o.order_items ?? []).map((item: any) => ({

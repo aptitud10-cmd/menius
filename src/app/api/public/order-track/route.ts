@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
         estimated_ready_minutes,
         driver_name, driver_phone, driver_assigned_at,
         driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
-        delivery_photo_url, driver_tracking_token,
+        delivery_photo_url, driver_tracking_token, customer_token,
         table:table_id(name),
         order_items(
           id, qty, unit_price, line_total, notes,
@@ -72,11 +72,14 @@ export async function GET(req: NextRequest) {
 
     // Authenticated only if the caller presents the matching opaque token.
     // order_number is sequential/guessable, so without the token we must not leak PII.
-    const orderToken = (order as any).driver_tracking_token as string | null;
-    const authorized = !!token && !!orderToken && token === orderToken;
+    // customer_token is the canonical view token; the driver action token is also
+    // accepted (strictly more privileged + old printed QRs still work).
+    const custToken = (order as any).customer_token as string | null;
+    const drvToken = (order as any).driver_tracking_token as string | null;
+    const authorized = !!token && ((!!custToken && token === custToken) || (!!drvToken && token === drvToken));
 
-    // Strip the token from the payload regardless — it must never reach the client.
-    const { driver_tracking_token: _omit, ...safeOrder } = order as any;
+    // Strip both tokens from the payload regardless — they must never reach the client.
+    const { driver_tracking_token: _omit, customer_token: _omit2, ...safeOrder } = order as any;
 
     const shaped = {
       ...safeOrder,

@@ -57,11 +57,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Authenticated only if the caller presents the matching opaque token.
-    const orderToken = (order as { driver_tracking_token?: string | null }).driver_tracking_token ?? null;
-    const authorized = !!token && !!orderToken && token === orderToken;
+    // customer_token is the canonical view token; the driver action token is also
+    // accepted (strictly more privileged + old printed QRs still work).
+    const o = order as { driver_tracking_token?: string | null; customer_token?: string | null };
+    const custToken = o.customer_token ?? null;
+    const drvToken = o.driver_tracking_token ?? null;
+    const authorized = !!token && ((!!custToken && token === custToken) || (!!drvToken && token === drvToken));
 
-    // Strip the token from the payload regardless — it must never reach the client.
-    const { driver_tracking_token: _omit, ...safeOrder } = order as Record<string, unknown>;
+    // Strip both tokens from the payload regardless — they must never reach the client.
+    const { driver_tracking_token: _omit, customer_token: _omit2, ...safeOrder } = order as Record<string, unknown>;
 
     // Fetch items separately so a join failure never blocks the tracker
     let order_items: unknown[] = [];

@@ -69,9 +69,12 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         // order_number is sequential/guessable. PII (customer + driver fields) is only
         // exposed when the URL carries the matching opaque token (?t=). Otherwise null
         // it out — status/items/totals stay visible. Mirrors /api/public/order-track.
-        const orderToken = (orderData as any).driver_tracking_token as string | null;
-        const authorized = !!token && !!orderToken && token === orderToken;
-        const { driver_tracking_token: _omit, ...safeOrder } = orderData as any;
+        // customer_token is the canonical view token; the driver action token is
+        // also accepted (strictly more privileged + old printed QRs still work).
+        const custToken = (orderData as any).customer_token as string | null;
+        const drvToken = (orderData as any).driver_tracking_token as string | null;
+        const authorized = !!token && ((!!custToken && token === custToken) || (!!drvToken && token === drvToken));
+        const { driver_tracking_token: _omit, customer_token: _omit2, ...safeOrder } = orderData as any;
         initialOrder = {
           ...safeOrder,
           customer_name: authorized ? safeOrder.customer_name : null,

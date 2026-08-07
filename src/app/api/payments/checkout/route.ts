@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const { data: order, error } = await adminDb
       .from('orders')
       .select(`
-        id, order_number, total, customer_name, restaurant_id, payment_status, driver_tracking_token,
+        id, order_number, total, customer_name, restaurant_id, payment_status, customer_token,
         restaurants ( currency, stripe_account_id, stripe_onboarding_complete, name, commission_plan )
       `)
       .eq('id', order_id)
@@ -99,7 +99,9 @@ export async function POST(request: NextRequest) {
       line_items: lineItems,
       mode: 'payment',
       payment_method_types: ['card'],
-      success_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).driver_tracking_token ? `&t=${(order as any).driver_tracking_token}` : ''}`,
+      // VIEW-ONLY customer_token here — the driver action token must never reach
+      // browser history or the PSP's logs via redirect URLs.
+      success_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).customer_token ? `&t=${(order as any).customer_token}` : ''}`,
       cancel_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=false`,
       metadata: {
         order_id: order.id,
