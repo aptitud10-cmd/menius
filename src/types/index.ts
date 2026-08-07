@@ -43,6 +43,8 @@ export interface Restaurant {
   stripe_onboarding_complete?: boolean;
   mp_enabled?: boolean;
   mp_access_token?: string | null;
+  /** Wompi (CO) connected with the restaurant's own keys. Secrets never reach the client. */
+  wompi_connected?: boolean;
   is_active?: boolean;
   created_at: string;
   // CFDI / fiscal data (Mexico)

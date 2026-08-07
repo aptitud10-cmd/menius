@@ -143,10 +143,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     ? restaurant.order_types_enabled
     : (['dine_in', 'pickup', 'delivery'] as OrderType[]);
   const stripeConnectReady = !!restaurant.stripe_onboarding_complete && !!restaurant.stripe_account_id;
+  // CO stores can't have Stripe (connect/onboard rejects CO/COP) — their online
+  // gateway is Wompi with the restaurant's own keys. Without this branch the
+  // 'online' method never rendered for CO and the whole Wompi flow was dead code.
+  const wompiReady = (restaurant.currency?.toUpperCase() === 'COP') && !!restaurant.wompi_connected;
   const enabledPaymentMethods = (restaurant.payment_methods_enabled?.length
     ? restaurant.payment_methods_enabled
     : (['cash'] as PaymentMethod[])
-  ).filter((m) => m !== 'online' || stripeConnectReady);
+  ).filter((m) => m !== 'online' || stripeConnectReady || wompiReady);
 
   const [step, setStep] = useState<CheckoutStep>('form');
   const [orderType, setOrderType] = useState<OrderType>(enabledOrderTypes[0]);

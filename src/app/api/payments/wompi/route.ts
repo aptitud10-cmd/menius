@@ -6,15 +6,18 @@ import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { captureError } from '@/lib/error-reporting';
 import { createHash } from 'crypto';
 import { COUNTRY_CONFIGS } from '@/lib/country-config';
+import { decryptSecret } from '@/lib/crypto/secrets';
 
 /**
  * POST /api/payments/wompi
  * Generates a Wompi checkout session data (integrity hash + params).
  * Called when a Colombian restaurant's customer clicks "Pay with Wompi".
  *
- * Required env vars:
- *   WOMPI_PUBLIC_KEY       — pub_prod_xxx  (or pub_test_xxx for sandbox)
- *   WOMPI_INTEGRITY_SECRET — prod_integrity_xxx
+ * Uses the RESTAURANT's own Wompi keys (wompi_public_key +
+ * wompi_integrity_secret_enc, decrypted server-side). Wompi has no Stripe
+ * Connect equivalent, so per-restaurant keys are the only way the money lands
+ * in the restaurant's account instead of MENIUS's. No fallback to global env
+ * keys — that would silently route charges to the wrong account.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -22,13 +25,6 @@ export async function POST(request: NextRequest) {
     const { allowed } = await checkRateLimitAsync(`wompi:${ip}`, { limit: 10, windowSec: 60 });
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-    }
-
-    const publicKey = process.env.WOMPI_PUBLIC_KEY?.trim();
-    const integritySecret = process.env.WOMPI_INTEGRITY_SECRET?.trim();
-
-    if (!publicKey || !integritySecret) {
-      return NextResponse.json({ error: 'Wompi not configured' }, { status: 503 });
     }
 
     const body = await request.json();
@@ -44,7 +40,7 @@ export async function POST(request: NextRequest) {
     const adminDb = createAdminClient();
     const { data: order, error } = await adminDb
       .from('orders')
-      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, customer_token, restaurants ( currency, country_code )')
+      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, customer_token, restaurants ( currency, country_code, wompi_connected, wompi_public_key, wompi_integrity_secret_enc )')
       .eq('id', order_id)
       .maybeSingle();
 
@@ -57,7 +53,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Esta orden ya fue pagada' }, { status: 409 });
     }
 
-    const restaurantData = (order as unknown as { restaurants?: { currency: string; country_code?: string | null } }).restaurants;
+    const restaurantData = (order as unknown as {
+      restaurants?: {
+        currency: string;
+        country_code?: string | null;
+        wompi_connected?: boolean | null;
+        wompi_public_key?: string | null;
+        wompi_integrity_secret_enc?: string | null;
+      };
+    }).restaurants;
     const currency = (restaurantData?.currency || 'COP').toUpperCase();
     const countryCode = restaurantData?.country_code ?? null;
     const phonePrefix = countryCode && COUNTRY_CONFIGS[countryCode]
@@ -65,6 +69,16 @@ export async function POST(request: NextRequest) {
       : '+57';
     if (currency !== 'COP') {
       return NextResponse.json({ error: 'Wompi only supports COP' }, { status: 400 });
+    }
+
+    const publicKey = restaurantData?.wompi_public_key?.trim();
+    const integrityEnc = restaurantData?.wompi_integrity_secret_enc ?? '';
+    if (!restaurantData?.wompi_connected || !publicKey || !integrityEnc) {
+      return NextResponse.json({ error: 'Wompi not configured' }, { status: 503 });
+    }
+    const integritySecret = decryptSecret(integrityEnc).trim();
+    if (!integritySecret) {
+      return NextResponse.json({ error: 'Wompi not configured' }, { status: 503 });
     }
 
     const amountInCents = Math.round(Number(order.total) * 100);

@@ -285,8 +285,19 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         created_at: r.created_at,
       }));
 
+    // The row comes from select('*') and is passed as a PROP to client
+    // components (MenuShell/CheckoutPageClient) — anything left here ships to
+    // every visitor's browser. Strip credential columns; boolean flags like
+    // wompi_connected / mp_enabled stay (the checkout gate needs them).
+    const {
+      mp_access_token: _mp,
+      wompi_integrity_secret_enc: _wi,
+      wompi_events_secret_enc: _we,
+      ...publicRestaurant
+    } = restaurant as Record<string, unknown>;
+
     return {
-      restaurant: restaurant as unknown as Restaurant,
+      restaurant: publicRestaurant as unknown as Restaurant,
       categories: (categories ?? []) as unknown as Category[],
       products: mappedProducts as unknown as Product[],
       isOwner: false,

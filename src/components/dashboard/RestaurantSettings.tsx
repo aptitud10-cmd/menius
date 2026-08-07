@@ -144,6 +144,71 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     (form.country_code ?? '').toUpperCase() === 'CO' ||
     (form.currency ?? '').toUpperCase() === 'COP';
 
+  // Wompi per-restaurant keys (CO only). Secrets are write-only: the API never
+  // returns them, so the form always starts empty.
+  const [wompiStatus, setWompiStatus] = useState<{
+    connected: boolean;
+    publicKey: string | null;
+    loading: boolean;
+    saving: boolean;
+    error: string | null;
+  }>({ connected: false, publicKey: null, loading: true, saving: false, error: null });
+  const [wompiEditing, setWompiEditing] = useState(false);
+  const [wompiForm, setWompiForm] = useState({ public_key: '', integrity_secret: '', events_secret: '' });
+
+  useEffect(() => {
+    if (!isColombianRestaurant) return;
+    fetch('/api/tenant/wompi-keys')
+      .then((r) => r.json())
+      .then((data) => {
+        setWompiStatus((prev) => ({
+          ...prev,
+          connected: !!data.connected,
+          publicKey: data.public_key ?? null,
+          loading: false,
+        }));
+      })
+      .catch(() => setWompiStatus((prev) => ({ ...prev, loading: false })));
+  }, [isColombianRestaurant]);
+
+  const handleSaveWompi = async () => {
+    setWompiStatus((prev) => ({ ...prev, saving: true, error: null }));
+    try {
+      const res = await fetch('/api/tenant/wompi-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wompiForm),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWompiStatus((prev) => ({ ...prev, saving: false, error: data.error ?? 'Error' }));
+        return;
+      }
+      setWompiStatus((prev) => ({ ...prev, connected: true, publicKey: wompiForm.public_key, saving: false }));
+      setWompiForm({ public_key: '', integrity_secret: '', events_secret: '' });
+      setWompiEditing(false);
+    } catch {
+      setWompiStatus((prev) => ({ ...prev, saving: false, error: locale === 'en' ? 'Connection error' : 'Error de conexión' }));
+    }
+  };
+
+  const handleDisconnectWompi = async () => {
+    if (!confirm(locale === 'en'
+      ? 'Disconnect Wompi? Customers will no longer be able to pay online.'
+      : '¿Desconectar Wompi? Tus clientes ya no podrán pagar en línea.')) return;
+    setWompiStatus((prev) => ({ ...prev, saving: true, error: null }));
+    try {
+      const res = await fetch('/api/tenant/wompi-keys', { method: 'DELETE' });
+      if (res.ok) {
+        setWompiStatus((prev) => ({ ...prev, connected: false, publicKey: null, saving: false }));
+      } else {
+        setWompiStatus((prev) => ({ ...prev, saving: false }));
+      }
+    } catch {
+      setWompiStatus((prev) => ({ ...prev, saving: false }));
+    }
+  };
+
   useEffect(() => {
     if (isColombianRestaurant) {
       setStripeStatus((prev) => ({ ...prev, loading: false }));
@@ -1105,7 +1170,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           })}
         </div>
 
-        {/* Warning: online enabled but Connect not ready */}
+        {/* Warning: online enabled but gateway not ready */}
         {form.payment_methods_enabled.includes('online') && !isColombianRestaurant && !stripeStatus.onboarding_complete && (
           <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
             <span className="mt-0.5 shrink-0">⚠️</span>
@@ -1113,6 +1178,16 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               {locale === 'en'
                 ? 'Online payment is enabled but Stripe Connect is not set up. Customers will not see online payment as an option until you complete the setup below.'
                 : 'El pago en línea está activado pero Stripe Connect no está configurado. Los clientes no verán esa opción hasta que completes el proceso abajo.'}
+            </span>
+          </div>
+        )}
+        {form.payment_methods_enabled.includes('online') && isColombianRestaurant && !wompiStatus.loading && !wompiStatus.connected && (
+          <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+            <span className="mt-0.5 shrink-0">⚠️</span>
+            <span>
+              {locale === 'en'
+                ? 'Online payment is enabled but Wompi is not connected. Customers will not see online payment as an option until you connect your Wompi keys below.'
+                : 'El pago en línea está activado pero Wompi no está conectado. Los clientes no verán esa opción hasta que conectes tus llaves de Wompi abajo.'}
             </span>
           </div>
         )}
@@ -1127,17 +1202,97 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </div>
             <p className="text-xs text-gray-500 mb-3">
               {locale === 'en'
-                ? 'For COP restaurants, MENIUS processes online payments with Wompi (cards, PSE, Nequi, and Daviplata).'
-                : 'Para restaurantes con moneda COP, MENIUS procesa pagos en linea con Wompi (tarjetas, PSE, Nequi y Daviplata).'}
+                ? 'Connect YOUR Wompi account (cards, PSE, Nequi, Daviplata) — payments go straight to your bank account. Get your keys at comercios.wompi.co → Developers.'
+                : 'Conectá TU cuenta de Wompi (tarjetas, PSE, Nequi, Daviplata) — los cobros llegan directo a tu cuenta bancaria. Sacá tus llaves en comercios.wompi.co → Desarrolladores.'}
             </p>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span className="text-sm font-medium text-emerald-700">
-                {locale === 'en'
-                  ? 'Active - customers will pay with Wompi at checkout'
-                  : 'Activo - tus clientes pagaran con Wompi en checkout'}
-              </span>
-            </div>
+            {wompiStatus.loading ? (
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> {locale === 'en' ? 'Checking…' : 'Verificando…'}
+              </div>
+            ) : wompiStatus.connected && !wompiEditing ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span className="text-sm font-medium text-emerald-700">
+                    {locale === 'en' ? 'Connected' : 'Conectado'}
+                    {wompiStatus.publicKey ? ` · ${wompiStatus.publicKey.slice(0, 16)}…` : ''}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setWompiEditing(true)}
+                    className="flex-1 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                  >
+                    {locale === 'en' ? 'Change keys' : 'Cambiar llaves'}
+                  </button>
+                  <button
+                    onClick={handleDisconnectWompi}
+                    disabled={wompiStatus.saving}
+                    className="flex-1 py-2 rounded-lg border border-red-200 text-xs font-medium text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                  >
+                    {locale === 'en' ? 'Disconnect' : 'Desconectar'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={wompiForm.public_key}
+                  onChange={(e) => setWompiForm((p) => ({ ...p, public_key: e.target.value }))}
+                  placeholder={locale === 'en' ? 'Public key (pub_prod_…)' : 'Llave pública (pub_prod_…)'}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                  autoComplete="off"
+                />
+                <input
+                  type="password"
+                  value={wompiForm.integrity_secret}
+                  onChange={(e) => setWompiForm((p) => ({ ...p, integrity_secret: e.target.value }))}
+                  placeholder={locale === 'en' ? 'Integrity secret (prod_integrity_…)' : 'Secreto de integridad (prod_integrity_…)'}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                  autoComplete="new-password"
+                />
+                <input
+                  type="password"
+                  value={wompiForm.events_secret}
+                  onChange={(e) => setWompiForm((p) => ({ ...p, events_secret: e.target.value }))}
+                  placeholder={locale === 'en' ? 'Events secret (prod_events_…)' : 'Secreto de eventos (prod_events_…)'}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                  autoComplete="new-password"
+                />
+                <p className="text-[11px] text-gray-400">
+                  {locale === 'en'
+                    ? 'Also set the events URL in your Wompi dashboard: '
+                    : 'Configurá también la URL de eventos en tu panel de Wompi: '}
+                  <code className="text-[10px] bg-gray-100 px-1 py-0.5 rounded">{appUrl}/api/payments/wompi-webhook</code>
+                </p>
+                <div className="flex gap-2">
+                  {wompiEditing && (
+                    <button
+                      onClick={() => { setWompiEditing(false); setWompiForm({ public_key: '', integrity_secret: '', events_secret: '' }); }}
+                      className="flex-1 py-2.5 rounded-xl border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                    >
+                      {locale === 'en' ? 'Cancel' : 'Cancelar'}
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSaveWompi}
+                    disabled={wompiStatus.saving || !wompiForm.public_key || !wompiForm.integrity_secret || !wompiForm.events_secret}
+                    className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    {wompiStatus.saving
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> {locale === 'en' ? 'Saving…' : 'Guardando…'}</>
+                      : (locale === 'en' ? 'Connect Wompi' : 'Conectar Wompi')}
+                  </button>
+                </div>
+              </div>
+            )}
+            {wompiStatus.error && (
+              <div className="mt-2 flex items-start gap-2 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+                <span className="shrink-0 mt-0.5">⚠️</span>
+                <span>{wompiStatus.error}</span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
