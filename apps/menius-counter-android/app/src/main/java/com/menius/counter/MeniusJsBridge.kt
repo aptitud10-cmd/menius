@@ -12,6 +12,18 @@ import kotlinx.coroutines.runBlocking
 /**
  * Exposed to the WebView as [MeniusAndroid].
  * From Counter: `MeniusAndroid.printReceipt(JSON.stringify(payload))` → returns "OK" or error code.
+ *
+ * On blocking: the web side (src/lib/printing/native-bridge.ts) reads the return
+ * value synchronously, so this call has to block — going async would mean
+ * changing the JS contract and shipping both sides in lockstep. What was fixed
+ * instead is the *unbounded* wait: BluetoothThermalPrinter had no timeout at all
+ * (socket.connect() can hang for a long time with the printer off), which froze
+ * the Counter UI mid-service. Both transports are now capped, so the worst case
+ * is a few seconds and a clear toast rather than a dead tablet.
+ *
+ * @JavascriptInterface methods run on a dedicated WebView thread, never on the
+ * UI thread — the freeze is the WebView waiting for the JS return, not this
+ * thread blocking the main looper.
  */
 class MeniusJsBridge(private val context: Context) {
 

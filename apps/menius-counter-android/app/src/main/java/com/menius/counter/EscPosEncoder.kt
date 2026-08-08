@@ -4,8 +4,18 @@ import java.io.ByteArrayOutputStream
 
 /**
  * ESC/POS byte stream (Epson/Star compatible subset).
+ *
+ * Text encoding: thermal printers do NOT speak UTF-8. They hold a single-byte
+ * code page and boot into CP437 (US) unless told otherwise, so sending raw UTF-8
+ * turned every ñ/á/é/í into two garbage glyphs — on every ticket in LatAm, where
+ * customer names, addresses and dish names are full of them.
+ *
+ * So we do two things: select a code page with `ESC t n`, and encode the text to
+ * that same code page instead of UTF-8. CP858 is the default because it's CP850
+ * (Western European: the full Spanish accent set) plus the euro sign, and it's
+ * the most widely supported page across Epson/Star/Xprinter clones.
  */
-class EscPosEncoder {
+class EscPosEncoder(private val codePage: EscPosCodePage = EscPosCodePage.CP858) {
     private val out = ByteArrayOutputStream()
 
     private fun write(vararg bytes: Int) {
@@ -13,13 +23,13 @@ class EscPosEncoder {
     }
 
     fun init(): EscPosEncoder {
-        write(0x1b, 0x40)
+        write(0x1b, 0x40)          // ESC @  — reset
+        write(0x1b, 0x74, codePage.escPosCode)  // ESC t n — select code page
         return this
     }
 
     fun text(s: String): EscPosEncoder {
-        val safe = s.replace('€', 'EUR').replace("−", "-")
-        out.write(safe.toByteArray(Charsets.UTF_8))
+        out.write(encodeForPrinter(s, codePage))
         return this
     }
 

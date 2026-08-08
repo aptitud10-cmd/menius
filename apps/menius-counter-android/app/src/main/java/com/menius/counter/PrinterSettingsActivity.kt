@@ -6,8 +6,12 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.menius.counter.databinding.ActivityPrinterSettingsBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PrinterSettingsActivity : AppCompatActivity() {
 
@@ -154,30 +158,40 @@ class PrinterSettingsActivity : AppCompatActivity() {
             )
         }.toString()
 
-        Thread {
-            val bytes = ReceiptEscPosBuilder.build(payload, w)
+        // lifecycleScope instead of a bare Thread: the send functions are suspend
+        // now (they carry the connect timeout), and this way the test print is
+        // cancelled if the user leaves the screen while the printer hangs.
+        lifecycleScope.launch {
+            val bytes = withContext(Dispatchers.Default) {
+                ReceiptEscPosBuilder.build(payload, w)
+            }
             val result = when (mode) {
                 PrinterPreferences.MODE_NETWORK -> {
-                    val ip = PrinterPreferences.getNetworkIp(this) ?: ""
+                    val ip = PrinterPreferences.getNetworkIp(this@PrinterSettingsActivity) ?: ""
                     NetworkThermalPrinter.send(ip, bytes)
                 }
                 else -> {
-                    val mac = PrinterPreferences.getBluetoothAddress(this) ?: ""
-                    BluetoothThermalPrinter.send(this, mac, bytes)
+                    val mac = PrinterPreferences.getBluetoothAddress(this@PrinterSettingsActivity) ?: ""
+                    BluetoothThermalPrinter.send(this@PrinterSettingsActivity, mac, bytes)
                 }
             }
-            runOnUiThread {
-                result.fold(
-                    onSuccess = { Toast.makeText(this, R.string.test_print_ok, Toast.LENGTH_SHORT).show() },
-                    onFailure = { e ->
-                        Toast.makeText(
-                            this,
-                            getString(R.string.test_print_fail, e.message ?: "?"),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                )
-            }
-        }.start()
+            // Back on the main dispatcher already — lifecycleScope is main-bound.
+            result.fold(
+                onSuccess = {
+                    Toast.makeText(
+                        this@PrinterSettingsActivity,
+                        R.string.test_print_ok,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                },
+                onFailure = { e ->
+                    Toast.makeText(
+                        this@PrinterSettingsActivity,
+                        getString(R.string.test_print_fail, e.message ?: "?"),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            )
+        }
     }
 }

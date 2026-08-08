@@ -6,10 +6,14 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.webkit.CookieManager
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebViewDatabase
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -45,6 +49,11 @@ class MainActivity : AppCompatActivity() {
 
         requestBluetoothPermissionsIfNeeded()
 
+        // The Counter runs on a till tablet all shift. Without this the screen
+        // sleeps on the OS timeout and incoming orders go unnoticed until someone
+        // wakes it — the whole point of the device is being glanceable.
+        binding.root.keepScreenOn = true
+
         binding.webView.apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -70,9 +79,32 @@ class MainActivity : AppCompatActivity() {
                     runCatching { startActivity(Intent(Intent.ACTION_VIEW, request.url)) }
                     return true
                 }
+
+                override fun onReceivedError(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                    error: WebResourceError?
+                ) {
+                    super.onReceivedError(view, request, error)
+                    // Only the main document matters: a failed image or analytics
+                    // beacon must not blank out a working Counter.
+                    if (request?.isForMainFrame == true) showOfflinePanel()
+                }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    hideOfflinePanel()
+                }
             }
 
             loadUrl(AppConfig.BASE_URL.trimEnd('/') + AppConfig.START_PATH)
+        }
+
+        binding.retryButton.setOnClickListener {
+            hideOfflinePanel()
+            // reload() would just replay the failed request; go back to the start
+            // URL so a stale error page doesn't get retried forever.
+            binding.webView.loadUrl(AppConfig.BASE_URL.trimEnd('/') + AppConfig.START_PATH)
         }
 
         onBackPressedDispatcher.addCallback(
@@ -89,6 +121,14 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun showOfflinePanel() {
+        binding.offlinePanel.visibility = View.VISIBLE
+    }
+
+    private fun hideOfflinePanel() {
+        binding.offlinePanel.visibility = View.GONE
+    }
+
     /** Persist cookies to disk so the login session survives the app being killed. */
     override fun onPause() {
         super.onPause()
@@ -96,8 +136,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Clear the session and return to the login screen so a different
-     *  restaurant can sign in without reinstalling / clearing app data. */
+     *  restaurant can sign in without reinstalling / clearing app data.
+     *
+     *  Cookies alone are not enough: the Counter keeps state in localStorage /
+     *  IndexedDB (cached orders, printer prefs per store, UI state), so on a
+     *  shared till tablet restaurant B could see restaurant A's data after a
+     *  logout. Wipe WebStorage and the WebView caches too. */
     private fun logout() {
+        // Order matters: clear storage while the page is still loaded, then drop
+        // cookies and only reload once everything is gone.
+        WebStorage.getInstance().deleteAllData()
+        binding.webView.clearCache(true)
+        binding.webView.clearFormData()
+        WebViewDatabase.getInstance(this).clearFormData()
+
         val cookies = CookieManager.getInstance()
         cookies.removeAllCookies {
             cookies.flush()

@@ -131,7 +131,9 @@ object ReceiptEscPosBuilder {
         eta?.let {
             e.feed(1)
             e.alignCenter().bold(true)
-            e.text("⏱ ${L.eta}: $it min").newline()
+            // No emoji: thermal printers have no glyph for it (the encoder drops
+            // it now, but there's no reason to emit it in the first place).
+            e.text("${L.eta}: $it min").newline()
             e.bold(false).alignLeft()
         }
 
@@ -193,7 +195,7 @@ object ReceiptEscPosBuilder {
         }
         eta?.let {
             e.alignCenter().bold(true)
-            e.text("⏱ $it min").newline()
+            e.text("$it min").newline()
             e.bold(false).alignLeft()
         }
         e.feed(2).cutPartial()
