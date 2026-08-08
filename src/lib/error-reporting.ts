@@ -41,8 +41,18 @@ export function captureError(error: unknown, context?: ErrorContext): void {
 
   // Phone push to the operator. Fire-and-forget — telegram.ts never throws and
   // logs its own failures (it does NOT call captureError, so there's no loop).
+  //
+  // Dedupe on route + error class, NOT on the message: messages usually embed an
+  // order id, a customer id or a timestamp, so 300 failures of the same broken
+  // endpoint would each look unique and produce 300 pushes. Grouping this way
+  // makes that one push, and Sentry still has every individual occurrence.
   const where = context?.route ? ` <code>${context.route}</code>` : '';
-  void sendTelegramAlert(`<b>Error</b>${where}\n${maskEmailsInText(err.message)}`, 'error');
+  const dedupeKey = `${context?.route ?? 'unknown'}:${err.name}`;
+  void sendTelegramAlert(
+    `<b>Error</b>${where}\n${maskEmailsInText(err.message)}`,
+    'error',
+    dedupeKey,
+  );
 }
 
 export function captureWarning(message: string, context?: ErrorContext): void {

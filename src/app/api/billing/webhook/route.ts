@@ -301,15 +301,20 @@ export async function POST(request: NextRequest) {
               const who = restRow
                 ? `${restRow.name} (${restRow.slug})`
                 : resolvedId;
+              // Keyed per restaurant so two different customers converting minutes
+              // apart both get through — these are the pushes worth waking up for,
+              // and they only fire on a real status transition anyway.
               if (status === "active") {
                 void sendTelegramAlert(
                   `<b>Nueva suscripción</b>\n${who} → plan ${plan.id}`,
                   "info",
+                  `sub-active:${resolvedId}`,
                 );
               } else {
                 void sendTelegramAlert(
                   `<b>Pago fallido</b>\n${who} entró en past_due (plan ${plan.id})`,
                   "warn",
+                  `sub-pastdue:${resolvedId}`,
                 );
               }
             }
