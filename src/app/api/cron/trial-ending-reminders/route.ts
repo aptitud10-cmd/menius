@@ -21,12 +21,20 @@ export async function GET(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";
 
   try {
-    // Target: trial_end between 2d 23h and 3d 1h from now (1-day window centered on 3 days out)
-    const windowStart = new Date(
-      Date.now() + (3 * 24 - 1) * 60 * 60 * 1000,
-    ).toISOString();
+    // Everything still on trial that ends within the next 3 days and hasn't been
+    // warned yet. The `trial_ending_reminder_sent_at is null` filter below is
+    // what makes this send once, so the window can be a range instead of a
+    // needle — and it has to be.
+    //
+    // This used to target trial_end in [now+71h, now+73h]: a 2-hour slot checked
+    // by a cron that fires once a day at 11:00 UTC. Only trials ending between
+    // 10:00 and 12:00 UTC were ever seen; the other 21 hours of the day were
+    // never warned at all. Measured against prod: 7 of 8 real trials fell
+    // outside it (07:56, 13:02, 01:21, 02:14, 13:21, 14:00, 16:43 UTC) — every
+    // one of them expired in silence and then got auto-canceled by
+    // billing-reconciliation. That is the whole trial→paid funnel leaking.
     const windowEnd = new Date(
-      Date.now() + (3 * 24 + 1) * 60 * 60 * 1000,
+      Date.now() + 3 * 24 * 60 * 60 * 1000,
     ).toISOString();
 
     const { data: subs } = await adminDb
@@ -35,18 +43,32 @@ export async function GET(request: NextRequest) {
         "restaurant_id, trial_end, restaurants(name, slug, locale, notification_email)",
       )
       .eq("status", "trialing")
-      .gte("trial_end", windowStart)
+      // Floor at now: an already-expired trial shouldn't be told it has 3 days
+      // left. billing-reconciliation flips those to canceled anyway.
+      .gte("trial_end", new Date().toISOString())
       .lte("trial_end", windowEnd)
       .is("trial_ending_reminder_sent_at", null);
 
     if (!subs || subs.length === 0) {
       return NextResponse.json({
-        message: "No trials ending in 3 days",
+        message: "No trials ending within 3 days",
         sent: 0,
       });
     }
 
     const billingUrl = `${appUrl}/app/billing`;
+
+    // A trial we can't email is a customer about to churn unnoticed, so say so
+    // instead of dropping it from the list without a trace.
+    const unreachable = subs.filter(
+      (sub) => !(sub.restaurants as { notification_email?: string } | null)?.notification_email,
+    );
+    for (const sub of unreachable) {
+      logger.error("Trial ending but restaurant has no notification_email", {
+        restaurantId: sub.restaurant_id,
+        trialEnd: sub.trial_end,
+      });
+    }
 
     const results = await Promise.allSettled(
       subs
@@ -59,15 +81,25 @@ export async function GET(request: NextRequest) {
             notification_email: string;
           };
           const en = rest.locale === "en";
+          // Real remaining days, not a hardcoded 3. The window now spans up to
+          // 3 days out, so a trial ending tomorrow would otherwise be told it
+          // has 3 days left — telling an owner the wrong expiry date is worse
+          // than the silence this fix replaces. Ceil so "in 4 hours" reads as
+          // 1 day, never 0.
+          const msLeft = new Date(sub.trial_end as string).getTime() - Date.now();
+          const daysLeft = Math.max(1, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
+          const dayWord = en
+            ? `${daysLeft} day${daysLeft === 1 ? "" : "s"}`
+            : `${daysLeft} día${daysLeft === 1 ? "" : "s"}`;
           return sendEmail({
             to: rest.notification_email,
             subject: en
-              ? `Your MENIUS trial ends in 3 days — ${rest.name}`
-              : `Tu prueba de MENIUS termina en 3 días — ${rest.name}`,
+              ? `Your MENIUS trial ends in ${dayWord} — ${rest.name}`
+              : `Tu prueba de MENIUS termina en ${dayWord} — ${rest.name}`,
             html: buildTrialEndingEmail({
               ownerName: rest.name,
               restaurantName: rest.name,
-              daysLeft: 3,
+              daysLeft,
               billingUrl,
               locale: rest.locale,
             }),

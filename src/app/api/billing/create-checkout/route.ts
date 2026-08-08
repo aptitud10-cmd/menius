@@ -68,10 +68,48 @@ export async function POST(request: NextRequest) {
       );
       customerId = customer.id;
 
-      await supabase
-        .from('subscriptions')
-        .update({ stripe_customer_id: customerId })
-        .eq('restaurant_id', tenant.restaurantId);
+      // Upsert, not update: with no subscriptions row yet (a restaurant that
+      // never started a trial) an .update() matches nothing and silently drops
+      // the customer id. The next checkout attempt then creates a SECOND Stripe
+      // customer for the same restaurant, and the webhook — which resolves the
+      // restaurant by stripe_customer_id — can't tie the payment back to it.
+      // Two distinct cases, kept apart on purpose. An upsert writes every key it
+      // is given, so folding them together would stamp plan_id/status onto an
+      // existing row — overwriting a live trial with whatever plan the owner
+      // happens to be looking at on the pricing page.
+      const { error: linkError } = subscription
+        // Row exists: touch nothing but the customer id.
+        ? await supabase
+            .from('subscriptions')
+            .update({ stripe_customer_id: customerId })
+            .eq('restaurant_id', tenant.restaurantId)
+        // No row: insert one. plan_id and status are NOT NULL with no default,
+        // so they have to be supplied. 'canceled' is what
+        // billing-reconciliation assigns to a restaurant with no live
+        // subscription; the webhook promotes both once Stripe confirms payment.
+        : await supabase
+            .from('subscriptions')
+            .insert({
+              restaurant_id: tenant.restaurantId,
+              stripe_customer_id: customerId,
+              plan_id: planId,
+              status: 'canceled',
+            });
+
+      // Don't send the owner to a checkout whose payment we won't be able to
+      // attribute. Better a retryable error than a charge with no subscription.
+      if (linkError) {
+        logger.error('Failed to persist stripe_customer_id', {
+          error: linkError.message,
+          restaurantId: tenant.restaurantId,
+          customerId,
+        });
+        captureError(linkError, { route: '/api/billing/create-checkout', restaurantId: tenant.restaurantId });
+        return NextResponse.json(
+          { error: 'No se pudo iniciar el pago. Intentá de nuevo.' },
+          { status: 500 },
+        );
+      }
     }
 
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app').trim();
