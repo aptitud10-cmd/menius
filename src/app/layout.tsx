@@ -170,21 +170,40 @@ export default async function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
+/* Blocks the iOS root rubber-band at the very top/bottom of the page.
+   Two things this must get right:
+
+   1. WHICH element scrolls. On store and dashboard pages the scroller is <body>
+      (see globals.css → body[data-store-scroll]/[data-dashboard-scroll]), not
+      <html>. Reading documentElement.scrollTop there always returns 0, so the
+      old version thought "we're at the top" on every single move and called
+      preventDefault() mid-scroll.
+
+   2. Cost per event. This is on the hot path of every touch scroll, so the old
+      getComputedStyle() walk up the DOM — a forced style recalc per move — is
+      replaced by scrollHeight/clientHeight checks, which read cached layout. */
 (function(){
   var startY=0;
+  function scroller(){
+    var b=document.body;
+    /* The data attrs are set by StoreScrollFix/DashboardScrollFix while those
+       pages are mounted; anywhere else the root is still the scroller. */
+    return (b&&(b.hasAttribute('data-store-scroll')||b.hasAttribute('data-dashboard-scroll')))
+      ? b : document.documentElement;
+  }
   document.addEventListener('touchstart',function(e){startY=e.touches[0].pageY;},{passive:true});
   document.addEventListener('touchmove',function(e){
+    var root=scroller();
+    /* Inside a nested scrollable (category rail, bottom sheet, modal) let iOS
+       handle it — only the page-level scroller gets clamped. */
     var el=e.target;
-    while(el&&el!==document.documentElement){
-      var s=window.getComputedStyle(el);
-      if((s.overflowY==='auto'||s.overflowY==='scroll')&&el.scrollHeight>el.clientHeight)return;
+    while(el&&el!==root&&el!==document.documentElement){
+      if(el.scrollHeight>el.clientHeight+1)return;
       el=el.parentElement;
     }
-    var st=Math.max(0,document.documentElement.scrollTop||document.body.scrollTop);
-    var sh=document.documentElement.scrollHeight;
-    var ch=document.documentElement.clientHeight;
+    var st=root.scrollTop;
     var dy=e.touches[0].pageY-startY;
-    if((st<=1&&dy>0)||(st+ch>=sh-1&&dy<0))e.preventDefault();
+    if((st<=1&&dy>0)||(st+root.clientHeight>=root.scrollHeight-1&&dy<0))e.preventDefault();
   },{passive:false});
 })();
         `,

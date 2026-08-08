@@ -122,6 +122,11 @@ export function JsonLdScript({
       grouped.get(catName)!.push(p);
     }
 
+    // Every dish stays listed — Google's menu rich results key off name + price,
+    // so dropping items would cost search coverage. What goes is the per-item
+    // `description` and `image`: measured on prod (buccaneer, 408 dishes) they
+    // were 61KB of the block's 138KB, and this JSON is a second full copy of the
+    // catalog already present in the RSC payload. Result: 138KB -> 67KB.
     const sections = Array.from(grouped.entries()).map(([name, items]) => ({
       '@type': 'MenuSection',
       name,
@@ -132,8 +137,6 @@ export function JsonLdScript({
         return {
           '@type': 'MenuItem',
           name: p.name,
-          ...(p.description && { description: p.description }),
-          ...(p.image_url && { image: p.image_url }),
           ...(diets && diets.length > 0 && { suitableForDiet: diets }),
           offers: {
             '@type': 'Offer',

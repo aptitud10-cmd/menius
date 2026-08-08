@@ -218,14 +218,35 @@ export function MenuShell({
       tableName ?? new URLSearchParams(window.location.search).get("table");
     setTableName(resolvedTable);
     setActiveTableName(resolvedTable);
-    router.prefetch(`/${restaurant.slug}/checkout`);
+
+    // Prefetching /checkout on mount put a second page's JS on the wire while
+    // the menu was still painting — on 4G that competes directly with the LCP
+    // image. Wait for idle: by the time anyone has picked a dish and tapped the
+    // cart, the prefetch has long finished, so nothing is lost.
+    // typeof rather than `in`: lib.dom declares requestIdleCallback as always
+    // present, so `in` narrows window to never in the Safari fallback branch.
+    const prefetchCheckout = () => router.prefetch(`/${restaurant.slug}/checkout`);
+    const hasIdle = typeof window.requestIdleCallback === "function";
+    const idleId = hasIdle
+      ? window.requestIdleCallback(prefetchCheckout, { timeout: 4000 })
+      : window.setTimeout(prefetchCheckout, 2500);
 
     // If returning customer has items in cart, show a brief "resume cart" toast
     const stored = useCartStore.getState();
+    let resumeTimer: number | undefined;
     if (stored.restaurantId === restaurant.id && stored.items.length > 0) {
       setCartResumeShown(true);
-      setTimeout(() => setCartResumeShown(false), 4000);
+      resumeTimer = window.setTimeout(() => setCartResumeShown(false), 4000);
     }
+
+    return () => {
+      if (hasIdle) {
+        window.cancelIdleCallback(idleId as number);
+      } else {
+        window.clearTimeout(idleId as number);
+      }
+      if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
+    };
   }, [
     restaurant.id,
     restaurant.slug,
@@ -427,34 +448,58 @@ export function MenuShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurant.id]);
 
-  // Realtime: detect orders_paused_until changes without requiring page reload
+  // Realtime: detect orders_paused_until changes without requiring page reload.
+  //
+  // Opened on idle rather than on mount. Two WebSockets racing the first paint
+  // consume Supabase realtime connections for people who are only browsing, and
+  // this one only matters once someone tries to order — unlike the stock channel
+  // above, which drives the "sold out" badges you can see straight away.
   useEffect(() => {
     if (!restaurant.id) return;
-    const supabase = getSupabaseBrowser();
-    const channel = supabase
-      .channel(`restaurant-pause:${restaurant.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "restaurants",
-          filter: `id=eq.${restaurant.id}`,
-        },
-        (
-          payload: RealtimePostgresChangesPayload<{
-            orders_paused_until: string | null;
-          }>,
-        ) => {
-          setPausedUntil(
-            (payload.new as { orders_paused_until: string | null })
-              .orders_paused_until ?? null,
-          );
-        },
-      )
-      .subscribe();
+
+    let channel: ReturnType<ReturnType<typeof getSupabaseBrowser>["channel"]> | null = null;
+    let cancelled = false;
+
+    const open = () => {
+      if (cancelled) return;
+      const supabase = getSupabaseBrowser();
+      channel = supabase
+        .channel(`restaurant-pause:${restaurant.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "restaurants",
+            filter: `id=eq.${restaurant.id}`,
+          },
+          (
+            payload: RealtimePostgresChangesPayload<{
+              orders_paused_until: string | null;
+            }>,
+          ) => {
+            setPausedUntil(
+              (payload.new as { orders_paused_until: string | null })
+                .orders_paused_until ?? null,
+            );
+          },
+        )
+        .subscribe();
+    };
+
+    const hasIdle = typeof window.requestIdleCallback === "function";
+    const idleId = hasIdle
+      ? window.requestIdleCallback(open, { timeout: 5000 })
+      : window.setTimeout(open, 2500);
+
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (hasIdle) {
+        window.cancelIdleCallback(idleId as number);
+      } else {
+        window.clearTimeout(idleId as number);
+      }
+      if (channel) getSupabaseBrowser().removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurant.id]);

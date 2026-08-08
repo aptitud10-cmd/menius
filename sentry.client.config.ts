@@ -16,16 +16,12 @@ if (dsn) {
     replaysSessionSampleRate: 0.05,
     replaysOnErrorSampleRate: 1.0,
 
-    integrations: [
-      Sentry.replayIntegration({
-        maskAllText: false,        // Show text so we can debug layout issues
-        maskAllInputs: true,       // But always mask form inputs (passwords, emails)
-        blockAllMedia: false,
-        // Don't record payment or auth pages
-        networkDetailAllowUrls: [window.location.origin],
-      }),
-      Sentry.browserTracingIntegration(),
-    ],
+    // Session Replay is added below via a dynamic import, NOT here. Listing
+    // replayIntegration() statically pulls @sentry-internal/replay (~60KB gzip)
+    // into the bundle every visitor downloads, to record 5% of sessions.
+    // Tracing stays inline — it's small and it measures the initial page load,
+    // so deferring it would defeat its purpose.
+    integrations: [Sentry.browserTracingIntegration()],
 
     // Filter out known noisy errors
     ignoreErrors: [
@@ -64,4 +60,38 @@ if (dsn) {
       return event;
     },
   });
+
+  // Session Replay, fetched separately so its ~60KB never lands in the initial
+  // bundle. Waits for the page to go idle: replay records what happens *after*
+  // it attaches, so arriving a moment late costs nothing, while competing with
+  // the menu's first render costs real LCP on a mid-range phone.
+  const loadReplay = () => {
+    import('@sentry/browser')
+      .then(({ replayIntegration, getClient }) => {
+        // The client is gone if Sentry was closed (e.g. fast navigation away).
+        const client = getClient();
+        if (!client) return;
+        client.addIntegration(
+          replayIntegration({
+            maskAllText: false,      // Show text so we can debug layout issues
+            maskAllInputs: true,     // But always mask form inputs (passwords, emails)
+            blockAllMedia: false,
+            // Don't record payment or auth pages
+            networkDetailAllowUrls: [window.location.origin],
+          }),
+        );
+      })
+      .catch(() => {
+        // Blocked or offline — errors still report, just without replay.
+      });
+  };
+
+  // Safari has no requestIdleCallback. Checked via typeof rather than `in` so
+  // TypeScript doesn't narrow `window` to never in the fallback branch (lib.dom
+  // declares the method as always present).
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(loadReplay, { timeout: 5000 });
+  } else {
+    window.setTimeout(loadReplay, 3000);
+  }
 }
