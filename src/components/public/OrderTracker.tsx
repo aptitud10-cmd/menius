@@ -204,6 +204,17 @@ function getT(locale?: string, orderType?: string) {
             ? (en ? 'Order served. Enjoy your meal!'   : '¡Pedido servido. Buen provecho!')
             : (en ? 'Order delivered. Enjoy your meal!': 'Pedido entregado. ¡Buen provecho!'),
       },
+      // Faltaban, y son estados reales: 68 pedidos cancelled y 1 completed en
+      // prod. Sin entrada aca, currentStepText quedaba undefined y la pantalla
+      // no decia en que estado estaba el pedido.
+      completed: {
+        label: en ? 'Completed' : 'Completado',
+        desc: en ? 'This order is complete.' : 'Este pedido está completo.',
+      },
+      cancelled: {
+        label: en ? 'Cancelled' : 'Cancelado',
+        desc: en ? 'This order was cancelled.' : 'Este pedido fue cancelado.',
+      },
     },
     // 4-step progress bar labels (customer-facing simplified)
     customerSteps: {
@@ -237,6 +248,8 @@ const STEP_STYLES: Record<string, { icon: typeof Clock; color: string; bg: strin
   out_for_delivery: { icon: Truck,        color: 'text-violet-600',  bg: 'bg-violet-100' },
   served:           { icon: Utensils,     color: 'text-teal-600',    bg: 'bg-teal-50' },
   delivered:        { icon: Package,      color: 'text-[#05c8a7]',   bg: 'bg-[#d0f7f1]' },
+  completed:        { icon: CheckCircle2,  color: 'text-[#05c8a7]',   bg: 'bg-[#d0f7f1]' },
+  cancelled:        { icon: XCircle,       color: 'text-gray-500',    bg: 'bg-gray-100' },
 };
 
 // Customer-visible progress steps: confirmed and preparing both map to step 1 ("En preparación")
@@ -488,6 +501,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       case 'out_for_delivery': return en ? 'Your driver is on the way!' : '¡Tu repartidor está en camino!';
       case 'served':           return en ? 'Enjoy your meal!' : '¡Buen provecho!';
       case 'delivered':        return en ? 'Enjoy your meal!' : '¡Buen provecho!';
+      case 'completed':        return en ? 'Enjoy your meal!' : '¡Buen provecho!';
+      // Sin este caso el pedido cancelado caia en el default y quedaba sin
+      // subtitulo: el cliente veia una pantalla que no explicaba nada.
+      case 'cancelled':        return en
+                                 ? `Contact ${restaurantName} if you have questions`
+                                 : `Contactá a ${restaurantName} si tenés dudas`;
       default:                 return '';
     }
   })();
@@ -1604,6 +1623,19 @@ function StateIllustration({ status, orderType }: { status: string; orderType?: 
                           : { emoji: '🛍️', bg: 'bg-orange-100', ring: 'ring-orange-200', float: false },
     out_for_delivery: { emoji: '🛵', bg: 'bg-violet-100', ring: 'ring-violet-200', float: true  },
     served:           { emoji: '✨', bg: 'bg-teal-50',    ring: 'ring-teal-200',   float: false },
+    // delivered/cancelled/completed faltaban, y son el final de CASI TODO pedido:
+    // en prod, 134 delivered + 68 cancelled + 1 completed de 225 ordenes (90%).
+    // Sin entrada en este mapa el `return null` de abajo borraba la ilustracion
+    // justo en la pantalla que el cliente mira al recibir su comida. Los otros
+    // dos mapas del componente (steps y STEP_STYLES) ya cubrian delivered — este
+    // se quedo atras.
+    delivered:        orderType === 'pickup'
+                        ? { emoji: '🛍️', bg: 'bg-[#d0f7f1]', ring: 'ring-teal-200', float: false }
+                        : orderType === 'dine_in'
+                          ? { emoji: '✨', bg: 'bg-teal-50',   ring: 'ring-teal-200', float: false }
+                          : { emoji: '✅', bg: 'bg-[#d0f7f1]', ring: 'ring-teal-200', float: false },
+    completed:        { emoji: '✅', bg: 'bg-[#d0f7f1]', ring: 'ring-teal-200',  float: false },
+    cancelled:        { emoji: '🚫', bg: 'bg-gray-100',  ring: 'ring-gray-200',  float: false },
   };
 
   const cfg = config[status];
