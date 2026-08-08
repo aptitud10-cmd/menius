@@ -59,6 +59,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "claim failed" }, { status: 500 });
     }
 
+    // Signals "this event must be retried". Thrown rather than returned on
+    // purpose: the claim row above is inserted BEFORE processing, so a bare
+    // `return 500` would leave the claim in place — Stripe's retry would then hit
+    // the 23505 branch and be answered `{ skipped: true }` with 200. The event
+    // would be dropped for good. Throwing routes through the catch below, which
+    // deletes the claim first, so the retry actually re-processes.
+    class RetryableWebhookError extends Error {
+      // Subclassing alone leaves .name as "Error"; the outer catch matches on it.
+      name = "RetryableWebhookError";
+    }
+
     const auditLog = async (
       restaurantId: string | null,
       action: string,
@@ -194,20 +205,55 @@ export async function POST(request: NextRequest) {
             updateData.dunning_stage = 0;
           }
 
+          // A .update() that matches no row returns { error: null } — success, as
+          // far as this code could tell. So a paid subscription for a restaurant
+          // with no subscriptions row was answered 200, Stripe marked the webhook
+          // delivered and never retried, and the payment landed with no plan
+          // attached. Count the rows and treat zero as the failure it is.
           let dbError;
+          let matched: number | null = null;
           if (restaurantId) {
             const r = await supabase
               .from("subscriptions")
-              .update(updateData)
+              .update(updateData, { count: "exact" })
               .eq("restaurant_id", restaurantId);
             dbError = r.error;
+            matched = r.count;
           } else {
             const r = await supabase
               .from("subscriptions")
-              .update(updateData)
+              .update(updateData, { count: "exact" })
               .eq("stripe_customer_id", customerId);
             dbError = r.error;
+            matched = r.count;
           }
+
+          if (!dbError && matched === 0) {
+            logger.error("Subscription webhook matched no row", {
+              event: event.type,
+              stripeSubscriptionId: sub.id,
+              restaurantId: restaurantId ?? null,
+              customerId,
+            });
+            captureError(
+              new Error(
+                `Subscription ${sub.id} could not be linked: no subscriptions row for ` +
+                  (restaurantId
+                    ? `restaurant ${restaurantId}`
+                    : `customer ${customerId}`),
+              ),
+              {
+                route: "/api/billing/webhook",
+                restaurantId: restaurantId ?? undefined,
+              },
+            );
+            // Retry: a concurrent checkout may create the row moments later, in
+            // which case Stripe's next attempt succeeds on its own.
+            throw new RetryableWebhookError(
+              `no subscriptions row to link for subscription ${sub.id}`,
+            );
+          }
+
           if (dbError) {
             logger.error("DB update failed for subscription event", {
               event: event.type,
@@ -217,7 +263,9 @@ export async function POST(request: NextRequest) {
               route: "/api/billing/webhook",
               restaurantId: resolvedId ?? undefined,
             });
-            return NextResponse.json({ error: "DB error" }, { status: 500 });
+            // Throw, don't return: the catch below deletes the claim row so
+            // Stripe's retry re-processes instead of being skipped as duplicate.
+            throw new RetryableWebhookError(dbError.message);
           }
 
           await auditLog(
@@ -322,19 +370,35 @@ export async function POST(request: NextRequest) {
           };
 
           let dbError;
+          let matched: number | null = null;
           if (restaurantId) {
             const r = await supabase
               .from("subscriptions")
-              .update(updateData)
+              .update(updateData, { count: "exact" })
               .eq("restaurant_id", restaurantId);
             dbError = r.error;
+            matched = r.count;
           } else {
             const r = await supabase
               .from("subscriptions")
-              .update(updateData)
+              .update(updateData, { count: "exact" })
               .eq("stripe_customer_id", customerId);
             dbError = r.error;
+            matched = r.count;
           }
+
+          // Unlike the created/updated case, a no-match here is benign: there is
+          // no row to mark canceled, and the restaurant already has no plan.
+          // Log it (it means our records diverged from Stripe) but answer 200 —
+          // making Stripe retry forever would not create the missing row.
+          if (!dbError && matched === 0) {
+            logger.warn("subscription.deleted matched no row", {
+              stripeSubscriptionId: sub.id,
+              restaurantId: restaurantId ?? null,
+              customerId,
+            });
+          }
+
           if (dbError) {
             logger.error("DB update failed for subscription.deleted", {
               error: dbError.message,
@@ -343,7 +407,9 @@ export async function POST(request: NextRequest) {
               route: "/api/billing/webhook",
               restaurantId: resolvedId ?? undefined,
             });
-            return NextResponse.json({ error: "DB error" }, { status: 500 });
+            // Throw, don't return: the catch below deletes the claim row so
+            // Stripe's retry re-processes instead of being skipped as duplicate.
+            throw new RetryableWebhookError(dbError.message);
           }
 
           await auditLog(
@@ -488,10 +554,33 @@ export async function POST(request: NextRequest) {
               updatePayload.dunning_stage = 0;
             }
 
-            const { error: dbError } = await supabase
+            const { error: dbError, count: matched } = await supabase
               .from("subscriptions")
-              .update(updatePayload)
+              .update(updatePayload, { count: "exact" })
               .eq("stripe_customer_id", customerId);
+
+            // No match means we failed to record the failure: the restaurant
+            // stopped paying but keeps full access, and dunning never starts
+            // because past_due_since was never stamped. Retry.
+            if (!dbError && matched === 0) {
+              logger.error("invoice.payment_failed matched no row — past_due not recorded", {
+                invoiceId: invoice.id,
+                customerId,
+              });
+              captureError(
+                new Error(
+                  `invoice.payment_failed ${invoice.id} matched no subscription row (customer ${customerId})`,
+                ),
+                {
+                  route: "/api/billing/webhook",
+                  restaurantId: resolvedId ?? undefined,
+                },
+              );
+              throw new RetryableWebhookError(
+                `invoice.payment_failed ${invoice.id} matched no subscription row`,
+              );
+            }
+
             if (dbError) {
               logger.error("DB update failed for invoice.payment_failed", {
                 error: dbError.message,
@@ -500,7 +589,9 @@ export async function POST(request: NextRequest) {
                 route: "/api/billing/webhook",
                 restaurantId: resolvedId ?? undefined,
               });
-              return NextResponse.json({ error: "DB error" }, { status: 500 });
+              // Throw, don't return: the catch below deletes the claim row so
+            // Stripe's retry re-processes instead of being skipped as duplicate.
+            throw new RetryableWebhookError(dbError.message);
             }
             await auditLog(
               resolvedId,
@@ -533,17 +624,46 @@ export async function POST(request: NextRequest) {
 
           if (customerId && subId) {
             const resolvedId = await resolveRestaurantId(null, customerId);
-            const { error: dbError } = await supabase
+            const { error: dbError, count: matched } = await supabase
               .from("subscriptions")
               // Payment recovered — clear the grace-period clock and dunning sequence.
-              .update({
-                status: "active",
-                past_due_since: null,
-                dunning_stage: 0,
-                updated_at: new Date().toISOString(),
-              })
+              .update(
+                {
+                  status: "active",
+                  past_due_since: null,
+                  dunning_stage: 0,
+                  updated_at: new Date().toISOString(),
+                },
+                { count: "exact" },
+              )
               .eq("stripe_customer_id", customerId)
               .eq("stripe_subscription_id", subId);
+
+            // The worst no-match of the four: this update needs BOTH ids to
+            // line up, and when it silently matches nothing the restaurant has
+            // PAID but stays past_due — so /api/cron/dunning keeps mailing
+            // "your payment failed" to someone who just paid, and eventually
+            // suspends them. 500 so Stripe retries.
+            if (!dbError && matched === 0) {
+              logger.error("invoice.paid matched no row — payer left in past_due", {
+                invoiceId: invoice.id,
+                customerId,
+                stripeSubscriptionId: subId,
+              });
+              captureError(
+                new Error(
+                  `invoice.paid ${invoice.id} matched no subscription row (customer ${customerId}, sub ${subId})`,
+                ),
+                {
+                  route: "/api/billing/webhook",
+                  restaurantId: resolvedId ?? undefined,
+                },
+              );
+              throw new RetryableWebhookError(
+                `invoice.paid ${invoice.id} matched no subscription row`,
+              );
+            }
+
             if (dbError) {
               logger.error("DB update failed for invoice.paid", {
                 error: dbError.message,
@@ -552,7 +672,9 @@ export async function POST(request: NextRequest) {
                 route: "/api/billing/webhook",
                 restaurantId: resolvedId ?? undefined,
               });
-              return NextResponse.json({ error: "DB error" }, { status: 500 });
+              // Throw, don't return: the catch below deletes the claim row so
+            // Stripe's retry re-processes instead of being skipped as duplicate.
+            throw new RetryableWebhookError(dbError.message);
             }
             await auditLog(
               resolvedId,
@@ -576,10 +698,17 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (err) {
+    // Retryable failures already logged their specifics and reported to Sentry
+    // at the throw site, with the invoice/subscription ids attached. Re-reporting
+    // here would duplicate every one of them under a vaguer message.
+    const retryable = err instanceof Error && err.name === "RetryableWebhookError";
     logger.error("Billing webhook error", {
       error: err instanceof Error ? err.message : String(err),
+      retryable,
     });
-    captureError(err, { route: "/api/billing/webhook" });
+    if (!retryable) {
+      captureError(err, { route: "/api/billing/webhook" });
+    }
     return NextResponse.json({ error: "Webhook error" }, { status: 500 });
   }
 }
