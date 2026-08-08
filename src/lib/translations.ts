@@ -390,6 +390,10 @@ export interface Translations {
   repeatPriceUpdated: string;
   repeatAddItemsToCart: (n: number) => string;
   repeatNeedsCustomization: string;
+  repeatBrowseMenu: string;
+  repeatDontShowAgain: string;
+  repeatDismiss: string;
+  close: string;
 }
 
 const es: Translations = {
@@ -736,6 +740,10 @@ const es: Translations = {
   repeatPriceUpdated: 'Precio actualizado',
   repeatAddItemsToCart: (n) => `Agregar ${n} productos al carrito`,
   repeatNeedsCustomization: 'Elegí opciones en el menú',
+  repeatBrowseMenu: 'Ver el menú',
+  repeatDontShowAgain: 'No volver a mostrar',
+  repeatDismiss: 'Descartar',
+  close: 'Cerrar',
 };
 
 const en: Translations = {
@@ -1082,6 +1090,10 @@ const en: Translations = {
   repeatPriceUpdated: 'Price updated',
   repeatAddItemsToCart: (n) => `Add ${n} items to cart`,
   repeatNeedsCustomization: 'Choose options on the menu',
+  repeatBrowseMenu: 'Browse the menu',
+  repeatDontShowAgain: "Don't show this again",
+  repeatDismiss: 'Dismiss',
+  close: 'Close',
 };
 
 const translations: Record<string, Translations> = { es, en };

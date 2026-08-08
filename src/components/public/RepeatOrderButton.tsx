@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { RotateCcw, Loader2, AlertCircle } from 'lucide-react';
+import { RotateCcw, Loader2, AlertCircle, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { getTranslations } from '@/lib/translations';
+
+/** Per-restaurant dismissal, so saying "no" once actually sticks. */
+const dismissKey = (restaurantId: string) => `menius_repeat_dismissed_${restaurantId}`;
 
 interface RepeatOrderItem {
   product_id: string;
@@ -38,7 +41,11 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
   const [loading, setLoading] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
+  // A customer who already started an order doesn't need a reorder prompt
+  // floating over the menu.
+  const cartCount = useCartStore((s) => s.items.length);
 
   const t = getTranslations(locale);
 
@@ -48,6 +55,12 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
 
   const checkRepeatOrder = useCallback(async () => {
     if (!savedPhone || checked) return;
+    // Respect a previous dismissal before spending a request on it.
+    if (typeof window !== 'undefined' && localStorage.getItem(dismissKey(restaurantId))) {
+      setChecked(true);
+      setDismissed(true);
+      return;
+    }
     setChecked(true);
 
     try {
@@ -116,21 +129,53 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
     }, 500);
   };
 
-  if (!data || data.items.length === 0) return null;
+  /** Hides the prompt for good on this device, for this restaurant. */
+  const dismissForever = () => {
+    try {
+      localStorage.setItem(dismissKey(restaurantId), '1');
+    } catch {
+      // Private mode / storage full — at least hide it for this session.
+    }
+    setShowSheet(false);
+    setDismissed(true);
+  };
+
+  if (dismissed || cartCount > 0 || !data || data.items.length === 0) return null;
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setShowSheet(true)}
-        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 hover:bg-brand-700 transition-all active:scale-95"
-        data-testid="repeat-order-btn"
+      {/* The pill sits above the cart bar and respects the iOS home indicator.
+          It used to float mid-screen over the product cards with no way to get
+          rid of it — hence the explicit dismiss control. */}
+      <div
+        className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30"
+        style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
       >
-        <RotateCcw className="w-4 h-4" />
-        <span className="text-sm font-semibold">
-          {t.repeatLastOrder}
-        </span>
-      </button>
+        <button
+          type="button"
+          onClick={() => setShowSheet(true)}
+          className="flex items-center gap-2 pl-5 pr-3 py-3 rounded-l-full hover:bg-brand-700 transition-colors active:scale-95"
+          data-testid="repeat-order-btn"
+        >
+          <RotateCcw className="w-4 h-4 flex-shrink-0" />
+          {/* whitespace-nowrap: without it "Repeat last order" wraps to two lines
+              inside the pill and the shape goes lumpy. */}
+          <span className="text-sm font-semibold whitespace-nowrap">
+            {t.repeatLastOrder}
+          </span>
+        </button>
+        <span className="w-px self-stretch my-2 bg-white/25" aria-hidden />
+        <button
+          type="button"
+          onClick={dismissForever}
+          aria-label={t.repeatDismiss}
+          title={t.repeatDismiss}
+          className="flex items-center justify-center w-11 h-11 rounded-r-full hover:bg-brand-700 transition-colors active:scale-95"
+          data-testid="repeat-order-dismiss-btn"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
 
       {showSheet && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -142,7 +187,20 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
           <div className="relative bg-white dark:bg-zinc-900 w-full max-w-lg rounded-t-2xl p-6 max-h-[70vh] overflow-y-auto">
             <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-4" />
 
-            <h3 className="text-lg font-bold mb-1" data-testid="repeat-order-title">
+            {/* Always present. Before, when every item needed customization the
+                sheet rendered no button at all, so the only way out was tapping
+                the dim backdrop — which doesn't look tappable. */}
+            <button
+              type="button"
+              onClick={() => setShowSheet(false)}
+              aria-label={t.close}
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              data-testid="repeat-order-close-btn"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-lg font-bold mb-1 pr-12" data-testid="repeat-order-title">
               {t.repeatYourLastOrder}
             </h3>
             <p className="text-sm text-zinc-500 mb-4">
@@ -194,7 +252,24 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
 
             {(() => {
               const addableCount = data.items.filter((i) => !i.requires_customization).length;
-              if (addableCount === 0) return null;
+
+              // Nothing can be auto-added (every item has variants/modifiers we
+              // can't faithfully restore). The sheet still needs a way forward:
+              // send them to the menu, which is exactly what the item labels ask
+              // for. Returning null here was the dead end.
+              if (addableCount === 0) {
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setShowSheet(false)}
+                    className="w-full py-3.5 rounded-xl bg-brand-600 text-white font-bold text-base hover:bg-brand-700 transition-colors"
+                    data-testid="repeat-order-browse-btn"
+                  >
+                    {t.repeatBrowseMenu}
+                  </button>
+                );
+              }
+
               return (
                 <button
                   type="button"
@@ -214,6 +289,15 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
                 </button>
               );
             })()}
+
+            <button
+              type="button"
+              onClick={dismissForever}
+              className="w-full mt-3 py-2.5 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+              data-testid="repeat-order-never-btn"
+            >
+              {t.repeatDontShowAgain}
+            </button>
           </div>
         </div>
       )}
