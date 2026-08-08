@@ -111,6 +111,21 @@ export async function GET(request: NextRequest) {
     alertsTriggered.push('trials_expiring');
   }
 
+  // Blind-spot check. Both Sentry and Telegram degrade to silent no-ops when
+  // unconfigured (init() is skipped / sendTelegramAlert returns false), so
+  // losing error visibility looks exactly like having no errors. This email is
+  // the one channel that still works when they don't, so it has to say so.
+  const blindSpots: string[] = [];
+  if (!process.env.SENTRY_DSN && !process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    blindSpots.push('Sentry no tiene DSN — ningún error de producción se está registrando.');
+  }
+  if (!(process.env.TELEGRAM_BOT_TOKEN ?? '').trim() || !(process.env.TELEGRAM_CHAT_ID ?? '').trim()) {
+    blindSpots.push('Telegram no está configurado — captureError() no envía aviso al teléfono.');
+  }
+  if (blindSpots.length > 0) {
+    alertsTriggered.push('observability_blind');
+  }
+
   if (alertsTriggered.length === 0) {
     logger.info('health-alerts cron: no alerts triggered', { mrrEstimate, revenue7d });
     return NextResponse.json({ ok: true, alertsTriggered: [], mrrEstimate, revenue7d });
@@ -123,6 +138,7 @@ export async function GET(request: NextRequest) {
     stuckOrders: stuckOrders ?? [],
     cancellations: cancelledSubs ?? [],
     trialsExpiring: trialsExpiring ?? [],
+    blindSpots,
     mrrEstimate,
     revenue7d,
   });
@@ -145,6 +161,7 @@ interface AlertEmailParams {
   stuckOrders: Array<{ id: string; order_number: string | null; total: number | null; created_at: string }>;
   cancellations: Array<{ restaurant_id: string; canceled_at: string | null; plan_id: string }>;
   trialsExpiring: Array<{ restaurant_id: string; trial_end: string | null; plan_id: string }>;
+  blindSpots: string[];
   mrrEstimate: number;
   revenue7d: number;
 }
@@ -178,6 +195,18 @@ function buildAlertEmail(p: AlertEmailParams): string {
     </div>
 
     <div style="padding:24px 32px">
+
+      ${p.blindSpots.length > 0 ? `
+      <div style="margin-bottom:24px;background:#1a1a1a;border:1px solid #dc2626;border-radius:12px;padding:16px">
+        <h2 style="margin:0 0 8px;font-size:15px;color:#ef4444">🕳️ Punto ciego de monitoreo</h2>
+        <p style="margin:0 0 8px;font-size:13px;color:#a1a1aa">
+          Los números de abajo pueden estar incompletos: no hay forma de ver los errores que ocurren.
+        </p>
+        <ul style="margin:0;padding-left:20px;font-size:13px;color:#e5e5e5">
+          ${p.blindSpots.map(s => `<li style="margin:4px 0">${s}</li>`).join('')}
+        </ul>
+      </div>` : ''}
+
       <div style="display:flex;gap:16px;margin-bottom:24px">
         <div style="flex:1;background:#1a1a1a;border-radius:12px;padding:16px">
           <p style="margin:0;font-size:12px;color:#666">MRR estimado</p>

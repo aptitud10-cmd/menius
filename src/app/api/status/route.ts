@@ -164,6 +164,27 @@ export async function GET() {
 
   const api: { status: ServiceStatus; latency: number } = { status: 'operational', latency: 1 };
 
+  // Observability itself. These two are how we find out anything else broke, so
+  // an unconfigured DSN or Telegram token is an outage of its own — it just
+  // happens to be a silent one. Both report as no-ops when unset
+  // (sentry.*.config.ts skip init(), sendTelegramAlert() returns false), which
+  // is exactly why they need to be surfaced here rather than assumed.
+  const monitoring: { status: ServiceStatus; latency: number } = {
+    status: (process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN)
+      ? 'operational'
+      : 'outage',
+    latency: 0,
+  };
+
+  const alerts: { status: ServiceStatus; latency: number } = {
+    status: (process.env.TELEGRAM_BOT_TOKEN ?? '').trim() && (process.env.TELEGRAM_CHAT_ID ?? '').trim()
+      ? 'operational'
+      // Degraded, not outage: Sentry still records the error, we just don't get
+      // a phone push about it.
+      : 'degraded',
+    latency: 0,
+  };
+
   const services: ServiceResult[] = [
     { id: 'api',      name: 'API & Dashboard',           nameEn: 'API & Dashboard',        ...api },
     { id: 'database', name: 'Base de datos',              nameEn: 'Database',               ...database },
@@ -175,5 +196,16 @@ export async function GET() {
     { id: 'ai',       name: 'Asistente IA (Gemini)',       nameEn: 'AI Assistant (Gemini)', ...ai },
   ];
 
-  return NextResponse.json({ services, checkedAt: new Date().toISOString() });
+  // Kept out of `services` on purpose: /status is a public page, and its green
+  // banner is a promise to the restaurant about THEIR service. Our own blind
+  // spots don't belong there — they'd paint the banner red over something no
+  // customer can see or act on. Separate key, same request.
+  return NextResponse.json({
+    services,
+    observability: [
+      { id: 'monitoring', name: 'Monitoreo de errores', nameEn: 'Error Monitoring', ...monitoring },
+      { id: 'alerts', name: 'Alertas al operador', nameEn: 'Operator Alerts', ...alerts },
+    ],
+    checkedAt: new Date().toISOString(),
+  });
 }

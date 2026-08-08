@@ -40,6 +40,10 @@ const RECOMMENDED = [
   'UPSTASH_REDIS_REST_URL',
   'UPSTASH_REDIS_REST_TOKEN',
   'WHATSAPP_ACCESS_TOKEN',
+  // Sin estas dos, captureError() manda el error a Sentry pero el aviso al
+  // teléfono es un no-op silencioso. El cron health-alerts también lo reporta.
+  'TELEGRAM_BOT_TOKEN',
+  'TELEGRAM_CHAT_ID',
   // Cifra secretos por-restaurante en DB (llaves Wompi CO). Sin ella, el
   // onboarding de Wompi falla con error claro; el resto del sistema no la usa.
   'SECRETS_ENCRYPTION_KEY',
