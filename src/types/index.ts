@@ -166,6 +166,13 @@ export interface ModifierGroup {
    *  "Deluxe" option: a Regular burger comes with no side, so asking for one
    *  charged the customer for food they'd never receive. NULL = always visible. */
   depends_on_option_id?: string | null;
+  /** When set, this group mirrors the content of that origin group: edits fan
+   *  out to every sibling that shares the origin. Each product still owns its
+   *  own row (product_id stays set), so ordering queries are unaffected.
+   *  NULL = standalone group. */
+  shared_origin_id?: string | null;
+  /** Per-locale overrides, e.g. `{ en: { name: 'Cooking temperature' } }`. */
+  translations?: Record<string, ContentTranslation> | null;
   options: ModifierOption[];
 }
 
@@ -176,6 +183,11 @@ export interface ModifierOption {
   price_delta: number;
   is_default: boolean;
   sort_order: number;
+  /** Actual cost of this add-on, used for true margin. NULL = not tracked
+   *  (excluded from margin math rather than counted as free). */
+  cost_price?: number | null;
+  /** Per-locale overrides, e.g. `{ en: { name: 'Bacon' } }`. */
+  translations?: Record<string, ContentTranslation> | null;
 }
 
 export interface ProductVariant {

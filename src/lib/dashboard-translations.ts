@@ -564,6 +564,47 @@ export interface DashboardTranslations {
   modifiers_displayList: string;
   modifiers_displayGrid: string;
   modifiers_displayHint: string;
+  // Conditional groups
+  modifiers_conditionalLabel: string;
+  modifiers_conditionalHint: string;
+  modifiers_conditionalAlways: string;
+  modifiers_conditionalBadge: string;
+  // Copy from another product
+  modifiers_copyFrom: string;
+  modifiers_copyFromTitle: string;
+  modifiers_copyFromHint: string;
+  modifiers_copyFromEmpty: string;
+  modifiers_copyFromSearch: string;
+  modifiers_copying: string;
+  modifiers_copyDone: string;
+  modifiers_copyGroupCount: string;
+  // Library / reusable groups
+  modifiers_addExisting: string;
+  modifiers_addExistingTitle: string;
+  modifiers_addExistingHint: string;
+  modifiers_linkMode: string;
+  modifiers_copyMode: string;
+  modifiers_linkModeHint: string;
+  modifiers_copyModeHint: string;
+  modifiers_sharedBadge: string;
+  modifiers_sharedWarning: string;
+  modifiers_unlink: string;
+  modifiers_unlinkConfirm: string;
+  modifiers_libraryEmpty: string;
+  // Per-option cost
+  modifiers_optionCost: string;
+  modifiers_optionCostHint: string;
+  // Modifier translations
+  modifiers_translations: string;
+  modifiers_translationsHint: string;
+  // Inventory (in product editor)
+  editor_inventory: string;
+  editor_trackInventory: string;
+  editor_trackInventoryHint: string;
+  editor_stockQty: string;
+  editor_lowStockThreshold: string;
+  editor_lowStockHint: string;
+  editor_stockWarning: string;
 
   // AI Chat
   chat_title: string;
@@ -1825,6 +1866,54 @@ const es: DashboardTranslations = {
   modifiers_displayList: "Lista",
   modifiers_displayGrid: "Cuadrícula",
   modifiers_displayHint: "Recomendado para nombres cortos",
+  // Conditional groups
+  modifiers_conditionalLabel: "Mostrar solo si el cliente elige",
+  modifiers_conditionalHint:
+    "El grupo aparece únicamente cuando esa opción está seleccionada. Ej: mostrar «Acompañamiento» solo si eligieron «Deluxe».",
+  modifiers_conditionalAlways: "Mostrar siempre",
+  modifiers_conditionalBadge: "Condicional",
+  // Copy from another product
+  modifiers_copyFrom: "Copiar de otro plato",
+  modifiers_copyFromTitle: "Copiar modificadores",
+  modifiers_copyFromHint:
+    "Se copian los grupos y sus opciones. Quedan independientes: editarlos acá no afecta al plato original.",
+  modifiers_copyFromEmpty: "Ningún otro plato tiene modificadores todavía",
+  modifiers_copyFromSearch: "Buscar plato...",
+  modifiers_copying: "Copiando...",
+  modifiers_copyDone: "Modificadores copiados",
+  modifiers_copyGroupCount: "{n} grupo(s)",
+  // Library / reusable groups
+  modifiers_addExisting: "Añadir existente",
+  modifiers_addExistingTitle: "Grupos de otros platos",
+  modifiers_addExistingHint:
+    "Enlazá un grupo para editarlo una sola vez en todos los platos, o copiálo para que quede suelto.",
+  modifiers_linkMode: "Enlazar",
+  modifiers_copyMode: "Copiar",
+  modifiers_linkModeHint: "Los cambios se aplican a todos los platos enlazados",
+  modifiers_copyModeHint: "Crea una copia independiente para este plato",
+  modifiers_sharedBadge: "Compartido",
+  modifiers_sharedWarning:
+    "Este grupo está enlazado a {n} plato(s). Los cambios se aplican a todos.",
+  modifiers_unlink: "Desenlazar de este plato",
+  modifiers_unlinkConfirm:
+    "¿Quitar este grupo de este plato? Seguirá existiendo en los demás platos enlazados.",
+  modifiers_libraryEmpty: "No hay grupos en otros platos todavía",
+  // Per-option cost
+  modifiers_optionCost: "Costo",
+  modifiers_optionCostHint: "Costo real de este agregado. Se usa para el margen.",
+  // Modifier translations
+  modifiers_translations: "Traducciones",
+  modifiers_translationsHint:
+    "Si lo dejás vacío, se muestra el nombre original.",
+  // Inventory (in product editor)
+  editor_inventory: "Inventario",
+  editor_trackInventory: "Controlar existencias",
+  editor_trackInventoryHint:
+    "Descuenta unidades con cada pedido y agota el plato solo cuando llega a cero.",
+  editor_stockQty: "Unidades disponibles",
+  editor_lowStockThreshold: "Avisar cuando queden",
+  editor_lowStockHint: "Recibís una alerta al bajar de este número",
+  editor_stockWarning: "Quedan pocas unidades",
 
   // AI Chat
   chat_title: "MENIUS AI",
@@ -3146,6 +3235,53 @@ const en: DashboardTranslations = {
   modifiers_displayList: "List",
   modifiers_displayGrid: "Grid",
   modifiers_displayHint: "Recommended for short names",
+  // Conditional groups
+  modifiers_conditionalLabel: "Only show if the customer picks",
+  modifiers_conditionalHint:
+    "The group appears only while that option is selected. E.g. show “Choice of Side” only if they picked “Deluxe”.",
+  modifiers_conditionalAlways: "Always show",
+  modifiers_conditionalBadge: "Conditional",
+  // Copy from another product
+  modifiers_copyFrom: "Copy from another item",
+  modifiers_copyFromTitle: "Copy modifiers",
+  modifiers_copyFromHint:
+    "Groups and their options are copied. They stay independent: editing them here won't affect the original item.",
+  modifiers_copyFromEmpty: "No other item has modifiers yet",
+  modifiers_copyFromSearch: "Search item...",
+  modifiers_copying: "Copying...",
+  modifiers_copyDone: "Modifiers copied",
+  modifiers_copyGroupCount: "{n} group(s)",
+  // Library / reusable groups
+  modifiers_addExisting: "Add existing",
+  modifiers_addExistingTitle: "Groups from other items",
+  modifiers_addExistingHint:
+    "Link a group to edit it once across every item, or copy it to keep it standalone.",
+  modifiers_linkMode: "Link",
+  modifiers_copyMode: "Copy",
+  modifiers_linkModeHint: "Changes apply to every linked item",
+  modifiers_copyModeHint: "Creates an independent copy for this item",
+  modifiers_sharedBadge: "Shared",
+  modifiers_sharedWarning:
+    "This group is linked to {n} item(s). Changes apply to all of them.",
+  modifiers_unlink: "Unlink from this item",
+  modifiers_unlinkConfirm:
+    "Remove this group from this item? It will still exist on the other linked items.",
+  modifiers_libraryEmpty: "No groups on other items yet",
+  // Per-option cost
+  modifiers_optionCost: "Cost",
+  modifiers_optionCostHint: "Actual cost of this add-on. Used for margin.",
+  // Modifier translations
+  modifiers_translations: "Translations",
+  modifiers_translationsHint: "Leave empty to show the original name.",
+  // Inventory (in product editor)
+  editor_inventory: "Inventory",
+  editor_trackInventory: "Track stock",
+  editor_trackInventoryHint:
+    "Deducts units on each order and marks the item sold out only when it hits zero.",
+  editor_stockQty: "Units available",
+  editor_lowStockThreshold: "Alert when down to",
+  editor_lowStockHint: "You get an alert when it drops below this number",
+  editor_stockWarning: "Running low",
 
   // AI Chat
   chat_title: "MENIUS AI",

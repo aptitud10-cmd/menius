@@ -796,6 +796,138 @@ export async function deleteExtra(id: string) {
 }
 
 // ---- Modifier Groups ----
+
+/** Locales the dashboard can translate content into. */
+const TRANSLATABLE_LOCALES = new Set(["es", "en"]);
+
+/**
+ * Normalizes a modifier translations blob before it reaches the DB.
+ *
+ * Locale keys are whitelisted and names sanitized, so a crafted payload can't
+ * store arbitrary keys or markup in a jsonb column that the public menu renders.
+ * Returns null when nothing survives, which reads as "fall back to the base
+ * name" everywhere downstream.
+ */
+function sanitizeTranslations(
+  input: Record<string, { name?: string }> | null | undefined,
+): Record<string, { name: string }> | null {
+  if (!input || typeof input !== "object") return null;
+  const out: Record<string, { name: string }> = {};
+  for (const [locale, value] of Object.entries(input)) {
+    if (!TRANSLATABLE_LOCALES.has(locale)) continue;
+    const name = sanitizeText(value?.name ?? "", 100).trim();
+    if (name) out[locale] = { name };
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+/**
+ * Whether a modifier option belongs to the given product.
+ *
+ * Guards conditional groups: `depends_on_option_id` is deliberately not a
+ * foreign key (a FK here broke the PostgREST embed — see
+ * 20260805_modifier_groups_conditional.sql), so nothing at the DB level stops a
+ * group from depending on an option of a different product, or a different
+ * restaurant. Checked here instead.
+ */
+async function optionBelongsToProduct(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  optionId: string,
+  productId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("modifier_options")
+    .select("id, modifier_groups!inner(product_id)")
+    .eq("id", optionId)
+    .eq("modifier_groups.product_id", productId)
+    .maybeSingle();
+  return !!data;
+}
+
+type SharedGroupRow = {
+  id: string;
+  product_id: string;
+  shared_origin_id: string | null;
+};
+
+/**
+ * Every row that shares content with `row` — its origin plus all siblings,
+ * excluding the row itself.
+ *
+ * A link is always one hop: the origin's own shared_origin_id is null, so the
+ * family is `origin ∪ {rows pointing at origin}` and there are no chains.
+ */
+async function sharedSiblingIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  row: SharedGroupRow,
+): Promise<string[]> {
+  const originId = row.shared_origin_id ?? row.id;
+  const { data } = await supabase
+    .from("modifier_groups")
+    .select("id")
+    .or(`id.eq.${originId},shared_origin_id.eq.${originId}`);
+  return (data ?? []).map((g) => g.id).filter((gid) => gid !== row.id);
+}
+
+/**
+ * Mirrors a group edit onto its shared siblings.
+ *
+ * Only the fields that define the group's *content* travel; anything
+ * per-product (position, conditional dependency) stays put. No-op for a
+ * standalone group, which is the overwhelmingly common case.
+ */
+async function fanOutGroupEdit(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  row: SharedGroupRow,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const siblings = await sharedSiblingIds(supabase, row);
+  if (siblings.length === 0) return;
+  await supabase.from("modifier_groups").update(patch).in("id", siblings);
+}
+
+/**
+ * Coerces a cost input to a storable value.
+ *
+ * Anything empty, negative or non-finite becomes null — "not tracked" — rather
+ * than 0, because a zero cost would read as "this add-on is free" and silently
+ * inflate the reported margin.
+ */
+function normalizeCost(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value) || value < 0) return null;
+  return value;
+}
+
+type OwnedOptionRow = {
+  id: string;
+  group_id: string;
+  sort_order: number;
+  modifier_groups: SharedGroupRow | SharedGroupRow[];
+};
+
+/**
+ * Applies an option write to the matching option of every shared sibling group.
+ *
+ * Siblings are matched by `sort_order`: options are created in lockstep across
+ * a shared family, so position — not id — is what identifies "the same option"
+ * on another dish. No-op for standalone groups.
+ */
+async function fanOutOptionWrite(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  owned: OwnedOptionRow,
+  apply: (siblingGroupIds: string[], position: number) => Promise<void>,
+): Promise<void> {
+  // PostgREST returns an embedded row as an object or a single-element array
+  // depending on how the relationship is inferred; normalize both.
+  const group = Array.isArray(owned.modifier_groups)
+    ? owned.modifier_groups[0]
+    : owned.modifier_groups;
+  if (!group) return;
+  const siblings = await sharedSiblingIds(supabase, group);
+  if (siblings.length === 0) return;
+  await apply(siblings, owned.sort_order);
+}
+
 export async function createModifierGroup(
   productId: string,
   data: {
@@ -806,6 +938,8 @@ export async function createModifierGroup(
     is_required: boolean;
     sort_order: number;
     display_type?: "list" | "grid";
+    depends_on_option_id?: string | null;
+    translations?: Record<string, { name?: string }> | null;
   },
 ) {
   const {
@@ -824,6 +958,18 @@ export async function createModifierGroup(
     .maybeSingle();
   if (!product) return { error: "No encontrado" };
 
+  // A conditional group may only hang off an option of the SAME product.
+  // Without this check a forged id could point at another restaurant's option,
+  // which would leak that the option exists and permanently hide the group.
+  if (data.depends_on_option_id) {
+    const ok = await optionBelongsToProduct(
+      supabase,
+      data.depends_on_option_id,
+      productId,
+    );
+    if (!ok) return { error: "Opción inválida" };
+  }
+
   const { data: group, error } = await supabase
     .from("modifier_groups")
     .insert({
@@ -835,6 +981,8 @@ export async function createModifierGroup(
       is_required: data.is_required,
       sort_order: data.sort_order,
       display_type: data.display_type ?? "list",
+      depends_on_option_id: data.depends_on_option_id ?? null,
+      translations: sanitizeTranslations(data.translations),
     })
     .select()
     .single();
@@ -855,6 +1003,8 @@ export async function updateModifierGroup(
     is_required: boolean;
     sort_order: number;
     display_type?: "list" | "grid";
+    depends_on_option_id?: string | null;
+    translations?: Record<string, { name?: string }> | null;
   },
 ) {
   const {
@@ -867,11 +1017,20 @@ export async function updateModifierGroup(
 
   const { data: owned } = await supabase
     .from("modifier_groups")
-    .select("id, products!inner(restaurant_id)")
+    .select("id, product_id, shared_origin_id, products!inner(restaurant_id)")
     .eq("id", id)
     .eq("products.restaurant_id", restaurantId)
     .maybeSingle();
   if (!owned) return { error: "No encontrado" };
+
+  if (data.depends_on_option_id) {
+    const ok = await optionBelongsToProduct(
+      supabase,
+      data.depends_on_option_id,
+      (owned as { product_id: string }).product_id,
+    );
+    if (!ok) return { error: "Opción inválida" };
+  }
 
   const { error } = await supabase
     .from("modifier_groups")
@@ -883,10 +1042,29 @@ export async function updateModifierGroup(
       is_required: data.is_required,
       sort_order: data.sort_order,
       display_type: data.display_type ?? "list",
+      depends_on_option_id: data.depends_on_option_id ?? null,
+      translations: sanitizeTranslations(data.translations),
     })
     .eq("id", id);
 
   if (error) return { error: error.message };
+
+  // Shared groups: mirror the edit onto every sibling.
+  //
+  // `sort_order` and `depends_on_option_id` are deliberately NOT fanned out —
+  // both are per-product. Position is whatever each dish needs, and a
+  // dependency points at an option of its own product, so copying one across
+  // would make siblings depend on a foreign option and hide them forever.
+  await fanOutGroupEdit(supabase, owned as SharedGroupRow, {
+    name: sanitizeText(data.name, 100),
+    selection_type: data.selection_type,
+    min_select: data.min_select,
+    max_select: data.max_select,
+    is_required: data.is_required,
+    display_type: data.display_type ?? "list",
+    translations: sanitizeTranslations(data.translations),
+  });
+
   revalidatePath("/app/menu/products");
   revalidatePublicMenu(restaurantSlug);
   return { success: true };
@@ -903,11 +1081,34 @@ export async function deleteModifierGroup(id: string) {
 
   const { data: owned } = await supabase
     .from("modifier_groups")
-    .select("id, products!inner(restaurant_id)")
+    .select("id, product_id, shared_origin_id, products!inner(restaurant_id)")
     .eq("id", id)
     .eq("products.restaurant_id", restaurantId)
     .maybeSingle();
   if (!owned) return { error: "No encontrado" };
+
+  // Deleting a shared group only removes it from THIS dish. The siblings on
+  // other dishes stay — "delete" here means "this dish no longer offers it",
+  // not "wipe this group off the menu". Unlinking is handled separately.
+  const row = owned as SharedGroupRow;
+  if (!row.shared_origin_id) {
+    // The origin is going away: promote one sibling so the family keeps its
+    // content instead of every remaining row pointing at a dead id.
+    const siblings = await sharedSiblingIds(supabase, row);
+    if (siblings.length > 0) {
+      const [heir, ...rest] = siblings;
+      await supabase
+        .from("modifier_groups")
+        .update({ shared_origin_id: null })
+        .eq("id", heir);
+      if (rest.length > 0) {
+        await supabase
+          .from("modifier_groups")
+          .update({ shared_origin_id: heir })
+          .in("id", rest);
+      }
+    }
+  }
 
   const { error } = await supabase
     .from("modifier_groups")
@@ -927,6 +1128,8 @@ export async function createModifierOption(
     price_delta: number;
     is_default: boolean;
     sort_order: number;
+    cost_price?: number | null;
+    translations?: Record<string, { name?: string }> | null;
   },
 ) {
   const {
@@ -939,25 +1142,38 @@ export async function createModifierOption(
 
   const { data: group } = await supabase
     .from("modifier_groups")
-    .select("id, products!inner(restaurant_id)")
+    .select("id, product_id, shared_origin_id, products!inner(restaurant_id)")
     .eq("id", groupId)
     .eq("products.restaurant_id", restaurantId)
     .maybeSingle();
   if (!group) return { error: "No encontrado" };
 
+  const payload = {
+    name: sanitizeText(data.name, 100),
+    price_delta: data.price_delta,
+    is_default: data.is_default,
+    sort_order: data.sort_order,
+    cost_price: normalizeCost(data.cost_price),
+    translations: sanitizeTranslations(data.translations),
+  };
+
   const { data: option, error } = await supabase
     .from("modifier_options")
-    .insert({
-      group_id: groupId,
-      name: sanitizeText(data.name, 100),
-      price_delta: data.price_delta,
-      is_default: data.is_default,
-      sort_order: data.sort_order,
-    })
+    .insert({ group_id: groupId, ...payload })
     .select()
     .single();
 
   if (error) return { error: error.message };
+
+  // Shared groups: the option has to appear on every sibling too, otherwise
+  // adding "Bacon" to a linked group would only show up on one dish.
+  const siblings = await sharedSiblingIds(supabase, group as SharedGroupRow);
+  if (siblings.length > 0) {
+    await supabase
+      .from("modifier_options")
+      .insert(siblings.map((gid) => ({ group_id: gid, ...payload })));
+  }
+
   revalidatePath("/app/menu/products");
   revalidatePublicMenu(restaurantSlug);
   return { success: true, option };
@@ -970,6 +1186,8 @@ export async function updateModifierOption(
     price_delta: number;
     is_default: boolean;
     sort_order: number;
+    cost_price?: number | null;
+    translations?: Record<string, { name?: string }> | null;
   },
 ) {
   const {
@@ -982,23 +1200,41 @@ export async function updateModifierOption(
 
   const { data: owned } = await supabase
     .from("modifier_options")
-    .select("id, modifier_groups!inner(products!inner(restaurant_id))")
+    .select(
+      "id, group_id, sort_order, modifier_groups!inner(id, product_id, shared_origin_id, products!inner(restaurant_id))",
+    )
     .eq("id", id)
     .eq("modifier_groups.products.restaurant_id", restaurantId)
     .maybeSingle();
   if (!owned) return { error: "No encontrado" };
 
+  const payload = {
+    name: sanitizeText(data.name, 100),
+    price_delta: data.price_delta,
+    is_default: data.is_default,
+    cost_price: normalizeCost(data.cost_price),
+    translations: sanitizeTranslations(data.translations),
+  };
+
   const { error } = await supabase
     .from("modifier_options")
-    .update({
-      name: sanitizeText(data.name, 100),
-      price_delta: data.price_delta,
-      is_default: data.is_default,
-      sort_order: data.sort_order,
-    })
+    .update({ ...payload, sort_order: data.sort_order })
     .eq("id", id);
 
   if (error) return { error: error.message };
+
+  await fanOutOptionWrite(
+    supabase,
+    owned as OwnedOptionRow,
+    async (siblingGroupIds, position) => {
+      await supabase
+        .from("modifier_options")
+        .update(payload)
+        .in("group_id", siblingGroupIds)
+        .eq("sort_order", position);
+    },
+  );
+
   revalidatePath("/app/menu/products");
   revalidatePublicMenu(restaurantSlug);
   return { success: true };
@@ -1015,7 +1251,9 @@ export async function deleteModifierOption(id: string) {
 
   const { data: owned } = await supabase
     .from("modifier_options")
-    .select("id, modifier_groups!inner(products!inner(restaurant_id))")
+    .select(
+      "id, group_id, sort_order, modifier_groups!inner(id, product_id, shared_origin_id, products!inner(restaurant_id))",
+    )
     .eq("id", id)
     .eq("modifier_groups.products.restaurant_id", restaurantId)
     .maybeSingle();
@@ -1026,6 +1264,19 @@ export async function deleteModifierOption(id: string) {
     .delete()
     .eq("id", id);
   if (error) return { error: error.message };
+
+  await fanOutOptionWrite(
+    supabase,
+    owned as OwnedOptionRow,
+    async (siblingGroupIds, position) => {
+      await supabase
+        .from("modifier_options")
+        .delete()
+        .in("group_id", siblingGroupIds)
+        .eq("sort_order", position);
+    },
+  );
+
   revalidatePath("/app/menu/products");
   revalidatePublicMenu(restaurantSlug);
   return { success: true };
@@ -1091,6 +1342,257 @@ export async function reorderModifierOptions(
         .eq("group_id", groupId),
     ),
   );
+  return { success: true };
+}
+
+// ---- Reusing modifier groups across products ----
+
+/**
+ * Every modifier group of this restaurant that lives on some OTHER product,
+ * for the "copy from another item" and "add existing" pickers.
+ *
+ * Only origin rows are offered (`shared_origin_id is null`): a linked row is
+ * just a mirror, so listing it too would show the same group several times and
+ * let the owner link to a mirror instead of the real origin.
+ */
+export async function listReusableModifierGroups(excludeProductId: string) {
+  const { supabase, restaurantId, error: authErr } =
+    await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr, groups: [] };
+
+  const { data, error } = await supabase
+    .from("modifier_groups")
+    .select(
+      `id, product_id, name, selection_type, min_select, max_select,
+       is_required, sort_order, display_type, shared_origin_id, translations,
+       products!inner(id, name, restaurant_id),
+       modifier_options ( id, group_id, name, price_delta, is_default, sort_order, cost_price, translations )`,
+    )
+    .eq("products.restaurant_id", restaurantId)
+    .is("shared_origin_id", null)
+    .neq("product_id", excludeProductId)
+    .order("sort_order", { ascending: true });
+
+  if (error) return { error: error.message, groups: [] };
+
+  const groups = (data ?? []).map((g) => {
+    const product = Array.isArray(g.products) ? g.products[0] : g.products;
+    return {
+      id: g.id as string,
+      name: g.name as string,
+      product_id: g.product_id as string,
+      product_name: (product as { name?: string })?.name ?? "",
+      selection_type: g.selection_type as "single" | "multi",
+      is_required: g.is_required as boolean,
+      option_count: ((g.modifier_options ?? []) as unknown[]).length,
+    };
+  });
+
+  return { success: true, groups };
+}
+
+/** Content of a group, minus everything that is per-product. */
+type GroupContent = {
+  name: string;
+  selection_type: "single" | "multi";
+  min_select: number;
+  max_select: number;
+  is_required: boolean;
+  display_type: "list" | "grid";
+  translations: Record<string, { name: string }> | null;
+  options: {
+    name: string;
+    price_delta: number;
+    is_default: boolean;
+    sort_order: number;
+    cost_price: number | null;
+    translations: Record<string, { name: string }> | null;
+  }[];
+};
+
+/**
+ * Reads the content of source groups, verifying they belong to this restaurant.
+ *
+ * `depends_on_option_id` is deliberately dropped: it points at an option of the
+ * source product, and carrying it over would make the new group depend on an
+ * option that its own product does not have — the group would never appear.
+ */
+async function readGroupContents(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  restaurantId: string,
+  groupIds: string[],
+): Promise<GroupContent[]> {
+  const { data } = await supabase
+    .from("modifier_groups")
+    .select(
+      `id, name, selection_type, min_select, max_select, is_required,
+       display_type, sort_order, translations,
+       products!inner(restaurant_id),
+       modifier_options ( name, price_delta, is_default, sort_order, cost_price, translations )`,
+    )
+    .in("id", groupIds)
+    .eq("products.restaurant_id", restaurantId)
+    .order("sort_order", { ascending: true });
+
+  return (data ?? []).map((g) => ({
+    name: g.name as string,
+    selection_type: g.selection_type as "single" | "multi",
+    min_select: g.min_select as number,
+    max_select: g.max_select as number,
+    is_required: g.is_required as boolean,
+    display_type: (g.display_type ?? "list") as "list" | "grid",
+    translations: (g.translations ?? null) as Record<
+      string,
+      { name: string }
+    > | null,
+    options: ((g.modifier_options ?? []) as Record<string, unknown>[])
+      .map((o) => ({
+        name: o.name as string,
+        price_delta: Number(o.price_delta ?? 0),
+        is_default: !!o.is_default,
+        sort_order: Number(o.sort_order ?? 0),
+        cost_price: normalizeCost(o.cost_price as number | null),
+        translations: (o.translations ?? null) as Record<
+          string,
+          { name: string }
+        > | null,
+      }))
+      .sort((a, b) => a.sort_order - b.sort_order),
+  }));
+}
+
+/**
+ * Attaches groups from other products to `productId`.
+ *
+ * Two modes, mirroring how Toast splits this:
+ *   'copy' — independent clones; editing them later touches nothing else.
+ *   'link' — the new rows point at the source as their shared origin, so
+ *            later edits fan out across every linked dish.
+ *
+ * Either way the target product gets its own real rows, so /api/orders and
+ * /api/product-modifiers — which filter by product_id — keep working untouched.
+ */
+export async function attachModifierGroups(
+  productId: string,
+  sourceGroupIds: string[],
+  mode: "copy" | "link",
+) {
+  const {
+    supabase,
+    restaurantId,
+    restaurantSlug,
+    error: authErr,
+  } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  if (sourceGroupIds.length === 0) return { error: "Nada para copiar" };
+
+  const { data: product } = await supabase
+    .from("products")
+    .select("id")
+    .eq("id", productId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (!product) return { error: "No encontrado" };
+
+  // Ownership of the sources is enforced inside readGroupContents via the
+  // products!inner(restaurant_id) filter: ids from another restaurant simply
+  // come back empty rather than being copied.
+  const contents = await readGroupContents(
+    supabase,
+    restaurantId,
+    sourceGroupIds,
+  );
+  if (contents.length === 0) return { error: "No encontrado" };
+
+  const { count } = await supabase
+    .from("modifier_groups")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", productId);
+  let nextSort = count ?? 0;
+
+  let created = 0;
+  for (let i = 0; i < contents.length; i++) {
+    const content = contents[i];
+    const sourceId = sourceGroupIds[i];
+
+    const { data: group, error } = await supabase
+      .from("modifier_groups")
+      .insert({
+        product_id: productId,
+        name: content.name,
+        selection_type: content.selection_type,
+        min_select: content.min_select,
+        max_select: content.max_select,
+        is_required: content.is_required,
+        display_type: content.display_type,
+        translations: content.translations,
+        sort_order: nextSort++,
+        // A copy stands alone; a link mirrors the source from then on.
+        shared_origin_id: mode === "link" ? sourceId : null,
+      })
+      .select("id")
+      .single();
+
+    if (error || !group) continue;
+
+    if (content.options.length > 0) {
+      await supabase.from("modifier_options").insert(
+        content.options.map((o, idx) => ({
+          group_id: group.id,
+          name: o.name,
+          price_delta: o.price_delta,
+          is_default: o.is_default,
+          cost_price: o.cost_price,
+          translations: o.translations,
+          // Renumbered densely: sort_order is what pairs an option with its
+          // sibling on another dish, so gaps in the source must not travel.
+          sort_order: idx,
+        })),
+      );
+    }
+    created++;
+  }
+
+  if (created === 0) return { error: "No se pudo copiar" };
+
+  revalidatePath("/app/menu/products");
+  revalidatePublicMenu(restaurantSlug);
+  return { success: true, count: created };
+}
+
+/**
+ * Detaches a linked group from its shared family, keeping its current content
+ * as a standalone group on this product. The other dishes are untouched.
+ */
+export async function unlinkModifierGroup(id: string) {
+  const {
+    supabase,
+    restaurantId,
+    restaurantSlug,
+    error: authErr,
+  } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from("modifier_groups")
+    .select("id, product_id, shared_origin_id, products!inner(restaurant_id)")
+    .eq("id", id)
+    .eq("products.restaurant_id", restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: "No encontrado" };
+
+  const row = owned as SharedGroupRow;
+  if (!row.shared_origin_id) return { error: "Este grupo no está enlazado" };
+
+  const { error } = await supabase
+    .from("modifier_groups")
+    .update({ shared_origin_id: null })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/app/menu/products");
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
