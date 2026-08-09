@@ -607,7 +607,9 @@ export function CustomizationSheet({
         return (
           <div key={group.id} className="px-5 pt-5">
             <div className="flex items-center gap-2 mb-3">
-              <h4 className="text-sm font-bold text-gray-900">{group.name}</h4>
+              <h4 className="text-sm font-bold text-gray-900">
+                {tName(group, locale, defaultLocale)}
+              </h4>
               <span
                 className={cn(
                   "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
@@ -644,7 +646,7 @@ export function CustomizationSheet({
                       )}
                     >
                       <span className="text-[14px] font-semibold leading-tight">
-                        {opt.name}
+                        {tName(opt, locale, defaultLocale)}
                       </span>
                       {Number(opt.price_delta) !== 0 && (
                         <span
@@ -709,7 +711,7 @@ export function CustomizationSheet({
                           </div>
                         )}
                         <span className="text-[15px] font-medium">
-                          {opt.name}
+                          {tName(opt, locale, defaultLocale)}
                         </span>
                       </div>
                       {Number(opt.price_delta) !== 0 && (

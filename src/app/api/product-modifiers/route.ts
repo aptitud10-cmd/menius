@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
         .select(`
           id, product_id, name, selection_type, is_required,
           min_select, max_select, sort_order, display_type, depends_on_option_id,
-          modifier_options ( id, group_id, name, price_delta, is_default, sort_order )
+          translations,
+          modifier_options ( id, group_id, name, price_delta, is_default, sort_order, translations )
         `)
         .eq('product_id', productId)
         .order('sort_order', { ascending: true }),
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
       sort_order: g.sort_order,
       display_type: g.display_type,
       depends_on_option_id: g.depends_on_option_id ?? null,
+      translations: g.translations ?? null,
       options: ((g.modifier_options ?? []) as ModifierOption[]).sort(
         (a, b) => a.sort_order - b.sort_order
       ),

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, Loader2, Check, Camera, Trash2, X,
   ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages, Sparkles, Link2, ExternalLink, Anchor,
-  ArrowRightLeft,
+  ArrowRightLeft, Boxes,
 } from 'lucide-react';
 import { createProduct, updateProduct, deleteProduct, deleteVariant, deleteExtra, migrateLegacyOptions } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
@@ -191,6 +191,12 @@ export function ProductEditor({
     compare_at_price: (product as any)?.compare_at_price != null ? String((product as any).compare_at_price) : '',
     dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
     station_id: (product as any)?.station_id ?? '',
+    track_inventory: (product as any)?.track_inventory ?? false,
+    stock_qty: (product as any)?.stock_qty != null ? String((product as any).stock_qty) : '',
+    low_stock_threshold:
+      (product as any)?.low_stock_threshold != null
+        ? String((product as any).low_stock_threshold)
+        : '5',
   });
 
   const [translations, setTranslations] = useState<Record<string, ContentTranslation>>(
@@ -428,6 +434,17 @@ export function ProductEditor({
         const prepTime = form.prep_time_minutes ? parseInt(form.prep_time_minutes, 10) : null;
         const costPrice = form.cost_price !== '' ? parseFloat(form.cost_price) : null;
         const compareAtPrice = form.compare_at_price !== '' ? parseFloat(form.compare_at_price) : null;
+        // Stock fields only mean anything while tracking is on. Turning tracking
+        // off leaves stock_qty untouched rather than nulling it, so switching it
+        // back on later restores the count the owner had entered.
+        const stockQty = form.stock_qty !== '' ? parseInt(form.stock_qty, 10) : null;
+        const lowStock = form.low_stock_threshold !== '' ? parseInt(form.low_stock_threshold, 10) : null;
+        const inventory = {
+          track_inventory: form.track_inventory,
+          stock_qty: stockQty != null && !isNaN(stockQty) && stockQty >= 0 ? stockQty : null,
+          low_stock_threshold:
+            lowStock != null && !isNaN(lowStock) && lowStock > 0 ? lowStock : 5,
+        };
         if (isEditing && product) {
           const data: Record<string, unknown> = {
             name: form.name,
@@ -445,6 +462,7 @@ export function ProductEditor({
             dietary_tags: form.dietary_tags,
             translations: Object.keys(translations).length > 0 ? translations : null,
             station_id: form.station_id || null,
+            ...inventory,
           };
           if (imageUrl) data.image_url = imageUrl;
           const res = await updateProduct(product.id, data);
@@ -467,6 +485,7 @@ export function ProductEditor({
             compare_at_price: compareAtPrice != null && !isNaN(compareAtPrice) && compareAtPrice > 0 ? compareAtPrice : null,
             dietary_tags: form.dietary_tags,
             ...(form.station_id ? { station_id: form.station_id } : {}),
+            ...(form.track_inventory ? inventory : {}),
             ...(imageUrl ? { image_url: imageUrl } : {}),
           } as any);
           if (res.error) {
@@ -849,6 +868,7 @@ export function ProductEditor({
                   groups={product.modifier_groups ?? []}
                   currency={currency}
                   onUpdate={setLiveGroups}
+                  translatableLocales={availableLocales.filter(l => l !== defaultLocale)}
                 />
               </div>
             )}
@@ -1105,6 +1125,73 @@ export function ProductEditor({
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Inventory card — the counts already existed on `products` and
+                had their own /app/menu/inventory screen, but a dish's stock is
+                decided while creating the dish, not on a separate page. */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.editor_inventory}</h2>
+
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="flex items-center gap-2 text-sm text-gray-700">
+                  <Boxes className={cn('w-4 h-4', form.track_inventory ? 'text-emerald-600' : 'text-gray-400')} />
+                  {t.editor_trackInventory}
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.track_inventory}
+                  onClick={() => setForm(prev => ({ ...prev, track_inventory: !prev.track_inventory }))}
+                  className={cn(
+                    'relative w-11 h-6 rounded-full transition-colors flex-shrink-0',
+                    form.track_inventory ? 'bg-emerald-500' : 'bg-gray-300',
+                  )}
+                >
+                  <span className={cn(
+                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                    form.track_inventory && 'translate-x-5',
+                  )} />
+                </button>
+              </label>
+              <p className="text-xs text-gray-500 mt-1.5">{t.editor_trackInventoryHint}</p>
+
+              {form.track_inventory && (
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1.5">{t.editor_stockQty}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.stock_qty}
+                      onChange={e => setForm(prev => ({ ...prev, stock_qty: e.target.value }))}
+                      placeholder="0"
+                      className="dash-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1.5">{t.editor_lowStockThreshold}</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={form.low_stock_threshold}
+                      onChange={e => setForm(prev => ({ ...prev, low_stock_threshold: e.target.value }))}
+                      placeholder="5"
+                      className="dash-input"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">{t.editor_lowStockHint}</p>
+                  </div>
+                  {form.stock_qty !== '' &&
+                    parseInt(form.stock_qty, 10) > 0 &&
+                    parseInt(form.stock_qty, 10) <= (parseInt(form.low_stock_threshold, 10) || 5) && (
+                      <p className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                        {t.editor_stockWarning}
+                      </p>
+                    )}
+                </div>
+              )}
             </div>
 
             {/* Prep time card */}

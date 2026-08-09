@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Pencil, Trash2, Layers, ChevronRight, Ruler, UtensilsCrossed, Flame, Salad, Settings2, X, LayoutList, LayoutGrid, GripVertical } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Pencil, Trash2, Layers, ChevronRight, Ruler, UtensilsCrossed, Flame, Salad, Settings2, X, LayoutList, LayoutGrid, GripVertical, GitBranch, Copy, Link2, Unlink, Loader2, Search } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -23,10 +24,12 @@ import {
   createModifierGroup, updateModifierGroup, deleteModifierGroup,
   createModifierOption, updateModifierOption, deleteModifierOption,
   reorderModifierGroups, reorderModifierOptions,
+  listReusableModifierGroups, attachModifierGroups, unlinkModifierGroup,
 } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { getDashboardTranslations, type DashboardLocale } from '@/lib/dashboard-translations';
+import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import type { ModifierGroup, ModifierOption } from '@/types';
 
 interface Template {
@@ -54,6 +57,172 @@ interface ModifierGroupsEditorProps {
   onUpdate?: (groups: ModifierGroup[]) => void;
   locale?: DashboardLocale;
   currency?: string;
+  /** Extra locales configured for the menu, minus the default one. Empty for
+   *  single-language restaurants, which hides the translation fields entirely. */
+  translatableLocales?: string[];
+}
+
+/** Group form shape, shared by the "new group" and "edit group" panels. */
+type GroupFormState = {
+  name: string;
+  selection_type: 'single' | 'multi';
+  min_select: string;
+  max_select: string;
+  is_required: boolean;
+  display_type: 'list' | 'grid';
+  depends_on_option_id: string;
+  translations: Record<string, string>;
+};
+
+const EMPTY_GROUP_FORM: GroupFormState = {
+  name: '',
+  selection_type: 'single',
+  min_select: '0',
+  max_select: '1',
+  is_required: false,
+  display_type: 'list',
+  depends_on_option_id: '',
+  translations: {},
+};
+
+type OptionFormState = {
+  name: string;
+  price_delta: string;
+  is_default: boolean;
+  cost_price: string;
+  translations: Record<string, string>;
+};
+
+const EMPTY_OPTION_FORM: OptionFormState = {
+  name: '',
+  price_delta: '',
+  is_default: false,
+  cost_price: '',
+  translations: {},
+};
+
+/** `{ en: 'Bacon' }` → `{ en: { name: 'Bacon' } }`, dropping empties. */
+function toContentTranslations(
+  map: Record<string, string>,
+): Record<string, { name: string }> | null {
+  const out: Record<string, { name: string }> = {};
+  for (const [locale, name] of Object.entries(map)) {
+    if (name.trim()) out[locale] = { name: name.trim() };
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+/**
+ * Reads a cost input.
+ *
+ * Empty or invalid becomes null ("not tracked") rather than 0, so an add-on
+ * with no cost entered is left out of the margin math instead of being counted
+ * as free profit.
+ */
+function parseCost(raw: string): number | null {
+  if (!raw.trim()) return null;
+  const n = parseFloat(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/** Inverse of `toContentTranslations`, for loading a row into the form. */
+function fromContentTranslations(
+  translations: Record<string, { name?: string }> | null | undefined,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [locale, value] of Object.entries(translations ?? {})) {
+    if (value?.name) out[locale] = value.name;
+  }
+  return out;
+}
+
+/** Compact name/translation inputs, reused by the group and option forms. */
+function TranslationFields({
+  locales,
+  values,
+  onChange,
+  placeholder,
+  label,
+}: {
+  locales: string[];
+  values: Record<string, string>;
+  onChange: (next: Record<string, string>) => void;
+  placeholder: string;
+  label: string;
+}) {
+  if (locales.length === 0) return null;
+  return (
+    <div>
+      <label className="text-[11px] font-medium text-gray-500 mb-1 block">{label}</label>
+      <div className="space-y-1.5">
+        {locales.map(locale => (
+          <div key={locale} className="flex items-center gap-2">
+            <span className="text-sm w-6 text-center flex-shrink-0" title={getLocaleLabel(locale)}>
+              {getLocaleFlag(locale)}
+            </span>
+            <input
+              value={values[locale] ?? ''}
+              onChange={e => onChange({ ...values, [locale]: e.target.value })}
+              placeholder={placeholder}
+              className="flex-1 text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Picks the option this group hangs off (`depends_on_option_id`).
+ *
+ * The backing column and the ordering rules have existed since
+ * 20260805_modifier_groups_conditional.sql — this is the control that finally
+ * exposes them. Buccaneer's case: "Choice of Side" should only appear once the
+ * customer picks "Deluxe", because a Regular burger comes with no side.
+ *
+ * Renders nothing when the product has no other options to depend on, which is
+ * the case for the first group of every product.
+ */
+function ConditionalSelect({
+  value,
+  choices,
+  onChange,
+  t,
+}: {
+  value: string;
+  choices: { groupName: string; options: ModifierOption[] }[];
+  onChange: (v: string) => void;
+  t: ReturnType<typeof getDashboardTranslations>;
+}) {
+  const hasChoices = choices.some(c => c.options.length > 0);
+  if (!hasChoices) return null;
+
+  return (
+    <div>
+      <label className="text-[11px] font-medium text-gray-500 mb-1 flex items-center gap-1">
+        <GitBranch className="w-3 h-3" />
+        {t.modifiers_conditionalLabel}
+      </label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="dash-select text-sm"
+      >
+        <option value="">{t.modifiers_conditionalAlways}</option>
+        {choices
+          .filter(c => c.options.length > 0)
+          .map(c => (
+            <optgroup key={c.groupName} label={c.groupName}>
+              {c.options.map(o => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </optgroup>
+          ))}
+      </select>
+      <p className="text-[10px] text-gray-400 mt-1">{t.modifiers_conditionalHint}</p>
+    </div>
+  );
 }
 
 // ── Sortable option row ──────────────────────────────────────────────────────
@@ -66,6 +235,7 @@ function SortableOption({
   t,
   lang,
   currSymbol,
+  translatableLocales,
   onEdit,
   onCancelEdit,
   onUpdate,
@@ -75,16 +245,17 @@ function SortableOption({
   opt: ModifierOption;
   groupId: string;
   editOptionId: string | null;
-  optionForm: { name: string; price_delta: string; is_default: boolean };
+  optionForm: OptionFormState;
   loading: boolean;
   t: ReturnType<typeof getDashboardTranslations>;
   lang: 'es' | 'en';
   currSymbol: string;
+  translatableLocales: string[];
   onEdit: (opt: ModifierOption) => void;
   onCancelEdit: () => void;
   onUpdate: (opt: ModifierOption, groupId: string) => void;
   onDelete: (optionId: string, groupId: string) => void;
-  setOptionForm: (f: { name: string; price_delta: string; is_default: boolean }) => void;
+  setOptionForm: (f: OptionFormState) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: opt.id });
   const style: React.CSSProperties = {
@@ -95,6 +266,88 @@ function SortableOption({
   };
 
   const isEditing = editOptionId === opt.id;
+
+  // Editing expands into a panel: name, price, cost and one field per extra
+  // locale no longer fit on a single inline row.
+  if (isEditing) {
+    return (
+      <div ref={setNodeRef} style={style} className="bg-emerald-50 rounded-lg px-3 py-3 border border-emerald-200 space-y-2">
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{t.editor_name}</label>
+            <input
+              value={optionForm.name}
+              onChange={e => setOptionForm({ ...optionForm, name: e.target.value })}
+              placeholder={t.editor_name}
+              className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            />
+          </div>
+          <div className="w-28">
+            <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">
+              {lang === 'en' ? 'Extra price' : 'Precio extra'}
+            </label>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
+              <input
+                value={optionForm.price_delta}
+                onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })}
+                placeholder="0.00"
+                type="number"
+                step="0.01"
+                className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              />
+            </div>
+          </div>
+          <div className="w-28">
+            <label className="text-[10px] font-medium text-gray-500 mb-0.5 block" title={t.modifiers_optionCostHint}>
+              {t.modifiers_optionCost}
+            </label>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
+              <input
+                value={optionForm.cost_price}
+                onChange={e => setOptionForm({ ...optionForm, cost_price: e.target.value })}
+                placeholder="—"
+                type="number"
+                step="0.01"
+                min="0"
+                className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              />
+            </div>
+          </div>
+        </div>
+
+        <TranslationFields
+          locales={translatableLocales}
+          values={optionForm.translations}
+          onChange={next => setOptionForm({ ...optionForm, translations: next })}
+          placeholder={optionForm.name || t.editor_name}
+          label={t.modifiers_translations}
+        />
+
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none" title={t.modifiers_isDefaultHint}>
+            <input
+              type="checkbox"
+              checked={optionForm.is_default}
+              onChange={e => setOptionForm({ ...optionForm, is_default: e.target.checked })}
+              className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
+            />
+            <span className="text-[11px] font-medium text-gray-600 whitespace-nowrap">{t.modifiers_isDefaultShort}</span>
+          </label>
+          <button onClick={() => onUpdate(opt, groupId)} disabled={loading} className="text-xs font-bold text-emerald-600 disabled:opacity-50">{t.modifiers_save}</button>
+          <button onClick={onCancelEdit} className="text-xs text-gray-500">{t.general_cancel}</button>
+        </div>
+      </div>
+    );
+  }
+
+  const cost = opt.cost_price;
+  const price = Number(opt.price_delta);
+  // Margin only means something for a paid add-on with a known cost; a free or
+  // untracked option would otherwise render a misleading -100%.
+  const margin =
+    cost != null && price > 0 ? ((price - cost) / price) * 100 : null;
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-2">
@@ -108,54 +361,30 @@ function SortableOption({
         <GripVertical className="w-4 h-4" />
       </button>
 
-      {isEditing ? (
-        <>
-          <input
-            value={optionForm.name}
-            onChange={e => setOptionForm({ ...optionForm, name: e.target.value })}
-            placeholder={t.editor_name}
-            className="flex-1 text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-          />
-          <div className="relative w-28">
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
-            <input
-              value={optionForm.price_delta}
-              onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })}
-              placeholder="0.00"
-              type="number"
-              step="0.01"
-              className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-            />
-          </div>
-          <label className="flex items-center gap-1 cursor-pointer select-none" title={t.modifiers_isDefaultHint}>
-            <input
-              type="checkbox"
-              checked={optionForm.is_default}
-              onChange={e => setOptionForm({ ...optionForm, is_default: e.target.checked })}
-              className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
-            />
-            <span className="text-[10px] font-medium text-gray-600 whitespace-nowrap">{t.modifiers_isDefaultShort}</span>
-          </label>
-          <button onClick={() => onUpdate(opt, groupId)} disabled={loading} className="text-xs font-medium text-emerald-600 disabled:opacity-50">{t.modifiers_save}</button>
-          <button onClick={onCancelEdit} className="text-xs text-gray-500">{t.general_cancel}</button>
-        </>
-      ) : (
-        <>
-          <span className="flex-1 text-sm text-gray-700 font-medium">
-            {opt.name}
-            {opt.is_default && (
-              <span className="ml-2 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 align-middle">
-                {t.modifiers_isDefaultShort}
-              </span>
-            )}
+      <span className="flex-1 text-sm text-gray-700 font-medium min-w-0 truncate">
+        {opt.name}
+        {opt.is_default && (
+          <span className="ml-2 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 align-middle">
+            {t.modifiers_isDefaultShort}
           </span>
-          <span className={cn('text-sm font-mono px-2 py-0.5 rounded', Number(opt.price_delta) !== 0 ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-400')}>
-            {Number(opt.price_delta) > 0 ? `+${currSymbol}${Number(opt.price_delta).toFixed(2)}` : Number(opt.price_delta) < 0 ? `-${currSymbol}${Math.abs(Number(opt.price_delta)).toFixed(2)}` : t.modifiers_base}
-          </span>
-          <button onClick={() => onEdit(opt)} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
-          <button onClick={() => onDelete(opt.id, groupId)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-        </>
+        )}
+      </span>
+      {margin != null && (
+        <span
+          className={cn(
+            'text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 hidden sm:inline',
+            margin >= 60 ? 'bg-emerald-50 text-emerald-600' : margin >= 30 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500',
+          )}
+          title={t.modifiers_optionCostHint}
+        >
+          {margin.toFixed(0)}%
+        </span>
       )}
+      <span className={cn('text-sm font-mono px-2 py-0.5 rounded flex-shrink-0', price !== 0 ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-400')}>
+        {price > 0 ? `+${currSymbol}${price.toFixed(2)}` : price < 0 ? `-${currSymbol}${Math.abs(price).toFixed(2)}` : t.modifiers_base}
+      </span>
+      <button onClick={() => onEdit(opt)} className="p-1 rounded hover:bg-gray-100 text-gray-400 flex-shrink-0"><Pencil className="w-3.5 h-3.5" /></button>
+      <button onClick={() => onDelete(opt.id, groupId)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 flex-shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
     </div>
   );
 }
@@ -174,6 +403,10 @@ function SortableGroup({
   t,
   lang,
   currSymbol,
+  translatableLocales,
+  dependencyChoices,
+  sharedCount,
+  onUnlink,
   onToggleExpand,
   onStartEditGroup,
   onUpdateGroup,
@@ -195,14 +428,20 @@ function SortableGroup({
   isExpanded: boolean;
   isEditing: boolean;
   editGroupId: string | null;
-  groupForm: { name: string; selection_type: 'single' | 'multi'; min_select: string; max_select: string; is_required: boolean; display_type: 'list' | 'grid' };
+  groupForm: GroupFormState;
   addingOptionFor: string | null;
-  optionForm: { name: string; price_delta: string; is_default: boolean };
+  optionForm: OptionFormState;
   editOptionId: string | null;
   loading: boolean;
   t: ReturnType<typeof getDashboardTranslations>;
   lang: 'es' | 'en';
   currSymbol: string;
+  translatableLocales: string[];
+  /** Options of the OTHER groups on this product, offered as dependencies. */
+  dependencyChoices: { groupName: string; options: ModifierOption[] }[];
+  /** How many products share this group's content, including this one. */
+  sharedCount: number;
+  onUnlink: (id: string) => void;
   onToggleExpand: () => void;
   onStartEditGroup: () => void;
   onUpdateGroup: (g: ModifierGroup) => void;
@@ -217,8 +456,8 @@ function SortableGroup({
   onStartEditOption: (opt: ModifierOption) => void;
   onCancelEditOption: () => void;
   onOptionDragEnd: (groupId: string, oldIndex: number, newIndex: number) => void;
-  setGroupForm: (f: typeof groupForm) => void;
-  setOptionForm: (f: { name: string; price_delta: string; is_default: boolean }) => void;
+  setGroupForm: (f: GroupFormState) => void;
+  setOptionForm: (f: OptionFormState) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.id });
   const style: React.CSSProperties = {
@@ -277,6 +516,28 @@ function SortableGroup({
               </button>
             </div>
           </div>
+
+          <ConditionalSelect
+            value={groupForm.depends_on_option_id}
+            choices={dependencyChoices}
+            onChange={v => setGroupForm({ ...groupForm, depends_on_option_id: v })}
+            t={t}
+          />
+
+          <TranslationFields
+            locales={translatableLocales}
+            values={groupForm.translations}
+            onChange={next => setGroupForm({ ...groupForm, translations: next })}
+            placeholder={groupForm.name || t.editor_name}
+            label={t.modifiers_translations}
+          />
+
+          {sharedCount > 1 && (
+            <p className="text-[11px] text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-1.5">
+              {t.modifiers_sharedWarning.replace('{n}', String(sharedCount))}
+            </p>
+          )}
+
           <div className="flex gap-2">
             <button onClick={() => onUpdateGroup(group)} disabled={loading} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 disabled:opacity-50">{t.modifiers_save}</button>
             <button onClick={onCancelEditGroup} className="text-xs text-gray-500">{t.general_cancel}</button>
@@ -302,9 +563,36 @@ function SortableGroup({
             <span className="text-[11px] text-gray-400 flex-shrink-0">{group.options.length} {t.modifiers_options}</span>
           </button>
 
+          {group.depends_on_option_id && (
+            <span
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-purple-50 text-purple-600 items-center gap-1 hidden sm:inline-flex"
+              title={t.modifiers_conditionalHint}
+            >
+              <GitBranch className="w-2.5 h-2.5" />
+              {t.modifiers_conditionalBadge}
+            </span>
+          )}
+          {sharedCount > 1 && (
+            <span
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-blue-50 text-blue-600 items-center gap-1 hidden sm:inline-flex"
+              title={t.modifiers_sharedWarning.replace('{n}', String(sharedCount))}
+            >
+              <Link2 className="w-2.5 h-2.5" />
+              {t.modifiers_sharedBadge}
+            </span>
+          )}
           <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', group.is_required ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500')}>
             {ruleLabel}
           </span>
+          {group.shared_origin_id && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onUnlink(group.id); }}
+              title={t.modifiers_unlink}
+              className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
+            >
+              <Unlink className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); onToggleDisplayType(group); }}
             title={group.display_type === 'grid' ? t.modifiers_displayList : t.modifiers_displayGrid}
@@ -339,6 +627,7 @@ function SortableGroup({
                   t={t}
                   lang={lang}
                   currSymbol={currSymbol}
+                  translatableLocales={translatableLocales}
                   onEdit={onStartEditOption}
                   onCancelEdit={onCancelEditOption}
                   onUpdate={onUpdateOption}
@@ -356,7 +645,7 @@ function SortableGroup({
                   <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{t.editor_name}</label>
                   <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.modifiers_optionPlaceholder} autoFocus className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                 </div>
-                <div className="w-32">
+                <div className="w-28">
                   <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{lang === 'en' ? 'Extra price' : 'Precio extra'}</label>
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
@@ -364,7 +653,22 @@ function SortableGroup({
                   </div>
                   <p className="text-[9px] text-gray-400 mt-0.5">{t.modifiers_priceHint}</p>
                 </div>
+                <div className="w-28">
+                  <label className="text-[10px] font-medium text-gray-500 mb-0.5 block" title={t.modifiers_optionCostHint}>{t.modifiers_optionCost}</label>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
+                    <input value={optionForm.cost_price} onChange={e => setOptionForm({ ...optionForm, cost_price: e.target.value })} placeholder="—" type="number" step="0.01" min="0" className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                  </div>
+                </div>
               </div>
+
+              <TranslationFields
+                locales={translatableLocales}
+                values={optionForm.translations}
+                onChange={next => setOptionForm({ ...optionForm, translations: next })}
+                placeholder={optionForm.name || t.editor_name}
+                label={t.modifiers_translations}
+              />
               <label className="flex items-start gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -393,19 +697,212 @@ function SortableGroup({
   );
 }
 
+type ReusableGroup = {
+  id: string;
+  name: string;
+  product_id: string;
+  product_name: string;
+  selection_type: 'single' | 'multi';
+  is_required: boolean;
+  option_count: number;
+};
+
+/**
+ * Picks modifier groups from other dishes, either linked or copied.
+ *
+ * The two verbs mirror how Toast splits this ("Add existing" vs "Copy
+ * existing"), because the distinction matters operationally: Buccaneer carries
+ * "Término de la carne" on a dozen dishes and wants one edit to reach all of
+ * them, while a one-off tweak for a single dish must not leak everywhere else.
+ */
+function LibraryPicker({
+  productId,
+  onAttached,
+  onClose,
+  t,
+  lang,
+}: {
+  productId: string;
+  onAttached: () => void;
+  onClose: () => void;
+  t: ReturnType<typeof getDashboardTranslations>;
+  lang: 'es' | 'en';
+}) {
+  const [available, setAvailable] = useState<ReusableGroup[] | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [mode, setMode] = useState<'link' | 'copy'>('link');
+  const [query, setQuery] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    listReusableModifierGroups(productId).then(res => {
+      if (alive) setAvailable(res.groups ?? []);
+    });
+    return () => { alive = false; };
+  }, [productId]);
+
+  const filtered = (available ?? []).filter(g => {
+    if (!query.trim()) return true;
+    const q = query.toLowerCase();
+    return g.name.toLowerCase().includes(q) || g.product_name.toLowerCase().includes(q);
+  });
+
+  // Grouped by dish so the same group name coming from different dishes stays
+  // distinguishable.
+  const byProduct: Map<string, ReusableGroup[]> = new Map();
+  for (const g of filtered) {
+    const list = byProduct.get(g.product_name) ?? [];
+    list.push(g);
+    byProduct.set(g.product_name, list);
+  }
+
+  const toggle = (id: string) => {
+    setPicked(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleAttach = async () => {
+    if (picked.size === 0) return;
+    setBusy(true);
+    const res = await attachModifierGroups(productId, Array.from(picked), mode);
+    setBusy(false);
+    if (!res.error) onAttached();
+  };
+
+  return (
+    <div className="rounded-lg border border-emerald-200 bg-emerald-50/30 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
+          {t.modifiers_addExistingTitle}
+        </p>
+        <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setMode('link')}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all',
+            mode === 'link' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300',
+          )}
+        >
+          <Link2 className="w-3.5 h-3.5" /> {t.modifiers_linkMode}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('copy')}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all',
+            mode === 'copy' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300',
+          )}
+        >
+          <Copy className="w-3.5 h-3.5" /> {t.modifiers_copyMode}
+        </button>
+      </div>
+      <p className="text-[10px] text-gray-500 -mt-1">
+        {mode === 'link' ? t.modifiers_linkModeHint : t.modifiers_copyModeHint}
+      </p>
+
+      {available === null ? (
+        <div className="flex items-center justify-center py-6 text-gray-400">
+          <Loader2 className="w-5 h-5 animate-spin" />
+        </div>
+      ) : available.length === 0 ? (
+        <p className="text-xs text-gray-500 text-center py-6">{t.modifiers_libraryEmpty}</p>
+      ) : (
+        <>
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={t.modifiers_copyFromSearch}
+              className="w-full text-sm pl-8 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            />
+          </div>
+
+          <div className="max-h-64 overflow-y-auto space-y-3 pr-1">
+            {Array.from(byProduct.entries()).map(([productName, list]) => (
+              <div key={productName}>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">{productName}</p>
+                <div className="space-y-1">
+                  {list.map(g => (
+                    <label
+                      key={g.id}
+                      className={cn(
+                        'flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all',
+                        picked.has(g.id) ? 'bg-white border-emerald-400' : 'bg-white/60 border-gray-200 hover:border-gray-300',
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={picked.has(g.id)}
+                        onChange={() => toggle(g.id)}
+                        className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
+                      />
+                      <span className="flex-1 text-sm text-gray-800 font-medium truncate">{g.name}</span>
+                      <span className="text-[10px] text-gray-400 flex-shrink-0">
+                        {g.option_count} {t.modifiers_options}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={handleAttach}
+              disabled={busy || picked.size === 0}
+              className="dash-btn-primary text-xs py-2 disabled:opacity-50"
+            >
+              {busy
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t.modifiers_copying}</>
+                : mode === 'link'
+                  ? <><Link2 className="w-3.5 h-3.5" /> {t.modifiers_linkMode}</>
+                  : <><Copy className="w-3.5 h-3.5" /> {t.modifiers_copyMode}</>}
+            </button>
+            {picked.size > 0 && (
+              <span className="text-[11px] text-gray-500">
+                {t.modifiers_copyGroupCount.replace('{n}', String(picked.size))}
+              </span>
+            )}
+            <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-700 ml-auto">
+              {t.general_cancel}
+            </button>
+          </div>
+          <p className="text-[10px] text-gray-400">
+            {mode === 'copy' ? t.modifiers_copyFromHint : t.modifiers_addExistingHint}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
-export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: localeProp, currency }: ModifierGroupsEditorProps) {
+export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: localeProp, currency, translatableLocales = [] }: ModifierGroupsEditorProps) {
   const [items, setItems] = useState(groups);
   const [showTemplates, setShowTemplates] = useState(false);
   const [addingGroup, setAddingGroup] = useState(false);
-  const [groupForm, setGroupForm] = useState({ name: '', selection_type: 'single' as 'single' | 'multi', min_select: '0', max_select: '1', is_required: false, display_type: 'list' as 'list' | 'grid' });
+  const [groupForm, setGroupForm] = useState<GroupFormState>(EMPTY_GROUP_FORM);
   const [pendingOptions, setPendingOptions] = useState<string[]>([]);
   const [editGroupId, setEditGroupId] = useState<string | null>(null);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(groups[0]?.id ?? null);
   const [addingOptionFor, setAddingOptionFor] = useState<string | null>(null);
-  const [optionForm, setOptionForm] = useState({ name: '', price_delta: '', is_default: false });
+  const [optionForm, setOptionForm] = useState<OptionFormState>(EMPTY_OPTION_FORM);
   const [editOptionId, setEditOptionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const router = useRouter();
   const dashboard = useDashboardLocale();
   const t = localeProp ? getDashboardTranslations(localeProp) : dashboard.t;
   const lang: 'es' | 'en' = (localeProp ?? dashboard.locale ?? 'es') as 'es' | 'en';
@@ -425,7 +922,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
     setAddingGroup(false);
     setShowTemplates(false);
     setPendingOptions([]);
-    setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false, display_type: 'list' });
+    setGroupForm(EMPTY_GROUP_FORM);
   };
 
   const applyTemplate = (tpl: Template) => {
@@ -435,6 +932,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       return;
     }
     setGroupForm({
+      ...EMPTY_GROUP_FORM,
       name: t[tpl.nameKey],
       selection_type: tpl.selection_type,
       min_select: tpl.is_required ? '1' : '0',
@@ -458,6 +956,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       is_required: groupForm.is_required,
       sort_order: items.length,
       display_type: groupForm.display_type,
+      depends_on_option_id: groupForm.depends_on_option_id || null,
+      translations: toContentTranslations(groupForm.translations),
     });
     if (result.group) {
       let newGroup = result.group as ModifierGroup;
@@ -490,6 +990,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       is_required: groupForm.is_required,
       sort_order: g.sort_order,
       display_type: groupForm.display_type,
+      depends_on_option_id: groupForm.depends_on_option_id || null,
+      translations: toContentTranslations(groupForm.translations),
     });
     sync(items.map(i => i.id === g.id ? {
       ...i,
@@ -499,6 +1001,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       max_select: parseInt(groupForm.max_select) || 1,
       is_required: groupForm.is_required,
       display_type: groupForm.display_type,
+      depends_on_option_id: groupForm.depends_on_option_id || null,
+      translations: toContentTranslations(groupForm.translations),
     } : i));
     setEditGroupId(null);
     setLoading(false);
@@ -514,6 +1018,11 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       is_required: g.is_required,
       sort_order: g.sort_order,
       display_type: next,
+      // Carried through explicitly: updateModifierGroup writes every field, so
+      // omitting these would wipe the group's dependency and translations on a
+      // simple list/grid toggle.
+      depends_on_option_id: g.depends_on_option_id ?? null,
+      translations: g.translations ?? null,
     });
     sync(items.map(i => i.id === g.id ? { ...i, display_type: next } : i));
   };
@@ -547,6 +1056,10 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
           price_delta: o.price_delta,
           is_default: false,
           sort_order: o.sort_order,
+          // Preserved explicitly — the update writes every field, so leaving
+          // these out would clear the option's cost and translations.
+          cost_price: o.cost_price ?? null,
+          translations: o.translations ?? null,
         }),
       ),
     );
@@ -561,6 +1074,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       price_delta: parseFloat(optionForm.price_delta) || 0,
       is_default: optionForm.is_default,
       sort_order: (group?.options.length ?? 0),
+      cost_price: parseCost(optionForm.cost_price),
+      translations: toContentTranslations(optionForm.translations),
     });
     if (result.option) {
       const added = result.option as ModifierOption;
@@ -580,7 +1095,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
         await clearOtherDefaults(group, added.id);
       }
     }
-    setOptionForm({ name: '', price_delta: '', is_default: false });
+    setOptionForm(EMPTY_OPTION_FORM);
     setAddingOptionFor(null);
     setLoading(false);
   };
@@ -594,6 +1109,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       price_delta: parseFloat(optionForm.price_delta) || 0,
       is_default: nextDefault,
       sort_order: opt.sort_order,
+      cost_price: parseCost(optionForm.cost_price),
+      translations: toContentTranslations(optionForm.translations),
     });
     if (nextDefault && group?.selection_type === 'single') {
       await clearOtherDefaults(group, opt.id);
@@ -606,12 +1123,19 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
             ? nextDefault
             : (nextDefault && g.selection_type === 'single' ? false : o.is_default);
           return isTarget
-            ? { ...o, name: optionForm.name || o.name, price_delta: parseFloat(optionForm.price_delta) || 0, is_default }
+            ? {
+                ...o,
+                name: optionForm.name || o.name,
+                price_delta: parseFloat(optionForm.price_delta) || 0,
+                is_default,
+                cost_price: parseCost(optionForm.cost_price),
+                translations: toContentTranslations(optionForm.translations),
+              }
             : { ...o, is_default };
         }) }
       : g));
     setEditOptionId(null);
-    setOptionForm({ name: '', price_delta: '', is_default: false });
+    setOptionForm(EMPTY_OPTION_FORM);
     setLoading(false);
   };
 
@@ -622,6 +1146,49 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       ? { ...g, options: g.options.filter(o => o.id !== optionId) }
       : g));
     setLoading(false);
+  };
+
+  /**
+   * How many dishes share each group's content, keyed by origin id.
+   *
+   * Counted from the reusable-groups listing rather than from `items`: the
+   * siblings of a shared group live on OTHER products, so this product's own
+   * list can never see them. Only fetched when something here is actually
+   * linked, which is the uncommon case.
+   */
+  const [sharedCounts, setSharedCounts] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const linked = items.filter(g => g.shared_origin_id);
+    if (linked.length === 0) {
+      setSharedCounts(new Map());
+      return;
+    }
+    let alive = true;
+    listReusableModifierGroups(productId).then(res => {
+      if (!alive) return;
+      const counts = new Map<string, number>();
+      for (const g of items) {
+        const origin = g.shared_origin_id;
+        if (!origin) continue;
+        // The listing only returns origins, and each origin row stands for one
+        // dish; this dish is the +1.
+        const originExists = (res.groups ?? []).some(r => r.id === origin);
+        counts.set(origin, (originExists ? 1 : 0) + 1);
+      }
+      setSharedCounts(counts);
+    });
+    return () => { alive = false; };
+  }, [items, productId]);
+
+  const handleUnlink = async (id: string) => {
+    if (!confirm(t.modifiers_unlinkConfirm)) return;
+    setLoading(true);
+    const res = await unlinkModifierGroup(id);
+    setLoading(false);
+    if (!res.error) {
+      sync(items.map(g => g.id === id ? { ...g, shared_origin_id: null } : g));
+    }
   };
 
   // Handle option reorder from inside SortableGroup (optimistic local update)
@@ -638,24 +1205,52 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
           <Layers className="w-4 h-4 text-emerald-500" />
           <span className="text-sm font-semibold text-gray-700">{t.modifiers_title}</span>
         </div>
-        {!addingGroup && !showTemplates && (
-          <button onClick={() => setShowTemplates(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
-            <Plus className="w-3.5 h-3.5" /> {t.modifiers_newGroup}
-          </button>
+        {!addingGroup && !showTemplates && !showLibrary && (
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowLibrary(true)} className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700">
+              <Copy className="w-3.5 h-3.5" /> {t.modifiers_addExisting}
+            </button>
+            <button onClick={() => setShowTemplates(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+              <Plus className="w-3.5 h-3.5" /> {t.modifiers_newGroup}
+            </button>
+          </div>
         )}
       </div>
 
-      {items.length === 0 && !addingGroup && !showTemplates && (
+      {showLibrary && (
+        <LibraryPicker
+          productId={productId}
+          t={t}
+          lang={lang}
+          onClose={() => setShowLibrary(false)}
+          onAttached={() => {
+            setShowLibrary(false);
+            // Attached rows are built server-side (ids, fan-out, sort_order), so
+            // the editor refetches instead of guessing what was created.
+            router.refresh();
+          }}
+        />
+      )}
+
+      {items.length === 0 && !addingGroup && !showTemplates && !showLibrary && (
         <div className="text-center py-8 text-gray-400">
           <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
           <p className="text-sm font-medium text-gray-500">{t.modifiers_noGroups}</p>
           <p className="text-xs text-gray-400 mt-1">{t.modifiers_noGroupsDesc}</p>
-          <button
-            onClick={() => setShowTemplates(true)}
-            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" /> {t.modifiers_newGroup}
-          </button>
+          <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+            <button
+              onClick={() => setShowTemplates(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> {t.modifiers_newGroup}
+            </button>
+            <button
+              onClick={() => setShowLibrary(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-50 transition-colors"
+            >
+              <Copy className="w-3.5 h-3.5" /> {t.modifiers_copyFrom}
+            </button>
+          </div>
         </div>
       )}
 
@@ -738,6 +1333,21 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
               <p className="text-[10px] text-gray-400 mt-1">{t.modifiers_displayHint}</p>
             )}
           </div>
+
+          <ConditionalSelect
+            value={groupForm.depends_on_option_id}
+            choices={items.map(g => ({ groupName: g.name, options: g.options }))}
+            onChange={v => setGroupForm({ ...groupForm, depends_on_option_id: v })}
+            t={t}
+          />
+
+          <TranslationFields
+            locales={translatableLocales}
+            values={groupForm.translations}
+            onChange={next => setGroupForm({ ...groupForm, translations: next })}
+            placeholder={groupForm.name || t.editor_name}
+            label={t.modifiers_translations}
+          />
           {pendingOptions.length > 0 && (
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-gray-500 block">{t.modifiers_options}</label>
@@ -779,22 +1389,48 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                 t={t}
                 lang={lang}
                 currSymbol={currSymbol}
+                translatableLocales={translatableLocales}
+                // A group can only depend on an option of ANOTHER group —
+                // depending on its own would be circular and never resolve.
+                dependencyChoices={items
+                  .filter(g => g.id !== group.id)
+                  .map(g => ({ groupName: g.name, options: g.options }))}
+                sharedCount={sharedCounts.get(group.shared_origin_id ?? group.id) ?? 1}
+                onUnlink={handleUnlink}
                 onToggleExpand={() => setExpandedGroup(expandedGroup === group.id ? null : group.id)}
                 onStartEditGroup={() => {
                   setEditGroupId(group.id);
-                  setGroupForm({ name: group.name, selection_type: group.selection_type, min_select: String(group.min_select), max_select: String(group.max_select), is_required: group.is_required, display_type: group.display_type ?? 'list' });
+                  setGroupForm({
+                    name: group.name,
+                    selection_type: group.selection_type,
+                    min_select: String(group.min_select),
+                    max_select: String(group.max_select),
+                    is_required: group.is_required,
+                    display_type: group.display_type ?? 'list',
+                    depends_on_option_id: group.depends_on_option_id ?? '',
+                    translations: fromContentTranslations(group.translations),
+                  });
                 }}
                 onUpdateGroup={handleUpdateGroup}
                 onCancelEditGroup={() => setEditGroupId(null)}
                 onDeleteGroup={handleDeleteGroup}
                 onToggleDisplayType={handleToggleDisplayType}
                 onAddOption={handleAddOption}
-                onStartAddOption={(gid) => { setAddingOptionFor(gid); setOptionForm({ name: '', price_delta: '', is_default: false }); }}
-                onCancelAddOption={() => { setAddingOptionFor(null); setOptionForm({ name: '', price_delta: '', is_default: false }); }}
+                onStartAddOption={(gid) => { setAddingOptionFor(gid); setOptionForm(EMPTY_OPTION_FORM); }}
+                onCancelAddOption={() => { setAddingOptionFor(null); setOptionForm(EMPTY_OPTION_FORM); }}
                 onUpdateOption={handleUpdateOption}
                 onDeleteOption={handleDeleteOption}
-                onStartEditOption={(opt) => { setEditOptionId(opt.id); setOptionForm({ name: opt.name, price_delta: String(opt.price_delta), is_default: opt.is_default ?? false }); }}
-                onCancelEditOption={() => { setEditOptionId(null); setOptionForm({ name: '', price_delta: '', is_default: false }); }}
+                onStartEditOption={(opt) => {
+                  setEditOptionId(opt.id);
+                  setOptionForm({
+                    name: opt.name,
+                    price_delta: String(opt.price_delta),
+                    is_default: opt.is_default ?? false,
+                    cost_price: opt.cost_price != null ? String(opt.cost_price) : '',
+                    translations: fromContentTranslations(opt.translations),
+                  });
+                }}
+                onCancelEditOption={() => { setEditOptionId(null); setOptionForm(EMPTY_OPTION_FORM); }}
                 onOptionDragEnd={handleOptionDragEndLocal}
                 setGroupForm={setGroupForm}
                 setOptionForm={setOptionForm}

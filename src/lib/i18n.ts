@@ -18,7 +18,7 @@ export function getLocaleFlag(code: string): string {
  * Falls back to the original field value if no translation exists.
  */
 export function t(
-  translations: Record<string, ContentTranslation> | undefined,
+  translations: Record<string, ContentTranslation> | null | undefined,
   field: keyof ContentTranslation,
   locale: string,
   fallback: string,
@@ -34,7 +34,7 @@ export function t(
  * Resolve translated name for a product or category.
  */
 export function tName(
-  item: { name: string; translations?: Record<string, ContentTranslation> },
+  item: { name: string; translations?: Record<string, ContentTranslation> | null },
   locale: string,
   defaultLocale: string,
 ): string {
@@ -46,7 +46,7 @@ export function tName(
  * Resolve translated description for a product.
  */
 export function tDesc(
-  item: { description?: string; translations?: Record<string, ContentTranslation> },
+  item: { description?: string; translations?: Record<string, ContentTranslation> | null },
   locale: string,
   defaultLocale: string,
 ): string {
