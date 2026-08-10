@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock, RotateCcw, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
+import { showsAsRow } from '@/lib/product-display';
 import type { Translations } from '@/lib/translations';
 import type { Product } from '@/types';
 
@@ -180,13 +181,9 @@ export function CartPanel({
                   onClick={() => onSuggestionAdd(p)}
                   className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white shadow-sm p-2.5 active:scale-[0.98] transition-transform text-left"
                 >
-                  {p.image_url ? (
+                  {!showsAsRow(p) && p.image_url && (
                     <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       <Image src={p.image_url} alt={p.name} fill sizes="48px" className="object-cover" />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg">🍽️</span>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -298,8 +295,10 @@ export function CartPanel({
                     className="flex gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer active:bg-gray-50 transition-colors"
                     onClick={() => onEdit(idx)}
                   >
-                    {/* Thumbnail */}
-                    {item.product.image_url ? (
+                    {/* Thumbnail — omitted entirely for row-display products.
+                        A greyed-out plate icon next to real photos reads as a
+                        failed image; the line simply starts at the name instead. */}
+                    {!showsAsRow(item.product) && item.product.image_url && (
                       <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
                         <Image
                           src={item.product.image_url}
@@ -309,10 +308,6 @@ export function CartPanel({
                           className="object-cover transition-opacity duration-150 opacity-0"
                           onLoad={(e) => markImageLoaded(imgKey, e.currentTarget)}
                         />
-                      </div>
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-base opacity-30">🍽️</span>
                       </div>
                     )}
 

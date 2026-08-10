@@ -449,6 +449,9 @@ export interface DashboardTranslations {
   editor_category: string;
   editor_selectCategory: string;
   editor_image: string;
+  editor_hideImage: string;
+  editor_hideImageHint: string;
+  editor_hideImageNoPhoto: string;
   editor_uploadImage: string;
   editor_changeImage: string;
   editor_removeImage: string;
@@ -1750,6 +1753,11 @@ const es: DashboardTranslations = {
   editor_category: "Categoría",
   editor_selectCategory: "Selecciona una categoría",
   editor_image: "Imagen",
+  editor_hideImage: "Mostrar sin foto en el menú",
+  editor_hideImageHint:
+    "Se lista como una fila compacta con nombre y precio. Útil para gaseosas, cervezas y bebidas que el cliente ya conoce — la foto no le suma nada y ocupa el lugar de los platos.",
+  editor_hideImageNoPhoto:
+    "Este producto no tiene foto, así que ya se muestra como fila compacta en el menú.",
   editor_uploadImage: "Subir imagen",
   editor_changeImage: "Cambiar imagen",
   editor_removeImage: "Quitar imagen",
@@ -3124,6 +3132,11 @@ const en: DashboardTranslations = {
   editor_category: "Category",
   editor_selectCategory: "Select a category",
   editor_image: "Image",
+  editor_hideImage: "List without a photo",
+  editor_hideImageHint:
+    "Shown as a compact row with just name and price. Good for sodas, bottled beer and drinks customers already know — a photo adds nothing and takes space away from the dishes.",
+  editor_hideImageNoPhoto:
+    "This product has no photo, so the menu already lists it as a compact row.",
   editor_uploadImage: "Upload image",
   editor_changeImage: "Change image",
   editor_removeImage: "Remove image",
