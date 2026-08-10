@@ -25,6 +25,7 @@ import {
   createModifierOption, updateModifierOption, deleteModifierOption,
   reorderModifierGroups, reorderModifierOptions,
   listReusableModifierGroups, attachModifierGroups, unlinkModifierGroup,
+  getSharedGroupCounts,
 } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
@@ -584,7 +585,7 @@ function SortableGroup({
           <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', group.is_required ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500')}>
             {ruleLabel}
           </span>
-          {group.shared_origin_id && (
+          {sharedCount > 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); onUnlink(group.id); }}
               title={t.modifiers_unlink}
@@ -1157,29 +1158,26 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
    * linked, which is the uncommon case.
    */
   const [sharedCounts, setSharedCounts] = useState<Map<string, number>>(new Map());
+  // Bumped when linking/unlinking changes the sharing graph. Depending on
+  // `items` instead would refetch on every keystroke of a rename.
+  const [groupsRevision, setGroupsRevision] = useState(0);
 
+  // Fetched rather than derived: the siblings live on OTHER dishes, so this
+  // product's own list cannot see them. It also has to cover the ORIGIN group,
+  // whose shared_origin_id is NULL — standing on the dish where the group was
+  // created must still warn that edits fan out, which is exactly where an owner
+  // would least expect it.
+  //
+  // Keyed by group id (not by origin) so both the origin and its linked copies
+  // resolve directly.
   useEffect(() => {
-    const linked = items.filter(g => g.shared_origin_id);
-    if (linked.length === 0) {
-      setSharedCounts(new Map());
-      return;
-    }
     let alive = true;
-    listReusableModifierGroups(productId).then(res => {
+    getSharedGroupCounts(productId).then(res => {
       if (!alive) return;
-      const counts = new Map<string, number>();
-      for (const g of items) {
-        const origin = g.shared_origin_id;
-        if (!origin) continue;
-        // The listing only returns origins, and each origin row stands for one
-        // dish; this dish is the +1.
-        const originExists = (res.groups ?? []).some(r => r.id === origin);
-        counts.set(origin, (originExists ? 1 : 0) + 1);
-      }
-      setSharedCounts(counts);
+      setSharedCounts(new Map(Object.entries(res.counts ?? {})));
     });
     return () => { alive = false; };
-  }, [items, productId]);
+  }, [productId, groupsRevision]);
 
   const handleUnlink = async (id: string) => {
     if (!confirm(t.modifiers_unlinkConfirm)) return;
@@ -1188,6 +1186,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
     setLoading(false);
     if (!res.error) {
       sync(items.map(g => g.id === id ? { ...g, shared_origin_id: null } : g));
+      setGroupsRevision(r => r + 1);
     }
   };
 
@@ -1395,7 +1394,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                 dependencyChoices={items
                   .filter(g => g.id !== group.id)
                   .map(g => ({ groupName: g.name, options: g.options }))}
-                sharedCount={sharedCounts.get(group.shared_origin_id ?? group.id) ?? 1}
+                sharedCount={sharedCounts.get(group.id) ?? 1}
                 onUnlink={handleUnlink}
                 onToggleExpand={() => setExpandedGroup(expandedGroup === group.id ? null : group.id)}
                 onStartEditGroup={() => {

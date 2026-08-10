@@ -1486,6 +1486,64 @@ export async function listReusableModifierGroups(excludeProductId: string) {
   return { success: true, groups };
 }
 
+/**
+ * How many dishes each of this product's groups is shared with, keyed by the
+ * group's own id.
+ *
+ * Counted server-side because the siblings live on OTHER products: the editor's
+ * own list can never see them. Crucially this also covers the ORIGIN group,
+ * whose shared_origin_id is NULL — standing on the dish where the group was
+ * first created must still warn that edits fan out, which is precisely the case
+ * where an owner would least expect it.
+ *
+ * Returns only groups shared with at least one other dish; anything absent from
+ * the map is standalone.
+ */
+export async function getSharedGroupCounts(productId: string) {
+  const { supabase, restaurantId, error: authErr } =
+    await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr, counts: {} as Record<string, number> };
+
+  const { data: mine } = await supabase
+    .from("modifier_groups")
+    .select("id, shared_origin_id, products!inner(restaurant_id)")
+    .eq("product_id", productId)
+    .eq("products.restaurant_id", restaurantId);
+
+  const rows = (mine ?? []) as unknown as SharedGroupRow[];
+  if (rows.length === 0) return { success: true, counts: {} };
+
+  // One family per origin; a group is its own origin when it isn't linked.
+  const originByGroup = new Map<string, string>();
+  for (const g of rows) originByGroup.set(g.id, g.shared_origin_id ?? g.id);
+  const origins = Array.from(new Set(originByGroup.values()));
+
+  const { data: family } = await supabase
+    .from("modifier_groups")
+    .select("id, product_id, shared_origin_id")
+    .or(
+      `id.in.(${origins.join(",")}),shared_origin_id.in.(${origins.join(",")})`,
+    );
+
+  // Distinct dishes per family — two groups of the same family on one dish
+  // would still be a single place the change shows up.
+  const dishesByOrigin = new Map<string, Set<string>>();
+  for (const row of (family ?? []) as SharedGroupRow[]) {
+    const origin = row.shared_origin_id ?? row.id;
+    const set = dishesByOrigin.get(origin) ?? new Set<string>();
+    set.add(row.product_id);
+    dishesByOrigin.set(origin, set);
+  }
+
+  const counts: Record<string, number> = {};
+  for (const [groupId, origin] of Array.from(originByGroup.entries())) {
+    const total = dishesByOrigin.get(origin)?.size ?? 1;
+    if (total > 1) counts[groupId] = total;
+  }
+
+  return { success: true, counts };
+}
+
 /** Content of a group, minus everything that is per-product. */
 type GroupContent = {
   name: string;
@@ -1678,13 +1736,33 @@ export async function unlinkModifierGroup(id: string) {
   if (!owned) return { error: "No encontrado" };
 
   const row = owned as SharedGroupRow;
-  if (!row.shared_origin_id) return { error: "Este grupo no está enlazado" };
+  const siblings = await sharedSiblingIds(supabase, row);
+  if (siblings.length === 0) return { error: "Este grupo no está enlazado" };
 
-  const { error } = await supabase
-    .from("modifier_groups")
-    .update({ shared_origin_id: null })
-    .eq("id", id);
-  if (error) return { error: error.message };
+  if (row.shared_origin_id) {
+    // A linked copy: just cut its own pointer.
+    const { error } = await supabase
+      .from("modifier_groups")
+      .update({ shared_origin_id: null })
+      .eq("id", id);
+    if (error) return { error: error.message };
+  } else {
+    // The ORIGIN is leaving the family. Its siblings point at it, so one of
+    // them is promoted and the rest re-pointed; otherwise they would keep
+    // mirroring a group that no longer considers itself shared.
+    const [heir, ...rest] = siblings;
+    const { error } = await supabase
+      .from("modifier_groups")
+      .update({ shared_origin_id: null })
+      .eq("id", heir);
+    if (error) return { error: error.message };
+    if (rest.length > 0) {
+      await supabase
+        .from("modifier_groups")
+        .update({ shared_origin_id: heir })
+        .in("id", rest);
+    }
+  }
 
   revalidatePath("/app/menu/products");
   revalidatePublicMenu(restaurantSlug);
