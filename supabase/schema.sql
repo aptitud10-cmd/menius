@@ -311,7 +311,9 @@ CREATE TABLE public.modifier_groups (
   is_required boolean NOT NULL DEFAULT false,
   sort_order integer DEFAULT 0,
   display_type text NOT NULL DEFAULT 'list'::text,
-  depends_on_option_id uuid
+  depends_on_option_id uuid,
+  translations jsonb,
+  shared_origin_id uuid
 );
 
 CREATE TABLE public.modifier_options (
@@ -320,7 +322,9 @@ CREATE TABLE public.modifier_options (
   name text NOT NULL,
   price_delta numeric DEFAULT 0,
   is_default boolean DEFAULT false,
-  sort_order integer DEFAULT 0
+  sort_order integer DEFAULT 0,
+  cost_price numeric DEFAULT NULL::numeric,
+  translations jsonb
 );
 
 CREATE TABLE public.notifications (
