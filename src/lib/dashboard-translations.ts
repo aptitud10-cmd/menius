@@ -1786,12 +1786,12 @@ const es: DashboardTranslations = {
   editor_legacyVariants: "Variantes existentes",
   editor_legacyExtras: "Extras existentes",
   editor_legacyHint:
-    "Estas opciones fueron creadas con el sistema anterior. Puedes convertirlas al nuevo sistema o eliminarlas.",
+    "Estos agregados quedaron de una versión anterior de MENIUS. Siguen funcionando en el menú, pero no admiten precio de costo, traducciones ni reglas de «elegí 1». Convertilos para poder usar todo eso.",
   editor_legacyDeleteConfirm: "¿Eliminar esta opción?",
   editor_legacyMigrate: "Convertir a grupos",
   editor_legacyMigrating: "Convirtiendo...",
   editor_legacyMigrateConfirm:
-    "Se crearán grupos de opciones con estos datos y se eliminarán los originales. ¿Continuar?",
+    "Los agregados de arriba pasan a ser un grupo normal de este plato, con las mismas opciones y los mismos precios.\n\nEl cliente ve lo mismo en el menú. No se toca ningún otro plato.\n\n¿Convertir?",
   editor_legacyMigrateDone: "Opciones convertidas",
   editor_basicInfo: "Información básica",
   editor_uploading: "Subiendo...",
@@ -3170,12 +3170,12 @@ const en: DashboardTranslations = {
   editor_legacyVariants: "Existing variants",
   editor_legacyExtras: "Existing extras",
   editor_legacyHint:
-    "These options were created with the previous system. You can convert them to the new system or delete them.",
+    "These add-ons are left over from an older version of MENIUS. They still work on the menu, but they can't carry a cost price, translations, or “pick 1” rules. Convert them to use all of that.",
   editor_legacyDeleteConfirm: "Delete this option?",
   editor_legacyMigrate: "Convert to groups",
   editor_legacyMigrating: "Converting...",
   editor_legacyMigrateConfirm:
-    "This will create option groups from this data and delete the originals. Continue?",
+    "The add-ons above become a regular group on this item, with the same options and the same prices.\n\nCustomers see the same thing on the menu. No other item is touched.\n\nConvert?",
   editor_legacyMigrateDone: "Options converted",
   editor_basicInfo: "Basic information",
   editor_uploading: "Uploading...",

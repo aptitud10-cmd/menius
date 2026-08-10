@@ -1804,6 +1804,19 @@ export async function migrateLegacyOptions(productId: string) {
     .maybeSingle();
   if (!product) return { error: "No encontrado" };
 
+  // The generated group names are shown to CUSTOMERS on the public menu, so
+  // they follow the restaurant's own language. They used to be the Spanish
+  // literals "Opciones"/"Extras", which put a Spanish heading in the middle of
+  // an English menu.
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("locale")
+    .eq("id", restaurantId)
+    .maybeSingle();
+  const menuIsEnglish = String(restaurant?.locale ?? "es").startsWith("en");
+  const variantsGroupName = menuIsEnglish ? "Options" : "Opciones";
+  const extrasGroupName = menuIsEnglish ? "Extras" : "Extras";
+
   const [variantsRes, extrasRes, groupsRes] = await Promise.all([
     supabase
       .from("product_variants")
@@ -1846,7 +1859,7 @@ export async function migrateLegacyOptions(productId: string) {
       .from("modifier_groups")
       .insert({
         product_id: productId,
-        name: "Opciones",
+        name: variantsGroupName,
         selection_type: "single",
         min_select: 1,
         max_select: 1,
@@ -1879,7 +1892,7 @@ export async function migrateLegacyOptions(productId: string) {
       .from("modifier_groups")
       .insert({
         product_id: productId,
-        name: "Extras",
+        name: extrasGroupName,
         selection_type: "multi",
         min_select: 0,
         max_select: extras.length,
