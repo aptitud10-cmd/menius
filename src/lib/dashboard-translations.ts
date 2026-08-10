@@ -591,6 +591,18 @@ export interface DashboardTranslations {
   modifiers_unlink: string;
   modifiers_unlinkConfirm: string;
   modifiers_libraryEmpty: string;
+  modifiers_modeQuestion: string;
+  modifiers_copyModeTitle: string;
+  modifiers_copyModeBody: string;
+  modifiers_copyModeSafe: string;
+  modifiers_linkModeTitle: string;
+  modifiers_linkModeBody: string;
+  modifiers_linkModeCaution: string;
+  modifiers_pickGroups: string;
+  modifiers_copyAction: string;
+  modifiers_linkAction: string;
+  modifiers_linkConfirm: string;
+  modifiers_changeMode: string;
   // Per-option cost
   modifiers_optionCost: string;
   modifiers_optionCostHint: string;
@@ -1898,6 +1910,21 @@ const es: DashboardTranslations = {
   modifiers_unlinkConfirm:
     "¿Quitar este grupo de este plato? Seguirá existiendo en los demás platos enlazados.",
   modifiers_libraryEmpty: "No hay grupos en otros platos todavía",
+  modifiers_modeQuestion: "¿Cómo querés agregarlo?",
+  modifiers_copyModeTitle: "Hacer una copia",
+  modifiers_copyModeBody:
+    "Este plato queda con su propia versión. Si después la editás, no se toca ningún otro plato.",
+  modifiers_copyModeSafe: "Recomendado",
+  modifiers_linkModeTitle: "Enlazar",
+  modifiers_linkModeBody:
+    "Un mismo grupo para varios platos: lo editás una vez y cambia en todos.",
+  modifiers_linkModeCaution: "Editarlo después afecta a los otros platos",
+  modifiers_pickGroups: "Elegí qué grupos agregar",
+  modifiers_copyAction: "Copiar {n} grupo(s)",
+  modifiers_linkAction: "Enlazar {n} grupo(s)",
+  modifiers_linkConfirm:
+    "Vas a enlazar {n} grupo(s).\n\nDe ahora en más, editar cualquiera de estos grupos — el precio de un agregado, su nombre, o las opciones — cambia también los otros platos que lo comparten.\n\n¿Seguimos?",
+  modifiers_changeMode: "Cambiar",
   // Per-option cost
   modifiers_optionCost: "Costo",
   modifiers_optionCostHint: "Costo real de este agregado. Se usa para el margen.",
@@ -3267,6 +3294,21 @@ const en: DashboardTranslations = {
   modifiers_unlinkConfirm:
     "Remove this group from this item? It will still exist on the other linked items.",
   modifiers_libraryEmpty: "No groups on other items yet",
+  modifiers_modeQuestion: "How do you want to add it?",
+  modifiers_copyModeTitle: "Make a copy",
+  modifiers_copyModeBody:
+    "This item gets its own version. Editing it later won't touch any other item.",
+  modifiers_copyModeSafe: "Recommended",
+  modifiers_linkModeTitle: "Link",
+  modifiers_linkModeBody:
+    "One group shared by several items: edit it once and it changes everywhere.",
+  modifiers_linkModeCaution: "Editing it later affects the other items",
+  modifiers_pickGroups: "Choose which groups to add",
+  modifiers_copyAction: "Copy {n} group(s)",
+  modifiers_linkAction: "Link {n} group(s)",
+  modifiers_linkConfirm:
+    "You're about to link {n} group(s).\n\nFrom now on, editing any of these groups — an add-on's price, its name, or the options — also changes the other items sharing it.\n\nContinue?",
+  modifiers_changeMode: "Change",
   // Per-option cost
   modifiers_optionCost: "Cost",
   modifiers_optionCostHint: "Actual cost of this add-on. Used for margin.",

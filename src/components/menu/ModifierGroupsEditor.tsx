@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Pencil, Trash2, Layers, ChevronRight, Ruler, UtensilsCrossed, Flame, Salad, Settings2, X, LayoutList, LayoutGrid, GripVertical, GitBranch, Copy, Link2, Unlink, Loader2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Layers, ChevronRight, Ruler, UtensilsCrossed, Flame, Salad, Settings2, X, LayoutList, LayoutGrid, GripVertical, GitBranch, Copy, Link2, Unlink, Loader2, Search, AlertTriangle } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -731,7 +731,10 @@ function LibraryPicker({
 }) {
   const [available, setAvailable] = useState<ReusableGroup[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [mode, setMode] = useState<'link' | 'copy'>('link');
+  // Deliberately null until chosen. The first screen is the decision itself —
+  // copy or link — because it is the only thing here with consequences beyond
+  // this dish, and a preselected mode invites picking groups without reading it.
+  const [mode, setMode] = useState<'link' | 'copy' | null>(null);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -767,7 +770,16 @@ function LibraryPicker({
   };
 
   const handleAttach = async () => {
-    if (picked.size === 0) return;
+    if (picked.size === 0 || !mode) return;
+    // Linking is the only irreversible-feeling action here: from this point on,
+    // an edit made on this dish silently changes others. Spelled out once,
+    // naming the count, before it happens.
+    if (mode === 'link') {
+      const ok = confirm(
+        t.modifiers_linkConfirm.replace('{n}', String(picked.size)),
+      );
+      if (!ok) return;
+    }
     setBusy(true);
     const res = await attachModifierGroups(productId, Array.from(picked), mode);
     setBusy(false);
@@ -778,38 +790,78 @@ function LibraryPicker({
     <div className="rounded-lg border border-emerald-200 bg-emerald-50/30 p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
-          {t.modifiers_addExistingTitle}
+          {t.modifiers_addExisting}
         </p>
         <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setMode('link')}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all',
-            mode === 'link' ? 'bg-blue-50 border-blue-400 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300',
-          )}
-        >
-          <Link2 className="w-3.5 h-3.5" /> {t.modifiers_linkMode}
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('copy')}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all',
-            mode === 'copy' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300',
-          )}
-        >
-          <Copy className="w-3.5 h-3.5" /> {t.modifiers_copyMode}
-        </button>
-      </div>
-      <p className="text-[10px] text-gray-500 -mt-1">
-        {mode === 'link' ? t.modifiers_linkModeHint : t.modifiers_copyModeHint}
-      </p>
+      {/* Step 1 — the decision, on its own screen. Each option states its
+          consequence before it is picked, instead of a footnote underneath. */}
+      {mode === null ? (
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-gray-900">{t.modifiers_modeQuestion}</p>
+
+          <button
+            type="button"
+            onClick={() => setMode('copy')}
+            className="w-full text-left p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/40 focus:outline-none focus:border-emerald-400 transition-colors group"
+          >
+            <span className="flex items-center gap-2 mb-1">
+              <Copy className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span className="text-sm font-bold text-gray-900">{t.modifiers_copyModeTitle}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                {t.modifiers_copyModeSafe}
+              </span>
+            </span>
+            <span className="block text-xs text-gray-600 leading-relaxed pl-6">
+              {t.modifiers_copyModeBody}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMode('link')}
+            className="w-full text-left p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/40 focus:outline-none focus:border-blue-400 transition-colors"
+          >
+            <span className="flex items-center gap-2 mb-1">
+              <Link2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <span className="text-sm font-bold text-gray-900">{t.modifiers_linkModeTitle}</span>
+            </span>
+            <span className="block text-xs text-gray-600 leading-relaxed pl-6">
+              {t.modifiers_linkModeBody}
+            </span>
+            <span className="flex items-center gap-1.5 mt-2 pl-6 text-[11px] font-semibold text-amber-700">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              {t.modifiers_linkModeCaution}
+            </span>
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Step 2 — the chosen mode stays visible and reversible, so the
+              decision never scrolls out of sight while picking groups. */}
+          <div className={cn(
+            'flex items-center gap-2 px-3 py-2 rounded-lg border',
+            mode === 'link' ? 'bg-blue-50 border-blue-200' : 'bg-emerald-50 border-emerald-200',
+          )}>
+            {mode === 'link'
+              ? <Link2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              : <Copy className="w-4 h-4 text-emerald-600 flex-shrink-0" />}
+            <span className={cn(
+              'text-xs font-bold flex-1 min-w-0',
+              mode === 'link' ? 'text-blue-800' : 'text-emerald-800',
+            )}>
+              {mode === 'link' ? t.modifiers_linkModeTitle : t.modifiers_copyModeTitle}
+            </span>
+            <button
+              onClick={() => { setMode(null); setPicked(new Set()); }}
+              className="text-[11px] font-semibold text-gray-500 hover:text-gray-800 underline flex-shrink-0"
+            >
+              {t.modifiers_changeMode}
+            </button>
+          </div>
 
       {available === null ? (
         <div className="flex items-center justify-center py-6 text-gray-400">
@@ -819,6 +871,8 @@ function LibraryPicker({
         <p className="text-xs text-gray-500 text-center py-6">{t.modifiers_libraryEmpty}</p>
       ) : (
         <>
+          <p className="text-xs font-semibold text-gray-700">{t.modifiers_pickGroups}</p>
+
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
@@ -839,14 +893,23 @@ function LibraryPicker({
                       key={g.id}
                       className={cn(
                         'flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all',
-                        picked.has(g.id) ? 'bg-white border-emerald-400' : 'bg-white/60 border-gray-200 hover:border-gray-300',
+                        picked.has(g.id)
+                          ? mode === 'link'
+                            ? 'bg-white border-blue-400'
+                            : 'bg-white border-emerald-400'
+                          : 'bg-white/60 border-gray-200 hover:border-gray-300',
                       )}
                     >
                       <input
                         type="checkbox"
                         checked={picked.has(g.id)}
                         onChange={() => toggle(g.id)}
-                        className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
+                        className={cn(
+                          'w-4 h-4 rounded border-gray-300 focus:ring-2',
+                          mode === 'link'
+                            ? 'text-blue-600 focus:ring-blue-400'
+                            : 'text-emerald-600 focus:ring-emerald-400',
+                        )}
                       />
                       <span className="flex-1 text-sm text-gray-800 font-medium truncate">{g.name}</span>
                       <span className="text-[10px] text-gray-400 flex-shrink-0">
@@ -859,31 +922,34 @@ function LibraryPicker({
             ))}
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
+          {/* The button names the action and the count, so the last thing read
+              before committing is what will actually happen. */}
+          <div className="flex items-center gap-3 pt-1">
             <button
               onClick={handleAttach}
               disabled={busy || picked.size === 0}
-              className="dash-btn-primary text-xs py-2 disabled:opacity-50"
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+                mode === 'link'
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-emerald-600 hover:bg-emerald-700',
+              )}
             >
-              {busy
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t.modifiers_copying}</>
-                : mode === 'link'
-                  ? <><Link2 className="w-3.5 h-3.5" /> {t.modifiers_linkMode}</>
-                  : <><Copy className="w-3.5 h-3.5" /> {t.modifiers_copyMode}</>}
+              {busy ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t.modifiers_copying}</>
+              ) : mode === 'link' ? (
+                <><Link2 className="w-3.5 h-3.5" /> {t.modifiers_linkAction.replace('{n}', String(picked.size))}</>
+              ) : (
+                <><Copy className="w-3.5 h-3.5" /> {t.modifiers_copyAction.replace('{n}', String(picked.size))}</>
+              )}
             </button>
-            {picked.size > 0 && (
-              <span className="text-[11px] text-gray-500">
-                {t.modifiers_copyGroupCount.replace('{n}', String(picked.size))}
-              </span>
-            )}
             <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-700 ml-auto">
               {t.general_cancel}
             </button>
           </div>
-          <p className="text-[10px] text-gray-400">
-            {mode === 'copy' ? t.modifiers_copyFromHint : t.modifiers_addExistingHint}
-          </p>
         </>
+      )}
+      </>
       )}
     </div>
   );
