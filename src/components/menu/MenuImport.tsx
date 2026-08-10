@@ -3,7 +3,8 @@
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Camera, Loader2, Check, X, Sparkles, AlertTriangle, Plus, ChevronDown, ChevronRight, ImageIcon } from 'lucide-react';
-import { createCategory, createProduct, updateProduct, createVariant, createExtra, createModifierGroup, createModifierOption } from '@/lib/actions/restaurant';
+import { createCategory, createProduct, updateProduct, createModifierGroup, createModifierOption } from '@/lib/actions/restaurant';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface ImportedVariant {
   name: string;
@@ -74,6 +75,12 @@ const IMAGE_STYLES = [
 ] as const;
 
 export function MenuImport({ existingCategories, currency, onComplete, onClose }: MenuImportProps) {
+  const { locale: dashLocale } = useDashboardLocale();
+  // Group names generated on import are shown to CUSTOMERS on the menu.
+  const legacyGroupNames = dashLocale === 'en'
+    ? { variants: 'Options', extras: 'Extras' }
+    : { variants: 'Opciones', extras: 'Adicionales' };
+
   const [step, setStep] = useState<'upload' | 'review' | 'importing' | 'generating-images' | 'done'>('upload');
   const [items, setItems] = useState<ImportedItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -229,12 +236,55 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
 
         createdProducts.push({ id: productId, name: item.name, description: item.description, category: item.category });
 
-        for (const v of item.variants) {
-          await createVariant(productId, { name: v.name, price_delta: v.price_delta, sort_order: v.sort_order });
+        // Imported variants/extras land straight in modifier groups. They used
+        // to be written to the old product_variants / product_extras tables,
+        // which meant every import re-created legacy data that the editor can
+        // no longer show.
+        if (item.variants.length > 0) {
+          const sizes = await createModifierGroup(productId, {
+            name: legacyGroupNames.variants,
+            selection_type: 'single',
+            min_select: 1,
+            max_select: 1,
+            is_required: true,
+            sort_order: 0,
+          });
+          const sizesId = sizes && 'group' in sizes ? (sizes.group as { id: string })?.id : null;
+          if (sizesId) {
+            const ordered = [...item.variants].sort((a, b) => a.price_delta - b.price_delta);
+            for (let i = 0; i < ordered.length; i++) {
+              await createModifierOption(sizesId, {
+                name: ordered[i].name,
+                price_delta: ordered[i].price_delta,
+                // The cheapest option comes preselected, so a required group
+                // never blocks the customer with nothing chosen.
+                is_default: i === 0,
+                sort_order: i,
+              });
+            }
+          }
         }
 
-        for (const e of item.extras) {
-          await createExtra(productId, { name: e.name, price: e.price, sort_order: e.sort_order });
+        if (item.extras.length > 0) {
+          const extrasGroup = await createModifierGroup(productId, {
+            name: legacyGroupNames.extras,
+            selection_type: 'multi',
+            min_select: 0,
+            max_select: item.extras.length,
+            is_required: false,
+            sort_order: 1,
+          });
+          const extrasId = extrasGroup && 'group' in extrasGroup ? (extrasGroup.group as { id: string })?.id : null;
+          if (extrasId) {
+            for (let i = 0; i < item.extras.length; i++) {
+              await createModifierOption(extrasId, {
+                name: item.extras[i].name,
+                price_delta: item.extras[i].price,
+                is_default: false,
+                sort_order: i,
+              });
+            }
+          }
         }
 
         for (const mg of item.modifier_groups) {

@@ -10,7 +10,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     await Promise.all([
       supabase
         .from('products')
-        .select('*, product_variants(*), product_extras(*), restaurants(slug)')
+        .select('*, restaurants(slug)')
         .eq('id', id)
         .eq('restaurant_id', rid)
         .maybeSingle(),
@@ -25,8 +25,6 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
   const mapped = {
     ...product,
-    variants: (product.product_variants ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order),
-    extras: (product.product_extras ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order),
     modifier_groups: (modifierGroups ?? [])
       .sort((a: any, b: any) => a.sort_order - b.sort_order)
       .map((g: any) => ({

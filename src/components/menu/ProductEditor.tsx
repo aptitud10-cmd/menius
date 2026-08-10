@@ -6,17 +6,16 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, Loader2, Check, Camera, Trash2, X,
   ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages, Sparkles, Link2, ExternalLink, Anchor,
-  ArrowRightLeft, Boxes,
+  Boxes,
 } from 'lucide-react';
-import { createProduct, updateProduct, deleteProduct, deleteVariant, deleteExtra, migrateLegacyOptions } from '@/lib/actions/restaurant';
+import { createProduct, updateProduct, deleteProduct } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/dashboard/DashToast';
-import type { Product, Category, DietaryTag, ContentTranslation, ProductVariant, ProductExtra, ModifierGroup } from '@/types';
+import type { Product, Category, DietaryTag, ContentTranslation, ModifierGroup } from '@/types';
 import { getTranslations } from '@/lib/translations';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
-import type { DashboardTranslations } from '@/lib/dashboard-translations';
 import { ModifierGroupsEditor } from './ModifierGroupsEditor';
 import { MediaPicker } from './MediaPicker';
 import { CustomizationSheet } from '@/components/public/CustomizationSheet';
@@ -39,124 +38,6 @@ interface Props {
   allProducts?: Product[];
   restaurantId?: string;
   kdsStations?: KDSStation[];
-}
-
-function LegacyOptionsSection({
-  productId,
-  variants,
-  extras,
-  currency,
-  t,
-}: {
-  productId: string;
-  variants: ProductVariant[];
-  extras: ProductExtra[];
-  currency: string;
-  t: DashboardTranslations;
-}) {
-  const router = useRouter();
-  const toast = useToast();
-  const [pending, setPending] = useState<string | null>(null);
-  const [migrating, setMigrating] = useState(false);
-
-  const handleMigrate = async () => {
-    if (!confirm(t.editor_legacyMigrateConfirm)) return;
-    setMigrating(true);
-    const res = await migrateLegacyOptions(productId);
-    setMigrating(false);
-    if (res.error) {
-      toast.error(res.error);
-      return;
-    }
-    toast.success(t.editor_legacyMigrateDone);
-    router.refresh();
-  };
-
-  const handleDeleteVariant = async (id: string) => {
-    if (!confirm(t.editor_legacyDeleteConfirm)) return;
-    setPending(id);
-    const res = await deleteVariant(id);
-    setPending(null);
-    if (!res.error) router.refresh();
-  };
-
-  const handleDeleteExtra = async (id: string) => {
-    if (!confirm(t.editor_legacyDeleteConfirm)) return;
-    setPending(id);
-    const res = await deleteExtra(id);
-    setPending(null);
-    if (!res.error) router.refresh();
-  };
-
-  return (
-    <div className="bg-amber-50 rounded-xl border border-amber-200 p-5">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <p className="text-xs text-amber-600">{t.editor_legacyHint}</p>
-        <button
-          onClick={handleMigrate}
-          disabled={migrating}
-          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50"
-        >
-          {migrating
-            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            : <ArrowRightLeft className="w-3.5 h-3.5" />}
-          {migrating ? t.editor_legacyMigrating : t.editor_legacyMigrate}
-        </button>
-      </div>
-
-      {variants.length > 0 && (
-        <div className="mb-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">{t.editor_legacyVariants}</h3>
-          <div className="space-y-1.5">
-            {variants.map((v) => (
-              <div key={v.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-800">{v.name}</span>
-                  {v.price_delta !== 0 && (
-                    <span className="text-xs text-gray-500">
-                      {v.price_delta > 0 ? '+' : ''}{currency}{v.price_delta.toFixed(2)}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleDeleteVariant(v.id)}
-                  disabled={pending === v.id}
-                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
-                >
-                  {pending === v.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {extras.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">{t.editor_legacyExtras}</h3>
-          <div className="space-y-1.5">
-            {extras.map((e) => (
-              <div key={e.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-800">{e.name}</span>
-                  {e.price > 0 && (
-                    <span className="text-xs text-gray-500">+{currency}{e.price.toFixed(2)}</span>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleDeleteExtra(e.id)}
-                  disabled={pending === e.id}
-                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
-                >
-                  {pending === e.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 export function ProductEditor({
@@ -838,17 +719,6 @@ export function ProductEditor({
                 </div>
               )}
             </div>
-
-            {/* Legacy Variants & Extras */}
-            {isEditing && product && ((product.variants?.length ?? 0) > 0 || (product.extras?.length ?? 0) > 0) && (
-              <LegacyOptionsSection
-                productId={product.id}
-                variants={product.variants ?? []}
-                extras={product.extras ?? []}
-                currency={currency}
-                t={t}
-              />
-            )}
 
             {/* Modifier Groups */}
             {isEditing && product && (

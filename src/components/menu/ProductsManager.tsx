@@ -25,7 +25,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
   createProduct, updateProduct, deleteProduct, reorderProducts, toggleProductStock,
-  createVariant, createExtra, createModifierGroup, createModifierOption,
+  createModifierGroup, createModifierOption,
   getProductForDuplication,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
@@ -204,16 +204,6 @@ export function ProductsManager({
         toastError(defaultLocale === 'en' ? 'Could not copy variants/modifiers' : 'No se pudieron copiar variantes/modificadores');
         window.location.reload();
         return;
-      }
-      // Copy variants
-      const variants = full.variants ?? [];
-      for (const v of variants) {
-        await createVariant(newId, { name: v.name, price_delta: v.price_delta, sort_order: v.sort_order });
-      }
-      // Copy extras
-      const extras = full.extras ?? [];
-      for (const e of extras) {
-        await createExtra(newId, { name: e.name, price: e.price, sort_order: e.sort_order });
       }
       // Copy modifier groups and their options
       const groups = full.modifier_groups ?? [];

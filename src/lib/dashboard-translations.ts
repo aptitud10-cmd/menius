@@ -473,14 +473,6 @@ export interface DashboardTranslations {
   editor_deleteConfirm: string;
   editor_deleting: string;
   editor_modifierGroups: string;
-  editor_legacyVariants: string;
-  editor_legacyExtras: string;
-  editor_legacyHint: string;
-  editor_legacyDeleteConfirm: string;
-  editor_legacyMigrate: string;
-  editor_legacyMigrating: string;
-  editor_legacyMigrateConfirm: string;
-  editor_legacyMigrateDone: string;
   editor_basicInfo: string;
   editor_uploading: string;
   editor_productUpdated: string;
@@ -1783,16 +1775,6 @@ const es: DashboardTranslations = {
     "¿Seguro que quieres eliminar este producto? Esta acción no se puede deshacer.",
   editor_deleting: "Eliminando...",
   editor_modifierGroups: "Grupos de opciones",
-  editor_legacyVariants: "Variantes existentes",
-  editor_legacyExtras: "Extras existentes",
-  editor_legacyHint:
-    "Estos agregados quedaron de una versión anterior de MENIUS. Siguen funcionando en el menú, pero no admiten precio de costo, traducciones ni reglas de «elegí 1». Convertilos para poder usar todo eso.",
-  editor_legacyDeleteConfirm: "¿Eliminar esta opción?",
-  editor_legacyMigrate: "Convertir a grupos",
-  editor_legacyMigrating: "Convirtiendo...",
-  editor_legacyMigrateConfirm:
-    "Los agregados de arriba pasan a ser un grupo normal de este plato, con las mismas opciones y los mismos precios.\n\nEl cliente ve lo mismo en el menú. No se toca ningún otro plato.\n\n¿Convertir?",
-  editor_legacyMigrateDone: "Opciones convertidas",
   editor_basicInfo: "Información básica",
   editor_uploading: "Subiendo...",
   editor_productUpdated: "Producto actualizado",
@@ -3167,16 +3149,6 @@ const en: DashboardTranslations = {
     "Are you sure you want to delete this product? This action cannot be undone.",
   editor_deleting: "Deleting...",
   editor_modifierGroups: "Options & extras",
-  editor_legacyVariants: "Existing variants",
-  editor_legacyExtras: "Existing extras",
-  editor_legacyHint:
-    "These add-ons are left over from an older version of MENIUS. They still work on the menu, but they can't carry a cost price, translations, or “pick 1” rules. Convert them to use all of that.",
-  editor_legacyDeleteConfirm: "Delete this option?",
-  editor_legacyMigrate: "Convert to groups",
-  editor_legacyMigrating: "Converting...",
-  editor_legacyMigrateConfirm:
-    "The add-ons above become a regular group on this item, with the same options and the same prices.\n\nCustomers see the same thing on the menu. No other item is touched.\n\nConvert?",
-  editor_legacyMigrateDone: "Options converted",
   editor_basicInfo: "Basic information",
   editor_uploading: "Uploading...",
   editor_productUpdated: "Product updated",
