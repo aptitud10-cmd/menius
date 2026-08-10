@@ -1,0 +1,46 @@
+-- Buccaneer's legacy product_variants / product_extras, converted to modifier
+-- groups. ALREADY APPLIED to production on 2026-08-10 — kept here as the record
+-- of what ran, since it was executed as data surgery rather than through the
+-- per-product "Convert to groups" button.
+--
+-- ── Why this could not be the in-app button ─────────────────────────────────
+-- The button migrates ONE product at a time and blindly creates a new group.
+-- Buccaneer had 87 products carrying legacy rows, and 75 of them ALREADY had
+-- new-style groups: 39 of the 128 legacy extras were exact duplicates (same
+-- name, same price) of an option the dish already offered. Running the button
+-- across the menu would have shown customers "Add Avocado +$1.25" twice on the
+-- same burger.
+--
+-- ── What ran ────────────────────────────────────────────────────────────────
+-- Backups first: _backup_bucc_legacy_variants_20260810 (68 rows) and
+-- _backup_bucc_legacy_extras_20260810 (128 rows).
+--
+--  1. Variants with no matching option → a required single-select "Size" group,
+--     cheapest option marked as the included default. 34 unique variants.
+--     (Every product had 2+ variants, so a forced single-choice group was never
+--     created for a decorative one-off.)
+--  2. Extras with no matching option → appended to the dish's EXISTING "Extras"
+--     group where one existed, otherwise a new optional multi-select group.
+--     89 unique extras.
+--  3. Exact duplicates were dropped rather than re-created.
+--  4. Legacy rows deleted only after verifying every one had a counterpart.
+--  5. 20 burgers ended up with both the pre-existing "Style" (Regular / Deluxe
+--     w/ Side & Coleslaw) and a new "Size" (Regular / Deluxe) asking the same
+--     question at identical prices. The redundant "Size" was removed; "Style"
+--     is the better group — it spells out what Deluxe includes and carries the
+--     conditional "Choice of Side" that hangs off it.
+--  6. Orange Juice and Tomato/V-8 Juice inherited the legacy order with Large
+--     first and preselected, which would have started the customer on the
+--     +$0.60 option. Reordered so the $0 size is the default.
+--
+-- ── Result ──────────────────────────────────────────────────────────────────
+-- 0 legacy rows, 0 repeated options within a group, 0 empty groups, and the
+-- wine list intact (Glass $7.95 included / Bottle +$20). The 38 required groups
+-- with no default are pre-existing ones like "Choice of Meat" — correct, since
+-- picking the meat should be a deliberate choice.
+--
+-- The per-product button still exists for the other restaurants, whose legacy
+-- data is small (~16 products each) and mostly free of overlap.
+
+-- No-op: recorded for history. See the backup tables for the original rows.
+select 1;
