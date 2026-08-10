@@ -20,6 +20,7 @@ import {
   safeParseJson,
 } from '@/lib/checkout-errors';
 import { supabaseLoader } from '@/lib/image-loader';
+import { showsAsRow } from '@/lib/product-display';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl skeleton" />;
 
@@ -1492,7 +1493,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             </div>
             {items.map((item, idx) => (
               <div key={`${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`} className="flex gap-3 items-start">
-                {item.product.image_url && (
+                {!showsAsRow(item.product) && item.product.image_url && (
                   <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                     <Image
                       src={item.product.image_url}

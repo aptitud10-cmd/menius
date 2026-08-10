@@ -126,6 +126,9 @@ export interface Product {
   is_new?: boolean;
   /** When true, this product can only be ordered for dine-in (e.g. alcohol). Enforced server-side in /api/orders. */
   dine_in_only?: boolean;
+  /** When true the menu lists this product as a compact row and ignores image_url.
+   *  Products with no image_url render as rows too — see showsAsRow() in @/lib/product-display. */
+  hide_image?: boolean;
   prep_time_minutes?: number | null;
   translations?: Record<string, ContentTranslation>;
   dietary_tags?: DietaryTag[];

@@ -46,6 +46,8 @@ import { getStoreOverrides } from "@/lib/store-overrides";
 import { MenuHeader, HEADER_HEIGHT } from "./MenuHeader";
 import { CategorySidebar } from "./CategorySidebar";
 import { ProductCard } from "./ProductCard";
+import { ProductRow } from "./ProductRow";
+import { splitByDisplay, showsAsRow } from "@/lib/product-display";
 import {
   collapseToGroups,
   resolveActivePill,
@@ -1145,6 +1147,13 @@ export function MenuShell({
     [searchQuery, products, categories, locale, defaultLocale],
   );
 
+  // searchResults is null while the query is too short to search — treat that as
+  // "nothing to split" so neither block renders.
+  const { cards: searchCards, rows: searchRows } = useMemo(
+    () => splitByDisplay(searchResults ?? []),
+    [searchResults],
+  );
+
   // Shown under an empty search field: a way in without typing.
   const searchSuggestions = useMemo(
     () => suggestedCategories(products, categories),
@@ -2200,56 +2209,87 @@ export function MenuShell({
                           </div>
                         </motion.div>
                       ) : (
-                        <motion.div
-                          className="grid grid-cols-2 lg:grid-cols-3 gap-3"
-                          initial="hidden"
-                          animate="visible"
-                          variants={{
-                            hidden: {},
-                            visible: {
-                              transition: {
-                                staggerChildren: isDesktopView ? 0.05 : 0,
+                        <>
+                          {/* Cards then rows, same as the category sections, but
+                              relevance order is preserved inside each block —
+                              splitByDisplay is stable, so the best-matching
+                              drink still leads the row list. */}
+                          <motion.div
+                            className={cn(
+                              "grid grid-cols-2 lg:grid-cols-3 gap-3",
+                              searchCards.length === 0 && "hidden",
+                            )}
+                            initial="hidden"
+                            animate="visible"
+                            variants={{
+                              hidden: {},
+                              visible: {
+                                transition: {
+                                  staggerChildren: isDesktopView ? 0.05 : 0,
+                                },
                               },
-                            },
-                          }}
-                        >
-                          {searchResults.map((product) => (
-                            <motion.div
-                              key={product.id}
-                              variants={
-                                isDesktopView
-                                  ? {
-                                      hidden: { opacity: 0, y: 14 },
-                                      visible: {
-                                        opacity: 1,
-                                        y: 0,
-                                        transition: {
-                                          duration: 0.28,
-                                          ease: "easeOut",
+                            }}
+                          >
+                            {searchCards.map((product) => (
+                              <motion.div
+                                key={product.id}
+                                variants={
+                                  isDesktopView
+                                    ? {
+                                        hidden: { opacity: 0, y: 14 },
+                                        visible: {
+                                          opacity: 1,
+                                          y: 0,
+                                          transition: {
+                                            duration: 0.28,
+                                            ease: "easeOut",
+                                          },
                                         },
-                                      },
-                                    }
-                                  : { hidden: {}, visible: {} }
-                              }
-                            >
-                              <ProductCard
-                                product={product}
-                                restaurantId={restaurant.id}
-                                onSelect={handleProductSelect}
-                                onQuickAdd={handleQuickAdd}
-                                fmtPrice={fmtPrice}
-                                addLabel={t.addToCart}
-                                customizeLabel={t.customize}
-                                popularLabel={t.popular}
-                                soldOutLabel={t.soldOut}
-                                unavailableLabel={t.unavailable}
-                                addedShortLabel={t.addedShort}
-                                locale={locale}
-                                defaultLocale={defaultLocale}
-                              />
-                            </motion.div>
-                          ))}
-                        </motion.div>
+                                      }
+                                    : { hidden: {}, visible: {} }
+                                }
+                              >
+                                <ProductCard
+                                  product={product}
+                                  restaurantId={restaurant.id}
+                                  onSelect={handleProductSelect}
+                                  onQuickAdd={handleQuickAdd}
+                                  fmtPrice={fmtPrice}
+                                  addLabel={t.addToCart}
+                                  customizeLabel={t.customize}
+                                  popularLabel={t.popular}
+                                  soldOutLabel={t.soldOut}
+                                  unavailableLabel={t.unavailable}
+                                  addedShortLabel={t.addedShort}
+                                  locale={locale}
+                                  defaultLocale={defaultLocale}
+                                />
+                              </motion.div>
+                            ))}
+                          </motion.div>
+                          {searchRows.length > 0 && (
+                            <div className={cn("border-t border-gray-100 lg:columns-2 lg:gap-x-10", searchCards.length > 0 && "mt-3")}>
+                              {searchRows.map((product) => (
+                                <ProductRow
+                                  key={product.id}
+                                  product={product}
+                                  restaurantId={restaurant.id}
+                                  onSelect={handleProductSelect}
+                                  onQuickAdd={handleQuickAdd}
+                                  fmtPrice={fmtPrice}
+                                  addLabel={t.addToCart}
+                                  customizeLabel={t.customize}
+                                  popularLabel={t.popular}
+                                  soldOutLabel={t.soldOut}
+                                  unavailableLabel={t.unavailable}
+                                  addedShortLabel={t.addedShort}
+                                  locale={locale}
+                                  defaultLocale={defaultLocale}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   ) : showFavs ? (
@@ -2271,28 +2311,60 @@ export function MenuShell({
                           <p className="text-sm mt-1">{t.noFavoritesHint}</p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                          {products
-                            .filter((p) => favIds.includes(p.id))
-                            .map((product) => (
-                              <ProductCard
-                                key={product.id}
-                                product={product}
-                                restaurantId={restaurant.id}
-                                onSelect={handleProductSelect}
-                                onQuickAdd={handleQuickAdd}
-                                fmtPrice={fmtPrice}
-                                addLabel={t.addToCart}
-                                customizeLabel={t.customize}
-                                popularLabel={t.popular}
-                                soldOutLabel={t.soldOut}
-                                unavailableLabel={t.unavailable}
-                                addedShortLabel={t.addedShort}
-                                locale={locale}
-                                defaultLocale={defaultLocale}
-                              />
-                            ))}
-                        </div>
+                        (() => {
+                          const { cards: favCards, rows: favRows } =
+                            splitByDisplay(
+                              products.filter((p) => favIds.includes(p.id)),
+                            );
+                          return (
+                            <>
+                              {favCards.length > 0 && (
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {favCards.map((product) => (
+                                    <ProductCard
+                                      key={product.id}
+                                      product={product}
+                                      restaurantId={restaurant.id}
+                                      onSelect={handleProductSelect}
+                                      onQuickAdd={handleQuickAdd}
+                                      fmtPrice={fmtPrice}
+                                      addLabel={t.addToCart}
+                                      customizeLabel={t.customize}
+                                      popularLabel={t.popular}
+                                      soldOutLabel={t.soldOut}
+                                      unavailableLabel={t.unavailable}
+                                      addedShortLabel={t.addedShort}
+                                      locale={locale}
+                                      defaultLocale={defaultLocale}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                              {favRows.length > 0 && (
+                                <div className={cn("border-t border-gray-100 lg:columns-2 lg:gap-x-10", favCards.length > 0 && "mt-3")}>
+                                  {favRows.map((product) => (
+                                    <ProductRow
+                                      key={product.id}
+                                      product={product}
+                                      restaurantId={restaurant.id}
+                                      onSelect={handleProductSelect}
+                                      onQuickAdd={handleQuickAdd}
+                                      fmtPrice={fmtPrice}
+                                      addLabel={t.addToCart}
+                                      customizeLabel={t.customize}
+                                      popularLabel={t.popular}
+                                      soldOutLabel={t.soldOut}
+                                      unavailableLabel={t.unavailable}
+                                      addedShortLabel={t.addedShort}
+                                      locale={locale}
+                                      defaultLocale={defaultLocale}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()
                       )}
                     </div>
                   ) : products.length === 0 ? (
@@ -2549,6 +2621,12 @@ export function MenuShell({
                             ({ category, items, available }) => {
                               const isPopular = category.id === POPULAR_ID;
                               const isLocked = !available;
+                              // Photo cards first, then the photo-less items as a
+                              // continuous list. Interleaving them leaves holes in
+                              // the grid; grouping them is also what makes the
+                              // photographed dishes read as the highlighted ones.
+                              const { cards: cardItems, rows: rowItems } =
+                                splitByDisplay(items);
                               return (
                                 <section
                                   key={category.id}
@@ -2620,12 +2698,13 @@ export function MenuShell({
                                         className={cn(
                                           "grid grid-cols-2 lg:grid-cols-3 gap-3",
                                           isLocked && "opacity-40",
+                                          cardItems.length === 0 && "hidden",
                                         )}
                                         {...(isLocked
                                           ? { "aria-hidden": true }
                                           : {})}
                                       >
-                                        {items.map((product) => {
+                                        {cardItems.map((product) => {
                                           const isPriority =
                                             globalProductIdx < 4;
                                           globalProductIdx++;
@@ -2657,6 +2736,7 @@ export function MenuShell({
                                         className={cn(
                                           "grid grid-cols-2 lg:grid-cols-3 gap-3",
                                           isLocked && "opacity-40",
+                                          cardItems.length === 0 && "hidden",
                                         )}
                                         {...(isLocked
                                           ? { "aria-hidden": true }
@@ -2685,7 +2765,7 @@ export function MenuShell({
                                             : undefined
                                         }
                                       >
-                                        {items.map((product) => {
+                                        {cardItems.map((product) => {
                                           // Solo las primeras imágenes above-the-fold
                                           // en priority (eager). 8 saturaba la conexión
                                           // mobile en el LCP de tiendas nuevas sin CDN
@@ -2736,6 +2816,40 @@ export function MenuShell({
                                           );
                                         })}
                                       </motion.div>
+                                    )}
+                                    {rowItems.length > 0 && (
+                                      <div
+                                        className={cn(
+                                          "border-t border-gray-100 lg:columns-2 lg:gap-x-10",
+                                          isLocked && "opacity-40",
+                                          cardItems.length > 0 && "mt-3",
+                                        )}
+                                        {...(isLocked
+                                          ? { "aria-hidden": true }
+                                          : {})}
+                                      >
+                                        {/* Two columns from lg so a list of drinks
+                                            doesn't stretch a name and a price to
+                                            opposite ends of a 1150px row. */}
+                                        {rowItems.map((product) => (
+                                          <ProductRow
+                                            key={product.id}
+                                            product={product}
+                                            restaurantId={restaurant.id}
+                                            onSelect={handleProductSelect}
+                                            onQuickAdd={handleQuickAdd}
+                                            fmtPrice={fmtPrice}
+                                            addLabel={t.addToCart}
+                                            customizeLabel={t.customize}
+                                            popularLabel={t.popular}
+                                            soldOutLabel={t.soldOut}
+                                            unavailableLabel={t.unavailable}
+                                            addedShortLabel={t.addedShort}
+                                            locale={locale}
+                                            defaultLocale={defaultLocale}
+                                          />
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
                                 </section>
@@ -3413,7 +3527,7 @@ export function MenuShell({
                         }}
                         className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
                       >
-                        {product.image_url ? (
+                        {!showsAsRow(product) && product.image_url && (
                           <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                             <Image
                               src={product.image_url}
@@ -3429,10 +3543,6 @@ export function MenuShell({
                               }
                               className="object-cover"
                             />
-                          </div>
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            <Search className="w-4 h-4 text-gray-300" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">

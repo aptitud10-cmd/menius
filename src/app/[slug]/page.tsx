@@ -522,6 +522,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
     is_featured: p.is_featured,
     is_new: p.is_new,
     dine_in_only: p.dine_in_only,
+    hide_image: p.hide_image ?? false,
     prep_time_minutes: p.prep_time_minutes ?? null,
     dietary_tags: p.dietary_tags,
     translations: p.translations,

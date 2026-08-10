@@ -67,6 +67,7 @@ export function ProductEditor({
     is_featured: product?.is_featured ?? false,
     is_new: product?.is_new ?? false,
     dine_in_only: product?.dine_in_only ?? false,
+    hide_image: (product as any)?.hide_image ?? false,
     prep_time_minutes: product?.prep_time_minutes ? String(product.prep_time_minutes) : '',
     cost_price: (product as any)?.cost_price != null ? String((product as any).cost_price) : '',
     compare_at_price: (product as any)?.compare_at_price != null ? String((product as any).compare_at_price) : '',
@@ -198,8 +199,9 @@ export function ProductEditor({
     description: form.description || (product?.description ?? ''),
     price: parseFloat(form.price) || Number(product?.price ?? 0),
     image_url: imagePreview ?? product?.image_url ?? null,
+    hide_image: form.hide_image,
     modifier_groups: liveGroups,
-  } as Product), [product, form.name, form.description, form.price, imagePreview, liveGroups]);
+  } as Product), [product, form.name, form.description, form.price, imagePreview, form.hide_image, liveGroups]);
 
   const previewLocale = (defaultLocale?.startsWith('en') ? 'en' : 'es') as 'en' | 'es';
   const previewT = useMemo(() => getTranslations(previewLocale), [previewLocale]);
@@ -344,6 +346,7 @@ export function ProductEditor({
             is_featured: form.is_featured,
             is_new: form.is_new,
             dine_in_only: form.dine_in_only,
+            hide_image: form.hide_image,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
             compare_at_price: compareAtPrice != null && !isNaN(compareAtPrice) && compareAtPrice > 0 ? compareAtPrice : null,
@@ -368,6 +371,7 @@ export function ProductEditor({
             is_active: form.is_active,
             is_new: form.is_new,
             dine_in_only: form.dine_in_only,
+            hide_image: form.hide_image,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
             compare_at_price: compareAtPrice != null && !isNaN(compareAtPrice) && compareAtPrice > 0 ? compareAtPrice : null,
@@ -669,6 +673,41 @@ export function ProductEditor({
                   <span className="text-xs text-gray-400">{t.editor_fileFormats}</span>
                 </div>
               )}
+
+              {/* Display choice. Sits with the image, not with the badges above,
+                  because it answers "what do we do with the photo" — and it is
+                  the only way to list an item as a row while keeping the file. */}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                {imagePreview ? (
+                  <label className="flex items-start justify-between gap-3 cursor-pointer">
+                    <span className="min-w-0">
+                      <span className="block text-sm text-gray-700">{t.editor_hideImage}</span>
+                      <span className="block text-xs text-gray-400 mt-0.5 leading-snug">
+                        {t.editor_hideImageHint}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={form.hide_image}
+                      onClick={() => setForm(prev => ({ ...prev, hide_image: !prev.hide_image }))}
+                      className={cn(
+                        'relative w-11 h-6 rounded-full transition-colors flex-shrink-0 mt-0.5',
+                        form.hide_image ? 'bg-emerald-500' : 'bg-gray-300',
+                      )}
+                    >
+                      <span className={cn(
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                        form.hide_image && 'translate-x-5',
+                      )} />
+                    </button>
+                  </label>
+                ) : (
+                  <p className="text-xs text-gray-400 leading-snug">
+                    {t.editor_hideImageNoPhoto}
+                  </p>
+                )}
+              </div>
 
               {/* Anchor controls — shown after AI generation */}
               {selectedCategory?.name && (lastGeneratedUrl || anchorUrl) && (

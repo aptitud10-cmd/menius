@@ -47,6 +47,7 @@ export const productSchema = z.object({
   is_featured: z.boolean().optional(),
   is_new: z.boolean().optional(),
   dine_in_only: z.boolean().optional(),
+  hide_image: z.boolean().optional(),
   prep_time_minutes: z.number().int().min(1).max(120).nullable().optional(),
   dietary_tags: z.array(z.string()).optional(),
   translations: z.record(z.string(), contentTranslationSchema).nullable().optional(),
