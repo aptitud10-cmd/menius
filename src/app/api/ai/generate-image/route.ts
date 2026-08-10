@@ -251,10 +251,18 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
           `Replace the food subject in the reference image with: "${productName}"${description ? ` (${description})` : ""}.`,
           `The new food must look completely different from the original — do NOT copy or blend the original food subject.`,
           description
-            ? `Visible ingredients: ${description} — all must be clearly identifiable in the final image.`
+            ? `Visible ingredients: ${description} — all must be clearly identifiable in the final image, plated the way the dish is actually served.`
             : "",
-          `KEEP EXACTLY: background color and texture, lighting direction and color temperature, shadow depth, camera angle, color grading, plate and surface style, overall mood and atmosphere.`,
-          `CHANGE ONLY: the food subject itself.`,
+          `KEEP: background color and texture, lighting direction and color temperature, shadow depth, camera angle, color grading, overall mood and atmosphere.`,
+          `CHANGE: the food subject itself, and the vessel it is served in if the reference uses one that does not suit this dish.`,
+          // Anchors are themselves AI-generated and can carry defects. Without
+          // these, Kontext faithfully inherits whatever the anchor got wrong:
+          // Buccaneer's "Farm Fresh Eggs" anchor shows scrambled egg served in a
+          // cocktail glass with two studio lights in frame, so every dish in the
+          // category came out with a drinking glass and visible lighting rigs.
+          `HARD RULES, these override the reference image: NO studio lighting equipment, softbox, reflector, light stand or camera gear anywhere in frame — only the food, its plate and the surface. NO human hands. NO text or logos.`,
+          `Solid food must be served on a plate or in a bowl — NEVER inside a drinking glass, tumbler or cocktail glass. A glass is acceptable ONLY when the product itself is a drink.`,
+          `Ignore any garnish, side item or prop from the reference that does not belong to this dish.`,
           `Photorealistic commercial food photograph — NOT CGI, NOT illustration.`,
           `New subject centered, occupying 60–70% of the frame.`,
         ]

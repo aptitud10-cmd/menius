@@ -150,6 +150,13 @@ export function ProductEditor({
         toastSuccess(dashLocale === 'en'
           ? `Reference set for "${selectedCategory.name}"`
           : `Referencia definida para "${selectedCategory.name}"`);
+      } else {
+        // A rejected anchor is worth explaining: the reason names the defect
+        // that would otherwise have been copied onto every dish in the category.
+        const data = await res.json().catch(() => null);
+        toastError(data?.error ?? (dashLocale === 'en'
+          ? 'Could not save reference'
+          : 'No se pudo guardar la referencia'));
       }
     } catch {
       toastError(dashLocale === 'en' ? 'Could not save reference' : 'No se pudo guardar la referencia');
