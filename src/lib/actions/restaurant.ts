@@ -1148,11 +1148,26 @@ export async function createModifierOption(
     .maybeSingle();
   if (!group) return { error: "No encontrado" };
 
+  // Position is derived from the highest existing sort_order, NOT from the
+  // client's count. Deleting a middle option leaves a gap (0,1,3), so a count
+  // of 3 would hand the new option sort_order 3 — colliding with the one
+  // already there. That matters beyond ordering: shared groups pair their
+  // options across dishes BY sort_order, so a duplicate makes one edit rewrite
+  // two different options on every linked dish.
+  const { data: last } = await supabase
+    .from("modifier_options")
+    .select("sort_order")
+    .eq("group_id", groupId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextSort = last ? Number(last.sort_order) + 1 : 0;
+
   const payload = {
     name: sanitizeText(data.name, 100),
     price_delta: data.price_delta,
     is_default: data.is_default,
-    sort_order: data.sort_order,
+    sort_order: nextSort,
     cost_price: normalizeCost(data.cost_price),
     translations: sanitizeTranslations(data.translations),
   };
@@ -1277,9 +1292,54 @@ export async function deleteModifierOption(id: string) {
     },
   );
 
+  // Close the gap the delete just opened, across the whole shared family.
+  // sort_order is what pairs an option with its counterpart on another dish,
+  // so leaving holes (0,1,3) lets positions drift apart over time.
+  const ownedRow = owned as OwnedOptionRow;
+  const ownedGroup = Array.isArray(ownedRow.modifier_groups)
+    ? ownedRow.modifier_groups[0]
+    : ownedRow.modifier_groups;
+  if (ownedGroup) {
+    const family = [
+      ownedRow.group_id,
+      ...(await sharedSiblingIds(supabase, ownedGroup)),
+    ];
+    await Promise.all(family.map((gid) => compactOptionOrder(supabase, gid)));
+  }
+
   revalidatePath("/app/menu/products");
   revalidatePublicMenu(restaurantSlug);
   return { success: true };
+}
+
+/**
+ * Renumbers a group's options to 0..n-1, preserving their current order.
+ *
+ * Only writes the rows whose position actually changed, so the common case
+ * (deleting the last option) costs nothing.
+ */
+async function compactOptionOrder(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  groupId: string,
+): Promise<void> {
+  const { data } = await supabase
+    .from("modifier_options")
+    .select("id, sort_order")
+    .eq("group_id", groupId)
+    .order("sort_order", { ascending: true });
+
+  const rows = data ?? [];
+  await Promise.all(
+    rows
+      .map((row, index) => ({ row, index }))
+      .filter(({ row, index }) => Number(row.sort_order) !== index)
+      .map(({ row, index }) =>
+        supabase
+          .from("modifier_options")
+          .update({ sort_order: index })
+          .eq("id", row.id),
+      ),
+  );
 }
 
 export async function reorderModifierGroups(
@@ -1327,7 +1387,7 @@ export async function reorderModifierOptions(
 
   const { data: owned } = await supabase
     .from("modifier_groups")
-    .select("id, products!inner(restaurant_id)")
+    .select("id, product_id, shared_origin_id, products!inner(restaurant_id)")
     .eq("id", groupId)
     .eq("products.restaurant_id", restaurantId)
     .maybeSingle();
@@ -1342,6 +1402,41 @@ export async function reorderModifierOptions(
         .eq("group_id", groupId),
     ),
   );
+
+  // Shared groups: siblings must be reordered too. Their options are separate
+  // rows paired only by position, so reordering one dish alone would leave the
+  // family misaligned and later edits would land on the wrong option.
+  // Matched by name, the one stable identifier siblings share.
+  const siblings = await sharedSiblingIds(supabase, owned as SharedGroupRow);
+  if (siblings.length > 0) {
+    const { data: sourceOptions } = await supabase
+      .from("modifier_options")
+      .select("name, sort_order")
+      .eq("group_id", groupId);
+    const positionByName = new Map(
+      (sourceOptions ?? []).map((o) => [o.name as string, Number(o.sort_order)]),
+    );
+
+    const { data: siblingOptions } = await supabase
+      .from("modifier_options")
+      .select("id, group_id, name, sort_order")
+      .in("group_id", siblings);
+
+    await Promise.all(
+      (siblingOptions ?? [])
+        .map((o) => ({ o, target: positionByName.get(o.name as string) }))
+        .filter(
+          ({ o, target }) => target !== undefined && Number(o.sort_order) !== target,
+        )
+        .map(({ o, target }) =>
+          supabase
+            .from("modifier_options")
+            .update({ sort_order: target })
+            .eq("id", o.id),
+        ),
+    );
+  }
+
   return { success: true };
 }
 
