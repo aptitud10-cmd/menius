@@ -97,9 +97,13 @@ export const ProductRow = memo(function ProductRow({
       )}
     >
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2">
+          {/* Wraps to a second line rather than truncating: "Hawaiian Pineapple
+              Juice" and "Assorted Sodas & Diet Sodas" both lose their
+              distinguishing word to an ellipsis, and two drinks that read the
+              same are worse than one row being taller. */}
           <h3 className={cn(
-            'font-semibold text-[15px] leading-snug truncate',
+            'font-semibold text-[15px] leading-snug line-clamp-2',
             outOfStock ? 'text-gray-400' : 'text-gray-950'
           )}>
             {displayName}
@@ -109,18 +113,18 @@ export const ProductRow = memo(function ProductRow({
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#05c8a7] text-white text-[11px] font-extrabold flex items-center justify-center tabular-nums leading-none flex-shrink-0"
+              className="mt-px min-w-[20px] h-5 px-1.5 rounded-full bg-[#05c8a7] text-white text-[11px] font-extrabold flex items-center justify-center tabular-nums leading-none flex-shrink-0"
             >
               {cartQty}
             </motion.span>
           )}
           {outOfStock && (
-            <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
+            <span className="mt-1 text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
               {labelSoldOut}
             </span>
           )}
           {!outOfStock && product.is_new && (
-            <span className="text-[10px] font-bold text-white bg-blue-500 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
+            <span className="mt-1 text-[10px] font-bold text-white bg-blue-500 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
               {t.productNew}
             </span>
           )}
