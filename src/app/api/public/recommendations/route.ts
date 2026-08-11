@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { UUID_RE } from '@/lib/constants';
+import { showsAsRow } from '@/lib/product-display';
 
 export interface RecommendationItem {
   product_id: string;
@@ -25,6 +26,7 @@ interface ProductRow {
   name: string;
   price: number;
   image_url: string | null;
+  hide_image?: boolean;
   category_id: string;
 }
 
@@ -129,7 +131,7 @@ export async function GET(req: NextRequest) {
     // 3. Product data for the last-order highlight (only in-stock)
     const { data: lastOrderProducts } = await db
       .from('products')
-      .select('id, name, price, image_url, category_id')
+      .select('id, name, price, image_url, hide_image, category_id')
       .eq('restaurant_id', restaurantId)
       .in('id', lastOrderProductIds)
       .eq('in_stock', true)
@@ -173,7 +175,7 @@ export async function GET(req: NextRequest) {
     if (topCoIds.length > 0) {
       const { data: coProducts } = await db
         .from('products')
-        .select('id, name, price, image_url, category_id')
+        .select('id, name, price, image_url, hide_image, category_id')
         .eq('restaurant_id', restaurantId)
         .in('id', topCoIds)
         .eq('in_stock', true);
@@ -185,7 +187,7 @@ export async function GET(req: NextRequest) {
       const shown = new Set([...Array.from(excludeIds), ...suggestedRows.map((p) => p.id)]);
       const { data: popularProducts } = await db
         .from('products')
-        .select('id, name, price, image_url, category_id')
+        .select('id, name, price, image_url, hide_image, category_id')
         .eq('restaurant_id', restaurantId)
         .eq('in_stock', true)
         .not('id', 'in', `(${Array.from(shown).join(',')})`)
@@ -205,7 +207,10 @@ export async function GET(req: NextRequest) {
       product_id: p.id,
       name: p.name,
       price: Number(p.price),
-      image_url: p.image_url ?? null,
+      // Nulled here, not in the UI: these rows reach the carousels as plain
+      // objects, so a row-display product would otherwise show a thumbnail the
+      // menu deliberately hides.
+      image_url: showsAsRow(p) ? null : (p.image_url ?? null),
       category_id: p.category_id,
       has_modifiers: hasModifiers.has(p.id),
       reason,

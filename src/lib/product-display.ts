@@ -1,5 +1,3 @@
-import type { Product } from '@/types';
-
 /**
  * Whether a product is listed as a compact row instead of a photo card.
  *
@@ -17,7 +15,13 @@ import type { Product } from '@/types';
  * Every surface that decides between photo and row must call this, or the menu
  * and the cart will disagree about the same product.
  */
-export function showsAsRow(product: Pick<Product, 'image_url' | 'hide_image'>): boolean {
+export function showsAsRow(product: {
+  // Widened past Product's `image_url: string`: the column is nullable in the
+  // database, and API routes that select it straight from Postgres hand us the
+  // honest `string | null`.
+  image_url?: string | null;
+  hide_image?: boolean | null;
+}): boolean {
   return product.hide_image === true || !product.image_url;
 }
 
@@ -30,7 +34,7 @@ export function showsAsRow(product: Pick<Product, 'image_url' | 'hide_image'>): 
  * reads the hole as a rendering bug. Grouping them also does the thing photos are
  * for — when only the dishes have pictures, the dishes are what stands out.
  */
-export function splitByDisplay<T extends Pick<Product, 'image_url' | 'hide_image'>>(
+export function splitByDisplay<T extends { image_url?: string | null; hide_image?: boolean | null }>(
   products: T[],
 ): { cards: T[]; rows: T[] } {
   const cards: T[] = [];

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
+import { showsAsRow } from '@/lib/product-display';
 
 const logger = createLogger('public:repeat-order');
 
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
     const productIds = (lastOrder.order_items as unknown[]).map((i) => (i as Record<string, unknown>).product_id as string);
     const { data: currentProducts } = await adminDb
       .from('products')
-      .select('id, name, price, in_stock, is_active, image_url')
+      .select('id, name, price, in_stock, is_active, image_url, hide_image')
       .in('id', productIds)
       .eq('is_active', true)
       .eq('in_stock', true);
@@ -103,7 +104,10 @@ export async function GET(request: NextRequest) {
           variant_name: item.variant_name,
           current_price: current.price,
           original_price: item.unit_price,
-          image_url: current.image_url,
+          // Resolved here rather than in the UI: the reorder views receive plain
+          // rows, not Products, so sending the URL at all would make them render
+          // a thumbnail for an item the menu deliberately lists without one.
+          image_url: showsAsRow(current) ? null : current.image_url,
           notes: item.notes,
           price_changed: Math.abs(Number(current.price) - Number(item.unit_price)) > 0.01,
           requires_customization: needsCustomization.has(item.product_id),

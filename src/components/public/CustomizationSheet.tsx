@@ -22,6 +22,7 @@ import {
   pruneHiddenSelections,
 } from "@/lib/conditional-modifiers";
 import { supabaseLoader, getBlurUrl } from "@/lib/image-loader";
+import { showsAsRow } from "@/lib/product-display";
 
 const DIETARY_TAGS_MAP = Object.fromEntries(DIETARY_TAGS.map((t) => [t.id, t]));
 
@@ -501,7 +502,12 @@ export function CustomizationSheet({
         } as React.CSSProperties
       }
     >
-      {product.image_url && (
+      {/* The detail sheet is the fifth surface that has to agree with the menu
+          about whether a product shows a photo. Without showsAsRow() a drink
+          listed as a row still opened onto a full-bleed hero image — Buccaneer's
+          nine beers all pointed at one generic stock photo of a sandwich, so
+          tapping "Corona" showed a panini. */}
+      {!showsAsRow(product) && product.image_url && (
         <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
           <div className="absolute inset-0">
@@ -775,7 +781,7 @@ export function CustomizationSheet({
                   className="group/card flex-shrink-0 w-[132px] lg:w-[160px] text-left bg-white rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
                 >
                   <div className="relative w-full aspect-square bg-gray-100">
-                    {p.image_url ? (
+                    {!showsAsRow(p) && p.image_url ? (
                       <Image
                         src={p.image_url}
                         alt={tName(p, locale, defaultLocale)}
