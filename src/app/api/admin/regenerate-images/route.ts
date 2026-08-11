@@ -93,6 +93,17 @@ export async function POST(request: NextRequest) {
         const catMap = new Map<string, string>();
         for (const cat of categories ?? []) catMap.set(cat.id, cat.name);
 
+        // The restaurant's own cuisine, which bulk regeneration never read. Left
+        // undefined, buildFoodPrompt falls back to guessing from the dish name —
+        // and that guess plated a US diner's "Steak Quesadillas" on Talavera
+        // pottery with cilantro and lime.
+        const { data: restaurantRow } = await adminSupabase
+          .from('restaurants')
+          .select('cuisine_type')
+          .eq('id', restaurantId)
+          .maybeSingle();
+        const cuisineType = (restaurantRow?.cuisine_type as string | null) ?? null;
+
         // ─── Fetch style anchors (category_name → { style, anchor_url }) ──
         const { data: anchors } = await adminSupabase
           .from('style_anchors')
@@ -260,6 +271,7 @@ export async function POST(request: NextRequest) {
                 productName: product.name,
                 description: product.description,
                 category: categoryName,
+                cuisine: cuisineType,
                 style: anchorStyle,
                 ingredientAnalysis,
               });

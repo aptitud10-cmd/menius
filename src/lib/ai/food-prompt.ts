@@ -115,6 +115,15 @@ const latinCuisineMap: Record<string, string> = {
     "Black lacquer or minimalist white ceramic. Wasabi and pickled ginger with precision. Clean geometric presentation.",
   American:
     "White ceramic plate or rustic wooden board. Generous portion, crispy edges, casual fine-dining presentation.",
+  // A US diner is its own visual language and the most common one on the platform
+  // in the States. Without it, a diner's "Steak Quesadillas" and "Southwestern
+  // Burrito" fell through to the Mexican map and came back on Talavera pottery
+  // with cilantro and lime — food from a different restaurant.
+  // Says nothing about the plate: the BRAND SYSTEM below owns surface and
+  // plating, and repeating it here only produced contradictory instructions
+  // ("matte black plate" in one line, "plain white" in the next).
+  Diner:
+    "Classic American diner presentation. Generous, honest, unpretentious portions — no fine-dining tweezer plating, no microgreens, no smears or dots of sauce. Sauces come in small stainless steel or white ramekins on the side. NO cilantro, NO lime wedges, NO Talavera pottery, NO rustic clay or terracotta. Garnish at most a pickle spear, a lettuce-and-tomato side, or a parsley sprig.",
   Chinese:
     "Blue-and-white porcelain bowl. Steaming broth, chopsticks resting at the edge.",
 };
@@ -276,7 +285,9 @@ function getContainer(lowerName: string, isDrink: boolean): string {
     return "a tall highball glass packed with fresh mint leaves, lime wedges, clear ice cubes, with a thin straw";
   if (/wine|vino/.test(lowerName))
     return "a large elegant crystal wine glass, stem visible, held at the base";
-  if (/whiskey|bourbon|sour/.test(lowerName))
+  // "sour" anchored and excluded for food: sour cream, sourdough and sweet-and-sour
+  // are ingredients, not cocktails, and were being served in a rocks glass.
+  if (/\b(whiskey|bourbon|sour)\b/.test(lowerName) && !/cream|dough|sauce|sweet/.test(lowerName))
     return "a heavy-bottomed whiskey rocks glass with a single large clear ice sphere or cube";
   if (/limonada|lemonade/.test(lowerName))
     return "a tall clear highball glass with ice, fresh mint, and a lemon wheel on the rim, condensation visible";
@@ -284,7 +295,9 @@ function getContainer(lowerName: string, isDrink: boolean): string {
     return "a tall clear glass with ice, filled with creamy white horchata, a cinnamon stick resting on the rim";
   if (/smoothie|batido/.test(lowerName))
     return "a tall frosted glass with a paper straw and fresh fruit garnish on the rim";
-  if (/agua mineral|sparkling water|water/.test(lowerName))
+  // Word-anchored: the drink checks run before the food ones, so a bare /water/
+  // matched "Hand-Rolled Water Bagel" and served five bagels as bottled water.
+  if (/\b(agua mineral|sparkling water|bottled water|seltzer|water)\b/.test(lowerName) && !/bagel|chestnut/.test(lowerName))
     return "a clear glass bottle of water with heavy cold condensation on the glass, standing on crushed ice — NO fruit, NO lemon, NO lime, NO garnish of any kind";
   if (/jugo|juice/.test(lowerName)) return getJuiceContainer(lowerName);
   if (/olla/.test(lowerName))
@@ -293,7 +306,9 @@ function getContainer(lowerName: string, isDrink: boolean): string {
     return "a tall clear glass of cold coffee over ice cubes, condensation on the glass — cold drink, NO steam, NO mug, NO latte art";
   if (/café|coffee|espresso|latte|cappuccino/.test(lowerName))
     return "a beautiful ceramic coffee mug, steam gently curling upward";
-  if (/tea|té/.test(lowerName))
+  // \b matters more here than anywhere else: an unanchored /tea/ matches the
+  // "tea" inside s-TEA-k, which served every steak on the menu in a teacup.
+  if (/\b(tea|té|teas)\b/.test(lowerName))
     return "a delicate ceramic mug or clear glass cup showing the tea color";
   if (/hot chocolate|chocolate caliente/.test(lowerName))
     return "a large ceramic mug topped with a cloud of whipped cream and a dusting of cocoa powder";
@@ -657,6 +672,10 @@ export function buildFoodPrompt({
   let effectiveCuisineContext = "";
   if (!isDrink && !isDessert) {
     if (cuisine && cuisine !== "General" && latinCuisineMap[cuisine]) {
+      // A declared cuisine is the restaurant's own answer and always wins. The
+      // name sniffing below is only a guess for restaurants that never set one —
+      // it must never override the owner, or a US diner that declares "Diner"
+      // still gets Mexican pottery the moment a dish is called "quesadilla".
       effectiveCuisineContext = latinCuisineMap[cuisine];
     } else if (!cuisine || cuisine === "General") {
       if (
