@@ -48,3 +48,6 @@ supabase/.temp/
 # Samples de generacion de imagenes: 836K que Vercel serviria publicamente
 # desde /seed/. Son material de trabajo, no assets de la app.
 public/seed/_buccaneer-sample/
+
+# Generated anchor candidates — reviewed by hand, uploaded to Supabase storage.
+scripts/.anchor-output/
