@@ -107,47 +107,67 @@ const ITEMS = {
     plate: SLICE('apple pie', 'The slice shows a golden top and bottom crust with sliced apple filling visible between them.'),
     styling: `Golden flaky pastry top and bottom, filling of soft cinnamon-brown apple slices clearly visible on the cut face, slightly spilling.`,
     lighting: HARD, aperture: 'f/4.0 — the crust and filling tack sharp' },
+  // Buccaneer bakes this one in a sheet pan and cuts it into squares, so it is
+  // never the wedge the rest of the case is cut into.
   'apple-crumb-pie': {
-    subject: `"Apple Crumb Pie" — a slice of apple pie with streusel crumb topping.`,
-    plate: SLICE('apple crumb pie', 'The slice shows a pastry base, apple filling, and a thick craggy streusel crumb topping instead of a top crust.'),
-    styling: `Pastry base with cinnamon-brown apple filling, crowned with a thick uneven layer of golden buttery streusel crumbs. NO smooth top crust — the top is loose crumb.`,
-    lighting: HARD, aperture: 'f/4.0 — the crumb topping tack sharp' },
+    subject: `"Apple Crumb Pie" — a square-cut piece of apple crumb pie.`,
+    plate: `ONE single SQUARE piece of apple crumb pie standing on the plate with a straight CUT SIDE turned toward the camera so the layers are visible. It is a RECTANGULAR square-cut piece with four straight sides and sharp corners — NOT a wedge, NOT a triangle, NOT a slice from a round pie. Only one piece. Nothing else on the plate — NO ice cream, NO sauce, NO cream, NO powdered sugar, NO fork. ${ANGLE}`,
+    styling: `A square slab with a pastry base, a thick layer of cinnamon-brown apple filling, and a craggy golden streusel crumb topping. The cut sides are straight and clean, showing all three layers. NO smooth top crust — the top is loose crumb.`,
+    lighting: HARD, aperture: 'f/4.0 — the crumb topping and the cut side tack sharp' },
 
   'brownie-all-the-way': {
     subject: `"Brownie All The Way" — a hot fudge brownie with ice cream, walnuts and whipped cream.`,
     plate: `one thick square chocolate brownie in the centre of the plate with a scoop of vanilla ice cream on top, hot fudge sauce poured over, scattered chopped walnuts, and a swirl of whipped cream. ${ANGLE}`,
     styling: `Dark fudgy brownie, a round scoop of vanilla ice cream just starting to melt, glossy dark hot fudge running down the sides, chopped walnuts and a piped swirl of whipped cream.`,
     lighting: SOFT, aperture: 'f/4.0 — the ice cream and fudge tack sharp' },
+  // Not a dessert cup: this is a CAKE, cut from the display case like the others.
+  // The description ("Silky chocolate mousse") reads like a pot de crème, which is
+  // what I first built. The price settles it — $7.25, the same as Strawberry
+  // Shortcake and Carrot Cake, while the cup desserts (rice pudding $5.85, jello
+  // $5.65) sit a dollar below. Buccaneer sells a chocolate mousse cake.
   'chocolate-mousse': {
-    subject: `"Chocolate Mousse" — a serving of silky chocolate mousse.`,
-    plate: `a tall clear glass dessert cup filled with dark chocolate mousse, topped with a swirl of whipped cream, standing on a plain white plate. Nothing else. ${ANGLE}`,
-    styling: `Dark glossy mousse with a soft airy texture visible through the glass, crowned with a piped swirl of white whipped cream.`,
-    lighting: SOFT, aperture: 'f/4.0 — the mousse texture through the glass tack sharp' },
+    subject: `"Chocolate Mousse Cake" — a slice of chocolate mousse cake.`,
+    plate: SLICE('chocolate mousse cake', 'The slice is tall, with a thin dark chocolate sponge base and a deep layer of set chocolate mousse above it, finished with a dark chocolate glaze on top.'),
+    styling: `A thin dark chocolate sponge at the base under a tall, pale milk-chocolate mousse layer that is visibly AERATED — soft, matte and full of tiny air bubbles on the cut face, clearly lighter in colour than a dense chocolate cake — topped with a thin glossy dark chocolate glaze. It is a CAKE SLICE on a plate, NOT a mousse served in a glass or cup.`,
+    lighting: SOFT, aperture: 'f/4.0 — the aerated mousse texture on the cut face tack sharp' },
   'rice-pudding': {
     subject: `"Rice Pudding" — a serving of creamy homemade rice pudding.`,
     plate: `a shallow white bowl of creamy rice pudding dusted with ground cinnamon, standing on a plain white plate. Nothing else — NO raisins visible on top, NO whipped cream, NO garnish. ${ANGLE}`,
     styling: `Thick creamy white rice pudding with individual grains of rice visible, dusted evenly with reddish-brown cinnamon.`,
     lighting: SOFT, aperture: 'f/4.5 — the rice grains and cinnamon tack sharp' },
+  // Plain jello. The product name promises fruit cocktail, but the kitchen serves
+  // it without — a photograph full of suspended peach and pear would be selling
+  // something the customer does not receive.
   'jello-fruit-cocktail': {
-    subject: `"Jello with Fruit Cocktail" — a serving of jello with fruit cocktail.`,
-    plate: `a clear glass dessert cup of translucent red jello with pieces of fruit cocktail suspended in it, topped with a swirl of whipped cream, standing on a plain white plate. Nothing else. ${ANGLE}`,
-    styling: `Bright translucent red jello, glossy and wobbling, with visible chunks of peach, pear and cherry suspended inside. A swirl of white whipped cream on top.`,
-    lighting: SOFT, aperture: 'f/4.0 — the suspended fruit tack sharp' },
+    subject: `"Jello" — a serving of plain red jello.`,
+    plate: `a clear glass dessert cup filled with plain translucent red jello, topped with a swirl of whipped cream, standing on a plain white plate. The jello is COMPLETELY PLAIN and clear — NO fruit, NO fruit cocktail, NO peach, NO pear, NO cherry, NO pieces of anything suspended inside it. Nothing else on the plate. ${ANGLE}`,
+    styling: `Bright translucent red jello, glossy and smooth, clear all the way through so the light passes through it — completely empty of any inclusions. A single swirl of white whipped cream on top.`,
+    lighting: SOFT, aperture: 'f/4.0 — the clear jello and the cream tack sharp' },
+  // One brownie, with three walnut halves on top — how the kitchen actually plates
+  // it. The first version stacked three plain brownies, which is a different item.
   'brownies': {
-    subject: `"Brownies" — plain rich chocolate brownies.`,
-    plate: `three thick square chocolate brownies stacked and fanned in the centre of the plate, one showing its fudgy cut face. Nothing else — NO ice cream, NO sauce, NO whipped cream, NO powdered sugar. ${ANGLE}`,
-    styling: `Dark dense brownies with a crackled shiny top and a moist fudgy interior visible on the cut face.`,
-    lighting: HARD, aperture: 'f/4.0 — the crackled top and cut face tack sharp' },
+    subject: `"Brownie" — one thick chocolate brownie topped with walnuts.`,
+    plate: `ONE single thick square chocolate brownie in the centre of the plate, with exactly THREE walnut halves resting on top of it. Only one brownie — NOT a stack, NOT three brownies. Nothing else on the plate — NO ice cream, NO sauce, NO whipped cream, NO powdered sugar, NO scattered nuts on the plate. ${ANGLE}`,
+    styling: `A dark dense brownie with a crackled shiny top and moist fudgy edges, crowned with three whole walnut halves showing their ridged pale-brown surface.`,
+    lighting: HARD, aperture: 'f/4.0 — the crackled top and the walnuts tack sharp' },
+  // One oversized bakery cookie, not the plate of three or four I first built —
+  // at $5.05 this is a single large cookie sold from the case.
   'chocolate-chip-cookies': {
-    subject: `"Chocolate Chip Cookies" — fresh-baked chocolate chip cookies.`,
-    plate: `four chocolate chip cookies arranged in the centre of the plate, one leaning against the others, one broken in half showing melted chocolate inside. Nothing else. ${ANGLE}`,
-    styling: `Golden cookies with slightly crisp edges and soft centres, studded with dark chocolate chips, the broken one showing a strand of melted chocolate.`,
-    lighting: HARD, aperture: 'f/4.0 — the chips and the broken edge tack sharp' },
+    subject: `"Chocolate Chip Cookie" — one large fresh-baked chocolate chip cookie.`,
+    plate: `ONE single LARGE chocolate chip cookie lying flat in the centre of the plate, filling most of it. It is an oversized bakery cookie, roughly 15cm across — noticeably bigger than a home-baked cookie. Only one — NOT a stack, NOT several cookies, NOT a broken one. Nothing else on the plate. ${ANGLE}`,
+    styling: `A big golden cookie with crisp cracked edges and a soft chewy centre, generously studded with large dark chocolate chunks, some half-melted and glossy on the surface. Slightly irregular and hand-formed at the rim.`,
+    lighting: HARD, aperture: 'f/4.0 — the chocolate chunks and the cracked surface tack sharp' },
   'pound-cakes': {
     subject: `"All Pound Cakes" — slices of assorted pound cake.`,
     plate: `three thick rectangular slices of pound cake fanned across the centre of the plate, showing their dense golden crumb. Nothing else — NO cream, NO fruit, NO sauce. ${ANGLE}`,
     styling: `Dense golden-yellow crumb with a slightly darker baked crust on the top and edges of each slice, fine and buttery in texture.`,
     lighting: SOFT, aperture: 'f/4.0 — the crumb structure tack sharp' },
+  // Missed in the first pass: the category has nineteen products, not eighteen.
+  'danish-turnover': {
+    subject: `"Danish Pastry or Apple Turnover" — a breakfast pastry from the bakery case.`,
+    plate: `two pastries side by side in the centre of the plate: one round Danish with a pale cheese filling in its centre, and one triangular apple turnover with a glazed top. Nothing else on the plate — NO cream, NO fruit, NO sauce, NO powdered sugar dusting on the plate. ${ANGLE}`,
+    styling: `The Danish is golden and layered with a soft pale cheese centre and a light sugar glaze. The turnover is a puffed golden triangle with a crimped edge, drizzled with white icing, one corner showing a hint of apple filling.`,
+    lighting: HARD, aperture: 'f/4.0 — the pastry layers and glaze tack sharp' },
   'greek-pastries': {
     subject: `"Greek Pastries" — assorted Greek phyllo pastries including baklava.`,
     plate: `four diamond-shaped pieces of baklava arranged in the centre of the plate, glistening with honey syrup. Nothing else — NO ice cream, NO cream, NO extra syrup pool. ${ANGLE}`,
