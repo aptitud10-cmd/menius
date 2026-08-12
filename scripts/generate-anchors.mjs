@@ -101,6 +101,44 @@ const ANCHORS = {
     styling: `Rye bread deeply griddled with visible grill marks, corned beef piled thick and pink, Swiss cheese melting at the edges, sauerkraut visible in the layers.`,
     lighting: HARD_LIGHT, aperture: 'f/3.5 — all layers sharp in cross-section',
   },
+  // Replaces an inherited anchor that showed a steak, a cup of soup, a glass of
+  // tea and a side of vegetables — four subjects. Kontext copies the whole
+  // reference, so a Mac N' Cheese was going to arrive with the teacup.
+  'entrees': {
+    category: 'Entrees', covers: 6,
+    subject: `"Roast Virginia Ham" — thick slices of roast ham with mashed potatoes and green beans.`,
+    plate: `three thick slices of roast ham fanned across the centre of the plate, a scoop of mashed potatoes and a portion of green beans beside them. One single plate, nothing else — NO soup, NO cup, NO glass, NO tea, NO second dish.`,
+    styling: `Ham with caramelised glazed edges and visible grain, mashed potatoes soft with a butter sheen, green beans bright and just-cooked.`,
+    lighting: HARD_LIGHT, aperture: 'f/4.0 — the whole plate in sharp focus',
+  },
+  'sandwiches-classic': {
+    category: 'Classic Cheese Sandwiches', covers: 13,
+    subject: `"Grilled American Cheese" — melted American cheese on grilled white bread, cut in half.`,
+    plate: `the sandwich cut in half on the diagonal, both halves standing cut-side toward the camera so the melted cheese is visible, a pile of golden french fries beside them. Nothing else.`,
+    styling: `Bread deeply griddled and golden, cheese molten and stretching between the halves.`,
+    lighting: HARD_LIGHT, aperture: 'f/3.5 — all layers sharp in cross-section',
+  },
+  'pancakes': {
+    category: 'Buttermilk Pancakes', covers: 14,
+    subject: `"Buttermilk Pancakes" — a stack of three golden buttermilk pancakes with butter and maple syrup.`,
+    plate: `a stack of three pancakes centred on the plate, a pat of butter melting on top and maple syrup running down the sides. Nothing else — NO cutlery, NO syrup jug, NO second plate.`,
+    styling: `Pancakes evenly golden with slightly irregular edges, butter half-melted, syrup glossy and running.`,
+    lighting: SOFT_LIGHT, aperture: 'f/3.5 — the whole stack in focus',
+  },
+  'omelettes-specialty': {
+    category: '3 Egg Specialty Omelettes', covers: 10,
+    subject: `"Western Omelette" — a three-egg omelette with ham, peppers and onions, served with home fries and toast.`,
+    plate: `the folded omelette in the centre-front of the plate, a portion of home fries behind it on the left and two triangles of buttered toast on the right. Nothing else. The frame contains the plate and the dark surface it sits on and NOTHING ELSE — no softbox, no reflector panel, no light source, no white or silver rectangle at any edge of the image.`,
+    styling: `Omelette pale golden and softly folded with the filling visible at the open end, home fries crisp with browned edges, toast golden.`,
+    lighting: SOFT_LIGHT, aperture: 'f/4.0 — the whole plate in focus',
+  },
+  'chicken-sandwiches': {
+    category: 'Chicken Breast Sandwiches', covers: 10,
+    subject: `"Grilled Chicken Breast Sandwich" — a grilled chicken breast on a toasted bun, served with french fries.`,
+    plate: `the sandwich closed on the left of the plate with the grilled chicken visible at the edges of the bun, a pile of golden french fries on the right, and a lettuce leaf with two tomato slices at the back of the same plate. Nothing else.`,
+    styling: `Chicken with clear grill marks and juicy edges, bun toasted and glossy, fries golden and crisp.`,
+    lighting: HARD_LIGHT, aperture: 'f/4.0 — sandwich and fries both resolved',
+  },
   'appetizers': {
     category: 'Appetizers', covers: 21,
     subject: `"Mozzarella Sticks" — golden fried mozzarella sticks served with marinara sauce.`,
