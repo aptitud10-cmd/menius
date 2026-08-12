@@ -1,0 +1,379 @@
+/*
+ * Buccaneer Diner — landing page styles.
+ *
+ * Scoped under .bd-root and prefixed bd- throughout: this is a client site
+ * living inside the MENIUS app, and none of it may leak into the dashboard or
+ * the public menu. Tailwind is deliberately not used here — the palette is the
+ * client's, not MENIUS's, and hand-written CSS keeps the two vocabularies from
+ * mixing in the class attribute.
+ */
+
+.bd-root {
+  /* Base — Asphalt is #0B0B0C, not #000, so a dish photo shot on pure black
+     still reads as a lit object sitting on a surface instead of a cutout fused
+     with the page. Those eleven points are the whole trick. */
+  --bd-asphalt: #0b0b0c;
+  --bd-griddle: #1a1917;
+
+  /* The one light. If something is amber it is lit or it is clickable —
+     never decoration. 11.4:1 on asphalt, and black on amber is also 11.4:1,
+     which is why the solid button needs no second thought. */
+  --bd-light: #f2b441;
+
+  --bd-porcelain: #f4f1ea; /* 16.8:1 */
+  --bd-steam: #a8a29a;     /* 7.6:1 */
+  --bd-seam: #2c2a27;
+  --bd-ember: #b8422e;     /* wordmark and alerts only */
+
+  --bd-font-display: var(--bd-display), 'Oswald', 'Arial Narrow', sans-serif;
+  --bd-font-mono: var(--bd-mono), ui-monospace, 'SFMono-Regular', monospace;
+  --bd-font-body: var(--font-display), system-ui, sans-serif;
+
+  background: var(--bd-asphalt);
+  color: var(--bd-porcelain);
+  font-family: var(--bd-font-body);
+  /* The page paints its own ground: the root body is white for MENIUS, and a
+     transparent client site would sit on it. */
+  min-height: 100svh;
+}
+
+.bd-main {
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.bd-header {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 56px;
+  padding: 0 max(1.25rem, env(safe-area-inset-left)) 0
+    max(1.25rem, env(safe-area-inset-right));
+}
+
+.bd-wordmark {
+  font-family: var(--bd-font-display);
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bd-ember);
+}
+
+.bd-header__badge {
+  font-family: var(--bd-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bd-steam);
+  border: 1px solid var(--bd-seam);
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.bd-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  /* svh, not vh: on iOS the Safari chrome collapses and vh would push the CTA
+     below the fold on first paint, which is the one thing that must not happen. */
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+.bd-hero__media {
+  position: absolute;
+  inset: 0;
+}
+
+.bd-hero__img {
+  object-fit: cover;
+  /* The facade is atmosphere. Desaturating and dimming it keeps the headline
+     the brightest thing in frame — the light is the message. */
+  filter: saturate(0.55) brightness(0.6);
+}
+
+.bd-hero__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to top,
+      var(--bd-asphalt) 0%,
+      rgb(11 11 12 / 0.92) 28%,
+      rgb(11 11 12 / 0.62) 62%,
+      rgb(11 11 12 / 0.72) 100%
+    );
+}
+
+.bd-hero__body {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  /* Bottom-left, never centred: centred hero text is the template tell the
+     research found on the competitor's site. */
+  padding: 0 max(1.5rem, env(safe-area-inset-left))
+    max(3rem, calc(2rem + env(safe-area-inset-bottom)))
+    max(1.5rem, env(safe-area-inset-right));
+}
+
+.bd-eyebrow {
+  margin: 0 0 1rem;
+  font-family: var(--bd-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bd-steam);
+}
+
+.bd-h1 {
+  margin: 0;
+  font-family: var(--bd-font-display);
+  font-weight: 400;
+  /* 11.5vw, not 13: at 13 the second line ("Always been here.") wrapped onto a
+     third row on a 375px screen and the headline lost its punch. Two lines is
+     the shape of the idea — one statement, one echo. */
+  font-size: clamp(2.5rem, 11.5vw, 8rem);
+  line-height: 0.92;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  /* No text-wrap: balance — the line break is authored with <br>, and balance
+     fights it by redistributing words across the two lines. */
+}
+
+.bd-h1__lit {
+  color: var(--bd-light);
+}
+
+.bd-lead {
+  margin: 1.25rem 0 0;
+  max-width: 34ch;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--bd-steam);
+}
+
+/* ── Live status ─────────────────────────────────────────────────────────── */
+
+.bd-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.75rem 0 0;
+  font-family: var(--bd-font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bd-porcelain);
+}
+
+/* The only looping animation on the site. It earns its place: a pulsing light is
+   the concept in one element. The halo is a pseudo-element animating transform
+   and opacity — animating box-shadow instead would repaint every frame, forever,
+   on a page people open on mid-range phones. */
+.bd-status__dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bd-light);
+  flex: none;
+}
+
+.bd-status__dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--bd-light);
+  animation: bd-pulse 2.4s ease-out infinite;
+  will-change: transform, opacity;
+}
+
+.bd-status__sep {
+  color: var(--bd-seam);
+}
+
+.bd-status__time {
+  /* Tabular figures keep the line from reflowing when the minute ticks over. */
+  font-variant-numeric: tabular-nums;
+  color: var(--bd-light);
+  /* Reserve the width of the longest string ("12:00 AM") so the layout does not
+     shift when the clock arrives after hydration. */
+  min-width: 8ch;
+}
+
+@keyframes bd-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  70%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-status__dot::after { animation: none; opacity: 0; }
+}
+
+/* ── Address & CTAs ──────────────────────────────────────────────────────── */
+
+.bd-address {
+  margin: 0.5rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--bd-steam);
+}
+
+.bd-address__sep {
+  margin: 0 0.5rem;
+  color: var(--bd-seam);
+}
+
+.bd-address__tel {
+  color: var(--bd-steam);
+  text-underline-offset: 3px;
+}
+
+.bd-address__tel:hover { color: var(--bd-porcelain); }
+
+.bd-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.bd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 52px: comfortably past the 44px minimum, and this is a page people open
+     one-handed on a phone, at night, outdoors. */
+  min-height: 52px;
+  padding: 0 1.5rem;
+  border-radius: 4px;
+  font-family: var(--bd-font-mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.bd-btn--solid {
+  background: var(--bd-light);
+  color: var(--bd-asphalt);
+}
+
+.bd-btn--solid:hover { background: #ffc960; }
+
+.bd-btn--ghost {
+  border: 1px solid var(--bd-seam);
+  color: var(--bd-porcelain);
+}
+
+.bd-btn--ghost:hover { border-color: var(--bd-light); color: var(--bd-light); }
+
+.bd-btn:focus-visible {
+  outline: 2px solid var(--bd-light);
+  outline-offset: 3px;
+}
+
+/* ── Facts strip ─────────────────────────────────────────────────────────── */
+
+.bd-facts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  background: var(--bd-griddle);
+  border-block: 1px solid var(--bd-seam);
+}
+
+.bd-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.75rem 1.25rem;
+  border-right: 1px solid var(--bd-seam);
+  border-bottom: 1px solid var(--bd-seam);
+}
+
+/* The 2×2 grid leaves a hanging border on the right column and the bottom row. */
+.bd-fact:nth-child(2n) { border-right: 0; }
+.bd-fact:nth-child(n + 3) { border-bottom: 0; }
+
+.bd-fact__num {
+  font-family: var(--bd-font-display);
+  font-size: clamp(2.25rem, 9vw, 3rem);
+  line-height: 1;
+  color: var(--bd-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.bd-fact__num--word {
+  /* "Queens" is a word in a row of numerals; at the numeral size it would
+     overrun the cell on a 375px screen. */
+  font-size: clamp(1.5rem, 6vw, 2.25rem);
+}
+
+.bd-fact__label {
+  font-family: var(--bd-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bd-steam);
+}
+
+/* ── Tablet and up ───────────────────────────────────────────────────────── */
+
+@media (min-width: 768px) {
+  .bd-header {
+    height: 68px;
+    padding-inline: 2.5rem;
+  }
+
+  .bd-hero {
+    min-height: 88vh;
+  }
+
+  .bd-hero__body {
+    padding: 0 2.5rem 4rem;
+  }
+
+  .bd-lead {
+    font-size: 1.1875rem;
+    max-width: 42ch;
+  }
+
+  .bd-cta {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .bd-facts {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .bd-fact {
+    padding: 2.5rem 2rem;
+    border-bottom: 0;
+  }
+
+  .bd-fact:nth-child(2n) { border-right: 1px solid var(--bd-seam); }
+  .bd-fact:last-child { border-right: 0; }
+}
+
+@media (min-width: 1280px) {
+  .bd-hero__body {
+    padding: 0 4rem 5rem;
+    max-width: 1600px;
+    margin-inline: auto;
+  }
+
+  .bd-facts {
+    padding-inline: 2rem;
+  }
+}
