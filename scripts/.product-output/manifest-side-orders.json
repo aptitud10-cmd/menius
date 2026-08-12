@@ -1,0 +1,26 @@
+[
+  {
+    "id": "8e84cb17-cb69-4c24-91b4-3f9e664f9162",
+    "name": "Fried Plantains (Tostones)",
+    "category": "Side Orders",
+    "file": "scripts/.product-output/fried-plantains-tostones.jpg"
+  },
+  {
+    "id": "2521ef23-8956-4568-861a-c6c04535fbd5",
+    "name": "Onion Rings",
+    "category": "Side Orders",
+    "file": "scripts/.product-output/onion-rings.jpg"
+  },
+  {
+    "id": "86282efc-7d5e-4c24-8d90-580ebaf5ce69",
+    "name": "Lettuce & Tomato Salad",
+    "category": "Side Orders",
+    "file": "scripts/.product-output/lettuce-tomato-salad.jpg"
+  },
+  {
+    "id": "eaf8535a-5dc7-46f9-ae35-9509ee30b5e2",
+    "name": "Tossed Salad",
+    "category": "Side Orders",
+    "file": "scripts/.product-output/tossed-salad.jpg"
+  }
+]
