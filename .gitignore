@@ -51,3 +51,7 @@ public/seed/_buccaneer-sample/
 
 # Generated anchor candidates — reviewed by hand, uploaded to Supabase storage.
 scripts/.anchor-output/
+
+# Fotos generadas: se revisan y se suben, no se versionan
+scripts/.product-output/
+scripts/.anchor-output/
