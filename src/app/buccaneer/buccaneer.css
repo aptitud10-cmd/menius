@@ -283,49 +283,315 @@
   outline-offset: 3px;
 }
 
-/* ── Facts strip ─────────────────────────────────────────────────────────── */
+/* ── Claim ───────────────────────────────────────────────────────────────── */
 
-.bd-facts {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+.bd-claim {
+  padding: 3.5rem 1.5rem;
   background: var(--bd-griddle);
   border-block: 1px solid var(--bd-seam);
 }
 
-.bd-fact {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 1.75rem 1.25rem;
-  border-right: 1px solid var(--bd-seam);
-  border-bottom: 1px solid var(--bd-seam);
+/* A sentence, not a scoreboard. Set at display size with the figures picked out
+   in amber, so the numbers carry weight without becoming four separate cells. */
+.bd-claim__text {
+  margin: 0;
+  max-width: 20ch;
+  font-family: var(--bd-font-display);
+  font-size: clamp(1.75rem, 8vw, 3.25rem);
+  line-height: 1.08;
+  text-transform: uppercase;
+  color: var(--bd-porcelain);
 }
 
-/* The 2×2 grid leaves a hanging border on the right column and the bottom row. */
-.bd-fact:nth-child(2n) { border-right: 0; }
-.bd-fact:nth-child(n + 3) { border-bottom: 0; }
-
-.bd-fact__num {
-  font-family: var(--bd-font-display);
-  font-size: clamp(2.25rem, 9vw, 3rem);
-  line-height: 1;
+.bd-claim__n {
   color: var(--bd-light);
   font-variant-numeric: tabular-nums;
 }
 
-.bd-fact__num--word {
-  /* "Queens" is a word in a row of numerals; at the numeral size it would
-     overrun the cell on a 375px screen. */
-  font-size: clamp(1.5rem, 6vw, 2.25rem);
+.bd-claim__foot {
+  margin: 1.5rem 0 0;
+  font-family: var(--bd-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bd-steam);
 }
 
-.bd-fact__label {
+/* ── Night section ───────────────────────────────────────────────────────── */
+
+.bd-night {
+  padding: 5rem 1.5rem 4rem;
+}
+
+.bd-h2 {
+  margin: 0;
+  font-family: var(--bd-font-display);
+  font-weight: 400;
+  font-size: clamp(2rem, 9vw, 4.5rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.bd-night__note {
+  margin: 1.25rem 0 0;
+  max-width: 46ch;
+  color: var(--bd-steam);
+  line-height: 1.6;
+}
+
+.bd-night__list {
+  list-style: none;
+  margin: 3.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3.5rem;
+}
+
+.bd-night__link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* The frame, not the image, owns the rounding and the overflow — scaling the
+   image inside a clipping parent is what keeps the corners from flickering
+   during the transform on Safari. */
+.bd-night__frame {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--bd-seam);
+  border-radius: 6px;
+  background: var(--bd-asphalt);
+  transition: border-color 200ms ease;
+}
+
+.bd-night__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform 400ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.bd-night__link:hover .bd-night__frame { border-color: var(--bd-light); }
+.bd-night__link:hover .bd-night__img { transform: scale(1.03); }
+
+.bd-night__link:focus-visible {
+  outline: 2px solid var(--bd-light);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-night__img { transition: none; }
+  .bd-night__link:hover .bd-night__img { transform: none; }
+}
+
+.bd-night__meta {
+  display: block;
+  padding-top: 1rem;
+}
+
+.bd-night__time {
+  display: block;
+  font-family: var(--bd-font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  color: var(--bd-light);
+}
+
+.bd-night__name {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: var(--bd-font-display);
+  font-size: 1.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.bd-night__caption {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.9375rem;
+  color: var(--bd-steam);
+}
+
+.bd-disclosure {
+  margin: 4rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--bd-steam);
+  opacity: 0.75;
+}
+
+/* ── Menu bento ──────────────────────────────────────────────────────────── */
+
+.bd-menu {
+  padding: 5rem 1.5rem 6rem;
+  border-top: 1px solid var(--bd-seam);
+}
+
+.bd-menu__grid {
+  list-style: none;
+  margin: 3rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.bd-tile {
+  display: flex;
+}
+
+.bd-tile__link {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  min-height: 200px;
+  overflow: hidden;
+  border: 1px solid var(--bd-seam);
+  border-radius: 6px;
+  background: var(--bd-griddle);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+.bd-tile__link:hover { border-color: var(--bd-light); }
+
+/* A tile with no photo has nothing to hold the upper half, so its type is
+   centred in the box instead of pinned to the floor — bottom-aligned it left a
+   slab of dead black above the words. `:not(:has())` is the honest way to say
+   it: the alignment follows from whether a photo is there. */
+.bd-tile__link:not(:has(.bd-tile__media)) {
+  align-items: center;
+}
+
+.bd-tile__link:focus-visible {
+  outline: 2px solid var(--bd-light);
+  outline-offset: 3px;
+}
+
+.bd-tile__media {
+  position: absolute;
+  inset: 0;
+}
+
+/* The photo is the ground, not the subject: it sits dimmed behind the type so
+   the group name stays the thing you read first. Without the brightness cut the
+   white plates in the dessert shot fight the porcelain text on top of them. */
+.bd-tile__img {
+  object-fit: cover;
+  filter: brightness(0.42) saturate(0.85);
+  transition: transform 500ms cubic-bezier(0.2, 0, 0.2, 1),
+    filter 300ms ease;
+}
+
+.bd-tile__link:hover .bd-tile__img {
+  transform: scale(1.04);
+  filter: brightness(0.55) saturate(0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-tile__img { transition: none; }
+  .bd-tile__link:hover .bd-tile__img { transform: none; }
+}
+
+.bd-tile__body {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  padding: 1.5rem 1.25rem 1.25rem;
+}
+
+/* A gradient floor, so the type keeps its contrast over the brightest part of
+   a plate. Only on tiles that actually have a photo — over the flat griddle
+   ground it would read as a smudge. */
+.bd-tile__link:has(.bd-tile__media) .bd-tile__body {
+  background: linear-gradient(
+    to top,
+    rgb(11 11 12 / 0.9) 0%,
+    rgb(11 11 12 / 0.6) 55%,
+    rgb(11 11 12 / 0) 100%
+  );
+}
+
+.bd-tile__hours {
+  display: block;
   font-family: var(--bd-font-mono);
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: var(--bd-light);
+}
+
+.bd-tile__name {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--bd-font-display);
+  font-size: clamp(1.75rem, 7vw, 2.5rem);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.bd-tile__blurb {
+  display: block;
+  margin-top: 0.5rem;
+  max-width: 38ch;
+  font-size: 0.9375rem;
+  line-height: 1.45;
   color: var(--bd-steam);
 }
+
+/* The category index on the two photoless tiles. Set in mono and separated by
+   rules rather than bullets, so it reads as a directory board — the thing on a
+   diner wall — and gives the tile texture without a decorative image. */
+.bd-tile__index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-top: 1rem;
+  max-width: 52ch;
+}
+
+/* Each entry is its own boxed chip rather than being divided by inline rules:
+   whichever side a tick sits on, a line that wraps strands one at an edge. A
+   border belongs to the item and wraps with it. */
+.bd-tile__indexItem {
+  font-family: var(--bd-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bd-steam);
+  border: 1px solid var(--bd-seam);
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+}
+
+.bd-tile__count {
+  display: block;
+  margin-top: 0.85rem;
+  font-family: var(--bd-font-mono);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--bd-porcelain);
+}
+
+.bd-tile__countWord {
+  color: var(--bd-steam);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+}
+
+.bd-menu__foot {
+  display: flex;
+  margin-top: 2.5rem;
+}
+
+.bd-menu__foot .bd-btn { width: 100%; }
 
 /* ── Tablet and up ───────────────────────────────────────────────────────── */
 
@@ -353,17 +619,105 @@
     align-items: center;
   }
 
-  .bd-facts {
-    grid-template-columns: repeat(4, 1fr);
+  /* The sentence and its footnote sit side by side, the footnote baseline-
+     aligned to the last line — it reads as an aside to the claim, not as a
+     second statement stacked under it. */
+  .bd-claim {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    align-items: end;
+    column-gap: 2rem;
+    padding: 5rem 2.5rem;
   }
 
-  .bd-fact {
-    padding: 2.5rem 2rem;
-    border-bottom: 0;
+  .bd-claim__text {
+    grid-column: 1 / span 7;
+    max-width: none;
   }
 
-  .bd-fact:nth-child(2n) { border-right: 1px solid var(--bd-seam); }
-  .bd-fact:last-child { border-right: 0; }
+  .bd-claim__foot {
+    grid-column: 9 / span 4;
+    margin: 0 0 0.4rem;
+  }
+
+  .bd-night {
+    padding: 7rem 2.5rem 5rem;
+  }
+
+  /* The heading sits beside the first dish rather than above the whole section:
+     stacked, it left half a screen of dead black before anything happened. */
+  .bd-night__head {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    align-items: end;
+    column-gap: 2rem;
+  }
+
+  .bd-h2 { grid-column: 1 / span 6; }
+
+  .bd-night__note {
+    grid-column: 8 / span 5;
+    margin: 0 0 0.5rem;
+  }
+
+  /* The descending staircase: three dishes on a 12-column grid, each lower and
+     narrower than the last, with black between them. It reads as a night going
+     by rather than as a row of products. */
+  .bd-night__list {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 0;
+    margin-top: 4rem;
+  }
+
+  /* Each item claims its own row, so the columns can overlap horizontally
+     without the boxes colliding — the offset is what makes the diagonal. The
+     negative margins pull each dish up into the previous one's row, closing the
+     vertical gaps that a plain three-row grid would leave. */
+  .bd-night__item:nth-child(1) { grid-column: 1 / span 5; grid-row: 1; }
+  .bd-night__item:nth-child(2) { grid-column: 7 / span 6; grid-row: 2; margin-top: -22%; }
+  .bd-night__item:nth-child(3) { grid-column: 2 / span 4; grid-row: 3; margin-top: -14%; }
+
+  /* ── Menu bento, tablet and up ─────────────────────────────────────────── */
+
+  .bd-menu { padding: 7rem 2.5rem 8rem; }
+
+  /* The eyebrow sits directly above the headline, not orphaned in a column of
+     its own — floated off to the left it read as a stray label rather than as
+     the heading's kicker. */
+  .bd-menu__head .bd-eyebrow { margin: 0 0 1rem; }
+
+  /* Six tiles on a 6-column grid, deliberately uneven. Breakfast runs the full
+     width because a 24-hour diner sells breakfast at every hour; Burgers is the
+     tall one beside it. Equal tiles would be the template — and would also be a
+     lie about which parts of this menu carry the business. */
+  .bd-menu__grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1rem;
+    margin-top: 4rem;
+  }
+
+  /* Row 1: Breakfast, full width — a 24-hour diner sells breakfast at every
+     hour, and the tile that carries the business gets the room.
+     Row 2: Burgers wide beside Appetizers, because the burger tile holds a
+     category index and needs the width to set it on one line.
+     Row 3: Sides and Seafood share the left, the Bake Shop takes the right.
+     Uneven on purpose — a grid of six equal tiles is the template, and would
+     also claim these six parts of the menu carry equal weight. */
+  .bd-tile:nth-child(1) { grid-column: span 6; }
+  .bd-tile:nth-child(2) { grid-column: span 4; }
+  .bd-tile:nth-child(3) { grid-column: span 2; }
+  .bd-tile:nth-child(4) { grid-column: span 2; }
+  .bd-tile:nth-child(5) { grid-column: span 2; }
+  .bd-tile:nth-child(6) { grid-column: span 2; }
+
+  .bd-tile__link { min-height: 280px; }
+  .bd-tile:nth-child(1) .bd-tile__link { min-height: 320px; }
+
+  .bd-tile__body { padding: 2rem 1.75rem 1.5rem; }
+
+  .bd-menu__foot { margin-top: 3rem; }
+  .bd-menu__foot .bd-btn { width: auto; }
 }
 
 @media (min-width: 1280px) {
