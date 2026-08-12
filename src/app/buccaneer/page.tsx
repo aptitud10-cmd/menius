@@ -140,7 +140,12 @@ export default function BuccaneerLanding() {
     <main className="bd-main">
       <header className="bd-header">
         <span className="bd-wordmark">Buccaneer</span>
-        <span className="bd-header__badge">Open 24h</span>
+        {/* The badge used to be inert text. On a page whose whole job is to send
+            people to the menu, the one persistent element on screen should be
+            able to take them there. */}
+        <a className="bd-header__order" href={MENU_URL}>
+          Order
+        </a>
       </header>
 
       <section className="bd-hero">
@@ -176,7 +181,7 @@ export default function BuccaneerLanding() {
           <LiveStatus />
 
           <p className="bd-address">
-            9301 Astoria Blvd
+            9301 Astoria Boulevard
             <span className="bd-address__sep" aria-hidden="true">·</span>
             <a href="tel:+17184295188" className="bd-address__tel">
               (718) 429-5188
@@ -216,8 +221,11 @@ export default function BuccaneerLanding() {
           <span className="bd-claim__n">24</span> hours, closed{' '}
           <span className="bd-claim__n">0</span> days a year.
         </p>
+        {/* The cross-street belongs to the room section, which states it in
+            full. Here the useful thing is the other half of the brief — that
+            you can eat in, take it away, or have it brought. */}
         <p className="bd-claim__foot">
-          Astoria Blvd &amp; 93rd St — three minutes from LaGuardia.
+          Dine in · Pickup · Delivery
         </p>
       </section>
 
@@ -328,6 +336,126 @@ export default function BuccaneerLanding() {
           </a>
         </div>
       </section>
+
+      {/* The other half of the brief: this page has to bring people through the
+          door as much as it takes orders. What that needs is a picture of the
+          room, and the room has not been photographed yet — so the section is
+          built around the facts that are already true (where it is, how close
+          the airport is, that all three service types are on) and the image
+          slot is left honestly empty rather than filled with a stock interior
+          of a diner that is not this one. */}
+      <section className="bd-place" aria-labelledby="bd-place-title">
+        <div className="bd-place__copy">
+          <p className="bd-eyebrow">The room</p>
+          <h2 id="bd-place-title" className="bd-h2">
+            Astoria Blvd
+            <br />
+            &amp; 93rd.
+          </h2>
+          <p className="bd-place__lead">
+            Three minutes off the Grand Central, five from the LaGuardia
+            terminals. Booths, a counter, and coffee that keeps coming.
+          </p>
+
+          <dl className="bd-place__facts">
+            <div className="bd-place__fact">
+              <dt>Address</dt>
+              <dd>
+                9301 Astoria Boulevard
+                <br />
+                East Elmhurst, NY 11369
+              </dd>
+            </div>
+            <div className="bd-place__fact">
+              <dt>Hours</dt>
+              <dd>Every day, all day. No closing time.</dd>
+            </div>
+            <div className="bd-place__fact">
+              <dt>Phone</dt>
+              <dd>
+                <a href="tel:+17184295188">(718) 429-5188</a>
+              </dd>
+            </div>
+            <div className="bd-place__fact">
+              <dt>Service</dt>
+              <dd>Dine in · Pickup · Delivery</dd>
+            </div>
+          </dl>
+
+          <div className="bd-cta bd-place__cta">
+            <a
+              className="bd-btn bd-btn--solid"
+              href={DIRECTIONS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Get directions
+              <span aria-hidden="true"> →</span>
+            </a>
+            <a className="bd-btn bd-btn--ghost" href="tel:+17184295188">
+              Call the diner
+            </a>
+          </div>
+        </div>
+
+        {/* Deliberately not a stock interior. An empty amber-ruled frame that
+            says a photograph is coming is honest; a photo of somebody else's
+            diner presented as this room is the exact thing the research warned
+            about. Replaced by the real interior shot, not by more code. */}
+        <div className="bd-place__slot" role="img" aria-label="A photograph of the dining room is coming soon">
+          <span className="bd-place__slotMark" aria-hidden="true">
+            9301
+          </span>
+          <span className="bd-place__slotNote">
+            Photograph of the room — coming
+          </span>
+        </div>
+      </section>
+
+      <footer className="bd-footer">
+        <div className="bd-footer__top">
+          <span className="bd-wordmark bd-footer__mark">Buccaneer</span>
+          <p className="bd-footer__tag">
+            Open 24 hours, every day of the year.
+          </p>
+        </div>
+
+        <div className="bd-footer__cols">
+          <div className="bd-footer__col">
+            <h3 className="bd-footer__h">Find us</h3>
+            <p>
+              9301 Astoria Boulevard
+              <br />
+              East Elmhurst, NY 11369
+            </p>
+            <a href={DIRECTIONS_URL} target="_blank" rel="noopener noreferrer">
+              Open in Maps
+            </a>
+          </div>
+
+          <div className="bd-footer__col">
+            <h3 className="bd-footer__h">Order</h3>
+            <a href={MENU_URL}>Full menu</a>
+            <a href={`${MENU_URL}?category=Buttermilk%20Pancakes`}>Breakfast</a>
+            <a href={`${MENU_URL}?category=Desserts`}>The Bake Shop</a>
+          </div>
+
+          <div className="bd-footer__col">
+            <h3 className="bd-footer__h">Call</h3>
+            <a href="tel:+17184295188">(718) 429-5188</a>
+            <p className="bd-footer__quiet">Dine in · Pickup · Delivery</p>
+          </div>
+        </div>
+
+        <div className="bd-footer__base">
+          <p>© {new Date().getFullYear()} Buccaneer Diner</p>
+          {/* The disclosure repeats here because a visitor who lands mid-page
+              and scrolls to the footer never passed the night section. */}
+          <p className="bd-footer__quiet">
+            Dish images are styled product compositions.
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }

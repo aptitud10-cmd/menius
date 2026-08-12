@@ -65,15 +65,28 @@
   color: var(--bd-ember);
 }
 
-.bd-header__badge {
+.bd-header__order {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--bd-font-mono);
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--bd-steam);
-  border: 1px solid var(--bd-seam);
+  text-decoration: none;
+  color: var(--bd-asphalt);
+  background: var(--bd-light);
   border-radius: 999px;
-  padding: 0.3rem 0.6rem;
+  /* 40px tall in a 56px bar: tappable without crowding the wordmark. */
+  min-height: 40px;
+  padding: 0 1rem;
+  transition: background-color 160ms ease;
+}
+
+.bd-header__order:hover { background: #ffc960; }
+
+.bd-header__order:focus-visible {
+  outline: 2px solid var(--bd-light);
+  outline-offset: 3px;
 }
 
 /* ── Hero ────────────────────────────────────────────────────────────────── */
@@ -593,6 +606,167 @@
 
 .bd-menu__foot .bd-btn { width: 100%; }
 
+/* ── The room ────────────────────────────────────────────────────────────── */
+
+.bd-place {
+  padding: 5rem 1.5rem;
+  border-top: 1px solid var(--bd-seam);
+}
+
+.bd-place__lead {
+  margin: 1.5rem 0 0;
+  max-width: 42ch;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--bd-steam);
+}
+
+.bd-place__facts {
+  margin: 2.5rem 0 0;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.bd-place__fact dt {
+  font-family: var(--bd-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bd-light);
+}
+
+.bd-place__fact dd {
+  margin: 0.45rem 0 0;
+  line-height: 1.5;
+  color: var(--bd-porcelain);
+}
+
+.bd-place__fact a {
+  color: var(--bd-porcelain);
+  text-underline-offset: 3px;
+}
+
+.bd-place__fact a:hover { color: var(--bd-light); }
+
+.bd-place__cta { margin-top: 2.5rem; }
+
+/* The waiting frame. Amber dashes read as a marked gap rather than as a broken
+   image, and the street number keeps the space from being merely blank while
+   still promising nothing that is not true. */
+.bd-place__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 3rem;
+  min-height: 320px;
+  border: 1px dashed rgb(242 180 65 / 0.35);
+  border-radius: 6px;
+  background: var(--bd-griddle);
+}
+
+.bd-place__slotMark {
+  font-family: var(--bd-font-display);
+  font-size: clamp(3rem, 16vw, 5.5rem);
+  line-height: 1;
+  color: rgb(242 180 65 / 0.3);
+  font-variant-numeric: tabular-nums;
+}
+
+.bd-place__slotNote {
+  font-family: var(--bd-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bd-steam);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+.bd-footer {
+  padding: 4rem 1.5rem max(2.5rem, calc(2rem + env(safe-area-inset-bottom)));
+  border-top: 1px solid var(--bd-seam);
+  background: var(--bd-griddle);
+}
+
+.bd-footer__mark {
+  font-size: 1.75rem;
+  display: block;
+}
+
+.bd-footer__tag {
+  margin: 0.75rem 0 0;
+  font-family: var(--bd-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bd-light);
+}
+
+.bd-footer__cols {
+  display: grid;
+  gap: 2.5rem;
+  margin-top: 3rem;
+}
+
+.bd-footer__col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.bd-footer__h {
+  margin: 0 0 0.35rem;
+  font-family: var(--bd-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bd-steam);
+}
+
+.bd-footer__col p {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--bd-porcelain);
+}
+
+.bd-footer__col a {
+  color: var(--bd-porcelain);
+  text-decoration: none;
+  /* 44px of touch target on a link list people tap one-handed at night. */
+  padding: 0.35rem 0;
+  min-height: 24px;
+  transition: color 160ms ease;
+}
+
+.bd-footer__col a:hover { color: var(--bd-light); }
+
+.bd-footer__col a:focus-visible {
+  outline: 2px solid var(--bd-light);
+  outline-offset: 3px;
+}
+
+.bd-footer__quiet {
+  color: var(--bd-steam) !important;
+  font-size: 0.875rem;
+}
+
+.bd-footer__base {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 3.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--bd-seam);
+  font-size: 0.8125rem;
+  color: var(--bd-steam);
+}
+
+.bd-footer__base p { margin: 0; }
+
 /* ── Tablet and up ───────────────────────────────────────────────────────── */
 
 @media (min-width: 768px) {
@@ -674,9 +848,13 @@
      without the boxes colliding — the offset is what makes the diagonal. The
      negative margins pull each dish up into the previous one's row, closing the
      vertical gaps that a plain three-row grid would leave. */
+  /* The pulls are deep on purpose. At -22%/-14% the three dishes still read as
+     a stack with black gaps between them, and the section swallowed nearly half
+     the page's scroll. Overlapping the rows properly is what makes it a
+     staircase instead of a slow column. */
   .bd-night__item:nth-child(1) { grid-column: 1 / span 5; grid-row: 1; }
-  .bd-night__item:nth-child(2) { grid-column: 7 / span 6; grid-row: 2; margin-top: -22%; }
-  .bd-night__item:nth-child(3) { grid-column: 2 / span 4; grid-row: 3; margin-top: -14%; }
+  .bd-night__item:nth-child(2) { grid-column: 7 / span 5; grid-row: 2; margin-top: -46%; }
+  .bd-night__item:nth-child(3) { grid-column: 3 / span 4; grid-row: 3; margin-top: -38%; }
 
   /* ── Menu bento, tablet and up ─────────────────────────────────────────── */
 
@@ -718,6 +896,57 @@
 
   .bd-menu__foot { margin-top: 3rem; }
   .bd-menu__foot .bd-btn { width: auto; }
+
+  /* ── The room, tablet and up ───────────────────────────────────────────── */
+
+  /* Copy left, the waiting photograph right — the split the real interior shot
+     will need once it exists, so dropping the file in changes nothing else. */
+  .bd-place {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: 3rem;
+    align-items: center;
+    padding: 7rem 2.5rem;
+  }
+
+  .bd-place__copy { grid-column: 1 / span 5; }
+
+  .bd-place__slot {
+    grid-column: 7 / span 6;
+    margin-top: 0;
+    min-height: 460px;
+    align-self: stretch;
+  }
+
+  .bd-place__facts {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.75rem 2rem;
+  }
+
+  /* ── Footer, tablet and up ─────────────────────────────────────────────── */
+
+  .bd-footer { padding: 5rem 2.5rem 3rem; }
+
+  .bd-footer__top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .bd-footer__tag { margin: 0; }
+
+  .bd-footer__cols {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+    margin-top: 4rem;
+  }
+
+  .bd-footer__base {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+  }
 }
 
 @media (min-width: 1280px) {
