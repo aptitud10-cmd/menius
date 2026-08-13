@@ -506,9 +506,16 @@ export function CustomizationSheet({
           about whether a product shows a photo. Without showsAsRow() a drink
           listed as a row still opened onto a full-bleed hero image — Buccaneer's
           nine beers all pointed at one generic stock photo of a sandwich, so
-          tapping "Corona" showed a panini. */}
+          tapping "Corona" showed a panini.
+
+          The max-h is the other half of that agreement: 4/3 alone has no
+          ceiling, so the wider the surface the taller the photo. On an iPad the
+          sheet is wide enough that the hero grew past 700px and pushed the
+          option groups below the fold — the CTA stayed disabled ("Choose: …")
+          with nothing visible to choose, so the dish could not be added at all.
+          The photo is context; the options are the task. */}
       {!showsAsRow(product) && product.image_url && (
-        <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+        <div className="relative w-full aspect-[4/3] max-h-[38dvh] sm:max-h-[34dvh] bg-gray-100 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
           <div className="absolute inset-0">
             <Image
