@@ -53,6 +53,27 @@ const items = JSON.parse(readFileSync(manifestPath, 'utf8'));
 const stamp = process.env.STAMP ?? String(Date.now());
 const updates = [];
 
+// A manifest without `key` used to upload every item to "undefined-<stamp>.jpg":
+// each file overwrote the last, and the printed SQL pointed all N products at
+// one image — the exact defect these batches exist to remove. Fail before the
+// first request rather than after the last.
+const missingKey = items.filter((it) => !it.key);
+if (missingKey.length) {
+  console.error(
+    `Faltan claves "key" en ${missingKey.length} item(s): ${missingKey
+      .map((it) => it.name ?? '(sin nombre)')
+      .join(', ')}`,
+  );
+  process.exit(1);
+}
+const dupKeys = items
+  .map((it) => it.key)
+  .filter((k, i, all) => all.indexOf(k) !== i);
+if (dupKeys.length) {
+  console.error(`Claves "key" repetidas: ${[...new Set(dupKeys)].join(', ')}`);
+  process.exit(1);
+}
+
 for (const [i, item] of items.entries()) {
   if (!existsSync(item.file)) {
     console.log(`[${i + 1}/${items.length}] ${item.name}: falta ${item.file} — salteado`);
