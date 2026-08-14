@@ -665,8 +665,34 @@ export function CustomizationSheet({
         // Only where "free" genuinely means "already paid for": a required
         // single choice the diner must make. On an optional add-on group a zero
         // price means free-of-charge, which is a different claim.
+        //
+        // And only where the group actually charges for something else. A first
+        // pass keyed purely off required+single put "Incluido" next to every
+        // cooking temperature — nobody suspects they are billed for medium rare,
+        // so the label was pure noise — and next to "Regular" in the Style group,
+        // where it read as a promise of something included while Deluxe sat
+        // beside it at +$4. The label only carries meaning by contrast: it says
+        // "this one costs nothing, that one does", which needs a "that one".
+        // One more exclusion, and it is the sharpest: a group whose paid option
+        // is an UPGRADE of the whole dish rather than a variant of one
+        // ingredient. Buccaneer's "Style" offers Regular against "Deluxe —
+        // lettuce, tomato & choice of side +$4"; labelling Regular "Incluido"
+        // announces that something comes with it, when Regular is precisely the
+        // one that comes with less. The tell is that the free option is the
+        // baseline the price already names, not one flavour among equals.
+        const options = group.options ?? [];
+        const freeCount = options.filter(
+          (o) => Number(o.price_delta) === 0,
+        ).length;
+        const hasPricedOption = freeCount < options.length;
+        // Two options, one free one paid, is an upgrade toggle, not a choice of
+        // ingredient. A cheese list has many free options and a couple of paid.
+        const isUpgradeToggle = options.length === 2 && freeCount === 1;
         const showsIncluded =
-          group.is_required && group.selection_type === "single";
+          group.is_required &&
+          group.selection_type === "single" &&
+          hasPricedOption &&
+          !isUpgradeToggle;
 
         /**
          * A settled single-choice group folds down to one summary row.
