@@ -272,6 +272,20 @@ export function CustomizationSheet({
   const [added, setAdded] = useState(false);
   const dragControls = useDragControls();
 
+  // Groups the diner has explicitly reopened. Absence means collapsed, so a
+  // group that arrives already answered starts folded without extra
+  // bookkeeping — and one the diner has just opened stays open even after they
+  // pick, instead of snapping shut under their finger.
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const toggleGroupExpanded = useCallback((groupId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
+
   // Focus trap: save previously focused element, restore on unmount
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
@@ -617,6 +631,82 @@ export function CustomizationSheet({
           group.selection_type === "multi" &&
           group.max_select > 1 &&
           selected.length >= group.max_select;
+
+        /**
+         * "Incluido" on the free options of a required single-choice group.
+         *
+         * A Roadhouse Burger arrives with pepperjack in the recipe and in the
+         * price, so its option is pre-selected — but pre-selected looked exactly
+         * like chosen-by-the-customer, and a blank space where a price would be
+         * says nothing. Baymard measured the cost of that silence in product
+         * configurators: 63% of users assume wrongly what is included, and find
+         * out late enough to feel misled.
+         *
+         * The label goes on every free option, not just the default: it is also
+         * what tells the diner that switching to cheddar costs nothing.
+         *
+         * "Incluido" rather than "$0" (reads as a bug) or "Gratis" (reads as a
+         * giveaway) — the point is that the price already covers it.
+         */
+        // Only where "free" genuinely means "already paid for": a required
+        // single choice the diner must make. On an optional add-on group a zero
+        // price means free-of-charge, which is a different claim.
+        const showsIncluded =
+          group.is_required && group.selection_type === "single";
+
+        /**
+         * A settled single-choice group folds down to one summary row.
+         *
+         * A Buccaneer burger carries up to six groups, and a diner scrolling
+         * past nine sides and six cheeses to reach the button is the real cost
+         * of a menu this configurable. Every group that already has its answer
+         * — because it came pre-selected, or because the diner just picked one
+         * — collapses to `Cheese: Pepperjack ✓ · Cambiar`, and reopens on tap.
+         *
+         * Groups the diner still has to answer never collapse: the point is to
+         * shorten what is done, not to hide what is pending.
+         */
+        const isSettled =
+          group.selection_type === "single" && selected.length === 1;
+        const isCollapsed = isSettled && !expandedGroups.has(group.id);
+
+        if (isCollapsed) {
+          const chosen = selected[0];
+          const delta = Number(chosen.price_delta);
+          return (
+            <div key={group.id} className="px-5 pt-5">
+              <button
+                onClick={() => toggleGroupExpanded(group.id)}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50/60 text-left transition-colors hover:border-gray-300 active:border-gray-400"
+                aria-expanded="false"
+              >
+                <span className="flex items-baseline gap-2 min-w-0">
+                  <span className="text-[13px] font-bold text-gray-500 flex-shrink-0">
+                    {tName(group, locale, defaultLocale)}
+                  </span>
+                  <span className="text-[15px] font-medium text-gray-900 truncate">
+                    {tName(chosen, locale, defaultLocale)}
+                  </span>
+                  {delta === 0 && showsIncluded && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 flex-shrink-0">
+                      {t.included}
+                    </span>
+                  )}
+                  {delta !== 0 && (
+                    <span className="text-[13px] font-semibold text-gray-500 flex-shrink-0">
+                      {delta > 0 ? "+" : ""}
+                      {fmtPrice(delta)}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[13px] font-semibold text-[#05c8a7] flex-shrink-0">
+                  {t.change}
+                </span>
+              </button>
+            </div>
+          );
+        }
+
         return (
           <div key={group.id} className="px-5 pt-5">
             <div className="flex items-center gap-2 mb-3">
@@ -638,6 +728,16 @@ export function CustomizationSheet({
                   {t.maxReached}
                 </span>
               )}
+              {/* Only offered once the group has an answer to fold down to. */}
+              {isSettled && (
+                <button
+                  onClick={() => toggleGroupExpanded(group.id)}
+                  className="ml-auto text-[12px] font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-expanded="true"
+                >
+                  {t.done}
+                </button>
+              )}
             </div>
             {group.display_type === "grid" ? (
               <div className="grid grid-cols-2 gap-2">
@@ -658,10 +758,18 @@ export function CustomizationSheet({
                             : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
                       )}
                     >
-                      <span className="text-[14px] font-semibold leading-tight">
+                      <span className="flex items-center gap-1 text-[14px] font-semibold leading-tight">
+                        {/* The tick is not decoration: in the grid the teal fill
+                            was the only signal that an option was chosen, which
+                            fails WCAG 1.4.1 (colour as the sole means of
+                            conveying state) and disappears entirely for the ~8%
+                            of men with colour blindness. */}
+                        {isSelected && (
+                          <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                        )}
                         {tName(opt, locale, defaultLocale)}
                       </span>
-                      {Number(opt.price_delta) !== 0 && (
+                      {Number(opt.price_delta) !== 0 ? (
                         <span
                           className={cn(
                             "text-[11px] font-medium",
@@ -671,6 +779,17 @@ export function CustomizationSheet({
                           {Number(opt.price_delta) > 0 ? "+" : ""}
                           {fmtPrice(Number(opt.price_delta))}
                         </span>
+                      ) : (
+                        showsIncluded && (
+                          <span
+                            className={cn(
+                              "text-[10px] font-semibold uppercase tracking-wide",
+                              isSelected ? "text-[#d0f7f1]" : "text-gray-400",
+                            )}
+                          >
+                            {t.included}
+                          </span>
+                        )
                       )}
                     </button>
                   );
@@ -727,7 +846,7 @@ export function CustomizationSheet({
                           {tName(opt, locale, defaultLocale)}
                         </span>
                       </div>
-                      {Number(opt.price_delta) !== 0 && (
+                      {Number(opt.price_delta) !== 0 ? (
                         <span
                           className={cn(
                             "text-sm font-semibold",
@@ -737,6 +856,17 @@ export function CustomizationSheet({
                           {Number(opt.price_delta) > 0 ? "+" : ""}
                           {fmtPrice(Number(opt.price_delta))}
                         </span>
+                      ) : (
+                        showsIncluded && (
+                          <span
+                            className={cn(
+                              "text-[11px] font-semibold uppercase tracking-wide",
+                              isSelected ? "text-[#d0f7f1]" : "text-gray-400",
+                            )}
+                          >
+                            {t.included}
+                          </span>
+                        )
                       )}
                     </button>
                   );
