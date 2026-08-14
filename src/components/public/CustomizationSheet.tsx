@@ -272,6 +272,20 @@ export function CustomizationSheet({
   const [added, setAdded] = useState(false);
   const dragControls = useDragControls();
 
+  /**
+   * Free-text note for this line ("no pickles", "gravy on the side").
+   *
+   * Everything downstream already existed and was being fed an empty string:
+   * `order_items.notes` in the database, the sanitiser in the orders API, and
+   * an amber `★ note` row on the KDS, the counter, the orders board and the
+   * printed ticket. Only the input was missing, so a diner had no way to say
+   * anything the modifier groups don't cover.
+   *
+   * Capped at 200 rather than the API's 500: a kitchen ticket is 42 characters
+   * wide, and a note nobody can read on the line is worse than no note.
+   */
+  const [notes, setNotes] = useState(editItem?.notes ?? "");
+
   // Groups the diner has explicitly reopened. Absence means collapsed, so a
   // group that arrives already answered starts folded without extra
   // bookkeeping — and one the diner has just opened stays open even after they
@@ -456,7 +470,7 @@ export function CustomizationSheet({
         legacyVariant,
         legacyExtras,
         qty,
-        "",
+        notes.trim(),
         modifierSelections,
       );
       // Close immediately after editing — user expects to return to menu
@@ -467,7 +481,7 @@ export function CustomizationSheet({
         legacyVariant,
         legacyExtras,
         qty,
-        "",
+        notes.trim(),
         modifierSelections,
       );
       onAddToCart?.(displayName);
@@ -876,6 +890,38 @@ export function CustomizationSheet({
           </div>
         );
       })}
+
+      {/* ── Free-text note for this line ──
+          Deliberately last, after every modifier group: the structured options
+          are what the kitchen can price and route, so the diner should meet
+          them first and reach for prose only for what they don't cover
+          ("no pickles", "gravy on the side"). Placing it earlier invites people
+          to type requests that already exist as a tappable option. */}
+      <div className="px-5 pt-5">
+        <label
+          htmlFor="item-notes"
+          className="block text-sm font-bold text-gray-900 mb-2"
+        >
+          {t.itemNotesLabel}
+        </label>
+        <textarea
+          id="item-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value.slice(0, 200))}
+          maxLength={200}
+          rows={2}
+          placeholder={t.itemNotesPlaceholder}
+          /* text-base (16px) is not a style choice: iOS Safari zooms the whole
+             page when a focused input is under 16px, and the diner lands back
+             on a menu they have to pinch out of. */
+          className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 resize-none transition-colors focus:outline-none focus:border-[#05c8a7] focus:ring-1 focus:ring-[#05c8a7]"
+        />
+        {notes.length > 150 && (
+          <p className="mt-1 text-[11px] text-gray-400 text-right tabular-nums">
+            {notes.length}/200
+          </p>
+        )}
+      </div>
 
       {/* ── Smart complementary suggestions ──
           Horizontal carousel on BOTH desktop and mobile (the pattern Uber Eats /

@@ -139,6 +139,8 @@ export interface Translations {
   included: string;
   change: string;
   done: string;
+  itemNotesLabel: string;
+  itemNotesPlaceholder: string;
   added: string;
   updateItem: string;
   editItem: string;
@@ -508,6 +510,8 @@ const es: Translations = {
   included: 'Incluido',
   change: 'Cambiar',
   done: 'Listo',
+  itemNotesLabel: 'Alguna indicación',
+  itemNotesPlaceholder: 'Ej: sin pepinillos, salsa aparte…',
   added: '✓ Agregado',
   updateItem: 'Actualizar',
   editItem: 'Editar producto',
@@ -861,6 +865,8 @@ const en: Translations = {
   included: 'Included',
   change: 'Change',
   done: 'Done',
+  itemNotesLabel: 'Special instructions',
+  itemNotesPlaceholder: 'e.g. no pickles, gravy on the side…',
   added: '✓ Added',
   updateItem: 'Update',
   editItem: 'Edit item',
