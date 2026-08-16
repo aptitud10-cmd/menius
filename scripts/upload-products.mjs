@@ -18,6 +18,44 @@
  * Manifest: [{ id, name, file }]
  */
 import { readFileSync, existsSync } from 'node:fs';
+import sharp from 'sharp';
+
+/**
+ * Compresses a generated image before upload.
+ *
+ * nano-banana returns PNG. The first batches were written straight to disk as
+ * ".jpg" and uploaded byte-for-byte, so every product photo in storage is a
+ * lossless 1024x1024 PNG of ~1.2MB wearing a JPEG extension — 102 of them,
+ * 125MB, for pictures the menu renders at 640px.
+ *
+ * Nothing downstream was broken by it (next/image re-encodes to ~46KB WebP for
+ * the diner) but it costs storage on every batch and the bill only grows: the
+ * remaining ~220 dishes would have added another 270MB.
+ *
+ * mozjpeg at 82 measures 15.6x smaller on a real burger (1228KB -> 79KB) with
+ * no artefacts visible at menu size. Kept as JPEG rather than WebP because the
+ * object path already says .jpg and Vercel converts to WebP at serve time
+ * anyway — the format of the stored original only decides what it costs to keep.
+ */
+async function compress(file) {
+  const original = readFileSync(file);
+  try {
+    const out = await sharp(original)
+      .resize({ width: 1200, withoutEnlargement: true })
+      .jpeg({ quality: 82, mozjpeg: true })
+      .toBuffer();
+    // A "compressed" file that grew is a signal the source was already
+    // optimised; keep whichever is smaller rather than trusting the pipeline.
+    return out.length < original.length
+      ? { buf: out, from: original.length }
+      : { buf: original, from: original.length };
+  } catch (err) {
+    // Never let a re-encode failure cost the batch: upload what we have and
+    // say so, rather than dropping a photo that was fine.
+    console.log(`(sin comprimir: ${err?.message ?? err}) `);
+    return { buf: original, from: original.length };
+  }
+}
 
 const PROJECT = 'hdlhmqvbaxzhmhtablwt';
 const FN = `https://${PROJECT}.supabase.co/functions/v1/anchor-upload`;
@@ -52,6 +90,7 @@ const items = JSON.parse(readFileSync(manifestPath, 'utf8'));
 // and the CDN is never asked to serve stale bytes from a reused URL.
 const stamp = process.env.STAMP ?? String(Date.now());
 const updates = [];
+let savedBytes = 0;
 
 // A manifest without `key` used to upload every item to "undefined-<stamp>.jpg":
 // each file overwrote the last, and the printed SQL pointed all N products at
@@ -82,6 +121,11 @@ for (const [i, item] of items.entries()) {
   const objectPath = `ai/${RESTAURANT}/${item.key}-${stamp}.jpg`;
   process.stdout.write(`[${i + 1}/${items.length}] ${item.name}… `);
   try {
+    const { buf, from } = await compress(item.file);
+    savedBytes += from - buf.length;
+    process.stdout.write(
+      `${(from / 1024).toFixed(0)}→${(buf.length / 1024).toFixed(0)}KB… `,
+    );
     const res = await fetch(FN, {
       method: 'POST',
       headers: {
@@ -89,7 +133,7 @@ for (const [i, item] of items.entries()) {
         'x-object-path': objectPath,
         'Content-Type': 'application/octet-stream',
       },
-      body: readFileSync(item.file),
+      body: buf,
       signal: AbortSignal.timeout(45000),
     });
     const text = await res.text();
@@ -110,7 +154,13 @@ if (!updates.length) {
   process.exit(1);
 }
 
-console.log(`\n${updates.length}/${items.length} subidos.\n`);
+console.log(
+  `\n${updates.length}/${items.length} subidos.` +
+    (savedBytes > 0
+      ? ` Ahorrados ${(savedBytes / 1048576).toFixed(1)}MB al comprimir.`
+      : '') +
+    '\n',
+);
 console.log('-- SQL para aplicar:');
 console.log('update products set image_url = v.url from (values');
 console.log(
