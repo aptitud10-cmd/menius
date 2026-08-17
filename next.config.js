@@ -21,6 +21,12 @@ const nextConfig = {
     // Solo WebP: cada formato extra es una transformación facturable aparte en Vercel.
     // AVIF ahorra ~15% de peso sobre WebP pero duplica el costo de Image Optimization.
     formats: ['image/webp'],
+    // Mismo criterio para los anchos: cada uno es una URL distinta contra
+    // /render/image/ de Supabase. Los defaults de Next llegan hasta 3840px, un
+    // tamaño que ninguna card de menú usa. Esta lista cubre mobile (1x/2x),
+    // tablet y desktop, y nada más.
+    deviceSizes: [640, 828, 1080, 1920],
+    imageSizes: [64, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   async headers() {
