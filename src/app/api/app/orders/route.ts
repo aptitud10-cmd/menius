@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
+import { flattenOrderRestaurant } from '@/lib/app-api/shape';
 
 const logger = createLogger('app:orders');
 
@@ -84,13 +85,7 @@ export async function POST(request: NextRequest) {
 
     // Flatten the embedded restaurant so the app gets a stable shape regardless
     // of how PostgREST nests the join.
-    const orders = (data ?? []).map((row) => {
-      const { restaurants, ...order } = row as typeof row & {
-        restaurants?: { name: string; slug: string } | { name: string; slug: string }[] | null;
-      };
-      const restaurant = Array.isArray(restaurants) ? (restaurants[0] ?? null) : (restaurants ?? null);
-      return { ...order, restaurant };
-    });
+    const orders = (data ?? []).map(flattenOrderRestaurant);
 
     return NextResponse.json({ orders });
   } catch (err) {

@@ -4,6 +4,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
+import {
+  parseFavoriteRestaurantIds,
+  keepActiveRestaurants,
+  type FavoriteRestaurant,
+} from '@/lib/app-api/shape';
 
 const logger = createLogger('app:device');
 
@@ -14,16 +19,6 @@ const RETURN_COLS = 'id, device_uuid, display_name, phone, email, favorites, add
 
 // Shape the app's Home screen renders for each favorited restaurant.
 const RESTAURANT_COLS = 'id, slug, name, logo_url, cover_image_url, description, is_active';
-
-type FavoriteRestaurant = {
-  id: string;
-  slug: string;
-  name: string;
-  logo_url: string | null;
-  cover_image_url: string | null;
-  description: string | null;
-  is_active: boolean | null;
-};
 
 /**
  * Resolve the device's favorited restaurants.
@@ -38,16 +33,10 @@ async function resolveFavoriteRestaurants(
   adminDb: ReturnType<typeof createAdminClient>,
   favorites: unknown,
 ): Promise<FavoriteRestaurant[]> {
-  const ids = (favorites as { restaurants?: unknown } | null)?.restaurants;
-  if (!Array.isArray(ids) || ids.length === 0) return [];
+  const ids = parseFavoriteRestaurantIds(favorites);
+  if (ids.length === 0) return [];
 
-  const validIds = ids.filter((id): id is string => typeof id === 'string' && UUID_RE.test(id));
-  if (validIds.length === 0) return [];
-
-  const { data, error } = await adminDb
-    .from('restaurants')
-    .select(RESTAURANT_COLS)
-    .in('id', validIds);
+  const { data, error } = await adminDb.from('restaurants').select(RESTAURANT_COLS).in('id', ids);
 
   if (error) {
     // A failed lookup shouldn't sink the device upsert — Home just renders empty.
@@ -55,7 +44,7 @@ async function resolveFavoriteRestaurants(
     return [];
   }
 
-  return ((data ?? []) as FavoriteRestaurant[]).filter((r) => r.is_active !== false);
+  return keepActiveRestaurants((data ?? []) as FavoriteRestaurant[]);
 }
 
 /**
