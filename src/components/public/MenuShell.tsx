@@ -1823,7 +1823,12 @@ export function MenuShell({
 
               {/* Mobile: nombre + rating overlaid at bottom of banner */}
               <div className="lg:hidden absolute bottom-0 left-0 right-0 px-4 pb-4">
-                <h1 className="text-3xl font-black text-white drop-shadow-lg leading-tight">
+                {/* font-menu = Instrument Serif. Sin font-black: la fuente solo
+                    tiene peso 400 y el navegador la sintetizaría en falso bold. */}
+                <h1
+                  className="font-menu text-[2.6rem] text-white leading-[1.02] tracking-[-0.015em]"
+                  style={{ textShadow: "0 2px 18px rgba(0,0,0,0.55)" }}
+                >
                   {restaurant.name}
                 </h1>
                 {restaurant.description && (
@@ -1852,7 +1857,8 @@ export function MenuShell({
                       del restaurante duplicado. Solo el primero es <h1>. */}
                   <div
                     role="presentation"
-                    className="text-4xl font-black text-white drop-shadow-sm leading-tight truncate"
+                    className="font-menu text-[3.4rem] text-white leading-[1.02] tracking-[-0.015em] truncate"
+                    style={{ textShadow: "0 2px 20px rgba(0,0,0,0.5)" }}
                   >
                     {restaurant.name}
                   </div>
@@ -2662,7 +2668,11 @@ export function MenuShell({
                                         🔥
                                       </span>
                                     )}
-                                    <h2 className="text-[17px] font-extrabold text-gray-900 tracking-tight">
+                                    {/* Serif editorial: separa el título de sección
+                                        del nombre de plato, que sigue en Inter.
+                                        Sin font-extrabold (Instrument Serif solo
+                                        tiene peso 400 y se falsearía). */}
+                                    <h2 className="font-menu text-[1.45rem] text-gray-950 tracking-[-0.01em] leading-none">
                                       {isPopular
                                         ? t.popularItems
                                         : tName(

@@ -90,19 +90,19 @@ export const ProductCardMobile = memo(function ProductCardMobile({
       onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
         'relative flex flex-col bg-white rounded-2xl overflow-hidden transition-all duration-150',
-        // Every card in the Popular section carries the amber treatment; the #1
-        // keeps a stronger border so it still leads within the section.
+        // El badge (⭐ #1 / 🔥 Top 3) ya comunica la popularidad. Repetirla en el
+        // borde de CADA card de la sección hacía que el ámbar compitiera con la
+        // foto —que es lo que vende— y perdiera valor de señal. Solo el #1
+        // conserva una marca, y sutil.
         !outOfStock && product.popularity_rank === 1
-          ? 'border-2 border-amber-400 shadow-[0_2px_16px_rgba(245,158,11,0.20)]'
-          : !outOfStock && inPopularSection
-            ? 'border border-amber-200 shadow-[0_2px_14px_rgba(245,158,11,0.13)]'
-            : 'border border-gray-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)]',
+          ? 'border border-amber-300 shadow-[0_2px_14px_rgba(245,158,11,0.14)]'
+          : 'border border-ink-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)]',
         outOfStock ? 'opacity-60' : 'cursor-pointer active:opacity-80'
       )}
     >
 
       {/* Image */}
-      <div className="relative w-full aspect-square bg-gray-100 flex-shrink-0 overflow-hidden">
+      <div className="relative w-full aspect-square bg-ink-100 flex-shrink-0 overflow-hidden">
 
         {showImage ? (
           <>
@@ -123,8 +123,8 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             />
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-            <UtensilsCrossed className="w-9 h-9 text-gray-300" aria-hidden="true" />
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-ink-50 to-ink-100">
+            <UtensilsCrossed className="w-9 h-9 text-ink-300" aria-hidden="true" />
           </div>
         )}
 
@@ -170,23 +170,23 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           aria-pressed={isFav}
         >
           <span className="w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm">
-            <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+            <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-ink-400')} />
           </span>
         </button>
       </div>
 
       {/* Content */}
       <div className="p-3 flex flex-col flex-1">
-        <h3 className={cn('font-bold text-[15px] line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-950')}>
+        <h3 className={cn('font-bold text-[15px] line-clamp-2 leading-snug', outOfStock ? 'text-ink-400' : 'text-ink-950')}>
           {displayName}
         </h3>
         {product.description && !outOfStock && (
-          <p className="text-xs text-gray-600 line-clamp-1 mt-0.5 leading-snug">
+          <p className="text-xs text-ink-600 line-clamp-1 mt-0.5 leading-snug">
             {product.description}
           </p>
         )}
         {hasModifiers && !outOfStock && (
-          <span className="inline-flex items-center gap-0.5 text-xs text-gray-500 font-medium mt-1">
+          <span className="inline-flex items-center gap-0.5 text-xs text-ink-500 font-medium mt-1">
             {customizeLabel}
             <ChevronRight className="w-3 h-3" />
           </span>
@@ -203,20 +203,20 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         <div className="flex items-center justify-between mt-auto pt-2.5">
           <div className="flex flex-col leading-none">
             {hasModifiers && !outOfStock && (
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide leading-none mb-0.5">{t.fromPrice}</span>
+              <span className="text-[10px] font-semibold text-ink-400 uppercase tracking-wide leading-none mb-0.5">{t.fromPrice}</span>
             )}
-            <span className={cn('text-[17px] font-black tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-950')}>
+            <span className={cn('text-[17px] font-black tabular-nums leading-none', outOfStock ? 'text-ink-300 line-through' : 'text-ink-950')}>
               {fmtPrice(Number(product.price))}
             </span>
             {!outOfStock && product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price) && (
-              <span className="text-[11px] text-gray-400 line-through tabular-nums leading-none mt-0.5">
+              <span className="text-[11px] text-ink-400 line-through tabular-nums leading-none mt-0.5">
                 {fmtPrice(Number(product.compare_at_price))}
               </span>
             )}
           </div>
           {outOfStock ? (
-            <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-              <Ban className="w-4 h-4 text-gray-300" />
+            <div className="w-9 h-9 rounded-full bg-ink-100 flex items-center justify-center flex-shrink-0">
+              <Ban className="w-4 h-4 text-ink-300" />
             </div>
           ) : (
             /* 44px touch target wrapping the visible 36px circle */
