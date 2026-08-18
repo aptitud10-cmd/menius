@@ -33,7 +33,12 @@ export async function broadcastOrderUpdate(
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !key) return;
+  if (!url || !key) {
+    // Sin env vars el broadcast se cae en silencio y el cliente queda sirviendose
+    // solo del polling de 5s. Se loguea para que sea diagnosticable en produccion.
+    logger.warn('broadcast omitido: falta SUPABASE_URL o SERVICE_ROLE_KEY');
+    return;
+  }
 
   try {
     const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
@@ -78,7 +83,12 @@ export async function broadcastDriverLocation(
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !key) return;
+  if (!url || !key) {
+    // Sin env vars el broadcast se cae en silencio y el cliente queda sirviendose
+    // solo del polling de 5s. Se loguea para que sea diagnosticable en produccion.
+    logger.warn('broadcast omitido: falta SUPABASE_URL o SERVICE_ROLE_KEY');
+    return;
+  }
 
   try {
     const res = await fetch(`${url}/realtime/v1/api/broadcast`, {

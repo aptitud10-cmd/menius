@@ -78,6 +78,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Token expired" }, { status: 410 });
   }
 
+  // Pedido cancelado: ninguna accion del driver tiene sentido. Sin esta guarda,
+  // un at_door sobre un pedido cancelado escribia el timestamp Y disparaba el
+  // push "tu repartidor esta en la puerta" a un cliente al que ya le cancelaron.
+  if (order.status === "cancelled") {
+    return NextResponse.json(
+      { error: "Order cancelled", cancelled: true },
+      { status: 409 },
+    );
+  }
+
   // Block delivery-specific actions on non-delivery orders
   if (action !== "notify_outside" && (order as any).order_type !== "delivery") {
     return NextResponse.json(
@@ -108,6 +118,17 @@ export async function POST(req: NextRequest) {
       order.status,
       "out_for_delivery",
     );
+    // Si la transicion no esta permitida, el pedido queda inconsistente:
+    // driver_picked_up_at seteado pero status sin avanzar. El cliente no ve
+    // "en camino" (su UI depende de status) y tampoco recibe la notificacion
+    // de abajo, que exige status === out_for_delivery. Se loguea para que un
+    // estado futuro sin la transicion no vuelva a fallar en silencio.
+    if (!advanceToOutForDelivery) {
+      logger.warn("picked_up sin avance de status", {
+        orderId: order.id,
+        from: order.status,
+      });
+    }
     updateData = {
       driver_picked_up_at: now,
       ...(advanceToOutForDelivery ? { status: "out_for_delivery" } : {}),

@@ -474,7 +474,14 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   }
 
   const isCancelled = order.status === 'cancelled';
-  const customerStep = STATUS_TO_CUSTOMER_STEP[order.status] ?? 'pending';
+  // Un delivery ya recogido esta al menos en 'ready' aunque el status diga otra
+  // cosa: el timestamp del driver es el hecho fisico y manda sobre el status.
+  const customerStep =
+    order.order_type === 'delivery' &&
+    (order as any).driver_picked_up_at &&
+    !['delivered', 'completed', 'cancelled'].includes(order.status)
+      ? 'ready'
+      : (STATUS_TO_CUSTOMER_STEP[order.status] ?? 'pending');
   const currentStepIndex = CUSTOMER_STEPS.indexOf(customerStep);
   const isComplete = ['delivered', 'completed', 'served'].includes(order.status);
   const currentStepStyle = STEP_STYLES[order.status];
@@ -1108,7 +1115,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         )}
 
         {/* ── DRIVER CARD + STATUS BANNERS (delivery only) ── */}
-        {order.order_type === 'delivery' && ['ready', 'out_for_delivery'].includes(order.status) && (
+        {/* driver_picked_up_at tambien monta el bloque: si el status quedo atras
+            (el KDS no marco ready antes de que el driver recogiera), el cliente
+            igual ve a su repartidor en vez de una pantalla que dice "preparando". */}
+        {order.order_type === 'delivery' && (['ready', 'out_for_delivery'].includes(order.status) || Boolean((order as any).driver_picked_up_at)) && (
           <>
             {/* Driver card — shown from assignment onwards, until driver is at door */}
             {(order as any).driver_assigned_at && !(order as any).driver_at_door_at && (
