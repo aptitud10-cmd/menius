@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTenant } from "@/lib/auth/get-tenant";
+import { renderDashboardGuide } from "@/lib/ai/dashboard-map";
 import { hasPlanAccess } from "@/lib/auth/check-plan";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { getPlan } from "@/lib/plans";
@@ -594,30 +595,12 @@ A response is successful when:
 
 const SHARED_CAPABILITIES_BODY = `
 
-DASHBOARD GUIDE (step-by-step for each section):
-
-- **Home**: Today's stats, sales vs yesterday, recent orders, low stock alerts, onboarding checklist, share menu button.
-- **Menu > Categories**: Create/edit/reorder categories, show/hide. Drag to reorder.
-- **Menu > Products**: Add with name, description, price, photo (upload, AI-generate, or gallery). Toggles: Active, In Stock, Featured, New, Dietary tags, Translations. Add variants/extras via "Options & extras".
-- **Menu > Inventory**: Track stock per product. Toggle "Track inventory" on each product. Set stock quantity. Out-of-stock items auto-hide or show "Sold out".
-- **Menu > Import (OCR)**: Upload photo of physical menu → AI creates categories and products automatically.
-- **Tables & QR**: Create tables, generate printable QR codes per table. Each QR links directly to that table's ordering page.
-- **Counter**: Cashier/POS screen. Accept walk-in orders, set ETA, assign delivery drivers, print tickets. Works on tablet/iPad.
-- **Kitchen (KDS)**: Full-screen real-time kitchen display with sound alerts. Requires Pro plan. Open at menius.app/kds
-- **Orders**: Full history, filter by status/date/type. Click order for details, see order items, contact customer.
-- **Reservations** (Starter+): Manage bookings from public menu. See calendar view, confirm/cancel. Auto-notifications to customer.
-- **Customers (CRM)** (Starter+): Auto-built from orders. Segments: VIP (5+ orders), regular, at-risk (no order 21+ days). Profile shows full history, total spent, tags, notes. Actions: send email, add tags, add notes, export.
-- **Analytics** (Starter+): Sales charts by day/week/month, top products by revenue, order type breakdown (dine-in/pickup/delivery), peak hours heatmap, cancellation rate.
-- **Reviews** (Pro+): See ratings and comments from customers, and reply from the dashboard.
-- **Marketing Hub** (Pro+): Email Campaigns (segmented: all/VIP/inactive/recent) and a Social Media AI generator (Instagram/Facebook/TikTok). The Automations panel lists which automated emails are active — it is INFORMATIONAL ONLY, they cannot be toggled from there. MENIUS has NO SMS feature: if asked, say so plainly.
-- **Promotions** (Pro+): Discount coupons — percentage or fixed amount, with code, max uses, expiration date, minimum order.
-- **Loyalty Program** (Pro+): Points per order, redeem as discount. Manage from dashboard or via chat.
-- **Team/Staff** (Starter+): Add employees with roles (admin, manager, staff, kitchen). Add delivery drivers. Drivers get a dedicated tracking link per delivery — no app install required.
-- **Settings**: Logo, cover photo, public URL (slug), custom domain (Pro+), basic info, order types (dine-in/pickup/delivery), payment methods (cash/card/Stripe Connect/Wompi), operating hours, email notifications, order notification phone (for the restaurant's own WhatsApp button), taxes (rate, label, included/on-top), printers (thermal, per-device config).
-- **Billing**: Plan status, usage vs limits, upgrade/downgrade, invoices, Stripe billing portal, cancel subscription.
-- **API Keys** (Business): Generate API keys for integrations. Full REST API available.
-- **Data & Privacy**: Export all data as JSON (GDPR). Delete account permanently.
-- **Keyboard Shortcuts**: Ctrl+K (Cmd+K) opens Command Palette — quick navigation.
+DASHBOARD GUIDE — generated from the real routes under src/app/(dashboard)/app.
+Do NOT describe any screen or feature that is not listed here: if it is not on
+this list, MENIUS does not have it and you must say so plainly.
+${renderDashboardGuide()}
+- **Menu > Import (OCR)** — inside Menu > Products: upload a photo of a physical menu and AI creates the categories and products.
+- **Keyboard Shortcuts**: Ctrl+K (Cmd+K) opens the Command Palette for quick navigation.
 
 ONBOARDING GUIDE (detect incomplete setup and guide step by step):
 When a new restaurant is missing key data, guide them in this priority order:
