@@ -36,7 +36,14 @@ const RATE_LIMIT = { limit: 12, windowSec: 60 };
 const MAX_QUERY_LEN = 200;
 /** Under this length a query is a plain dish name — the lexical engine handles it. */
 const MIN_MODEL_QUERY_LEN = 12;
-const MODEL_TIMEOUT_MS = 3500;
+// gemini-flash-latest, NO gemini-2.5-flash: medido contra el catálogo real de
+// Buccaneer (408 productos), el 2.5 razona antes de responder y tarda ~6.4s; el
+// latest resuelve la misma clasificación en 1.9–3.4s.
+//
+// El timeout cubre SOLO la llamada al modelo. El import del SDK y las queries a
+// Supabase se hacen antes y no consumen este presupuesto — medirlos juntos fue
+// lo que hizo fallar la primera versión con un timeout aparentemente holgado.
+const MODEL_TIMEOUT_MS = 5000;
 
 interface IntentResponse {
   intent: MenuIntent;
@@ -166,8 +173,8 @@ export async function POST(request: NextRequest) {
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey });
 
-      // The diner is waiting with a spinner. Past ~3.5 s the heuristic result is
-      // a better product than a correct answer nobody stayed for.
+      // The diner is waiting with a spinner: past the timeout the heuristic
+      // result is a better product than a correct answer nobody stayed for.
       //
       // El race NO cancela la request al modelo (el SDK no expone signal): solo
       // deja de esperarla. La invocación termina en background y se descarta —
@@ -175,7 +182,7 @@ export async function POST(request: NextRequest) {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const response = await Promise.race([
         ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-flash-latest',
           contents: [{ role: 'user', parts: [{ text: buildPrompt(query, digest, locale) }] }],
           config: { responseMimeType: 'application/json' } as never,
         }),
