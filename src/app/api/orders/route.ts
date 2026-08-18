@@ -871,7 +871,12 @@ export async function POST(request: NextRequest) {
       idempotency_key: idempotencyKey || null,
       scheduled_for: scheduledFor,
       include_utensils: body.include_utensils !== false,
-      driver_tracking_token: preToken,
+      // Solo delivery lleva token de driver. En pickup/dine_in el token no tiene
+      // uso y ademas nacia sin expiracion (preTokenExpiresAt = null), asi que
+      // quedaba vivo para siempre: los chequeos son `if (expiry && ...)` y con
+      // null nunca dan por vencido. Ese token se imprime en el ticket, y contra
+      // /api/driver/order devuelve nombre y telefono del cliente sin auth.
+      driver_tracking_token: isDelivery ? preToken : null,
       driver_token_expires_at: preTokenExpiresAt,
       customer_token: custToken,
       customer_locale: bodyLocale,
