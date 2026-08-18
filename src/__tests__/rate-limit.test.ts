@@ -42,11 +42,16 @@ describe('checkRateLimit', () => {
 });
 
 describe('getClientIP', () => {
-  it('returns x-forwarded-for first IP', () => {
+  it('returns the LAST x-forwarded-for entry, not the first', () => {
+    // La primera entrada la controla el cliente: puede preponer lo que quiera
+    // para evadir el rate limit. La confiable es la última, que agrega nuestro
+    // propio proxy justo antes de llegar a la app.
+    // Este test esperaba la primera y quedó del comportamiento viejo, inseguro
+    // — el código se endureció en d382c44 y el test no se actualizó.
     const req = new Request('http://localhost', {
       headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' },
     });
-    expect(getClientIP(req)).toBe('1.2.3.4');
+    expect(getClientIP(req)).toBe('5.6.7.8');
   });
 
   it('returns x-real-ip as fallback', () => {

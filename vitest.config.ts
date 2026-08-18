@@ -11,6 +11,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // 'server-only' es un centinela que resuelve Next durante el build; no
+      // está instalado como paquete, así que vitest no puede resolverlo y
+      // tumbaba todo test que alcanzara src/lib/supabase/admin.ts.
+      'server-only': path.resolve(__dirname, './src/__tests__/stubs/server-only.ts'),
     },
   },
 });
