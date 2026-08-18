@@ -91,7 +91,7 @@ Reglas:
 - "terms" son palabras que aparecerían en el nombre de un plato. Conceptos abstractos ("liviano", "para chicos") NO van en terms: expresalos con tags, price o categoryHints.
 - Si no hay señal para un campo, dejalo vacío o null. No inventes.
 - categoryHints solo con nombres de categoría que figuren arriba.
-- "reply" en el idioma del pedido.
+- "reply" SIEMPRE en el mismo idioma que el pedido del comensal, no en el de estas instrucciones.
 - SOLO JSON, sin markdown ni explicación.`;
 }
 

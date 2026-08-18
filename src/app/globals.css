@@ -1298,3 +1298,13 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 }
 
 
+
+
+/* El input[type=search] de WebKit dibuja su propia X de limpiar, que se
+   superpone a la del componente: en la tienda se veían dos. La del componente
+   es la que queda (tiene aria-label y área táctil correcta). */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}

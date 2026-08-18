@@ -19,6 +19,7 @@ import {
   RotateCcw,
   AlertCircle,
   AlignJustify,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
@@ -43,6 +44,7 @@ import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { supabaseLoader } from "@/lib/image-loader";
 import { StoreConfigProvider } from "@/lib/store-config-context";
 import { getStoreOverrides } from "@/lib/store-overrides";
+import { useNaturalSearch } from "@/lib/hooks/useNaturalSearch";
 import { MenuHeader, HEADER_HEIGHT } from "./MenuHeader";
 import { CategorySidebar } from "./CategorySidebar";
 import { ProductCard } from "./ProductCard";
@@ -1146,6 +1148,21 @@ export function MenuShell({
       }),
     [searchQuery, products, categories, locale, defaultLocale],
   );
+
+  // ── Búsqueda en lenguaje natural ──
+  // Solo entra cuando el motor léxico no encontró nada Y la consulta parece una
+  // frase ("algo liviano para mi hijo") en vez de un nombre de plato. Es
+  // aditiva: si está apagada o falla la red, la búsqueda de siempre no cambia.
+  const naturalSearch = useNaturalSearch({
+    enabled: Boolean(storeConfig.naturalSearch),
+    query: searchQuery,
+    restaurantId: restaurant.id,
+    products,
+    categories,
+    locale,
+    defaultLocale,
+    lexicalResultCount: searchResults?.length ?? 0,
+  });
 
   // searchResults is null while the query is too short to search — treat that as
   // "nothing to split" so neither block renders.
@@ -3560,6 +3577,79 @@ export function MenuShell({
                         </span>
                       </button>
                     ))}
+                  </div>
+                ) : naturalSearch.active ? (
+                  /* El motor léxico no encontró nada, pero la interpretación de
+                     la frase sí. Se marca como sugerencia, no como coincidencia
+                     exacta, para que el comensal entienda por qué ve esto. */
+                  <div className="space-y-1">
+                    <div className="mb-3 flex items-start gap-2">
+                      <Sparkles
+                        className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        {/* Sin uppercase: es una oración, no una etiqueta. En
+                            mayúsculas una frase entera se lee como grito. */}
+                        <p className="text-sm font-semibold text-gray-900 leading-snug">
+                          {naturalSearch.reply ?? t.searchSuggestions}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {naturalSearch.results.length}{" "}
+                          {naturalSearch.results.length === 1
+                            ? t.resultSingular
+                            : t.resultPlural}
+                        </p>
+                      </div>
+                    </div>
+                    {naturalSearch.results.slice(0, 20).map((product) => (
+                      <button
+                        key={product.id}
+                        onClick={() => {
+                          setShowSearch(false);
+                          setSearchQuery("");
+                          handleProductSelect(product);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+                      >
+                        {!showsAsRow(product) && product.image_url && (
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                            <Image
+                              src={product.image_url}
+                              alt={product.name}
+                              fill
+                              sizes="48px"
+                              loader={
+                                product.image_url.includes(".supabase.co/storage/")
+                                  ? supabaseLoader
+                                  : undefined
+                              }
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[15px] font-semibold text-gray-900 truncate">
+                            {product.name}
+                          </p>
+                          {product.description && (
+                            <p className="text-xs text-gray-400 truncate mt-0.5">
+                              {product.description}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
+                          {fmtPrice(Number(product.price))}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : naturalSearch.loading ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center px-8 py-12">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+                      <span className="w-6 h-6 rounded-full border-2 border-gray-300 border-t-[#05c8a7] animate-spin" aria-hidden="true" />
+                    </div>
+                    <p className="text-sm text-gray-400">{t.searchPlaceholder}</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center px-8 py-12">
