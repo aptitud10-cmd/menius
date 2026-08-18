@@ -77,8 +77,8 @@ export const CategorySidebar = memo(function CategorySidebar({
                 available
                   ? isActive
                     ? 'text-[#047a65] font-semibold'
-                    : 'text-gray-600 font-medium hover:text-gray-900'
-                  : 'text-gray-300 font-medium cursor-not-allowed'
+                    : 'text-ink-600 font-medium hover:text-ink-900'
+                  : 'text-ink-300 font-medium cursor-not-allowed'
               )}
             >
               {isActive && available && (
@@ -98,7 +98,7 @@ export const CategorySidebar = memo(function CategorySidebar({
               <div className="flex-1 text-left min-w-0 relative z-10">
                 <span className="truncate block">{tName(cat, locale, defaultLocale)}</span>
                 {hasSchedule && !available && (
-                  <span className="flex items-center gap-1 text-[10px] text-gray-400 mt-0.5">
+                  <span className="flex items-center gap-1 text-[10px] text-ink-400 mt-0.5">
                     <Clock className="w-2.5 h-2.5" />
                     {cat.available_from} – {cat.available_to}
                   </span>
@@ -107,8 +107,8 @@ export const CategorySidebar = memo(function CategorySidebar({
               <span className={cn(
                 'text-xs tabular-nums flex-shrink-0 mt-0.5 relative z-10',
                 available
-                  ? isActive ? 'text-[#05c8a7]' : 'text-gray-300'
-                  : 'text-gray-200'
+                  ? isActive ? 'text-[#05c8a7]' : 'text-ink-300'
+                  : 'text-ink-200'
               )}>
                 {count}
               </span>
@@ -123,17 +123,17 @@ export const CategorySidebar = memo(function CategorySidebar({
           return (
             <div key={cat.id}>
               {entry}
-              <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-gray-200 space-y-px">
+              <div className="mt-0.5 mb-1 ml-4 pl-3 border-l border-ink-200 space-y-px">
                 {nested.map(({ category: sub, items }) => (
                   <button
                     key={sub.id}
                     onClick={() => onSelectSubcategory?.(sub.id)}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-gray-500 font-medium hover:text-gray-900 hover:bg-gray-50 transition-colors text-left"
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-ink-500 font-medium hover:text-ink-900 hover:bg-ink-50 transition-colors text-left"
                   >
                     <span className="truncate flex-1">
                       {tName(sub, locale, defaultLocale)}
                     </span>
-                    <span className="text-[11px] tabular-nums text-gray-300 flex-shrink-0">
+                    <span className="text-[11px] tabular-nums text-ink-300 flex-shrink-0">
                       {items.length}
                     </span>
                   </button>

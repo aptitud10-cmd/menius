@@ -34,6 +34,9 @@ export interface ProductCardProps {
   /** Cards rendered inside the "Popular" section get the amber treatment, not
    *  just the #1: the whole section is the recommendation, so a single
    *  highlighted card made the other nine look like ordinary catalog rows. */
+  /** True cuando la card se renderiza dentro de la sección "Popular".
+   *  Ya no altera el borde —el badge ⭐/🔥 es quien comunica la popularidad—
+   *  pero se conserva porque describe el contexto de render. */
   inPopularSection?: boolean;
 }
 

@@ -1151,7 +1151,7 @@ export function CustomizationSheet({
                 <button
                   onClick={onClose}
                   aria-label={locale === "es" ? "Volver" : "Back"}
-                  className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0"
+                  className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1"
                 >
                   <ArrowLeft className="w-5 h-5 text-gray-600" />
                 </button>
@@ -1179,7 +1179,7 @@ export function CustomizationSheet({
             <button
               onClick={onClose}
               aria-label="Cerrar"
-              className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 group"
+              className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1"
             >
               <X className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
             </button>
@@ -1234,7 +1234,7 @@ export function CustomizationSheet({
             <button
               onClick={onClose}
               aria-label="Cerrar"
-              className="p-2 -mr-1 ml-3 rounded-xl active:bg-gray-100 transition-colors flex-shrink-0"
+              className="p-2 -mr-1 ml-3 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1"
             >
               <X className="w-6 h-6 text-gray-700" />
             </button>
