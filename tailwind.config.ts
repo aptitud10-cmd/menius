@@ -40,18 +40,17 @@ const config: Config = {
         },
       },
       borderRadius: {
-        // xl/2xl se dejan EXACTAMENTE como estaban: 156 archivos de toda la app
-        // (landing, dashboard, admin) dependen de estos valores. Cambiarlos acá
-        // obligaría a revalidar visualmente todo, no solo la tienda.
+        // La escala de la tienda es la de Tailwind: lg(8) → xl(14) → 2xl(18)
+        // → 3xl(24), que ya cubre chip → botón → card → sheet.
+        //
+        // Se probó una escala 'store-*' paralela (12/16px) y se descartó: contra
+        // los valores actuales movía 2px en dos pasos y 0px en los otros dos —
+        // invisible en pantalla, a cambio de dos sistemas de radios conviviendo.
+        // El defecto real de jerarquía de forma no eran los valores sino su uso
+        // inconsistente (tres botones-ícono idénticos con tres radios distintos
+        // en CustomizationSheet), y eso se corrigió en los componentes.
         xl: '14px',
         '2xl': '18px',
-        // Escala de forma NUEVA, opt-in, solo para la tienda del comensal.
-        // Da la jerarquía que faltaba sin tocar nada de lo existente:
-        //   chip → botón → card → sheet
-        'store-chip':   '0.5rem',   //  8px — pills de categoría, badges
-        'store-btn':    '0.75rem',  // 12px — botón agregar, CTAs
-        'store-card':   '1rem',     // 16px — product cards
-        'store-sheet':  '1.5rem',   // 24px — customization sheet, carrito
       },
     },
   },
