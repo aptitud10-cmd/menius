@@ -40,11 +40,21 @@ export async function POST(req: NextRequest) {
   // Find order by token
   const { data: order } = await supabase
     .from('orders')
-    .select('id, order_number, status, driver_delivered_at')
+    .select('id, order_number, status, order_type, driver_delivered_at')
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
   if (!order) return NextResponse.json({ error: 'Invalid token' }, { status: 404 });
+
+  // Solo delivery tiene foto de entrega. Sin esta guarda, el token impreso en un
+  // ticket de pickup permite subir cualquier imagen al bucket publico
+  // order-photos y escribirla en delivery_photo_url del pedido.
+  if ((order as any).order_type !== 'delivery') {
+    return NextResponse.json(
+      { error: 'Delivery photo is only valid for delivery orders' },
+      { status: 409 },
+    );
+  }
 
   // Bound the upload window. Expired driver tokens are deliberately accepted for
   // late deliveries (same policy as marking delivered), but a token must not be

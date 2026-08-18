@@ -56,11 +56,20 @@ export async function POST(req: NextRequest) {
     // Cache miss — hit Postgres (O(log n) via partial index on driver_tracking_token)
     const { data: order } = await supabase
       .from('orders')
-      .select('id, driver_token_expires_at')
+      .select('id, order_type, driver_token_expires_at')
       .eq('driver_tracking_token', token)
       .maybeSingle();
 
     if (!order) return NextResponse.json({ error: 'Invalid token' }, { status: 404 });
+
+    // Solo delivery acepta pings de GPS. Sin esta guarda se pueden inyectar
+    // coordenadas en un pedido de pickup con el token impreso en su ticket.
+    if ((order as any).order_type !== 'delivery') {
+      return NextResponse.json(
+        { error: 'Location is only valid for delivery orders' },
+        { status: 409 },
+      );
+    }
 
     orderId = order.id as string;
     tokenExpiresAt = (order as any).driver_token_expires_at ?? null;

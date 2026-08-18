@@ -67,7 +67,12 @@ function mapOrderToReceipt(
   const rawOrder = order as any;
   const trackingToken = rawOrder.driver_tracking_token ?? null;
   const appUrl = (typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'));
-  const driverTrackingUrl = trackingToken ? `${appUrl}/driver/track/${trackingToken}` : undefined;
+  // El QR del driver va SOLO en tickets de delivery. Es un token de accion, y en
+  // un ticket de pickup no tiene uso pero si expone datos del cliente.
+  const driverTrackingUrl =
+    trackingToken && order.order_type === 'delivery'
+      ? `${appUrl}/driver/track/${trackingToken}`
+      : undefined;
 
   const tipAmt = Number(order.tip_amount) || 0;
   const feeAmt = Number(order.delivery_fee) || 0;
