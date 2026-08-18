@@ -2109,6 +2109,11 @@ export async function assignDriver(
     driver_picked_up_at: null,
     driver_at_door_at: null,
     driver_delivered_at: null,
+    // El status tiene que retroceder junto con los timestamps. Si no, la fila
+    // queda imposible (status out_for_delivery + driver_picked_up_at null): el
+    // cliente pierde el mapa y ve el pedido retroceder, y cuando el driver nuevo
+    // marque recogido la transicion out_for_delivery -> out_for_delivery falla.
+    ...(current?.status === "out_for_delivery" ? { status: "ready" } : {}),
   };
 
   // Vincular driver_id si se proporciona (usado desde la app nativa)
