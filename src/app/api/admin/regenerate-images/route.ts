@@ -297,13 +297,35 @@ export async function POST(request: NextRequest) {
                   return false;
                 }
 
-                const buffer = Buffer.from(imageBase64, 'base64');
-                const fileName = `admin-regen/${restaurantId}/${product.id}-${Date.now()}.jpg`;
+                const rawBuffer = Buffer.from(imageBase64, 'base64');
+
+                // El buffer del modelo se subía tal cual y promediaba 763 KB —
+                // diez veces lo que pesan las fotos que sí pasan por este paso.
+                // Mismo tratamiento que master-anchors y tenant/upload.
+                let buffer: Buffer;
+                try {
+                  const sharp = (await import('sharp')).default;
+                  buffer = await sharp(rawBuffer)
+                    .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+                    .webp({ quality: 82 })
+                    .toBuffer();
+                } catch (err) {
+                  // Si sharp no puede decodificar, el modelo no devolvió una
+                  // imagen válida: subir el buffer crudo dejaría basura en un
+                  // bucket público.
+                  logger.warn('sharp could not decode generated image', {
+                    productId: product.id,
+                    error: err instanceof Error ? err.message : String(err),
+                  });
+                  return false;
+                }
+
+                const fileName = `admin-regen/${restaurantId}/${product.id}-${Date.now()}.webp`;
 
                 const { error: uploadError } = await adminSupabase.storage
                   .from('product-images')
                   .upload(fileName, buffer, {
-                    contentType: 'image/jpeg',
+                    contentType: 'image/webp',
                     cacheControl: '3600',
                     upsert: true,
                   });

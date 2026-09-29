@@ -24,9 +24,23 @@ export function supabaseLoader({ src, width, quality }: LoaderParams): string {
   const isSupabaseUrl = src.includes('.supabase.co/storage/');
   if (!isSupabaseUrl) return src;
 
-  // AI-generated and admin-regen images are already optimized at upload time.
-  // Supabase's /render/image/ endpoint returns 400 for these files, so serve them directly.
-  if (src.includes('/ai-') || src.includes('/admin-regen/')) return src;
+  // Antes acá se servían sin transformar las imágenes bajo /ai- y /admin-regen/,
+  // con el argumento de que ya venían optimizadas y que /render/image/ devolvía
+  // 400 para ellas. Medido contra prod el 2026-09-29, las dos premisas eran falsas:
+  //
+  //   - No vienen optimizadas: regenerate-images/route.ts sube el buffer del
+  //     modelo tal cual, sin resize ni recompresión. Promedian 763 KB contra los
+  //     41 KB de las que sí pasaban por el transform.
+  //   - /render/image/ no falla: 20 de 20 transformaron bien, incluida la más
+  //     pesada del catálogo (1478 KB → 61 KB). Los 400/429 que se le atribuían
+  //     al endpoint eran rate limit por pedir en paralelo.
+  //
+  // El resultado era que 68 imágenes de Buccaneer pesaban 51.9 MB, diez veces
+  // más que las otras 126 juntas. Al sacar la excepción caen a ~1.5 MB.
+  //
+  // Esto NO agrega transformaciones facturables nuevas: son imágenes que ya
+  // deberían haber estado pasando por acá. (El tope que se excedió en agosto
+  // era Image Transformations al 236%, no storage — ver getBlurUrl abajo.)
 
   const q = quality ?? 75;
 

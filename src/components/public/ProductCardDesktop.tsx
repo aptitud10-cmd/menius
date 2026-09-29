@@ -53,6 +53,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  // Si el transform de Supabase falla, servimos el original sin transformar antes
+  // de rendirnos y mostrar el ícono: una foto pesada es mejor que ninguna foto.
+  const [skipTransform, setSkipTransform] = useState(false);
 
   const displayName = tName(product, locale, defaultLocale);
   const displayDesc = tDesc(product, locale, defaultLocale);
@@ -118,7 +121,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             sizes="(max-width: 1280px) 40vw, 28vw"
             priority={priority}
             loading={priority ? undefined : 'lazy'}
-            loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
+            loader={!skipTransform && product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
             placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
             blurDataURL={getBlurUrl(product.image_url)}
             className={cn(
@@ -127,7 +130,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               outOfStock ? 'grayscale' : 'group-hover:scale-105'
             )}
             onLoad={() => setImgLoaded(true)}
-            onError={() => setImgError(true)}
+            onError={() => (skipTransform ? setImgError(true) : setSkipTransform(true))}
           />
           {!outOfStock && (
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />

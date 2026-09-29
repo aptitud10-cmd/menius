@@ -49,6 +49,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  // Si el transform de Supabase falla, servimos el original sin transformar antes
+  // de rendirnos y mostrar el ícono: una foto pesada es mejor que ninguna foto.
+  const [skipTransform, setSkipTransform] = useState(false);
 
   const displayName = tName(product, locale, defaultLocale);
   const showImage = product.image_url && !imgError;
@@ -114,12 +117,12 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               sizes="(max-width: 640px) 46vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
               loading={priority ? undefined : 'lazy'}
-              loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
+              loader={!skipTransform && product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
               className={cn('object-cover transition-opacity duration-150', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
               onLoad={() => setImgLoaded(true)}
-              onError={() => setImgError(true)}
+              onError={() => (skipTransform ? setImgError(true) : setSkipTransform(true))}
             />
           </>
         ) : (
