@@ -3,9 +3,13 @@ import { createHmac, createHash } from 'crypto';
 
 // ── Supabase admin mock ───────────────────────────────────────────────────────
 const mockMaybeSingle = vi.fn();
-const mockNeq = vi.fn(() => ({ select: mockSelect, maybeSingle: mockMaybeSingle }));
-const mockSelect = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq }));
-const mockEq = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq }));
+// .order()/.limit(): el webhook de Wompi los usa al resolver una referencia
+// legacy (order_number en vez del UUID de la orden).
+const mockLimit = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
+const mockOrder = vi.fn(() => ({ limit: mockLimit, maybeSingle: mockMaybeSingle }));
+const mockNeq = vi.fn(() => ({ select: mockSelect, maybeSingle: mockMaybeSingle, order: mockOrder }));
+const mockSelect = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder }));
+const mockEq = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder }));
 const mockUpdate = vi.fn(() => ({ eq: mockEq }));
 const mockInsert = vi.fn();
 const mockUpsert = vi.fn();
@@ -33,6 +37,14 @@ vi.mock('@/lib/notifications/order-notifications', () => ({
 }));
 
 // ── Error reporting mock ──────────────────────────────────────────────────────
+// Wompi ya no usa un secret global de env: cada restaurante guarda el suyo
+// encriptado en wompi_events_secret_enc. El mock devuelve el texto plano tal
+// cual para que los tests puedan firmar con un secret conocido.
+vi.mock('@/lib/crypto/secrets', () => ({
+  decryptSecret: (blob: string) => blob.replace(/^enc:/, ''),
+  encryptSecret: (plain: string) => `enc:${plain}`,
+}));
+
 vi.mock('@/lib/error-reporting', () => ({
   captureError: vi.fn(),
 }));
@@ -92,9 +104,11 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     mockInsert.mockResolvedValue({ error: null });
     mockUpsert.mockResolvedValue({ error: null });
     mockUpdate.mockReturnValue({ eq: mockEq });
-    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq });
-    mockNeq.mockReturnValue({ select: mockSelect, maybeSingle: mockMaybeSingle });
-    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq });
+    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
+    mockOrder.mockReturnValue({ limit: mockLimit, maybeSingle: mockMaybeSingle });
+    mockLimit.mockReturnValue({ maybeSingle: mockMaybeSingle });
+    mockNeq.mockReturnValue({ select: mockSelect, maybeSingle: mockMaybeSingle, order: mockOrder });
+    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder });
   });
 
   it('returns 400 when stripe-signature header is missing', async () => {
@@ -228,18 +242,46 @@ describe('POST /api/payments/wompi-webhook', () => {
     // Resetear la queue de Once para evitar contaminación entre describes
     mockMaybeSingle.mockReset();
     mockInsert.mockReset();
-    vi.stubEnv('WOMPI_EVENTS_SECRET', WOMPI_SECRET);
     mockInsert.mockResolvedValue({ error: null });
-    mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+    // Por defecto: orden encontrada, con el secret del restaurante adjunto.
+    // El route resuelve la orden PRIMERO y de ahí saca de quién es el secret
+    // que verifica la firma (Opción B: llaves Wompi por restaurante).
+    mockMaybeSingle.mockResolvedValue({
+      data: {
+        id: 'order-w',
+        payment_status: 'pending',
+        total: 100,
+        restaurants: { wompi_events_secret_enc: `enc:${WOMPI_SECRET}` },
+      },
+      error: null,
+    });
     mockUpdate.mockReturnValue({ eq: mockEq });
-    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq });
-    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq });
+    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
+    mockOrder.mockReturnValue({ limit: mockLimit, maybeSingle: mockMaybeSingle });
+    mockLimit.mockReturnValue({ maybeSingle: mockMaybeSingle });
+    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder });
   });
 
-  it('returns 503 when WOMPI_EVENTS_SECRET is not set', async () => {
-    vi.stubEnv('WOMPI_EVENTS_SECRET', '');
+  it('returns 503 when the restaurant has no Wompi events secret', async () => {
+    // Fail-closed: sin el secret del restaurante no hay nada verificable, así
+    // que no se procesa. Antes esto dependía de un env global.
     const { POST } = await import('@/app/api/payments/wompi-webhook/route');
-    const req = makeRequest('http://localhost/api/payments/wompi-webhook', {});
+    mockMaybeSingle.mockResolvedValue({
+      data: {
+        id: 'order-nosecret',
+        payment_status: 'pending',
+        total: 100,
+        restaurants: { wompi_events_secret_enc: null },
+      },
+      error: null,
+    });
+    const body = {
+      event: 'transaction.updated',
+      timestamp: 1234567890,
+      data: { transaction: { id: 'tx-ns', status: 'APPROVED', reference: 'ORD-NS' } },
+      signature: { properties: ['event', 'timestamp', 'data.transaction.id'], checksum: 'x' },
+    };
+    const req = makeRequest('http://localhost/api/payments/wompi-webhook', body);
     const res = await POST(req as never);
     expect(res.status).toBe(503);
   });
@@ -287,13 +329,24 @@ describe('POST /api/payments/wompi-webhook', () => {
     const body = {
       event: 'transaction.updated',
       timestamp: 1234567890,
-      data: { transaction: { id: 'tx-2', status: 'APPROVED', reference: 'ORD-002' } },
+      // amount_in_cents debe coincidir con el total de la orden: el route lo
+      // valida para que una referencia colisionada no pague la orden equivocada.
+      data: { transaction: { id: 'tx-2', status: 'APPROVED', reference: 'ORD-002', amount_in_cents: 10000 } },
       signature: { properties: ['event', 'timestamp', 'data.transaction.id'], checksum: '' },
     };
     body.signature.checksum = wompiChecksum(body, WOMPI_SECRET);
 
-    // Order found, not yet paid
-    mockMaybeSingle.mockResolvedValue({ data: { id: 'order-w1', payment_status: 'pending' }, error: null });
+    // Orden encontrada, sin pagar, con el secret de su restaurante adjunto:
+    // el route lo necesita para verificar la firma antes de tocar nada.
+    mockMaybeSingle.mockResolvedValue({
+      data: {
+        id: 'order-w1',
+        payment_status: 'pending',
+        total: 100,
+        restaurants: { wompi_events_secret_enc: `enc:${WOMPI_SECRET}` },
+      },
+      error: null,
+    });
     mockUpdate.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
 
     const req = makeRequest('http://localhost/api/payments/wompi-webhook', body);
@@ -338,8 +391,10 @@ describe('POST /api/payments/mercadopago-webhook', () => {
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
     mockInsert.mockResolvedValue({ error: null });
     mockUpdate.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
-    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq });
-    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq });
+    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
+    mockOrder.mockReturnValue({ limit: mockLimit, maybeSingle: mockMaybeSingle });
+    mockLimit.mockReturnValue({ maybeSingle: mockMaybeSingle });
+    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder });
   });
 
   it('returns 503 when MP_WEBHOOK_SECRET is not set', async () => {

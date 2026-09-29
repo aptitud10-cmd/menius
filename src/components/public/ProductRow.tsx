@@ -92,8 +92,8 @@ export const ProductRow = memo(function ProductRow({
         // The list container draws the top rule; each row draws its own bottom one.
         // (A `first:border-t` would only reach the first row in the DOM, which in
         // the desktop multi-column layout is not the top of the second column.)
-        'flex items-center gap-3 py-2.5 pl-1 pr-1 border-b border-gray-100 transition-colors break-inside-avoid',
-        outOfStock ? 'opacity-60' : 'cursor-pointer active:bg-gray-50'
+        'flex items-center gap-3 py-2.5 pl-1 pr-1 border-b border-ink-100 transition-colors break-inside-avoid',
+        outOfStock ? 'opacity-60' : 'cursor-pointer active:bg-ink-50'
       )}
     >
       <div className="flex-1 min-w-0">
@@ -104,7 +104,7 @@ export const ProductRow = memo(function ProductRow({
               same are worse than one row being taller. */}
           <h3 className={cn(
             'font-semibold text-[15px] leading-snug line-clamp-2',
-            outOfStock ? 'text-gray-400' : 'text-gray-950'
+            outOfStock ? 'text-ink-400' : 'text-ink-950'
           )}>
             {displayName}
           </h3>
@@ -119,7 +119,7 @@ export const ProductRow = memo(function ProductRow({
             </motion.span>
           )}
           {outOfStock && (
-            <span className="mt-1 text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
+            <span className="mt-1 text-[10px] font-bold text-ink-500 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
               {labelSoldOut}
             </span>
           )}
@@ -131,7 +131,7 @@ export const ProductRow = memo(function ProductRow({
         </div>
 
         {displayDesc && !outOfStock && (
-          <p className="text-xs text-gray-500 truncate mt-0.5 leading-snug">{displayDesc}</p>
+          <p className="text-xs text-ink-500 truncate mt-0.5 leading-snug">{displayDesc}</p>
         )}
 
         <div className="flex items-center gap-2 mt-0.5">
@@ -151,7 +151,7 @@ export const ProductRow = memo(function ProductRow({
             </span>
           )}
           {hasModifiers && !outOfStock && (
-            <span className="inline-flex items-center gap-0.5 text-[11px] text-gray-400 font-medium leading-none">
+            <span className="inline-flex items-center gap-0.5 text-[11px] text-ink-400 font-medium leading-none">
               {customizeLabel}
               <ChevronRight className="w-3 h-3" />
             </span>
@@ -163,13 +163,13 @@ export const ProductRow = memo(function ProductRow({
           metadata line it read as a label for whatever followed it. */}
       <div className="flex flex-col items-end flex-shrink-0 leading-none">
         {hasModifiers && !outOfStock && (
-          <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide leading-none mb-0.5">
+          <span className="text-[9px] font-semibold text-ink-400 uppercase tracking-wide leading-none mb-0.5">
             {t.fromPrice}
           </span>
         )}
         <span className={cn(
           'text-[15px] font-bold tabular-nums leading-none',
-          outOfStock ? 'text-gray-300 line-through' : 'text-gray-950'
+          outOfStock ? 'text-ink-300 line-through' : 'text-ink-950'
         )}>
           {fmtPrice(Number(product.price))}
         </span>
@@ -183,12 +183,12 @@ export const ProductRow = memo(function ProductRow({
         aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
         aria-pressed={isFav}
       >
-        <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-300')} />
+        <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-ink-300')} />
       </button>
 
       {outOfStock ? (
-        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-          <Ban className="w-3.5 h-3.5 text-gray-300" />
+        <div className="w-8 h-8 rounded-full bg-ink-100 flex items-center justify-center flex-shrink-0">
+          <Ban className="w-3.5 h-3.5 text-ink-300" />
         </div>
       ) : (
         /* 44px touch target wrapping the visible 32px circle */

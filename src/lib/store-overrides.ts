@@ -25,6 +25,14 @@ export interface StoreOverrides {
   showScrollTop?: boolean;
 
   /**
+   * Enable natural-language menu search ("algo sin gluten y picante").
+   * Falls back to the lexical engine when the query is a plain dish name, so
+   * turning this off only removes the intent layer — normal search keeps working.
+   * Rollout: enabled per store first, then globally once validated in the field.
+   */
+  naturalSearch?: boolean;
+
+  /**
    * Defines the layout mode for the store's public menu page.
    * - "default": The standard grid layout for multiple products (Uber Eats style).
    * - "high_conversion": Optimized for single, high-ticket, emotional buying products.
@@ -50,6 +58,9 @@ const OVERRIDES: Record<string, StoreOverrides> = {
     optimizeImages: true,
     /** Long menu: show “back to top” in the mobile category bar when scrolled. */
     showScrollTop: true,
+    /** 408 productos en 47 categorías: el buscador léxico se queda corto ante
+     *  pedidos por propiedad ("algo liviano") en vez de por nombre de plato. */
+    naturalSearch: true,
   },
   // Configuración para el nuevo modo de alta conversión (ejemplo)
   // ¡Recuerda reemplazar los IDs de producto con IDs reales de tu base de datos!

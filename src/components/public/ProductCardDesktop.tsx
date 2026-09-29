@@ -96,21 +96,21 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
       onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
         'group relative bg-white rounded-2xl shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
-        // Every card in the Popular section carries the amber treatment; the #1
-        // keeps a stronger border so it still leads within the section.
+        // El badge (⭐ #1 / 🔥 Top 3) ya comunica la popularidad. Repetirla en el
+        // borde de CADA card de la sección hacía que el ámbar compitiera con la
+        // foto —que es lo que vende— y perdiera valor de señal. Solo el #1
+        // conserva una marca, y sutil.
         !outOfStock && product.popularity_rank === 1
-          ? 'border-2 border-amber-400 shadow-[0_2px_16px_rgba(245,158,11,0.20)]'
-          : !outOfStock && inPopularSection
-            ? 'border border-amber-200 shadow-[0_2px_14px_rgba(245,158,11,0.13)]'
-            : 'border border-gray-100',
+          ? 'border border-amber-300 shadow-[0_2px_14px_rgba(245,158,11,0.14)]'
+          : 'border border-ink-100',
         outOfStock
           ? 'opacity-75'
           : 'cursor-pointer hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)] hover:-translate-y-1 active:scale-[0.98]'
       )}
     >
       {showImage ? (
-        <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
-          {!imgLoaded && <div className="absolute inset-0 bg-gray-100 animate-pulse" />}
+        <div className="relative w-full aspect-[16/9] bg-ink-100 overflow-hidden">
+          {!imgLoaded && <div className="absolute inset-0 bg-ink-100 animate-pulse" />}
           <Image
             src={product.image_url}
             alt={imgAlt}
@@ -168,12 +168,12 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
             aria-pressed={isFav}
           >
-            <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
+            <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-ink-400 group-hover:text-ink-500')} />
           </button>
         </div>
       ) : (
-        <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
-          <UtensilsCrossed className="w-10 h-10 text-gray-200 transition-transform duration-500 group-hover:scale-110" aria-hidden="true" />
+        <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-ink-50 to-ink-100 flex items-center justify-center overflow-hidden">
+          <UtensilsCrossed className="w-10 h-10 text-ink-200 transition-transform duration-500 group-hover:scale-110" aria-hidden="true" />
           {outOfStock && (
             <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
               <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{labelSoldOut}</span>
@@ -210,17 +210,17 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
             aria-pressed={isFav}
           >
-            <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
+            <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-ink-400 group-hover:text-ink-500')} />
           </button>
         </div>
       )}
 
       <div className="p-4 flex flex-col">
-        <h3 className={cn('font-bold text-base line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
+        <h3 className={cn('font-bold text-base line-clamp-2 leading-snug', outOfStock ? 'text-ink-400' : 'text-ink-900')}>
           {displayName}
         </h3>
         {displayDesc && (
-          <p className="text-sm text-gray-500 line-clamp-2 mt-1.5 leading-relaxed">{displayDesc}</p>
+          <p className="text-sm text-ink-500 line-clamp-2 mt-1.5 leading-relaxed">{displayDesc}</p>
         )}
         {(product.dietary_tags?.length ?? 0) > 0 && (
           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -228,7 +228,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               const tag = DIETARY_TAGS.find((t) => t.id === tagId);
               if (!tag) return null;
               return (
-                <span key={tagId} className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
+                <span key={tagId} className="inline-flex items-center gap-1 text-[11px] font-medium text-ink-500 bg-ink-50 px-2 py-0.5 rounded-full">
                   <span aria-hidden="true">{tag.emoji}</span>
                   <span>{locale === 'en' ? tag.labelEn : tag.labelEs}</span>
                 </span>
@@ -237,17 +237,17 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-ink-100">
           <div className="flex flex-col gap-0.5">
             {hasModifiers && !outOfStock && (
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide leading-none">{t.fromPrice}</span>
+              <span className="text-[10px] font-semibold text-ink-400 uppercase tracking-wide leading-none">{t.fromPrice}</span>
             )}
             <div className="flex items-baseline gap-1.5">
-              <span className={cn('text-base font-bold tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
+              <span className={cn('text-base font-bold tabular-nums', outOfStock ? 'text-ink-300 line-through' : 'text-ink-900')}>
                 {fmtPrice(Number(product.price))}
               </span>
               {!outOfStock && product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price) && (
-                <span className="text-xs text-gray-400 line-through tabular-nums">
+                <span className="text-xs text-ink-400 line-through tabular-nums">
                   {fmtPrice(Number(product.compare_at_price))}
                 </span>
               )}
@@ -264,7 +264,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             ) : null}
           </div>
           {outOfStock ? (
-            <span className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-400 cursor-default">
+            <span className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-ink-100 text-ink-400 cursor-default">
               {labelUnavailable}
             </span>
           ) : (
