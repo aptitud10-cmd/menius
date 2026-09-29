@@ -59,6 +59,13 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+          # Sin la service-role key el servidor de Next loguea un FATAL por cada
+          # request a una tienda y las páginas quedan sin datos. Faltaba desde
+          # que se escribió el workflow: los E2E venían rojos desde abril.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # order-token falla cerrado a propósito (commit 2e160ef): sin secreto,
+          # /api/orders tira en build. En CI alcanza un valor de descarte.
+          ORDER_TOKEN_SECRET: ${{ secrets.ORDER_TOKEN_SECRET || 'ci-only-not-a-real-secret' }}
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
