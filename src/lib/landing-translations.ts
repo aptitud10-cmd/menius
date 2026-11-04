@@ -107,7 +107,7 @@ const es = {
     stats: [
       { value: '0%', label: 'Comisión de MENIUS por pedido' },
       { value: 'hasta 30%', label: 'Que se quedan las apps' },
-      { value: '2 min', label: 'Para tener tu menú listo' },
+      { value: 'Minutos', label: 'Para tener tu menú listo' },
     ],
     phone: {
       restaurantName: 'La Taquería',
@@ -128,7 +128,7 @@ const es = {
     logos: ['Stripe', 'Cloudflare'],
     stats: [
       { value: '0%', label: 'Comisión de MENIUS por pedido' },
-      { value: '2 min', label: 'Menú listo' },
+      { value: 'Minutos', label: 'Menú listo' },
       { value: '24/7', label: 'Asistente IA' },
     ],
   },
@@ -475,7 +475,7 @@ const en: LandingT = {
     stats: [
       { value: '0%', label: 'MENIUS commission per order' },
       { value: 'up to 30%', label: 'What delivery apps take' },
-      { value: '2 min', label: 'To get your menu live' },
+      { value: 'Minutes', label: 'To get your menu live' },
     ],
     phone: {
       restaurantName: 'La Taquería',
@@ -496,7 +496,7 @@ const en: LandingT = {
     logos: ['Stripe', 'Cloudflare'],
     stats: [
       { value: '0%', label: 'MENIUS commission per order' },
-      { value: '2 min', label: 'Menu ready' },
+      { value: 'Minutes', label: 'Menu ready' },
       { value: '24/7', label: 'AI Assistant' },
     ],
   },

@@ -70,12 +70,10 @@ const releases: Release[] = [
     badgeColor: "bg-emerald-500",
     highlightsEs: [
       "Cancelar suscripción",
-      "Desactivar plan comisión",
       "Flujos de downgrade completos",
     ],
     highlightsEn: [
       "Cancel subscription",
-      "Deactivate commission plan",
       "Full downgrade flows",
     ],
     changes: [

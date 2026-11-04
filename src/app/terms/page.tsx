@@ -142,7 +142,7 @@ function ContentEs() {
         facturación actual. No se otorgan reembolsos por periodos parciales,
         excepto donde la ley lo requiera.
       </p>
-      <h3>4.5 Pagos Online y Comisión por Transacción</h3>
+      <h3>4.5 Pagos Online</h3>
       <p>
         Los pagos en línea a través de Stripe Connect están disponibles en el
         plan <strong>Pro</strong>. El plan Free no incluye esta funcionalidad
@@ -169,18 +169,6 @@ function ContentEs() {
         <strong>Contracargos y disputas:</strong> los contracargos y disputas
         de pagos son responsabilidad del restaurante. Si se pierde una disputa,
         el monto se descuenta del restaurante.
-      </p>
-      <p>
-        Alternativamente, MENIUS ofrece un Plan por Comisión ($0/mes) donde el
-        restaurante paga 4% del total de cada orden pagada en línea, en lugar de
-        una cuota mensual fija.
-      </p>
-      <p>
-        Esta comisión no aplica a pedidos pagados en efectivo ni a pagos
-        procesados por métodos distintos a Stripe Connect (por ejemplo, Wompi en
-        Colombia). La comisión se deduce automáticamente del monto recibido por
-        el restaurante en el momento del cobro y es gestionada directamente por
-        Stripe.
       </p>
       <p>
         Si cancelas el plan Pro y regresas al plan Free, los pagos online
@@ -542,17 +530,6 @@ function ContentEn() {
         <strong>Chargebacks and disputes:</strong> payment chargebacks and
         disputes are the restaurant&apos;s responsibility. If a dispute is
         lost, the amount is deducted from the restaurant.
-      </p>
-      <p>
-        Alternatively, MENIUS offers a Commission Plan ($0/month) where the
-        restaurant pays 4% of the total of each online order, instead of a fixed
-        monthly fee.
-      </p>
-      <p>
-        This commission does not apply to cash orders or payments processed
-        through methods other than Stripe Connect (e.g., Wompi in Colombia). The
-        commission is automatically deducted from the amount received by the
-        restaurant at the time of payment and is managed directly by Stripe.
       </p>
       <p>
         If you cancel the Pro plan and return to the Free plan, online payments

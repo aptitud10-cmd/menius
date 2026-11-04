@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   Upload, Sparkles, Wand2, FileText, ArrowRight, Check, Copy,
-  Loader2, X, Download, ChevronRight, Star, Zap, Shield, RefreshCw,
+  Loader2, X, Download, ChevronRight, Zap, Shield, RefreshCw,
 } from 'lucide-react';
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
@@ -668,31 +668,6 @@ export default function AIFotosPage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ── */}
-      <section className="max-w-5xl mx-auto px-4 py-16">
-        <p className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-10">
-          Usado por restaurantes en toda Latinoamérica
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {[
-            { quote: 'Mis ventas en Uber Eats subieron 40% el primer mes. Las fotos hacen toda la diferencia.', name: 'Carlos M.', restaurant: 'Tacos El Güero, CDMX' },
-            { quote: 'Tenía fotos horribles de mi bandeja paisa. Ahora parecen de revista gastronómica.', name: 'Diana R.', restaurant: 'La Fonda Paisa, Medellín' },
-            { quote: 'En 5 minutos actualicé todas las fotos de mi menú. Increíble lo que hace la IA.', name: 'Miguel A.', restaurant: 'Burger Bros, Lima' },
-          ].map(t => (
-            <div key={t.name} className="bg-white border border-gray-100 rounded-2xl p-6">
-              <div className="flex gap-0.5 mb-3">
-                {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 text-orange-400 fill-orange-400" />)}
-              </div>
-              <p className="text-sm text-gray-700 leading-relaxed mb-4">&ldquo;{t.quote}&rdquo;</p>
-              <div>
-                <p className="text-xs font-bold text-gray-900">{t.name}</p>
-                <p className="text-xs text-gray-400">{t.restaurant}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 

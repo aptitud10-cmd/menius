@@ -1,5 +1,4 @@
 import { cookies, headers } from 'next/headers';
-import { unstable_cache } from 'next/cache';
 import dynamic from 'next/dynamic';
 import type { Metadata, Viewport } from 'next';
 import { LandingHero } from '@/components/landing/LandingHero';
@@ -8,7 +7,6 @@ import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LandingStickyCta } from '@/components/landing/LandingStickyCta';
 import CrispChat from '@/components/CrispChat';
 import type { LandingLocale } from '@/lib/landing-translations';
-import { createAdminClient } from '@/lib/supabase/admin';
 
 // Lazy-load below-the-fold sections — splits the heavy interactive bundle
 // (pricing, calculator, features, FAQ) into a separate chunk so the hero LCP
@@ -18,22 +16,6 @@ const LandingSections = dynamic(
   { ssr: true }
 );
 
-const getPublicStats = unstable_cache(
-  async () => {
-    try {
-      const supabase = createAdminClient();
-      const { count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .neq('status', 'cancelled');
-      return { ordersCount: count ?? 0 };
-    } catch {
-      return { ordersCount: 0 };
-    }
-  },
-  ['landing-public-stats'],
-  { revalidate: 3600 }
-);
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
@@ -88,7 +70,6 @@ export default async function LandingPage() {
   const headerStore = await headers();
   const country = headerStore.get('x-vercel-ip-country') ?? undefined;
 
-  const { ordersCount } = await getPublicStats();
 
   const softwareAppSchema = {
     '@context': 'https://schema.org',
@@ -131,7 +112,7 @@ export default async function LandingPage() {
       />
       <LandingNav locale={locale} />
       <main id="main-content">
-        <LandingHero locale={locale} ordersCount={ordersCount} />
+        <LandingHero locale={locale} />
         <LandingSections locale={locale} country={country} />
       </main>
       <LandingStickyCta locale={locale} />
