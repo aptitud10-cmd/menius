@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const allowed = await hasPlanAccess(tenant.restaurantId, 'business');
     if (!allowed) {
       return NextResponse.json(
-        { error: 'El acceso API es una función del plan Business' },
+        { error: 'Esta función no está disponible en tu plan' },
         { status: 403 },
       );
     }
@@ -92,7 +92,7 @@ export async function DELETE(req: NextRequest) {
     const allowed = await hasPlanAccess(tenant.restaurantId, 'business');
     if (!allowed) {
       return NextResponse.json(
-        { error: 'El acceso API es una función del plan Business' },
+        { error: 'Esta función no está disponible en tu plan' },
         { status: 403 },
       );
     }

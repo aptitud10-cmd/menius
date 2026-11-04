@@ -36,12 +36,12 @@ const POST_TYPE_DESCRIPTIONS: Record<string, string> = {
   comparison:
     'Compare MENIUS vs a specific competitor. Pick ONE from: Rappi (30% commission), UberEats (25-30%), DoorDash (15-30%), iFood (27%), or generic "delivery apps". Use concrete numbers and a clear "switch" CTA.',
   testimonial:
-    'Write a realistic testimonial from a fictional but believable restaurant owner. Include their name, restaurant type, city, and specific results (e.g. "saved $2,400/month", "orders increased 40%"). Make it feel genuine, not scripted.',
+    "Write a customer-voice post told from a restaurant owner's point of view (the problem they face and how a feature of MENIUS addresses it). Do NOT invent a named customer, restaurant, city, quote or results, and do not present it as a real testimonial.",
   educational:
-    "Teach restaurant owners something valuable: how QR menus increase average ticket by 20%, why 73% of diners check menus online before visiting, how to reduce food waste with real-time stock, digital marketing tips for restaurants.",
-  stat: 'Lead with a compelling industry statistic and connect it to MENIUS. Use real data points: "67% of restaurants fail in the first year", "Restaurant profit margins average 3-5%", "Digital menus reduce order errors by 95%".',
+    "Teach restaurant owners something valuable: how to write a menu that sells, how to use QR menus well, how to manage stock in real time, digital marketing tips for restaurants. Do not invent statistics.",
+  stat: 'Lead with a well-known, publicly documented industry fact (e.g. "Restaurant profit margins average 3-5%") and connect it to MENIUS. Never invent a statistic or attribute results to MENIUS customers. If you are not sure a number is real, do not use it.',
   promotion:
-    "Promote MENIUS free plan. Emphasize: free forever, no credit card, 0% commission on all plans, setup in 2 minutes, AI generates product images. Create urgency without being pushy.",
+    "Promote MENIUS: 14 days of Pro free with no credit card, then Pro at $79/mo (or the Free plan for a basic dine-in menu). Emphasize 0% MENIUS commission per order, AI menu import from a photo and AI product images. Create urgency without being pushy.",
   product_launch:
     "Spotlight a specific MENIUS feature as if it just launched. Pick from: AI image generation, email & push notifications, QR code generator, customer CRM, marketing automation, analytics dashboard, OCR menu import.",
   behind_scenes:
@@ -83,15 +83,17 @@ function buildMasterPrompt(
   const typeDesc =
     POST_TYPE_DESCRIPTIONS[postType] || POST_TYPE_DESCRIPTIONS.pain_point;
 
-  return `ROLE: You are the Head of Growth Marketing at MENIUS, a $10M ARR SaaS company. You have 15 years of experience in B2B SaaS marketing and deep expertise in the restaurant industry. You write posts that get 10x more engagement than average because you understand both the platform algorithm and the restaurant owner's psychology.
+  return `ROLE: You are the Head of Growth Marketing at MENIUS, a SaaS for restaurants. You have 15 years of experience in B2B SaaS marketing and deep expertise in the restaurant industry. You write posts that get 10x more engagement than average because you understand both the platform algorithm and the restaurant owner's psychology.
 
 CONTEXT — ABOUT MENIUS:
 - All-in-one digital platform for restaurants: QR digital menu, real-time online ordering, kitchen display system (KDS), AI assistant, customer CRM, analytics, marketing automation
-- Pricing: Starter $39/mo, Pro $66/mo, Business $124/mo
-- CRITICAL DIFFERENTIATOR: 0% commission per order. Unlike Rappi (30%), UberEats (25-30%), DoorDash (15-30%), MENIUS charges a flat monthly fee. A restaurant doing $10,000/mo in delivery saves $2,500-3,000/mo vs delivery apps.
-- 14-day free trial, no credit card required
-- Setup takes 2 minutes — AI can generate product images and even import a menu from a photo (OCR)
-- Features: AI image generation (Gemini), WhatsApp order notifications, QR code generator, customer CRM with order history, email marketing, SMS campaigns, promotions engine, analytics dashboard, multi-language menus (ES/EN), custom domains
+- Pricing (the ONLY plans — never mention others): Free $0 (digital menu + QR up to 5 tables, up to 15 products, dine-in cash orders only) and Pro $79/mo or $790/yr (2 months free). Colombia: 179.000 COP/mo or 1.790.000 COP/yr
+- CRITICAL DIFFERENTIATOR: 0% MENIUS commission per order. Delivery marketplaces like Rappi, UberEats or DoorDash take a percentage of every order; MENIUS charges a flat monthly subscription. Card payments go to the restaurant's own Stripe account and Stripe's processing (2.9% + 30¢ per card payment) is paid by the restaurant — never say "no fees" or a bare "0% commission".
+- 14 days of Pro free, no credit card required. If they don't subscribe, on day 15 the account moves to the Free plan (menu stays online; pickup, delivery and online payments are lost)
+- Delivery is done with the restaurant's own drivers (MENIUS does not provide drivers)
+- AI can generate product images and import a menu from a photo (OCR)
+- Features: AI image generation, QR code generator, dine-in + pickup + delivery ordering, kitchen display (KDS), customer CRM with order history, email campaigns, promotions & coupons, reviews, loyalty program, analytics dashboard, multi-language menus (ES/EN), custom domains
+- TRUTH RULES: never invent testimonials, customer names, results, metrics, ARR/revenue figures, rankings ("#1", "leader"), POS integrations or features not listed here (MENIUS has NO SMS)
 - Tech stack: Next.js, Supabase, Stripe, Google Gemini AI, Vercel, Cloudflare
 - Website: https://menius.app
 - Target audience: Restaurant owners, cafe owners, food truck operators, bar owners (primarily USA and Latin America)

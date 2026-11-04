@@ -86,7 +86,7 @@ function buildHtml(items: DemoItem[], total: number): string {
               <!-- Insight -->
               <div style="border-left: 3px solid #05c8a7; padding: 4px 0 4px 16px; margin-bottom: 32px;">
                 <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.6;">
-                  <strong style="color: #111827;">This is exactly what your customers see</strong> when they order from your restaurant — your brand, your menu, your orders landing directly in your dashboard. No commissions. No third-party apps.
+                  <strong style="color: #111827;">This is exactly what your customers see</strong> when they order from your restaurant — your brand, your menu, your orders landing directly in your dashboard. 0% MENIUS commission. No third-party apps.
                 </p>
               </div>
 

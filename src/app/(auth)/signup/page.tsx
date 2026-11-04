@@ -42,13 +42,20 @@ function mapAuthError(msg: string, locale: string): string {
   return msg;
 }
 
-const VALID_PUBLIC_PLANS = new Set(['free', 'starter', 'pro', 'business']);
+// Un solo plan pago a la venta (Pro). Links viejos con ?plan=starter|business
+// (o los alias legacy basic|enterprise) se tratan como Pro.
+function normalizePublicPlan(plan: string | null): 'free' | 'pro' | null {
+  if (!plan) return null;
+  if (plan === 'free') return 'free';
+  if (['pro', 'starter', 'business', 'basic', 'enterprise'].includes(plan)) return 'pro';
+  return null;
+}
 
 function PlanBadge({ locale }: { locale: string }) {
   const searchParams = useSearchParams();
-  const selectedPlan = searchParams.get('plan');
+  const selectedPlan = normalizePublicPlan(searchParams.get('plan'));
   const selectedBilling = searchParams.get('billing');
-  if (!selectedPlan || !VALID_PUBLIC_PLANS.has(selectedPlan)) return null;
+  if (!selectedPlan) return null;
   return (
     <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
       <Sparkles className="w-3 h-3" />
@@ -105,9 +112,9 @@ export default function SignupPage() {
     // even after email confirmation (URL params are lost during magic link flow).
     if (typeof document !== 'undefined') {
       const url = new URL(window.location.href);
-      const intendedPlan = url.searchParams.get('plan');
+      const intendedPlan = normalizePublicPlan(url.searchParams.get('plan'));
       const intendedBilling = url.searchParams.get('billing');
-      if (intendedPlan && VALID_PUBLIC_PLANS.has(intendedPlan)) {
+      if (intendedPlan) {
         document.cookie = `menius_intended_plan=${intendedPlan}; path=/; max-age=3600; SameSite=Lax`;
       }
       if (intendedBilling === 'annual') {

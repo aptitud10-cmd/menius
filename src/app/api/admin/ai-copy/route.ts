@@ -41,9 +41,13 @@ export async function POST(request: NextRequest) {
 - Restaurantes activos (pagando): ${activeRestaurants ?? 0}
 - Restaurantes en trial: ${trialingRestaurants ?? 0}
 - Últimos registros: ${(recentSignups ?? []).map(r => r.name).join(', ') || 'N/A'}
-- Planes: Starter ($39/mes), Pro ($79/mes), Business ($149/mes)
-- Features principales: Menú digital QR, pedidos online, IA para importar menú, análisis, campañas de email, multi-idioma
-- Propuesta de valor: Digitalizar menú en minutos con IA, recibir pedidos online, reducir costos operativos`;
+- Planes (los ÚNICOS que existen; no menciones otros): Free $0 (menú digital + QR hasta 5 mesas, hasta 15 productos, solo pedidos en mesa en efectivo) y Pro $79/mes o $790/año (2 meses gratis). Colombia: 179.000 COP/mes o 1.790.000 COP/año
+- Trial: 14 días de Pro gratis, sin tarjeta. Si no se suscribe, el día 15 baja a Free (el menú sigue visible; pierde pickup, delivery y pagos online)
+- Pro incluye: productos ilimitados, QR hasta 50 mesas, pedidos en mesa + pickup + delivery, pagos online con tarjeta, dominio propio, sin marca MENIUS, IA (importar menú desde foto, generar imágenes, asistente MENIUS AI), analytics, cocina KDS, promociones y cupones, reseñas, lealtad, 5 usuarios, reportes PDF/CSV
+- Comisión: 0% de comisión de MENIUS por pedido. El procesamiento de Stripe (2.9% + 30¢ por pago con tarjeta) lo paga el restaurante y se descuenta de cada pago. El dinero va a la cuenta Stripe del propio restaurante; MENIUS solo cobra la suscripción
+- Delivery con los repartidores del propio restaurante (MENIUS no pone repartidores)
+- Propuesta de valor: Digitalizar menú en minutos con IA, recibir pedidos online, reducir costos operativos
+- REGLAS DE VERACIDAD: di siempre "0% de comisión de MENIUS", nunca "sin comisiones" ni "0% comisión" a secas. No inventes testimonios, casos de éxito, cifras, rankings ("#1", "líder"), integraciones POS ni funciones que no estén en esta lista. Si el tipo de contenido pide un testimonio o caso y no hay uno real en las instrucciones del admin, escribe un post de beneficio sin atribuirlo a un cliente`;
 
     const audienceLabels: Record<string, string> = {
       all: 'Todos los restaurantes registrados',
@@ -155,7 +159,7 @@ FÓRMULA DE SMS DE ÉLITE (160 chars ESTRICTOS):
 
 EJEMPLOS DE NIVEL:
 - "Hola {restaurante}, tu menú ya tiene 47 visitas este mes. Activa pedidos online y convierte esas visitas en ventas: menius.app/activar" (134 chars)
-- "{restaurante}, tu trial termina en 2 días. Tus clientes ya pueden ordenar online. Sigue así por solo $39/mes: menius.app/continuar" (130 chars)
+- "{restaurante}, tu trial termina en 2 días. Tus clientes ya pueden ordenar online. Sigue con Pro por $79/mes: menius.app/continuar" (128 chars)
 
 JSON estricto (sin markdown):
 {

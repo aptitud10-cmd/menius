@@ -11,8 +11,8 @@ function getServiceClient() {
 const POST_TYPES: Record<string, string> = {
   product_launch: 'Announce a new MENIUS feature or capability',
   pain_point: 'Address a common restaurant pain point that MENIUS solves (commissions, no website, paper menus, etc.)',
-  comparison: 'Compare MENIUS vs competitors (Rappi, UberEats, etc.) highlighting 0% commission',
-  testimonial: 'Create a realistic testimonial-style post from a happy restaurant owner',
+  comparison: 'Compare MENIUS vs delivery marketplaces (Rappi, UberEats, etc.): marketplaces take a % of every order; MENIUS charges 0% MENIUS commission and a flat subscription (Stripe card processing is paid by the restaurant)',
+  testimonial: 'Customer-voice post: only quote a real restaurant if one is given in the additional context; otherwise describe the benefit from an owner\'s point of view WITHOUT attributing it to a named or implied real customer',
   educational: 'Teach restaurant owners a tip about digital menus, QR codes, or online ordering',
   stat: 'Share a compelling industry statistic about restaurants and digital transformation',
   behind_scenes: 'Show behind-the-scenes of building MENIUS (founder story, tech stack, etc.)',
@@ -71,9 +71,13 @@ export async function POST(request: NextRequest) {
 
 ABOUT MENIUS:
 - All-in-one SaaS for restaurants: digital QR menu, real-time orders, kitchen display (KDS), AI assistant, CRM, analytics, marketing tools
-- Pricing: Starter $39/mo, Pro $66/mo, Business $124/mo — ALL with 0% commission per order
-- Key differentiator: Unlike Rappi/UberEats/DoorDash that charge 15-30% per order, MENIUS charges a flat monthly fee
-- Free plan forever, no credit card required. All paid plans: 0% commission.
+- Pricing (the ONLY plans — never mention others): Free $0 (digital menu + QR up to 5 tables, up to 15 products, dine-in cash orders only) and Pro $79/mo or $790/yr (2 months free). Colombia: 179.000 COP/mo or 1.790.000 COP/yr
+- Pro includes: unlimited products, QR up to 50 tables, dine-in + pickup + delivery, online card payments, custom domain, no MENIUS branding, AI (menu import from photo, image generation, MENIUS AI assistant), analytics, KDS, promotions & coupons, reviews, loyalty, 5 users, PDF/CSV reports
+- Trial: 14 days of Pro free, no credit card. If they don't subscribe, on day 15 the account moves to Free (menu stays online; pickup, delivery and online payments are lost)
+- Commission: 0% MENIUS commission per order. Stripe card processing (2.9% + 30¢ per card payment) is paid by the restaurant and deducted from each payment. The money goes to the restaurant's own Stripe account; MENIUS only charges the subscription
+- Key differentiator: Unlike Rappi/UberEats/DoorDash that take a percentage of every order, MENIUS charges a flat monthly subscription
+- Delivery is done with the restaurant's own drivers (MENIUS does not provide drivers)
+- TRUTH RULES: always say "0% MENIUS commission" — never "no fees", "commission-free" or a bare "0% commission". Never invent testimonials, customer names, results, metrics, rankings ("#1", "leader"), POS integrations or features not listed here
 - Built with cutting-edge tech: Next.js, Supabase, Stripe, Google Gemini AI
 - Features: AI image generation for products, OCR menu import from photo, email & push notifications, email campaigns, promotions, customer CRM
 - Website: https://menius.app

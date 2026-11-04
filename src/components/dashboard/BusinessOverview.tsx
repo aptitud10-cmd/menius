@@ -24,6 +24,9 @@ interface Props {
   branches: BranchStat[];
   currentRestaurantId: string;
   locale: 'es' | 'en';
+  /** Sucursales múltiples ya no se venden (eran de Business): la tarjeta para
+   *  agregar una solo se muestra a quien ya tiene ese plan. */
+  canAddBranches?: boolean;
 }
 
 function fmt(amount: number, currency: string) {
@@ -38,7 +41,7 @@ function fmt(amount: number, currency: string) {
   }
 }
 
-export function BusinessOverview({ branches, currentRestaurantId, locale }: Props) {
+export function BusinessOverview({ branches, currentRestaurantId, locale, canAddBranches = false }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [switchingId, setSwitchingId] = useState<string | null>(null);
@@ -207,6 +210,7 @@ export function BusinessOverview({ branches, currentRestaurantId, locale }: Prop
           ))}
 
           {/* Add branch card */}
+          {canAddBranches && (
           <a
             href="/app/settings#branches"
             className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-5 flex flex-col items-center justify-center gap-3 text-center hover:border-[#05c8a7] hover:bg-[#05c8a7]/5 transition-colors group min-h-[180px]"
@@ -223,6 +227,7 @@ export function BusinessOverview({ branches, currentRestaurantId, locale }: Prop
               </p>
             </div>
           </a>
+          )}
         </div>
       </div>
     </div>

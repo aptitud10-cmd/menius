@@ -410,8 +410,8 @@ export function AIChatWidget() {
         const data = await res.json().catch(() => ({}));
         const replyText = res.status === 403
           ? (isEn
-              ? '🔒 MENIUS AI is available from the **Starter plan** ($39/mo). [Upgrade your plan](/app/billing) to unlock the AI assistant, unlimited orders, and more.'
-              : '🔒 MENIUS AI está disponible desde el **plan Starter** ($39/mes). [Mejora tu plan](/app/billing) para desbloquear el asistente IA, pedidos ilimitados y más.')
+              ? '🔒 MENIUS AI is included in the **Pro plan** ($79/mo or $790/yr). [Upgrade your plan](/app/billing) to unlock the AI assistant, unlimited products, pickup, delivery and online payments.'
+              : '🔒 MENIUS AI está incluido en el **plan Pro** ($79/mes o $790/año). [Mejora tu plan](/app/billing) para desbloquear el asistente IA, productos ilimitados, pickup, delivery y pagos online.')
           : (data.error ?? t.chat_errorConnection);
 
         lastRoleRef.current = 'assistant';

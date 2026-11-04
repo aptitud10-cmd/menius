@@ -96,16 +96,16 @@ const es = {
     closeLabel: 'Cerrar',
   },
   hero: {
-    badge: 'Sin comisiones · Sin contrato · Cancela cuando quieras',
+    badge: '0% de comisión de MENIUS · Sin contrato · Cancela cuando quieras',
     titleLine1: 'Vende directo. ',
     titleHighlight: 'Quédate con todo.',
     productLine: 'Sin la comisión de las apps de delivery.',
-    subtitle: 'Tu menú con QR, pedidos online y pagos directos a tu cuenta. Las apps de delivery se quedan con hasta el 30% de cada pedido. Con MENIUS: 0%. Funciona en la tablet o el celular que ya tienes.',
-    subtitleShort: 'Pedidos online con 0% de comisión. En la tablet que ya tienes.',
+    subtitle: 'Tu menú con QR, pedidos online y pagos directos a tu cuenta de Stripe. Las apps de delivery se quedan con hasta el 30% de cada pedido. MENIUS: 0% de comisión (solo pagas el procesamiento de Stripe en pagos con tarjeta). Funciona en la tablet o el celular que ya tienes.',
+    subtitleShort: 'Pedidos online con 0% de comisión de MENIUS. En la tablet que ya tienes.',
     ctaPrimary: 'Prueba 14 días gratis',
     ctaSecondary: 'Calcula tu ahorro',
     stats: [
-      { value: '0%', label: 'Comisión por pedido' },
+      { value: '0%', label: 'Comisión de MENIUS por pedido' },
       { value: 'hasta 30%', label: 'Que se quedan las apps' },
       { value: '2 min', label: 'Para tener tu menú listo' },
     ],
@@ -127,7 +127,7 @@ const es = {
     headline: 'Pagos seguros. Datos protegidos.',
     logos: ['Stripe', 'Cloudflare'],
     stats: [
-      { value: '0%', label: 'Comisión por pedido' },
+      { value: '0%', label: 'Comisión de MENIUS por pedido' },
       { value: '2 min', label: 'Menú listo' },
       { value: '24/7', label: 'Asistente IA' },
     ],
@@ -144,7 +144,7 @@ const es = {
         tab: 'Menú Digital',
         title: 'Menú con QR y pedidos directos',
         desc: 'Tus clientes escanean el QR, ven el menú con fotos y precios, y ordenan desde su celular. Sin descargar apps.',
-        details: ['QR elegantes por mesa, listos para imprimir', 'Sube tus fotos reales fácilmente', 'Pedidos dine-in, pickup y delivery', 'Variantes, extras y teléfono con código de área'],
+        details: ['QR elegantes por mesa, listos para imprimir', 'Sube tus fotos reales fácilmente', 'Dine-in, pickup y delivery con tus repartidores', 'Variantes, extras y teléfono con código de área'],
         visualItems: [
           { label: 'Escanea QR', value: 'Mesa 5' },
           { label: 'Tacos al Pastor', value: '$12.99' },
@@ -167,7 +167,7 @@ const es = {
       {
         tab: 'Pagos',
         title: 'Cobra online sin complicaciones',
-        desc: 'Acepta pagos con tarjeta vía Stripe. También efectivo y otros métodos. El dinero va directo a tu cuenta.',
+        desc: 'Acepta pagos con tarjeta vía Stripe. También efectivo y otros métodos. El dinero va a tu cuenta de Stripe; el procesamiento (2.9% + 30¢) se descuenta de cada pago.',
         details: ['Stripe integrado', 'Pagos en efectivo', 'Propinas opcionales', 'Historial de transacciones'],
         visualItems: [
           { label: 'Pago recibido', value: '$45.80' },
@@ -206,7 +206,7 @@ const es = {
   comparison: {
     sectionLabel: 'Sin intermediarios',
     sectionTitle: 'MENIUS vs Apps de Delivery',
-    sectionDesc: 'Las apps cobran hasta 30% de comisión por cada pedido que te mandan. Con MENIUS pagas una tarifa mensual fija — no un porcentaje de tus ventas. Todos los planes: 0% comisión en pagos online. Pedidos en efectivo siempre 0%.',
+    sectionDesc: 'Las apps cobran hasta 30% de comisión por cada pedido que te mandan. Con MENIUS pagas una tarifa mensual fija — no un porcentaje de tus ventas. Plan Pro: 0% de comisión de MENIUS en pagos online (el procesamiento de Stripe lo paga el restaurante). Pedidos en efectivo siempre 0%.',
     meniusHeader: 'MENIUS',
     otherHeader: 'Apps de delivery',
     mobileOtherHeader: 'Apps de delivery',
@@ -217,13 +217,13 @@ const es = {
       { feature: 'Asistente IA', menius: 'MENIUS AI — consultor 24/7', other: 'No disponible' },
       { feature: 'Email + Push', menius: 'Integrado', other: 'No disponible' },
       { feature: 'CRM de clientes', menius: 'Integrado', other: 'No disponible' },
-      { feature: 'Costo mensual', menius: 'Desde $39/mes', other: 'Gratis (pero 30% por pedido)' },
+      { feature: 'Costo mensual', menius: '$79/mes (Pro)', other: 'Gratis (pero 30% por pedido)' },
     ],
     mobileRows: [
       { feature: 'Comisión de intermediario', menius: '0%', other: '15% – 30%' },
       { feature: 'Control de clientes', menius: 'Tus datos', other: 'La app se los queda' },
       { feature: 'Tu marca', menius: 'Dominio propio', other: 'Junto a la competencia' },
-      { feature: 'Costo mensual', menius: 'Desde $39/mes', other: '"Gratis" (pero 30% por pedido)' },
+      { feature: 'Costo mensual', menius: '$79/mes (Pro)', other: '"Gratis" (pero 30% por pedido)' },
     ],
     midCta: {
       text: 'Ya viste la diferencia.',
@@ -252,7 +252,7 @@ const es = {
   },
   pricing: {
     sectionLabel: 'Precios',
-    sectionTitle: 'Sin comisiones. Sin sorpresas.',
+    sectionTitle: '0% de comisión de MENIUS. Sin sorpresas.',
     sectionDesc: 'Plan gratis para siempre. Sin tarjeta. Cancela cuando quieras.',
     popularBadge: 'Popular',
     perMonth: '/mes',
@@ -264,7 +264,7 @@ const es = {
     annualYearSuffix: '/año',
     freeBannerPrefix: 'O empieza con el',
     freeBannerPlan: 'Plan Gratis',
-    freeBannerDesc: 'Pedidos ilimitados · Menú digital + QR · Hasta 5 mesas · Solo efectivo · Sin tarjeta',
+    freeBannerDesc: 'Pedidos ilimitados en mesa · Menú digital + QR · Hasta 5 mesas · Hasta 15 productos · Solo efectivo · Sin tarjeta',
     freeBannerCta: 'Crear cuenta gratis →',
     plans: [
       {
@@ -310,7 +310,7 @@ const es = {
       { step: '1', title: 'Regístrate en 2 minutos', desc: 'Sin tarjeta. Sin contratos. Tu cuenta lista al instante.' },
       { step: '2', title: 'Tu menú en línea hoy', desc: 'Agrega tus productos o importa tu menú completo desde una foto con IA.' },
       { step: '3', title: 'QR en cada mesa', desc: 'Genera e imprime QRs únicos por mesa en segundos. Listos para poner hoy.' },
-      { step: '4', title: 'Cobras directo, sin intermediarios.', desc: 'Cada pedido llega a tu dashboard en tiempo real. El dinero va directo a ti. Todos los planes: 0% comisión en pagos online. Efectivo: siempre 0%.' },
+      { step: '4', title: 'Cobras directo en tu cuenta.', desc: 'Cada pedido llega a tu dashboard en tiempo real. Los pagos con tarjeta van a tu cuenta de Stripe: 0% de comisión de MENIUS; el procesamiento de Stripe lo paga el restaurante. Efectivo: siempre 0%.' },
     ],
   },
   testimonials: {
@@ -320,13 +320,13 @@ const es = {
       {
         name: '25–35%',
         role: 'McKinsey & Company, Food Delivery Report 2023',
-        quote: 'Si vendes $10,000 al mes por apps de delivery, estás regalando hasta $3,500 — cada mes, no al año. Doce veces al año. Con MENIUS esa cifra es $0. Cada peso va directo a tu cuenta.',
+        quote: 'Si vendes $10,000 al mes por apps de delivery, estás regalando hasta $3,500 — cada mes, no al año. Doce veces al año. Con MENIUS la comisión es 0%: pagas una tarifa fija y el procesamiento de Stripe en pagos con tarjeta.',
         initials: '💸',
       },
       {
         name: '73%',
         role: 'Square Restaurant Industry Report, 2024',
-        quote: 'De cada 10 clientes, 7 prefieren pedir directo al restaurante si es igual de fácil. Con MENIUS lo hacen desde su celular, sin bajar apps, sin que tú pagues comisión por eso.',
+        quote: 'De cada 10 clientes, 7 prefieren pedir directo al restaurante si es igual de fácil. Con MENIUS lo hacen desde su celular, sin bajar apps, sin que le pagues comisión a MENIUS por eso.',
         initials: '📱',
       },
       {
@@ -464,16 +464,16 @@ const en: LandingT = {
     closeLabel: 'Close',
   },
   hero: {
-    badge: 'No commission · No contract · Cancel anytime',
+    badge: '0% MENIUS commission · No contract · Cancel anytime',
     titleLine1: 'Take orders online. ',
     titleHighlight: 'Keep every dollar.',
     productLine: 'No delivery-app commission.',
-    subtitle: 'QR menu, real-time orders, and AI that builds your menu from a photo. Payments go straight to your account. Delivery apps take up to 30% of every order — MENIUS takes 0%. Runs on the tablet or phone you already have.',
-    subtitleShort: 'Online orders with 0% commission. On the tablet you already have.',
+    subtitle: 'QR menu, real-time orders, and AI that builds your menu from a photo. Payments go straight to your Stripe account. Delivery apps take up to 30% of every order — MENIUS takes 0% (you only pay Stripe processing on card payments). Runs on the tablet or phone you already have.',
+    subtitleShort: 'Online orders with 0% MENIUS commission. On the tablet you already have.',
     ctaPrimary: 'Start your 14-day trial',
     ctaSecondary: 'Calculate your savings',
     stats: [
-      { value: '0%', label: 'Commission per order' },
+      { value: '0%', label: 'MENIUS commission per order' },
       { value: 'up to 30%', label: 'What delivery apps take' },
       { value: '2 min', label: 'To get your menu live' },
     ],
@@ -495,7 +495,7 @@ const en: LandingT = {
     headline: 'Secure payments. Protected data.',
     logos: ['Stripe', 'Cloudflare'],
     stats: [
-      { value: '0%', label: 'Commission per order' },
+      { value: '0%', label: 'MENIUS commission per order' },
       { value: '2 min', label: 'Menu ready' },
       { value: '24/7', label: 'AI Assistant' },
     ],
@@ -512,7 +512,7 @@ const en: LandingT = {
         tab: 'Digital Menu',
         title: 'QR menu with direct orders',
         desc: 'Your customers scan the QR, see the menu with photos and prices, and order from their phone. No app download needed.',
-        details: ['Elegant QR codes per table, ready to print', 'Upload your real photos easily', 'Dine-in, pickup & delivery orders', 'Variants, extras & phone with area code'],
+        details: ['Elegant QR codes per table, ready to print', 'Upload your real photos easily', 'Dine-in, pickup & delivery with your own drivers', 'Variants, extras & phone with area code'],
         visualItems: [
           { label: 'Scan QR', value: 'Table 5' },
           { label: 'Tacos al Pastor', value: '$12.99' },
@@ -535,7 +535,7 @@ const en: LandingT = {
       {
         tab: 'Payments',
         title: 'Accept payments without hassle',
-        desc: 'Accept card payments via Stripe. Also cash and other methods. Money goes directly to your account.',
+        desc: 'Accept card payments via Stripe. Also cash and other methods. Money goes to your Stripe account; processing (2.9% + 30¢) is deducted from each payment.',
         details: ['Stripe integrated', 'Cash payments', 'Optional tips', 'Transaction history'],
         visualItems: [
           { label: 'Payment received', value: '$45.80' },
@@ -574,7 +574,7 @@ const en: LandingT = {
   comparison: {
     sectionLabel: 'No middlemen',
     sectionTitle: 'MENIUS vs Delivery Apps',
-    sectionDesc: 'Delivery apps charge up to 30% as a sales commission on every order they send you. With MENIUS, you pay a fixed monthly fee — not a cut of your revenue. All plans: 0% commission on online payments. Cash orders always 0%.',
+    sectionDesc: 'Delivery apps charge up to 30% as a sales commission on every order they send you. With MENIUS, you pay a fixed monthly fee — not a cut of your revenue. Pro plan: 0% MENIUS commission on online payments (Stripe processing is paid by the restaurant). Cash orders always 0%.',
     meniusHeader: 'MENIUS',
     otherHeader: 'Delivery apps',
     mobileOtherHeader: 'Delivery apps',
@@ -585,13 +585,13 @@ const en: LandingT = {
       { feature: 'AI assistant', menius: 'MENIUS AI — consultant 24/7', other: 'Not available' },
       { feature: 'Email + Push', menius: 'Integrated', other: 'Not available' },
       { feature: 'Customer CRM', menius: 'Integrated', other: 'Not available' },
-      { feature: 'Monthly cost', menius: 'From $39/mo', other: 'Free (but 30% per order)' },
+      { feature: 'Monthly cost', menius: '$79/mo (Pro)', other: 'Free (but 30% per order)' },
     ],
     mobileRows: [
       { feature: 'Intermediary commission', menius: '0%', other: '15% – 30%' },
       { feature: 'Customer control', menius: 'Your data', other: 'The app keeps it' },
       { feature: 'Your brand', menius: 'Own domain', other: 'Next to competitors' },
-      { feature: 'Monthly cost', menius: 'From $39/mo', other: '"Free" (but 30% per order)' },
+      { feature: 'Monthly cost', menius: '$79/mo (Pro)', other: '"Free" (but 30% per order)' },
     ],
     midCta: {
       text: "You've seen the difference.",
@@ -620,7 +620,7 @@ const en: LandingT = {
   },
   pricing: {
     sectionLabel: 'Pricing',
-    sectionTitle: 'No commissions. No surprises.',
+    sectionTitle: '0% MENIUS commission. No surprises.',
     sectionDesc: 'Free forever plan. No credit card. Cancel anytime.',
     popularBadge: 'Popular',
     perMonth: '/mo',
@@ -632,7 +632,7 @@ const en: LandingT = {
     annualYearSuffix: '/yr',
     freeBannerPrefix: 'Or start with the',
     freeBannerPlan: 'Free Plan',
-    freeBannerDesc: 'Unlimited orders · Digital menu + QR · Up to 5 tables · Cash only · No credit card',
+    freeBannerDesc: 'Unlimited dine-in orders · Digital menu + QR · Up to 5 tables · Up to 15 products · Cash only · No credit card',
     freeBannerCta: 'Create free account →',
     plans: [
       {
@@ -678,7 +678,7 @@ const en: LandingT = {
       { step: '1', title: 'Sign up in 2 minutes', desc: 'No card. No contracts. Your account ready instantly.' },
       { step: '2', title: 'Your menu live today', desc: 'Add your products or import your full menu from a photo with AI.' },
       { step: '3', title: 'QR on every table', desc: 'Generate and print unique QR codes per table in seconds. Ready to place today.' },
-      { step: '4', title: 'You collect. No middlemen.', desc: 'Every order hits your dashboard in real time. The money goes straight to you. All plans: 0% commission on online payments. Cash: always 0%.' },
+      { step: '4', title: 'You collect, straight to your account.', desc: 'Every order hits your dashboard in real time. Card payments go to your Stripe account: 0% MENIUS commission; Stripe processing is paid by the restaurant. Cash: always 0%.' },
     ],
   },
   testimonials: {
@@ -688,13 +688,13 @@ const en: LandingT = {
       {
         name: '25–35%',
         role: 'McKinsey & Company, Food Delivery Report 2023',
-        quote: 'If you sell $10,000/month through delivery apps, you\'re giving away up to $3,500 — every month, not per year. Twelve times a year. With MENIUS that number is $0. Every dollar goes straight to you.',
+        quote: 'If you sell $10,000/month through delivery apps, you\'re giving away up to $3,500 — every month, not per year. Twelve times a year. With MENIUS the commission is 0%: you pay a flat fee plus Stripe processing on card payments.',
         initials: '💸',
       },
       {
         name: '73%',
         role: 'Square Restaurant Industry Report, 2024',
-        quote: '7 out of 10 customers prefer ordering directly from the restaurant if it\'s just as easy. With MENIUS they do it from their phone — no app download, no commission charged to you.',
+        quote: '7 out of 10 customers prefer ordering directly from the restaurant if it\'s just as easy. With MENIUS they do it from their phone — no app download, no MENIUS commission charged to you.',
         initials: '📱',
       },
       {

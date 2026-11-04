@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "La generación de imágenes con IA requiere el plan Starter o superior.",
+            "La generación de imágenes con IA está incluida en el plan Pro.",
         },
         { status: 403 },
       );

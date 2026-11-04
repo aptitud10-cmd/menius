@@ -104,11 +104,11 @@ No todas las soluciones son iguales. Busca una plataforma que ofrezca:
 
 - **Menú visual con fotos** — Los platillos con fotos se venden hasta 30% más
 - **Pedidos en tiempo real** — Que el pedido llegue directo a tu cocina
-- **Sin comisiones por pedido** — Evita plataformas que cobran porcentaje
+- **Sin comisión de la plataforma por pedido** — Evita plataformas que cobran porcentaje
 - **QR personalizados por mesa** — Para identificar de dónde viene cada pedido
 - **Analytics** — Para saber qué se vende más y cuándo
 
-Con MENIUS, tienes todo esto incluido desde $39 USD/mes sin comisiones adicionales.
+Con MENIUS, tienes todo esto incluido en el plan Pro ($79 USD/mes) con 0% de comisión de MENIUS por pedido.
 
 ## Paso 2: Organiza tu menú en categorías
 
@@ -177,11 +177,11 @@ Not all solutions are equal. Look for a platform that offers:
 
 - **Visual menu with photos** — Dishes with photos sell up to 30% more
 - **Real-time orders** — Orders go straight to your kitchen
-- **No per-order commissions** — Avoid platforms that charge a percentage
+- **No platform commission per order** — Avoid platforms that charge a percentage
 - **Per-table custom QR codes** — To identify where each order comes from
 - **Analytics** — To know what sells most and when
 
-With MENIUS, you get all this included from $39 USD/month with no additional commissions.
+With MENIUS, you get all this included in the Pro plan ($79 USD/month) with 0% MENIUS commission per order.
 
 ## Step 2: Organize Your Menu into Categories
 
@@ -263,11 +263,11 @@ Además, la app se queda con los datos de tus clientes. No puedes contactarlos, 
 
 Con un menú digital propio (como MENIUS), pagas una **tarifa fija mensual** sin importar cuánto vendas:
 
-- **$39-$149/mes** dependiendo del plan
-- **0% de comisión** por pedido
+- **$79/mes** con el plan Pro (o $790/año)
+- **0% de comisión de MENIUS** por pedido (el procesamiento de Stripe, 2.9% + 30¢ por pago con tarjeta, lo paga el restaurante)
 - **Tus datos, tu marca, tus clientes**
 
-Ejemplo: Un restaurante que vende $10,000/mes en delivery ahorra **$2,921/mes** cambiando de una app de delivery (25% comisión) a MENIUS Pro ($79/mes).
+Ejemplo: Un restaurante que vende $10,000/mes en delivery ahorra hasta **$2,421/mes** en comisiones cambiando de una app de delivery (25% comisión) a MENIUS Pro ($79/mes), antes del procesamiento de Stripe en los pagos con tarjeta.
 
 ## ¿Cuándo usar cada opción?
 
@@ -319,11 +319,11 @@ Plus, the app keeps your customer data. You can't contact them, you can't do dir
 
 With your own digital menu (like MENIUS), you pay a **fixed monthly fee** regardless of how much you sell:
 
-- **$39-$149/month** depending on the plan
-- **0% commission** per order
+- **$79/month** with the Pro plan (or $790/year)
+- **0% MENIUS commission** per order (Stripe processing, 2.9% + 30¢ per card payment, is paid by the restaurant)
 - **Your data, your brand, your customers**
 
-Example: A restaurant selling $10,000/month in delivery saves **$2,921/month** switching from a delivery app (25% commission) to MENIUS Pro ($79/month).
+Example: A restaurant selling $10,000/month in delivery saves up to **$2,421/month** in commissions switching from a delivery app (25% commission) to MENIUS Pro ($79/month), before Stripe processing on card payments.
 
 ## When to Use Each Option?
 
@@ -1438,15 +1438,15 @@ MENIUS AI puede sugerir promociones basadas en tus datos reales: "Tu hora más b
 
 ### 5. Disponible 24/7 sin costo adicional
 
-A diferencia de un consultor que cobra por hora, MENIUS AI está siempre disponible y viene incluido en todos los planes sin costo extra.
+A diferencia de un consultor que cobra por hora, MENIUS AI está siempre disponible y viene incluido en el plan Pro sin costo extra.
 
 ## ¿Cuánto cuesta?
 
-Nada adicional. MENIUS AI está incluido en todos los planes de MENIUS, incluyendo el plan Starter de $39/mes. Usa tecnología Google Gemini optimizada para ser eficiente y económica.
+Nada adicional. MENIUS AI está incluido en el plan Pro de MENIUS ($79/mes). Usa tecnología Google Gemini optimizada para ser eficiente y económica.
 
 ## Conclusión
 
-La IA ya no es el futuro — es el presente. Los restaurantes que adopten herramientas inteligentes hoy tendrán una ventaja competitiva enorme. Con MENIUS AI, tienes un analista de negocio, un consultor, y un asistente técnico — todo en uno, todo gratis, todo el tiempo.
+La IA ya no es el futuro — es el presente. Los restaurantes que adopten herramientas inteligentes hoy tendrán una ventaja competitiva enorme. Con MENIUS AI, tienes un analista de negocio, un consultor, y un asistente técnico — todo en uno, todo incluido, todo el tiempo.
     `,
     title_en:
       "MENIUS AI: How an Intelligent Assistant Is Transforming Restaurant Management",
@@ -1491,15 +1491,15 @@ MENIUS AI can suggest promotions based on your real data: "Your slowest hour is 
 
 ### 5. Available 24/7 at No Extra Cost
 
-Unlike a consultant who charges by the hour, MENIUS AI is always available and comes included in all plans at no extra cost.
+Unlike a consultant who charges by the hour, MENIUS AI is always available and comes included in the Pro plan at no extra cost.
 
 ## How Much Does It Cost?
 
-Nothing additional. MENIUS AI is included in all MENIUS plans, including the Starter plan at $39/month. It uses Google Gemini technology optimized to be efficient and economical.
+Nothing additional. MENIUS AI is included in the MENIUS Pro plan ($79/month). It uses Google Gemini technology optimized to be efficient and economical.
 
 ## Conclusion
 
-AI is no longer the future — it's the present. Restaurants that adopt intelligent tools today will have an enormous competitive advantage. With MENIUS AI, you have a business analyst, consultant, and technical assistant — all in one, all free, all the time.
+AI is no longer the future — it's the present. Restaurants that adopt intelligent tools today will have an enormous competitive advantage. With MENIUS AI, you have a business analyst, consultant, and technical assistant — all in one, all included, all the time.
     `,
   },
   {
@@ -1671,7 +1671,7 @@ Solo una tablet o monitor en la cocina con conexión a internet. Abres la secci�
 
 ## Conclusión
 
-Un KDS no es un lujo — es una necesidad operativa. Elimina errores, acelera la cocina, y mejora la experiencia del cliente. Con MENIUS, el KDS viene incluido en todos los planes y funciona desde cualquier dispositivo con navegador.
+Un KDS no es un lujo — es una necesidad operativa. Elimina errores, acelera la cocina, y mejora la experiencia del cliente. Con MENIUS, el KDS viene incluido en el plan Pro y funciona desde cualquier dispositivo con navegador.
     `,
     title_en:
       "Kitchen Display System (KDS): The Screen That Eliminates Errors in Your Kitchen",
@@ -1727,7 +1727,7 @@ Just a tablet or monitor in the kitchen with internet connection. Open the "Kitc
 
 ## Conclusion
 
-A KDS is not a luxury — it's an operational necessity. It eliminates errors, speeds up the kitchen, and improves the customer experience. With MENIUS, the KDS is included in all plans and works from any device with a browser.
+A KDS is not a luxury — it's an operational necessity. It eliminates errors, speeds up the kitchen, and improves the customer experience. With MENIUS, the KDS is included in the Pro plan and works from any device with a browser.
     `,
   },
 
@@ -2141,7 +2141,7 @@ Este checklist cubre todo lo que debes tener listo antes de abrir tus puertas �
 - [ ] Fotos de al menos los 10 productos más importantes
 
 ### Configuración MENIUS (1-2 horas)
-- [ ] Cuenta creada en MENIUS (plan gratuito, sin tarjeta de crédito)
+- [ ] Cuenta creada en MENIUS (14 días de Pro gratis, sin tarjeta de crédito)
 - [ ] Nombre, logo y descripción del restaurante
 - [ ] Dirección completa configurada
 - [ ] Horarios de operación
@@ -2241,7 +2241,7 @@ Las primeras 10 reseñas en Google son las más importantes para tu posicionamie
 
 ---
 
-## Herramienta gratuita: MENIUS como centro de operaciones
+## MENIUS como centro de operaciones
 
 MENIUS reemplaza varias herramientas que los restaurantes nuevos suelen pagar por separado:
 
@@ -2253,9 +2253,9 @@ MENIUS reemplaza varias herramientas que los restaurantes nuevos suelen pagar po
 | CRM de clientes | $30-100 | Incluido |
 | Analytics de ventas | $20-80 | Incluido |
 | Asistente IA | $50-200 | Incluido |
-| **Total** | **$230-830/mes** | **$39-149/mes** |
+| **Total** | **$230-830/mes** | **$79/mes (plan Pro)** |
 
-El plan gratuito de MENIUS es más que suficiente para tener todo tu restaurante configurado antes de abrir — sin tarjeta de crédito.
+Con los 14 días de Pro gratis puedes dejar todo tu restaurante configurado antes de abrir — sin tarjeta de crédito.
 
 ## Conclusión
 
@@ -2279,7 +2279,7 @@ This checklist covers everything you need ready before opening your doors — an
 
 ## Phase 2: Menu & Operations (2-4 weeks before)
 - Finalized menu with 15-30 products for launch
-- MENIUS account set up (free plan — no credit card needed)
+- MENIUS account set up (14 days of Pro free — no credit card needed)
 - All products with names, prices, descriptions, photos
 - QR codes printed and tested
 
@@ -2415,7 +2415,7 @@ Pregúntale a MENIUS AI:
 | Acción | Costo | Resultado |
 |---|---|---|
 | Cliente nuevo vía Rappi | 25% comisión = $5-15 por pedido | Cliente de la app, no tuyo |
-| Convertir a cliente directo | $0.50 flyer + 10% descuento | Cliente tuyo, 0% comisión futura |
+| Convertir a cliente directo | $0.50 flyer + 10% descuento | Cliente tuyo, 0% de comisión de MENIUS |
 | Retener cliente fiel | Email + push = $0 | 5-10x más pedidos a largo plazo |
 
 Un cliente que ordena 2 veces al mes durante 1 año, con ticket de $300 pesos, vale $7,200 pesos anuales. Pero solo si ordena directo — si ordena por app, tú recibes $5,400 y la app $1,800.

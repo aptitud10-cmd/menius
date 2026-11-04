@@ -64,7 +64,7 @@ function ContentEs() {
           social media con IA.
         </li>
         <li>
-          Programa de lealtad con puntos por compra (planes Pro y Business).
+          Programa de lealtad con puntos por compra (plan Pro).
         </li>
         <li>
           CRM de clientes con historial de pedidos, segmentación y etiquetas
@@ -81,10 +81,6 @@ function ContentEs() {
         </li>
         <li>Notificaciones por email y push.</li>
         <li>Procesamiento de pagos a través de Stripe y Wompi (Colombia).</li>
-        <li>
-          API con llaves de acceso para integración con sistemas externos (plan
-          Business).
-        </li>
       </ul>
 
       <h2>3. Registro y Cuenta</h2>
@@ -110,20 +106,28 @@ function ContentEs() {
       <h2>4. Planes, Precios y Facturación</h2>
       <h3>4.1 Planes de Suscripción</h3>
       <p>
-        MENIUS ofrece un plan gratuito permanente y planes de suscripción
-        mensual y anual (Starter, Pro, Business). Los detalles de cada plan,
-        incluyendo funciones y límites, están disponibles en nuestra{" "}
+        MENIUS ofrece dos planes: el plan <strong>Free</strong> ($0, gratuito
+        y permanente) y el plan <strong>Pro</strong> ($79 USD al mes o $790 USD
+        al año). Los detalles de cada plan, incluyendo funciones y límites,
+        están disponibles en nuestra{" "}
         <a href="/#precios">página de precios</a>. Nos reservamos el derecho de
         modificar los precios con un aviso previo de 30 días.
       </p>
       <h3>4.2 Plan Gratuito</h3>
       <p>
         MENIUS ofrece un plan gratuito permanente sin límite de tiempo. El plan
-        Free incluye menú digital con QR para hasta 5 mesas, pedidos ilimitados
-        (dine-in y pickup), solo efectivo e importación de menú con IA. No se
-        requiere tarjeta de crédito. El plan Free es permanente: si cancelas un
-        plan de pago, tu cuenta retorna automáticamente al plan Free con todos
-        tus datos intactos.
+        Free incluye menú digital con QR para hasta 5 mesas, hasta 15
+        productos y pedidos ilimitados solo en mesa (dine-in), pagados en
+        efectivo. No se requiere tarjeta de crédito. El plan Free es
+        permanente: si cancelas el plan Pro, tu cuenta retorna automáticamente
+        al plan Free con todos tus datos intactos.
+      </p>
+      <h3>4.2.1 Periodo de Prueba</h3>
+      <p>
+        Al registrarte recibes 14 días de prueba gratuita del plan Pro, sin
+        necesidad de tarjeta de crédito. Para continuar con el plan Pro al
+        terminar la prueba debes suscribirte. Si no te suscribes, tu cuenta
+        pasa automáticamente al plan Free al finalizar los 14 días.
       </p>
       <h3>4.3 Facturación</h3>
       <p>
@@ -140,15 +144,31 @@ function ContentEs() {
       </p>
       <h3>4.5 Pagos Online y Comisión por Transacción</h3>
       <p>
-        Los pagos en línea a través de Stripe Connect están disponibles a partir
-        del plan <strong>Starter</strong>. El plan Free no incluye esta
-        funcionalidad — los clientes del restaurante solo pueden pagar en
-        efectivo.
+        Los pagos en línea a través de Stripe Connect están disponibles en el
+        plan <strong>Pro</strong>. El plan Free no incluye esta funcionalidad
+        — los clientes del restaurante solo pueden pagar en efectivo.
       </p>
       <p>
-        MENIUS no cobra comisión sobre los pagos en línea procesados a través de
-        Stripe Connect en ninguno de sus planes de suscripción (Starter, Pro,
-        Business). Todos los planes tienen 0% de comisión por transacción.
+        Los pagos en línea se procesan mediante Stripe Connect con la cuenta de
+        Stripe del propio restaurante, y el dinero de cada pedido se deposita
+        en esa cuenta. El restaurante figura como comercio en el resumen de la
+        tarjeta del comensal. MENIUS no cobra comisión por pedido: 0% de
+        comisión de MENIUS en el plan Pro.
+      </p>
+      <p>
+        Las tarifas de procesamiento de Stripe (2.9% + 30¢ por pago con
+        tarjeta en USD, más un 1.5% adicional en tarjetas internacionales) las
+        paga el restaurante y se descuentan automáticamente de cada pago.
+      </p>
+      <p>
+        <strong>Reembolsos:</strong> los reembolsos a comensales se descuentan
+        del saldo de Stripe del restaurante. Stripe no devuelve su tarifa de
+        procesamiento en los pagos reembolsados.
+      </p>
+      <p>
+        <strong>Contracargos y disputas:</strong> los contracargos y disputas
+        de pagos son responsabilidad del restaurante. Si se pierde una disputa,
+        el monto se descuenta del restaurante.
       </p>
       <p>
         Alternativamente, MENIUS ofrece un Plan por Comisión ($0/mes) donde el
@@ -163,7 +183,7 @@ function ContentEs() {
         Stripe.
       </p>
       <p>
-        Si cancelas un plan de pago y regresas al plan Free, los pagos online
+        Si cancelas el plan Pro y regresas al plan Free, los pagos online
         dejarán de estar disponibles para tu restaurante.
       </p>
 
@@ -420,7 +440,7 @@ function ContentEn() {
           media generator.
         </li>
         <li>
-          Loyalty program with points per purchase (Pro and Business plans).
+          Loyalty program with points per purchase (Pro plan).
         </li>
         <li>
           Customer CRM with order history, segmentation, and automatic tags.
@@ -436,10 +456,6 @@ function ContentEn() {
         </li>
         <li>Email and push notifications.</li>
         <li>Payment processing through Stripe and Wompi (Colombia).</li>
-        <li>
-          API with access keys for integration with external systems (Business
-          plan).
-        </li>
       </ul>
 
       <h2>3. Registration and Account</h2>
@@ -465,19 +481,27 @@ function ContentEn() {
       <h2>4. Plans, Pricing, and Billing</h2>
       <h3>4.1 Subscription Plans</h3>
       <p>
-        MENIUS offers monthly and annual subscription plans. Details of each
-        plan, including features and limits, are available on our{" "}
-        <a href="/#precios">pricing page</a>. We reserve the right to modify
-        prices with 30 days&apos; prior notice.
+        MENIUS offers two plans: the <strong>Free</strong> plan ($0, free and
+        permanent) and the <strong>Pro</strong> plan ($79 USD per month or $790
+        USD per year). Details of each plan, including features and limits,
+        are available on our <a href="/#precios">pricing page</a>. We reserve
+        the right to modify prices with 30 days&apos; prior notice.
       </p>
       <h3>4.2 Free Plan</h3>
       <p>
         MENIUS offers a permanent free plan with no time limit. The Free plan
-        includes a digital menu with QR codes for up to 5 tables, unlimited
-        orders (dine-in and pickup), cash only, and AI menu import from photo.
-        No credit card is required. The Free plan is permanent: if you cancel a
-        paid plan, your account automatically returns to the Free plan with all
+        includes a digital menu with QR codes for up to 5 tables, up to 15
+        products, and unlimited dine-in orders only, paid in cash. No credit
+        card is required. The Free plan is permanent: if you cancel the Pro
+        plan, your account automatically returns to the Free plan with all
         your data intact.
+      </p>
+      <h3>4.2.1 Trial Period</h3>
+      <p>
+        When you sign up, you get a 14-day free trial of the Pro plan, with no
+        credit card required. To continue on the Pro plan after the trial, you
+        must subscribe. If you do not subscribe, your account automatically
+        moves to the Free plan at the end of the 14 days.
       </p>
       <h3>4.3 Billing</h3>
       <p>
@@ -493,14 +517,31 @@ function ContentEn() {
       </p>
       <h3>4.5 Online Payments and Transaction Commission</h3>
       <p>
-        Online payments via Stripe Connect are available starting with the{" "}
-        <strong>Starter</strong> plan. The Free plan does not include this
-        feature — the restaurant's customers can only pay in cash.
+        Online payments via Stripe Connect are available on the{" "}
+        <strong>Pro</strong> plan. The Free plan does not include this feature
+        — the restaurant's customers can only pay in cash.
       </p>
       <p>
-        MENIUS does not charge any commission on online payments processed
-        through Stripe Connect on any of its subscription plans (Starter, Pro,
-        Business). All plans have 0% transaction commission.
+        Online payments are processed through Stripe Connect using the
+        restaurant&apos;s own Stripe account, and the money from each order is
+        deposited into that account. The restaurant appears as the merchant on
+        the diner&apos;s card statement. MENIUS does not charge a per-order
+        commission: 0% MENIUS commission on the Pro plan.
+      </p>
+      <p>
+        Stripe processing fees (2.9% + 30¢ per card payment in USD, plus an
+        additional 1.5% on international cards) are paid by the restaurant and
+        are automatically deducted from each payment.
+      </p>
+      <p>
+        <strong>Refunds:</strong> refunds to diners are deducted from the
+        restaurant&apos;s Stripe balance. Stripe does not return its processing
+        fee on refunded payments.
+      </p>
+      <p>
+        <strong>Chargebacks and disputes:</strong> payment chargebacks and
+        disputes are the restaurant&apos;s responsibility. If a dispute is
+        lost, the amount is deducted from the restaurant.
       </p>
       <p>
         Alternatively, MENIUS offers a Commission Plan ($0/month) where the
@@ -514,7 +555,7 @@ function ContentEn() {
         restaurant at the time of payment and is managed directly by Stripe.
       </p>
       <p>
-        If you cancel a paid plan and return to the Free plan, online payments
+        If you cancel the Pro plan and return to the Free plan, online payments
         will no longer be available for your restaurant.
       </p>
 
@@ -714,12 +755,12 @@ function getHero(locale: LandingLocale) {
     return {
       badge: "Legal",
       title: "Terms & Conditions",
-      date: "Last updated: April 22, 2026",
+      date: "Last updated: November 4, 2026",
     };
   return {
     badge: "Legal",
     title: "Términos y Condiciones",
-    date: "Última actualización: 22 de abril de 2026",
+    date: "Última actualización: 4 de noviembre de 2026",
   };
 }
 

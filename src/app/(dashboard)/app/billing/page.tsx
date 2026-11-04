@@ -249,8 +249,13 @@ export default function BillingPage() {
   useEffect(() => {
     if (autoCheckoutTriggered.current) return;
     if (loading) return;
-    const planParam = searchParams.get('autoCheckout');
-    if (!planParam) return;
+    const rawPlanParam = searchParams.get('autoCheckout');
+    if (!rawPlanParam) return;
+    // Links viejos pueden traer starter/business (o sus alias legacy): un solo
+    // plan a la venta, así que se tratan como Pro.
+    const planParam = ['starter', 'business', 'basic', 'enterprise'].includes(rawPlanParam)
+      ? 'pro'
+      : rawPlanParam;
     if (!isSellablePlan(planParam)) return;
     const hasLiveSub = sub?.stripe_subscription_id && (sub.status === 'active' || sub.status === 'past_due');
     if (hasLiveSub) return;
@@ -554,12 +559,12 @@ export default function BillingPage() {
                 )}
                 {isTrialing && (
                   <button
-                    onClick={() => handlePlanSelect(resolvedId as PlanId, 'monthly')}
+                    onClick={() => handlePlanSelect('pro', 'monthly')}
                     disabled={actionLoading !== null}
                     className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
                   >
                     <CreditCard className="w-4 h-4" />
-                    {actionLoading === resolvedId ? t.billing_redirecting : t.billing_subscribeNow}
+                    {actionLoading === 'pro' ? t.billing_redirecting : t.billing_subscribeNow}
                   </button>
                 )}
                 {isActive && sub?.stripe_subscription_id && !sub.canceled_at && (
@@ -792,12 +797,12 @@ export default function BillingPage() {
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                {locale === 'en' ? 'Platform commissions' : 'Comisiones de plataforma'}
+                {locale === 'en' ? 'MENIUS commission' : 'Comisión de MENIUS'}
               </h3>
               <p className="text-xs text-gray-400 mt-1">
                 {locale === 'en'
-                  ? 'Applied to online payments via Stripe Connect only'
-                  : 'Solo aplica a pagos online con Stripe Connect'}
+                  ? 'Applies to online payments via Stripe Connect only. Stripe processing (2.9% + 30¢ per card payment) is paid by your restaurant and deducted automatically from each payment.'
+                  : 'Solo aplica a pagos online con Stripe Connect. El procesamiento de Stripe (2.9% + 30¢ por pago con tarjeta) lo paga tu restaurante y se descuenta automáticamente de cada pago.'}
               </p>
             </div>
             {/* Current rate badge */}
@@ -810,9 +815,9 @@ export default function BillingPage() {
                   : 'bg-red-50 text-red-700 border-red-200'
             )}>
               {commissions.isTrial
-                ? (locale === 'en' ? '0% — trial period' : '0% — período de prueba')
+                ? (locale === 'en' ? '0% MENIUS commission — trial period' : '0% de comisión de MENIUS — período de prueba')
                 : commissions.commissionBps === 0
-                  ? (locale === 'en' ? '0% — no commission' : '0% — sin comisión')
+                  ? (locale === 'en' ? '0% MENIUS commission' : '0% de comisión de MENIUS')
                   : `${commissions.commissionBps / 100}% ${locale === 'en' ? 'per online order' : 'por orden online'}`}
             </span>
           </div>
@@ -821,7 +826,7 @@ export default function BillingPage() {
             {/* This month commissions */}
             <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
               <p className="text-xs text-gray-400 mb-1">
-                {locale === 'en' ? 'Commission this month' : 'Comisión este mes'}
+                {locale === 'en' ? 'MENIUS commission this month' : 'Comisión de MENIUS este mes'}
               </p>
               <p className="text-2xl font-bold text-gray-900 tabular-nums">
                 {commissions.commissionBps === 0
@@ -858,19 +863,19 @@ export default function BillingPage() {
               <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex flex-col justify-between">
                 <div>
                   <p className="text-xs font-semibold text-emerald-700 mb-1">
-                    {locale === 'en' ? 'Upgrade to Pro → 0%' : 'Sube a Pro → 0%'}
+                    {locale === 'en' ? 'Upgrade to Pro → 0% MENIUS commission' : 'Sube a Pro → 0% de comisión de MENIUS'}
                   </p>
                   <p className="text-xs text-emerald-600 leading-relaxed">
                     {locale === 'en'
-                      ? 'Pro plan eliminates commissions. At current volume, it pays for itself.'
-                      : 'El plan Pro elimina las comisiones. Con tu volumen actual, se paga solo.'}
+                      ? 'With Pro, MENIUS charges 0% per order. Stripe processing still applies.'
+                      : 'Con Pro, MENIUS cobra 0% por pedido. El procesamiento de Stripe sigue aplicando.'}
                   </p>
                 </div>
                 <button
                   onClick={() => document.getElementById('pricing-table')?.scrollIntoView({ behavior: 'smooth' })}
                   className="mt-3 text-xs font-semibold text-emerald-700 hover:text-emerald-900 transition-colors flex items-center gap-1"
                 >
-                  {locale === 'en' ? 'See plans →' : 'Ver planes →'}
+                  {locale === 'en' ? 'See Pro →' : 'Ver Pro →'}
                 </button>
               </div>
             ) : (
@@ -880,10 +885,10 @@ export default function BillingPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-emerald-800">
-                    {locale === 'en' ? '0% commission' : '0% comisión'}
+                    {locale === 'en' ? '0% MENIUS commission' : '0% de comisión de MENIUS'}
                   </p>
                   <p className="text-xs text-emerald-600">
-                    {locale === 'en' ? 'Your plan has no transaction fees' : 'Tu plan no tiene comisiones por transacción'}
+                    {locale === 'en' ? 'MENIUS charges nothing per order. Stripe processing is paid by your restaurant.' : 'MENIUS no cobra nada por pedido. El procesamiento de Stripe lo paga tu restaurante.'}
                   </p>
                 </div>
               </div>

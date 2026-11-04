@@ -72,18 +72,9 @@ export function LimitWarningBanner() {
   };
   const label = labels[worst.type][isEn ? 'en' : 'es'];
 
-  // Suggest next plan that fits
-  let suggestedPlan: 'starter' | 'pro' | 'business' = 'starter';
-  if (worst.type === 'tables') {
-    if (worst.current >= 15) suggestedPlan = 'pro';
-    if (worst.current >= 50) suggestedPlan = 'business';
-  } else if (planId === 'starter') {
-    suggestedPlan = 'pro';
-  } else if (planId === 'pro') {
-    suggestedPlan = 'business';
-  }
-
-  const planName = suggestedPlan.charAt(0).toUpperCase() + suggestedPlan.slice(1);
+  // Un solo plan a la venta: Pro. Si ya está en Pro (o en un plan legacy
+  // superior), no hay nada que ofrecer: se muestra el uso sin CTA de upgrade.
+  const canUpgrade = planId !== 'pro' && planId !== 'business';
 
   return (
     <div
@@ -104,19 +95,23 @@ export function LimitWarningBanner() {
                 ? `${worst.current}/${worst.limit} ${label} used`
                 : `${worst.current}/${worst.limit} ${label} usadas`)}
         </p>
-        <p className="text-[10px] opacity-70 font-normal mt-0.5">
-          {isEn
-            ? `Upgrade to ${planName} to keep growing`
-            : `Subí a ${planName} para seguir creciendo`}
-        </p>
+        {canUpgrade && (
+          <p className="text-[10px] opacity-70 font-normal mt-0.5">
+            {isEn
+              ? 'Upgrade to Pro to keep growing'
+              : 'Subí a Pro para seguir creciendo'}
+          </p>
+        )}
       </div>
-      <Link
-        href={`/app/billing?autoCheckout=${suggestedPlan}`}
-        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/70 hover:bg-white font-semibold text-[11px] transition-colors"
-      >
-        {isEn ? 'Upgrade' : 'Mejorar'}
-        <ArrowRight className="w-3 h-3" />
-      </Link>
+      {canUpgrade && (
+        <Link
+          href="/app/billing?autoCheckout=pro"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/70 hover:bg-white font-semibold text-[11px] transition-colors"
+        >
+          {isEn ? 'Upgrade' : 'Mejorar'}
+          <ArrowRight className="w-3 h-3" />
+        </Link>
+      )}
       <button
         type="button"
         onClick={() => setDismissed(true)}

@@ -61,7 +61,7 @@ export default async function DashboardLayout({
       subscription.trial_end &&
       new Date(subscription.trial_end) > new Date()
     )
-      return subscription.plan_id ?? "starter";
+      return subscription.plan_id ?? "pro"; // el trial es del único plan a la venta
     return "free";
   })();
 

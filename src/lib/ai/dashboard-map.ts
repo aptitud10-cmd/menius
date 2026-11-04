@@ -173,11 +173,21 @@ export const NON_GUIDE_ROUTES = [
   "verify-email",
 ];
 
+/**
+ * Etiqueta de plan que ve el modelo. Desde 2026-11 el único plan pago a la venta
+ * es Pro: 'starter' y 'pro' siguen siendo IDs internos de gate, pero al cliente
+ * se le dice "Pro". 'business' (sucursales) ya no se vende.
+ */
+function planLabel(plan: NonNullable<DashboardSection["plan"]>): string {
+  if (plan === "business") return " (not included in Pro — legacy Business accounts only, not for sale)";
+  return " (Pro)";
+}
+
 /** Renderiza el mapa como el bloque de texto que se inyecta en el system prompt. */
 export function renderDashboardGuide(): string {
   return DASHBOARD_SECTIONS.map((s) => {
     const url = s.path ? `/app/${s.path}` : "/app";
-    const plan = s.plan ? ` (${s.plan}+)` : "";
+    const plan = s.plan ? planLabel(s.plan) : "";
     return `- **${s.label}**${plan} — ${url}: ${s.what}`;
   }).join("\n");
 }

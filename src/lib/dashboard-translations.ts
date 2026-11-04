@@ -1455,7 +1455,7 @@ const es: DashboardTranslations = {
   home_trialDays: "días",
   home_trialChoosePlan: "Suscríbete ahora para conservar el acceso completo",
   home_trialEnjoy:
-    "Estás probando el plan Starter gratis. Al terminar, pasarás al plan Free sin cobros.",
+    "Estás probando el plan Pro gratis por 14 días. Si no te suscribes, al terminar pasarás al plan Free sin cobros.",
   home_trialDowngradeNote:
     "Sin suscripción, continuarás en el plan Free (gratis para siempre).",
   home_viewPlans: "Ver planes",
@@ -1482,7 +1482,7 @@ const es: DashboardTranslations = {
   // Upsell banner
   home_upsellTitle: "Tu negocio está creciendo — sin límites",
   home_upsellDesc:
-    "Estás en el plan gratuito. Acepta delivery, pickup y pagos online con un plan de pago.",
+    "Estás en el plan gratuito. Acepta delivery, pickup y pagos online con el plan Pro.",
   home_upsellCta: "Ver planes",
 
   // Health score
@@ -2503,7 +2503,7 @@ const es: DashboardTranslations = {
   billing_cancelsAt: "Se cancela el",
   billing_cancelEnd: "Tu plan se cancelará al final del periodo",
   billing_trialDowngradeNote:
-    "Al finalizar tu prueba, tu cuenta cambiará automáticamente al plan Free. Sin cobros automáticos, sin tarjeta de crédito requerida.",
+    "Tu prueba de Pro dura 14 días. Si no te suscribes, al terminar tu cuenta pasará automáticamente al plan Free. La prueba no requiere tarjeta y no hay cobros automáticos.",
   billing_currentUsage: "Uso actual",
   billing_productsLabel: "Productos",
   billing_tablesLabel: "Mesas",
@@ -2518,10 +2518,10 @@ const es: DashboardTranslations = {
   billing_subscribeNow: "Suscribirse ahora",
   billing_upgradeTitle: "Potencia tu restaurante",
   billing_upgradeDesc:
-    "Compara los planes y elige el que mejor se adapte a las necesidades de tu negocio.",
+    "Compara el plan Free con el plan Pro.",
   billing_freePlanLabel: "Plan gratuito",
   billing_freePrice: "Gratis",
-  billing_upgradeHeading: "Elige un plan",
+  billing_upgradeHeading: "Sube a Pro",
   billing_upgradeHeadingDesc:
     "Elimina los límites y desbloquea todas las funciones.",
   billing_noSubscription: "Sin suscripción activa",
@@ -2613,7 +2613,7 @@ const es: DashboardTranslations = {
   // Subscription Expired
   expired_title: "Tu periodo de prueba ha terminado",
   expired_desc:
-    "Tu menú, productos y configuración están seguros. Elige un plan para seguir recibiendo pedidos y usando el dashboard.",
+    "Tu cuenta pasó al plan Free: tu menú, productos y configuración siguen ahí, y puedes recibir pedidos en mesa en efectivo. Suscríbete a Pro para recuperar pickup, delivery y pagos online.",
   expired_errorPayment: "No se pudo crear la sesión de pago. Intenta de nuevo.",
   expired_connectionError:
     "Error de conexión. Verifica tu internet e intenta de nuevo.",
@@ -2836,7 +2836,7 @@ const en: DashboardTranslations = {
   home_trialDays: "days",
   home_trialChoosePlan: "Subscribe now to keep full access",
   home_trialEnjoy:
-    "You're trying the Starter plan for free. When it ends, you'll move to the Free plan — no charges.",
+    "You're trying the Pro plan free for 14 days. If you don't subscribe, you'll move to the Free plan when it ends — no charges.",
   home_trialDowngradeNote:
     "Without a subscription, you'll continue on the Free plan (free forever).",
   home_viewPlans: "View plans",
@@ -2863,7 +2863,7 @@ const en: DashboardTranslations = {
   // Upsell banner
   home_upsellTitle: "Your business is growing — no limits",
   home_upsellDesc:
-    "You're on the free plan. Accept delivery, pickup, and online payments with a paid plan.",
+    "You're on the free plan. Accept delivery, pickup, and online payments with the Pro plan.",
   home_upsellCta: "View plans",
 
   // Health score
@@ -3876,7 +3876,7 @@ const en: DashboardTranslations = {
   billing_cancelsAt: "Cancels on",
   billing_cancelEnd: "Your plan will cancel at the end of the period",
   billing_trialDowngradeNote:
-    "When your trial ends, your account will automatically switch to the Free plan. No automatic charges, no credit card required.",
+    "Your Pro trial lasts 14 days. If you don't subscribe, your account will automatically switch to the Free plan when it ends. The trial requires no credit card and there are no automatic charges.",
   billing_currentUsage: "Current usage",
   billing_productsLabel: "Products",
   billing_tablesLabel: "Tables",
@@ -3891,10 +3891,10 @@ const en: DashboardTranslations = {
   billing_subscribeNow: "Subscribe now",
   billing_upgradeTitle: "Power up your restaurant",
   billing_upgradeDesc:
-    "Compare plans and choose the one that best fits your business needs.",
+    "Compare the Free plan with the Pro plan.",
   billing_freePlanLabel: "Free plan",
   billing_freePrice: "Free",
-  billing_upgradeHeading: "Upgrade your plan",
+  billing_upgradeHeading: "Upgrade to Pro",
   billing_upgradeHeadingDesc: "Remove limits and unlock all features.",
   billing_noSubscription: "No active subscription",
   billing_choosePlan:
@@ -3984,7 +3984,7 @@ const en: DashboardTranslations = {
   // Subscription Expired
   expired_title: "Your trial period has ended",
   expired_desc:
-    "Your menu, products and settings are safe. Choose a plan to continue receiving orders and using the dashboard.",
+    "Your account moved to the Free plan: your menu, products and settings are still there, and you can take dine-in cash orders. Subscribe to Pro to get pickup, delivery and online payments back.",
   expired_errorPayment:
     "Could not create the payment session. Please try again.",
   expired_connectionError:

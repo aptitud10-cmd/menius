@@ -2,6 +2,7 @@ import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { BusinessOverview } from '@/components/dashboard/BusinessOverview';
 import { getStartOfDayUTC } from '@/lib/date-utils';
 import { isRevenueStatus } from '@/lib/order-state';
+import { checkPlanAccess } from '@/lib/plan-access';
 
 export const metadata = {
   title: 'Business Overview — MENIUS',
@@ -18,6 +19,8 @@ export default async function BusinessPage() {
     .order('created_at', { ascending: true });
 
   const branchList = branches ?? [];
+  // Gate existente de sucursales (Business). Solo decide si se ofrece agregar una.
+  const canAddBranches = await checkPlanAccess('business');
 
   // "Hoy" se corta con la timezone REAL de cada sucursal, no con la medianoche
   // UTC del runtime de Vercel (que desfasaría el corte varias horas). Cada
@@ -53,5 +56,5 @@ export default async function BusinessPage() {
 
   const locale = (branches?.find(b => b.id === restaurantId)?.locale ?? 'es') as 'es' | 'en';
 
-  return <BusinessOverview branches={branchStats} currentRestaurantId={restaurantId} locale={locale} />;
+  return <BusinessOverview branches={branchStats} currentRestaurantId={restaurantId} locale={locale} canAddBranches={canAddBranches} />;
 }

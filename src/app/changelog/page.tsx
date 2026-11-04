@@ -37,6 +37,31 @@ interface Release {
 
 const releases: Release[] = [
   {
+    version: "2.9",
+    dateEs: "Noviembre 2026",
+    dateEn: "November 2026",
+    badgeEs: "Nuevo",
+    badgeEn: "New",
+    badgeColor: "bg-emerald-500",
+    highlightsEs: [
+      "Un solo plan: Pro $79/mes",
+      "Dominio propio incluido",
+      "Tu nombre en el resumen de la tarjeta",
+    ],
+    highlightsEn: [
+      "One plan: Pro $79/mo",
+      "Custom domain included",
+      "Your name on the card statement",
+    ],
+    changes: [
+      {
+        type: "new",
+        es: "Un solo plan: Pro $79/mes con todo incluido (dominio propio incluido); el procesamiento de Stripe lo paga el restaurante y aparece su nombre en el resumen de la tarjeta.",
+        en: "One plan: Pro $79/mo with everything included (custom domain included); Stripe processing is paid by the restaurant and its name appears on the card statement.",
+      },
+    ],
+  },
+  {
     version: "2.8",
     dateEs: "Abril 2026",
     dateEn: "April 2026",

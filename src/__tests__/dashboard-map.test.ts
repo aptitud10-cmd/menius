@@ -98,8 +98,11 @@ describe('la guía renderizada es apta para el prompt', () => {
   });
 
   it('marca el plan cuando la sección está gateada', () => {
-    expect(guide).toMatch(/Kitchen \(KDS\)\*\* \(pro\+\)/);
-    expect(guide).toMatch(/Branches\*\* \(business\+\)/);
+    expect(guide).toMatch(/Kitchen \(KDS\)\*\* \(Pro\)/);
+    expect(guide).toMatch(/Analytics\*\* \(Pro\)/);
+    expect(guide).toMatch(/Branches\*\* \(not included in Pro/);
+    // Starter y Business ya no se venden: el asistente no debe ofrecerlos.
+    expect(guide).not.toMatch(/starter/i);
   });
 
   it('el system prompt consume la guía generada, no una copia a mano', () => {

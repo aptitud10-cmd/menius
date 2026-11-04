@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     template: "%s | MENIUS",
   },
   description:
-    "The #1 digital menu & ordering platform for restaurants. QR codes, AI-powered menu builder, real-time orders, analytics and more. La plataforma #1 de menús digitales con QR para restaurantes.",
+    "Digital menu and online ordering for restaurants. QR codes, AI-powered menu builder, real-time orders, analytics and more. Menú digital con QR y pedidos online para restaurantes.",
   keywords: [
     "digital menu",
     "restaurant QR menu",
@@ -137,8 +137,8 @@ export default async function RootLayout({
     ].filter(Boolean),
     description:
       locale === "en"
-        ? "The #1 digital QR menu platform for restaurants."
-        : "La plataforma #1 de menús digitales con QR para restaurantes.",
+        ? "QR digital menu and online ordering for independent restaurants."
+        : "Menú digital con QR y pedidos online para restaurantes independientes.",
   };
 
   return (

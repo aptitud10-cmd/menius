@@ -937,8 +937,8 @@ export function buildWelcomeEmail(params: {
   <p style="margin:0 0 24px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
     ${
       en
-        ? `Hi <strong>${esc(ownerName)}</strong> — your restaurant is now live on MENIUS. You are on the <strong>Free plan</strong> — upgrade anytime to unlock more features. No credit card required.`
-        : `Hola <strong>${esc(ownerName)}</strong> — tu restaurante ya está activo en MENIUS. Estás en el <strong>plan gratuito</strong> — mejora tu plan en cualquier momento para desbloquear más funciones. Sin tarjeta de crédito.`
+        ? `Hi <strong>${esc(ownerName)}</strong> — your restaurant is now live on MENIUS. You have <strong>14 days of Pro free</strong> — no credit card required. When the trial ends you can subscribe to Pro or keep using the Free plan.`
+        : `Hola <strong>${esc(ownerName)}</strong> — tu restaurante ya está activo en MENIUS. Tienes <strong>14 días de Pro gratis</strong>, sin tarjeta de crédito. Al terminar la prueba puedes suscribirte a Pro o seguir con el plan Gratis.`
     }
   </p>
 
@@ -947,7 +947,7 @@ export function buildWelcomeEmail(params: {
     <tr>
       <td style="background-color:#f3f0ff;border-radius:12px;padding:16px 20px;border-left:4px solid #7c3aed;">
         <p style="margin:0;font-size:14px;font-weight:700;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${en ? "✨ Forever free plan · Upgrade anytime" : "✨ Plan gratis para siempre · Mejora cuando quieras"}
+          ${en ? "✨ 14-day Pro trial · No credit card" : "✨ Prueba de Pro por 14 días · Sin tarjeta"}
         </p>
         <p style="margin:4px 0 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
           ${en ? "Digital menu · Real-time orders · QR codes · Analytics · Email notifications" : "Menú digital · Pedidos en tiempo real · QR codes · Analytics · Notificaciones por email"}
@@ -1012,8 +1012,8 @@ export function buildTrialEndingEmail(params: {
   <p style="margin:0 0 24px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
     ${
       en
-        ? `Hi <strong>${esc(ownerName)}</strong> — you're on the free plan. Upgrade to unlock unlimited orders, delivery, analytics, and more.`
-        : `Hola <strong>${esc(ownerName)}</strong> — estás en el plan gratuito. Mejora tu plan para desbloquear pedidos ilimitados, delivery, analytics y mucho más.`
+        ? `Hi <strong>${esc(ownerName)}</strong> — your 14-day Pro trial is ending. Subscribe to Pro to keep pickup, delivery, online payments, analytics and more. You keep your remaining trial days.`
+        : `Hola <strong>${esc(ownerName)}</strong> — tu prueba de 14 días de Pro está por terminar. Suscríbete a Pro para conservar pickup, delivery, pagos online, analytics y más. Mantienes los días de prueba que te quedan.`
     }
   </p>
 
@@ -1024,25 +1024,25 @@ export function buildTrialEndingEmail(params: {
         <p style="margin:0;font-size:13px;color:#92400e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
           ${
             en
-              ? "On the free plan you're limited to 50 orders/month and dine-in only. Upgrade to remove limits and get delivery, analytics, and priority support."
-              : "En el plan gratuito tienes un límite de 50 pedidos/mes y solo dine-in. Mejora tu plan para eliminar límites y obtener delivery, analytics y soporte prioritario."
+              ? "If you don't subscribe, your account moves to the Free plan: your menu stays online, but only with up to 15 products, dine-in orders paid in cash, and no pickup, delivery, online payments or analytics."
+              : "Si no te suscribes, tu cuenta pasa al plan Gratis: tu menú sigue en línea, pero con hasta 15 productos, solo pedidos en mesa pagados en efectivo y sin pickup, delivery, pagos online ni analytics."
           }
         </p>
       </td>
     </tr>
   </table>
 
-  ${ctaButton(billingUrl, en ? "⚡ Choose my plan" : "⚡ Elegir mi plan", accentColor)}
+  ${ctaButton(billingUrl, en ? "⚡ Subscribe to Pro" : "⚡ Suscribirme a Pro", accentColor)}
 
   <!-- Plan hint -->
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:20px;">
     <tr>
       <td style="background-color:#f9fafb;border-radius:12px;padding:16px 20px;text-align:center;">
         <p style="margin:0;font-size:13px;font-weight:700;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${en ? "Pro plan · $79/mo · Most popular" : "Plan Pro · $79/mes · El más popular"}
+          ${en ? "Pro plan · $79/mo or $790/yr" : "Plan Pro · $79/mes o $790/año"}
         </p>
         <p style="margin:4px 0 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${en ? "Delivery · Analytics · Up to 3 staff users · CRM" : "Delivery · Analytics · Hasta 3 usuarios de staff · CRM"}
+          ${en ? "Pickup & delivery · Online payments (0% MENIUS commission) · Analytics · Up to 5 users" : "Pickup y delivery · Pagos online (0% de comisión de MENIUS) · Analytics · Hasta 5 usuarios"}
         </p>
       </td>
     </tr>

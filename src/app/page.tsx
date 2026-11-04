@@ -51,12 +51,12 @@ export async function generateMetadata(): Promise<Metadata> {
     : 'MENIUS — Smart Digital Menus for Restaurants';
 
   const description = isEs
-    ? 'La plataforma #1 de menús digitales con QR para restaurantes. Configura en 2 minutos, recibe pedidos en tiempo real, asistente IA y 0% de comisiones.'
-    : 'The #1 digital menu platform with QR codes. Set up in 2 minutes, receive real-time orders, AI assistant and 0% commissions.';
+    ? 'Menú digital con QR y pedidos online para restaurantes. Recibe pedidos en tiempo real y vende sin la comisión de las apps de delivery: 0% de comisión de MENIUS.'
+    : 'QR digital menu and online ordering for restaurants. Get orders in real time and sell without delivery app commissions: 0% MENIUS commission.';
 
   const ogDescription = isEs
-    ? 'Crea tu menú digital con QR, recibe pedidos en tiempo real y gestiona tu restaurante desde un solo lugar. Sin comisiones.'
-    : 'Create your digital menu with QR, receive real-time orders, and manage your restaurant from one place. Zero commissions.';
+    ? 'Crea tu menú digital con QR, recibe pedidos en tiempo real y gestiona tu restaurante desde un solo lugar. 0% de comisión de MENIUS.'
+    : 'Create your digital menu with QR, receive real-time orders, and manage your restaurant from one place. 0% MENIUS commission.';
 
   return {
     title,
@@ -98,8 +98,8 @@ export default async function LandingPage() {
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     description: isEs
-      ? 'La plataforma #1 de menús digitales con QR para restaurantes. Pedidos en tiempo real, asistente IA y 0% de comisiones.'
-      : 'The #1 digital menu platform with QR codes for restaurants. Real-time orders, AI assistant and 0% commissions.',
+      ? 'Menú digital con QR y pedidos online para restaurantes independientes. Pedidos en tiempo real, asistente IA y 0% de comisión de MENIUS.'
+      : 'QR digital menu and online ordering for independent restaurants. Real-time orders, AI assistant and 0% MENIUS commission.',
     offers: {
       '@type': 'Offer',
       price: '0',

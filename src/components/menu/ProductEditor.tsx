@@ -90,7 +90,7 @@ export function ProductEditor({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
-  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; reason?: string; suggestedPlan?: 'starter' | 'pro' | 'business' }>({ open: false });
+  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; reason?: string; suggestedPlan?: 'pro' }>({ open: false });
   const [isPending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -382,7 +382,7 @@ export function ProductEditor({
           } as any);
           if (res.error) {
             if ((res as any).limitReached) {
-              setUpgradeModal({ open: true, reason: res.error, suggestedPlan: (res as any).suggestedPlan ?? 'starter' });
+              setUpgradeModal({ open: true, reason: res.error, suggestedPlan: 'pro' });
               return;
             }
             setError(res.error); toastError(res.error); return;

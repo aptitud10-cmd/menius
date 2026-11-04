@@ -142,7 +142,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
   const [availableFrom, setAvailableFrom] = useState('');
   const [availableTo, setAvailableTo] = useState('');
   const [error, setError] = useState('');
-  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; reason?: string; suggestedPlan?: 'starter' | 'pro' | 'business' }>({ open: false });
+  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; reason?: string; suggestedPlan?: 'pro' }>({ open: false });
   const [translatingCat, setTranslatingCat] = useState<Category | null>(null);
   const [isPending, startTransition] = useTransition();
   const { t } = useDashboardLocale();
@@ -183,7 +183,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
         const result = await createCategory({ name, sort_order: categories.length, is_active: true, available_from: from, available_to: to });
         if (result.error) {
           if ((result as any).limitReached) {
-            setUpgradeModal({ open: true, reason: result.error, suggestedPlan: (result as any).suggestedPlan ?? 'starter' });
+            setUpgradeModal({ open: true, reason: result.error, suggestedPlan: 'pro' });
             return;
           }
           setError(result.error); return;

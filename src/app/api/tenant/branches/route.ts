@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     const allowed = await hasPlanAccess(tenant.restaurantId, 'business');
     if (!allowed) {
       return NextResponse.json(
-        { error: 'Las sucursales son una función del plan Business' },
+        { error: 'Esta función no está disponible en tu plan' },
         { status: 403 },
       );
     }

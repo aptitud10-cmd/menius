@@ -31,7 +31,8 @@ export function TrialBanner({ initialSub }: { initialSub?: SubInfo | null } = {}
 
   const isEn = locale === 'en';
 
-  // Legacy trial still running — show countdown
+  // Trial de Pro (14 días) en curso — cuenta regresiva. Al terminar, si no se
+  // suscribe, baja a Free.
   if (sub.status === 'trialing' && sub.trial_end) {
     const daysLeft = Math.max(0, Math.ceil(
       (new Date(sub.trial_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
@@ -55,16 +56,16 @@ export function TrialBanner({ initialSub }: { initialSub?: SubInfo | null } = {}
               ? (isEn ? '⏰ Trial ends today' : '⏰ La prueba termina hoy')
               : isUrgent
                 ? (isEn
-                    ? `⏰ ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} of Starter left`
-                    : `⏰ ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de Starter`)
+                    ? `⏰ ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} of Pro left`
+                    : `⏰ ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de Pro`)
                 : isEn
-                  ? `${daysLeft} days of Starter trial`
-                  : `${daysLeft} días de prueba Starter`}
+                  ? `${daysLeft} days of Pro trial`
+                  : `${daysLeft} días de prueba Pro`}
           </span>
           <span className="block text-[10px] opacity-70 font-normal mt-0.5">
             {isUrgent
-              ? (isEn ? 'Activate a plan to keep your features →' : 'Activá un plan para conservar las funciones →')
-              : (isEn ? 'Activate a plan or continue on Free' : 'Activá un plan o continuá con Free')}
+              ? (isEn ? 'Subscribe to Pro to keep your features →' : 'Suscríbete a Pro para conservar las funciones →')
+              : (isEn ? "Subscribe to Pro, or you'll move to Free when it ends" : 'Suscríbete a Pro o al terminar pasarás a Free')}
           </span>
         </span>
         <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" />

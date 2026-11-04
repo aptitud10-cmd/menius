@@ -69,7 +69,7 @@ export function TablesManager({
   const [upgradeModal, setUpgradeModal] = useState<{
     open: boolean;
     reason?: string;
-    suggestedPlan?: "starter" | "pro" | "business";
+    suggestedPlan?: "pro";
   }>({ open: false });
   const [isPending, startTransition] = useTransition();
   const { t } = useDashboardLocale();
@@ -105,7 +105,7 @@ export function TablesManager({
           setUpgradeModal({
             open: true,
             reason: result.error,
-            suggestedPlan: (result as any).suggestedPlan ?? "starter",
+            suggestedPlan: "pro",
           });
           return;
         }

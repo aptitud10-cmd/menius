@@ -137,7 +137,7 @@ export function buildTrialEndingEmail(params: {
             Hola ${firstName}, tu cuenta<br/>seguirá activa 🎉
           </h1>
           <p style="margin:0;font-size:15px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;max-width:400px;margin:0 auto;">
-            El <strong style="color:#111827;">${esc(trialEndDate)}</strong> tu prueba de <strong style="color:#111827;">${safeRestaurantName}</strong> termina, pero tu menú digital seguirá funcionando en nuestro <strong style="color:#059669;">plan gratuito para siempre</strong>.
+            El <strong style="color:#111827;">${esc(trialEndDate)}</strong> tu prueba de <strong style="color:#111827;">${safeRestaurantName}</strong> termina, pero tu menú digital seguirá funcionando en nuestro <strong style="color:#059669;">plan gratuito para siempre</strong> (sin pickup, delivery ni pagos online). Si quieres seguir con Pro, suscríbete antes y conservas los días de prueba que te quedan.
           </p>
         </td>
       </tr>
@@ -150,11 +150,10 @@ export function buildTrialEndingEmail(params: {
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:20px 24px;margin-bottom:28px;">
             <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#059669;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">✅ Lo que incluye tu plan gratuito</p>
             <p style="margin:8px 0 0;font-size:14px;color:#166534;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
-              ✓ &nbsp;Menú digital con código QR<br/>
-              ✓ &nbsp;Fotos de tus platillos<br/>
-              ✓ &nbsp;Hasta 5 mesas activas<br/>
-              ✓ &nbsp;50 pedidos por mes<br/>
-              ✓ &nbsp;Importar menú desde foto con IA<br/>
+              ✓ &nbsp;Menú digital con código QR (hasta 5 mesas)<br/>
+              ✓ &nbsp;Hasta 15 productos<br/>
+              ✓ &nbsp;Pedidos ilimitados en mesa, pagados en efectivo<br/>
+              ✓ &nbsp;Soporte por email<br/>
               ✓ &nbsp;Sin fecha de vencimiento — <strong>gratis para siempre</strong>
             </p>
           </div>
@@ -162,7 +161,7 @@ export function buildTrialEndingEmail(params: {
       </tr>
     </table>
 
-    <!-- What you'd keep with Starter -->
+    <!-- What you'd keep with Pro -->
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
       <tr>
         <td style="padding:0 40px 28px;">
@@ -172,11 +171,11 @@ export function buildTrialEndingEmail(params: {
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
             <tr style="background:#f9fafb;">
               <td style="padding:10px 16px;font-size:12px;font-weight:700;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;width:50%;border-right:1px solid #e5e7eb;">GRATIS (tu próximo plan)</td>
-              <td style="padding:10px 16px;font-size:12px;font-weight:700;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">STARTER $39/mes</td>
+              <td style="padding:10px 16px;font-size:12px;font-weight:700;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">PRO $79/mes o $790/año</td>
             </tr>
             <tr>
-              <td style="padding:12px 16px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;border-right:1px solid #f3f4f6;border-top:1px solid #f3f4f6;vertical-align:top;">5 mesas<br/>50 pedidos/mes<br/>Solo en restaurante<br/>Con marca MENIUS<br/><span style="color:#ef4444;">✕ Sin analytics</span><br/><span style="color:#ef4444;">✕ Sin delivery/pickup</span><br/><span style="color:#ef4444;">✕ Sin pedidos ilimitados</span></td>
-              <td style="padding:12px 16px;font-size:13px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;border-top:1px solid #f3f4f6;vertical-align:top;font-weight:500;">15 mesas<br/>Pedidos ilimitados<br/>Dine-in + Pickup + Delivery<br/>Sin marca MENIUS<br/><span style="color:#059669;">✓ Analytics 30 días</span><br/><span style="color:#059669;">✓ IA para tu negocio</span><br/><span style="color:#059669;">✓ Soporte prioritario</span></td>
+              <td style="padding:12px 16px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;border-right:1px solid #f3f4f6;border-top:1px solid #f3f4f6;vertical-align:top;">5 mesas<br/>15 productos<br/>Solo en mesa, en efectivo<br/>Con marca MENIUS<br/><span style="color:#ef4444;">✕ Sin analytics</span><br/><span style="color:#ef4444;">✕ Sin delivery/pickup</span><br/><span style="color:#ef4444;">✕ Sin pagos online</span></td>
+              <td style="padding:12px 16px;font-size:13px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;border-top:1px solid #f3f4f6;vertical-align:top;font-weight:500;">50 mesas<br/>Productos ilimitados<br/>Mesa + Pickup + Delivery<br/>Sin marca MENIUS<br/><span style="color:#059669;">✓ Pagos online con tarjeta (0% de comisión de MENIUS; el procesamiento de Stripe lo paga el restaurante)</span><br/><span style="color:#059669;">✓ Analytics completo</span><br/><span style="color:#059669;">✓ IA para tu negocio</span><br/><span style="color:#059669;">✓ Soporte por chat (2h)</span></td>
             </tr>
           </table>
         </td>
@@ -187,7 +186,7 @@ export function buildTrialEndingEmail(params: {
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
       <tr>
         <td style="padding:0 40px 12px;text-align:center;">
-          ${cta(pricingUrl, '🚀 Continuar con Starter — $39/mes', '#7c3aed')}
+          ${cta(pricingUrl, '🚀 Continuar con Pro — $79/mes', '#7c3aed')}
         </td>
       </tr>
       <tr>
@@ -561,7 +560,7 @@ export function buildEngagementEmail(params: {
         <td style="padding:40px 40px 32px;text-align:center;border-bottom:1px solid #f3f4f6;">
           <div style="display:inline-block;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:8px 16px;margin-bottom:20px;">
             <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:12px;font-weight:700;color:#7c3aed;letter-spacing:0.06em;text-transform:uppercase;">
-              ✨ ${daysLeft} días de Starter restantes
+              ✨ ${daysLeft} días de prueba de Pro restantes
             </span>
           </div>
           <h1 style="margin:0 0 12px;font-size:28px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:-0.03em;line-height:1.2;">
@@ -581,7 +580,7 @@ export function buildEngagementEmail(params: {
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
             ${featureRow('🤖', 'MENIUS AI — Tu asistente de negocio', 'Pregúntale qué platillo está generando más ventas, cómo mejorar tu menú o cómo atraer más clientes. Es como tener un consultor disponible 24/7.')}
             ${featureRow('📸', 'Genera fotos de platillos con IA', '¿No tienes fotos de tus platos? MENIUS las genera automáticamente con inteligencia artificial. Ve a Menú → cualquier producto → "Generar imagen".')}
-            ${featureRow('📊', 'Analytics de tu menú', 'Ve qué productos son los más vistos, cuántas veces se abrió tu menú y desde qué países. Está en tu dashboard bajo "Analytics".')}
+            ${featureRow('📊', 'Analytics de tu menú', 'Ve tus ventas, los productos más vendidos y tus horas pico. Está en tu dashboard bajo "Analytics".')}
           </table>
         </td>
       </tr>

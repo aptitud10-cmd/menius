@@ -4,7 +4,14 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const VALID_PUBLIC_PLANS = new Set(['free', 'starter', 'pro', 'business']);
+// Un solo plan pago a la venta (Pro). Links viejos con ?plan=starter|business
+// (o los alias legacy basic|enterprise) se tratan como Pro.
+function normalizePublicPlan(plan: string | null): 'free' | 'pro' | null {
+  if (!plan) return null;
+  if (plan === 'free') return 'free';
+  if (['pro', 'starter', 'business', 'basic', 'enterprise'].includes(plan)) return 'pro';
+  return null;
+}
 
 async function resolveRedirect(
   supabase: any,
@@ -48,8 +55,9 @@ async function resolveRedirect(
 
   // New restaurant flow — propagate plan intent to onboarding (only if valid)
   const onboardingUrl = new URL('/onboarding/create-restaurant', origin);
-  if (intendedPlan && VALID_PUBLIC_PLANS.has(intendedPlan) && intendedPlan !== 'free') {
-    onboardingUrl.searchParams.set('plan', intendedPlan);
+  const plan = normalizePublicPlan(intendedPlan);
+  if (plan === 'pro') {
+    onboardingUrl.searchParams.set('plan', plan);
     if (intendedBilling === 'annual') onboardingUrl.searchParams.set('billing', 'annual');
   }
   return NextResponse.redirect(onboardingUrl);

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       const hasOnlinePayments = await hasPlanAccess(restaurant.id, 'starter');
       if (!hasOnlinePayments) {
         return NextResponse.json(
-          { error: 'Los pagos online requieren el plan Starter o superior, o el plan 4% comisión.' },
+          { error: 'Los pagos online requieren el plan Pro.' },
           { status: 403 }
         );
       }

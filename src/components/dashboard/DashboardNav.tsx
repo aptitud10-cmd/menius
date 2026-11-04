@@ -24,7 +24,10 @@ type NavItem = {
   icon: React.ElementType;
   exact?: boolean;
   minPlan?: string; // minimum plan required to access
-  badge?: string;   // badge text (e.g. 'Pro', 'Business')
+  badge?: string;   // badge text — siempre 'Pro': es el único plan a la venta
+  // Funciones que ya no se venden (eran de Business): se ocultan del menú para
+  // quien no tenga ese plan, en vez de mostrarse bloqueadas ofreciendo comprarlo.
+  hiddenUnlessPlan?: string;
 };
 
 function buildNavSections(t: DashboardTranslations, locale: string): { title: string | null; items: NavItem[] }[] {
@@ -51,25 +54,25 @@ function buildNavSections(t: DashboardTranslations, locale: string): { title: st
       title: t.nav_restaurant,
       items: [
         { href: '/app/tables', label: t.nav_tables, icon: QrCode },
-        { href: '/app/reservations', label: locale === 'es' ? 'Reservaciones' : 'Reservations', icon: CalendarDays, minPlan: 'starter', badge: 'Starter' },
-        { href: '/app/customers', label: t.nav_customers, icon: Contact2, minPlan: 'starter', badge: 'Starter' },
+        { href: '/app/reservations', label: locale === 'es' ? 'Reservaciones' : 'Reservations', icon: CalendarDays, minPlan: 'starter', badge: 'Pro' },
+        { href: '/app/customers', label: t.nav_customers, icon: Contact2, minPlan: 'starter', badge: 'Pro' },
         { href: '/app/reviews', label: t.nav_reviews, icon: Star, minPlan: 'pro', badge: 'Pro' },
         { href: '/app/promotions', label: t.nav_promotions, icon: Ticket, minPlan: 'pro', badge: 'Pro' },
         { href: '/app/loyalty', label: t.nav_loyalty, icon: Gift, minPlan: 'pro', badge: 'Pro' },
-        { href: '/app/staff', label: t.nav_staff, icon: Users, minPlan: 'starter', badge: 'Starter' },
+        { href: '/app/staff', label: t.nav_staff, icon: Users, minPlan: 'starter', badge: 'Pro' },
       ],
     },
     {
       title: t.nav_business,
       items: [
-        { href: '/app/analytics', label: t.nav_analytics, icon: BarChart3, minPlan: 'starter', badge: 'Starter' },
-        { href: '/app/ai-insights', label: locale === 'es' ? 'AI Insights' : 'AI Insights', icon: Sparkles, minPlan: 'starter', badge: 'Starter' },
+        { href: '/app/analytics', label: t.nav_analytics, icon: BarChart3, minPlan: 'starter', badge: 'Pro' },
+        { href: '/app/ai-insights', label: locale === 'es' ? 'AI Insights' : 'AI Insights', icon: Sparkles, minPlan: 'starter', badge: 'Pro' },
         { href: '/app/marketing', label: t.nav_marketing, icon: Megaphone, minPlan: 'pro', badge: 'Pro' },
         { href: '/app/business', label: locale === 'es' ? 'Mi Negocio' : 'My Business', icon: LayoutDashboard },
-        { href: '/app/branches', label: t.nav_branches, icon: Building2, minPlan: 'business', badge: 'Business' },
+        { href: '/app/branches', label: t.nav_branches, icon: Building2, hiddenUnlessPlan: 'business' },
         { href: '/app/billing', label: t.nav_billing, icon: CreditCard },
         { href: '/app/settings', label: t.nav_settings, icon: Settings },
-        { href: '/app/settings/api-keys', label: 'API Keys', icon: Key, minPlan: 'business', badge: 'Business' },
+        { href: '/app/settings/api-keys', label: 'API Keys', icon: Key, hiddenUnlessPlan: 'business' },
         { href: '/app/settings/data', label: t.nav_dataPrivacy, icon: Shield },
       ],
     },
@@ -107,7 +110,9 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
               </p>
             )}
             <div className="flex flex-col gap-0.5">
-              {section.items.map((item) => {
+              {section.items
+                .filter((item) => !item.hiddenUnlessPlan || meetsMin(planId, item.hiddenUnlessPlan))
+                .map((item) => {
                 const active = isActive(item.href, item.exact);
                 const locked = item.minPlan ? !meetsMin(planId, item.minPlan) : false;
                 if (locked) {
@@ -116,7 +121,9 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
                       key={item.href}
                       href="/app/billing"
                       onClick={() => setOpen(false)}
-                      title={item.badge ? `${item.badge} plan required` : 'Upgrade required'}
+                      title={locale === 'es'
+                        ? (item.badge ? `Requiere el plan ${item.badge}` : 'Requiere mejorar el plan')
+                        : (item.badge ? `${item.badge} plan required` : 'Upgrade required')}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all text-gray-400 hover:bg-gray-50 hover:text-gray-600 group"
                     >
                       <item.icon className="w-[18px] h-[18px] flex-shrink-0 text-gray-300 group-hover:text-gray-400 transition-colors" />

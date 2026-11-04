@@ -53,27 +53,19 @@ const PRICING_PLANS = [
   {
     name: 'Free',
     price: 0,
-    desc: 'Empieza sin costo',
-    features: ['Generación de fotos con IA', 'Importar menú desde foto', 'Todos los estilos visuales', 'Sin marca de agua'],
+    desc: 'Para probar el producto',
+    features: ['Menú digital + QR (hasta 5 mesas)', 'Hasta 15 productos', 'Pedidos en mesa ilimitados (efectivo)', 'Soporte por email'],
     cta: 'Empezar gratis',
     href: '/signup',
   },
   {
-    name: 'Starter',
-    price: 39,
-    desc: 'Para restaurantes en crecimiento',
-    features: ['Todo lo del plan Free', 'Pagos online (0% comisión)', 'Notificaciones push', 'Soporte por chat'],
-    cta: 'Elegir Starter',
-    href: '/signup',
-    popular: true,
-  },
-  {
     name: 'Pro',
     price: 79,
-    desc: 'Para operaciones completas',
-    features: ['Todo lo de Starter', 'Programa de lealtad', 'Marketing Hub + automatizaciones', 'Chat prioritario 24h'],
-    cta: 'Elegir Pro',
+    desc: 'Todo incluido · 14 días gratis',
+    features: ['Generación de fotos con IA', 'Importar menú desde foto con IA', 'Pedidos en mesa, para llevar y delivery', 'Pagos online (0% comisión de MENIUS)', 'Promociones, reseñas y lealtad', 'Soporte por chat (2h)'],
+    cta: 'Probar Pro gratis',
     href: '/signup',
+    popular: true,
   },
 ];
 
@@ -637,9 +629,9 @@ export default function AIFotosPage() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Planes simples y transparentes</h2>
-            <p className="text-gray-500">Incluido en todos los planes Menius. Sin costos adicionales.</p>
+            <p className="text-gray-500">Las fotos con IA vienen incluidas en el plan Pro. Sin costos adicionales.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {PRICING_PLANS.map(plan => (
               <div
                 key={plan.name}
@@ -711,7 +703,7 @@ export default function AIFotosPage() {
             Empieza gratis hoy
           </h2>
           <p className="text-orange-100 mb-8">
-            Incluido en todos los planes de Menius. Sin costo adicional.
+            Incluido en el plan Pro de Menius, con 14 días gratis. Sin costo adicional.
           </p>
           <Link
             href="/signup"
