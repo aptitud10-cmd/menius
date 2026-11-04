@@ -40,6 +40,70 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
   }
 }
 
+interface DisputeLike {
+  id: string;
+  amount: number;
+  charge: string | { id: string };
+  payment_intent?: string | { id: string } | null;
+  status: string;
+}
+
+const idOf = (v: string | { id: string } | null | undefined) =>
+  typeof v === 'string' ? v : v?.id ?? null;
+
+/**
+ * Contracargos: responsabilidad del restaurante, no de MENIUS.
+ * Con destination charges Stripe debita la disputa de la PLATAFORMA siempre
+ * (docs: connect/destination-charges#handle-disputes). Si la disputa se pierde
+ * — o el restaurante la acepta, que Stripe también marca como `lost` — se
+ * recupera el monto revirtiendo el transfer a la cuenta conectada. Si se gana,
+ * Stripe devuelve los fondos a la plataforma y no hay nada que revertir.
+ *
+ * La tarifa de disputa de Stripe NO se recupera acá: una reversión no puede
+ * superar el monto transferido. Queda reportada para cobrarla aparte.
+ */
+async function reverseTransferForLostDispute(
+  stripe: ReturnType<typeof getStripe>,
+  dispute: DisputeLike,
+) {
+  const chargeId = idOf(dispute.charge);
+  if (!chargeId) throw new Error(`Dispute ${dispute.id} has no charge`);
+
+  const charge = await stripe.charges.retrieve(chargeId);
+  const transferId = idOf(charge.transfer as string | { id: string } | null);
+  if (!transferId) {
+    // Pago sin transfer (no era destination charge): no hay de quién recuperar.
+    logger.warn('Lost dispute without transfer — nothing to reverse', { disputeId: dispute.id, chargeId });
+    return;
+  }
+
+  const transfer = await stripe.transfers.retrieve(transferId);
+  const reversible = transfer.amount - transfer.amount_reversed;
+  const amount = Math.min(dispute.amount, reversible);
+  if (amount <= 0) {
+    logger.info('Transfer already fully reversed', { disputeId: dispute.id, transferId });
+    return;
+  }
+
+  await stripe.transfers.createReversal(
+    transferId,
+    { amount, metadata: { dispute_id: dispute.id, reason: 'dispute_lost' } },
+    { idempotencyKey: `dispute-reversal:${dispute.id}` },
+  );
+
+  logger.warn('Lost dispute charged to restaurant via transfer reversal', {
+    disputeId: dispute.id,
+    transferId,
+    destination: idOf(transfer.destination as string | { id: string } | null),
+    amount,
+  });
+  captureError(new Error('Stripe dispute lost — amount recovered from restaurant; dispute fee still on MENIUS'), {
+    disputeId: dispute.id,
+    transferId,
+    amount,
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const stripe = getStripe();
@@ -122,6 +186,32 @@ export async function POST(request: NextRequest) {
           if (orderId) {
             await updateOrderPayment(orderId, 'failed', session.id ?? '');
             logger.warn('PaymentIntent failed', { orderId });
+          }
+          break;
+        }
+
+        case 'charge.dispute.created': {
+          const dispute = event.data.object as unknown as DisputeLike;
+          // Aviso: hasta ahora una disputa llegaba sin que nadie se enterara.
+          logger.warn('Stripe dispute opened', {
+            disputeId: dispute.id,
+            paymentIntent: idOf(dispute.payment_intent),
+            amount: dispute.amount,
+          });
+          captureError(new Error('Stripe dispute opened'), {
+            disputeId: dispute.id,
+            paymentIntent: idOf(dispute.payment_intent),
+            amount: dispute.amount,
+          });
+          break;
+        }
+
+        case 'charge.dispute.closed': {
+          const dispute = event.data.object as unknown as DisputeLike;
+          if (dispute.status === 'lost') {
+            await reverseTransferForLostDispute(stripe, dispute);
+          } else {
+            logger.info('Dispute closed without loss', { disputeId: dispute.id, status: dispute.status });
           }
           break;
         }

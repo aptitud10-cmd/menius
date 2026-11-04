@@ -26,8 +26,15 @@ vi.mock('@/lib/supabase/admin', () => ({
 
 // ── Stripe mock ───────────────────────────────────────────────────────────────
 const mockConstructEvent = vi.fn();
+const mockChargeRetrieve = vi.fn();
+const mockTransferRetrieve = vi.fn();
+const mockCreateReversal = vi.fn();
 vi.mock('@/lib/stripe', () => ({
-  getStripe: () => ({ webhooks: { constructEvent: mockConstructEvent } }),
+  getStripe: () => ({
+    webhooks: { constructEvent: mockConstructEvent },
+    charges: { retrieve: mockChargeRetrieve },
+    transfers: { retrieve: mockTransferRetrieve, createReversal: mockCreateReversal },
+  }),
   getPaymentsWebhookSecret: () => 'whsec_test',
 }));
 
@@ -227,6 +234,66 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     const res = await POST(req as never);
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
+  });
+
+  // ── Contracargos: los paga el restaurante ──────────────────────────────────
+  const dispute = (status: string) => ({
+    id: 'dp_1', amount: 3000, charge: 'ch_1', payment_intent: 'pi_1', status,
+  });
+
+  it('charge.dispute.closed perdida: revierte el transfer al restaurante', async () => {
+    mockConstructEvent.mockReturnValue({ id: 'evt_dp1', type: 'charge.dispute.closed', data: { object: dispute('lost') } });
+    mockChargeRetrieve.mockResolvedValue({ id: 'ch_1', transfer: 'tr_1' });
+    mockTransferRetrieve.mockResolvedValue({ id: 'tr_1', amount: 3000, amount_reversed: 0, destination: 'acct_1' });
+    mockCreateReversal.mockResolvedValue({ id: 'trr_1' });
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
+    const res = await POST(req as never);
+    expect(res.status).toBe(200);
+    expect(mockCreateReversal).toHaveBeenCalledWith(
+      'tr_1',
+      expect.objectContaining({ amount: 3000 }),
+      { idempotencyKey: 'dispute-reversal:dp_1' },
+    );
+  });
+  it('charge.dispute.closed perdida: no revierte más de lo que queda en el transfer', async () => {
+    mockConstructEvent.mockReturnValue({ id: 'evt_dp2', type: 'charge.dispute.closed', data: { object: dispute('lost') } });
+    mockChargeRetrieve.mockResolvedValue({ id: 'ch_1', transfer: 'tr_1' });
+    // Ya se había reembolsado $10 del pedido
+    mockTransferRetrieve.mockResolvedValue({ id: 'tr_1', amount: 3000, amount_reversed: 1000, destination: 'acct_1' });
+    mockCreateReversal.mockResolvedValue({ id: 'trr_2' });
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
+    const res = await POST(req as never);
+    expect(res.status).toBe(200);
+    expect(mockCreateReversal).toHaveBeenCalledWith('tr_1', expect.objectContaining({ amount: 2000 }), expect.anything());
+  });
+  it('charge.dispute.closed ganada: no toca el transfer', async () => {
+    mockConstructEvent.mockReturnValue({ id: 'evt_dp3', type: 'charge.dispute.closed', data: { object: dispute('won') } });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
+    const res = await POST(req as never);
+    expect(res.status).toBe(200);
+    expect(mockCreateReversal).not.toHaveBeenCalled();
+  });
+  it('charge.dispute.created: avisa y no revierte nada todavía', async () => {
+    mockConstructEvent.mockReturnValue({ id: 'evt_dp4', type: 'charge.dispute.created', data: { object: dispute('needs_response') } });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
+    const res = await POST(req as never);
+    expect(res.status).toBe(200);
+    expect(mockCreateReversal).not.toHaveBeenCalled();
+  });
+  it('si la reversión falla, responde 500 para que Stripe reintente', async () => {
+    mockConstructEvent.mockReturnValue({ id: 'evt_dp5', type: 'charge.dispute.closed', data: { object: dispute('lost') } });
+    mockChargeRetrieve.mockRejectedValue(new Error('stripe down'));
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
+    const res = await POST(req as never);
+    expect(res.status).toBe(500);
+    expect(mockCreateReversal).not.toHaveBeenCalled();
   });
 });
 
