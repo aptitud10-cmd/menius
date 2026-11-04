@@ -201,3 +201,35 @@ export function computeApplicationFeeCents(
   }
   return Math.min(fee, amountCents);
 }
+
+/**
+ * Recargo de Stripe para tarjetas internacionales en EE.UU. (+1.5%, stripe.com/pricing).
+ * No se conoce el país de la tarjeta al crear el pago, así que no puede ir en el
+ * application_fee: se cobra después, revirtiendo esa parte del transfer.
+ */
+export const STRIPE_INTL_CARD_SURCHARGE_BPS = 150;
+
+/** Modelo de fee guardado en la metadata del PaymentIntent. */
+export type FeeModel = "passthrough" | "commission";
+
+/**
+ * Centavos a recuperar del restaurante por una tarjeta internacional.
+ * Solo aplica al modelo passthrough en USD; el 4% de commission_plan ya cubre
+ * el procesamiento por acuerdo.
+ */
+export function internationalCardSurchargeCents(
+  amountCents: number,
+  currency: string,
+  cardCountry: string | null | undefined,
+  feeModel: string | null | undefined,
+): number {
+  if (feeModel !== "passthrough") return 0;
+  if (currency.toLowerCase() !== "usd") return 0;
+  if (!cardCountry || cardCountry.toUpperCase() === "US") return 0;
+  if (amountCents <= 0) return 0;
+  return Math.round((amountCents * STRIPE_INTL_CARD_SURCHARGE_BPS) / 10000);
+}
+
+export function feeModelFor(commissionBps: number): FeeModel {
+  return commissionBps > 0 ? "commission" : "passthrough";
+}

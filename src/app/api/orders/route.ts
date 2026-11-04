@@ -20,6 +20,7 @@ import {
   computeOrderTotals,
   resolveCommission,
   computeApplicationFeeCents,
+  feeModelFor,
 } from "@/lib/order-pricing";
 import { formatPrice } from "@/lib/utils";
 import { haversineKm } from "@/lib/utils/eta";
@@ -1351,9 +1352,13 @@ export async function POST(request: NextRequest) {
             metadata: { order_id: order.id, order_number: order.order_number },
             payment_intent_data: {
               transfer_data: { destination: connectedAccount },
+              // The restaurant is the merchant of record: its name on the
+              // diner's card statement, settled in its country.
+              on_behalf_of: connectedAccount,
               metadata: {
                 order_id: order.id,
                 order_number: order.order_number,
+                fee_model: feeModelFor(commissionBps),
               },
               ...(applicationFeeAmount > 0 && {
                   application_fee_amount: applicationFeeAmount,

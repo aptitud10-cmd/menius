@@ -29,10 +29,12 @@ const mockConstructEvent = vi.fn();
 const mockChargeRetrieve = vi.fn();
 const mockTransferRetrieve = vi.fn();
 const mockCreateReversal = vi.fn();
+const mockPIRetrieve = vi.fn();
 vi.mock('@/lib/stripe', () => ({
   getStripe: () => ({
     webhooks: { constructEvent: mockConstructEvent },
     charges: { retrieve: mockChargeRetrieve },
+    paymentIntents: { retrieve: mockPIRetrieve },
     transfers: { retrieve: mockTransferRetrieve, createReversal: mockCreateReversal },
   }),
   getPaymentsWebhookSecret: () => 'whsec_test',
@@ -100,6 +102,17 @@ function mpSignature(dataId: string, requestId: string, ts: string, secret: stri
 // STRIPE WEBHOOK
 // ─────────────────────────────────────────────────────────────────────────────
 
+function paidIntent(cardCountry: string, feeModel = 'passthrough') {
+  return {
+    id: 'pi_1',
+    metadata: { order_id: 'order-1', fee_model: feeModel },
+    latest_charge: {
+      id: 'ch_1', amount: 3000, currency: 'usd', transfer: 'tr_1',
+      payment_method_details: { card: { country: cardCountry } },
+    },
+  };
+}
+
 describe('POST /api/payments/webhook (Stripe)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -110,6 +123,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
     mockInsert.mockResolvedValue({ error: null });
     mockUpsert.mockResolvedValue({ error: null });
+    mockPIRetrieve.mockResolvedValue(paidIntent('US'));
     mockUpdate.mockReturnValue({ eq: mockEq });
     mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
     mockOrder.mockReturnValue({ limit: mockLimit, maybeSingle: mockMaybeSingle });
@@ -293,6 +307,54 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
     const res = await POST(req as never);
     expect(res.status).toBe(500);
+    expect(mockCreateReversal).not.toHaveBeenCalled();
+  });
+
+  // ── Tarjetas internacionales: el +1.5% lo paga el restaurante ───────────────
+  const succeeded = () => ({
+    id: 'evt_pi', type: 'payment_intent.succeeded',
+    data: { object: { id: 'pi_1', metadata: { order_id: 'order-1' } } },
+  });
+
+  it('tarjeta internacional: recupera el 1.5% revirtiendo el transfer', async () => {
+    mockConstructEvent.mockReturnValue(succeeded());
+    mockPIRetrieve.mockResolvedValue(paidIntent('MX'));
+    mockCreateReversal.mockResolvedValue({ id: 'trr_intl' });
+    mockMaybeSingle.mockResolvedValue({ data: { id: 'order-1' }, error: null });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
+    const res = await POST(req as never);
+
+    expect(res.status).toBe(200);
+    expect(mockCreateReversal).toHaveBeenCalledWith(
+      'tr_1',
+      expect.objectContaining({ amount: 45 }), // 1.5% de $30.00
+      { idempotencyKey: 'intl-card-fee:ch_1' },
+    );
+  });
+
+  it('tarjeta de EE.UU.: no hay recargo', async () => {
+    mockConstructEvent.mockReturnValue(succeeded());
+    mockPIRetrieve.mockResolvedValue(paidIntent('US'));
+    mockMaybeSingle.mockResolvedValue({ data: { id: 'order-1' }, error: null });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
+    await POST(req as never);
+
+    expect(mockCreateReversal).not.toHaveBeenCalled();
+  });
+
+  it('commission_plan con tarjeta internacional: no hay recargo (el 4% ya lo cubre)', async () => {
+    mockConstructEvent.mockReturnValue(succeeded());
+    mockPIRetrieve.mockResolvedValue(paidIntent('MX', 'commission'));
+    mockMaybeSingle.mockResolvedValue({ data: { id: 'order-1' }, error: null });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
+    await POST(req as never);
+
     expect(mockCreateReversal).not.toHaveBeenCalled();
   });
 });

@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
-import { computeApplicationFeeCents } from '@/lib/order-pricing';
+import { computeApplicationFeeCents, feeModelFor } from '@/lib/order-pricing';
 
 export async function POST(request: NextRequest) {
   try {
@@ -113,7 +113,13 @@ export async function POST(request: NextRequest) {
       },
       payment_intent_data: {
         transfer_data: { destination: connectedAccount },
-        metadata: { order_id: order.id, order_number: order.order_number },
+        // The restaurant is the merchant of record (its name on the statement).
+        on_behalf_of: connectedAccount,
+        metadata: {
+          order_id: order.id,
+          order_number: order.order_number,
+          fee_model: feeModelFor(commissionBps),
+        },
         ...(applicationFeeAmount > 0 && {
           application_fee_amount: applicationFeeAmount,
         }),

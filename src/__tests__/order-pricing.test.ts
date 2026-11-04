@@ -4,6 +4,8 @@ import {
   computeOrderTotals,
   resolveCommission,
   computeApplicationFeeCents,
+  internationalCardSurchargeCents,
+  feeModelFor,
   type ProductRecord,
   type VariantRecord,
   type ExtraRecord,
@@ -392,5 +394,30 @@ describe('computeApplicationFeeCents', () => {
   it('monto cero o negativo: 0', () => {
     expect(computeApplicationFeeCents(0, 'usd', 0)).toBe(0);
     expect(computeApplicationFeeCents(-100, 'usd', 400)).toBe(0);
+  });
+});
+
+// ── internationalCardSurchargeCents ───────────────────────────────────────────
+
+describe('internationalCardSurchargeCents', () => {
+  it('tarjeta extranjera en USD con passthrough: 1.5%', () => {
+    expect(internationalCardSurchargeCents(3000, 'usd', 'MX', 'passthrough')).toBe(45);
+    expect(internationalCardSurchargeCents(3000, 'USD', 'gb', 'passthrough')).toBe(45);
+  });
+
+  it('tarjeta de EE.UU. o sin país: 0', () => {
+    expect(internationalCardSurchargeCents(3000, 'usd', 'US', 'passthrough')).toBe(0);
+    expect(internationalCardSurchargeCents(3000, 'usd', null, 'passthrough')).toBe(0);
+  });
+
+  it('commission_plan, otra moneda o pagos viejos sin fee_model: 0', () => {
+    expect(internationalCardSurchargeCents(3000, 'usd', 'MX', 'commission')).toBe(0);
+    expect(internationalCardSurchargeCents(3000, 'mxn', 'US', 'passthrough')).toBe(0);
+    expect(internationalCardSurchargeCents(3000, 'usd', 'MX', undefined)).toBe(0);
+  });
+
+  it('feeModelFor: 4% es commission, 0% es passthrough', () => {
+    expect(feeModelFor(400)).toBe('commission');
+    expect(feeModelFor(0)).toBe('passthrough');
   });
 });

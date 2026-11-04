@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, getPaymentsWebhookSecret } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
 import { sendPaymentConfirmedNotifications } from '@/lib/notifications/order-notifications';
+import { internationalCardSurchargeCents } from '@/lib/order-pricing';
 
 const logger = createLogger('payments-webhook');
 
@@ -104,6 +105,47 @@ async function reverseTransferForLostDispute(
   });
 }
 
+/**
+ * Tarjetas internacionales: Stripe cobra +1.5% a la plataforma y el país de la
+ * tarjeta recién se conoce después del pago, así que no pudo ir en el
+ * application_fee. Se recupera revirtiendo esa parte del transfer al restaurante.
+ * Idempotente por charge: checkout.session.completed y payment_intent.succeeded
+ * pueden llegar los dos para el mismo pago.
+ */
+async function recoverInternationalCardSurcharge(
+  stripe: ReturnType<typeof getStripe>,
+  paymentIntentId: string,
+) {
+  const pi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge'] });
+  const charge = pi.latest_charge;
+  if (!charge || typeof charge === 'string') return;
+
+  const surcharge = internationalCardSurchargeCents(
+    charge.amount,
+    charge.currency,
+    charge.payment_method_details?.card?.country,
+    pi.metadata?.fee_model,
+  );
+  if (surcharge <= 0) return;
+
+  const transferId = idOf(charge.transfer as string | { id: string } | null);
+  if (!transferId) {
+    logger.warn('International card without transfer — surcharge not recovered', { chargeId: charge.id });
+    return;
+  }
+
+  await stripe.transfers.createReversal(
+    transferId,
+    { amount: surcharge, metadata: { charge_id: charge.id, reason: 'international_card_surcharge' } },
+    { idempotencyKey: `intl-card-fee:${charge.id}` },
+  );
+  logger.info('International card surcharge recovered from restaurant', {
+    chargeId: charge.id,
+    country: charge.payment_method_details?.card?.country,
+    surcharge,
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const stripe = getStripe();
@@ -146,6 +188,9 @@ export async function POST(request: NextRequest) {
         case 'checkout.session.completed': {
           if (orderId && session.payment_status === 'paid') {
             await updateOrderPayment(orderId, 'paid', session.payment_intent ?? '');
+            if (session.payment_intent) {
+              await recoverInternationalCardSurcharge(stripe, idOf(session.payment_intent) as string);
+            }
           }
           break;
         }
@@ -178,6 +223,7 @@ export async function POST(request: NextRequest) {
           if (orderId) {
             await updateOrderPayment(orderId, 'paid', session.id ?? '');
             logger.info('PaymentIntent succeeded (Apple Pay / Google Pay)', { orderId });
+            await recoverInternationalCardSurcharge(stripe, session.id);
           }
           break;
         }
