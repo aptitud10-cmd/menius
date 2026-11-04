@@ -61,11 +61,31 @@ export async function POST(req: NextRequest) {
 
     // Destination charges are created on the platform account (transfer_data.destination).
     // Refunds must also be issued from the platform — no stripeAccount header.
-    // Stripe automatically reverses the transfer to the connected account.
-    const refund = await stripe.refunds.create({
-      payment_intent: order.payment_intent_id,
-      reason: refundReason as 'duplicate' | 'fraudulent' | 'requested_by_customer',
-    });
+    // Stripe does NOT reverse the transfer by default: without reverse_transfer the
+    // restaurant keeps the funds and the platform balance covers the refund.
+    // refund_application_fee stays false: Stripe doesn't return its processing fee
+    // on refunds, and the application fee is what covers it.
+    let refund: Awaited<ReturnType<typeof stripe.refunds.create>>;
+    try {
+      refund = await stripe.refunds.create({
+        payment_intent: order.payment_intent_id,
+        reason: refundReason as 'duplicate' | 'fraudulent' | 'requested_by_customer',
+        reverse_transfer: true,
+        refund_application_fee: false,
+      });
+    } catch (stripeErr: unknown) {
+      // With reverse_transfer, Stripe returns an error (instead of a pending refund)
+      // when the connected account's balance can't cover the reversal.
+      logger.error('Stripe refund rejected', {
+        orderId: order.id,
+        error: stripeErr instanceof Error ? stripeErr.message : String(stripeErr),
+      });
+      captureError(stripeErr, { route: '/api/payments/refund', orderId: order.id });
+      return NextResponse.json(
+        { error: 'Stripe rechazó el reembolso. Si el saldo de tu cuenta de Stripe no alcanza para cubrirlo, espera a recibir nuevos pagos o contacta soporte.' },
+        { status: 502 },
+      );
+    }
 
     if (refund.status === 'failed') {
       logger.error('Stripe refund failed', { orderId: order.id, refundId: refund.id });
