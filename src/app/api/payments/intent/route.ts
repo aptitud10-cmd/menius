@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimitAsync, getClientIP } from "@/lib/rate-limit";
 import { getStripe } from "@/lib/stripe";
 import { captureError } from "@/lib/error-reporting";
+import { computeApplicationFeeCents } from "@/lib/order-pricing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -96,10 +97,12 @@ export async function POST(request: NextRequest) {
     }
 
     const commissionBps = (rest as any)?.commission_plan === true ? 400 : 0;
-    const applicationFeeAmount =
-      commissionBps > 0
-        ? Math.round((amount * commissionBps) / 10000)
-        : undefined;
+    // 4% for commission_plan; Stripe's processing at cost for every other plan.
+    const applicationFeeAmount = computeApplicationFeeCents(
+      amount,
+      currency,
+      commissionBps,
+    );
 
     const intentParams: import("stripe").Stripe.PaymentIntentCreateParams = {
       amount,
@@ -109,8 +112,7 @@ export async function POST(request: NextRequest) {
         order_number: order.order_number ?? "",
       },
       transfer_data: { destination: connectedAccount },
-      ...(applicationFeeAmount &&
-        applicationFeeAmount > 0 && {
+      ...(applicationFeeAmount > 0 && {
           application_fee_amount: applicationFeeAmount,
         }),
     };

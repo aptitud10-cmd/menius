@@ -170,3 +170,34 @@ export function resolveCommission(
 
   return { commissionBps: 0, isFreeTier: true };
 }
+
+/**
+ * Tarifa estándar de Stripe para tarjetas en EE.UU. (2.9% + 30¢).
+ * Con destination charges Stripe le cobra esta tarifa a la PLATAFORMA, no al
+ * restaurante; por eso se traslada vía application_fee.
+ */
+export const STRIPE_US_CARD_FEE = { bps: 290, fixedCents: 30 } as const;
+
+/**
+ * Application fee de un pago online, en centavos.
+ * - commission_plan (commissionBps > 0): el 4% acordado, sin procesamiento aparte.
+ * - resto de planes en USD: el procesamiento de Stripe al costo (0% de MENIUS).
+ * - otras monedas: 0 — la tarifa varía por país y no hay tabla todavía, así que
+ *   MENIUS la sigue absorbiendo.
+ */
+export function computeApplicationFeeCents(
+  amountCents: number,
+  currency: string,
+  commissionBps: number,
+): number {
+  if (amountCents <= 0) return 0;
+  let fee = 0;
+  if (commissionBps > 0) {
+    fee = Math.round((amountCents * commissionBps) / 10000);
+  } else if (currency.toLowerCase() === "usd") {
+    fee =
+      Math.round((amountCents * STRIPE_US_CARD_FEE.bps) / 10000) +
+      STRIPE_US_CARD_FEE.fixedCents;
+  }
+  return Math.min(fee, amountCents);
+}

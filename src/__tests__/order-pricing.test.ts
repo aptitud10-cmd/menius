@@ -3,6 +3,7 @@ import {
   computeUnitPrice,
   computeOrderTotals,
   resolveCommission,
+  computeApplicationFeeCents,
   type ProductRecord,
   type VariantRecord,
   type ExtraRecord,
@@ -364,5 +365,32 @@ describe('resolveCommission', () => {
     const { isFreeTier } = resolveCommission(false, null, now);
     // The route uses isFreeTier to block payment_method='online'
     expect(isFreeTier).toBe(true);
+  });
+});
+
+// ── computeApplicationFeeCents ────────────────────────────────────────────────
+
+describe('computeApplicationFeeCents', () => {
+  it('planes sin comisión en USD: traslada el procesamiento de Stripe (2.9% + 30¢)', () => {
+    // $30.00 → 87¢ + 30¢
+    expect(computeApplicationFeeCents(3000, 'usd', 0)).toBe(117);
+    expect(computeApplicationFeeCents(3000, 'USD', 0)).toBe(117);
+  });
+
+  it('commission_plan: el 4% acordado, sin procesamiento aparte', () => {
+    expect(computeApplicationFeeCents(3000, 'usd', 400)).toBe(120);
+  });
+
+  it('otras monedas sin comisión: 0 (no hay tabla de tarifas por país)', () => {
+    expect(computeApplicationFeeCents(30000, 'mxn', 0)).toBe(0);
+  });
+
+  it('nunca supera el monto cobrado', () => {
+    expect(computeApplicationFeeCents(20, 'usd', 0)).toBe(20);
+  });
+
+  it('monto cero o negativo: 0', () => {
+    expect(computeApplicationFeeCents(0, 'usd', 0)).toBe(0);
+    expect(computeApplicationFeeCents(-100, 'usd', 400)).toBe(0);
   });
 });

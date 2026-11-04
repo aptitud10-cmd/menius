@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
+import { computeApplicationFeeCents } from '@/lib/order-pricing';
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,11 +88,14 @@ export async function POST(request: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
-    // Commission-plan restaurants pay 4% per order; all others pay 0% from this route.
+    // Commission-plan restaurants pay 4% per order; all others pay Stripe's
+    // processing at cost (0% MENIUS commission).
     const commissionBps = (rest as any)?.commission_plan === true ? 400 : 0;
-    const applicationFeeAmount = commissionBps > 0
-      ? Math.round(Number(order.total) * 100 * commissionBps / 10000)
-      : undefined;
+    const applicationFeeAmount = computeApplicationFeeCents(
+      Math.round(Number(order.total) * 100),
+      currency,
+      commissionBps,
+    );
 
     // Use destination charge (same model as /api/orders) so the webhook fires
     // on the platform account and the order gets marked as paid correctly.
@@ -110,7 +114,7 @@ export async function POST(request: NextRequest) {
       payment_intent_data: {
         transfer_data: { destination: connectedAccount },
         metadata: { order_id: order.id, order_number: order.order_number },
-        ...(applicationFeeAmount && applicationFeeAmount > 0 && {
+        ...(applicationFeeAmount > 0 && {
           application_fee_amount: applicationFeeAmount,
         }),
       },

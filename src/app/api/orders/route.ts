@@ -19,6 +19,7 @@ import {
   computeUnitPrice,
   computeOrderTotals,
   resolveCommission,
+  computeApplicationFeeCents,
 } from "@/lib/order-pricing";
 import { formatPrice } from "@/lib/utils";
 import { haversineKm } from "@/lib/utils/eta";
@@ -1333,13 +1334,13 @@ export async function POST(request: NextRequest) {
           };
         });
 
-        // Menius platform commission: collected as a Stripe application fee on the payment.
-        // Calculated on the gross order total (after discounts, before Stripe fees).
-        // Only applied when commissionBps > 0 — Pro/Business restaurants pay 0%.
-        const applicationFeeAmount =
-          commissionBps > 0
-            ? Math.round((total * 100 * commissionBps) / 10000) // total is in currency units
-            : undefined;
+        // Application fee on the gross order total (after discounts): 4% for
+        // commission_plan, Stripe's processing at cost for every other plan.
+        const applicationFeeAmount = computeApplicationFeeCents(
+          Math.round(total * 100), // total is in currency units
+          restaurant.currency || "usd",
+          commissionBps,
+        );
 
         const sessionParams: import("stripe").Stripe.Checkout.SessionCreateParams =
           {
@@ -1354,8 +1355,7 @@ export async function POST(request: NextRequest) {
                 order_id: order.id,
                 order_number: order.order_number,
               },
-              ...(applicationFeeAmount !== undefined &&
-                applicationFeeAmount > 0 && {
+              ...(applicationFeeAmount > 0 && {
                   application_fee_amount: applicationFeeAmount,
                 }),
             },
