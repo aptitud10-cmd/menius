@@ -57,7 +57,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
       p_timezone: data.timezone,
       p_currency: data.currency,
       p_locale: locale,
-      p_plan_id: "starter",
+      p_plan_id: "pro", // trial de 14 días del único plan a la venta
       p_notification_email: user.email ?? null,
     },
   );

@@ -201,10 +201,9 @@ function SocialProof({ t }: { t: LandingT['socialProof'] }) {
 }
 
 
-function getRecommendedPlan(revenue: number) {
-  if (revenue < 8000) return PLANS.starter;
-  if (revenue <= 40000) return PLANS.pro;
-  return PLANS.business;
+// Un solo plan a la venta desde 2026-11: la calculadora siempre compara contra Pro.
+function getRecommendedPlan(_revenue: number) {
+  return PLANS.pro;
 }
 
 // Animate a number toward `target` over ~500ms with rAF (ease-out). No library.
@@ -319,32 +318,27 @@ function MidCta({ text, highlight, cta }: { text: string; highlight: string; cta
   );
 }
 
-const PLAN_IDS = ['starter', 'pro', 'business'] as const;
+// Un solo plan a la venta (Pro). El índice coincide con t.pricing.plans.
+const PLAN_IDS = ['pro'] as const;
 
 const COP_PRICES: Record<typeof PLAN_IDS[number], { monthly: number; annual: number }> = {
-  starter:  { monthly: 89_000,  annual: 890_000 },
-  pro:      { monthly: 179_000, annual: 1_790_000 },
-  business: { monthly: 349_000, annual: 3_490_000 },
+  pro: { monthly: 179_000, annual: 1_790_000 },
 };
 
 function formatCOP(amount: number): string {
   return amount.toLocaleString('es-CO');
 }
 
-type ColKey = 'free' | 'starter' | 'pro' | 'business';
+type ColKey = 'free' | 'pro';
 
 const COL_PRICES: Record<ColKey, string> = {
   free: '$0',
-  starter: '$39',
-  pro: '$79',
-  business: '$149',
+  pro: '$' + PLANS.pro.price.monthly,
 };
 
 const COL_PRICE_SUFFIX_KEYS: Record<ColKey, 'perMonth' | ''> = {
   free: '',
-  starter: 'perMonth',
   pro: 'perMonth',
-  business: 'perMonth',
 };
 
 function CheckIcon() {
@@ -406,9 +400,6 @@ function PlanAccordionMobile({
             >
               <span className="flex items-center gap-2.5">
                 <span className={`text-lg font-bold ${isPro ? 'text-[#05c8a7]' : 'text-white'}`}>{label}</span>
-                {isPro && (
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-[#05c8a7] bg-[#05c8a7]/15 px-2 py-0.5 rounded-full">Popular</span>
-                )}
               </span>
               <span className="flex items-center gap-3">
                 <span className={`text-base font-bold ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>
@@ -450,14 +441,12 @@ function PlanAccordionMobile({
 
 function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boolean }) {
   const pc = t.pricing.planComparison;
-  const colKeys: ColKey[] = ['free', 'starter', 'pro', 'business'];
-  const colLabels = colKeys.map((k) => ({
-    free: pc.colFree, starter: pc.colStarter, pro: pc.colPro, business: pc.colBusiness,
-  }[k]));
+  const colKeys: ColKey[] = ['free', 'pro'];
+  const colLabels = colKeys.map((k) => ({ free: pc.colFree, pro: pc.colPro }[k]));
 
   const isCheck = (v: string) => v === '✓';
   const isDash = (v: string) => v === '—';
-  const proIdx = 2;
+  const proIdx = 1;
   const getSuffix = (key: ColKey) => {
     const suffixKey = COL_PRICE_SUFFIX_KEYS[key];
     if (!suffixKey) return '';
@@ -496,9 +485,6 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
                   key={key}
                   className={`px-3 py-5 text-center flex flex-col items-center gap-1 ${isPro ? 'bg-[#05c8a7]/[0.08]' : ''}`}
                 >
-                  {isPro && (
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#05c8a7] bg-[#05c8a7]/10 px-2 py-0.5 rounded-full mb-0.5">Popular</span>
-                  )}
                   <span className={`text-sm font-bold whitespace-nowrap ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>{label}</span>
                   <span className="text-xs text-gray-500 whitespace-nowrap">
                     <span className={`font-semibold ${isPro ? 'text-[#05c8a7]/80' : 'text-gray-400'}`}>{price}</span>
@@ -559,21 +545,15 @@ function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boo
     return annual ? perMonthAnnual : monthly;
   };
 
-  const heroIdx = 1; // Pro
+  const heroIdx = 0; // Pro, el único plan a la venta
   const hero = tp.plans[heroIdx];
-  const subs = [0, 2]; // Starter, Business
 
   return (
     <div className="md:hidden">
       {/* Hero plan — Pro as protagonist */}
       <div className="relative overflow-hidden rounded-[1.75rem] border border-[#05c8a7]/30 bg-[#05c8a7]/[0.06] p-7 pt-8">
         <div>
-          <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#05c8a7]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#05c8a7] shadow-[0_0_8px_var(--brand-40)]" />
-            {tp.popularBadge}
-          </span>
-
-          <h3 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-white">{hero.name}</h3>
+          <h3 className="font-display text-3xl font-extrabold tracking-tight text-white">{hero.name}</h3>
           <p className="mt-1.5 text-sm text-gray-300/80 max-w-[26ch]">{hero.desc}</p>
 
           {/* Protagonist price — smaller scale factor for COP's long numbers so
@@ -608,27 +588,6 @@ function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boo
         </div>
       </div>
 
-      {/* Subordinate plans — asymmetric bento, no feature wall */}
-      <div className="mt-4 grid grid-cols-2 gap-4">
-        {subs.map((idx) => {
-          const p = tp.plans[idx];
-          return (
-            <Link
-              key={p.name}
-              href={`/signup?plan=${p.name.toLowerCase()}${annual ? '&billing=annual' : ''}`}
-              className="group flex flex-col rounded-[1.5rem] border border-white/[0.08] bg-white/[0.02] p-5 active:scale-[0.98] transition-transform duration-150"
-            >
-              <span className="font-display text-xl font-bold text-white">{p.name}</span>
-              <div className="mt-3 min-w-0">
-                <span className={`font-display font-extrabold tracking-tight text-white leading-none block ${isColombia ? 'text-xl' : 'text-3xl'}`}>${formatPrice(priceFor(idx))}</span>
-                <span className="mt-1 block text-xs text-gray-500">{annual ? tp.annualPerMonth : tp.perMonth}</span>
-              </div>
-              <span className="mt-3 text-xs leading-snug text-gray-400">{p.features[0]}</span>
-              <span className="mt-auto pt-5 text-sm font-semibold text-[#05c8a7] group-hover:translate-x-0.5 transition-transform">{p.cta} →</span>
-            </Link>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -681,9 +640,11 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
 
       {/* Desktop: original 3-card grid */}
       <div className="d-scale-in d-delay-2 hidden md:block">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className={tp.plans.length > 1 ? 'grid grid-cols-1 md:grid-cols-3 gap-6' : 'max-w-md mx-auto'}>
           {tp.plans.map((plan, idx) => {
-            const isPopular = idx === 1;
+            // Con un solo plan se destaca la tarjeta, pero sin badge "Popular".
+            const isPopular = tp.plans.length === 1 || idx === 1;
+            const showPopularBadge = tp.plans.length > 1 && idx === 1;
             const planId = PLAN_IDS[idx];
             const planConfig = PLANS[planId];
 
@@ -708,7 +669,7 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
               >
                 {/* S5 — recommended plan differentiated by fill + left badge, not a
                     centered "Most Popular" pill (2021 tell). */}
-                {isPopular && (
+                {showPopularBadge && (
                   <span className="absolute -top-3 left-6 md:left-1/2 md:-translate-x-1/2 px-4 py-1.5 bg-[#05c8a7] text-black text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-[#05c8a7]/25">
                     {tp.popularBadge}
                   </span>

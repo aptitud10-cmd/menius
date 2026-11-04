@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import {
   PLANS,
+  isSellablePlan,
   resolvePlanId,
   getIntervalByStripePrice,
   type PlanId,
@@ -250,7 +251,7 @@ export default function BillingPage() {
     if (loading) return;
     const planParam = searchParams.get('autoCheckout');
     if (!planParam) return;
-    if (!['starter', 'pro', 'business'].includes(planParam)) return;
+    if (!isSellablePlan(planParam)) return;
     const hasLiveSub = sub?.stripe_subscription_id && (sub.status === 'active' || sub.status === 'past_due');
     if (hasLiveSub) return;
     autoCheckoutTriggered.current = true;
@@ -543,12 +544,12 @@ export default function BillingPage() {
                 )}
                 {isFreePlan && !commissions?.isCommissionPlan && (
                   <button
-                    onClick={() => handlePlanSelect('starter', 'monthly')}
+                    onClick={() => handlePlanSelect('pro', 'monthly')}
                     disabled={actionLoading !== null}
                     className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
                   >
                     <CreditCard className="w-4 h-4" />
-                    {actionLoading === 'starter' ? t.billing_redirecting : (locale === 'en' ? 'Upgrade to Starter' : 'Subir a Starter')}
+                    {actionLoading === 'pro' ? t.billing_redirecting : (locale === 'en' ? 'Upgrade to Pro' : 'Subir a Pro')}
                   </button>
                 )}
                 {isTrialing && (
@@ -614,9 +615,9 @@ export default function BillingPage() {
         // Plan prices are always in USD (Stripe billing). Savings math is only
         // valid when the restaurant's commission currency is also USD. For all
         // other currencies we show the plan price in USD and skip the arithmetic.
-        const PLAN_PRICES = { starter: 39, pro: 79, business: 149 } as const;
+        const PLAN_PRICES = { pro: PLANS.pro.price.monthly } as const;
         type UpsellPlan = keyof typeof PLAN_PRICES;
-        const upsellPlans: UpsellPlan[] = ['starter', 'pro', 'business'];
+        const upsellPlans: UpsellPlan[] = ['pro'];
 
         // Breakeven = plan_price_USD / 0.04 — how much USD online revenue needed
         // for the plan to pay itself. Only shown for USD restaurants.

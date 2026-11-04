@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Check, X, Loader2 } from 'lucide-react';
-import { PLANS, type PlanId, type BillingInterval } from '@/lib/plans';
+import { PLANS, SELLABLE_PLAN_IDS, type PlanId, type BillingInterval } from '@/lib/plans';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
@@ -15,7 +15,7 @@ interface PricingTableProps {
   hideFree?: boolean;
 }
 
-const ALL_PLAN_ORDER: PlanId[] = ['free', 'starter', 'pro', 'business'];
+const ALL_PLAN_ORDER: PlanId[] = ['free', ...SELLABLE_PLAN_IDS];
 const PLAN_RANK: Record<PlanId, number> = { free: -1, starter: 0, pro: 1, business: 2 };
 
 export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree }: PricingTableProps) {
@@ -23,7 +23,8 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
   const { locale } = useDashboardLocale();
   const [interval, setInterval] = useState<BillingInterval>('annual');
 
-  const annualSavings = Math.round(((39 * 12 - 390) / (39 * 12)) * 100);
+  const { monthly: m, annual: a } = PLANS.pro.price;
+  const annualSavings = Math.round(((m * 12 - a) / (m * 12)) * 100);
 
   return (
     <div className="w-full">
@@ -66,7 +67,11 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
       {/* ─── Plan cards ─── */}
       <div className={cn(
         'grid gap-5',
-        compact ? 'grid-cols-1' : hideFree ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
+        compact || PLAN_ORDER.length === 1
+          ? 'grid-cols-1 max-w-md mx-auto'
+          : PLAN_ORDER.length === 2
+            ? 'grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto'
+            : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
       )}>
         {PLAN_ORDER.map((id) => {
           const plan = PLANS[id];

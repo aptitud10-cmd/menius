@@ -9,20 +9,19 @@ interface UpgradePromptModalProps {
   onClose: () => void;
   /** What the user tried to do — used in the modal copy. */
   reason?: string;
-  /** Suggested plan to upgrade to. Defaults to 'starter'. */
+  /**
+   * Plan sugerido por quien abre el modal. Se ignora: desde 2026-11 hay un solo
+   * plan a la venta (Pro). Se mantiene el prop para no tocar a los llamadores.
+   */
   suggestedPlan?: 'starter' | 'pro' | 'business';
 }
 
-const PLAN_INFO = {
-  starter: { name: 'Starter', price: '$39' },
-  pro: { name: 'Pro', price: '$79' },
-  business: { name: 'Business', price: '$149' },
-};
+const PLAN = { name: 'Pro', price: '$79' };
 
-export function UpgradePromptModal({ open, onClose, reason, suggestedPlan = 'starter' }: UpgradePromptModalProps) {
+export function UpgradePromptModal({ open, onClose, reason }: UpgradePromptModalProps) {
   const { locale } = useDashboardLocale();
   const isEn = locale === 'en';
-  const plan = PLAN_INFO[suggestedPlan];
+  const plan = PLAN;
 
   if (!open) return null;
 
@@ -68,30 +67,14 @@ export function UpgradePromptModal({ open, onClose, reason, suggestedPlan = 'sta
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
               {isEn ? `What you get with ${plan.name}` : `Lo que incluye ${plan.name}`}
             </p>
-            {(suggestedPlan === 'starter'
-              ? [
-                  isEn ? '15 tables with QR code' : '15 mesas con código QR',
-                  isEn ? 'Pickup + Delivery' : 'Pickup + Delivery',
-                  isEn ? 'Online payments (0% commission)' : 'Pagos online (0% comisión)',
-                  isEn ? 'AI menu import' : 'Importar menú con IA',
-                  isEn ? 'No MENIUS branding' : 'Sin marca MENIUS',
-                ]
-              : suggestedPlan === 'pro'
-              ? [
-                  isEn ? 'Everything in Starter' : 'Todo de Starter',
-                  isEn ? 'Up to 50 tables' : 'Hasta 50 mesas',
-                  isEn ? 'Kitchen KDS' : 'Cocina KDS',
-                  isEn ? 'Loyalty program' : 'Programa de lealtad',
-                  isEn ? 'Promotions & coupons' : 'Promociones y cupones',
-                ]
-              : [
-                  isEn ? 'Everything in Pro' : 'Todo de Pro',
-                  isEn ? 'Unlimited tables & users' : 'Mesas y usuarios ilimitados',
-                  isEn ? 'Up to 3 locations' : 'Hasta 3 sucursales',
-                  isEn ? 'Custom domain' : 'Dominio personalizado',
-                  isEn ? 'Priority support (< 1h)' : 'Soporte prioritario (< 1h)',
-                ]
-            ).map((feature) => (
+            {[
+              isEn ? 'Pickup + Delivery' : 'Pickup + Delivery',
+              isEn ? 'Online payments (0% MENIUS commission)' : 'Pagos online (0% comisión de MENIUS)',
+              isEn ? 'Up to 50 tables with QR' : 'Hasta 50 mesas con QR',
+              isEn ? 'Custom domain' : 'Dominio propio',
+              isEn ? 'Kitchen KDS, loyalty and promotions' : 'Cocina KDS, lealtad y promociones',
+              isEn ? 'No MENIUS branding' : 'Sin marca MENIUS',
+            ].map((feature) => (
               <div key={feature} className="flex items-start gap-2 text-sm text-gray-700">
                 <svg className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -102,7 +85,7 @@ export function UpgradePromptModal({ open, onClose, reason, suggestedPlan = 'sta
           </div>
 
           <Link
-            href={`/app/billing?autoCheckout=${suggestedPlan}`}
+            href="/app/billing?autoCheckout=pro"
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all"
           >
             {isEn ? `Upgrade to ${plan.name}` : `Subir a ${plan.name}`}

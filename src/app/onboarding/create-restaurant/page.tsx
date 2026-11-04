@@ -63,8 +63,7 @@ const WIZARD_TEXT = {
     planSubscribe: (n: string) => `Suscribirme a ${n}`,
     plans: [
       { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mes', desc: 'Para probar. Hasta 5 mesas, solo dine-in en efectivo.', features: ['Menú digital + QR (5 mesas)', 'Pedidos ilimitados', 'Solo efectivo', 'Branding "Powered by MENIUS"'] },
-      { id: 'starter', name: 'Starter', price: '$39', priceSuffix: '/mes', desc: 'Para empezar a vender online sin comisión.', features: ['Hasta 15 mesas', 'Pickup + Delivery', 'Pagos online (0% comisión)', 'AI menu import', 'Sin marca MENIUS'], recommended: true },
-      { id: 'pro', name: 'Pro', price: '$79', priceSuffix: '/mes', desc: 'Para crecer con KDS, loyalty y promos.', features: ['Hasta 50 mesas', 'Cocina KDS', 'Programa de lealtad', 'Promociones y cupones', 'Soporte 2h'] },
+      { id: 'pro', name: 'Pro', price: '$79', priceSuffix: '/mes', desc: 'Todo incluido: pedidos online, pagos, KDS y marketing.', features: ['Pickup + Delivery', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio', 'Cocina KDS, lealtad y promociones', 'Sin marca MENIUS'], recommended: true },
     ],
   },
   en: {
@@ -119,8 +118,7 @@ const WIZARD_TEXT = {
     planSubscribe: (n: string) => `Subscribe to ${n}`,
     plans: [
       { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mo', desc: 'Try it out. Up to 5 tables, cash dine-in only.', features: ['Digital menu + QR (5 tables)', 'Unlimited orders', 'Cash only', '"Powered by MENIUS" branding'] },
-      { id: 'starter', name: 'Starter', price: '$39', priceSuffix: '/mo', desc: 'Start selling online with 0% commission.', features: ['Up to 15 tables', 'Pickup + Delivery', 'Online payments (0% commission)', 'AI menu import', 'No MENIUS branding'], recommended: true },
-      { id: 'pro', name: 'Pro', price: '$79', priceSuffix: '/mo', desc: 'Grow with KDS, loyalty and promos.', features: ['Up to 50 tables', 'Kitchen KDS', 'Loyalty program', 'Promotions & coupons', '2h support'] },
+      { id: 'pro', name: 'Pro', price: '$79', priceSuffix: '/mo', desc: 'Everything included: online orders, payments, KDS and marketing.', features: ['Pickup + Delivery', 'Online payments (0% MENIUS commission)', 'Custom domain', 'Kitchen KDS, loyalty and promotions', 'No MENIUS branding'], recommended: true },
     ],
   },
 };
@@ -132,7 +130,7 @@ const LANGUAGES = [
 
 
 
-const WIZARD_PLAN_IDS = new Set(['free', 'starter', 'pro']);
+const WIZARD_PLAN_IDS = new Set(['free', 'pro']);
 
 export default function CreateRestaurantPage() {
   return (
@@ -200,7 +198,7 @@ function CreateRestaurantPageInner() {
   const intendedPlanParam = searchParams.get('plan');
   const initialIntendedPlan = intendedPlanParam && WIZARD_PLAN_IDS.has(intendedPlanParam)
     ? intendedPlanParam
-    : 'starter';
+    : 'pro';
   const [selectedPlan, setSelectedPlan] = useState<string>(initialIntendedPlan);
 
   const handleNameChange = (val: string) => {
@@ -302,11 +300,6 @@ function CreateRestaurantPageInner() {
     setProductLoading(false);
     trackEvent('onboarding_step_completed', { step: 3, step_name: 'first_products', product_count: validProducts.length });
     trackEvent('onboarding_completed', { completed_all_steps: true });
-    // If user came with ?plan=business (not in wizard), skip plan step and go straight to checkout
-    if (intendedPlanParam === 'business') {
-      router.push('/app/billing?autoCheckout=business');
-      return;
-    }
     setStep(4);
   };
 
@@ -646,10 +639,6 @@ function CreateRestaurantPageInner() {
                   onClick={() => {
                     trackEvent('onboarding_step_skipped', { step: 3, step_name: 'first_products' });
                     trackEvent('onboarding_completed', { completed_all_steps: false });
-                    if (intendedPlanParam === 'business') {
-                      router.push('/app/billing?autoCheckout=business');
-                      return;
-                    }
                     setStep(4);
                   }}
                   className="w-full py-2.5 text-[13px] text-gray-500 hover:text-gray-300 transition-colors"

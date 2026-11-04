@@ -384,6 +384,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       if (!res.ok) {
         const API_ERROR_MAP: Record<string, string> = {
           DOMAIN_INVALID: t.error_domainInvalid,
+          DOMAIN_REQUIRES_PRO: t.error_domainRequiresPro,
           NO_CHANGES: t.error_noChanges,
           TAX_RATE_INVALID: t.error_taxRateInvalid,
           EMAIL_INVALID: t.error_emailInvalid,

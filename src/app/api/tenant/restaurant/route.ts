@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { revalidatePublicMenuForRestaurant } from '@/lib/revalidate-public-menu';
@@ -52,6 +53,10 @@ export async function PATCH(request: NextRequest) {
       updates.custom_domain = d || null;
       if (d && !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(d)) {
         return NextResponse.json({ error: 'DOMAIN_INVALID' }, { status: 400 });
+      }
+      // El dominio propio es del plan Pro (antes no tenía ningún control de plan).
+      if (d && !(await hasPlanAccess(tenant.restaurantId, 'pro'))) {
+        return NextResponse.json({ error: 'DOMAIN_REQUIRES_PRO' }, { status: 403 });
       }
     }
 

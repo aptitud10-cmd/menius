@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { PLANS, type PlanId, type BillingInterval } from '@/lib/plans';
+import { PLANS, isSellablePlan, type PlanId, type BillingInterval } from '@/lib/plans';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
 import { getStripe } from '@/lib/stripe';
@@ -31,6 +31,10 @@ export async function POST(request: NextRequest) {
     const plan = PLANS[planId];
     if (!plan) {
       return NextResponse.json({ error: 'Plan no válido' }, { status: 400 });
+    }
+    // Un solo plan a la venta (Pro). Starter/Business siguen en el código pero no se contratan.
+    if (!isSellablePlan(planId)) {
+      return NextResponse.json({ error: 'Ese plan ya no está disponible' }, { status: 400 });
     }
 
     const priceId = plan.stripePriceId[interval];

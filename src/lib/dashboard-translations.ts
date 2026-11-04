@@ -1277,6 +1277,7 @@ export interface DashboardTranslations {
   // API error code translations
   error_duplicateEmail: string;
   error_domainInvalid: string;
+  error_domainRequiresPro: string;
   error_noChanges: string;
   error_taxRateInvalid: string;
   error_emailInvalid: string;
@@ -2659,6 +2660,7 @@ const es: DashboardTranslations = {
   // API error code translations
   error_duplicateEmail: "Este email ya está invitado",
   error_domainInvalid: "Formato de dominio inválido",
+  error_domainRequiresPro: "El dominio propio está incluido en el plan Pro",
   error_noChanges: "No hay cambios que guardar",
   error_taxRateInvalid: "La tasa de impuesto debe estar entre 0 y 100",
   error_emailInvalid: "El email de notificaciones no es válido",
@@ -4029,6 +4031,7 @@ const en: DashboardTranslations = {
   // API error code translations
   error_duplicateEmail: "This email is already invited",
   error_domainInvalid: "Invalid domain format",
+  error_domainRequiresPro: "A custom domain is included in the Pro plan",
   error_noChanges: "No changes to save",
   error_taxRateInvalid: "Tax rate must be between 0 and 100",
   error_emailInvalid: "Notification email is not valid",

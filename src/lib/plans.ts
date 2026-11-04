@@ -37,6 +37,17 @@ export const TRIAL_DAYS = 14;
 /** No longer enforced — Free plan has unlimited orders to avoid customer-facing failures */
 export const FREE_MONTHLY_ORDER_LIMIT = -1;
 
+/**
+ * Planes que se pueden contratar hoy. Desde 2026-11 MENIUS vende un solo plan
+ * pago (Pro, $79/mes o $790/año). Starter y Business siguen definidos para no
+ * romper suscripciones, gates ni datos existentes, pero no se ofrecen.
+ */
+export const SELLABLE_PLAN_IDS: PlanId[] = ['pro'];
+
+export function isSellablePlan(id: string): id is PlanId {
+  return (SELLABLE_PLAN_IDS as string[]).includes(id);
+}
+
 export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
     id: 'free',
@@ -157,8 +168,8 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   pro: {
     id: 'pro',
     name: 'Pro',
-    description: 'Para restaurantes que quieren crecer y vender más.',
-    description_en: 'For restaurants ready to grow and sell more.',
+    description: 'Todo incluido: menú, pedidos online, pagos y marketing.',
+    description_en: 'Everything included: menu, online orders, payments and marketing.',
     price: { monthly: 79, annual: 790 },
     stripePriceId: {
       monthly: (process.env.STRIPE_PRICE_PRO_MONTHLY ?? '').trim(),
@@ -172,10 +183,18 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       maxOrdersPerMonth: -1,
     },
     features: [
-      'Todo lo de Starter',
-      'Hasta 50 mesas',
-      'Notificaciones por email',
+      'Productos y categorías ilimitados',
+      'Menú digital con fotos y QR (hasta 50 mesas)',
+      'Pedidos online: en mesa, para llevar y delivery',
+      'Pagos online con tarjeta (0% comisión de MENIUS)',
+      'Dominio propio',
+      'Sin marca MENIUS en el menú',
+      'Importar menú desde foto con IA',
+      'Generación de imágenes con IA',
+      'MENIUS AI (asistente de negocio)',
+      'Analytics completo',
       'Cocina KDS en tiempo real',
+      'Notificaciones sonoras y por email',
       'Promociones y cupones de descuento',
       'Reseñas de clientes',
       'Programa de lealtad para clientes',
@@ -184,10 +203,18 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Soporte por chat (respuesta en 2h)',
     ],
     features_en: [
-      'Everything in Starter',
-      'Up to 50 tables',
-      'Email notifications',
+      'Unlimited products and categories',
+      'Digital menu with photos and QR (up to 50 tables)',
+      'Online orders: dine-in, pickup and delivery',
+      'Online card payments (0% MENIUS commission)',
+      'Custom domain',
+      'No MENIUS branding on your menu',
+      'Import menu from photo with AI',
+      'AI image generation',
+      'MENIUS AI (business assistant)',
+      'Full analytics',
       'Real-time kitchen KDS',
+      'Sound and email notifications',
       'Promotions & discount coupons',
       'Customer reviews',
       'Customer loyalty program',

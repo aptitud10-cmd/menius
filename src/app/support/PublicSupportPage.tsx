@@ -25,7 +25,7 @@ const FAQS_ES = [
   },
   {
     q: '¿Puedo tener delivery y pickup con el plan gratuito?',
-    a: 'El plan gratuito incluye órdenes de dine-in (en restaurante). Para habilitar pickup y delivery necesitas el plan Starter ($39/mes). Puedes comparar planes en menius.app/pricing.',
+    a: 'El plan gratuito incluye órdenes de dine-in (en restaurante). Para habilitar pickup, delivery y pagos con tarjeta necesitas el plan Pro ($79/mes).',
   },
   {
     q: '¿Cómo agrego fotos a mis productos?',
@@ -60,7 +60,7 @@ const FAQS_EN = [
   },
   {
     q: 'Can I have delivery and pickup on the free plan?',
-    a: 'The free plan includes dine-in orders. To enable pickup and delivery you need the Starter plan ($39/mo). You can compare plans at menius.app/pricing.',
+    a: 'The free plan includes dine-in orders. To enable pickup, delivery and card payments you need the Pro plan ($79/mo).',
   },
   {
     q: 'How do I add photos to my products?',

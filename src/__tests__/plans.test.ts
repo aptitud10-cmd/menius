@@ -129,3 +129,27 @@ describe('TRIAL_DAYS', () => {
     expect(TRIAL_DAYS).toBe(14);
   });
 });
+
+// ── Plan único a la venta (2026-11) ───────────────────────────────────────────
+import { SELLABLE_PLAN_IDS, isSellablePlan, PLANS as ALL_PLANS } from '@/lib/plans';
+
+describe('plan único a la venta', () => {
+  it('solo Pro se puede contratar', () => {
+    expect(SELLABLE_PLAN_IDS).toEqual(['pro']);
+    expect(isSellablePlan('pro')).toBe(true);
+    expect(isSellablePlan('starter')).toBe(false);
+    expect(isSellablePlan('business')).toBe(false);
+    expect(isSellablePlan('free')).toBe(false);
+  });
+
+  it('Pro cuesta $79/mes o $790/año e incluye dominio propio', () => {
+    expect(ALL_PLANS.pro.price).toEqual({ monthly: 79, annual: 790 });
+    expect(ALL_PLANS.pro.features).toContain('Dominio propio');
+    expect(ALL_PLANS.pro.features_en).toContain('Custom domain');
+  });
+
+  it('Pro ya no remite a Starter en su lista de funciones', () => {
+    expect(ALL_PLANS.pro.features.some((f) => /starter/i.test(f))).toBe(false);
+    expect((ALL_PLANS.pro.features_en ?? []).some((f) => /starter/i.test(f))).toBe(false);
+  });
+});
