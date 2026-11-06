@@ -48,7 +48,7 @@ export function UpgradePromptModal({ open, onClose, reason }: UpgradePromptModal
             <Zap className="w-7 h-7 text-white" />
           </div>
           <h2 className="text-xl font-bold text-white">
-            {isEn ? `Upgrade to ${plan.name}` : `Subí a ${plan.name}`}
+            {isEn ? `Upgrade to ${plan.name}` : `Sube a ${plan.name}`}
           </h2>
           <p className="text-purple-100 text-sm mt-1">
             {plan.price}

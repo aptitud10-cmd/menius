@@ -120,6 +120,8 @@ export interface DashboardTranslations {
   counter_hub_bestForWaiter: string;
   counter_hub_scanQr: string;
   counter_hub_scanQrDesc: string;
+  counter_hub_comingSoon: string;
+  counter_hub_comingSoonDesc: string;
 
   // Home
   home_welcome: string;
@@ -1382,12 +1384,12 @@ const es: DashboardTranslations = {
   counter_hub_nativeSpec1: "Notificaciones de nuevas órdenes",
   counter_hub_nativeSpec2: "Impresora Bluetooth sin diálogo",
   counter_hub_nativeSpec3: "Funciona sin abrir el navegador",
-  counter_hub_downloadApk: "Descargar APK (Android)",
+  counter_hub_downloadApk: "Descargar en Google Play",
   counter_hub_installTitle: "Cómo instalar la app en la tablet",
   counter_hub_installStep1:
-    "En la tablet Android, abre Chrome y ve al link de descarga del APK.",
+    "En la tablet Android, escanea el código QR o abre Google Play y busca MENIUS Counter.",
   counter_hub_installStep2:
-    'Si Android pregunta "¿Instalar de fuente desconocida?", acepta. Es seguro.',
+    "Toca Instalar. Es gratis.",
   counter_hub_installStep3: "Una vez instalada, abre la app MENIUS Counter.",
   counter_hub_installStep4:
     "Inicia sesión con tu cuenta de MENIUS. La app se conecta automáticamente a tus órdenes.",
@@ -1417,6 +1419,9 @@ const es: DashboardTranslations = {
   counter_hub_scanQr: "Escanea con la tablet",
   counter_hub_scanQrDesc:
     "Apunta la cámara de tu tablet Android al código QR para descargar la app.",
+  counter_hub_comingSoon: "Próximamente en Google Play",
+  counter_hub_comingSoonDesc:
+    "Mientras tanto, usa el Counter en el navegador de tu tablet: recibe los pedidos en tiempo real y puede imprimir.",
 
   // Home
   home_welcome: "¡Bienvenido!",
@@ -2763,12 +2768,12 @@ const en: DashboardTranslations = {
   counter_hub_nativeSpec1: "New order notifications",
   counter_hub_nativeSpec2: "Bluetooth printer without dialog",
   counter_hub_nativeSpec3: "Works without opening the browser",
-  counter_hub_downloadApk: "Download APK (Android)",
+  counter_hub_downloadApk: "Get it on Google Play",
   counter_hub_installTitle: "How to install the app on the tablet",
   counter_hub_installStep1:
-    "On the Android tablet, open Chrome and go to the APK download link.",
+    "On the Android tablet, scan the QR code or open Google Play and search for MENIUS Counter.",
   counter_hub_installStep2:
-    'If Android asks "Install from unknown source?", accept. It\'s safe.',
+    "Tap Install. It's free.",
   counter_hub_installStep3: "Once installed, open the MENIUS Counter app.",
   counter_hub_installStep4:
     "Sign in with your MENIUS account. The app connects automatically to your orders.",
@@ -2798,6 +2803,9 @@ const en: DashboardTranslations = {
   counter_hub_scanQr: "Scan with your tablet",
   counter_hub_scanQrDesc:
     "Point your Android tablet camera at the QR code to download the app.",
+  counter_hub_comingSoon: "Coming soon to Google Play",
+  counter_hub_comingSoonDesc:
+    "In the meantime, use the Counter in your tablet's browser: it receives orders in real time and can print.",
 
   // Home
   home_welcome: "Welcome!",

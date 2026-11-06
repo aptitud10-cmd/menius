@@ -6,7 +6,14 @@ import { Monitor, Smartphone, ExternalLink, Download, Tablet, Printer, Wifi, Che
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { renderStyledQR } from '@/lib/styled-qr';
 
-const APK_URL = 'https://expo.dev/artifacts/eas/dxPgSHGFe4YJUPDoFFrVfF.apk';
+/**
+ * Link de la app en Google Play. null = todavía no publicada: la tarjeta muestra
+ * "Próximamente" y la opción recomendada pasa a ser el Counter en el navegador.
+ * (El APK que había acá vivía en Expo y daba 400 — un cliente nuevo tocaba
+ * "Descargar" y veía un error.) Al publicar, pegar acá
+ * 'https://play.google.com/store/apps/details?id=com.menius.counter'.
+ */
+const PLAY_STORE_URL: string | null = null;
 
 export default function CounterHubPage() {
   const { t } = useDashboardLocale();
@@ -30,7 +37,14 @@ export default function CounterHubPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* Option A — Browser */}
-        <div className="dash-card p-6 flex flex-col gap-4">
+        <div className={`dash-card p-6 flex flex-col gap-4 relative ${PLAY_STORE_URL ? '' : 'ring-2 ring-emerald-500/20'}`}>
+          {!PLAY_STORE_URL && (
+            <div className="absolute top-3 right-3">
+              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                {t.counter_hub_recommended}
+              </span>
+            </div>
+          )}
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
             <Monitor className="w-6 h-6 text-emerald-600" />
           </div>
@@ -63,12 +77,14 @@ export default function CounterHubPage() {
         </div>
 
         {/* Option B — Native App */}
-        <div className="dash-card p-6 flex flex-col gap-4 ring-2 ring-orange-500/20 relative overflow-hidden">
-          <div className="absolute top-3 right-3">
-            <span className="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full uppercase tracking-wide">
-              {t.counter_hub_recommended}
-            </span>
-          </div>
+        <div className={`dash-card p-6 flex flex-col gap-4 relative overflow-hidden ${PLAY_STORE_URL ? 'ring-2 ring-orange-500/20' : ''}`}>
+          {PLAY_STORE_URL && (
+            <div className="absolute top-3 right-3">
+              <span className="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                {t.counter_hub_recommended}
+              </span>
+            </div>
+          )}
           <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center">
             <Smartphone className="w-6 h-6 text-orange-500" />
           </div>
@@ -82,26 +98,38 @@ export default function CounterHubPage() {
             <Spec text={t.counter_hub_nativeSpec3} />
           </ul>
 
-          {/* QR code for tablet download */}
-          <div className="flex flex-col items-center gap-2 py-2">
-            <ApkQRCode url={APK_URL} />
-            <p className="text-xs font-semibold text-gray-700">{t.counter_hub_scanQr}</p>
-            <p className="text-[11px] text-gray-400 text-center leading-relaxed">{t.counter_hub_scanQrDesc}</p>
-          </div>
+          {PLAY_STORE_URL ? (
+            <>
+              {/* QR code for tablet download */}
+              <div className="flex flex-col items-center gap-2 py-2">
+                <ApkQRCode url={PLAY_STORE_URL} />
+                <p className="text-xs font-semibold text-gray-700">{t.counter_hub_scanQr}</p>
+                <p className="text-[11px] text-gray-400 text-center leading-relaxed">{t.counter_hub_scanQrDesc}</p>
+              </div>
 
-          <div className="mt-auto">
-            <a
-              href={APK_URL}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              {t.counter_hub_downloadApk}
-            </a>
-          </div>
+              <div className="mt-auto">
+                <a
+                  href={PLAY_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  {t.counter_hub_downloadApk}
+                </a>
+              </div>
+            </>
+          ) : (
+            <div className="mt-auto rounded-xl bg-gray-50 border border-gray-200 p-4">
+              <p className="text-sm font-semibold text-gray-800">{t.counter_hub_comingSoon}</p>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">{t.counter_hub_comingSoonDesc}</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Install guide */}
+      {/* Install guide — solo tiene sentido con la app publicada */}
+      {PLAY_STORE_URL && (
       <div className="dash-card p-6">
         <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Download className="w-4 h-4 text-orange-500" />
@@ -118,6 +146,7 @@ export default function CounterHubPage() {
           ))}
         </ol>
       </div>
+      )}
 
       {/* Hardware specs */}
       <div className="dash-card p-6">
