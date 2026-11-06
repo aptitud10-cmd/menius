@@ -104,6 +104,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.svg",
   },
+  // Search Console — prueba de propiedad de menius.app (requisito de Google Play
+  // para pasar la cuenta de desarrollador a organización). No borrar: si
+  // desaparece, Google des-verifica el sitio.
+  verification: {
+    google: "osDbcIfHrMawx_urBPTNu2I-fXuM7kp6zjh5UJ-0BYk",
+  },
 };
 
 export const viewport: Viewport = {
