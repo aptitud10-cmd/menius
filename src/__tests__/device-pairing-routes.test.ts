@@ -5,15 +5,22 @@ import { hashDeviceSecret } from '@/lib/device-pairing';
 type Result = { data: unknown; error: unknown };
 const queue: Result[] = [];           // results returned by successive .maybeSingle()
 const calls: { op: string; args: unknown[] }[] = [];
+let insertResult: { error: unknown } = { error: null };
 
 function chain() {
   const c: Record<string, (...args: unknown[]) => unknown> = {};
-  for (const op of ['select', 'update', 'insert', 'delete', 'eq', 'in', 'gt', 'lt']) {
+  for (const op of ['select', 'update', 'delete', 'eq', 'in', 'gt', 'lt']) {
     c[op] = (...args: unknown[]) => { calls.push({ op, args }); return c; };
   }
+  c.insert = (...args: unknown[]) => { calls.push({ op: 'insert', args }); return Promise.resolve(insertResult); };
   c.maybeSingle = async () => queue.shift() ?? { data: null, error: null };
   return c;
 }
+
+/** Unsigned JWT-shaped token: the route only reads session_id from a token GoTrue just issued. */
+const SESSION_ID = '9b2f4c1e-5d6a-4b7c-8e9f-0a1b2c3d4e5f';
+const fakeAccessToken = (claims: Record<string, unknown>) =>
+  `x.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.sig`;
 
 const getUserById = vi.fn();
 const generateLink = vi.fn();
@@ -25,8 +32,9 @@ vi.mock('@/lib/supabase/admin', () => ({
 }));
 
 const verifyOtp = vi.fn();
+const signOut = vi.fn();
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: async () => ({ auth: { verifyOtp } }),
+  createClient: async () => ({ auth: { verifyOtp, signOut } }),
 }));
 
 const getTenant = vi.fn();
@@ -49,6 +57,7 @@ const req = (body: unknown, headers: Record<string, string> = { 'content-type': 
 beforeEach(() => {
   queue.length = 0;
   calls.length = 0;
+  insertResult = { error: null };
   vi.clearAllMocks();
 });
 
@@ -86,7 +95,7 @@ describe('POST /api/devices/pair/poll', () => {
     queue.push({ data: { name: 'Buccaneer Diner' }, error: null }); // restaurant name
     getUserById.mockResolvedValue({ data: { user: { email: 'owner@example.com' } } });
     generateLink.mockResolvedValue({ data: { properties: { hashed_token: 'th_123' } }, error: null });
-    verifyOtp.mockResolvedValue({ error: null });
+    verifyOtp.mockResolvedValue({ data: { session: { access_token: fakeAccessToken({ session_id: SESSION_ID }) } }, error: null });
 
     const res = await poll(req({ code: 'k7m-4px', secret: SECRET }));
     const body = await res.json();
@@ -96,6 +105,35 @@ describe('POST /api/devices/pair/poll', () => {
     expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'th_123', type: 'magiclink' });
     const consume = calls.find((c) => c.op === 'update' && (c.args[0] as { status?: string }).status === 'consumed');
     expect(consume).toBeTruthy();
+    // …and the new session is registered as a tablet (Counter-only) before it is handed over
+    const mark = calls.find((c) => c.op === 'insert');
+    expect(mark?.args[0]).toEqual({ session_id: SESSION_ID, restaurant_id: 'r1', user_id: 'u1', pairing_id: 'p1' });
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('if the session cannot be marked as a tablet, it is killed — never handed over as a full owner session', async () => {
+    const approved = () => {
+      queue.push({ data: { id: 'p1', status: 'approved', secret_hash: hashDeviceSecret(SECRET), expires_at: future(), restaurant_id: 'r1', approved_by: 'u1' }, error: null });
+      queue.push({ data: { id: 'p1' }, error: null });
+    };
+    getUserById.mockResolvedValue({ data: { user: { email: 'owner@example.com' } } });
+    generateLink.mockResolvedValue({ data: { properties: { hashed_token: 'th_123' } }, error: null });
+
+    // 1) insert fails
+    approved();
+    insertResult = { error: { message: 'boom' } };
+    verifyOtp.mockResolvedValue({ data: { session: { access_token: fakeAccessToken({ session_id: SESSION_ID }) } }, error: null });
+    let res = await poll(req({ code: 'K7M4PX', secret: SECRET }));
+    expect(await res.json()).toEqual({ status: 'expired' });
+    expect(signOut).toHaveBeenLastCalledWith({ scope: 'local' }); // local: the owner's other devices stay signed in
+
+    // 2) token without session_id
+    approved();
+    insertResult = { error: null };
+    verifyOtp.mockResolvedValue({ data: { session: { access_token: fakeAccessToken({ sub: 'u1' }) } }, error: null });
+    res = await poll(req({ code: 'K7M4PX', secret: SECRET }));
+    expect(await res.json()).toEqual({ status: 'expired' });
+    expect(signOut).toHaveBeenCalledTimes(2);
   });
 
   it('losing the consume race does not mint a second session', async () => {

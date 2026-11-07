@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Monitor, Smartphone, ExternalLink, Download, Tablet, Printer, Wifi, CheckCircle2 } from 'lucide-react';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { renderStyledQR } from '@/lib/styled-qr';
+import { ConnectedTablets } from '@/components/device/ConnectedTablets';
 
 /**
  * Link de la app en Google Play. null = todavía no publicada: la tarjeta muestra
@@ -137,6 +138,8 @@ export default function CounterHubPage() {
           )}
         </div>
       </div>
+
+      <ConnectedTablets />
 
       {/* Install guide — solo tiene sentido con la app publicada */}
       {PLAY_STORE_URL && (

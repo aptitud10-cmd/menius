@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { revalidatePublicMenu } from "@/lib/revalidate-public-menu";
 import { createClient } from "@/lib/supabase/server";
+import { isDeviceSession } from "@/lib/auth/device-session";
 import { sanitizeText, sanitizeMultiline } from "@/lib/sanitize";
 import { captureError } from "@/lib/error-reporting";
 import { createLogger } from "@/lib/logger";
@@ -34,6 +35,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
+  if (await isDeviceSession(supabase)) return { error: "No disponible en la tablet" };
 
   // Check slug is unique
   const { data: existing } = await supabase
@@ -205,6 +207,7 @@ export async function reseedMyRestaurant() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
+  if (await isDeviceSession(supabase)) return { error: "No disponible en la tablet" };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -292,7 +295,13 @@ export async function createCategory(data: CategoryInput) {
   return { success: true, id: created?.id, name: created?.name };
 }
 
-async function getAuthenticatedRestaurant() {
+/**
+ * allowDevice: solo las acciones que usa el Counter lo pasan en true. Una tablet
+ * vinculada con código no puede editar menú, mesas, ni nada fuera del Counter.
+ */
+async function getAuthenticatedRestaurant(
+  opts: { allowDevice?: boolean } = {},
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -305,11 +314,22 @@ async function getAuthenticatedRestaurant() {
       restaurantSlug: "",
     };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("default_restaurant_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: profile }, isDevice] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("default_restaurant_id")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    isDeviceSession(supabase),
+  ]);
+
+  if (isDevice && !opts.allowDevice)
+    return {
+      error: "No disponible en la tablet" as const,
+      supabase,
+      restaurantId: "",
+      restaurantSlug: "",
+    };
 
   if (!profile?.default_restaurant_id)
     return {
@@ -1791,7 +1811,7 @@ export async function updateOrderStatus(
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   if (!ALL_STATUSES.includes(status as never))
@@ -1937,7 +1957,7 @@ export async function sendOrderNotification(
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   const { data: order } = await supabase
@@ -1976,7 +1996,7 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   const { error } = await supabase
@@ -1994,7 +2014,7 @@ export async function fetchOrderStatusHistory(orderId: string) {
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   // Verify the order belongs to this restaurant before returning history
@@ -2021,7 +2041,7 @@ export async function updateOrderTip(orderId: string, tipAmount: number) {
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   const tip = Math.max(0, Number(tipAmount) || 0);
@@ -2055,7 +2075,7 @@ export async function setPauseOrders(pausedUntil: string | null) {
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   const { error } = await supabase
@@ -2078,7 +2098,7 @@ export async function assignDriver(
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   // Read current status so we can broadcast the right value after update
@@ -2169,7 +2189,7 @@ export async function updatePaymentBreakdown(
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   const { error } = await supabase
@@ -2190,6 +2210,7 @@ export async function switchRestaurant(restaurantId: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
+  if (await isDeviceSession(supabase)) return { error: "No disponible en la tablet" };
 
   // Verify the user owns this restaurant
   const { data: restaurant } = await supabase
@@ -2218,7 +2239,7 @@ export async function openShift(openingCash: number) {
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   const {
@@ -2251,7 +2272,7 @@ export async function closeShift(closingCash: number, notes?: string) {
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
   const {

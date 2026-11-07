@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { safeNextPath, isCounterAppUserAgent } from '@/lib/safe-next';
+import { isDeviceSession } from '@/lib/auth/device-session';
 
 const logger = createLogger('middleware');
 
@@ -108,6 +109,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
     return response;
+  }
+
+  // A tablet paired with a code gets the Counter and nothing else: dashboard,
+  // billing, admin, onboarding and the login pages all send it back there.
+  // (Checked before the admin gate — an admin's paired tablet is still a tablet.)
+  if (path !== '/counter' && await isDeviceSession(supabase)) {
+    const toCounter = NextResponse.redirect(new URL('/counter', request.url));
+    response.cookies.getAll().forEach((c) => toCounter.cookies.set(c));
+    return toCounter;
   }
 
   // Admin routes: require auth + must be a recognised admin email

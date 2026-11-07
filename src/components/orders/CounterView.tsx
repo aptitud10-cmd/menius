@@ -335,6 +335,8 @@ interface CounterViewProps {
   taxLabel?: string;
   taxIncluded?: boolean;
   tabletMode?: boolean;
+  /** Tablet vinculada con código: solo Counter, sin reembolsos ni enlaces al panel. */
+  isDevice?: boolean;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -343,7 +345,7 @@ interface CounterViewProps {
 
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
-  restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false,
+  restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false, isDevice = false,
 }: CounterViewProps) {
   const t = getT(locale);
 
@@ -1329,8 +1331,8 @@ export function CounterView({
           </span>
         </button>
 
-        {/* Tablet mode link (only in normal mode) */}
-        {!tabletMode && (
+        {/* Tablet mode link (only in normal mode; a paired tablet has no dashboard) */}
+        {!tabletMode && !isDevice && (
           <a
             href="/app/counter/tablet"
             title={t.en ? 'Tablet mode' : 'Modo tablet'}
@@ -1982,9 +1984,13 @@ export function CounterView({
             {refundRequired && (
               <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
                 <p className="text-xs font-semibold text-amber-900">
-                  {t.en
-                    ? 'This order was paid online. Cancelling it will refund the customer via Stripe.'
-                    : 'Esta orden fue pagada online. Cancelarla reembolsará al cliente vía Stripe.'}
+                  {isDevice
+                    ? (t.en
+                      ? 'This order was paid online. Refunds are only made from MENIUS on your phone or computer (Orders).'
+                      : 'Esta orden fue pagada online. Los reembolsos solo se hacen desde MENIUS en tu celular o computadora (Pedidos).')
+                    : (t.en
+                      ? 'This order was paid online. Cancelling it will refund the customer via Stripe.'
+                      : 'Esta orden fue pagada online. Cancelarla reembolsará al cliente vía Stripe.')}
                 </p>
               </div>
             )}
@@ -2004,7 +2010,7 @@ export function CounterView({
               <button onClick={() => { setCancelModal(null); setRefundRequired(false); }} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
                 {t.no}
               </button>
-              {refundRequired ? (
+              {refundRequired && isDevice ? null : refundRequired ? (
                 <button
                   onClick={handleRefundAndCancel}
                   disabled={updatingId === cancelModal.orderId}

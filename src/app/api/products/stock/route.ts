@@ -7,7 +7,7 @@ import { revalidatePublicMenuForRestaurant } from '@/lib/revalidate-public-menu'
 
 export async function GET() {
   try {
-    const tenant = await getTenant();
+    const tenant = await getTenant({ allowDevice: true });
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const supabase = await createClient();
@@ -27,7 +27,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const tenant = await getTenant();
+    const tenant = await getTenant({ allowDevice: true });
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { product_id, in_stock } = await req.json();

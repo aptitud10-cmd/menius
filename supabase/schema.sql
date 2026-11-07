@@ -472,6 +472,14 @@ CREATE TABLE public.device_pairings (
   from_counter_app boolean NOT NULL DEFAULT false
 );
 
+CREATE TABLE public.device_sessions (
+  session_id uuid NOT NULL,
+  restaurant_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  pairing_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
 CREATE TABLE public.processed_webhook_events (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   event_id text NOT NULL,

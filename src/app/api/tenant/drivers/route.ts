@@ -6,7 +6,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 
 export async function GET() {
   const supabase = await createClient();
-  const tenant = await getTenant();
+  const tenant = await getTenant({ allowDevice: true });
   if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { data, error } = await supabase

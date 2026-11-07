@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { captureError } from '@/lib/error-reporting';
 import { normalizePairingCode, deviceSecretMatches } from '@/lib/device-pairing';
+import { sessionIdFromAccessToken } from '@/lib/auth/device-session';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
@@ -85,9 +86,29 @@ export async function POST(request: Request) {
 
   // Cookie-bound client: verifyOtp writes the session cookies onto this response.
   const supabase = await createClient();
-  const { error: otpErr } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' });
+  const { data: otp, error: otpErr } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' });
   if (otpErr) {
     captureError(otpErr, { route: '/api/devices/pair/poll' });
+    return NextResponse.json({ status: 'expired' }, { headers: NO_STORE });
+  }
+
+  // Mark this session as a tablet BEFORE handing it over: from here on the server
+  // only lets it use the Counter. If we cannot mark it, it must not survive —
+  // an unmarked session would be a full owner session on a shared device.
+  const sessionId = sessionIdFromAccessToken(otp?.session?.access_token);
+  const { error: markErr } = sessionId
+    ? await db.from('device_sessions').insert({
+        session_id: sessionId,
+        restaurant_id: row.restaurant_id,
+        user_id: row.approved_by,
+        pairing_id: row.id,
+      })
+    : { error: new Error('verifyOtp returned no session_id') };
+  if (markErr) {
+    captureError(markErr, { route: '/api/devices/pair/poll' });
+    // scope 'local' = only this new session; 'global' would also sign the owner out
+    // of their own phone and computer.
+    await supabase.auth.signOut({ scope: 'local' });
     return NextResponse.json({ status: 'expired' }, { headers: NO_STORE });
   }
 

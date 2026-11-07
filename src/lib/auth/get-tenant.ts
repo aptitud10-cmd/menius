@@ -1,9 +1,20 @@
 import { createClient } from '@/lib/supabase/server';
+import { isDeviceSession } from '@/lib/auth/device-session';
 
 export interface TenantInfo {
   userId: string;
   restaurantId: string;
   email?: string;
+  /** Sesión de una tablet vinculada con código (solo Counter). */
+  isDevice: boolean;
+}
+
+export interface GetTenantOptions {
+  /**
+   * Solo las rutas que usa el Counter pasan true. Por defecto una sesión de
+   * tablet recibe null (401): cobros, reembolsos, llaves, menú, configuración.
+   */
+  allowDevice?: boolean;
 }
 
 /**
@@ -20,18 +31,22 @@ export interface TenantInfo {
  * migration-profiles-owner-check.sql); this check is the second layer, and the
  * one that also covers rows written before that policy existed.
  */
-export async function getTenant(): Promise<TenantInfo | null> {
+export async function getTenant(opts: GetTenantOptions = {}): Promise<TenantInfo | null> {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const [{ data: profile }, isDevice] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('default_restaurant_id')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    isDeviceSession(supabase),
+  ]);
 
+  if (isDevice && !opts.allowDevice) return null;
   if (!profile?.default_restaurant_id) return null;
 
   const { data: owned } = await supabase
@@ -47,5 +62,6 @@ export async function getTenant(): Promise<TenantInfo | null> {
     userId: user.id,
     restaurantId: profile.default_restaurant_id,
     email: user.email,
+    isDevice,
   };
 }

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { isDeviceSession } from '@/lib/auth/device-session';
 
 const logger = createLogger('domain-verify');
 
@@ -11,6 +12,7 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (await isDeviceSession(supabase)) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { data: profile } = await supabase
       .from('profiles')

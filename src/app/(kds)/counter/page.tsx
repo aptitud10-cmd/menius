@@ -1,14 +1,15 @@
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { CounterView } from '@/components/orders/CounterView';
+import { isDeviceSession } from '@/lib/auth/device-session';
 
 export const metadata = {
   title: 'Counter — MENIUS',
 };
 
 export default async function CounterPage() {
-  const { supabase, restaurantId } = await getDashboardContext();
+  const { supabase, restaurantId } = await getDashboardContext(true);
 
-  const [{ data: restaurant }, { data: orders }] = await Promise.all([
+  const [{ data: restaurant }, { data: orders }, isDevice] = await Promise.all([
     supabase
       .from('restaurants')
       .select('name, currency, slug, locale, latitude, longitude, tax_label, tax_included')
@@ -31,6 +32,7 @@ export default async function CounterPage() {
       .gte('created_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false })
       .limit(150),
+    isDeviceSession(supabase),
   ]);
 
   const mappedOrders = (orders ?? []).map((o: any) => ({
@@ -49,6 +51,7 @@ export default async function CounterPage() {
       restaurantLng={restaurant?.longitude ?? null}
       taxLabel={(restaurant as any)?.tax_label ?? undefined}
       taxIncluded={(restaurant as any)?.tax_included ?? false}
+      isDevice={isDevice}
     />
   );
 }

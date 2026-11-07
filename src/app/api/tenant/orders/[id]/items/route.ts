@@ -6,7 +6,7 @@ import { getDashboardContext } from '@/lib/get-dashboard-context';
 // POST — add a product to an existing order
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { supabase, restaurantId } = await getDashboardContext();
+    const { supabase, restaurantId } = await getDashboardContext(true);
     const orderId = params.id;
     const { product_id, qty = 1, notes } = await req.json();
 
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 // DELETE — remove an order_item from an existing order
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { supabase, restaurantId } = await getDashboardContext();
+    const { supabase, restaurantId } = await getDashboardContext(true);
     const orderId = params.id;
     const { item_id } = await req.json();
 
