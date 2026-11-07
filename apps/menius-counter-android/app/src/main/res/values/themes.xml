@@ -1,9 +1,30 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base app theme — still used by PrinterSettingsActivity (light, teal toolbar). -->
     <style name="Theme.MeniusCounter" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">#05C8A7</item>
         <item name="colorPrimaryVariant">#049680</item>
         <item name="android:statusBarColor">#049680</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+    </style>
+
+    <!-- Counter: black, edge-to-edge, no action bar. Matches the web Counter/connect
+         screens (#050505) so there is never a white flash between native and web. -->
+    <style name="Theme.MeniusCounter.Main" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">#05C8A7</item>
+        <item name="colorPrimaryVariant">#049680</item>
+        <item name="colorAccent">#05C8A7</item>
+        <item name="android:windowBackground">@color/menius_bg</item>
+        <item name="android:statusBarColor">@color/menius_bg</item>
+        <item name="android:navigationBarColor">@color/menius_bg</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
+    </style>
+
+    <!-- Launcher theme: system splash (icon on black) until the first page has loaded. -->
+    <style name="Theme.MeniusCounter.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/menius_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_fg</item>
+        <item name="postSplashScreenTheme">@style/Theme.MeniusCounter.Main</item>
     </style>
 </resources>

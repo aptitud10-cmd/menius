@@ -7,6 +7,10 @@
         android:required="false" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Auto-reconnect: know when the network comes back to hide the offline screen. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Haptic pulse on a new order (MeniusAndroid.vibrateNewOrder). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- For future Bluetooth thermal printing -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
@@ -32,6 +36,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:theme="@style/Theme.MeniusCounter.Splash"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

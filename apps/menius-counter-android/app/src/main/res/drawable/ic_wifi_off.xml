@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wi-Fi arcs (outer two dimmed) + amber slash. Same drawing as the approved mock. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M2,8.8a15,15 0,0 1,20 0"
+        android:strokeWidth="1.6"
+        android:strokeColor="#40FAFAFA"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M5,12.3a10,10 0,0 1,14 0"
+        android:strokeWidth="1.6"
+        android:strokeColor="#40FAFAFA"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M8.5,15.8a5,5 0,0 1,7 0"
+        android:strokeWidth="1.6"
+        android:strokeColor="#FAFAFA"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M12,19.2m-1.1,0a1.1,1.1 0,1 1,2.2 0a1.1,1.1 0,1 1,-2.2 0"
+        android:fillColor="#FAFAFA" />
+    <path
+        android:pathData="M3,3L21,21"
+        android:strokeWidth="1.6"
+        android:strokeColor="#F5A524"
+        android:strokeLineCap="round" />
+</vector>

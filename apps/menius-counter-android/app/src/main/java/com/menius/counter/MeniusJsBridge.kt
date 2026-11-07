@@ -1,8 +1,12 @@
 package com.menius.counter
 
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.widget.Toast
@@ -25,7 +29,9 @@ import kotlinx.coroutines.runBlocking
  * UI thread — the freeze is the WebView waiting for the JS return, not this
  * thread blocking the main looper.
  */
-class MeniusJsBridge(private val context: Context) {
+class MeniusJsBridge(private val activity: MainActivity) {
+
+    private val context: Context get() = activity
 
     @JavascriptInterface
     fun printReceipt(jsonPayload: String): String {
@@ -38,14 +44,14 @@ class MeniusJsBridge(private val context: Context) {
                     PrinterPreferences.MODE_NETWORK -> {
                         val ip = PrinterPreferences.getNetworkIp(context)
                             ?: return@runBlocking Result.failure(
-                                IllegalStateException("NO_PRINTER: Open menu → Printer and enter the printer IP address")
+                                IllegalStateException("NO_PRINTER: Open Printer settings in the Counter menu and enter the printer IP address")
                             )
                         NetworkThermalPrinter.send(ip, bytes)
                     }
                     else -> {
                         val mac = PrinterPreferences.getBluetoothAddress(context)
                             ?: return@runBlocking Result.failure(
-                                IllegalStateException("NO_PRINTER: Open menu → Printer and select a paired device")
+                                IllegalStateException("NO_PRINTER: Open Printer settings in the Counter menu and select a paired device")
                             )
                         BluetoothThermalPrinter.send(context.applicationContext, mac, bytes)
                     }
@@ -72,6 +78,36 @@ class MeniusJsBridge(private val context: Context) {
     @JavascriptInterface
     fun isNativePrintAvailable(): Boolean = true
 
+    /** Opens the native printer screen (Bluetooth / network IP, paper width, test print). */
+    @JavascriptInterface
+    fun openPrinterSettings() {
+        activity.runOnUiThread { activity.openPrinterSettings() }
+    }
+
+    /** Wipes the session + local data and returns to the pairing screen (/connect). */
+    @JavascriptInterface
+    fun disconnectDevice() {
+        activity.runOnUiThread { activity.disconnectDevice() }
+    }
+
+    /** Short double-pulse when a new order lands — felt even when the till is muted. */
+    @JavascriptInterface
+    fun vibrateNewOrder() {
+        val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            context.getSystemService(VibratorManager::class.java)?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Vibrator::class.java)
+        }
+        if (vibrator?.hasVibrator() != true) return // most tablets have no motor — silently skip
+        runCatching {
+            vibrator.vibrate(VibrationEffect.createWaveform(NEW_ORDER_PATTERN, -1))
+        }
+    }
+
+    @JavascriptInterface
+    fun getAppVersion(): String = BuildConfig.VERSION_NAME
+
     private fun showToast(msg: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(context.applicationContext, msg, Toast.LENGTH_LONG).show()
@@ -80,5 +116,6 @@ class MeniusJsBridge(private val context: Context) {
 
     companion object {
         private const val TAG = "MeniusJsBridge"
+        private val NEW_ORDER_PATTERN = longArrayOf(0, 40, 30, 40, 30, 60)
     }
 }

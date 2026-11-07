@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="printer_settings_title">Impresora</string>
+
+    <!-- Mode -->
+    <string name="connection_mode_label">Modo de conexión</string>
+    <string name="mode_bluetooth">Bluetooth</string>
+    <string name="mode_network">Red / Ethernet (IP)</string>
+
+    <!-- Bluetooth -->
+    <string name="printer_none_selected">No hay impresora seleccionada. Empareja tu impresora térmica en Ajustes de Android → Bluetooth y luego toca \"Elegir impresora emparejada\".</string>
+    <string name="printer_selected">Impresora: %1$s</string>
+    <string name="pick_bonded_printer">Elegir impresora emparejada</string>
+    <string name="pick_printer_title">Dispositivos Bluetooth emparejados</string>
+    <string name="bluetooth_off">Activa el Bluetooth</string>
+    <string name="no_paired_printers">No hay dispositivos emparejados. Empareja la impresora en los ajustes de Bluetooth del sistema.</string>
+
+    <!-- Network -->
+    <string name="network_ip_hint">Dirección IP de la impresora (ej. 192.168.1.100)</string>
+    <string name="network_ip_label">IP de la impresora</string>
+    <string name="network_ip_none">No hay IP configurada. Escribe la dirección IP de la impresora.</string>
+    <string name="network_ip_saved">IP guardada</string>
+    <string name="save_ip">Guardar IP</string>
+
+    <!-- Paper -->
+    <string name="paper_width_status">Ancho de papel: %1$d mm</string>
+    <string name="paper_58mm">58 mm</string>
+    <string name="paper_80mm">80 mm</string>
+
+    <!-- Common -->
+    <string name="test_print">Imprimir prueba</string>
+    <string name="printer_saved">Impresora guardada</string>
+    <string name="printer_pick_first">Primero elige una impresora</string>
+    <string name="test_print_ok">Prueba enviada</string>
+    <string name="test_print_fail">Falló: %1$s</string>
+
+    <!-- Offline panel -->
+    <string name="offline_title">Sin conexión a internet</string>
+    <string name="offline_body">Tus pedidos siguen entrando a MENIUS y aparecen aquí apenas vuelva el WiFi. No hace falta tocar nada.</string>
+    <string name="offline_retrying">Reintentando automáticamente…</string>
+    <string name="offline_retry">Reintentar ahora</string>
+
+    <string name="press_back_again">Presiona atrás otra vez para salir</string>
+</resources>

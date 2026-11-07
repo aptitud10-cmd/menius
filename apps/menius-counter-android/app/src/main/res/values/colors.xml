@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="menius_bg">#050505</color>
+    <color name="menius_surface">#0C0C0C</color>
+    <color name="menius_line">#14FFFFFF</color>
+    <color name="menius_ink">#FAFAFA</color>
+    <color name="menius_mute">#8A8A8A</color>
+    <color name="menius_teal">#05C8A7</color>
+    <color name="menius_amber">#F5A524</color>
+</resources>

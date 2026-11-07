@@ -19,8 +19,8 @@ android {
         applicationId = "com.menius.counter"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
     }
 
     // Only declared when keystore.properties is present. That file is gitignored,
@@ -61,11 +61,15 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        // BuildConfig.VERSION_NAME → User-Agent suffix the web uses to detect app mode.
+        buildConfig = true
     }
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
+    // Android 12+ system splash (and a compat version on 8–11): icon on #050505 until the Counter loads.
+    implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.activity:activity-ktx:1.9.3")
     // lifecycleScope — arrives transitively via activity-ktx, but declared here so
