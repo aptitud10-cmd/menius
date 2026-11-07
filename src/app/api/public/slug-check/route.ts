@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ available: false, reason: 'invalid_chars' });
   }
 
-  const reserved = ['app', 'api', 'admin', 'www', 'mail', 'help', 'support', 'menius', 'demo', 'test'];
+  const reserved = ['app', 'api', 'admin', 'www', 'mail', 'help', 'support', 'menius', 'demo', 'test', 'link', 'connect', 'counter', 'kds', 'login', 'signup', 'auth', 'onboarding'];
   if (reserved.includes(slug)) {
     return NextResponse.json({ available: false, reason: 'reserved' });
   }

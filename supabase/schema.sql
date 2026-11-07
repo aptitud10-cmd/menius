@@ -455,6 +455,19 @@ CREATE TABLE public.orders (
   shift_id uuid
 );
 
+CREATE TABLE public.device_pairings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  code text NOT NULL CHECK (code ~ '^[A-Z2-9]{6}$'::text),
+  secret_hash text NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'consumed'::text])),
+  restaurant_id uuid,
+  approved_by uuid,
+  approved_at timestamp with time zone,
+  consumed_at timestamp with time zone,
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
 CREATE TABLE public.processed_webhook_events (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   event_id text NOT NULL,

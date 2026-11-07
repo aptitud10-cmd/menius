@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { safeNextPath, isCounterAppUserAgent } from '@/lib/safe-next';
 
 const logger = createLogger('middleware');
 
@@ -95,8 +96,16 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
+    // The Counter tablet app never sees the password login: it pairs with a code.
+    if (path === '/counter' && isCounterAppUserAgent(request.headers.get('user-agent'))) {
+      return NextResponse.redirect(new URL('/connect', request.url));
+    }
     if (isDashboard || isAdmin || isOnboarding) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      // Remember where they were going (e.g. /app/link?code=… from the tablet's QR)
+      // so login lands them there instead of on the dashboard home.
+      const loginUrl = new URL('/login', request.url);
+      if (path !== '/app') loginUrl.searchParams.set('next', path + request.nextUrl.search);
+      return NextResponse.redirect(loginUrl);
     }
     return response;
   }
@@ -129,7 +138,8 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthPage) {
     if (hasRestaurant) {
-      return NextResponse.redirect(new URL('/app', request.url));
+      const next = safeNextPath(request.nextUrl.searchParams.get('next'));
+      return NextResponse.redirect(new URL(next ?? '/app', request.url));
     }
     if (isAdminUser) {
       return NextResponse.redirect(new URL('/admin', request.url));

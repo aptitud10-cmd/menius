@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimitAsync, getClientIPFromHeaders } from '@/lib/rate-limit';
 import { verifyTurnstile } from '@/lib/turnstile';
 import type { SignupInput, LoginInput } from '@/lib/validations';
+import { safeNextPath } from '@/lib/safe-next';
 
 /**
  * Uses the shared resolver — this file used to carry its own copy that read the
@@ -44,7 +45,7 @@ export async function signup(data: SignupInput & { turnstileToken?: string }) {
   redirect('/onboarding/create-restaurant');
 }
 
-export async function login(data: LoginInput & { turnstileToken?: string }) {
+export async function login(data: LoginInput & { turnstileToken?: string; next?: string }) {
   const ip = await getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`login:${ip}`, { limit: 10, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
@@ -76,7 +77,7 @@ export async function login(data: LoginInput & { turnstileToken?: string }) {
   }
 
   if (profile.default_restaurant_id) {
-    redirect('/app');
+    redirect(safeNextPath(data.next) ?? '/app');
   }
   redirect('/onboarding/create-restaurant');
 }

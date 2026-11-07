@@ -120,9 +120,19 @@ export default function CounterHubPage() {
               </div>
             </>
           ) : (
-            <div className="mt-auto rounded-xl bg-gray-50 border border-gray-200 p-4">
-              <p className="text-sm font-semibold text-gray-800">{t.counter_hub_comingSoon}</p>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">{t.counter_hub_comingSoonDesc}</p>
+            <div className="mt-auto flex flex-col gap-2">
+              <div className="rounded-xl bg-gray-50 border border-gray-200 p-4">
+                <p className="text-sm font-semibold text-gray-800">{t.counter_hub_comingSoon}</p>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{t.counter_hub_comingSoonDesc}</p>
+              </div>
+              {/* Approve the pairing code a tablet shows on its /connect screen */}
+              <Link
+                href="/link"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+              >
+                <Tablet className="w-4 h-4" />
+                {t.counter_hub_linkTablet}
+              </Link>
             </div>
           )}
         </div>

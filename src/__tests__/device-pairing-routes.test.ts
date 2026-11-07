@@ -1,0 +1,144 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { hashDeviceSecret } from '@/lib/device-pairing';
+
+// ── Supabase admin mock: a tiny chainable query recorder ─────────────────────
+type Result = { data: unknown; error: unknown };
+const queue: Result[] = [];           // results returned by successive .maybeSingle()
+const calls: { op: string; args: unknown[] }[] = [];
+
+function chain() {
+  const c: Record<string, (...args: unknown[]) => unknown> = {};
+  for (const op of ['select', 'update', 'insert', 'delete', 'eq', 'in', 'gt', 'lt']) {
+    c[op] = (...args: unknown[]) => { calls.push({ op, args }); return c; };
+  }
+  c.maybeSingle = async () => queue.shift() ?? { data: null, error: null };
+  return c;
+}
+
+const getUserById = vi.fn();
+const generateLink = vi.fn();
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: () => ({
+    from: () => chain(),
+    auth: { admin: { getUserById, generateLink } },
+  }),
+}));
+
+const verifyOtp = vi.fn();
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: async () => ({ auth: { verifyOtp } }),
+}));
+
+const getTenant = vi.fn();
+vi.mock('@/lib/auth/get-tenant', () => ({ getTenant: () => getTenant() }));
+
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimitAsync: vi.fn().mockResolvedValue({ allowed: true, remaining: 1, resetAt: 0 }),
+  getClientIP: () => '1.2.3.4',
+}));
+vi.mock('@/lib/error-reporting', () => ({ captureError: vi.fn() }));
+
+import { POST as poll } from '@/app/api/devices/pair/poll/route';
+import { POST as approve } from '@/app/api/devices/pair/approve/route';
+
+const SECRET = 'S'.repeat(43);
+const future = () => new Date(Date.now() + 60_000).toISOString();
+const req = (body: unknown) =>
+  new Request('https://menius.app/x', { method: 'POST', body: JSON.stringify(body) });
+
+beforeEach(() => {
+  queue.length = 0;
+  calls.length = 0;
+  vi.clearAllMocks();
+});
+
+describe('POST /api/devices/pair/poll', () => {
+  it('rejects a malformed code', async () => {
+    const res = await poll(req({ code: 'nope', secret: SECRET }));
+    expect(res.status).toBe(400);
+  });
+
+  it('wrong secret looks exactly like an unknown code — and never mints a session', async () => {
+    queue.push({ data: { id: 'p1', status: 'approved', secret_hash: hashDeviceSecret('other'.repeat(10)), expires_at: future(), restaurant_id: 'r1', approved_by: 'u1' }, error: null });
+    const res = await poll(req({ code: 'K7M4PX', secret: SECRET }));
+    expect(await res.json()).toEqual({ status: 'expired' });
+    expect(generateLink).not.toHaveBeenCalled();
+    expect(verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('pending stays pending', async () => {
+    queue.push({ data: { id: 'p1', status: 'pending', secret_hash: hashDeviceSecret(SECRET), expires_at: future(), restaurant_id: null, approved_by: null }, error: null });
+    const res = await poll(req({ code: 'K7M4PX', secret: SECRET }));
+    expect(await res.json()).toEqual({ status: 'pending' });
+    expect(generateLink).not.toHaveBeenCalled();
+  });
+
+  it('expired row → expired', async () => {
+    queue.push({ data: { id: 'p1', status: 'approved', secret_hash: hashDeviceSecret(SECRET), expires_at: new Date(Date.now() - 1000).toISOString(), restaurant_id: 'r1', approved_by: 'u1' }, error: null });
+    const res = await poll(req({ code: 'K7M4PX', secret: SECRET }));
+    expect(await res.json()).toEqual({ status: 'expired' });
+    expect(generateLink).not.toHaveBeenCalled();
+  });
+
+  it('approved + right secret → consumes the row, mints the session server-side', async () => {
+    queue.push({ data: { id: 'p1', status: 'approved', secret_hash: hashDeviceSecret(SECRET), expires_at: future(), restaurant_id: 'r1', approved_by: 'u1' }, error: null });
+    queue.push({ data: { id: 'p1' }, error: null });              // consume update
+    queue.push({ data: { name: 'Buccaneer Diner' }, error: null }); // restaurant name
+    getUserById.mockResolvedValue({ data: { user: { email: 'owner@example.com' } } });
+    generateLink.mockResolvedValue({ data: { properties: { hashed_token: 'th_123' } }, error: null });
+    verifyOtp.mockResolvedValue({ error: null });
+
+    const res = await poll(req({ code: 'k7m-4px', secret: SECRET }));
+    const body = await res.json();
+    expect(body).toEqual({ status: 'connected', restaurantName: 'Buccaneer Diner' });
+    expect(JSON.stringify(body)).not.toContain('th_123'); // the token never leaves the server
+    expect(generateLink).toHaveBeenCalledWith({ type: 'magiclink', email: 'owner@example.com' });
+    expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'th_123', type: 'magiclink' });
+    const consume = calls.find((c) => c.op === 'update' && (c.args[0] as { status?: string }).status === 'consumed');
+    expect(consume).toBeTruthy();
+  });
+
+  it('losing the consume race does not mint a second session', async () => {
+    queue.push({ data: { id: 'p1', status: 'approved', secret_hash: hashDeviceSecret(SECRET), expires_at: future(), restaurant_id: 'r1', approved_by: 'u1' }, error: null });
+    queue.push({ data: null, error: null }); // another poll consumed it first
+    const res = await poll(req({ code: 'K7M4PX', secret: SECRET }));
+    expect(await res.json()).toEqual({ status: 'pending' });
+    expect(generateLink).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/devices/pair/approve', () => {
+  it('requires an owner session', async () => {
+    getTenant.mockResolvedValue(null);
+    const res = await approve(req({ code: 'K7M4PX' }));
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a malformed code', async () => {
+    getTenant.mockResolvedValue({ userId: 'u1', restaurantId: 'r1' });
+    const res = await approve(req({ code: 'K0M4PX' }));
+    expect(res.status).toBe(400);
+  });
+
+  it('unknown/expired code → 404', async () => {
+    getTenant.mockResolvedValue({ userId: 'u1', restaurantId: 'r1' });
+    queue.push({ data: null, error: null });
+    const res = await approve(req({ code: 'K7M4PX' }));
+    expect(res.status).toBe(404);
+  });
+
+  it('approves only a live pending row, binding it to the approver', async () => {
+    getTenant.mockResolvedValue({ userId: 'u1', restaurantId: 'r1' });
+    queue.push({ data: { id: 'p1' }, error: null });
+    queue.push({ data: { name: 'Buccaneer Diner' }, error: null });
+    const res = await approve(req({ code: 'k7m 4px' }));
+    expect(await res.json()).toEqual({ ok: true, restaurantName: 'Buccaneer Diner' });
+    const upd = calls.find((c) => c.op === 'update');
+    expect(upd?.args[0]).toMatchObject({ status: 'approved', restaurant_id: 'r1', approved_by: 'u1' });
+    expect(calls).toEqual(expect.arrayContaining([
+      { op: 'eq', args: ['code', 'K7M4PX'] },
+      { op: 'eq', args: ['status', 'pending'] },
+    ]));
+    expect(calls.some((c) => c.op === 'gt' && c.args[0] === 'expires_at')).toBe(true);
+  });
+});

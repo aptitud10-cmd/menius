@@ -67,3 +67,22 @@ export function nativePrintReceipt(data: ReceiptData, ticketType: NativeTicketTy
     throw new Error(typeof result === 'string' && result.length > 0 ? result : 'Native print failed');
   }
 }
+
+/** Extra methods exposed by MENIUS Counter >= 1.0.2 (see MeniusJsBridge.kt). */
+type CounterAppBridge = {
+  openPrinterSettings?: () => void;
+  disconnectDevice?: () => void;
+  vibrateNewOrder?: () => void;
+  getAppVersion?: () => string;
+};
+
+/**
+ * The Counter Android app's shell, or null in a normal browser. Methods are
+ * optional: a tablet still on 1.0.0/1.0.1 has printReceipt but none of these.
+ */
+export function getCounterAppBridge(): CounterAppBridge | null {
+  if (typeof window === 'undefined') return null;
+  const M = (window as unknown as { MeniusAndroid?: CounterAppBridge }).MeniusAndroid;
+  return M && typeof M.openPrinterSettings === 'function' ? M : null;
+}
+

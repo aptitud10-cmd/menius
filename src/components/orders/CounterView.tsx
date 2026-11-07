@@ -17,6 +17,7 @@ import {
 } from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
+import { getCounterAppBridge } from '@/lib/printing/native-bridge';
 import { PrinterConfig } from '@/lib/printing/PrinterConfig';
 import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import { fetchSuggestedEta, clampEta } from '@/lib/utils/eta';
@@ -347,8 +348,12 @@ export function CounterView({
 
   // ── Audio unlock gate ──
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  // Running inside the MENIUS Counter Android app (>= 1.0.2). Set after mount so
+  // server and first client render match.
+  const [inApp, setInApp] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
-  const unlockAudio = useCallback(() => {
+  const unlockAudio = useCallback((silent = false) => {
     // Resume (or create) the AudioContext during the user-gesture tap.
     // On iOS Safari this is the ONLY moment the context can be started.
     const ctx = getAudioCtx();
@@ -370,7 +375,7 @@ export function CounterView({
     // Decode both MP3s into AudioBuffers in the background.
     // Once decoded, playBuffer() works from any timer / interval.
     loadAudioBuffer('/sounds/new-order.mp3').then(b => {
-      if (b) { _newOrderBuffer = b; playBuffer(b); } // play first chime on unlock
+      if (b) { _newOrderBuffer = b; if (!silent) playBuffer(b); } // first chime confirms a manual unlock
     });
     loadAudioBuffer('/sounds/order-accepted.mp3').then(b => {
       if (b) _acceptedBuffer = b;
@@ -378,6 +383,14 @@ export function CounterView({
 
     setAudioUnlocked(true);
   }, []);
+
+  // Inside the app there is no gate to tap: unlock silently on mount (a chime every
+  // time the app opens would just be noise).
+  useEffect(() => {
+    if (!getCounterAppBridge()) return;
+    setInApp(true);
+    unlockAudio(true);
+  }, [unlockAudio]);
 
   // ── UI state ──
   const [activeTab, setActiveTab] = useState<Tab>('new');
@@ -597,6 +610,7 @@ export function CounterView({
   const handleNewOrder = useCallback((order: Order) => {
     if (isLeaderRef.current) {
       playNewOrderSound();
+      try { getCounterAppBridge()?.vibrateNewOrder?.(); } catch { /* not in the app */ }
       sendPushNotification(
         `🔔 ${t.newOrder} · ${restaurantName}`,
         `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`
@@ -1126,8 +1140,10 @@ export function CounterView({
   // RENDER
   // ═══════════════════════════════════════════════════════════════════
 
-  // Audio unlock gate — required by all browsers before playing sound
-  if (!audioUnlocked) {
+  // Audio unlock gate — required by all browsers before playing sound.
+  // The Android app allows playback without a gesture (mediaPlaybackRequiresUserGesture
+  // = false), so there the gate is skipped: an unattended till must ring on its own.
+  if (!audioUnlocked && !inApp) {
     const steps = t.en
       ? [
           { icon: '🔔', label: 'New order arrives', desc: 'Sound alert + splash screen' },
@@ -1143,7 +1159,7 @@ export function CounterView({
       <div
         className="h-screen w-full flex flex-col items-center justify-center cursor-pointer px-6"
         style={{ background: '#111' }}
-        onClick={unlockAudio}
+        onClick={() => unlockAudio()}
       >
         <div className="w-16 h-16 rounded-2xl bg-[#06C167]/20 flex items-center justify-center mb-6 border border-[#06C167]/30">
           <Bell className="w-8 h-8 text-[#06C167]" />
@@ -1171,7 +1187,7 @@ export function CounterView({
         </div>
 
         <button
-          onClick={unlockAudio}
+          onClick={() => unlockAudio()}
           className="w-full max-w-sm h-16 rounded-2xl text-black text-lg font-black bg-[#06C167] shadow-xl active:scale-[0.97] transition-transform"
         >
           {t.en ? 'Start Counter →' : 'Iniciar Counter →'}
@@ -1323,9 +1339,14 @@ export function CounterView({
           </a>
         )}
 
-        {/* Printer settings button */}
+        {/* Printer settings button — native screen inside the app (that's where the
+            Bluetooth/network printer lives), web modal everywhere else */}
         <button
-          onClick={() => setPrinterModalOpen(true)}
+          onClick={() => {
+            const bridge = getCounterAppBridge();
+            if (bridge?.openPrinterSettings) bridge.openPrinterSettings();
+            else setPrinterModalOpen(true);
+          }}
           title={t.en ? 'Printer settings' : 'Configurar impresora'}
           className="w-9 h-9 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
         >
@@ -1695,6 +1716,39 @@ export function CounterView({
                   </button>
                 )}
               </SidebarSection>
+
+              {/* This tablet — only inside the Android app */}
+              {inApp && (
+                <SidebarSection title={t.en ? 'This tablet' : 'Esta tablet'} icon={<Settings2 className="w-4 h-4" />}>
+                  <button
+                    onClick={() => getCounterAppBridge()?.openPrinterSettings?.()}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left"
+                  >
+                    <Printer className="w-4 h-4 text-[#555]" />
+                    <span className="text-sm font-medium text-[#111]">{t.en ? 'Printer' : 'Impresora'}</span>
+                  </button>
+                  {/* Two taps instead of confirm(): JS dialogs need a WebChromeClient the
+                      app doesn't install, and a stray tap must not unpair the till. */}
+                  <button
+                    onClick={() => {
+                      if (!confirmDisconnect) {
+                        setConfirmDisconnect(true);
+                        window.setTimeout(() => setConfirmDisconnect(false), 4000);
+                        return;
+                      }
+                      getCounterAppBridge()?.disconnectDevice?.();
+                    }}
+                    className={cn(
+                      'w-full mt-1 py-3 rounded-xl text-sm font-bold transition-colors border',
+                      confirmDisconnect ? 'bg-red-500 text-white border-red-500' : 'text-red-600 border-red-200 hover:bg-red-50'
+                    )}
+                  >
+                    {confirmDisconnect
+                      ? (t.en ? 'Tap again to disconnect' : 'Toca otra vez para desconectar')
+                      : (t.en ? 'Disconnect this tablet' : 'Desconectar esta tablet')}
+                  </button>
+                </SidebarSection>
+              )}
             </div>
           </aside>
         </>

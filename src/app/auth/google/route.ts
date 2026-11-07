@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
+import { safeNextPath } from '@/lib/safe-next';
 
 function getBaseUrl(origin: string): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
@@ -13,7 +14,9 @@ function getBaseUrl(origin: string): string {
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const flow = searchParams.get('flow') === 'signup' ? 'signup' : 'login';
-  const next = flow === 'signup' ? '/onboarding/create-restaurant' : '/app';
+  const next = flow === 'signup'
+    ? '/onboarding/create-restaurant'
+    : (safeNextPath(searchParams.get('next')) ?? '/app');
   const baseUrl = getBaseUrl(origin).replace(/\/$/, '');
 
   const cookieStore = await cookies();

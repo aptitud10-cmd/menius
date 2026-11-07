@@ -122,6 +122,7 @@ export interface DashboardTranslations {
   counter_hub_scanQrDesc: string;
   counter_hub_comingSoon: string;
   counter_hub_comingSoonDesc: string;
+  counter_hub_linkTablet: string;
 
   // Home
   home_welcome: string;
@@ -1420,6 +1421,7 @@ const es: DashboardTranslations = {
   counter_hub_scanQrDesc:
     "Apunta la cámara de tu tablet Android al código QR para descargar la app.",
   counter_hub_comingSoon: "Próximamente en Google Play",
+  counter_hub_linkTablet: "Conectar una tablet",
   counter_hub_comingSoonDesc:
     "Mientras tanto, usa el Counter en el navegador de tu tablet: recibe los pedidos en tiempo real y puede imprimir.",
 
@@ -2804,6 +2806,7 @@ const en: DashboardTranslations = {
   counter_hub_scanQrDesc:
     "Point your Android tablet camera at the QR code to download the app.",
   counter_hub_comingSoon: "Coming soon to Google Play",
+  counter_hub_linkTablet: "Connect a tablet",
   counter_hub_comingSoonDesc:
     "In the meantime, use the Counter in your tablet's browser: it receives orders in real time and can print.",
 
