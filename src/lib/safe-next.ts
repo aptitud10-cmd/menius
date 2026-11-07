@@ -11,7 +11,12 @@ export function safeNextPath(raw: unknown): string | null {
   try {
     const url = new URL(raw, base);
     if (url.origin !== base) return null;
-    return url.pathname + url.search + url.hash;
+    const out = url.pathname + url.search + url.hash;
+    // Dot-segments survive the origin check: "/.//evil.com" normalizes to the path
+    // "//evil.com", which a browser then resolves as a protocol-relative URL to
+    // another host. A real in-app path never starts with two slashes.
+    if (out.startsWith('//') || out.startsWith('/\\')) return null;
+    return out;
   } catch {
     return null;
   }

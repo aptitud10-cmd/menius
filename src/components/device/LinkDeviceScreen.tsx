@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PAIRING_ALPHABET, PAIRING_CODE_LENGTH } from '@/lib/device-pairing-alphabet';
 
 type Locale = 'es' | 'en';
@@ -11,7 +11,12 @@ const T = {
     cancel: 'Cancelar',
     title: 'Conecta una tablet',
     sub: 'Escribe el código que aparece en la pantalla de la tablet.',
-    willSee: 'La tablet verá los pedidos de este restaurante.',
+    willSee: 'La tablet entrará con tu cuenta de dueño y verá los pedidos de este restaurante.',
+    fromApp: 'App MENIUS Counter',
+    askMine: '¿Es la tablet que tienes delante?',
+    notApp: 'Este código NO viene de la app MENIUS Counter. Si alguien te lo envió por mensaje o teléfono, no lo conectes: le darías acceso a tu cuenta.',
+    unknownPlace: 'Ubicación desconocida',
+    ctaMine: 'Sí, conectar esta tablet',
     cta: 'Conectar tablet',
     sending: 'Conectando…',
     fine: 'Solo conecta tablets que tengas delante. MENIUS nunca te pedirá un código por teléfono o mensaje.',
@@ -28,7 +33,12 @@ const T = {
     cancel: 'Cancel',
     title: 'Connect a tablet',
     sub: 'Type the code shown on the tablet’s screen.',
-    willSee: 'The tablet will see this restaurant’s orders.',
+    willSee: 'The tablet will sign in with your owner account and see this restaurant’s orders.',
+    fromApp: 'MENIUS Counter app',
+    askMine: 'Is this the tablet in front of you?',
+    notApp: 'This code does NOT come from the MENIUS Counter app. If someone sent it to you by message or phone, don’t connect it — it would give them access to your account.',
+    unknownPlace: 'Unknown location',
+    ctaMine: 'Yes, connect this tablet',
     cta: 'Connect tablet',
     sending: 'Connecting…',
     fine: 'Only connect tablets that are right in front of you. MENIUS will never ask you for a code by phone or message.',
@@ -69,6 +79,31 @@ export function LinkDeviceScreen({
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const complete = code.length === PAIRING_CODE_LENGTH;
+  // Where the request came from — shown before approving (anti-phishing).
+  const [origin, setOrigin] = useState<{ place: string | null; fromApp: boolean } | null>(null);
+
+  useEffect(() => {
+    setOrigin(null);
+    if (!complete || !isOwner) return;
+    let cancelled = false;
+    fetch('/api/devices/pair/info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    })
+      .then(async (res) => {
+        if (cancelled) return;
+        if (res.status === 404) { setError(t.notFound); setState('error'); return; }
+        if (!res.ok) return;
+        const d = (await res.json()) as { city?: string | null; region?: string | null; country?: string | null; fromApp?: boolean };
+        let country = d.country ?? null;
+        try { if (country) country = new Intl.DisplayNames([locale], { type: 'region' }).of(country) ?? country; } catch { /* keep code */ }
+        const place = [d.city, d.region, country].filter(Boolean).join(', ') || null;
+        setOrigin({ place, fromApp: !!d.fromApp });
+      })
+      .catch(() => { /* preview is best-effort; approve still validates */ });
+    return () => { cancelled = true; };
+  }, [code, complete, isOwner, locale, t.notFound]);
 
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
@@ -149,6 +184,20 @@ export function LinkDeviceScreen({
 
             {error && <p className="lk-alert" role="alert">{error}</p>}
 
+            {origin && (
+              <div className={`lk-origin ${origin.fromApp ? '' : 'is-warn'}`}>
+                <span className="lk-origin-ic" aria-hidden>
+                  {origin.fromApp
+                    ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="3"/><path d="M10.5 18.5h3"/></svg>
+                    : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l9.5 17h-19L12 3z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>}
+                </span>
+                <span>
+                  <b>{origin.place ?? t.unknownPlace}{origin.fromApp ? ` · ${t.fromApp}` : ''}</b>
+                  {origin.fromApp ? t.askMine : t.notApp}
+                </span>
+              </div>
+            )}
+
             {restaurantName && (
               <div className="lk-who">
                 <span className="lk-av font-display">{restaurantName.trim().charAt(0).toUpperCase()}</span>
@@ -157,8 +206,8 @@ export function LinkDeviceScreen({
             )}
 
             <div className="lk-actions">
-              <button type="submit" className="lk-cta" disabled={!complete || state === 'sending'}>
-                {state === 'sending' ? t.sending : t.cta}
+              <button type="submit" className={`lk-cta ${origin && !origin.fromApp ? 'is-warn' : ''}`} disabled={!complete || state === 'sending'}>
+                {state === 'sending' ? t.sending : origin?.fromApp ? t.ctaMine : t.cta}
               </button>
               <p className="lk-fine">{t.fine}</p>
             </div>
@@ -194,7 +243,13 @@ const CSS = `
 @keyframes lk-caret{50%{opacity:0}}
 @keyframes lk-shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .lk-alert{margin-top:16px;border-radius:14px;border:1px solid rgba(245,165,36,.3);background:rgba(245,165,36,.08);color:#f3d9a8;font-size:14px;line-height:1.45;padding:12px 14px}
-.lk-who{margin-top:26px;border-radius:18px;border:1px solid var(--line);padding:14px 16px;display:flex;gap:12px;align-items:center;font-size:14px;color:#cfcfcf;line-height:1.4}
+.lk-origin{margin-top:22px;border-radius:18px;border:1px solid rgba(5,200,167,.35);background:rgba(5,200,167,.07);padding:14px 16px;display:flex;gap:12px;align-items:flex-start;font-size:14px;color:#cfcfcf;line-height:1.45}
+.lk-origin b{display:block;color:var(--ink);font-size:15px;margin-bottom:2px}
+.lk-origin-ic{width:22px;height:22px;flex:none;color:var(--teal);margin-top:1px}
+.lk-origin-ic svg{width:100%;height:100%}
+.lk-origin.is-warn{border-color:rgba(245,90,70,.5);background:rgba(245,90,70,.08);color:#f3c9bf}
+.lk-origin.is-warn .lk-origin-ic{color:#f5715a}
+.lk-who{margin-top:14px;border-radius:18px;border:1px solid var(--line);padding:14px 16px;display:flex;gap:12px;align-items:center;font-size:14px;color:#cfcfcf;line-height:1.4}
 .lk-who b{display:block;color:var(--ink);font-size:15px}
 .lk-av{width:38px;height:38px;border-radius:12px;background:#151515;display:grid;place-items:center;font-weight:800;color:var(--teal);flex:none}
 .lk-actions{margin-top:auto;padding-top:28px}
@@ -203,6 +258,8 @@ const CSS = `
 .lk-cta:active:not(:disabled){transform:scale(.97);background:#04b396}
 .lk-cta:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .lk-cta:disabled{opacity:.35}
+.lk-cta.is-warn{background:transparent;color:var(--ink);border:1px solid rgba(255,255,255,.2)}
+.lk-cta.is-warn:active:not(:disabled){background:rgba(255,255,255,.06)}
 .lk-fine{margin-top:14px;text-align:center;font-size:12.5px;color:#6b6b6b;line-height:1.5}
 .lk-done{align-items:flex-start}
 .lk-badge{width:88px;height:88px;border-radius:28px;background:var(--teal);display:grid;place-items:center;margin-bottom:28px;

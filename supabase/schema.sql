@@ -465,7 +465,11 @@ CREATE TABLE public.device_pairings (
   approved_at timestamp with time zone,
   consumed_at timestamp with time zone,
   expires_at timestamp with time zone NOT NULL,
-  created_at timestamp with time zone NOT NULL DEFAULT now()
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  request_city text,
+  request_region text,
+  request_country text,
+  from_counter_app boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE public.processed_webhook_events (

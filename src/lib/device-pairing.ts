@@ -58,6 +58,20 @@ export function deviceSecretMatches(secret: unknown, storedHash: string): boolea
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/** POST came from our own page as JSON: Origin matches the request host and the
+ *  body is declared application/json (a cross-site form can't send that). */
+export function isSameOriginJson(request: Request): boolean {
+  const ct = request.headers.get('content-type') ?? '';
+  if (!ct.toLowerCase().startsWith('application/json')) return false;
+  const origin = request.headers.get('origin');
+  if (!origin) return false;
+  try {
+    return new URL(origin).host === new URL(request.url).host;
+  } catch {
+    return false;
+  }
+}
+
 /** "K7M4PX" → "K7M-4PX" for display and for the dashboard input. */
 export function formatPairingCode(code: string): string {
   return `${code.slice(0, 3)}-${code.slice(3)}`;

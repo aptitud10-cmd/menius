@@ -18,7 +18,8 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
  *              then navigates to /counter already signed in.
  *
  * The session is minted server-side (admin magic link → verifyOtp) so no token or
- * link ever travels to the tablet's JavaScript — only HttpOnly-style auth cookies.
+ * link ever appears in a response body — the tablet only receives the standard
+ * @supabase/ssr auth cookies (not HttpOnly: same as any signed-in browser).
  */
 export async function POST(request: Request) {
   const ip = getClientIP(request);

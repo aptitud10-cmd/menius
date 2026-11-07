@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { captureError } from '@/lib/error-reporting';
+import { isCounterAppUserAgent } from '@/lib/safe-next';
 import {
   generatePairingCode,
   generateDeviceSecret,
@@ -24,11 +25,28 @@ export async function POST(request: Request) {
 
   const db = createAdminClient();
 
-  // Housekeeping: rows past their life are useless; keep the table tiny.
+  // Housekeeping: abandoned codes are useless after a day. Consumed rows stay —
+  // they are the record of which tablets were connected, and when.
   await db
     .from('device_pairings')
     .delete()
+    .neq('status', 'consumed')
     .lt('expires_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+  // Shown to the owner before approving (see migration 20261107b): a request
+  // from another city, or not from the app, is the phishing tell.
+  const h = request.headers;
+  const geo = (name: string) => {
+    const v = h.get(name);
+    if (!v) return null;
+    try { return decodeURIComponent(v).slice(0, 80); } catch { return v.slice(0, 80); }
+  };
+  const origin = {
+    request_city: geo('x-vercel-ip-city'),
+    request_region: geo('x-vercel-ip-country-region'),
+    request_country: geo('x-vercel-ip-country'),
+    from_counter_app: isCounterAppUserAgent(h.get('user-agent')),
+  };
 
   const secret = generateDeviceSecret();
   const secretHash = hashDeviceSecret(secret);
@@ -39,7 +57,7 @@ export async function POST(request: Request) {
     const code = generatePairingCode();
     const { error } = await db
       .from('device_pairings')
-      .insert({ code, secret_hash: secretHash, expires_at: expiresAt });
+      .insert({ code, secret_hash: secretHash, expires_at: expiresAt, ...origin });
 
     if (!error) {
       return NextResponse.json(

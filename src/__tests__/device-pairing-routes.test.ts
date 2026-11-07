@@ -43,8 +43,8 @@ import { POST as approve } from '@/app/api/devices/pair/approve/route';
 
 const SECRET = 'S'.repeat(43);
 const future = () => new Date(Date.now() + 60_000).toISOString();
-const req = (body: unknown) =>
-  new Request('https://menius.app/x', { method: 'POST', body: JSON.stringify(body) });
+const req = (body: unknown, headers: Record<string, string> = { 'content-type': 'application/json', origin: 'https://menius.app' }) =>
+  new Request('https://menius.app/x', { method: 'POST', body: JSON.stringify(body), headers });
 
 beforeEach(() => {
   queue.length = 0;
@@ -108,6 +108,17 @@ describe('POST /api/devices/pair/poll', () => {
 });
 
 describe('POST /api/devices/pair/approve', () => {
+  it('refuses cross-site requests before anything else (CSRF)', async () => {
+    getTenant.mockResolvedValue({ userId: 'u1', restaurantId: 'r1' });
+    const crossSite = await approve(req({ code: 'K7M4PX' }, { 'content-type': 'application/json', origin: 'https://evil.example' }));
+    expect(crossSite.status).toBe(403);
+    const textPlain = await approve(req({ code: 'K7M4PX' }, { 'content-type': 'text/plain', origin: 'https://menius.app' }));
+    expect(textPlain.status).toBe(403);
+    const noOrigin = await approve(req({ code: 'K7M4PX' }, { 'content-type': 'application/json' }));
+    expect(noOrigin.status).toBe(403);
+    expect(calls.some((c) => c.op === 'update')).toBe(false);
+  });
+
   it('requires an owner session', async () => {
     getTenant.mockResolvedValue(null);
     const res = await approve(req({ code: 'K7M4PX' }));

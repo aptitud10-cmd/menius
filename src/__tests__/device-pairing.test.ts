@@ -8,6 +8,7 @@ import {
   deviceSecretMatches,
   formatPairingCode,
 } from '@/lib/device-pairing';
+import { safeNextPath, isCounterAppUserAgent } from '@/lib/safe-next';
 
 describe('device pairing codes', () => {
   it('generates 6-char codes only from the unambiguous alphabet', () => {
@@ -58,5 +59,29 @@ describe('device secret', () => {
     expect(deviceSecretMatches('', hash)).toBe(false);
     expect(deviceSecretMatches(undefined, hash)).toBe(false);
     expect(deviceSecretMatches('x'.repeat(500), hash)).toBe(false);
+  });
+});
+
+describe('safeNextPath (open redirect guard)', () => {
+  it('keeps in-app paths', () => {
+    expect(safeNextPath('/counter')).toBe('/counter');
+    expect(safeNextPath('/link?code=K7M4PX')).toBe('/link?code=K7M4PX');
+  });
+
+  it('rejects every way out to another host', () => {
+    for (const p of [
+      'https://evil.com', '//evil.com', '/\\evil.com',
+      '/.//evil.com', '/..//evil.com', '/a/..//evil.com', // dot-segments → "//evil.com"
+      'javascript:alert(1)', '',
+    ]) {
+      expect(safeNextPath(p), p).toBeNull();
+    }
+    expect(safeNextPath(42)).toBeNull();
+  });
+
+  it('detects the Counter app user agent', () => {
+    expect(isCounterAppUserAgent('Mozilla/5.0 ... MeniusCounterApp/1.0.2')).toBe(true);
+    expect(isCounterAppUserAgent('Mozilla/5.0 Chrome')).toBe(false);
+    expect(isCounterAppUserAgent(null)).toBe(false);
   });
 });

@@ -50,7 +50,9 @@ async function resolveRedirect(
     .maybeSingle();
 
   if (profile?.default_restaurant_id) {
-    return NextResponse.redirect(new URL('/app', origin));
+    // Honour an explicit destination (e.g. /link?code=… from a tablet's QR when the
+    // owner signs in with Google); the default stays the dashboard home.
+    return NextResponse.redirect(new URL(next || '/app', origin));
   }
 
   // New restaurant flow — propagate plan intent to onboarding (only if valid)
@@ -81,8 +83,11 @@ export async function GET(request: NextRequest) {
   let next = '/app';
   try {
     const candidate = new URL(rawNext, origin);
-    if (candidate.origin === origin) {
-      next = candidate.pathname + candidate.search + candidate.hash;
+    const path = candidate.pathname + candidate.search + candidate.hash;
+    // "/.//evil.com" passes the origin check but normalizes to "//evil.com" —
+    // protocol-relative, i.e. another host once it reaches the browser.
+    if (candidate.origin === origin && !path.startsWith('//') && !path.startsWith('/\\')) {
+      next = path;
     }
   } catch {
     // Malformed `next` — keep the default.

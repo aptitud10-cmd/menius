@@ -18,6 +18,7 @@ import {
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
 import { getCounterAppBridge } from '@/lib/printing/native-bridge';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { PrinterConfig } from '@/lib/printing/PrinterConfig';
 import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import { fetchSuggestedEta, clampEta } from '@/lib/utils/eta';
@@ -1736,7 +1737,12 @@ export function CounterView({
                         window.setTimeout(() => setConfirmDisconnect(false), 4000);
                         return;
                       }
-                      getCounterAppBridge()?.disconnectDevice?.();
+                      // Revoke THIS session server-side first ('local' = only this
+                      // tablet; the default 'global' would sign the owner out
+                      // everywhere). Then the app wipes cookies/storage → /connect.
+                      void getSupabaseBrowser().auth.signOut({ scope: 'local' })
+                        .catch(() => { /* offline: the local wipe still happens */ })
+                        .finally(() => getCounterAppBridge()?.disconnectDevice?.());
                     }}
                     className={cn(
                       'w-full mt-1 py-3 rounded-xl text-sm font-bold transition-colors border',

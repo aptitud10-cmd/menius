@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { captureError } from '@/lib/error-reporting';
-import { normalizePairingCode, CLAIM_TTL_MS } from '@/lib/device-pairing';
+import { normalizePairingCode, CLAIM_TTL_MS, isSameOriginJson } from '@/lib/device-pairing';
 
 /**
  * The owner, signed in on their own phone/computer, approves the code shown on a
@@ -13,6 +13,13 @@ import { normalizePairingCode, CLAIM_TTL_MS } from '@/lib/device-pairing';
  * approver, so approving must require the same authority as typing the password.
  */
 export async function POST(request: Request) {
+  // Approving hands a full owner session to the tablet, so a cross-site POST must
+  // never get here. SameSite=Lax cookies already stop the classic case; this also
+  // stops a text/plain form (request.json() would happily parse it) and same-site
+  // subdomains.
+  if (!isSameOriginJson(request)) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
   const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
