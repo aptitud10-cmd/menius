@@ -30,6 +30,8 @@ const T = {
     of: 'de',
     error: 'No pudimos generar un código.',
     errorHint: 'Revisa el WiFi. Reintentamos solos en unos segundos.',
+    computerTitle: '¿Estás en tu computadora?',
+    computerBody: 'Este código es para la tablet del mostrador. Si lo apruebas, esta computadora quedará limitada al Counter. Para conectar la tablet, abre la app MENIUS Counter en ella.',
   },
   en: {
     eyebrow: 'Connect this tablet',
@@ -54,6 +56,8 @@ const T = {
     of: 'for',
     error: 'We couldn’t create a code.',
     errorHint: 'Check the Wi-Fi. We’ll retry by ourselves in a few seconds.',
+    computerTitle: 'On your computer?',
+    computerBody: 'This code is for the counter tablet. If you approve this code, this computer will be limited to the Counter. To connect the tablet, open the MENIUS Counter app on it.',
   },
 } as const;
 
@@ -76,6 +80,13 @@ export function ConnectScreen({ locale }: { locale: Locale }) {
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
   const [generation, setGeneration] = useState(0); // bumps on every new code → re-runs the flip
   const startingRef = useRef(false);
+  // Mouse + hover = a computer, not the counter tablet. Pedro's first test paired
+  // his computer by accident; warn instead of blocking (some places run a laptop).
+  const [onComputer, setOnComputer] = useState(false);
+  useEffect(() => {
+    const inApp = !!(window as unknown as { MeniusAndroid?: unknown }).MeniusAndroid;
+    setOnComputer(!inApp && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
+  }, []);
 
   const requestCode = useCallback(async () => {
     if (startingRef.current) return;
@@ -210,6 +221,13 @@ export function ConnectScreen({ locale }: { locale: Locale }) {
                 </>
               )}
 
+              {onComputer && phase !== 'error' && (
+                <div className="cx-warn" role="note">
+                  <b>{t.computerTitle}</b>
+                  <span>{t.computerBody}</span>
+                </div>
+              )}
+
               {/* Phone layout: compact QR card under the code */}
               <div className="cx-qrmini">
                 <div className="cx-qrmini-img">{qr && <img src={qr} alt="" />}</div>
@@ -288,6 +306,8 @@ const CSS = `
 .cx-ring circle:last-child{transition:stroke-dashoffset .25s linear}
 .cx-error{display:flex;flex-direction:column;gap:6px;border:1px solid rgba(245,165,36,.3);background:rgba(245,165,36,.08);border-radius:18px;padding:16px 18px;max-width:520px}
 .cx-error b{font-size:17px}.cx-error span{color:#cfcfcf;font-size:14px}
+.cx-warn{display:flex;flex-direction:column;gap:4px;border:1px solid rgba(245,165,36,.35);background:rgba(245,165,36,.08);border-radius:16px;padding:14px 16px;max-width:560px;user-select:text;-webkit-user-select:text}
+.cx-warn b{font-size:15px;color:#f3d9a8}.cx-warn span{color:#cfcfcf;font-size:14px;line-height:1.45}
 .cx-foot{position:relative;z-index:2;display:flex;gap:20px;align-items:center;color:var(--mute);font-size:14px;padding-top:16px}
 .cx-foot a{color:var(--ink);text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:6px;min-height:44px;display:inline-flex;align-items:center}
 .cx-foot a:active{color:var(--teal);border-color:var(--teal)}
