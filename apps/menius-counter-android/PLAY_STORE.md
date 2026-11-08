@@ -32,7 +32,7 @@ Idioma principal de la ficha: **English (United States)**; traducción **Spanish
 > • Real-time orders: new orders appear the moment a customer places them.
 > • Accept, prepare and complete orders with one tap.
 > • Print tickets on a Bluetooth thermal printer (ESC/POS, 58 mm or 80 mm) — no print dialogs.
-> • Same account as the MENIUS dashboard: sign in and you're ready.
+> • Connect in seconds: scan the tablet's code with your phone — no passwords typed on the tablet.
 > • Works on any Android tablet or phone with Android 8.0 or later.
 >
 > A MENIUS account is required. Create yours at menius.app.
@@ -50,7 +50,7 @@ Idioma principal de la ficha: **English (United States)**; traducción **Spanish
 > • Pedidos en tiempo real: aparecen en cuanto el cliente los hace.
 > • Acepta, prepara y completa pedidos con un toque.
 > • Imprime tickets en una impresora térmica Bluetooth (ESC/POS, 58 mm u 80 mm), sin diálogos de impresión.
-> • La misma cuenta del panel de MENIUS: inicias sesión y listo.
+> • Se conecta en segundos: escaneas el código de la tablet con tu celular, sin escribir contraseñas en la tablet.
 > • Funciona en cualquier tablet o teléfono Android 8.0 o superior.
 >
 > Necesitas una cuenta de MENIUS. Créala en menius.app.
