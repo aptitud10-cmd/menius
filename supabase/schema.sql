@@ -453,7 +453,13 @@ CREATE TABLE public.orders (
   delivery_lng double precision,
   customer_id uuid,
   shift_id uuid,
-  customer_arrived_at timestamp with time zone
+  customer_arrived_at timestamp with time zone,
+  driver_wait_started_at timestamp with time zone,
+  customer_coming_at timestamp with time zone,
+  delivery_failed_at timestamp with time zone,
+  delivery_failure_reason text,
+  batch_id uuid,
+  batch_seq smallint
 );
 
 CREATE TABLE public.device_pairings (
@@ -565,7 +571,7 @@ CREATE TABLE public.promotions (
 );
 
 -- Indices unicos en prod (verificado 2026-11-10, pg_indexes):
---   push_subscriptions_endpoint_key UNIQUE (endpoint)  <- la migracion 20261110d lo quita
+--   (push_subscriptions_endpoint_key UNIQUE (endpoint) quitado 2026-11-10, migracion 20261110d)
 --   push_subscriptions_order_endpoint UNIQUE INDEX (order_id, endpoint)
 -- /api/push/subscribe usa onConflict 'order_id,endpoint'.
 CREATE TABLE public.push_subscriptions (
