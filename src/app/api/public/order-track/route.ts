@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       .from('orders')
       .select(`
         id, order_number, status, order_type, total, tax_amount, tip_amount,
-        delivery_fee, discount_amount, payment_method, notes, created_at, updated_at,
+        delivery_fee, discount_amount, payment_method, payment_status, scheduled_for, notes, created_at, updated_at,
         customer_name, customer_phone, customer_email, delivery_address,
         estimated_ready_minutes, prepared_at, delivery_lat, delivery_lng,
         driver_name, driver_phone, driver_assigned_at,
@@ -54,9 +54,9 @@ export async function GET(req: NextRequest) {
         delivery_photo_url, driver_tracking_token, customer_token, cancellation_reason,
         table:table_id(name),
         order_items(
-          id, qty, unit_price, line_total, notes,
+          id, qty, unit_price, line_total, notes, product_id, variant_id,
           product:product_id(name),
-          variant:variant_id(name)
+          variant:variant_id(name, price_delta)
         )
       `)
       .eq('order_number', orderNumber)
@@ -115,6 +115,10 @@ export async function GET(req: NextRequest) {
         notes: authorized ? item.notes : null,
         product_name: item.product?.name ?? null,
         variant_name: item.variant?.name ?? null,
+        // Para "Pedir lo mismo" (ids del menú, no son datos privados).
+        product_id: item.product_id ?? null,
+        variant_id: item.variant_id ?? null,
+        variant_price_delta: item.variant?.price_delta ?? null,
       })),
     };
 

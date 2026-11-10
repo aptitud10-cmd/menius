@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
     .select(
-      "id, status, order_type, customer_phone, customer_name, customer_email, customer_locale, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, restaurants(name, locale, slug, currency, notifications_enabled)",
+      "id, status, order_type, customer_phone, customer_name, customer_email, customer_locale, customer_token, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, restaurants(name, locale, slug, currency, notifications_enabled)",
     )
     .eq("driver_tracking_token", token)
     .maybeSingle();
@@ -277,7 +277,9 @@ export async function POST(req: NextRequest) {
         import("@/lib/notifications/push")
           .then(({ sendPushToOrder, sendExpoPushToCustomerByPhone, getStatusPushPayload }) => {
             const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";
-            const trackUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
+            // Con la llave del cliente: sin ella el push abría la página sin mapa ni repartidor.
+            const custToken = (order as { customer_token?: string | null }).customer_token;
+            const trackUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}${custToken ? `?t=${custToken}` : ''}`;
             const locale = (order as any).customer_locale || restaurant.locale || "es";
             const payload = getStatusPushPayload("at_door", order.order_number, restaurant.name, trackUrl, locale, (order as any).order_type || undefined);
             sendPushToOrder(order.id, payload).catch(() => {});

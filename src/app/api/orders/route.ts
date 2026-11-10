@@ -1344,7 +1344,7 @@ export async function POST(request: NextRequest) {
             // custToken (solo lectura): el token del driver permite cambiar el estado
             // del pedido y no debe quedar en Stripe ni en el historial del cliente.
             success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true&t=${custToken}`,
-            cancel_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=false`,
+            cancel_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=false&t=${custToken}`,
             metadata: { order_id: order.id, order_number: order.order_number },
             payment_intent_data: {
               transfer_data: { destination: connectedAccount },

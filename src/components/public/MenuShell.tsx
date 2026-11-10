@@ -209,6 +209,20 @@ export function MenuShell({
     }
   }, [reorder, products, setOpen]);
 
+  // "Pedir lo mismo" desde el seguimiento: llega con ?reorder=1 y el pedido ya
+  // guardado como último pedido → se pone en el carrito una sola vez.
+  const reorderParamDone = useRef(false);
+  useEffect(() => {
+    if (!hasMounted || reorderParamDone.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reorder') !== '1') return;
+    reorderParamDone.current = true;
+    if (lastOrder?.restaurantId === restaurant.id && lastOrder.items.length > 0) handleReorder();
+    params.delete('reorder');
+    const qs = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
+  }, [hasMounted, lastOrder, restaurant.id, handleReorder]);
+
   const enabledOrderTypes: OrderType[] = restaurant.order_types_enabled?.length
     ? restaurant.order_types_enabled
     : ["dine_in", "pickup", "delivery"];

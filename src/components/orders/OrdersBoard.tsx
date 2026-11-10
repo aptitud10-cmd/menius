@@ -757,7 +757,10 @@ function OrderDetailModal({
   const [copied, setCopied] = useState(false);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  const trackingUrl = restaurantSlug ? `${appUrl}/${restaurantSlug}/orden/${order.order_number}` : null;
+  // Con la llave del cliente: sin ella el enlace abre el seguimiento sin datos.
+  const trackingUrl = restaurantSlug
+    ? `${appUrl}/${restaurantSlug}/orden/${order.order_number}${order.customer_token ? `?t=${order.customer_token}` : ''}`
+    : null;
 
   const copyTrackingLink = () => {
     if (!trackingUrl) return;

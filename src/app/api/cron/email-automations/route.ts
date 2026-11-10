@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
     ).toISOString();
     const { data: deliveredOrders, error: deliveredError } = await supabase
       .from("orders")
-      .select("id, order_number, customer_name, customer_email, restaurant_id")
+      .select("id, order_number, customer_name, customer_email, restaurant_id, customer_token")
       .eq("status", "delivered")
       .not("customer_email", "is", null)
       .neq("customer_email", "")
@@ -238,7 +238,8 @@ export async function GET(request: NextRequest) {
 
         const en = restaurant.locale === "en";
         // Link directly to the order tracker page so the review form is visible immediately
-        const reviewUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
+        const custToken = (order as { customer_token?: string | null }).customer_token;
+        const reviewUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}${custToken ? `?t=${custToken}` : ""}`;
 
         const sent = await sendEmail({
           to: order.customer_email,

@@ -226,7 +226,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
         const link = document.createElement('link');
         link.id = 'mapbox-gl-css';
         link.rel = 'stylesheet';
-        link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css';
+        link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.20.0/mapbox-gl.css';
         document.head.appendChild(link);
       }
 

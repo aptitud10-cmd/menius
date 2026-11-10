@@ -59,9 +59,9 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
           *,
           table:table_id(name),
           order_items(
-            id, qty, unit_price, line_total, notes,
+            id, qty, unit_price, line_total, notes, product_id, variant_id,
             product:product_id(name),
-            variant:variant_id(name)
+            variant:variant_id(name, price_delta)
           )
         `)
         .eq('order_number', params.orderNumber)
@@ -109,6 +109,10 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
             notes: authorized ? item.notes : null,
             product_name: item.product?.name ?? null,
             variant_name: item.variant?.name ?? null,
+        // Para "Pedir lo mismo" (ids del menú, no son datos privados).
+        product_id: item.product_id ?? null,
+        variant_id: item.variant_id ?? null,
+        variant_price_delta: item.variant?.price_delta ?? null,
           })),
         };
       }
@@ -148,6 +152,11 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
     redirect(`/${params.slug}`);
   }
 
+  // El idioma en que el cliente hizo el pedido (el mismo de sus emails y
+  // push), no el del restaurante.
+  const custLocale = (initialOrder as { customer_locale?: string | null } | null)?.customer_locale;
+  const trackerLocale = custLocale === 'en' || custLocale === 'es' ? custLocale : (restaurant.locale ?? 'es');
+
   return (
     <OrderTracker
       restaurantId={restaurant.id}
@@ -160,7 +169,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       orderNumber={params.orderNumber}
       trackingToken={token ?? undefined}
       currency={restaurant.currency ?? 'MXN'}
-      locale={restaurant.locale ?? 'es'}
+      locale={trackerLocale}
       showPaidBanner={paidSuccess}
       initialOrder={initialOrder}
     />

@@ -4,10 +4,13 @@ import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import Image from 'next/image';
 import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone, DoorOpen, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCartStore } from '@/store/cartStore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { formatPrice, cn } from '@/lib/utils';
+import { travelMinutes, haversineKm } from '@/lib/orders/eta';
+import { isAwaitingOnlinePayment } from '@/lib/order-state';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import ShareReceiptButton from './ShareReceiptButton';
 const DeliveryMap = dynamic(
@@ -110,6 +113,16 @@ function getT(locale?: string, orderType?: string) {
     runningLate: en ? 'Taking a little longer' : 'Se está demorando un poco',
     runningLateDesc: en ? "We'll let you know as soon as it's ready" : 'Te avisamos apenas esté listo',
     readyByLabel: (etaStr: string) => en ? `Ready by ${etaStr}` : `Listo a las ${etaStr}`,
+    arrivesByLabel: (etaStr: string) => en ? `Arrives around ${etaStr}` : `Llega aprox. a las ${etaStr}`,
+    estimatedArrivalLabel: en ? 'Estimated arrival' : 'Llegada estimada',
+    driverAssigned: en ? 'Driver assigned' : 'Repartidor asignado',
+    atDoorTitle: en ? 'Your driver is at the door' : 'Tu repartidor está en la puerta',
+    scheduledFor: (when: string) => en ? `Scheduled for ${when}` : `Programado para ${when}`,
+    refunded: (amount: string) => en ? `We refunded ${amount} to your card. It may take 5–10 business days to show up.` : `Te reembolsamos ${amount} a tu tarjeta. Puede tardar de 5 a 10 días hábiles en verse.`,
+    payFailedTitle: en ? "Your payment didn't go through" : 'Tu pago no se completó',
+    payFailedDesc: en ? "The restaurant hasn't received your order yet. You were not charged." : 'El restaurante todavía no recibió tu pedido. No se hizo ningún cobro.',
+    payRetry: en ? 'Try the payment again' : 'Intentar el pago de nuevo',
+    payRetryError: en ? 'Could not open the payment. Try again or call the restaurant.' : 'No se pudo abrir el pago. Intenta de nuevo o llama al restaurante.',
     // Driver on the way hero
     driverOnWayHeroLabel: en ? 'Driver on the way' : 'Repartidor en camino',
     estimatedArrival: en ? 'estimated arrival' : 'tiempo estimado de llegada',
@@ -513,6 +526,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // En camino: el repartidor marcó "recogí" o el mostrador tocó "Salió".
   const onTheWay = order.order_type === 'delivery' && !isComplete && !isCancelled
     && (Boolean((order as any).driver_picked_up_at) || order.status === 'out_for_delivery');
+  const atDoor = onTheWay && Boolean((order as any).driver_at_door_at);
+  const awaitingPayment = isAwaitingOnlinePayment(order);
+  const refunded = isCancelled && order.payment_status === 'refunded';
+  const scheduledIso = (order as { scheduled_for?: string | null }).scheduled_for;
+  const scheduledLabel = scheduledIso && order.status === 'pending'
+    ? new Date(scheduledIso).toLocaleString(locale === 'en' ? 'en-US' : 'es-MX', { weekday: 'short', hour: 'numeric', minute: '2-digit' })
+    : null;
   const currentStepStyle = STEP_STYLES[order.status];
   const tWithType = getT(locale, order.order_type);
   const currentStepText = tWithType.steps[order.status as keyof typeof tWithType.steps];
@@ -521,7 +541,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const statusSubtitle = (() => {
     const en = tWithType.en;
     switch (order.status) {
-      case 'pending':          return en ? `${restaurantName} received your order` : `${restaurantName} recibió tu pedido`;
+      case 'pending':          return scheduledLabel
+                                 ? tWithType.scheduledFor(scheduledLabel)
+                                 : (en ? `${restaurantName} received your order` : `${restaurantName} recibió tu pedido`);
       case 'confirmed':
       case 'preparing':        return en ? `${restaurantName} is preparing your order` : `${restaurantName} está preparando tu pedido`;
       case 'almost_ready':     return en ? 'Your order will be ready very soon!' : '¡Tu pedido estará listo en unos minutos!';
@@ -534,7 +556,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                                  : order.order_type === 'dine_in'
                                    ? (en ? 'Your order is on its way to your table!' : '¡Tu pedido va en camino a tu mesa!')
                                    : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
-      case 'out_for_delivery': return en ? 'Your driver is on the way!' : '¡Tu repartidor está en camino!';
+      case 'out_for_delivery': return atDoor
+                                 ? (en ? 'Please head to the door' : 'Por favor acércate a la puerta')
+                                 : (en ? 'Your driver is on the way!' : '¡Tu repartidor está en camino!');
       case 'served':           return en ? 'Enjoy your meal!' : '¡Buen provecho!';
       case 'delivered':        return en ? 'Enjoy your meal!' : '¡Buen provecho!';
       case 'completed':        return en ? 'Enjoy your meal!' : '¡Buen provecho!';
@@ -623,7 +647,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             <h1 className="text-[15px] font-black font-display tracking-tight text-gray-900 truncate">{restaurantName}</h1>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {rtStatus === 'connected' ? (
+            {/* En un pedido cerrado no hay nada que escuchar: el canal se cierra a
+                propósito y antes mostraba "Sin conexión" en rojo sobre "¡Entregado!". */}
+            {isTerminal || isComplete ? null : rtStatus === 'connected' ? (
               <div className="flex items-center gap-1.5 text-[11px] text-[#047a65] font-bold bg-[#e6faf7] px-3 py-1.5 rounded-full border border-[#b3efe6]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] animate-pulse" />
                 {t.live}
@@ -723,7 +749,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       <div className="max-w-lg mx-auto px-4 py-5 space-y-3">
 
         {/* Payment confirmed banner */}
-        {paidBannerVisible && (
+        {paidBannerVisible && !awaitingPayment && (
           <div className="tracker-card flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-[#e6faf7] border border-[#b3efe6]">
             <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
               <CreditCard className="w-4 h-4 text-[#05c8a7]" />
@@ -827,13 +853,18 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* ── STATUS HERO CARD ── */}
         <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          {isCancelled ? (
+          {awaitingPayment ? (
+            <PaymentPendingCard orderId={order.id} restaurantSlug={restaurantSlug} justPaid={showPaidBanner} t={t} />
+          ) : isCancelled ? (
             <div className="text-center py-12 px-6">
               <div className="w-20 h-20 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-5">
                 <XCircle className="w-10 h-10 text-red-500" />
               </div>
               <h2 className="text-2xl font-black text-red-600 mb-1">{t.orderCancelled}</h2>
               <p className="text-sm text-gray-500">{t.orderCancelledDesc}</p>
+              {refunded && (
+                <p className="mt-3 text-sm font-semibold text-gray-700 max-w-xs mx-auto">{t.refunded(formatPrice(Number(order.total) || 0, currency))}</p>
+              )}
             </div>
           ) : (
             <>
@@ -886,7 +917,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   <>
                     {/* Thematic illustration per status */}
                     <StateIllustration status={order.status} orderType={order.order_type} />
-                    <h2 className="text-2xl font-black text-gray-900 mb-1">{currentStepText.label}</h2>
+                    <h2 className="text-2xl font-black text-gray-900 mb-1">{atDoor ? t.atDoorTitle : currentStepText.label}</h2>
                     <p className="text-sm text-gray-500 leading-snug">{statusSubtitle}</p>
                   </>
                 ) : null}
@@ -983,7 +1014,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         </div>
 
         {/* ── MAP HERO — promoted to top when driver is on the road ── */}
-        {order.order_type === 'delivery' && (order as any).driver_picked_up_at && !isComplete && !isCancelled && (
+        {order.order_type === 'delivery' && (order as any).driver_picked_up_at && !isComplete && !isCancelled && !atDoor && (
           <>
             {/* Live ETA hero — updates every ~50m of driver movement via Mapbox Directions */}
             <div className="tracker-card rounded-3xl bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] border border-orange-200 shadow-sm overflow-hidden">
@@ -1025,7 +1056,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         )}
 
         {/* ── ETA HERO — dual display: minutes countdown + exact clock time ── */}
-        {order.estimated_ready_minutes && ['confirmed', 'preparing'].includes(order.status) && (() => {
+        {order.estimated_ready_minutes && (
+          ['confirmed', 'preparing'].includes(order.status)
+          // Delivery listo esperando al repartidor: sin esto no había ninguna
+          // hora de llegada entre "listo" y "salió".
+          || (order.order_type === 'delivery' && ['almost_ready', 'ready'].includes(order.status) && !(order as any).driver_picked_up_at && !onTheWay)
+        ) && (() => {
           // Cuenta desde que el restaurante ACEPTÓ (prepared_at), igual que el email "listo en ~N min".
           const acceptedAtRaw = (order as { prepared_at?: string | null }).prepared_at ?? order.updated_at ?? order.created_at;
           const confirmedAt  = new Date(acceptedAtRaw);
@@ -1037,9 +1073,19 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           const minsLeft     = Math.max(0, rawMinsLeft);
           // Pasados 3 min de la hora prometida: decirlo, en vez de "¡Ya casi!
           // · Listo a las 12:42" para siempre con una hora que ya pasó.
-          const runningLate  = rawMinsLeft <= -3;
+          const runningLate  = rawMinsLeft <= -3 && ['confirmed', 'preparing'].includes(order.status);
           const progressPct  = Math.min(100, Math.max(0, 100 - (minsLeft / order.estimated_ready_minutes) * 100));
-          const isAlmost     = minsLeft <= 2;
+          // Delivery: lo que importa es cuándo LLEGA (cocina + viaje en bici,
+          // mismo cálculo que prometió el checkout), no cuándo sale de cocina.
+          const isDelivery   = order.order_type === 'delivery';
+          const dLat = Number((order as any).delivery_lat), dLng = Number((order as any).delivery_lng);
+          const km = restaurantLat != null && restaurantLng != null && Number.isFinite(dLat) && Number.isFinite(dLng) && (order as any).delivery_lat != null
+            ? haversineKm(restaurantLat, restaurantLng, dLat, dLng) : 2;
+          const arrival      = new Date(Math.max(etaTime.getTime(), Date.now()) + travelMinutes(km) * 60_000);
+          const arrStr       = arrival.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
+          const arrMins      = Math.max(1, Math.round((arrival.getTime() - Date.now()) / 60_000));
+          const shownMins    = isDelivery ? arrMins : minsLeft;
+          const isAlmost     = !isDelivery && minsLeft <= 2;
           return (
             <div className={cn(
               'tracker-card rounded-3xl border shadow-sm overflow-hidden',
@@ -1053,17 +1099,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   'text-[10px] font-black uppercase tracking-widest mb-4',
                   isAlmost ? 'text-amber-500' : 'text-[#05c8a7]'
                 )}>
-                  {t.estimatedTime}
+                  {isDelivery ? t.estimatedArrivalLabel : t.estimatedTime}
                 </p>
 
-                {minsLeft > 0 ? (
+                {shownMins > 0 && !runningLate ? (
                   <>
                     {/* Big minutes */}
                     <div className="flex items-end justify-center gap-1.5 mb-3">
                       <span className={cn(
                         'text-[80px] font-black leading-none tabular-nums',
                         isAlmost ? 'text-amber-600' : 'text-[#047a65]'
-                      )}>~{minsLeft}</span>
+                      )}>~{shownMins}</span>
                       <span className={cn(
                         'text-2xl font-bold mb-4',
                         isAlmost ? 'text-amber-400' : 'text-[#05c8a7]'
@@ -1082,7 +1128,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                       isAlmost ? 'bg-amber-100 text-amber-700' : 'bg-white/60 text-[#047a65]'
                     )}>
                       <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      {t.readyByLabel(etaStr)}
+                      {isDelivery ? t.arrivesByLabel(arrStr) : t.readyByLabel(etaStr)}
                     </div>
                   </>
                 ) : (
@@ -1098,7 +1144,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                       isAlmost ? 'bg-amber-100 text-amber-700' : 'bg-white/60 text-[#047a65]'
                     )}>
                       <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      {runningLate ? t.runningLateDesc : t.readyByLabel(etaStr)}
+                      {isDelivery ? t.arrivesByLabel(arrStr) : runningLate ? t.runningLateDesc : t.readyByLabel(etaStr)}
                     </div>
                   </>
                 )}
@@ -1189,7 +1235,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                         {t.yourDriver}
                       </p>
                       <p className="text-lg font-black text-white leading-tight truncate">
-                        {(order as any).driver_name?.trim() || t.onTheWay}
+                        {(order as any).driver_name?.trim() || t.driverAssigned}
                       </p>
                       <p className={cn(
                         'text-sm mt-0.5',
@@ -1305,7 +1351,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         )}
 
         {/* Push notification prompt */}
-        {!isCancelled && !isComplete && (
+        {!isCancelled && !isComplete && !awaitingPayment && (
           <PushSubscriptionPrompt orderId={order.id} locale={locale} />
         )}
 
@@ -1484,24 +1530,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </div>
         </div>
 
-        {/* Delivery map — static position (shown when driver not yet active or order complete) */}
-        {order.order_type === 'delivery' && (order.delivery_address || restaurantAddress) && (!(order as any).driver_picked_up_at || order.status === 'delivered') && (
-          <div className="tracker-card">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">{t.locationLabel}</p>
-            <DeliveryMap
-              restaurantAddress={restaurantAddress}
-              deliveryAddress={order.delivery_address}
-              restaurantName={restaurantName}
-              driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
-              driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
-              deliveryLat={(order as any).delivery_lat ?? null}
-              deliveryLng={(order as any).delivery_lng ?? null}
-              restaurantLat={restaurantLat}
-              restaurantLng={restaurantLng}
-              locale={locale}
-            />
-          </div>
-        )}
+        {/* El mapa solo aparece con el repartidor en camino (arriba). Antes de
+            salir no hay nada que mirar, y después de entregado mostraba
+            "Repartidor en camino · ~1 min" debajo de "¡Pedido entregado!". */}
 
         {/* Delivery proof photo */}
         {isComplete && (order as any).delivery_photo_url && (
@@ -1576,16 +1607,21 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {isComplete && order.order_items?.length > 0 && (
           <button
             onClick={() => {
-              const reorderItems = order.order_items.map((item: any) => ({
-                product_id: item.product_id,
-                name: item.product_name ?? item.products?.name ?? t.productFallback,
-                qty: item.qty,
-                price: Number(item.unit_price),
-                variant_id: item.variant_id,
-                variant_name: item.variant_name ?? item.product_variants?.name,
-                image_url: item.products?.image_url,
-              }));
-              localStorage.setItem('menius-reorder', JSON.stringify(reorderItems));
+              // Mismo mecanismo que "Repetir mi último pedido" del menú: se guarda
+              // como último pedido y el menú lo pone en el carrito al abrir.
+              const saved = (order.order_items as any[])
+                .filter((it) => it.product_id)
+                .map((it) => ({
+                  productId: it.product_id as string,
+                  productName: (it.product_name as string) ?? '',
+                  variantId: (it.variant_id as string | null) ?? null,
+                  variantName: (it.variant_name as string | null) ?? null,
+                  variantPriceDelta: (it.variant_price_delta as number | null) ?? null,
+                  qty: Number(it.qty) || 1,
+                }));
+              if (saved.length > 0) {
+                useCartStore.setState({ lastOrder: { restaurantId, items: saved, date: new Date().toISOString() } });
+              }
               window.location.href = `/${restaurantSlug}?reorder=1`;
             }}
             className="tracker-card block w-full py-3.5 rounded-2xl bg-[#05c8a7] text-white text-center font-bold text-sm hover:bg-[#04b096] active:scale-[0.98] transition-all shadow-lg shadow-[#05c8a7]/20"
@@ -1769,45 +1805,101 @@ function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tab
   );
 }
 
+// Pedido online sin cobrar: antes decía "Recibido" aunque el cliente hubiera
+// cancelado el pago (el mostrador ni lo ve y a las 24 h se cancela solo).
+function PaymentPendingCard({ orderId, restaurantSlug, justPaid, t }: {
+  orderId: string; restaurantSlug: string; justPaid: boolean; t: ReturnType<typeof getT>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  // Recién volvió de pagar bien: la confirmación de Stripe tarda unos segundos.
+  if (justPaid) {
+    return (
+      <div className="text-center py-10 px-6" role="status" aria-live="polite">
+        <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-gray-200 border-t-[#05c8a7] motion-safe:animate-spin" aria-hidden />
+        <h2 className="text-xl font-black text-gray-900">{t.en ? 'Confirming your payment…' : 'Confirmando tu pago…'}</h2>
+        <p className="text-sm text-gray-500 mt-1">{t.en ? 'This takes a few seconds.' : 'Tarda unos segundos.'}</p>
+      </div>
+    );
+  }
+  const retry = async () => {
+    setBusy(true); setErr('');
+    try {
+      const res = await fetch('/api/payments/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId, slug: restaurantSlug }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) { window.location.href = data.url; return; }
+      setErr(t.payRetryError);
+    } catch {
+      setErr(t.payRetryError);
+    }
+    setBusy(false);
+  };
+  return (
+    <div className="py-8 px-6 text-center" role="alert">
+      <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
+        <CreditCard className="w-8 h-8 text-red-600" aria-hidden />
+      </div>
+      <h2 className="text-2xl font-black text-gray-900 mb-1">{t.payFailedTitle}</h2>
+      <p className="text-sm text-gray-600 max-w-xs mx-auto">{t.payFailedDesc}</p>
+      <button type="button" onClick={retry} disabled={busy}
+        className="mt-5 w-full h-12 rounded-2xl bg-gray-900 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-60">
+        {busy ? '…' : t.payRetry}
+      </button>
+      {err && <p className="mt-3 text-sm font-semibold text-red-600">{err}</p>}
+    </div>
+  );
+}
+
 function PushSubscriptionPrompt({ orderId, locale }: { orderId: string; locale?: string }) {
   const t = getT(locale);
   const [state, setState] = useState<'idle' | 'subscribed' | 'denied' | 'unsupported'>('idle');
 
+  // Suscribe ESTE pedido. Con permiso ya dado (de un pedido anterior) se hace
+  // en silencio: antes se marcaba "suscrito" sin suscribir nada y desde el
+  // segundo pedido no llegaba ningún aviso.
+  const subscribe = useCallback(async () => {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const keyRes = await fetch('/api/push/subscribe');
+      const { publicKey } = await keyRes.json();
+      if (!publicKey) return false;
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: publicKey });
+    }
+    const res = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), order_id: orderId }),
+    });
+    if (!res.ok) return false;
+    try { localStorage.setItem(`push-subscribed-${orderId}`, '1'); } catch { /* sin storage */ }
+    return true;
+  }, [orderId]);
+
   useEffect(() => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
       setState('unsupported');
       return;
     }
-    if (Notification.permission === 'granted') setState('subscribed');
-    if (Notification.permission === 'denied') setState('denied');
-    // Check if already subscribed for this order
-    const key = `push-subscribed-${orderId}`;
-    if (localStorage.getItem(key)) setState('subscribed');
-  }, [orderId]);
+    if (Notification.permission === 'denied') { setState('denied'); return; }
+    let done = false;
+    try { done = !!localStorage.getItem(`push-subscribed-${orderId}`); } catch { /* sin storage */ }
+    if (done) { setState('subscribed'); return; }
+    if (Notification.permission === 'granted') {
+      setState('subscribed');
+      subscribe().catch(() => { /* sin push: el seguimiento sigue funcionando */ });
+    }
+  }, [orderId, subscribe]);
 
   const handleSubscribe = async () => {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') { setState('denied'); return; }
-
-      const reg = await navigator.serviceWorker.ready;
-      const keyRes = await fetch('/api/push/subscribe');
-      const { publicKey } = await keyRes.json();
-      if (!publicKey) return;
-
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: publicKey,
-      });
-
-      await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub.toJSON(), order_id: orderId }),
-      });
-
-      localStorage.setItem(`push-subscribed-${orderId}`, '1');
-      setState('subscribed');
+      setState((await subscribe()) ? 'subscribed' : 'idle');
     } catch {
       setState('denied');
     }
@@ -1988,11 +2080,14 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, curr
       const key = `menius-history-${restaurantSlug}`;
       const raw = localStorage.getItem(key);
       const history: any[] = raw ? JSON.parse(raw) : [];
-      if (history.some(h => h.id === order.id)) {
-        const idx = history.findIndex(h => h.id === order.id);
-        history[idx] = { id: order.id, number: order.order_number, status: order.status, total: order.total, date: order.created_at, items: order.order_items?.length ?? 0 };
+      // La llave de cada pedido queda en ESTE teléfono (el mismo que la abrió),
+      // para que el historial abra el seguimiento completo y no uno sin datos.
+      const prev = history.find(h => h.id === order.id);
+      const entry = { id: order.id, number: order.order_number, status: order.status, total: order.total, date: order.created_at, items: order.order_items?.length ?? 0, t: (order.authorized && trackingToken) || prev?.t || null };
+      if (prev) {
+        history[history.indexOf(prev)] = entry;
       } else {
-        history.unshift({ id: order.id, number: order.order_number, status: order.status, total: order.total, date: order.created_at, items: order.order_items?.length ?? 0 });
+        history.unshift(entry);
       }
       localStorage.setItem(key, JSON.stringify(history.slice(0, 20)));
       // Keep the latest tracking token so "Mis pedidos" can prove ownership to
@@ -2029,7 +2124,7 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, curr
       {showHistory && (
         <div className="space-y-2 mt-1">
           {history.map((h: any) => (
-            <Link key={h.id} href={`/${restaurantSlug}/orden/${h.number}`}
+            <Link key={h.id} href={`/${restaurantSlug}/orden/${h.number}${h.t ? `?t=${encodeURIComponent(h.t)}` : ''}`}
               className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
               <div>
                 <p className="text-sm font-medium">#{h.number}</p>

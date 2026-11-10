@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       // VIEW-ONLY customer_token here — the driver action token must never reach
       // browser history or the PSP's logs via redirect URLs.
       success_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).customer_token ? `&t=${(order as any).customer_token}` : ''}`,
-      cancel_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=false`,
+      cancel_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=false${(order as any).customer_token ? `&t=${(order as any).customer_token}` : ''}`,
       metadata: {
         order_id: order.id,
         order_number: order.order_number,
