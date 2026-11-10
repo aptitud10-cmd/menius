@@ -16,6 +16,18 @@ export type RealtimeConnectionStatus = 'connected' | 'reconnecting' | 'disconnec
 
 const POLL_INTERVAL_MS = 10_000; // fallback poll every 10 seconds
 
+const ORDER_SELECT = `
+  *,
+  table:tables ( name ),
+  order_items (
+    id, qty, unit_price, line_total, notes,
+    product:products ( id, name, image_url, dietary_tags, prep_time_minutes ),
+    variant:product_variants ( name ),
+    order_item_extras ( price, product_extras ( name ) ),
+    order_item_modifiers ( group_name, option_name, price_delta )
+  )
+`;
+
 export function useRealtimeOrders({
   restaurantId,
   initialOrders,
@@ -70,27 +82,31 @@ export function useRealtimeOrders({
 
   const pollOrders = useCallback(async () => {
     const supabase = getSupabaseBrowser();
-    const { data } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        table:tables ( name ),
-        order_items (
-          id, qty, unit_price, line_total, notes,
-          product:products ( id, name, image_url, dietary_tags, prep_time_minutes ),
-          variant:product_variants ( name ),
-          order_item_extras ( price, product_extras ( name ) ),
-          order_item_modifiers ( group_name, option_name, price_delta )
-        )
-      `)
-      .eq('restaurant_id', restaurantId)
-      .gte('created_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
-      .order('created_at', { ascending: false })
-      .limit(150);
+    const since = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const [{ data }, { data: scheduled }] = await Promise.all([
+      supabase
+        .from('orders')
+        .select(ORDER_SELECT)
+        .eq('restaurant_id', restaurantId)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(150),
+      // Programados pendientes creados hace más de 6 h (p. ej. ayer para hoy):
+      // sin esta consulta no aparecían nunca en el Counter.
+      supabase
+        .from('orders')
+        .select(ORDER_SELECT)
+        .eq('restaurant_id', restaurantId)
+        .eq('status', 'pending')
+        .not('scheduled_for', 'is', null)
+        .gte('scheduled_for', since)
+        .lt('created_at', since)
+        .limit(50),
+    ]);
 
     if (!data) return;
 
-    const fetched: Order[] = data.map((o) => {
+    const fetched: Order[] = [...data, ...(scheduled ?? [])].map((o) => {
       const row = o as typeof o & { order_items?: unknown[] };
       return { ...o, items: row.order_items ?? [] } as unknown as Order;
     });
@@ -168,6 +184,23 @@ export function useRealtimeOrders({
           const fullOrder = await fetchFullOrder((payload.new as { id: string }).id);
           if (!fullOrder) return;
 
+          // Una orden fuera de la lista (programada creada hace días, o que
+          // quedó fuera de la ventana) se agrega en vez de descartarse. Si
+          // está pendiente se trata como nueva: también cubre el UPDATE que
+          // llega antes que su propio INSERT (si no, nunca sonaría).
+          if (!knownIdsRef.current.has(fullOrder.id)) {
+            knownIdsRef.current.add(fullOrder.id);
+            lastStatusRef.current.set(fullOrder.id, fullOrder.status);
+            setOrders((prev) =>
+              prev.some((o) => o.id === fullOrder.id)
+                ? prev.map((o) => (o.id === fullOrder.id ? fullOrder : o))
+                : [fullOrder, ...prev].sort(
+                    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                  )
+            );
+            if (fullOrder.status === 'pending') onNewOrderRef.current?.(fullOrder);
+            return;
+          }
           setOrders((prev) =>
             prev.map((o) => (o.id === fullOrder.id ? fullOrder : o))
           );

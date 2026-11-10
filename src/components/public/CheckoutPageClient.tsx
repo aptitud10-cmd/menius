@@ -63,6 +63,14 @@ type CheckoutStep = 'form' | 'payment' | 'confirmation';
 // MP only operates in LatAm — excludes USD/EUR/GBP etc.
 const MP_CURRENCIES = new Set(['ARS', 'BRL', 'MXN', 'CLP', 'PEN', 'UYU', 'BOB', 'PYG', 'COP']);
 
+// <input type="datetime-local"> da "2026-11-10T19:00" SIN zona horaria; el
+// servidor lo leía como UTC (un pedido para las 19:00 en NY se activaba a las
+// 14:00). Se convierte aquí, con la zona del teléfono del comensal.
+function scheduledForIso(local: string): string | undefined {
+  const d = new Date(local);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
 export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }: CheckoutPageClientProps) {
   const router = useRouter();
   const t = getTranslations(locale);
@@ -527,7 +535,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           loyalty_account_id: loyaltyPointsToRedeem > 0 ? loyaltyBalance?.account_id : undefined,
           tip_amount: tipAmount > 0 ? tipAmount : undefined,
           include_utensils: includeUtensils,
-          scheduled_for: scheduleEnabled && scheduledFor ? scheduledFor : undefined,
+          scheduled_for: scheduleEnabled && scheduledFor ? scheduledForIso(scheduledFor) : undefined,
           items: buildOrderItemsPayload(),
         }),
       });
@@ -676,7 +684,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           loyalty_account_id: loyaltyPointsToRedeem > 0 ? loyaltyBalance?.account_id : undefined,
           tip_amount: tipAmount > 0 ? tipAmount : undefined,
           include_utensils: includeUtensils,
-          scheduled_for: scheduleEnabled && scheduledFor ? scheduledFor : undefined,
+          scheduled_for: scheduleEnabled && scheduledFor ? scheduledForIso(scheduledFor) : undefined,
           items: items.map((item) => ({
             product_id: item.product.id,
             variant_id: item.variant?.id ?? null,

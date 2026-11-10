@@ -38,6 +38,7 @@ function getT(locale?: string) {
     tabHistory:  en ? 'History'          : 'Historial',
     // Splash / new order
     newOrder:    en ? 'New order'        : 'Nueva orden',
+    newScheduledOrder: en ? 'New scheduled order' : 'Nuevo pedido programado',
     tapAnywhere: en ? 'Tap to view · auto-accepting in' : 'Toca para ver · auto-aceptando en',
     autoAccepting: en ? 'Auto-accepting…' : 'Aceptando automáticamente…',
     viewOrder:   en ? 'View order'       : 'Ver orden',
@@ -618,20 +619,31 @@ export function CounterView({
   // receives the realtime INSERT, so two tabs meant two printed tickets and a
   // double chime per order. The splash stays per-tab (it's visual context).
   const handleNewOrder = useCallback((order: Order) => {
+    // Programado para más adelante: se avisa, pero NO entra al splash (que lo
+    // auto-aceptaba a los 30 s → "preparando", email e impresión para un
+    // pedido de mañana) ni se imprime. Queda en la pestaña Programados.
+    const scheduledMs = order.scheduled_for ? new Date(order.scheduled_for).getTime() : NaN;
+    const isFutureScheduled = Number.isFinite(scheduledMs) && scheduledMs > Date.now() + SCHEDULED_SPLASH_LEAD_MS;
     if (isLeaderRef.current) {
       playNewOrderSound();
       try { getCounterAppBridge()?.vibrateNewOrder?.(); } catch { /* not in the app */ }
       sendPushNotification(
-        `🔔 ${t.newOrder} · ${restaurantName}`,
+        `🔔 ${isFutureScheduled ? t.newScheduledOrder : t.newOrder} · ${restaurantName}`,
         `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`
       );
       // Print immediately on arrival if enabled
-      if (printOnArrivalRef.current) {
+      if (printOnArrivalRef.current && !isFutureScheduled) {
         PrinterService.printOrder(order, undefined, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
       }
     }
+    if (isFutureScheduled) {
+      const when = new Date(scheduledMs).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+      showSuccess(`${t.newScheduledOrder} #${order.order_number} · ${when}`);
+      return;
+    }
     setSplashQueue(q => [...q, order]);
-  }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder, t.newScheduledOrder]);
 
   const { orders, updateOrderLocally, rtStatus, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
@@ -1222,6 +1234,9 @@ export function CounterView({
       {/* ── New order splash ── */}
       {splashQueue.length > 0 && (
         <NewOrderSplash
+          // key: cada pedido arranca su propio contador. Sin key el segundo
+          // pedido heredaba el tiempo restante (o el "ya auto-aceptado") del primero.
+          key={splashQueue[0].id}
           order={splashQueue[0]}
           currency={currency}
           queueCount={splashQueue.length}
@@ -3440,6 +3455,8 @@ function SidebarSection({
 // ══════════════════════════════════════════════════════════════════════════════
 
 const SPLASH_SECS = 30; // seconds before auto-accept
+/** Un programado que vence dentro de este margen se trata como pedido inmediato. */
+const SCHEDULED_SPLASH_LEAD_MS = 30 * 60_000;
 const RING_SIZE = 72;
 const RING_R = 30;
 const RING_CIRC = 2 * Math.PI * RING_R;

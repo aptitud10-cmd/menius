@@ -9,7 +9,8 @@ export const metadata = {
 export default async function CounterPage() {
   const { supabase, restaurantId } = await getDashboardContext(true);
 
-  const [{ data: restaurant }, { data: orders }, isDevice] = await Promise.all([
+  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+  const [{ data: restaurant }, { data: orders }, { data: oldScheduled }, isDevice] = await Promise.all([
     supabase
       .from('restaurants')
       .select('name, currency, slug, locale, latitude, longitude, tax_label, tax_included, orders_paused_until')
@@ -29,13 +30,33 @@ export default async function CounterPage() {
         )
       `)
       .eq('restaurant_id', restaurantId)
-      .gte('created_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
+      .gte('created_at', sixHoursAgo)
       .order('created_at', { ascending: false })
       .limit(150),
+    // Programados pendientes creados hace más de 6 h: sin esto no aparecían.
+    supabase
+      .from('orders')
+      .select(`
+        *,
+        table:tables ( name ),
+        order_items (
+          id, qty, unit_price, line_total, notes,
+          product:products ( id, name, image_url, dietary_tags ),
+          variant:product_variants ( name ),
+          order_item_extras ( price, product_extras ( name ) ),
+          order_item_modifiers ( group_name, option_name, price_delta )
+        )
+      `)
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'pending')
+      .not('scheduled_for', 'is', null)
+      .gte('scheduled_for', sixHoursAgo)
+      .lt('created_at', sixHoursAgo)
+      .limit(50),
     isDeviceSession(supabase),
   ]);
 
-  const mappedOrders = (orders ?? []).map((o: any) => ({
+  const mappedOrders = [...(orders ?? []), ...(oldScheduled ?? [])].map((o: any) => ({
     ...o,
     items: o.order_items ?? [],
   }));
