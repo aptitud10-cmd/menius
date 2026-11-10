@@ -72,6 +72,7 @@ export function PreviewTrackerClient({ state, type, lang }: { state: string; typ
       restaurantLat={40.76322}
       restaurantLng={-73.87624}
       restaurantPhone="+17185550199"
+      restaurantLogo="https://hdlhmqvbaxzhmhtablwt.supabase.co/storage/v1/object/public/product-images/6f18a1cf-991c-4855-ba4b-d10a6a501cc8/buccaneer-logo-bd-1794340258855.webp"
       orderNumber="ORD-261110-042"
       trackingToken="preview"
       currency="USD"

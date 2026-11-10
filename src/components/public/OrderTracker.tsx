@@ -7,11 +7,45 @@ import { useCartStore } from '@/store/cartStore';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { formatPrice } from '@/lib/utils';
-import { C } from '@/components/orders/counter/ui';
 import { travelMinutes, haversineKm } from '@/lib/orders/eta';
 import { isAwaitingOnlinePayment } from '@/lib/order-state';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import ShareReceiptButton from './ShareReceiptButton';
+
+// Paleta del seguimiento = la de los emails al cliente, con modo oscuro
+// automático (prefers-color-scheme). Los valores claros son los del Counter.
+const K = {
+  surface: 'var(--tk-surface)', card: 'var(--tk-card)', line: 'var(--tk-line)',
+  ink: 'var(--tk-ink)', sub: 'var(--tk-sub)', faint: 'var(--tk-faint)',
+  btn: 'var(--tk-btn)', btnFg: 'var(--tk-btn-fg)',
+  green: 'var(--tk-green)', greenInk: 'var(--tk-green-ink)', greenDeep: 'var(--tk-green-deep)', greenSoft: 'var(--tk-green-soft)',
+  violet: 'var(--tk-violet)', violetSoft: 'var(--tk-violet-soft)',
+  orange: 'var(--tk-orange)', orangeSoft: 'var(--tk-orange-soft)', amber: 'var(--tk-amber)',
+  red: 'var(--tk-red)', redSoft: 'var(--tk-red-soft)',
+  noteBg: 'var(--tk-note-bg)', noteFg: 'var(--tk-note-fg)',
+  inkLabel: 'var(--tk-ink-label)', inkSub: 'var(--tk-ink-sub)', header: 'var(--tk-header)',
+} as const;
+const TRACKER_CSS = `
+.mt-root{--tk-surface:#F2F4F3;--tk-card:#FFFFFE;--tk-line:#E1E6E3;--tk-ink:#0E1412;--tk-sub:#55605C;--tk-faint:#7A8580;
+--tk-btn:#111816;--tk-btn-fg:#FFFFFE;--tk-green:#05C8A7;--tk-green-ink:#04241E;--tk-green-deep:#047A67;--tk-green-soft:#DFF7F1;
+--tk-violet:#6D28D9;--tk-violet-soft:#F1E8FF;--tk-orange:#B54708;--tk-orange-soft:#FFF1E0;--tk-amber:#B45309;
+--tk-red:#C81E1E;--tk-red-soft:#FDE8E8;--tk-note-bg:#FFF8E6;--tk-note-fg:#6B4A00;--tk-ink-label:#7FE3CF;--tk-ink-sub:#B7C2BE;
+--tk-header:rgba(242,244,243,0.92);color-scheme:light}
+@media (prefers-color-scheme: dark){.mt-root{--tk-surface:#0B0F0E;--tk-card:#161B19;--tk-line:#2A322F;--tk-ink:#F1F4F2;--tk-sub:#A3ADA9;--tk-faint:#7F8A86;
+--tk-btn:#F1F4F2;--tk-btn-fg:#0E1412;--tk-green-deep:#5BE3C9;--tk-green-soft:#12302A;
+--tk-violet:#B9A4FF;--tk-violet-soft:#241D3D;--tk-orange:#FFB46B;--tk-orange-soft:#3A2410;--tk-amber:#FBBF5B;
+--tk-red:#FF9B91;--tk-red-soft:#3A1717;--tk-note-bg:#3A2F12;--tk-note-fg:#FFD98A;--tk-ink-label:#047A67;--tk-ink-sub:#55605C;
+--tk-header:rgba(11,15,14,0.88);color-scheme:dark}}
+.mt-root .bg-white{background-color:var(--tk-card)}
+`;
+
+/** "1:10 PM–1:20 PM" → "1:10–1:20 PM" cuando comparten AM/PM. */
+function compactRange(a: string, b: string): string {
+  const am = /\s?(AM|PM|a\.\s?m\.|p\.\s?m\.)$/i;
+  const ma = a.match(am)?.[0]?.trim().toLowerCase();
+  const mb = b.match(am)?.[0]?.trim().toLowerCase();
+  return `${ma && ma === mb ? a.replace(am, '') : a}–${b}`;
+}
 const DeliveryMap = dynamic(
   () => import('./DeliveryMap').then((m) => m.DeliveryMap),
   { ssr: false, loading: () => <div className="w-full h-48 rounded-2xl bg-gray-100 animate-pulse" /> }
@@ -261,6 +295,8 @@ interface OrderTrackerProps {
   restaurantLat?: number | null;
   restaurantLng?: number | null;
   restaurantPhone?: string;
+  /** Logo del restaurante (la misma imagen de los emails). */
+  restaurantLogo?: string | null;
   orderNumber: string;
   /** Opaque per-order token; required for the API to return customer/driver PII */
   trackingToken?: string;
@@ -273,7 +309,7 @@ interface OrderTrackerProps {
   initialOrder?: any;
 }
 
-export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantLat, restaurantLng, restaurantPhone, orderNumber, trackingToken, currency = 'MXN', locale, showPaidBanner = false, paidParam, initialOrder }: OrderTrackerProps) {
+export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantLat, restaurantLng, restaurantPhone, restaurantLogo, orderNumber, trackingToken, currency = 'MXN', locale, showPaidBanner = false, paidParam, initialOrder }: OrderTrackerProps) {
   const t = getT(locale);
   const [order, setOrder] = useState<any>(initialOrder ?? null);
   const [loading, setLoading] = useState(!initialOrder);
@@ -647,31 +683,71 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     }
   };
 
+  // Bloque grande como en los emails: la hora (o el número) es lo primero.
+  const hero: { tone: 'green' | 'ink'; label: string; big: string; sub: string } | null = (() => {
+    if (!isActive || atDoor || awaitingPayment) return null;
+    if (isPickup && o.status === 'ready') {
+      return {
+        tone: 'ink',
+        label: en ? 'Ready now' : 'Listo ahora',
+        big: `#${shortNum}`,
+        sub: [en ? 'Show this number at the counter' : 'Muestra este número en el mostrador',
+          cashDue ? (en ? `pay ${amount} at pickup` : `pagas ${amount} al recoger`) : null].filter(Boolean).join(' · '),
+      };
+    }
+    if (isDelivery && onTheWay && arrivalMs != null) {
+      const mins = Math.max(1, Math.round((arrivalMs - now) / 60_000));
+      return { tone: 'green', label: headline, big: `~${mins} min`, sub: en ? `Arrives around ${fmtClock(arrivalMs)}` : `Llega cerca de las ${fmtClock(arrivalMs)}` };
+    }
+    if (isDelivery && windowStart != null && o.status !== 'pending') {
+      return {
+        tone: 'green',
+        label: en ? 'Arrives between' : 'Llega entre',
+        big: compactRange(fmtClock(windowStart), fmtClock(windowStart + 600_000)),
+        sub: kitchenLate ? (en ? 'Running a little late' : 'Va un poco atrasado') : headline,
+      };
+    }
+    if (!isDelivery && readyMs != null && ['confirmed', 'preparing', 'almost_ready'].includes(o.status)) {
+      return {
+        tone: 'green',
+        label: isPickup ? (en ? 'Ready for pickup around' : 'Listo para recoger cerca de las') : (en ? 'Ready around' : 'Listo cerca de las'),
+        big: fmtClock(Math.max(readyMs, now)),
+        sub: kitchenLate ? t.runningLate : headline,
+      };
+    }
+    return null;
+  })();
+
   const card = 'bg-white rounded-[20px] border';
-  const cardStyle = { borderColor: C.line };
+  const cardStyle = { borderColor: K.line };
   const canArrive = isPickup && o.status === 'ready' && o.authorized && !!trackingToken;
   const canReorder = isComplete && (o.order_items?.length ?? 0) > 0;
   const showDock = !awaitingPayment && (canArrive || canReorder || !!restaurantPhone);
 
   return (
-    <div className="min-h-[100dvh] flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>
-      {/* Barra superior mínima: volver · restaurante · #pedido · en vivo */}
-      <header className="sticky z-40 border-b backdrop-blur-md" style={{ top: 'env(safe-area-inset-top, 0px)', background: 'rgba(244,246,245,0.92)', borderColor: C.line }}>
+    <div className="mt-root min-h-[100dvh] flex flex-col font-sans" style={{ background: K.surface, color: K.ink }}>
+      <style>{TRACKER_CSS}</style>
+      {/* Barra superior mínima: volver · logo + restaurante · #pedido · en vivo */}
+      <header className="sticky z-40 border-b backdrop-blur-md" style={{ top: 'env(safe-area-inset-top, 0px)', background: K.header, borderColor: K.line }}>
         <div className="max-w-md mx-auto px-2 h-14 flex items-center gap-1">
           <Link href={`/${restaurantSlug}`} aria-label={t.backToMenu} className="w-11 h-11 rounded-xl grid place-items-center active:scale-95 transition-transform">
-            <ArrowLeft className="w-5 h-5" style={{ color: C.sub }} aria-hidden />
+            <ArrowLeft className="w-5 h-5" style={{ color: K.sub }} aria-hidden />
           </Link>
-          <p className="flex-1 min-w-0 truncate text-[14px] font-semibold" style={{ color: C.sub }}>
+          {restaurantLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={restaurantLogo} alt="" width={28} height={28} className="w-7 h-7 rounded-lg object-cover flex-shrink-0 mr-1" style={{ boxShadow: `0 0 0 1px ${K.line}` }} />
+          ) : null}
+          <p className="flex-1 min-w-0 truncate text-[14px] font-semibold" style={{ color: K.sub }}>
             {restaurantName}{shortNum ? ` · #${shortNum}` : ''}
           </p>
           {isActive && !awaitingPayment && (
             rtStatus === 'connected' ? (
-              <span className="mr-2 inline-flex items-center gap-1.5 text-[12px] font-bold" style={{ color: C.greenDeep }}>
-                <span className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse" style={{ background: C.greenDeep }} aria-hidden />
+              <span className="mr-2 inline-flex items-center gap-1.5 text-[12px] font-bold" style={{ color: K.greenDeep }}>
+                <span className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse" style={{ background: K.greenDeep }} aria-hidden />
                 {t.live}
               </span>
             ) : (
-              <span className="mr-2 text-[12px] font-bold" style={{ color: C.amber }}>{t.connecting}</span>
+              <span className="mr-2 text-[12px] font-bold" style={{ color: K.amber }}>{t.connecting}</span>
             )
           )}
         </div>
@@ -680,7 +756,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       <main className="flex-1 w-full max-w-md mx-auto px-4 pt-5 pb-6 flex flex-col gap-3">
 
         {paidBannerVisible && !awaitingPayment && (
-          <div className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold" style={{ background: C.greenSoft, color: C.greenDeep }}>
+          <div className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold" style={{ background: K.greenSoft, color: K.greenDeep }}>
             <span className="flex items-center gap-2"><Check className="w-4 h-4" aria-hidden />{t.paymentConfirmed}</span>
             <button type="button" onClick={() => setPaidBannerVisible(false)} aria-label={t.closeBanner} className="w-11 h-11 -mr-3 grid place-items-center">
               <XCircle className="w-4 h-4" aria-hidden />
@@ -698,21 +774,36 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             {/* ── Estado + hora: lo único que importa de un vistazo ── */}
             <section className="pt-1 grid gap-2" aria-live="polite">
               {isComplete && (
-                <span className="w-14 h-14 rounded-full grid place-items-center mb-1" style={{ background: C.green, color: C.greenInk }}>
+                <span className="w-14 h-14 rounded-full grid place-items-center mb-1" style={{ background: K.green, color: K.greenInk }}>
                   <Check className="w-7 h-7" strokeWidth={3} aria-hidden />
                 </span>
               )}
               {isCancelled && (
-                <span className="w-14 h-14 rounded-full grid place-items-center mb-1" style={{ background: C.redSoft, color: C.red }}>
+                <span className="w-14 h-14 rounded-full grid place-items-center mb-1" style={{ background: K.redSoft, color: K.red }}>
                   <XCircle className="w-7 h-7" aria-hidden />
                 </span>
               )}
-              {/* En la puerta lo dice la tarjeta negra de abajo: sin repetirlo. */}
-              <h1 className={atDoor ? 'sr-only' : 'font-display text-[30px] font-extrabold leading-[1.08] tracking-tight'} style={{ textWrap: 'balance' } as React.CSSProperties}>
+              {/* En la puerta lo dice la tarjeta negra de abajo; con bloque de hora, lo dice el bloque. */}
+              <h1 className={atDoor || hero ? 'sr-only' : 'font-display text-[30px] font-extrabold leading-[1.08] tracking-tight'} style={{ textWrap: 'balance' } as React.CSSProperties}>
                 {headline}
               </h1>
-              {subline && !atDoor && (
-                <p className="text-[16px] font-semibold leading-snug" style={{ color: isCancelled ? C.sub : kitchenLate ? C.amber : C.ink }}>
+              {/* ── En la puerta: arriba de todo, en el lugar del bloque de la hora ── */}
+              {atDoor && (
+                <div className="rounded-[20px] px-5 py-5 grid gap-1" style={{ background: K.ink, color: K.card }} role="status">
+                  <p className="text-[12.5px] font-bold uppercase tracking-[0.06em]" style={{ color: K.inkLabel }}>{en ? 'Now' : 'Ahora'}</p>
+                  <p className="font-display text-[28px] font-extrabold leading-tight">{headline}</p>
+                  {o.notes && <p className="text-[14.5px]" style={{ color: K.inkSub }}>{o.notes}</p>}
+                </div>
+              )}
+              {hero && (
+                <div className="rounded-[20px] px-5 py-4 grid gap-0.5" style={hero.tone === 'ink' ? { background: K.ink, color: K.card } : { background: K.green, color: K.greenInk }}>
+                  <p className="text-[12.5px] font-bold uppercase tracking-[0.06em] opacity-85">{hero.label}</p>
+                  <p className="font-display text-[44px] font-extrabold leading-[1.02] tracking-tight tabular-nums" style={{ textWrap: 'balance' } as React.CSSProperties}>{hero.big}</p>
+                  {hero.sub && <p className="text-[14.5px] font-semibold">{hero.sub}</p>}
+                </div>
+              )}
+              {subline && !atDoor && !hero && (
+                <p className="text-[16px] font-semibold leading-snug" style={{ color: isCancelled ? K.sub : kitchenLate ? K.amber : K.ink }}>
                   {subline}
                 </p>
               )}
@@ -720,30 +811,21 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 <div className="mt-2" aria-hidden>
                   <div className="grid grid-cols-4 gap-1">
                     {stepLabels.map((_, i) => (
-                      <i key={i} className="h-1.5 rounded-full" style={{ background: i <= stepIndex ? (isPickup ? C.violet : C.ink) : C.line }} />
+                      <i key={i} className="h-1.5 rounded-full" style={{ background: i <= stepIndex ? K.ink : K.line }} />
                     ))}
                   </div>
                   <div className="grid grid-cols-4 mt-1.5 text-[11.5px] font-semibold">
                     {stepLabels.map((l, i) => (
-                      <span key={l} style={{ color: i === stepIndex ? C.ink : C.faint }}>{l}</span>
+                      <span key={l} style={{ color: i === stepIndex ? K.ink : K.faint }}>{l}</span>
                     ))}
                   </div>
                 </div>
               )}
             </section>
 
-            {/* ── En la puerta ── */}
-            {atDoor && (
-              <section className="rounded-[20px] px-5 py-5 grid gap-1" style={{ background: C.ink, color: '#fff' }} role="status">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: '#7FE3CF' }}>{en ? 'Now' : 'Ahora'}</p>
-                <p className="font-display text-[24px] font-extrabold leading-tight">{headline}</p>
-                {o.notes && <p className="text-[14px]" style={{ color: '#B7C2BE' }}>{o.notes}</p>}
-              </section>
-            )}
-
             {/* ── Efectivo: que lo tenga listo cuando llega ── */}
             {isDelivery && cashDue && (onTheWay || atDoor) && (
-              <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: C.orangeSoft, color: C.orange }}>
+              <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: K.orangeSoft, color: K.orange }}>
                 <span className="text-[14px] font-bold">{atDoor ? (en ? 'Pay on delivery' : 'Paga al recibir') : (en ? 'Have the cash ready' : 'Ten listo el efectivo')}</span>
                 <span className="font-display text-[24px] font-extrabold tabular-nums">{amount}</span>
               </div>
@@ -765,33 +847,23 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   locale={locale}
                   onEtaUpdate={setLiveDeliveryEta}
                 />
-                <span className="absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[12px] font-bold shadow-sm" style={{ background: 'rgba(255,255,255,0.95)', color: locAgeMin != null && locAgeMin >= 2 ? C.amber : C.greenDeep }}>
+                <span className="absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[12px] font-bold shadow-sm" style={{ background: 'rgba(255,255,255,0.95)', color: locAgeMin != null && locAgeMin >= 2 ? K.amber : K.greenDeep }}>
                   {locLabel}
                 </span>
               </section>
             )}
             {onTheWay && !atDoor && !hasDriverGps && (
-              <p className="text-[13px] font-semibold px-1" style={{ color: C.faint }}>
+              <p className="text-[13px] font-semibold px-1" style={{ color: K.faint }}>
                 {en ? 'Live location will appear when the driver shares it.' : 'La ubicación en vivo aparece cuando el repartidor la comparte.'}
               </p>
             )}
 
-            {/* ── Pickup listo: número grande + cómo llegar ── */}
-            {isPickup && o.status === 'ready' && (
-              <section className="rounded-[20px] px-5 py-5 text-center grid gap-1" style={{ background: C.violetSoft, color: C.violet }}>
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em]">{en ? 'Show this number' : 'Muestra este número'}</p>
-                <p className="font-display text-[56px] font-extrabold leading-none tabular-nums tracking-tight">{shortNum}</p>
-                <p className="text-[14px] font-bold" style={{ color: C.ink }}>
-                  {[o.customer_name ? (en ? `For ${o.customer_name}` : `A nombre de ${o.customer_name}`) : null,
-                    cashDue ? (en ? `pay ${amount} at pickup` : `pagas ${amount} al recoger`) : null].filter(Boolean).join(' · ')}
-                </p>
-              </section>
-            )}
+            {/* ── Pickup listo: cómo llegar (el número va en el bloque de arriba) ── */}
             {isPickup && isActive && restaurantAddress && ['almost_ready', 'ready'].includes(o.status) && (
               <section className={`${card} px-4 py-3 flex items-center justify-between gap-3`} style={cardStyle}>
                 <p className="text-[14px] font-semibold min-w-0">{restaurantAddress}</p>
                 <a href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`} target="_blank" rel="noopener noreferrer"
-                  className="flex-shrink-0 h-11 px-3 rounded-xl grid place-items-center text-[14px] font-bold" style={{ color: C.greenDeep }}>
+                  className="flex-shrink-0 h-11 px-3 rounded-xl grid place-items-center text-[14px] font-bold" style={{ color: K.greenDeep }}>
                   {en ? 'Directions' : 'Cómo llegar'}
                 </a>
               </section>
@@ -841,34 +913,34 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             <summary className="list-none cursor-pointer px-4 py-3.5 flex items-center justify-between gap-3 min-h-[52px]">
               <span className="min-w-0">
                 <span className="block text-[15px] font-bold">{t.yourOrderLabel} · {itemCount} {itemCount === 1 ? t.itemSingular : t.itemPlural}</span>
-                {payLine && <span className="block text-[13px]" style={{ color: C.sub }}>{payLine}</span>}
+                {payLine && <span className="block text-[13px]" style={{ color: K.sub }}>{payLine}</span>}
               </span>
               <span className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-[15px] font-bold tabular-nums">{amount}</span>
-                <span className="text-[18px] transition-transform group-open:rotate-90" style={{ color: C.faint }} aria-hidden>›</span>
+                <span className="text-[18px] transition-transform group-open:rotate-90" style={{ color: K.faint }} aria-hidden>›</span>
               </span>
             </summary>
-            <div className="px-4 pb-4 grid gap-3 border-t" style={{ borderColor: C.line }}>
+            <div className="px-4 pb-4 grid gap-3 border-t" style={{ borderColor: K.line }}>
               <ul className="grid gap-2 pt-3">
                 {(o.order_items as any[]).map((item) => (
                   <li key={item.id} className="flex items-baseline justify-between gap-3 text-[14px]">
                     <span className="min-w-0">
                       <b className="tabular-nums">{item.qty}×</b> {item.product_name ?? t.productFallback}
-                      {item.variant_name && <span style={{ color: C.faint }}> · {item.variant_name}</span>}
-                      {item.notes && <span className="block text-[12.5px]" style={{ color: C.sub }}>{item.notes}</span>}
+                      {item.variant_name && <span style={{ color: K.faint }}> · {item.variant_name}</span>}
+                      {item.notes && <span className="block text-[12.5px]" style={{ color: K.sub }}>{item.notes}</span>}
                     </span>
-                    <span className="tabular-nums flex-shrink-0" style={{ color: C.sub }}>{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
+                    <span className="tabular-nums flex-shrink-0" style={{ color: K.sub }}>{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
                   </li>
                 ))}
               </ul>
-              <div className="grid gap-1 pt-2 border-t text-[13.5px]" style={{ borderColor: C.line, color: C.sub }}>
+              <div className="grid gap-1 pt-2 border-t text-[13.5px]" style={{ borderColor: K.line, color: K.sub }}>
                 {Number(o.discount_amount) > 0 && <div className="flex justify-between"><span>{t.discount}</span><span>-{formatPrice(Number(o.discount_amount), currency)}</span></div>}
                 {isDelivery && Number(o.delivery_fee) > 0 && <div className="flex justify-between"><span>{t.deliveryFee}</span><span>{formatPrice(Number(o.delivery_fee), currency)}</span></div>}
                 {Number(o.tax_amount) > 0 && <div className="flex justify-between"><span>{t.taxes}</span><span>{formatPrice(Number(o.tax_amount), currency)}</span></div>}
                 {Number(o.tip_amount) > 0 && <div className="flex justify-between"><span>{t.tip}</span><span>{formatPrice(Number(o.tip_amount), currency)}</span></div>}
-                <div className="flex justify-between text-[15px] font-bold pt-1" style={{ color: C.ink }}><span>{t.total}</span><span className="tabular-nums">{amount}</span></div>
+                <div className="flex justify-between text-[15px] font-bold pt-1" style={{ color: K.ink }}><span>{t.total}</span><span className="tabular-nums">{amount}</span></div>
               </div>
-              {!isDelivery && o.notes && <p className="text-[13px]" style={{ color: C.sub }}>{t.notes}: {o.notes}</p>}
+              {!isDelivery && o.notes && <p className="text-[13px]" style={{ color: K.sub }}>{t.notes}: {o.notes}</p>}
               {isDelivery && (() => {
                 const events: { label: string; ts: string }[] = [];
                 if (o.created_at) events.push({ label: t.timelineOrdered, ts: o.created_at });
@@ -877,7 +949,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 if (o.driver_delivered_at) events.push({ label: t.timelineDelivered, ts: o.driver_delivered_at });
                 if (events.length < 2) return null;
                 return (
-                  <ol className="grid gap-1 pt-2 border-t text-[13px]" style={{ borderColor: C.line, color: C.sub }}>
+                  <ol className="grid gap-1 pt-2 border-t text-[13px]" style={{ borderColor: K.line, color: K.sub }}>
                     {events.map((ev) => (
                       <li key={ev.label} className="flex justify-between"><span>{ev.label}</span><span className="tabular-nums">{fmtClock(Date.parse(ev.ts))}</span></li>
                     ))}
@@ -904,10 +976,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               locale={en ? 'en' : 'es'}
             />
           )}
-          <Link href={`/${restaurantSlug}`} className="h-11 grid place-items-center text-[14px] font-semibold" style={{ color: C.sub }}>
+          <Link href={`/${restaurantSlug}`} className="h-11 grid place-items-center text-[14px] font-semibold" style={{ color: K.sub }}>
             {t.backToMenu}
           </Link>
-          <Link href={`/${restaurantSlug}/mis-pedidos`} className="h-11 grid place-items-center text-[13px]" style={{ color: C.faint }}>
+          <Link href={`/${restaurantSlug}/mis-pedidos`} className="h-11 grid place-items-center text-[13px]" style={{ color: K.faint }}>
             {t.viewPreviousOrders}
           </Link>
           <OrderHistorySaver order={o} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} trackingToken={trackingToken} />
@@ -916,24 +988,24 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
       {/* ── Acción principal abajo, al alcance del pulgar ── */}
       {showDock && (
-        <div className="sticky bottom-0 w-full border-t" style={{ background: C.surface, borderColor: C.line, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+        <div className="sticky bottom-0 w-full border-t" style={{ background: K.surface, borderColor: K.line, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
           <div className="max-w-md mx-auto px-4 pt-3 grid gap-2">
             {canArrive ? (
               o.customer_arrived_at ? (
-                <p className="h-14 rounded-2xl grid place-items-center text-[16px] font-bold" style={{ background: C.greenSoft, color: C.greenDeep }} role="status">
+                <p className="h-14 rounded-2xl grid place-items-center text-[16px] font-bold" style={{ background: K.greenSoft, color: K.greenDeep }} role="status">
                   {en ? "We told them you're here" : 'Ya avisamos que llegaste'}
                 </p>
               ) : (
                 <>
                   {arriveErr && (
-                    <p className="text-center text-[13.5px] font-semibold" style={{ color: C.red }} role="alert">
+                    <p className="text-center text-[13.5px] font-semibold" style={{ color: K.red }} role="alert">
                       {en ? "Couldn't notify the restaurant. Try again" : 'No pudimos avisar al restaurante. Intenta de nuevo'}
                       {restaurantPhone && <>{' '}{en ? 'or ' : 'o '}<a href={`tel:${restaurantPhone}`} className="underline">{en ? 'call' : 'llama'}</a></>}.
                     </p>
                   )}
                   <button type="button" onClick={markArrived} disabled={arriving}
-                    className="h-14 rounded-2xl text-[17px] font-extrabold text-white active:scale-[0.98] transition-transform disabled:opacity-60"
-                    style={{ background: C.violet }}>
+                    className="h-14 rounded-2xl text-[17px] font-extrabold active:scale-[0.98] transition-transform disabled:opacity-60"
+                    style={{ background: K.btn, color: K.btnFg }}>
                     {arriving ? '…' : (en ? "I'm here" : 'Ya llegué')}
                   </button>
                 </>
@@ -941,7 +1013,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             ) : canReorder ? (
               <button type="button" onClick={reorder}
                 className="h-14 rounded-2xl text-[17px] font-extrabold active:scale-[0.98] transition-transform"
-                style={{ background: C.green, color: C.greenInk }}>
+                style={{ background: K.btn, color: K.btnFg }}>
                 {en ? 'Order the same again' : 'Pedir lo mismo otra vez'}
               </button>
             ) : restaurantPhone ? (
@@ -988,30 +1060,30 @@ function DeliveryInstructions({ orderId, token, address, notes, en, onSaved }: {
     setSaving(false);
   };
   return (
-    <section className="bg-white rounded-[20px] border px-4 py-3.5 grid gap-2" style={{ borderColor: C.line }}>
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>{en ? 'Deliver to' : 'Entregar en'}</p>
+    <section className="bg-white rounded-[20px] border px-4 py-3.5 grid gap-2" style={{ borderColor: K.line }}>
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: K.faint }}>{en ? 'Deliver to' : 'Entregar en'}</p>
       <p className="text-[16px] font-bold leading-snug">{address}</p>
       {editing ? (
         <>
           <label htmlFor="delivery-notes" className="sr-only">{en ? 'Delivery instructions' : 'Instrucciones de entrega'}</label>
           <textarea id="delivery-notes" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={500} rows={3}
             placeholder={en ? 'Apt, buzzer, gate code…' : 'Apto, timbre, código del portón…'}
-            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: C.line }} />
-          {err && <p className="text-[13px] font-semibold" style={{ color: C.red }}>{err}</p>}
+            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: K.line }} />
+          {err && <p className="text-[13px] font-semibold" style={{ color: K.red }}>{err}</p>}
           <div className="flex gap-2">
-            <button type="button" onClick={save} disabled={saving} className="h-11 px-4 rounded-xl text-[14px] font-bold text-white disabled:opacity-60" style={{ background: C.ink }}>
+            <button type="button" onClick={save} disabled={saving} className="h-11 px-4 rounded-xl text-[14px] font-bold disabled:opacity-60" style={{ background: K.btn, color: K.btnFg }}>
               {saving ? '…' : (en ? 'Save' : 'Guardar')}
             </button>
-            <button type="button" onClick={() => { setEditing(false); setDraft(notes); setErr(''); }} className="h-11 px-4 rounded-xl text-[14px] font-semibold" style={{ color: C.sub }}>
+            <button type="button" onClick={() => { setEditing(false); setDraft(notes); setErr(''); }} className="h-11 px-4 rounded-xl text-[14px] font-semibold" style={{ color: K.sub }}>
               {en ? 'Cancel' : 'Cancelar'}
             </button>
           </div>
         </>
       ) : (
         <>
-          {notes && <p className="rounded-xl px-3 py-2 text-[13.5px] font-semibold" style={{ background: '#FFF8E6', color: '#6B4A00' }}>{notes}</p>}
+          {notes && <p className="rounded-xl px-3 py-2 text-[13.5px] font-semibold" style={{ background: K.noteBg, color: K.noteFg }}>{notes}</p>}
           {token && (
-            <button type="button" onClick={() => { setDraft(notes); setEditing(true); }} className="justify-self-start h-11 -ml-1 px-1 text-[14px] font-bold" style={{ color: C.greenDeep }}>
+            <button type="button" onClick={() => { setDraft(notes); setEditing(true); }} className="justify-self-start h-11 -ml-1 px-1 text-[14px] font-bold" style={{ color: K.greenDeep }}>
               {notes ? (en ? 'Edit instructions' : 'Editar instrucciones') : (en ? 'Add instructions' : 'Agregar instrucciones')}
             </button>
           )}
@@ -1059,21 +1131,21 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
 
   if (mode === 'done') {
     return (
-      <p className="rounded-2xl px-4 py-3 text-[14px] font-semibold" style={{ background: C.greenSoft, color: C.greenDeep }} role="status">
+      <p className="rounded-2xl px-4 py-3 text-[14px] font-semibold" style={{ background: K.greenSoft, color: K.greenDeep }} role="status">
         {en ? 'Thanks for letting us know.' : 'Gracias por contarnos.'}
       </p>
     );
   }
   return (
-    <section className="bg-white rounded-[20px] border px-4 py-4 grid gap-3" style={{ borderColor: C.line }}>
+    <section className="bg-white rounded-[20px] border px-4 py-4 grid gap-3" style={{ borderColor: K.line }}>
       {mode === 'ask' && (
         <>
           <p className="text-[16px] font-bold">{en ? 'Did everything arrive OK?' : '¿Llegó todo bien?'}</p>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setMode('good')} className="h-12 rounded-2xl border text-[15px] font-bold" style={{ borderColor: C.line }}>
+            <button type="button" onClick={() => setMode('good')} className="h-12 rounded-2xl border text-[15px] font-bold" style={{ borderColor: K.line }}>
               {en ? 'Yes, all good' : 'Sí, todo bien'}
             </button>
-            <button type="button" onClick={() => setMode('issue')} className="h-12 rounded-2xl border text-[15px] font-bold" style={{ borderColor: C.line }}>
+            <button type="button" onClick={() => setMode('issue')} className="h-12 rounded-2xl border text-[15px] font-bold" style={{ borderColor: K.line }}>
               {en ? 'There was a problem' : 'Hubo un problema'}
             </button>
           </div>
@@ -1086,16 +1158,16 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={en ? `${n} star${n > 1 ? 's' : ''}` : `${n} estrella${n > 1 ? 's' : ''}`}
                 onClick={() => setRating(n)} className="w-11 h-11 grid place-items-center">
-                <Star className="w-7 h-7" style={{ color: n <= rating ? '#F5A524' : C.line }} fill={n <= rating ? '#F5A524' : 'none'} aria-hidden />
+                <Star className="w-7 h-7" style={{ color: n <= rating ? '#F5A524' : K.line }} fill={n <= rating ? '#F5A524' : 'none'} aria-hidden />
               </button>
             ))}
           </div>
           <label htmlFor="review-comment" className="sr-only">{en ? 'Comment' : 'Comentario'}</label>
           <textarea id="review-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} rows={2}
             placeholder={en ? 'Anything to add? (optional)' : '¿Algo que agregar? (opcional)'}
-            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: C.line }} />
-          {sendErr && <p className="text-[13px] font-semibold" style={{ color: C.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p>}
-          <button type="button" onClick={send} disabled={sending} className="h-12 rounded-2xl text-[15px] font-bold text-white disabled:opacity-60" style={{ background: C.ink }}>
+            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: K.line }} />
+          {sendErr && <p className="text-[13px] font-semibold" style={{ color: K.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p>}
+          <button type="button" onClick={send} disabled={sending} className="h-12 rounded-2xl text-[15px] font-bold disabled:opacity-60" style={{ background: K.btn, color: K.btnFg }}>
             {sending ? '…' : (en ? 'Send' : 'Enviar')}
           </button>
         </>
@@ -1107,7 +1179,7 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
             {reasons.map((r) => (
               <button key={r} type="button" onClick={() => setReason(r)} aria-pressed={reason === r}
                 className="h-11 px-4 rounded-full border text-[14px] font-semibold"
-                style={reason === r ? { background: C.ink, color: '#fff', borderColor: C.ink } : { borderColor: C.line }}>
+                style={reason === r ? { background: K.ink, color: K.card, borderColor: K.ink } : { borderColor: K.line }}>
                 {r}
               </button>
             ))}
@@ -1115,13 +1187,13 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
           <label htmlFor="issue-comment" className="sr-only">{en ? 'Details' : 'Detalles'}</label>
           <textarea id="issue-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={400} rows={2}
             placeholder={en ? 'Tell us a bit more (optional)' : 'Cuéntanos un poco más (opcional)'}
-            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: C.line }} />
-          {sendErr && <p className="text-[13px] font-semibold" style={{ color: C.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p>}
-          <button type="button" onClick={send} disabled={sending || !reason} className="h-12 rounded-2xl text-[15px] font-bold text-white disabled:opacity-50" style={{ background: C.ink }}>
+            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: K.line }} />
+          {sendErr && <p className="text-[13px] font-semibold" style={{ color: K.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p>}
+          <button type="button" onClick={send} disabled={sending || !reason} className="h-12 rounded-2xl text-[15px] font-bold disabled:opacity-50" style={{ background: K.btn, color: K.btnFg }}>
             {sending ? '…' : (en ? 'Send to the restaurant' : 'Enviar al restaurante')}
           </button>
           {restaurantPhone && (
-            <a href={`tel:${restaurantPhone}`} className="text-center text-[14px] font-semibold h-11 grid place-items-center" style={{ color: C.sub }}>
+            <a href={`tel:${restaurantPhone}`} className="text-center text-[14px] font-semibold h-11 grid place-items-center" style={{ color: K.sub }}>
               {en ? 'Or call the restaurant' : 'O llama al restaurante'}
             </a>
           )}
