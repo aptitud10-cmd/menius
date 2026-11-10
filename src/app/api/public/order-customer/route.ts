@@ -13,6 +13,9 @@ import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { sanitizeMultiline } from '@/lib/sanitize';
 import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 import { UUID_RE } from '@/lib/constants';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('order-customer');
 
 const CLOSED = ['delivered', 'completed', 'cancelled', 'served'];
 
@@ -32,14 +35,19 @@ export async function POST(req: NextRequest) {
   }
 
   const db = createAdminClient();
-  const { data: order } = await db
+  // Sin customer_arrived_at en el select: así editar notas no depende de esa columna.
+  const { data: order, error: readErr } = await db
     .from('orders')
-    .select('id, status, order_type, customer_token, driver_tracking_token, driver_picked_up_at, customer_arrived_at')
+    .select('id, status, order_type, customer_token, driver_tracking_token, driver_picked_up_at')
     .eq('id', orderId)
     .maybeSingle();
+  if (readErr) {
+    logger.error('read failed', { orderId, code: readErr.code });
+    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+  }
   const o = order as {
     id: string; status: string; order_type: string; customer_token: string | null;
-    driver_tracking_token: string | null; driver_picked_up_at: string | null; customer_arrived_at: string | null;
+    driver_tracking_token: string | null; driver_picked_up_at: string | null;
   } | null;
   const authorized = !!o && (token === String(o.customer_token ?? '') || token === String(o.driver_tracking_token ?? ''));
   if (!o || !authorized) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -48,12 +56,19 @@ export async function POST(req: NextRequest) {
     if (o.order_type !== 'pickup' || CLOSED.includes(o.status)) {
       return NextResponse.json({ error: 'not_allowed' }, { status: 409 });
     }
-    // Idempotente: tocar dos veces no vuelve a sonar en la tablet.
-    if (o.customer_arrived_at) return NextResponse.json({ ok: true, arrived_at: o.customer_arrived_at });
+    // Idempotente y atómico: solo marca si todavía no estaba marcado, así
+    // tocar dos veces no vuelve a sonar en la tablet.
     const now = new Date().toISOString();
-    const { error } = await db.from('orders').update({ customer_arrived_at: now, updated_at: now }).eq('id', o.id);
-    if (error) return NextResponse.json({ error: 'server_error' }, { status: 500 });
-    void broadcastOrderUpdate(o.id, o.status);
+    const { data: rows, error } = await db.from('orders')
+      .update({ customer_arrived_at: now, updated_at: now })
+      .eq('id', o.id)
+      .is('customer_arrived_at', null)
+      .select('id');
+    if (error) {
+      logger.error('arrived update failed', { orderId: o.id, code: error.code });
+      return NextResponse.json({ error: 'server_error' }, { status: 500 });
+    }
+    if (rows && rows.length > 0) void broadcastOrderUpdate(o.id, o.status);
     return NextResponse.json({ ok: true, arrived_at: now });
   }
 
@@ -61,9 +76,12 @@ export async function POST(req: NextRequest) {
   if (o.order_type !== 'delivery' || CLOSED.includes(o.status) || o.status === 'out_for_delivery' || o.driver_picked_up_at) {
     return NextResponse.json({ error: 'not_allowed' }, { status: 409 });
   }
-  const notes = sanitizeMultiline(typeof body?.notes === 'string' ? body.notes : '', 300);
+  const notes = sanitizeMultiline(typeof body?.notes === 'string' ? body.notes : '', 500);
   const { error } = await db.from('orders').update({ notes, updated_at: new Date().toISOString() }).eq('id', o.id);
-  if (error) return NextResponse.json({ error: 'server_error' }, { status: 500 });
+  if (error) {
+    logger.error('notes update failed', { orderId: o.id, code: error.code });
+    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+  }
   void broadcastOrderUpdate(o.id, o.status);
   return NextResponse.json({ ok: true, notes });
 }

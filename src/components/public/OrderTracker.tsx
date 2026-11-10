@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone, DoorOpen, Zap } from 'lucide-react';
+import { CheckCircle2, Check, Clock, Bell, XCircle, ArrowLeft, Star, Utensils, ShoppingBag, Truck, CreditCard, Banknote, Phone } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { formatPrice } from '@/lib/utils';
 import { C } from '@/components/orders/counter/ui';
@@ -288,6 +287,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Cuándo llegó la última posición del repartidor (para "de hace N min").
   const [lastLocAt, setLastLocAt] = useState<number | null>(null);
   const [arriving, setArriving] = useState(false);
+  const [arriveErr, setArriveErr] = useState(false);
   const [etaTick, setEtaTick] = useState(0);
 
   const hasInitialOrder = !!initialOrder;
@@ -629,6 +629,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const markArrived = async () => {
     if (!trackingToken || arriving) return;
     setArriving(true);
+    setArriveErr(false);
     try {
       const res = await fetch('/api/public/order-customer', {
         method: 'POST',
@@ -637,6 +638,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) setOrder((prev: any) => ({ ...prev, customer_arrived_at: data.arrived_at ?? new Date().toISOString() }));
+      else setArriveErr(true);
+    } catch {
+      // Sin señal: que el cliente sepa que el mostrador NO se enteró.
+      setArriveErr(true);
     } finally {
       setArriving(false);
     }
@@ -644,7 +649,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
   const card = 'bg-white rounded-[20px] border';
   const cardStyle = { borderColor: C.line };
-  const showDock = !awaitingPayment;
+  const canArrive = isPickup && o.status === 'ready' && o.authorized && !!trackingToken;
+  const canReorder = isComplete && (o.order_items?.length ?? 0) > 0;
+  const showDock = !awaitingPayment && (canArrive || canReorder || !!restaurantPhone);
 
   return (
     <div className="min-h-[100dvh] flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>
@@ -911,19 +918,27 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       {showDock && (
         <div className="sticky bottom-0 w-full border-t" style={{ background: C.surface, borderColor: C.line, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
           <div className="max-w-md mx-auto px-4 pt-3 grid gap-2">
-            {isPickup && o.status === 'ready' && o.authorized && trackingToken ? (
+            {canArrive ? (
               o.customer_arrived_at ? (
                 <p className="h-14 rounded-2xl grid place-items-center text-[16px] font-bold" style={{ background: C.greenSoft, color: C.greenDeep }} role="status">
                   {en ? "We told them you're here" : 'Ya avisamos que llegaste'}
                 </p>
               ) : (
-                <button type="button" onClick={markArrived} disabled={arriving}
-                  className="h-14 rounded-2xl text-[17px] font-extrabold text-white active:scale-[0.98] transition-transform disabled:opacity-60"
-                  style={{ background: C.violet }}>
-                  {en ? "I'm here" : 'Ya llegué'}
-                </button>
+                <>
+                  {arriveErr && (
+                    <p className="text-center text-[13.5px] font-semibold" style={{ color: C.red }} role="alert">
+                      {en ? "Couldn't notify the restaurant. Try again" : 'No pudimos avisar al restaurante. Intenta de nuevo'}
+                      {restaurantPhone && <>{' '}{en ? 'or ' : 'o '}<a href={`tel:${restaurantPhone}`} className="underline">{en ? 'call' : 'llama'}</a></>}.
+                    </p>
+                  )}
+                  <button type="button" onClick={markArrived} disabled={arriving}
+                    className="h-14 rounded-2xl text-[17px] font-extrabold text-white active:scale-[0.98] transition-transform disabled:opacity-60"
+                    style={{ background: C.violet }}>
+                    {arriving ? '…' : (en ? "I'm here" : 'Ya llegué')}
+                  </button>
+                </>
               )
-            ) : isComplete && (o.order_items?.length ?? 0) > 0 ? (
+            ) : canReorder ? (
               <button type="button" onClick={reorder}
                 className="h-14 rounded-2xl text-[17px] font-extrabold active:scale-[0.98] transition-transform"
                 style={{ background: C.green, color: C.greenInk }}>
@@ -979,7 +994,7 @@ function DeliveryInstructions({ orderId, token, address, notes, en, onSaved }: {
       {editing ? (
         <>
           <label htmlFor="delivery-notes" className="sr-only">{en ? 'Delivery instructions' : 'Instrucciones de entrega'}</label>
-          <textarea id="delivery-notes" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={300} rows={3}
+          <textarea id="delivery-notes" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={500} rows={3}
             placeholder={en ? 'Apt, buzzer, gate code…' : 'Apto, timbre, código del portón…'}
             className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: C.line }} />
           {err && <p className="text-[13px] font-semibold" style={{ color: C.red }}>{err}</p>}
@@ -1016,12 +1031,14 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
   const [reason, setReason] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendErr, setSendErr] = useState(false);
   const reasons = en
     ? ['Something was missing', 'It arrived cold', 'It arrived late', 'Other']
     : ['Faltó algo', 'Llegó frío', 'Llegó tarde', 'Otro'];
 
   const send = async () => {
     setSending(true);
+    setSendErr(false);
     const issue = mode === 'issue';
     try {
       const res = await fetch('/api/reviews', {
@@ -1035,14 +1052,15 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
         }),
       });
       if (res.ok || res.status === 409) setMode('done');
-    } catch { /* se puede reintentar */ }
+      else setSendErr(true);
+    } catch { setSendErr(true); }
     setSending(false);
   };
 
   if (mode === 'done') {
     return (
       <p className="rounded-2xl px-4 py-3 text-[14px] font-semibold" style={{ background: C.greenSoft, color: C.greenDeep }} role="status">
-        {en ? 'Thanks — the restaurant got your message.' : 'Gracias, el restaurante recibió tu mensaje.'}
+        {en ? 'Thanks for letting us know.' : 'Gracias por contarnos.'}
       </p>
     );
   }
@@ -1066,7 +1084,7 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
           <p className="text-[16px] font-bold">{en ? 'How would you rate it?' : '¿Cómo lo calificas?'}</p>
           <div className="flex gap-1" role="radiogroup" aria-label={en ? 'Rating' : 'Calificación'}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n}`}
+              <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={en ? `${n} star${n > 1 ? 's' : ''}` : `${n} estrella${n > 1 ? 's' : ''}`}
                 onClick={() => setRating(n)} className="w-11 h-11 grid place-items-center">
                 <Star className="w-7 h-7" style={{ color: n <= rating ? '#F5A524' : C.line }} fill={n <= rating ? '#F5A524' : 'none'} aria-hidden />
               </button>
@@ -1076,6 +1094,7 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
           <textarea id="review-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} rows={2}
             placeholder={en ? 'Anything to add? (optional)' : '¿Algo que agregar? (opcional)'}
             className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: C.line }} />
+          {sendErr && <p className="text-[13px] font-semibold" style={{ color: C.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p>}
           <button type="button" onClick={send} disabled={sending} className="h-12 rounded-2xl text-[15px] font-bold text-white disabled:opacity-60" style={{ background: C.ink }}>
             {sending ? '…' : (en ? 'Send' : 'Enviar')}
           </button>
@@ -1097,6 +1116,7 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
           <textarea id="issue-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={400} rows={2}
             placeholder={en ? 'Tell us a bit more (optional)' : 'Cuéntanos un poco más (opcional)'}
             className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: C.line }} />
+          {sendErr && <p className="text-[13px] font-semibold" style={{ color: C.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p>}
           <button type="button" onClick={send} disabled={sending || !reason} className="h-12 rounded-2xl text-[15px] font-bold text-white disabled:opacity-50" style={{ background: C.ink }}>
             {sending ? '…' : (en ? 'Send to the restaurant' : 'Enviar al restaurante')}
           </button>

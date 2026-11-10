@@ -705,6 +705,24 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
 
+  // El cliente puede corregir las instrucciones de entrega desde su seguimiento
+  // (apto, timbre…) hasta que el repartidor sale. Si cambian con el ticket ya
+  // impreso, la tablet suena y avisa para que nadie trabaje con la nota vieja.
+  const notesSeenRef = useRef<Map<string, string> | null>(null);
+  useEffect(() => {
+    const active = orders.filter(o => o.order_type === 'delivery' && !['delivered', 'completed', 'cancelled'].includes(o.status));
+    if (!notesSeenRef.current) { notesSeenRef.current = new Map(active.map(o => [o.id, o.notes ?? ''])); return; }
+    for (const o of active) {
+      const now = o.notes ?? '';
+      const before = notesSeenRef.current.get(o.id);
+      notesSeenRef.current.set(o.id, now);
+      if (before === undefined || before === now) continue;
+      if (isLeaderRef.current) playNewOrderSound();
+      showSuccess(T.notesChangedToast(o.order_number?.split('-').pop() ?? ''));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
+
   // ── Derived lists ──
   // Reloj de 30 s: un programado pasa de "Programados" a "Nuevos" (con la
   // alerta verde) SCHEDULED_SPLASH_LEAD_MS antes de su hora, sin esperar al
