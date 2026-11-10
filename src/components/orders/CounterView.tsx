@@ -6,7 +6,7 @@ import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
-  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus,
+  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus, Ban,
 } from 'lucide-react';
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
@@ -15,7 +15,6 @@ import {
   sendOrderNotification, updatePaymentBreakdown, openShift, closeShift,
   fetchOrderStatusHistory,
 } from '@/lib/actions/restaurant';
-import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
 import { getCounterAppBridge } from '@/lib/printing/native-bridge';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -24,6 +23,14 @@ import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import { fetchSuggestedEta, clampEta } from '@/lib/utils/eta';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
+import { counterText, nearestChoice, suggestedPrep } from './counter/ui';
+import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
+import { NewOrdersAlert } from './counter/NewOrdersAlert';
+import { OrderSheet } from './counter/OrderSheet';
+import {
+  CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast,
+  type CounterViewMode, type StoreState,
+} from './counter/CounterChrome';
 
 // ─── i18n ─────────────────────────────────────────────────────────────────────
 
@@ -341,6 +348,8 @@ interface CounterViewProps {
   isDevice?: boolean;
   /** restaurants.orders_paused_until al cargar — la pausa vive en la DB, no en el aparato. */
   initialPausedUntil?: string | null;
+  /** Solo para la vista previa de desarrollo: pedidos que arrancan en la alerta. */
+  previewAlertIds?: string[];
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -350,7 +359,7 @@ interface CounterViewProps {
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
   restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false, isDevice = false,
-  initialPausedUntil = null,
+  initialPausedUntil = null, previewAlertIds,
 }: CounterViewProps) {
   const t = getT(locale);
 
@@ -513,7 +522,32 @@ export function CounterView({
   const [notifStatus, setNotifStatus] = useState<Record<string, { channel: string; success: boolean; error?: string; time: number }>>({});
 
   // ── Splash queue ──
-  const [splashQueue, setSplashQueue] = useState<Order[]>([]);
+  const [splashQueue, setSplashQueue] = useState<Order[]>(() =>
+    previewAlertIds ? initialOrders.filter(o => previewAlertIds.includes(o.id)) : []);
+
+  // ── Rediseño 2026-11: tablero, hoja de detalle, estado de la tienda ──
+  const T = counterText(locale === 'en' ? 'en' : 'es');
+  const [view, setView] = useState<CounterViewMode>('board');
+  const [sheetId, setSheetId] = useState<string | null>(null);
+  const [statusOpen, setStatusOpen] = useState(false);
+  // La alerta suena hasta que alguien toca la pantalla (no hasta aceptar).
+  const [alertAck, setAlertAck] = useState(false);
+  // Último tiempo elegido: es el default del próximo pedido.
+  const [lastPrep, setLastPrep] = useState(15);
+  useEffect(() => {
+    try { const v = Number(localStorage.getItem('counter-last-prep')); if (v > 0) setLastPrep(v); } catch { /* sin storage */ }
+  }, []);
+  // Auto-aceptar: APAGADO por defecto; se activa por tablet en el menú.
+  const [autoAcceptOn, setAutoAcceptOn] = useState(false);
+  useEffect(() => {
+    try { setAutoAcceptOn(localStorage.getItem('counter-auto-accept') === 'true'); } catch { /* sin storage */ }
+  }, []);
+  // Cambios de estado con 5 s para deshacer: se ven al instante (override local)
+  // y se envían al servidor al vencer el plazo. El override evita que el poll
+  // de 10 s devuelva la tarjeta a su columna anterior mientras tanto.
+  const [pendingStatus, setPendingStatus] = useState<Record<string, Order['status']>>({});
+  const pendingTimers = useRef<Map<string, { timer: ReturnType<typeof setTimeout>; run: () => void }>>(new Map());
+  const [toastAction, setToastAction] = useState<{ label: string; run: () => void } | null>(null);
 
   // ── Connection / misc ──
   const [isOnline, setIsOnline] = useState(true);
@@ -525,28 +559,31 @@ export function CounterView({
 
   // ── History search ──
 
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showError = (msg: string) => {
+    setSuccessToast(null); setToastAction(null);
     setErrorToast(msg);
-    setTimeout(() => setErrorToast(null), 4000);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setErrorToast(null), 4500);
   };
-  const showSuccess = (msg: string) => {
+  const showSuccess = (msg: string, action?: { label: string; run: () => void }) => {
+    setErrorToast(null);
     setSuccessToast(msg);
-    setTimeout(() => setSuccessToast(null), 3000);
+    setToastAction(action ?? null);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => { setSuccessToast(null); setToastAction(null); }, action ? 4500 : 3000);
   };
+  // Los avisos al cliente son automáticos y silenciosos (como en Uber). Antes
+  // cada "Casi listo"/"Servir" mostraba "Notificación fallida" aunque nada
+  // fallara (channel 'none') y cada pedido sin email, "Sin datos de contacto".
+  // Ahora solo se avisa si un email REALMENTE no salió.
   const showNotif = useCallback((result: { channel: string; success: boolean; error?: string }, orderId?: string) => {
-    let text: string;
-    // notifyStatusChange only ever returns channel 'email' | 'none' — the
-    // whatsapp/sms branches were unreachable dead code.
-    if (result.channel === 'email' && result.success && result.error?.includes('fallback')) text = t.notifFallback;
-    else if (result.channel === 'email' && result.success) text = t.notifSentEmail;
-    else if (result.error === 'no_contact_info' || result.error === 'notifications_disabled') text = t.notifNoContact;
-    else text = t.notifFailed;
-    setNotifToast({ text, ok: result.success });
-    setTimeout(() => setNotifToast(null), 4000);
+    if (result.channel === 'email' && !result.success) showError(T.noticeFailed);
     if (orderId) {
       setNotifStatus(prev => ({ ...prev, [orderId]: { ...result, time: Date.now() } }));
     }
-  }, [t.notifSentWa, t.notifSentSms, t.notifFallback, t.notifSentEmail, t.notifNoContact, t.notifFailed]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [T.noticeFailed]);
 
   // ── Effects ──
 
@@ -603,8 +640,6 @@ export function CounterView({
     }
   }, []);
 
-  // Auto-accept subscription
-  useEffect(() => { return AutoAcceptService.subscribe(() => {}); }, []);
 
   // Load driver pool
   useEffect(() => {
@@ -641,39 +676,48 @@ export function CounterView({
       showSuccess(`${t.newScheduledOrder} #${order.order_number} · ${when}`);
       return;
     }
-    setSplashQueue(q => [...q, order]);
+    setSplashQueue(q => (q.some(x => x.id === order.id) ? q : [...q, order]));
+    setAlertAck(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder, t.newScheduledOrder]);
 
   const { orders, updateOrderLocally, rtStatus, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
+  // Pedidos con los cambios "en espera de deshacer" aplicados.
+  const ordersView = useMemo(
+    () => (Object.keys(pendingStatus).length === 0
+      ? orders
+      : orders.map(o => (pendingStatus[o.id] ? { ...o, status: pendingStatus[o.id] } : o))),
+    [orders, pendingStatus],
+  );
+
   // ── Derived lists ──
   const scheduledOrders = useMemo(() =>
-    orders.filter(o => o.status === 'pending' && o.scheduled_for)
+    ordersView.filter(o => o.status === 'pending' && o.scheduled_for)
       .sort((a, b) => new Date(a.scheduled_for!).getTime() - new Date(b.scheduled_for!).getTime()),
-    [orders]);
+    [ordersView]);
 
   const newOrders = useMemo(() =>
-    orders.filter(o => o.status === 'pending' && !o.scheduled_for)
+    ordersView.filter(o => o.status === 'pending' && !o.scheduled_for)
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-    [orders]);
+    [ordersView]);
 
   const overdueCount = useMemo(() =>
     newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length,
     [newOrders]);
 
   const prepOrders = useMemo(() =>
-    orders.filter(o => ['confirmed', 'preparing', 'almost_ready'].includes(o.status))
+    ordersView.filter(o => ['confirmed', 'preparing', 'almost_ready'].includes(o.status))
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-    [orders]);
+    [ordersView]);
 
   const readyOrders = useMemo(() =>
-    orders.filter(o => ['ready', 'out_for_delivery', 'served'].includes(o.status))
+    ordersView.filter(o => ['ready', 'out_for_delivery', 'served'].includes(o.status))
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-    [orders]);
+    [ordersView]);
 
   const historyOrders = useMemo(() => {
-    let r = orders.filter(o => ['delivered', 'completed', 'cancelled'].includes(o.status))
+    let r = ordersView.filter(o => ['delivered', 'completed', 'cancelled'].includes(o.status))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     if (historyStatus !== 'all') r = r.filter(o => o.status === historyStatus);
     if (historyType !== 'all') r = r.filter(o => o.order_type === historyType);
@@ -685,7 +729,7 @@ export function CounterView({
       );
     }
     return r;
-  }, [orders, historySearch, historyType, historyStatus]);
+  }, [ordersView, historySearch, historyType, historyStatus]);
 
   const currentList = useMemo(() => {
     if (activeTab === 'new') return newOrders;
@@ -764,7 +808,7 @@ export function CounterView({
   const todayRevenue = todayOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
 
   // ── Actions ──
-  const handleAccept = useCallback(async (order: Order) => {
+  const handleAccept = useCallback(async (order: Order, mins?: number) => {
     // Guard against double-fire: auto-accept (countdown) and a manual tap can
     // both target the same order in the same tick. The ref is synchronous, so the
     // second caller sees it immediately — prevents duplicate status updates and
@@ -772,7 +816,9 @@ export function CounterView({
     if (acceptingRef.current.has(order.id) || order.status !== 'pending') return;
     acceptingRef.current.add(order.id);
     setUpdatingId(order.id);
-    const eff = eta + busyExtra;
+    const chosen = mins ?? eta;
+    const eff = chosen + busyExtra;
+    setSplashQueue(q => q.filter(x => x.id !== order.id));
     // Optimistic update — move order to 'preparing' immediately in the UI
     updateOrderLocally(order.id, { status: 'preparing' });
     try {
@@ -791,10 +837,11 @@ export function CounterView({
       playAcceptSound();
       const shouldPrint = autoPrint || order.order_type === 'dine_in';
       if (shouldPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
-      setActiveTab('prep');
-      setSelectedId(order.id);
-      setShowDetailMobile(true);
-      showSuccess(`#${order.order_number} → ${t.tabPrep}`);
+      // Se queda donde estaba: la tarjeta pasa sola a "Preparando".
+      setSheetId(prev => (prev === order.id ? null : prev));
+      setLastPrep(chosen);
+      try { localStorage.setItem('counter-last-prep', String(chosen)); } catch { /* sin storage */ }
+      showSuccess(T.accepted(order.order_number?.split('-').pop() ?? '', eff));
       if (res.notification) showNotif(res.notification, order.id);
     } catch {
       updateOrderLocally(order.id, { status: order.status }); // revert
@@ -803,17 +850,9 @@ export function CounterView({
       setUpdatingId(null);
       acceptingRef.current.delete(order.id);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally, locale, taxLabel, taxIncluded, showNotif]);
 
-  // Auto-accept — delegate to handleAccept so ETA/status failures are handled
-  // (revert + error surfaced) instead of silently swallowed, and the in-flight
-  // guard prevents racing with a manual tap on the same order.
-  useEffect(() => {
-    const firstNew = newOrders[0];
-    if (!firstNew || !AutoAcceptService.shouldAutoAccept(firstNew, orders)) return;
-    handleAccept(firstNew);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newOrders.map(o => o.id).join(',')]);
 
   const handleMarkReady = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
@@ -889,6 +928,81 @@ export function CounterView({
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
   }, [t, updateOrderLocally, showNotif, showError]);
+
+  // ── Rediseño: acción principal de cada tarjeta ──────────────────────────
+  const statusFor = (o: Order, kind: PrimaryKind): Order['status'] =>
+    kind === 'ready' ? 'ready'
+      : kind === 'serve' ? 'served'
+      : kind === 'complete' ? 'completed'
+      : (o.order_type === 'dine_in' ? 'completed' : 'delivered');
+
+  const commitStatus = useCallback((order: Order, kind: PrimaryKind, bypassGuard = false) => {
+    // Repartidor asignado que todavía no retiró: se mantiene el aviso de siempre.
+    if (!bypassGuard && kind === 'deliver' && order.order_type === 'delivery' && order.driver_name && !order.driver_picked_up_at) {
+      setDeliveryGuardModal({ order });
+      return;
+    }
+    const next = statusFor(order, kind);
+    const previous = pendingTimers.current.get(order.id);
+    if (previous) { clearTimeout(previous.timer); previous.run(); }
+    setPendingStatus(p => ({ ...p, [order.id]: next }));
+    setSheetId(cur => (cur === order.id ? null : cur));
+
+    const run = async () => {
+      pendingTimers.current.delete(order.id);
+      setUpdatingId(order.id);
+      try {
+        const res = await updateOrderStatus(order.id, next);
+        if (res?.error) { showError(res.error); return; }
+        updateOrderLocally(order.id, { status: next });
+        if (res.notification) showNotif(res.notification, order.id);
+      } catch {
+        showError(t.en ? 'Unexpected error' : 'Error inesperado');
+      } finally {
+        setPendingStatus(p => { const c = { ...p }; delete c[order.id]; return c; });
+        setUpdatingId(null);
+      }
+    };
+    const timer = setTimeout(run, 5000);
+    pendingTimers.current.set(order.id, { timer, run });
+
+    const num = order.order_number?.split('-').pop() ?? '';
+    const msg = kind === 'ready' ? T.markedReady(num) : kind === 'serve' ? T.markedServed(num) : T.markedDelivered(num);
+    showSuccess(msg, {
+      label: T.undo,
+      run: () => {
+        const pend = pendingTimers.current.get(order.id);
+        if (pend) { clearTimeout(pend.timer); pendingTimers.current.delete(order.id); }
+        setPendingStatus(p => { const c = { ...p }; delete c[order.id]; return c; });
+        setSuccessToast(null); setToastAction(null);
+      },
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [T, t, updateOrderLocally, showNotif]);
+
+  // Si la página se cierra con un cambio en espera, se envía igual.
+  useEffect(() => {
+    const flush = () => { pendingTimers.current.forEach(p => { clearTimeout(p.timer); p.run(); }); };
+    window.addEventListener('pagehide', flush);
+    return () => { window.removeEventListener('pagehide', flush); flush(); };
+  }, []);
+
+  const defaultMinsFor = useCallback((o: Order) => nearestChoice(suggestedPrep(o) ?? lastPrep), [lastPrep]);
+
+  const onPrimary = useCallback((o: Order, kind: PrimaryKind) => {
+    if (kind === 'accept') handleAccept(o, defaultMinsFor(o));
+    else commitStatus(o, kind);
+  }, [handleAccept, commitStatus, defaultMinsFor]);
+
+  const resendNotice = useCallback(async (o: Order) => {
+    const ev = ['confirmed', 'preparing', 'ready', 'out_for_delivery'].includes(o.status) ? o.status : 'ready';
+    const res = await sendOrderNotification(o.id, ev).catch(() => null);
+    const n = res && 'notification' in res ? res.notification : null;
+    if (n?.channel === 'email' && n.success) showSuccess(T.noticeSent);
+    else if (n && n.channel === 'none') showError(T.noEmail);
+    else showError(T.noticeFailed);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [T]);
 
   // ── Edit order items ──────────────────────────────────────────────────────
   const openEditItems = useCallback(async (orderId: string) => {
@@ -1158,6 +1272,30 @@ export function CounterView({
       })()
     : null;
 
+  // Cola de la alerta con el estado VIVO de cada pedido: si otra tablet ya lo
+  // aceptó, desaparece de la alerta (antes la cola guardaba fotos viejas).
+  const alertQueue = useMemo(
+    () => splashQueue
+      .map(o => ordersView.find(x => x.id === o.id) ?? o)
+      .filter(o => o.status === 'pending'),
+    [splashQueue, ordersView],
+  );
+  useEffect(() => {
+    if (alertQueue.length === 0 || alertAck || !isLeader) return;
+    const id = setInterval(playNewOrderSound, 4000);
+    return () => clearInterval(id);
+  }, [alertQueue.length, alertAck, isLeader]);
+
+  const storeState: StoreState =
+    !isOnline || rtStatus === 'disconnected' ? { kind: 'offline' }
+      : rtStatus === 'reconnecting' ? { kind: 'reconnecting' }
+      : isPaused ? { kind: 'paused', minsLeft: pauseLeftMins }
+      : busyExtra > 0 ? { kind: 'busy', extra: busyExtra }
+      : { kind: 'open' };
+
+  const sheetOrder = sheetId ? ordersView.find(o => o.id === sheetId) ?? null : null;
+  const busyIds = useMemo(() => new Set(updatingId ? [updatingId] : []), [updatingId]);
+
   // ── Tab change helper ──
   const changeTab = (tab: Tab) => {
     setActiveTab(tab);
@@ -1229,362 +1367,147 @@ export function CounterView({
   }
 
   return (
-    <div className="h-full w-full bg-[#F2F2F2] flex flex-col overflow-hidden select-none">
+    <div className="h-full w-full bg-white flex flex-col overflow-hidden select-none">
 
-      {/* ── New order splash ── */}
-      {splashQueue.length > 0 && (
-        <NewOrderSplash
-          // key: cada pedido arranca su propio contador. Sin key el segundo
-          // pedido heredaba el tiempo restante (o el "ya auto-aceptado") del primero.
-          key={splashQueue[0].id}
-          order={splashQueue[0]}
+      {/* ── Alerta de pedidos nuevos (una sola, con cola) ── */}
+      {alertQueue.length > 0 && (
+        <NewOrdersAlert
+          queue={alertQueue}
+          T={T}
           currency={currency}
-          queueCount={splashQueue.length}
-          eta={effectiveEta}
-          t={t}
-          onView={() => {
-            const current = splashQueue[0];
-            setSplashQueue(q => q.slice(1));
-            changeTab('new');
-            setSelectedId(current.id);
-            setShowDetailMobile(true);
-          }}
-          onAutoAccept={() => {
-            const current = splashQueue[0];
-            setSplashQueue(q => q.slice(1));
-            handleAccept(current);
-          }}
-          onReject={() => {
-            const current = splashQueue[0];
-            setSplashQueue(q => q.slice(1));
-            setCancelModal({ orderId: current.id, type: 'reject' });
+          defaultMins={defaultMinsFor}
+          autoAcceptSecs={autoAcceptOn ? 30 : null}
+          soundOn={!alertAck}
+          onAcknowledge={() => setAlertAck(true)}
+          onAccept={(o, m) => handleAccept(o, m)}
+          onReject={(o) => {
+            setSplashQueue(q => q.filter(x => x.id !== o.id));
+            setCancelModal({ orderId: o.id, type: 'reject' });
             setCancelReason('');
           }}
+          onSeeAll={() => { setSplashQueue([]); setView('board'); }}
         />
       )}
 
-      {/* ── Offline / disconnected banner ── */}
+      {/* ── Sin conexión: banda fija, lo más importante que puede pasar ── */}
       {(!isOnline || rtStatus === 'disconnected') && (
-        <div className="flex-none bg-red-500 text-white text-xs font-bold py-2 px-4 flex items-center justify-center gap-2 z-20">
-          <WifiOff className="w-3.5 h-3.5" />
+        <div role="alert" className="flex-none bg-red-600 text-white text-[15px] font-bold py-2.5 px-4 flex items-center justify-center gap-2 z-20">
+          <WifiOff className="w-4 h-4" />
           {t.offlineBanner}
         </div>
       )}
-      {isOnline && rtStatus === 'reconnecting' && (
-        <div className="flex-none bg-amber-500 text-white text-xs font-semibold py-1.5 px-4 flex items-center justify-center gap-2 z-20">
-          <Wifi className="w-3.5 h-3.5 animate-pulse" />
-          {t.en ? 'Reconnecting to real-time…' : 'Reconectando en tiempo real…'}
-        </div>
-      )}
 
-      {/* ── Paused banner ── */}
-      {isPaused && (
-        <div className="flex-none bg-amber-500 text-white text-xs font-bold py-2 px-4 flex items-center justify-center gap-2 z-20">
-          <Pause className="w-3.5 h-3.5" />
-          {t.paused_status} — {pauseLeftMins} min
-          <button onClick={doUnpause} className="ml-2 underline">{t.resumeOrders}</button>
-        </div>
-      )}
-
-      {/* ── Active shift banner ── */}
+      {/* ── Turno de caja abierto ── */}
       {activeShift && (
-        <div className="flex-none bg-[#06C167] text-white text-xs font-bold py-1.5 px-4 flex items-center gap-2 z-20">
-          <span>💰</span>
+        <div className="flex-none bg-[#F2F4F3] text-[#0E1412] text-[15px] font-semibold py-2 px-4 flex items-center gap-3 z-20 border-b border-[#E1E6E3]">
           <span>{t.shiftOpened} · {shiftDuration}</span>
-          <span className="opacity-60">·</span>
-          <span>{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</span>
+          <span className="text-[#55605C]">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</span>
           <button
             onClick={() => { setShiftCloseCash(''); setShiftNotes(''); setShiftModal('close'); }}
-            className="ml-auto underline text-white/80 hover:text-white"
+            className="ml-auto h-10 px-4 rounded-lg bg-white border border-[#E1E6E3] font-bold"
           >
             {t.shiftClose}
           </button>
         </div>
       )}
 
-      {/* ══ TOP BAR ══ */}
-      <header className="flex-none h-14 bg-white border-b border-[#E8E8E8] flex items-center px-3 gap-2 z-10 shadow-sm">
-        {/* Hamburger */}
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+      <CounterTopBar
+        T={T}
+        restaurantName={restaurantName}
+        state={storeState}
+        view={view}
+        scheduledCount={scheduledOrders.length}
+        onStatus={() => setStatusOpen(true)}
+        onView={setView}
+        onMenu={() => setSidebarOpen(true)}
+      />
 
-        {/* Restaurant name */}
-        <span className="text-sm font-bold text-[#111] truncate max-w-[120px] flex-shrink-0 hidden sm:block">
-          {restaurantName}
-        </span>
+      {view === 'board' ? (
+        <CounterBoard
+          T={T}
+          currency={currency}
+          newOrders={newOrders}
+          prepOrders={prepOrders}
+          readyOrders={readyOrders}
+          busyIds={busyIds}
+          acceptMinsFor={defaultMinsFor}
+          onOpen={(o) => setSheetId(o.id)}
+          onPrimary={onPrimary}
+        />
+      ) : (
+        <OrdersListView
+          key={view}
+          T={T}
+          currency={currency}
+          orders={view === 'scheduled' ? scheduledOrders : historyOrders}
+          mode={view}
+          busyIds={busyIds}
+          acceptMinsFor={defaultMinsFor}
+          onOpen={(o) => setSheetId(o.id)}
+          onPrimary={onPrimary}
+        />
+      )}
 
-        {/* Tabs */}
-        <nav className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto [-webkit-overflow-scrolling:touch] px-1">
-          <TabBtn
-            label={t.tabNew} count={newOrders.length}
-            active={activeTab === 'new'} urgent={newOrders.length > 0}
-            badgeColor="#EF4444" onClick={() => changeTab('new')}
-          />
-          <TabBtn
-            label={t.tabPrep} count={prepOrders.length}
-            active={activeTab === 'prep'} urgent={false}
-            badgeColor="#F59E0B" onClick={() => changeTab('prep')}
-          />
-          <TabBtn
-            label={t.tabReady} count={readyOrders.length}
-            active={activeTab === 'ready'} urgent={false}
-            badgeColor={GREEN} onClick={() => changeTab('ready')}
-          />
-          <TabBtn
-            label={t.en ? 'Sched.' : 'Program.'} count={scheduledOrders.length || null}
-            active={activeTab === 'scheduled'} urgent={false}
-            badgeColor="#8B5CF6" onClick={() => changeTab('scheduled')}
-            icon={<Clock className="w-3.5 h-3.5" />}
-          />
-          <TabBtn
-            label={t.tabHistory} count={null}
-            active={activeTab === 'history'} urgent={false}
-            badgeColor="#9CA3AF" onClick={() => changeTab('history')}
-            icon={<History className="w-3.5 h-3.5" />}
-          />
-        </nav>
-
-        {/* Online indicator — tap to manually refresh orders */}
-        <button
-          onClick={refetch}
-          title={t.en ? 'Tap to refresh orders' : 'Toca para actualizar órdenes'}
-          className="flex items-center gap-1.5 flex-shrink-0 rounded-lg px-2 py-1 hover:bg-[#F5F5F5] active:scale-95 transition-all"
-        >
-          <div className={cn('w-2 h-2 rounded-full', !isOnline || rtStatus === 'disconnected' ? 'bg-red-400' : rtStatus === 'reconnecting' ? 'bg-amber-400 animate-pulse' : 'bg-[#06C167] animate-pulse')} />
-          <span className="text-[11px] font-semibold text-[#888] hidden md:block">
-            {!isOnline || rtStatus === 'disconnected' ? 'Offline' : rtStatus === 'reconnecting' ? (t.en ? 'Reconnecting…' : 'Reconectando…') : t.online_status}
-          </span>
-        </button>
-
-        {/* Tablet mode link (only in normal mode; a paired tablet has no dashboard) */}
-        {!tabletMode && !isDevice && (
-          <a
-            href="/app/counter/tablet"
-            title={t.en ? 'Tablet mode' : 'Modo tablet'}
-            className="w-9 h-9 rounded-xl items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0 hidden lg:flex"
-          >
-            <Settings2 className="w-4 h-4" />
-          </a>
-        )}
-
-        {/* Printer settings button — native screen inside the app (that's where the
-            Bluetooth/network printer lives), web modal everywhere else */}
-        <button
-          onClick={() => {
-            const bridge = getCounterAppBridge();
-            if (bridge?.openPrinterSettings) bridge.openPrinterSettings();
-            else setPrinterModalOpen(true);
+      {sheetOrder && (
+        <OrderSheet
+          key={sheetOrder.id}
+          order={sheetOrder}
+          T={T}
+          currency={currency}
+          taxLabel={taxLabel}
+          busy={updatingId === sheetOrder.id}
+          acceptMins={defaultMinsFor(sheetOrder)}
+          onClose={() => setSheetId(null)}
+          onPrint={() => PrinterService.printOrder(
+            sheetOrder, sheetOrder.estimated_ready_minutes ?? effectiveEta, restaurantName, currency, locale, taxLabel, taxIncluded,
+          ).catch(() => {})}
+          onAccept={(o, m) => handleAccept(o, m)}
+          onPrimary={onPrimary}
+          onAdjustEta={(o, m) => { updateOrderLocally(o.id, { estimated_ready_minutes: m }); void handleAdjustEta(o, m); }}
+          more={{
+            onResendNotice: sheetOrder.customer_email && !['pending', 'cancelled', 'delivered', 'completed'].includes(sheetOrder.status)
+              ? () => resendNotice(sheetOrder) : undefined,
+            onEditItems: !['delivered', 'completed', 'cancelled'].includes(sheetOrder.status)
+              ? () => openEditItems(sheetOrder.id) : undefined,
+            onMixedPayment: (sheetOrder.payment_method === 'cash' || !sheetOrder.payment_method)
+              && ['ready', 'out_for_delivery', 'served'].includes(sheetOrder.status)
+              ? () => { setSplitCash(''); setSplitCard(''); setSavingSplit(false); setSplitPayModal({ order: sheetOrder }); }
+              : undefined,
+            onAssignDriver: sheetOrder.order_type === 'delivery' && !['delivered', 'completed', 'cancelled'].includes(sheetOrder.status)
+              ? () => {
+                  const o = sheetOrder as Order & { driver_tracking_token?: string | null };
+                  setDriverModal({ orderId: o.id, address: o.delivery_address ?? undefined, trackingToken: o.driver_tracking_token ?? undefined });
+                  setDriverName(o.driver_name ?? '');
+                  setDriverPhone(o.driver_phone ?? '');
+                  setSelectedDriverId(o.driver_id ?? null);
+                }
+              : undefined,
+            onCancel: !['delivered', 'completed', 'cancelled'].includes(sheetOrder.status)
+              ? () => { setCancelModal({ orderId: sheetOrder.id, type: sheetOrder.status === 'pending' ? 'reject' : 'cancel' }); setCancelReason(''); }
+              : undefined,
           }}
-          title={t.en ? 'Printer settings' : 'Configurar impresora'}
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
-        >
-          <Printer className="w-4 h-4" />
-        </button>
-      </header>
+          historySlot={<StatusHistory orderId={sheetOrder.id} t={t} />}
+        />
+      )}
 
-      {/* ══ MAIN LAYOUT ══ */}
-      <div className="flex-1 flex overflow-hidden">
-
-        {/* ── LEFT: Order list (always visible on sm+, hidden on mobile when detail open) ── */}
-        <div className={cn(
-          'bg-white border-r border-[#E8E8E8] flex flex-col overflow-hidden flex-shrink-0',
-          // Mobile: full width list, hidden when viewing detail
-          showDetailMobile ? 'hidden sm:flex' : 'flex w-full',
-          // Tablet/desktop: fixed sidebar width
-          'sm:w-72 lg:w-80',
-        )}>
-          {/* SLA overdue banner */}
-          {activeTab === 'new' && overdueCount > 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse flex-shrink-0" />
-              {t.en
-                ? `${overdueCount} order${overdueCount > 1 ? 's' : ''} waiting +${SLA_WARN_MINS} min — respond now!`
-                : `${overdueCount} orden${overdueCount > 1 ? 'es' : ''} esperando +${SLA_WARN_MINS} min — ¡responde ya!`
-              }
-            </div>
-          )}
-
-          {/* History search + filters */}
-          {activeTab === 'history' && (
-            <div className="border-b border-[#F0F0F0]">
-              {/* Search */}
-              <div className="px-3 pt-3 pb-2">
-                <input
-                  value={historySearch}
-                  onChange={e => setHistorySearch(e.target.value)}
-                  placeholder={t.search}
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#F5F5F5] text-sm text-[#111] placeholder-[#BBBBBB] focus:outline-none"
-                />
-              </div>
-              {/* Status filter */}
-              <div className="flex gap-1.5 px-3 pb-2">
-                {(['all', 'delivered', 'cancelled'] as const).map(s => (
-                  <button key={s}
-                    onClick={() => setHistoryStatus(s)}
-                    className={cn(
-                      'flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors',
-                      historyStatus === s
-                        ? 'bg-[#111] text-white'
-                        : 'bg-[#F5F5F5] text-[#777] hover:bg-[#EBEBEB]'
-                    )}
-                  >
-                    {s === 'all' ? t.filterAll : s === 'delivered' ? t.filterDelivered : t.filterCancelled}
-                  </button>
-                ))}
-              </div>
-              {/* Type filter */}
-              <div className="flex gap-1.5 px-3 pb-2.5">
-                {(['all', 'delivery', 'pickup', 'dine_in'] as const).map(tp => (
-                  <button key={tp}
-                    onClick={() => setHistoryType(tp)}
-                    className={cn(
-                      'flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors',
-                      historyType === tp
-                        ? 'bg-[#06C167] text-white'
-                        : 'bg-[#F5F5F5] text-[#777] hover:bg-[#EBEBEB]'
-                    )}
-                  >
-                    {tp === 'all' ? t.filterAll : tp === 'delivery' ? t.filterDelivery : tp === 'pickup' ? t.filterPickup : t.filterDineIn}
-                  </button>
-                ))}
-              </div>
-              {/* Results count */}
-              <div className="px-3 pb-2 text-[11px] text-[#AAAAAA] font-medium">
-                {t.results(historyOrders.length)}
-              </div>
-            </div>
-          )}
-
-          {/* Order list */}
-          <div className="flex-1 overflow-y-auto">
-            {currentList.length === 0 ? (
-              <EmptyState tab={activeTab} t={t} rtStatus={rtStatus} />
-            ) : (
-              currentList.map(o =>
-                activeTab === 'history' ? (
-                  <HistoryRow
-                    key={o.id} order={o} currency={currency} t={t}
-                    selected={selectedId === o.id}
-                    onClick={() => { setSelectedId(o.id); setShowDetailMobile(true); }}
-                  />
-                ) : (
-                  <OrderRow
-                    key={o.id} order={o} currency={currency} tab={activeTab} t={t}
-                    selected={selectedId === o.id}
-                    isUrgent={activeTab === 'new' && elapsedMins(o.created_at) >= SLA_WARN_MINS}
-                    onClick={() => { setSelectedId(o.id); setShowDetailMobile(true); }}
-                  />
-                )
-              )
-            )}
-          </div>
-
-          {/* Day summary */}
-          <div className="flex-none px-4 py-2.5 border-t border-[#F0F0F0] bg-[#FAFAFA]">
-            <div className="flex justify-between text-[11px] text-[#AAAAAA]">
-              <span>
-                {t.todaySummary}:{' '}
-                <span className="font-bold text-[#555]">{todayOrders.length} {t.todayOrders}</span>
-              </span>
-              <span className="font-bold text-[#555]">{fmt(todayRevenue, currency)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── RIGHT: Detail panel ── */}
-        <div className={cn(
-          'flex-1 flex flex-col overflow-hidden',
-          // Mobile: full width when viewing detail, hidden otherwise
-          showDetailMobile ? 'flex' : 'hidden sm:flex',
-        )}>
-          {selectedOrder ? (
-            <OrderDetail
-              order={selectedOrder}
-              currency={currency}
-              restaurantName={restaurantName}
-              tab={activeTab}
-              eta={eta}
-              busyExtra={busyExtra}
-              suggestedEta={suggestedEta}
-              isUpdating={updatingId === selectedOrder.id}
-              t={t}
-              onBack={() => setShowDetailMobile(false)}
-              onSetEta={setEta}
-              onAdjustEta={handleAdjustEta}
-              onAccept={handleAccept}
-              onMarkReady={handleMarkReady}
-              onMarkServed={handleMarkServed}
-              onMarkAlmostReady={handleMarkAlmostReady}
-              onMarkOutForDelivery={handleMarkOutForDelivery}
-              onDeliver={handleDeliver}
-              onCancelRequest={(type) => {
-                setCancelModal({ orderId: selectedOrder.id, type });
-                setCancelReason('');
-              }}
-              onPrint={() => PrinterService.printOrder(
-                selectedOrder, selectedOrder.estimated_ready_minutes ?? effectiveEta, restaurantName, currency, locale, taxLabel, taxIncluded
-              ).catch(() => {})}
-              onAssignDriver={() => {
-                const o = selectedOrder as any;
-                setDriverModal({
-                  orderId: selectedOrder.id,
-                  address: selectedOrder.delivery_address ?? undefined,
-                  trackingToken: o.driver_tracking_token ?? undefined,
-                });
-                setDriverName(o.driver_name ?? '');
-                setDriverPhone(o.driver_phone ?? '');
-                setSelectedDriverId(o.driver_id ?? null);
-              }}
-              onTipSaved={() => showSuccess(t.en ? 'Tip saved' : 'Propina guardada')}
-              onNotify={async (order) => {
-                const res = await sendOrderNotification(order.id, 'ready');
-                if (res?.notification) showNotif(res.notification, order.id);
-              }}
-              lastNotif={notifStatus[selectedOrder.id]}
-              taxLabel={taxLabel}
-              onEditItems={openEditItems}
-              onRemoveItem={handleRemoveItem}
-              editSaving={editSaving}
-              onPhotoClick={setPhotoLightbox}
-            />
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
-              <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-sm">
-                {activeTab === 'new' && <Bell className="w-12 h-12 text-[#DDDDDD]" />}
-                {activeTab === 'prep' && <Clock className="w-12 h-12 text-[#DDDDDD]" />}
-                {activeTab === 'ready' && <CheckCircle className="w-12 h-12 text-[#DDDDDD]" />}
-                {activeTab === 'scheduled' && <Clock className="w-12 h-12 text-purple-200" />}
-                {activeTab === 'history' && <History className="w-12 h-12 text-[#DDDDDD]" />}
-              </div>
-              <div>
-                <p className="text-[#888] text-xl font-bold">
-                  {activeTab === 'new' ? t.waitingOrders :
-                   activeTab === 'prep' ? t.noPrepping :
-                   activeTab === 'ready' ? t.noReady :
-                   activeTab === 'scheduled' ? (t.en ? 'No scheduled orders' : 'Sin órdenes programadas') :
-                   t.selectOrder}
-                </p>
-                {activeTab === 'new' && (
-                  <p className="text-[#BBBBBB] text-sm mt-1 flex items-center justify-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: rtStatus === 'connected' ? GREEN : rtStatus === 'reconnecting' ? '#F59E0B' : '#EF4444' }} />
-                    {rtStatus === 'connected' ? t.connectedRt : rtStatus === 'reconnecting' ? (t.en ? 'Reconnecting…' : 'Reconectando…') : (t.en ? 'Disconnected' : 'Sin conexión')}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {statusOpen && (
+        <StoreStatusSheet
+          T={T}
+          isPaused={isPaused}
+          pauseLeft={pauseLeftMins}
+          busyExtra={busyExtra}
+          onBusy={(m) => setBusyExtra(m)}
+          onPause={(m) => { void doPause(m); setStatusOpen(false); }}
+          onResume={() => { void doUnpause(); setStatusOpen(false); }}
+          onClose={() => setStatusOpen(false)}
+        />
+      )}
 
       {/* ══ SIDEBAR ══ */}
       {sidebarOpen && (
         <>
           <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setSidebarOpen(false)} />
-          <aside className="fixed left-0 top-0 bottom-0 w-72 bg-white z-50 flex flex-col shadow-2xl">
+          <aside className="fixed left-0 top-0 bottom-0 w-[340px] max-w-[90vw] bg-white z-50 flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0]">
               <div>
                 <p className="text-base font-black text-[#111]">{restaurantName}</p>
@@ -1602,42 +1525,40 @@ export function CounterView({
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-              {/* Busy mode */}
-              <SidebarSection title={t.busyMode} icon={<Flame className="w-4 h-4" />}>
-                <div className="space-y-1.5">
-                  {[{ v: 0, l: t.busyNormal }, { v: 10, l: t.busyAdd10 }, { v: 20, l: t.busyAdd20 }].map(opt => (
-                    <label key={opt.v} className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-colors',
-                      busyExtra === opt.v ? 'border-[#06C167] bg-[#06C167]/5' : 'border-[#EEEEEE] hover:border-[#CCCCCC]'
-                    )}>
-                      <input type="radio" name="busy" checked={busyExtra === opt.v} onChange={() => setBusyExtra(opt.v)} style={{ accentColor: GREEN }} />
-                      <span className="text-sm font-medium text-[#111]">{opt.l}</span>
-                    </label>
-                  ))}
-                </div>
-              </SidebarSection>
-
-              {/* Pause orders */}
-              <SidebarSection title={t.pauseOrders} icon={<Pause className="w-4 h-4" />}>
-                {isPaused ? (
-                  <button
-                    onClick={doUnpause}
-                    className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-[#06C167]"
-                  >
-                    {t.resumeOrders}
-                  </button>
-                ) : (
-                  <div className="space-y-1.5">
-                    {[{ v: 30, l: t.pause30 }, { v: 60, l: t.pause60 }, { v: 120, l: t.pause120 }, { v: 9999, l: t.pauseTomorrow }].map(opt => (
-                      <button
-                        key={opt.v}
-                        onClick={() => doPause(opt.v)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[#EEEEEE] hover:border-red-300 hover:bg-red-50 transition-colors text-left"
-                      >
-                        <span className="text-sm font-medium text-[#111]">{opt.l}</span>
-                      </button>
-                    ))}
+              {/* Pedidos de esta tablet */}
+              <SidebarSection title={t.en ? 'Orders on this tablet' : 'Pedidos en esta tablet'} icon={<Bell className="w-4 h-4" />}>
+                <label className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] cursor-pointer">
+                  <div className="min-w-0">
+                    <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Auto-accept orders' : 'Aceptar pedidos solos'}</span>
+                    <p className="text-[13px] text-[#55605C] mt-0.5">{t.en ? 'After 30 s, with the default time. Turn on in one tablet only.' : 'A los 30 s, con el tiempo por defecto. Actívalo en una sola tablet.'}</p>
                   </div>
+                  <input
+                    type="checkbox"
+                    checked={autoAcceptOn}
+                    onChange={e => {
+                      setAutoAcceptOn(e.target.checked);
+                      try { localStorage.setItem('counter-auto-accept', String(e.target.checked)); } catch { /* sin storage */ }
+                    }}
+                    style={{ accentColor: '#047A67', width: 22, height: 22 }}
+                  />
+                </label>
+                <button
+                  onClick={() => {
+                    const bridge = getCounterAppBridge();
+                    if (bridge?.openPrinterSettings) bridge.openPrinterSettings();
+                    else setPrinterModalOpen(true);
+                    setSidebarOpen(false);
+                  }}
+                  className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left"
+                >
+                  <Printer className="w-4 h-4 text-[#555]" />
+                  <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Printer' : 'Impresora'}</span>
+                </button>
+                {!tabletMode && !isDevice && (
+                  <a href="/app/counter/tablet" className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left">
+                    <Settings2 className="w-4 h-4 text-[#555]" />
+                    <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Full-screen tablet mode' : 'Modo tablet a pantalla completa'}</span>
+                  </a>
                 )}
               </SidebarSection>
 
@@ -1676,7 +1597,7 @@ export function CounterView({
               </SidebarSection>
 
               {/* 86 / Stock */}
-              <SidebarSection title="86 / Stock" icon={<span className="text-[11px] font-black text-red-400">86</span>}>
+              <SidebarSection title={t.en ? 'Out of stock' : 'Agotados'} icon={<Ban className="w-4 h-4" />}>
                 {stockLoading ? (
                   <div className="flex items-center justify-center py-4">
                     <span className="w-4 h-4 border-2 border-[#DDD] border-t-[#06C167] rounded-full animate-spin" />
@@ -1718,7 +1639,7 @@ export function CounterView({
                     <span className="font-bold text-[#111]">{todayOrders.length}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#888]">Revenue</span>
+                    <span className="text-[#888]">{t.en ? 'Sales' : 'Ventas'}</span>
                     <span className="font-bold text-[#111]">{fmt(todayRevenue, currency)}</span>
                   </div>
                 </div>
@@ -2154,7 +2075,7 @@ export function CounterView({
                 onClick={() => {
                   const order = deliveryGuardModal.order;
                   setDeliveryGuardModal(null);
-                  handleDeliver(order, true);
+                  commitStatus(order, 'deliver', true);
                 }}
                 className="flex-1 py-3 rounded-xl text-white text-sm font-black bg-amber-500 hover:bg-amber-600 transition-colors"
               >
@@ -2426,24 +2347,10 @@ export function CounterView({
         </>
       )}
 
-      {/* ══ TOASTS ══ */}
-      {errorToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl bg-red-600 text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4 max-w-sm text-center">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {errorToast}
-        </div>
-      )}
-      {successToast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4" style={{ background: GREEN }}>
-          <Check className="w-4 h-4" /> {successToast}
-        </div>
-      )}
-      {notifToast && (
-        <div className={cn(
-          'fixed bottom-20 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl animate-in fade-in slide-in-from-bottom-4 max-w-xs',
-          notifToast.ok ? 'bg-[#0A8A47]' : 'bg-amber-500'
-        )}>
-          <MessageCircle className="w-4 h-4 flex-shrink-0" /> {notifToast.text}
-        </div>
+      {/* ══ AVISOS ══ abajo a la izquierda, nunca encima del botón principal */}
+      {errorToast && <CounterToast text={errorToast} tone="error" />}
+      {!errorToast && successToast && (
+        <CounterToast text={successToast} tone="ok" actionLabel={toastAction?.label} onAction={toastAction?.run} />
       )}
     </div>
   );
@@ -2452,159 +2359,9 @@ export function CounterView({
 // ══════════════════════════════════════════════════════════════════════════════
 // TabBtn
 // ══════════════════════════════════════════════════════════════════════════════
-
-function TabBtn({
-  label, count, active, urgent, badgeColor, onClick, icon,
-}: {
-  label: string; count: number | null; active: boolean; urgent: boolean;
-  badgeColor: string; onClick: () => void; icon?: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0',
-        active ? 'bg-[#111] text-white shadow-sm' : 'text-[#888] hover:text-[#111] hover:bg-[#F5F5F5]'
-      )}
-    >
-      {icon && <span className={active ? 'text-white' : 'text-[#BBBBBB]'}>{icon}</span>}
-      {label}
-      {count !== null && count > 0 && (
-        <span
-          className={cn(
-            'text-[11px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center',
-            urgent && !active ? 'animate-pulse' : ''
-          )}
-          style={{
-            background: active ? 'rgba(255,255,255,0.25)' : badgeColor + '22',
-            color: active ? '#fff' : badgeColor,
-          }}
-        >
-          {count}
-        </span>
-      )}
-    </button>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
 // OrderRow — left panel row
 // ══════════════════════════════════════════════════════════════════════════════
-
-function OrderRow({
-  order, currency, tab, t, selected, isUrgent, onClick,
-}: {
-  order: Order; currency: string; tab: Tab; t: ReturnType<typeof getT>;
-  selected: boolean; isUrgent: boolean; onClick: () => void;
-}) {
-  const TypeIcon = TYPE_ICON[order.order_type ?? 'dine_in'] ?? Utensils;
-  const mins = elapsedMins(order.created_at);
-  const secs = elapsedSecs(order.created_at);
-  const etaMins = order.estimated_ready_minutes;
-  const countdownSecs = etaMins != null ? etaMins * 60 - secs : null;
-  const isLate = countdownSecs !== null && countdownSecs < 0;
-
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'w-full text-left px-4 py-4 border-b border-[#F5F5F5] transition-all border-l-4',
-        selected ? 'bg-[#F0FDF4] border-l-[#06C167]' : 'hover:bg-[#FAFAFA] border-l-transparent',
-        isUrgent && !selected ? 'bg-red-50 border-l-red-400' : ''
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-            <TypeIcon className="w-3.5 h-3.5 text-[#AAAAAA] flex-shrink-0" />
-            <span className="text-[13px] font-black text-[#111]">#{order.order_number}</span>
-            <span className={cn(
-              'text-[9px] font-bold px-1.5 py-0.5 rounded-full',
-              order.order_type === 'delivery' ? 'bg-blue-100 text-blue-600' :
-              order.order_type === 'pickup' ? 'bg-purple-100 text-purple-600' :
-              'bg-orange-100 text-orange-600'
-            )}>
-              {getTypeLabel(order.order_type, t).toUpperCase()}
-            </span>
-            {isUrgent && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-500">
-                {t.urgent}
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-[#888] truncate">{order.customer_name || 'Cliente'}</p>
-          <p className="text-xs font-bold text-[#111] mt-1">{fmt(Number(order.total), currency)}</p>
-        </div>
-        <div className="flex-shrink-0 text-right">
-          {tab === 'prep' && countdownSecs !== null ? (
-            <div className={cn('text-xs font-black tabular-nums', isLate ? 'text-red-500' : 'text-[#06C167]')}>
-              {isLate ? '−' : ''}{fmtCountdown(countdownSecs)}
-            </div>
-          ) : tab === 'scheduled' && order.scheduled_for ? (
-            <div className="text-[10px] font-bold text-purple-500 text-right">
-              {new Date(order.scheduled_for).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              <div className="text-[9px] text-purple-300">{new Date(order.scheduled_for).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
-            </div>
-          ) : (
-            <div className={cn('text-xs font-semibold tabular-nums', isUrgent ? 'text-red-500' : 'text-[#AAAAAA]')}>
-              {mins}m
-            </div>
-          )}
-          {tab === 'ready' && order.order_type === 'delivery' ? (
-            order.driver_at_door_at ? (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 mt-0.5 block">🚪 {t.en ? 'At door' : 'En puerta'}</span>
-            ) : order.driver_picked_up_at ? (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 mt-0.5 block animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
-            ) : (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-500 mt-0.5 block">⏳ {t.en ? 'Awaiting driver' : 'Espera driver'}</span>
-            )
-          ) : tab === 'ready' ? (
-            <div className="text-[10px] text-[#06C167] font-bold mt-0.5">✓</div>
-          ) : null}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
 // HistoryRow
-// ══════════════════════════════════════════════════════════════════════════════
-
-function HistoryRow({
-  order, currency, t, selected, onClick,
-}: {
-  order: Order; currency: string; t: ReturnType<typeof getT>;
-  selected: boolean; onClick: () => void;
-}) {
-  const ok = order.status === 'delivered';
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'w-full text-left px-4 py-3.5 border-b border-[#F5F5F5] transition-all',
-        selected ? 'bg-[#F5F5F5]' : 'hover:bg-[#FAFAFA]'
-      )}
-    >
-      <div className="flex items-center gap-2.5">
-        <div className={cn('w-2 h-2 rounded-full flex-shrink-0', ok ? 'bg-[#06C167]' : 'bg-red-400')} />
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-center">
-            <span className="text-[13px] font-bold text-[#111]">#{order.order_number}</span>
-            <span className="text-xs font-bold text-[#111]">{fmt(Number(order.total), currency)}</span>
-          </div>
-          <div className="flex justify-between items-center mt-0.5">
-            <span className="text-xs text-[#888] truncate">{order.customer_name || '—'}</span>
-            <span className={cn('text-[10px] font-semibold ml-2 flex-shrink-0', ok ? 'text-[#06C167]' : 'text-red-400')}>
-              {ok ? t.delivered : t.cancelled}
-            </span>
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
 // StatusHistory — collapsible audit trail per order
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2681,755 +2438,9 @@ function StatusHistory({ orderId, t }: { orderId: string; t: ReturnType<typeof g
 // ══════════════════════════════════════════════════════════════════════════════
 // EmptyState
 // ══════════════════════════════════════════════════════════════════════════════
-
-function EmptyState({ tab, t, rtStatus }: { tab: Tab; t: ReturnType<typeof getT>; rtStatus?: RealtimeConnectionStatus }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full gap-3 text-[#CCCCCC] py-16">
-      {tab === 'new' && <Bell className="w-10 h-10" />}
-      {tab === 'prep' && <Clock className="w-10 h-10" />}
-      {tab === 'ready' && <CheckCircle className="w-10 h-10" />}
-      {tab === 'scheduled' && <Calendar className="w-10 h-10" />}
-      {tab === 'history' && <History className="w-10 h-10" />}
-      <p className="text-sm text-[#BBBBBB]">
-        {tab === 'new' ? t.waitingOrders :
-         tab === 'prep' ? t.noPrepping :
-         tab === 'ready' ? t.noReady :
-         tab === 'scheduled' ? (t.en ? 'No scheduled orders' : 'Sin órdenes programadas') :
-         t.noHistory}
-      </p>
-      {tab === 'new' && (
-        <p className="text-xs text-[#DDDDDD] flex items-center gap-1.5">
-          <span
-            className="w-1.5 h-1.5 rounded-full inline-block animate-pulse"
-            style={{ background: rtStatus === 'connected' ? '#06C167' : rtStatus === 'reconnecting' ? '#F59E0B' : '#EF4444' }}
-          />
-          {rtStatus === 'connected' ? t.connectedRt : rtStatus === 'reconnecting' ? (t.en ? 'Reconnecting…' : 'Reconectando…') : (t.en ? 'Disconnected' : 'Sin conexión')}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
 // OrderDetail — right panel
 // ══════════════════════════════════════════════════════════════════════════════
-
-function OrderDetail({
-  order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
-  onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onMarkServed,
-  onMarkAlmostReady, onMarkOutForDelivery, onDeliver,
-  onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify, lastNotif,
-  taxLabel, onEditItems, onRemoveItem, editSaving, onPhotoClick,
-}: {
-  order: Order; currency: string; restaurantName: string; tab: Tab;
-  eta: number; busyExtra: number; suggestedEta?: number | null; isUpdating: boolean;
-  t: ReturnType<typeof getT>;
-  onBack: () => void;
-  onSetEta: (v: number) => void;
-  onAdjustEta: (o: Order, v: number) => void;
-  onAccept: (o: Order) => void;
-  onMarkReady: (o: Order) => void;
-  onMarkServed: (o: Order) => void;
-  onMarkAlmostReady: (o: Order) => void;
-  onMarkOutForDelivery: (o: Order) => void;
-  onDeliver: (o: Order) => void;
-  onCancelRequest: (type: 'reject' | 'cancel') => void;
-  onPrint: () => void;
-  onAssignDriver: () => void;
-  onTipSaved?: (orderId: string, tip: number) => void;
-  onNotify: (order: Order) => Promise<void>;
-  lastNotif?: { channel: string; success: boolean; error?: string; time: number };
-  taxLabel?: string;
-  onEditItems?: (orderId: string) => void;
-  onRemoveItem?: (orderId: string, itemId: string) => void;
-  editSaving?: boolean;
-  onPhotoClick?: (url: string) => void;
-}) {
-  const secs = elapsedSecs(order.created_at);
-  const mins = elapsedMins(order.created_at);
-  const etaMins = order.estimated_ready_minutes;
-  const countdownSecs = etaMins != null ? etaMins * 60 - secs : null;
-  const isLate = countdownSecs !== null && countdownSecs < 0;
-  const isUrgent = tab === 'new' && mins >= SLA_WARN_MINS;
-  const effectiveEta = eta + busyExtra;
-  const TypeIcon = TYPE_ICON[order.order_type ?? 'dine_in'] ?? Utensils;
-  const table = (order as any).table?.name ?? (order as any).table_name ?? null;
-  const subtotal = (order.items ?? []).reduce((s, i) => s + (i.line_total ?? i.unit_price * i.qty), 0);
-  const [tipInput, setTipInput] = useState('');
-  const [savingTip, setSavingTip] = useState(false);
-  const [isEditingItems, setIsEditingItems] = useState(false);
-
-  // Header bg color
-  const headerBg =
-    tab === 'ready' ? GREEN :
-    isUrgent ? '#EF4444' :
-    '#111111';
-
-  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
-  const [notifying, setNotifying] = useState(false);
-
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-
-      {/* ── Detail Header ── */}
-      <div
-        className="flex-none px-5 py-4 transition-colors duration-300"
-        style={{ background: headerBg }}
-      >
-        {/* Back button (mobile) + order info */}
-        <div className="flex items-start gap-3">
-          <button
-            onClick={onBack}
-            className="sm:hidden w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center flex-shrink-0 mt-0.5"
-          >
-            <ChevronLeft className="w-5 h-5 text-white" />
-          </button>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-white font-black text-2xl leading-tight truncate">{order.customer_name || 'Cliente'}</span>
-              <span className="text-white/60 text-base">·</span>
-              <span className="text-white font-bold text-base">#{order.order_number}</span>
-              {isUrgent && (
-                <span className="text-white bg-white/20 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                  {t.urgent}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <div className="flex items-center gap-1 text-white/70 text-xs">
-                <TypeIcon className="w-3 h-3" />
-                <span>{getTypeLabel(order.order_type, t)}</span>
-                {table && <span>· {table}</span>}
-              </div>
-              <span className="text-white/50 text-xs">·</span>
-              <div className="flex items-center gap-1 text-white/70 text-xs">
-                <Clock className="w-3 h-3" />
-                <span>{timeAgo(order.created_at, t)}</span>
-              </div>
-            </div>
-            {lastNotif && (
-              <div className="flex items-center gap-1 mt-1.5">
-                <span className={cn(
-                  'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
-                  lastNotif.success
-                    ? 'bg-white/20 text-white/90'
-                    : 'bg-white/10 text-white/50'
-                )}>
-                  <MessageCircle className="w-2.5 h-2.5" />
-                  {lastNotif.channel === 'email' && 'Email'}
-                  {lastNotif.channel === 'none' && (t.en ? 'Not sent' : 'No enviado')}
-                  {lastNotif.success ? ` · ${t.en ? 'sent' : 'enviado'}` : ` · ${t.en ? 'failed' : 'fallido'}`}
-                  {' · '}{Math.round((Date.now() - lastNotif.time) / 60_000) < 1
-                    ? (t.en ? 'just now' : 'ahora')
-                    : `${Math.round((Date.now() - lastNotif.time) / 60_000)}m`}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Action icons */}
-          <div className="flex items-center gap-1.5 flex-shrink-0 relative">
-            <button onClick={onPrint}
-              className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              title="Print">
-              <Printer className="w-4 h-4 text-white" />
-            </button>
-            {order.customer_phone && (
-              <div className="relative">
-                <button
-                  onClick={() => setMoreActionsOpen(v => !v)}
-                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-                  title={t.moreActions}
-                >
-                  <Settings2 className="w-4 h-4 text-white" />
-                </button>
-                {moreActionsOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setMoreActionsOpen(false)} />
-                    <div className="absolute right-0 top-11 z-50 bg-white rounded-xl shadow-2xl border border-[#E8E8E8] overflow-hidden min-w-[180px]">
-                      <a
-                        href={`tel:${order.customer_phone}`}
-                        onClick={() => setMoreActionsOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-[#111] hover:bg-[#F5F5F5] transition-colors"
-                      >
-                        <Phone className="w-4 h-4 text-[#888]" /> {t.callCustomer}
-                      </a>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            {/* Cancel/Reject button */}
-            <button
-              onClick={() => onCancelRequest(tab === 'new' ? 'reject' : 'cancel')}
-              className="w-11 h-11 rounded-full bg-white/20 hover:bg-red-500/70 flex items-center justify-center transition-colors"
-              title={tab === 'new' ? t.rejectOrder : t.cancelOrder}
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Order flow progress ── */}
-      {tab !== 'history' && (
-        <div className="flex-none px-5 py-2.5 bg-[#FAFAFA] border-b border-[#F0F0F0]">
-          <div className="flex items-center gap-1">
-            {(order.order_type === 'dine_in'
-              ? [
-                  { key: 'pending',   label: t.tabNew,  color: '#EF4444' },
-                  { key: 'preparing', label: t.tabPrep, color: '#8B5CF6' },
-                  { key: 'delivered', label: t.en ? 'Served' : 'Servido', color: '#111' },
-                ]
-              : [
-                  { key: 'pending',   label: t.tabNew,  color: '#EF4444' },
-                  { key: 'preparing', label: t.tabPrep, color: '#8B5CF6' },
-                  { key: 'ready',     label: t.tabReady, color: '#06C167' },
-                  { key: 'delivered', label: order.order_type === 'pickup'
-                      ? (t.en ? 'Picked up' : 'Recogido')
-                      : t.deliveredBtn,
-                    color: '#111' },
-                ]
-            ).map((step, i, arr) => {
-              const statuses = order.order_type === 'dine_in'
-                ? ['pending', 'confirmed', 'preparing', 'delivered']
-                : ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
-              const currentIdx = statuses.indexOf(order.status);
-              const stepIdx = statuses.indexOf(step.key);
-              const isDone = stepIdx < currentIdx;
-              const isActive = stepIdx === currentIdx;
-              return (
-                <div key={step.key} className="flex items-center flex-1 min-w-0">
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <div
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black transition-all"
-                      style={{
-                        background: isDone ? '#06C167' : isActive ? step.color : '#E5E7EB',
-                        color: isDone || isActive ? '#fff' : '#9CA3AF',
-                      }}
-                    >
-                      {isDone ? '✓' : i + 1}
-                    </div>
-                    <p
-                      className="text-[9px] font-semibold mt-0.5 leading-tight text-center max-w-[48px] truncate"
-                      style={{ color: isActive ? step.color : isDone ? '#06C167' : '#9CA3AF' }}
-                    >
-                      {step.label}
-                    </p>
-                  </div>
-                  {i < arr.length - 1 && (
-                    <div
-                      className="flex-1 h-0.5 mx-1 rounded-full transition-all"
-                      style={{ background: isDone ? '#06C167' : '#E5E7EB' }}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Detail Body ── */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-5 space-y-4">
-
-          {/* ETA bar (prep tab only) — compact, no giant clock */}
-          {tab === 'prep' && (
-            <div className="bg-white rounded-2xl border-2 border-[#E8E8E8] px-4 py-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#888] flex-shrink-0" />
-                <span className="text-sm font-semibold text-[#888]">{t.eta}</span>
-                <span className={cn('text-sm font-black tabular-nums', isLate ? 'text-red-500' : 'text-[#111]')}>
-                  {etaMins ?? effectiveEta} min
-                  {isLate && <span className="ml-1 text-[10px] font-bold text-red-400 uppercase">{t.overdue}</span>}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                {[-5, +5].map(delta => {
-                  const current = etaMins ?? effectiveEta;
-                  const newVal = Math.max(1, current + delta);
-                  return (
-                    <button
-                      key={delta}
-                      onClick={() => onAdjustEta(order, newVal)}
-                      disabled={isUpdating}
-                      className={cn(
-                        'px-2.5 py-1.5 rounded-lg text-xs font-black border transition-all active:scale-95 disabled:opacity-40',
-                        delta < 0
-                          ? 'border-[#E8E8E8] text-[#888] bg-white hover:bg-[#F5F5F5]'
-                          : 'border-[#E8E8E8] text-[#888] bg-white hover:bg-[#F5F5F5]'
-                      )}
-                    >
-                      {delta > 0 ? '+' : ''}{delta}m
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* ETA selector (new tab only) */}
-          {tab === 'new' && (
-            <div className="bg-white rounded-2xl p-5 border-2 border-[#E8E8E8]">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest">{t.eta}</p>
-                {suggestedEta && (
-                  <button
-                    onClick={() => onSetEta(suggestedEta)}
-                    className="flex items-center gap-1 text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors"
-                  >
-                    <MapPin className="w-2.5 h-2.5" />
-                    {t.en ? `~${suggestedEta} min suggested` : `~${suggestedEta} min sugerido`}
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center justify-center gap-4">
-                <button
-                  onClick={() => onSetEta(Math.max(5, eta - 5))}
-                  className="w-12 h-12 rounded-xl border-2 border-[#E8E8E8] text-[#555] font-black text-lg hover:border-[#CCC] active:scale-95 transition-all"
-                >
-                  −
-                </button>
-                <div className="text-center min-w-[80px]">
-                  <span className="text-4xl font-black text-[#111] tabular-nums">{effectiveEta}</span>
-                  <p className="text-xs text-[#888] font-semibold mt-0.5">min</p>
-                </div>
-                <button
-                  onClick={() => onSetEta(Math.min(60, eta + 5))}
-                  className="w-12 h-12 rounded-xl border-2 border-[#E8E8E8] text-[#555] font-black text-lg hover:border-[#CCC] active:scale-95 transition-all"
-                >
-                  +
-                </button>
-              </div>
-              {busyExtra > 0 && (
-                <p className="text-xs text-center text-[#F59E0B] font-semibold mt-2">
-                  +{busyExtra} min {t.busyMode} → {effectiveEta} min
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Items */}
-          <div className="bg-white rounded-2xl border-2 border-[#E8E8E8] overflow-hidden">
-            <div className="px-5 py-3 border-b border-[#F5F5F5] flex items-center justify-between">
-              <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest">
-                {t.items((order.items ?? []).reduce((s, i) => s + i.qty, 0))}
-              </p>
-              {onEditItems && !['delivered', 'completed', 'cancelled'].includes(order.status) && (
-                <div className="flex items-center gap-1.5">
-                  {isEditingItems ? (
-                    <>
-                      <button
-                        onClick={() => { onEditItems(order.id); }}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#06C167]/10 text-[#06C167] text-[11px] font-semibold hover:bg-[#06C167]/20 transition-colors"
-                      >
-                        <span className="text-xs font-bold">+</span>
-                        {t.en ? 'Add' : 'Agregar'}
-                      </button>
-                      <button
-                        onClick={() => setIsEditingItems(false)}
-                        className="px-2.5 py-1 rounded-lg bg-[#111] text-white text-[11px] font-semibold hover:bg-[#333] transition-colors"
-                      >
-                        {t.en ? 'Done' : 'Listo'}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => setIsEditingItems(true)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#F5F5F5] text-[#555] text-[11px] font-semibold hover:bg-[#EAEAEA] transition-colors"
-                    >
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                      </svg>
-                      {t.en ? 'Edit' : 'Editar'}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="px-5 divide-y divide-[#F5F5F5]">
-              {(order.items ?? []).map((item, idx) => (
-                <ItemRow
-                  key={item.id ?? idx}
-                  item={item}
-                  currency={currency}
-                  canRemove={isEditingItems && !!onRemoveItem && !['delivered', 'completed', 'cancelled'].includes(order.status) && (order.items ?? []).length > 1}
-                  onRemove={() => item.id && onRemoveItem?.(order.id, item.id)}
-                  removing={editSaving}
-                />
-              ))}
-            </div>
-
-            {/* Notes */}
-            {order.notes && (
-              <div className="mx-5 mb-4 mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs font-semibold text-amber-700 italic">{order.notes}</p>
-              </div>
-            )}
-
-            {/* Delivery address + driver */}
-            {order.order_type === 'delivery' && (
-              <div className="mx-5 mb-4 mt-2 space-y-2">
-                {order.delivery_address && (
-                  <div className="flex items-start gap-2 bg-[#F5F5F5] rounded-xl px-3 py-2.5">
-                    <MapPin className="w-3.5 h-3.5 text-[#888] flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <a
-                        href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] font-bold underline"
-                        style={{ color: GREEN }}
-                      >
-                        {t.viewOnMap}
-                      </a>
-                      <p className="text-xs text-[#555] mt-0.5 break-words">{order.delivery_address}</p>
-                    </div>
-                  </div>
-                )}
-                {/* Driver live status — shown whenever driver has interacted via QR link */}
-                {(order.driver_picked_up_at || order.driver_at_door_at || order.status === 'delivered' || order.driver_name) && (
-                  <div className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5">
-                    <span className="text-base">🛵</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#06C167]">{t.driver}</p>
-                      {order.driver_name && (
-                        <p className="text-xs text-[#555] truncate">
-                          {order.driver_name}
-                          {order.driver_phone ? ` · ${order.driver_phone}` : ''}
-                        </p>
-                      )}
-                      {(order as any).driver_tracking_token && order.driver_picked_up_at && order.status !== 'delivered' && (
-                        <a
-                          href={`${typeof window !== 'undefined' ? window.location.origin : ''}/driver/track/${(order as any).driver_tracking_token}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] font-bold underline mt-0.5 block"
-                          style={{ color: GREEN }}
-                        >
-                          {t.en ? 'Track on map →' : 'Ver en mapa →'}
-                        </a>
-                      )}
-                    </div>
-                    {order.status === 'delivered' ? (
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">✓ {t.en ? 'Delivered' : 'Entregado'}</span>
-                    ) : order.driver_at_door_at ? (
-                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex-shrink-0">🚪 {t.en ? 'At door' : 'En la puerta'}</span>
-                    ) : order.driver_picked_up_at ? (
-                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0 animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
-                    ) : null}
-                  </div>
-                )}
-                {order.delivery_photo_url && (
-                  <div className="mt-2 flex items-center gap-3">
-                    <button
-                      onClick={() => onPhotoClick?.(order.delivery_photo_url!)}
-                      className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-[#E8E8E8] hover:border-[#06C167] transition-colors flex-shrink-0 group"
-                      title={t.en ? 'View delivery proof' : 'Ver foto de entrega'}
-                    >
-                      <Image src={order.delivery_photo_url!} alt="Delivery proof" fill className="object-cover group-hover:scale-105 transition-transform" sizes="56px" />
-                    </button>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-[#888] uppercase tracking-wider">📷 {t.en ? 'Delivery proof' : 'Foto de entrega'}</p>
-                      <button onClick={() => onPhotoClick?.(order.delivery_photo_url!)} className="text-xs text-[#06C167] font-semibold mt-0.5">
-                        {t.en ? 'View full photo →' : 'Ver foto completa →'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Totals */}
-            <div className="px-5 py-3 border-t border-[#F5F5F5] bg-[#FAFAFA] space-y-1">
-              {subtotal !== Number(order.total) && (
-                <div className="flex justify-between text-xs text-[#888]">
-                  <span>Subtotal</span><span>{fmt(subtotal, currency)}</span>
-                </div>
-              )}
-              {(order.tax_amount ?? 0) > 0 && (
-                <div className="flex justify-between text-xs text-[#888]">
-                  <span>{taxLabel ?? (t.en ? 'Tax' : 'Impuestos')}</span>
-                  <span>{fmt(order.tax_amount!, currency)}</span>
-                </div>
-              )}
-              {(order.delivery_fee ?? 0) > 0 && (
-                <div className="flex justify-between text-xs text-[#888]">
-                  <span>{t.en ? 'Delivery fee' : 'Envío'}</span>
-                  <span>{fmt(order.delivery_fee!, currency)}</span>
-                </div>
-              )}
-              {(order.discount_amount ?? 0) > 0 && (
-                <div className="flex justify-between text-xs" style={{ color: GREEN }}>
-                  <span>{t.en ? 'Discount' : 'Descuento'}</span>
-                  <span>−{fmt(order.discount_amount!, currency)}</span>
-                </div>
-              )}
-              {(order.tip_amount ?? 0) > 0 && (
-                <div className="flex justify-between text-xs text-[#888]">
-                  <span>💵 {t.en ? 'Tip' : 'Propina'}</span>
-                  <span>{fmt(order.tip_amount!, currency)}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center pt-1 border-t border-[#EEEEEE]">
-                <span className="text-sm font-bold text-[#111]">{t.total}</span>
-                <span className="text-2xl font-black text-[#111]">{fmt(Number(order.total), currency)}</span>
-              </div>
-              {/* Cash tip input — only for cash payment orders in active tabs */}
-              {order.payment_method === 'cash' && tab !== 'history' && (
-                <div className="pt-2 border-t border-[#EEEEEE]">
-                  <p className="text-[10px] text-[#AAAAAA] uppercase tracking-wide font-semibold mb-1.5">
-                    {t.en ? 'Add tip' : 'Agregar propina'}
-                  </p>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#888] text-xs font-medium">
-                        {currency === 'USD' ? '$' : currency === 'MXN' ? '$' : currency}
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.50"
-                        value={tipInput}
-                        onChange={e => setTipInput(e.target.value)}
-                        placeholder={order.tip_amount ? String(order.tip_amount) : '0.00'}
-                        className="w-full pl-6 pr-2 py-2 rounded-lg border border-[#E8E8E8] bg-white text-sm text-[#111] focus:outline-none focus:border-[#06C167]"
-                      />
-                    </div>
-                    <button
-                      disabled={savingTip || !tipInput}
-                      onClick={async () => {
-                        const val = parseFloat(tipInput);
-                        if (isNaN(val) || val < 0) return;
-                        setSavingTip(true);
-                        const res = await updateOrderTip(order.id, val);
-                        setSavingTip(false);
-                        if (!res?.error) {
-                          setTipInput('');
-                          onTipSaved?.(order.id, val);
-                        }
-                      }}
-                      className="px-3 py-2 rounded-lg text-xs font-bold text-white transition-colors disabled:opacity-40"
-                      style={{ background: savingTip ? '#AAA' : GREEN }}
-                    >
-                      {savingTip ? '…' : t.en ? 'Save' : 'Guardar'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Status History ── */}
-      <StatusHistory orderId={order.id} t={t} />
-
-      {/* ── Action Buttons ── */}
-      {/* pb con safe-area: el botón primario no debe caer bajo la barra de gestos
-          de iOS (home indicator) en Counter abierto en navegador móvil. */}
-      <div
-        className="flex-none px-4 pt-4 bg-white border-t border-[#E8E8E8] space-y-2"
-        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
-      >
-
-        {/* NEW tab: confirm button */}
-        {tab === 'new' && (
-          <button
-            disabled={isUpdating}
-            onClick={() => onAccept(order)}
-            className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-            style={{ background: isUpdating ? '#AAA' : GREEN }}
-          >
-            {isUpdating
-              ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><Check className="w-6 h-6" /> {t.confirmBtn(effectiveEta)}</>}
-          </button>
-        )}
-
-        {/* PREP tab: dine-in → serve directly; pickup/delivery → mark ready */}
-        {tab === 'prep' && (
-          <div className="space-y-3">
-            {/* Secondary: almost ready — only show when not already almost_ready.
-                h-11 + gap mayor al primario para evitar mistap bajo presión de servicio
-                (avanzar estado es irreversible + notifica al cliente). */}
-            {order.status !== 'almost_ready' && (
-              <button
-                disabled={isUpdating}
-                onClick={() => onMarkAlmostReady(order)}
-                className="w-full h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 transition-all active:scale-[0.98] disabled:opacity-40"
-                style={{ borderColor: '#E0E0E0', color: '#555', background: '#FAFAFA' }}
-              >
-                {t.almostReadyBtn} <span className="text-amber-400">⏱</span>
-              </button>
-            )}
-
-            {/* Primary action */}
-            {order.order_type === 'dine_in' ? (
-              <button
-                disabled={isUpdating}
-                onClick={() => onMarkServed(order)}
-                className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-                style={{ background: isUpdating ? '#AAA' : '#111' }}
-              >
-                {isUpdating
-                  ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><Check className="w-6 h-6" /> {t.en ? 'Serve to table' : 'Servir a la mesa'} <ChevronRight className="w-5 h-5" /></>}
-              </button>
-            ) : order.order_type === 'pickup' ? (
-              <button
-                disabled={isUpdating}
-                onClick={() => onMarkReady(order)}
-                className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-                style={{ background: isUpdating ? '#AAA' : GREEN }}
-              >
-                {isUpdating
-                  ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><CheckCircle className="w-6 h-6" /> {t.en ? 'Ready for pickup' : 'Listo para recoger'} <ChevronRight className="w-5 h-5" /></>}
-              </button>
-            ) : (
-              <button
-                disabled={isUpdating}
-                onClick={() => onMarkReady(order)}
-                className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-                style={{ background: isUpdating ? '#AAA' : GREEN }}
-              >
-                {isUpdating
-                  ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><CheckCircle className="w-6 h-6" /> {t.readyBtn(order.order_type)} <ChevronRight className="w-5 h-5" /></>}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* READY tab: resend notification + out-for-delivery / served / delivered */}
-        {tab === 'ready' && (
-          <div className="space-y-2">
-            {order.customer_phone && (
-              <button
-                disabled={notifying}
-                onClick={async () => {
-                  setNotifying(true);
-                  await onNotify(order);
-                  setNotifying(false);
-                }}
-                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold border-2 transition-all active:scale-[0.97] disabled:opacity-50"
-                style={{ background: '#DCFCE7', borderColor: '#86EFAC', color: '#15803D' }}
-              >
-                {notifying
-                  ? <span className="w-4 h-4 border-2 border-green-400/40 border-t-green-600 rounded-full animate-spin" />
-                  : <><MessageCircle className="w-4 h-4" /> {t.notifyCustomer}</>}
-              </button>
-            )}
-            {/* Delivery: out_for_delivery intermediate step */}
-            {order.order_type === 'delivery' && order.status !== 'out_for_delivery' && (
-              <button
-                disabled={isUpdating}
-                onClick={() => onMarkOutForDelivery(order)}
-                className="w-full h-12 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 transition-all active:scale-[0.97] disabled:opacity-50"
-                style={{ background: '#EDE9FE', borderColor: '#C4B5FD', color: '#6D28D9' }}
-              >
-                <Truck className="w-4 h-4" /> {t.outForDeliveryBtn}
-              </button>
-            )}
-            <button
-              disabled={isUpdating}
-              onClick={() => onDeliver(order)}
-              className="w-full h-14 rounded-xl text-white text-base font-black flex items-center justify-center gap-2 shadow transition-all active:scale-[0.98] disabled:opacity-50"
-              style={{ background: isUpdating ? '#AAA' : '#111' }}
-            >
-              {isUpdating
-                ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><Check className="w-5 h-5" /> {t.deliveredBtnFor(order.order_type)}</>}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
 // ItemRow
-// ══════════════════════════════════════════════════════════════════════════════
-
-function ItemRow({ item, currency, canRemove, onRemove, removing }: {
-  item: OrderItem; currency: string;
-  canRemove?: boolean; onRemove?: () => void; removing?: boolean;
-}) {
-  const raw = item as any;
-  const variantName = item.variant?.name ?? null;
-
-  const rawExtras: any[] = item.extras ?? raw.order_item_extras ?? [];
-  const extras = rawExtras
-    .map((ex: any) => ({ name: ex.extra?.name ?? ex.product_extras?.name ?? null, price: Number(ex.price ?? 0) }))
-    .filter((ex: any) => ex.name);
-
-  const rawMods: any[] = raw.order_item_modifiers ?? [];
-  const modGroups = new Map<string, Array<{ option: string; delta: number }>>();
-  for (const m of rawMods) {
-    if (!m.option_name) continue;
-    const grp = m.group_name ?? 'Options';
-    if (!modGroups.has(grp)) modGroups.set(grp, []);
-    modGroups.get(grp)!.push({ option: m.option_name, delta: Number(m.price_delta ?? 0) });
-  }
-
-  const hasCustomization = variantName || extras.length > 0 || modGroups.size > 0;
-
-  return (
-    <div className="flex items-start gap-3 py-3.5">
-      {/* Qty badge always visible */}
-      <span className="flex-none w-8 h-8 rounded-lg border-2 border-[#E0E0E0] bg-[#FAFAFA] flex items-center justify-center text-sm font-black text-[#111]">
-        {item.qty}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-[#111] text-sm font-bold leading-tight">{item.product?.name ?? '—'}</p>
-        {hasCustomization && (
-          <div className="mt-1 space-y-0.5">
-            {variantName && <p className="text-[#666] text-xs">↳ {variantName}</p>}
-            {Array.from(modGroups.entries()).map(([grpName, options]) => (
-              <div key={grpName}>
-                <p className="text-[#AAAAAA] text-[10px] uppercase font-bold tracking-wide mt-1">{grpName}</p>
-                {options.map((opt, i) => (
-                  <p key={i} className="text-[#666] text-xs flex justify-between">
-                    <span>• {opt.option}</span>
-                    {opt.delta > 0 && <span className="text-[#888]">+{fmt(opt.delta, currency)}</span>}
-                  </p>
-                ))}
-              </div>
-            ))}
-            {extras.map((ex, i) => (
-              <p key={i} className="text-[#666] text-xs flex justify-between">
-                <span>+ {ex.name}</span>
-                {ex.price > 0 && <span className="text-[#888]">+{fmt(ex.price, currency)}</span>}
-              </p>
-            ))}
-          </div>
-        )}
-        {item.notes && <p className="text-amber-600 text-xs mt-1 italic font-medium">★ {item.notes}</p>}
-      </div>
-      <div className="flex-none flex items-center gap-2">
-        <span className="text-sm font-bold text-[#111]">
-          {fmt(item.line_total ?? item.unit_price * item.qty, currency)}
-        </span>
-        {/* Remove button — only visible in edit mode, on the right */}
-        {canRemove && (
-          <button
-            onClick={onRemove}
-            disabled={removing}
-            className="w-7 h-7 rounded-lg border border-red-200 bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors disabled:opacity-40"
-            title="Remove item"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
 // SidebarSection
 // ══════════════════════════════════════════════════════════════════════════════
@@ -3450,151 +2461,5 @@ function SidebarSection({
   );
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// NewOrderSplash — full screen flash identical to Uber Eats
-// ══════════════════════════════════════════════════════════════════════════════
-
-const SPLASH_SECS = 30; // seconds before auto-accept
-/** Un programado que vence dentro de este margen se trata como pedido inmediato. */
+// Un programado que vence dentro de este margen se trata como pedido inmediato.
 const SCHEDULED_SPLASH_LEAD_MS = 30 * 60_000;
-const RING_SIZE = 72;
-const RING_R = 30;
-const RING_CIRC = 2 * Math.PI * RING_R;
-
-function NewOrderSplash({
-  order, currency, queueCount, eta, t, onView, onAutoAccept, onReject,
-}: {
-  order: Order; currency: string; queueCount: number; eta: number;
-  t: ReturnType<typeof getT>; onView: () => void; onAutoAccept: () => void;
-  onReject?: () => void;
-}) {
-  const totalQty = (order.items ?? []).reduce((s, i) => s + i.qty, 0);
-  const [secsLeft, setSecsLeft] = useState(SPLASH_SECS);
-  const autoAcceptFired = useRef(false);
-
-  // Countdown tick
-  useEffect(() => {
-    const id = setInterval(() => setSecsLeft(s => s - 1), 1_000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Fire auto-accept when countdown hits 0
-  useEffect(() => {
-    if (secsLeft <= 0 && !autoAcceptFired.current) {
-      autoAcceptFired.current = true;
-      onAutoAccept();
-    }
-  }, [secsLeft, onAutoAccept]);
-
-  // Repeat sound every 3 seconds until dismissed — identical to Uber Eats
-  useEffect(() => {
-    const id = setInterval(playNewOrderSound, 3_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const progress = Math.max(0, secsLeft / SPLASH_SECS);
-  const dash = RING_CIRC * progress;
-
-  // Top 3 items for preview
-  const previewItems = (order.items ?? []).slice(0, 3);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-      style={{ background: GREEN }}
-    >
-      {/* Countdown ring */}
-      <div className="relative mb-4" style={{ width: RING_SIZE, height: RING_SIZE }}>
-        <svg width={RING_SIZE} height={RING_SIZE} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
-            fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="5" />
-          <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
-            fill="none" stroke="white" strokeWidth="5"
-            strokeDasharray={`${dash} ${RING_CIRC}`}
-            strokeLinecap="round"
-            style={{ transition: 'stroke-dasharray 1s linear' }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-white font-black text-2xl">{secsLeft}</span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 mb-2">
-        <p className="text-white/80 text-lg font-bold uppercase tracking-widest">{t.newOrder}</p>
-        {queueCount > 1 && (
-          <span className="bg-white/25 text-white text-sm font-black px-3 py-1 rounded-full">
-            +{queueCount - 1}
-          </span>
-        )}
-      </div>
-
-      <p className="text-white font-black mb-1 text-center px-6" style={{ fontSize: 48, lineHeight: 1.1 }}>
-        {order.customer_name || 'Cliente'}
-      </p>
-      <p className="text-white/80 text-2xl font-bold mb-1">#{order.order_number}</p>
-
-      <div className="flex items-center gap-3 text-white/70 text-base mt-1 mb-3">
-        <span>{t.items(totalQty)}</span>
-        {order.order_type && (
-          <><span>·</span><span>{getTypeLabel(order.order_type, t)}</span></>
-        )}
-      </div>
-
-      {/* Item preview cards */}
-      {previewItems.length > 0 && (
-        <div className="flex gap-2 mb-4 px-4 max-w-sm w-full">
-          {previewItems.map((item, i) => {
-            const img = (item as any).product?.image_url;
-            const name = (item as any).product?.name ?? 'Item';
-            return (
-              <div key={i} className="flex-1 bg-white/20 rounded-xl p-2.5 flex items-center gap-2 min-w-0">
-                {img ? (
-                  <Image src={img} alt={name} width={32} height={32} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" unoptimized />
-                ) : (
-                  <div className="w-8 h-8 rounded-lg bg-white/30 flex-shrink-0 flex items-center justify-center text-base">🍽️</div>
-                )}
-                <div className="min-w-0">
-                  <p className="text-white text-[11px] font-bold truncate">{item.qty}x {name}</p>
-                </div>
-              </div>
-            );
-          })}
-          {(order.items ?? []).length > 3 && (
-            <div className="bg-white/20 rounded-xl px-3 flex items-center">
-              <span className="text-white text-sm font-bold">+{(order.items ?? []).length - 3}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      <p className="text-white font-black mb-6" style={{ fontSize: 40 }}>
-        {fmt(order.total, currency)}
-      </p>
-
-      {/* Accept / Reject buttons — Uber Eats style */}
-      <div className="flex gap-4 px-6 w-full max-w-sm">
-        {onReject && (
-          <button
-            onClick={e => { e.stopPropagation(); onReject(); }}
-            className="flex-1 h-16 rounded-2xl bg-black/30 font-extrabold text-lg text-white border-2 border-white/30 active:scale-[0.97] transition-transform"
-          >
-            {t.en ? 'Reject' : 'Rechazar'}
-          </button>
-        )}
-        <button
-          onClick={e => { e.stopPropagation(); onView(); }}
-          className="flex-[2] h-16 rounded-2xl bg-white font-extrabold text-xl flex items-center justify-center gap-3 shadow-xl active:scale-[0.97] transition-transform"
-          style={{ color: GREEN }}
-        >
-          {queueCount > 1 ? `${t.viewOrder} (${queueCount - 1}+)` : t.viewOrder}
-          <ChevronRight className="w-6 h-6" />
-        </button>
-      </div>
-
-      <p className="text-white/50 text-xs mt-5">
-        {t.tapAnywhere} {secsLeft}s
-      </p>
-    </div>
-  );
-}
