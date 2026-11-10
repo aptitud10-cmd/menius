@@ -79,6 +79,46 @@ if (!anon) {
   process.exit(1);
 }
 
+/**
+ * Direct upload with the service role, when this machine has it (it has since
+ * 2026-11). The edge function above was neutralised to 410 after each batch, so
+ * without this path every upload would need it re-enabled first. Still a
+ * local-only script: the key is read from .env.local and never leaves it.
+ */
+const SUPABASE_URL = `https://${PROJECT}.supabase.co`;
+const service = envVar('SUPABASE_SERVICE_ROLE_KEY');
+
+async function uploadObject(objectPath, buf) {
+  if (service) {
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/product-images/${objectPath}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${service}`,
+        'Content-Type': 'image/jpeg',
+        'x-upsert': 'false',
+      },
+      body: buf,
+      signal: AbortSignal.timeout(45000),
+    });
+    const text = await res.text();
+    if (!res.ok) return { error: `${res.status}: ${text.slice(0, 120)}` };
+    return { url: `${SUPABASE_URL}/storage/v1/object/public/product-images/${objectPath}` };
+  }
+  const res = await fetch(FN, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${anon}`,
+      'x-object-path': objectPath,
+      'Content-Type': 'application/octet-stream',
+    },
+    body: buf,
+    signal: AbortSignal.timeout(45000),
+  });
+  const text = await res.text();
+  if (!res.ok) return { error: `${res.status}: ${text.slice(0, 120)}` };
+  return { url: JSON.parse(text).url };
+}
+
 const manifestPath = process.argv[2];
 if (!manifestPath || !existsSync(manifestPath)) {
   console.error('Uso: node scripts/upload-products.mjs <manifest.json>');
@@ -126,22 +166,11 @@ for (const [i, item] of items.entries()) {
     process.stdout.write(
       `${(from / 1024).toFixed(0)}→${(buf.length / 1024).toFixed(0)}KB… `,
     );
-    const res = await fetch(FN, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${anon}`,
-        'x-object-path': objectPath,
-        'Content-Type': 'application/octet-stream',
-      },
-      body: buf,
-      signal: AbortSignal.timeout(45000),
-    });
-    const text = await res.text();
-    if (!res.ok) {
-      console.log(`ERROR ${res.status}: ${text.slice(0, 120)}`);
+    const { url, error } = await uploadObject(objectPath, buf);
+    if (error) {
+      console.log(`ERROR ${error}`);
       continue;
     }
-    const { url } = JSON.parse(text);
     updates.push({ id: item.id, name: item.name, url });
     console.log('ok');
   } catch (err) {
