@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
-  CheckCircle, Camera, Upload,
-  Loader2, Package, DoorOpen, MapPin, Bike, AlertTriangle, Navigation,
+  CheckCircle, Check, Camera, Loader2, MapPin, AlertTriangle, Navigation,
+  Phone, MessageSquare, Banknote, ArrowRight,
 } from 'lucide-react';
+import { C, money } from '@/components/orders/counter/ui';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 
@@ -16,38 +17,68 @@ function getT(lang: string) {
   const en = lang === 'en';
   return {
     en,
-    title:      en ? 'MENIUS Driver'              : 'MENIUS Repartidor',
-    subtitle:   en ? 'Delivery tracking'           : 'Seguimiento de entrega',
-    step1Label: en ? 'Pick up order'               : 'Recoger pedido',
-    step2Label: en ? 'At the door'                 : 'En la puerta',
-    step3Label: en ? 'Delivered'                   : 'Entregado',
-    step1Btn:   en ? '📦  I picked up the order'   : '📦  Ya tengo el pedido',
-    step2Btn:   en ? '🚪  I\'m at the door'        : '🚪  Estoy en la puerta',
-    step3Btn:   en ? '✅  Order delivered'          : '✅  Pedido entregado',
-    gpsSharing: en ? '📡 GPS active'               : '📡 GPS activo',
-    gpsEvery:   en ? 'Keep this page open'          : 'Mantén esta página abierta',
-    gpsErr:     en ? 'Could not get your location'  : 'No se pudo obtener tu ubicación',
-    gpsUnsupported: en ? 'GPS not available'        : 'GPS no disponible',
-    tryAgain:   en ? 'Try again'                    : 'Intentar de nuevo',
-    doneTitle:  en ? 'Delivery complete!'           : '¡Entrega completada!',
-    doneSub:    en ? 'Thank you!'                   : '¡Gracias!',
-    photoTitle: en ? 'Proof of delivery'            : 'Foto de prueba',
-    photoTap:   en ? 'Tap to take photo'            : 'Toca para tomar la foto',
-    photoOk:    en ? '✓ Photo uploaded'             : '✓ Foto enviada',
-    photoAlt:   en ? 'Delivery proof'               : 'Foto de entrega',
-    photoErr:   en ? 'Upload failed — try again'    : 'Error al subir — intenta de nuevo',
-    connErr:    en ? 'Connection error'             : 'Error de conexión',
-    tokenExp:   en ? 'Link expired'                 : 'Enlace expirado',
-    errSend:    en ? 'Error — try again'            : 'Error — intenta de nuevo',
-    deliverTo:  en ? 'Deliver to'                   : 'Entregar en',
-    navigateGmaps: en ? 'Navigate with Google Maps' : 'Navegar con Google Maps',
-    navigateWaze:  en ? 'Open in Waze'              : 'Abrir en Waze',
-    screenOn:      en ? '🔆 Screen stays on'        : '🔆 Pantalla activa',
-    pocketBtn:     en ? '🌙 Pocket mode'            : '🌙 Modo bolsillo',
-    pocketHint:    en ? 'Black screen, GPS keeps working — pocket the phone WITHOUT locking it' : 'Pantalla negra, el GPS sigue activo — guarda el celular SIN bloquearlo',
-    pocketHold:    en ? 'Press and hold to exit'    : 'Mantén presionado para salir',
+    pickedUpBtn: en ? 'I have the order'            : 'Ya tengo el pedido',
+    atDoorBtn:   en ? "I'm at the door"             : 'Llegué a la puerta',
+    slideDone:   en ? 'Slide: delivered'            : 'Desliza: entregado',
+    slideLocked: en ? 'Photo or "in hand" first'    : 'Primero foto o "en la mano"',
+    gpsLive:     en ? 'Live location'               : 'Ubicación en vivo',
+    gpsOff:      en ? 'Location off'                : 'GPS apagado',
+    gpsErr:      en ? 'Could not get your location' : 'No se pudo obtener tu ubicación',
+    gpsDenied:   en ? 'Location blocked — allow it in the browser settings' : 'Ubicación bloqueada: permítela en los ajustes del navegador',
+    tryAgain:    en ? 'Try again'                   : 'Intentar de nuevo',
+    atDoorPill:  en ? 'At the door'                 : 'En la puerta',
+    collect:     en ? 'Collect cash'                : 'Cobrar en efectivo',
+    collectNow:  en ? 'Collect before handing over' : 'Cobrar antes de entregar',
+    handIn:      en ? 'Hand in at the register'     : 'Entrega en caja',
+    paid:        en ? 'Paid online — do not collect' : 'Pagado online, no cobrar',
+    deliverTo:   en ? 'Deliver to'                  : 'Entregar a',
+    deliverAt:   en ? 'Deliver at'                  : 'Entregar en',
+    inBag:       (n: number) => en ? `In the bag · ${n} item${n === 1 ? '' : 's'}` : `En la bolsa · ${n} artículo${n === 1 ? '' : 's'}`,
+    navigate:    en ? 'Navigate'                    : 'Navegar',
+    call:        en ? 'Call'                        : 'Llamar',
+    message:     en ? 'Message'                     : 'Mensaje',
+    pocketBtn:   en ? 'Pocket mode'                 : 'Modo bolsillo',
+    mapsHint:    en ? 'Coming back from Maps sends your location again.' : 'Al volver de Maps, la ubicación se reenvía sola.',
+    photoTake:   en ? 'Left at the door: take the photo' : 'Lo dejé en la puerta: toma la foto',
+    photoOk:     en ? 'Photo ready · Retake'        : 'Foto lista · Repetir',
+    photoAlt:    en ? 'Delivery proof'              : 'Foto de entrega',
+    photoErr:    en ? 'Upload failed — try again'   : 'No se pudo subir la foto, intenta de nuevo',
+    photoSeen:   en ? 'The customer and the counter see this photo.' : 'La foto la ven el cliente en su seguimiento y el mostrador en el detalle.',
+    or:          en ? 'or'                          : 'o',
+    inHand:      en ? 'I handed it over in person'  : 'Se lo di en la mano',
+    inHandOk:    en ? 'Handed over in person'       : 'Entregado en la mano',
+    undo:        en ? 'Change'                      : 'Cambiar',
+    problem:     en ? 'I have a problem with this delivery' : 'Tengo un problema con esta entrega',
+    problemTitle: en ? 'What happened?'             : '¿Qué pasó?',
+    noAnswer:    en ? "Customer doesn't answer — call them" : 'El cliente no contesta: llamarlo',
+    cantFind:    en ? "Can't find the address — call the customer" : 'No encuentro la dirección: llamar al cliente',
+    callRest:    en ? 'Call the restaurant'         : 'Llamar al restaurante',
+    close:       en ? 'Close'                       : 'Cerrar',
+    doneTitle:   en ? 'Delivered'                   : 'Entregado',
+    doneSub:     en ? 'You can close this page. Scan the next order’s QR to start it.' : 'Puedes cerrar esta página. El próximo pedido se abre escaneando su QR.',
+    cancelled:   en ? 'Order cancelled'             : 'Pedido cancelado',
+    cancelledSub: en ? 'The restaurant cancelled this order. Bring the bag back.' : 'El restaurante canceló este pedido. Devuelve la bolsa al restaurante.',
+    offline:     en ? 'No connection — your taps are saved and sent later' : 'Sin conexión: lo que toques se guarda y se envía después',
+    connErr:     en ? 'Connection error'            : 'Error de conexión',
+    tokenExp:    en ? 'Link expired'                : 'Enlace expirado',
+    errSend:     en ? 'Error — try again'           : 'Error, intenta de nuevo',
+    pocketHint:  en ? 'Black screen, GPS keeps working. Pocket the phone without locking it.' : 'Pantalla negra, el GPS sigue. Guarda el celular sin bloquearlo.',
+    pocketHold:  en ? 'Press and hold to exit'      : 'Mantén presionado para salir',
+    install:     en ? 'Install' : 'Instalar',
+    installTitle: en ? 'Add to home screen'         : 'Agregar a la pantalla de inicio',
   };
 }
+
+type DriverOrderInfo = {
+  orderNumber: string | null;
+  customerName: string | null;
+  total: number;
+  currency: string;
+  collectCash: boolean;
+  notes: string | null;
+  items: { qty: number; name: string | null }[];
+  restaurantPhone: string | null;
+};
 
 const STEPS: DeliveryStep[] = ['start', 'picked_up', 'at_door', 'delivered'];
 
@@ -132,6 +163,10 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [customerPhone, setCustomerPhone] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderCancelled, setOrderCancelled] = useState(false);
+  const [info, setInfo] = useState<DriverOrderInfo | null>(null);
+  // Prueba de entrega ANTES de cerrar: foto (lo dejó en la puerta) o "en la mano".
+  const [handedInPerson, setHandedInPerson] = useState(false);
+  const [problemOpen, setProblemOpen] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   // Pocket mode: black overlay with the wake lock held, so the driver can pocket
   // the phone screen-on and GPS keeps reporting. Browsers suspend geolocation
@@ -160,6 +195,17 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         setCustomerPhone(data.customerPhone ?? null);
         if (data.orderId) setOrderId(data.orderId);
         if (data.restaurantName) setRestaurantName(data.restaurantName);
+        setInfo({
+          orderNumber: data.orderNumber ?? null,
+          customerName: data.customerName ?? null,
+          total: Number(data.total ?? 0),
+          currency: data.currency ?? 'USD',
+          collectCash: data.paymentMethod === 'cash' && data.paymentStatus !== 'paid',
+          notes: data.notes ?? null,
+          items: Array.isArray(data.items) ? data.items : [],
+          restaurantPhone: data.restaurantPhone ?? null,
+        });
+        if (data.deliveryPhotoUrl) setPhotoUrl(data.deliveryPhotoUrl);
         const cancelled = data.orderStatus === 'cancelled';
         if (cancelled) setOrderCancelled(true);
 
@@ -334,9 +380,15 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   // Re-acquire WakeLock when the page becomes visible again (browser releases it on hide)
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === 'visible' && gpsStatus === 'sharing' && !wakeLockRef.current) {
-        acquireWakeLock();
-      }
+      if (document.visibilityState !== 'visible' || gpsStatus !== 'sharing') return;
+      if (!wakeLockRef.current) acquireWakeLock();
+      // Al volver de Google Maps / Waze el navegador tuvo el GPS en pausa:
+      // se manda la posición actual al instante, sin esperar al próximo evento.
+      navigator.geolocation?.getCurrentPosition(
+        (pos) => { lastSendRef.current = null; sendLocation(pos.coords.latitude, pos.coords.longitude); },
+        () => { /* el watch sigue intentando */ },
+        { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
+      );
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
@@ -470,266 +522,282 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   };
 
   const stepIndex = STEPS.indexOf(deliveryStep);
+  const shortNum = info?.orderNumber ? `#${info.orderNumber.split('-').pop()}` : '';
+  const amount = info ? money(info.total, info.currency) : '';
+  const itemCount = info ? info.items.reduce((n, i) => n + i.qty, 0) : 0;
+  const proofReady = !!photoUrl || handedInPerson;
+  const phone = customerPhone?.trim() || null;
 
+  const cashBlock = (label: string) => info && (info.collectCash ? (
+    <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: C.orangeSoft, color: C.orange }}>
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em]">{label}</p>
+        <p className="font-display text-[30px] font-extrabold leading-none tracking-tight tabular-nums mt-1">{amount}</p>
+      </div>
+      <span className="w-10 h-10 rounded-xl grid place-items-center text-white" style={{ background: C.orange }}>
+        <Banknote className="w-5 h-5" aria-hidden />
+      </span>
+    </div>
+  ) : (
+    <div className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold" style={{ background: C.greenSoft, color: C.greenDeep }}>
+      <CheckCircle className="w-4 h-4" aria-hidden /> {t.paid}
+    </div>
+  ));
+
+  const notesBlock = info?.notes && (
+    <p className="rounded-xl px-3 py-2 text-[13px] font-semibold leading-snug" style={{ background: '#FFF8E6', color: '#6B4A00' }}>
+      {info.notes}
+    </p>
+  );
+
+  const progress = (
+    <div className="grid grid-cols-3 gap-1" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <i key={i} className="h-1 rounded-full" style={{ background: stepIndex >= i ? C.ink : C.line }} />
+      ))}
+    </div>
+  );
+
+  // ── Entregado ──
   if (deliveryStep === 'delivered') {
     return (
-      <div className="min-h-[100dvh] bg-gray-950 flex flex-col items-center justify-center p-6 text-white">
-        <div className="w-full max-w-sm space-y-6 text-center">
-          <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
-            <CheckCircle className="w-14 h-14 text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-2xl font-black text-emerald-400">{t.doneTitle}</p>
-            <p className="text-gray-400 text-sm mt-1">{t.doneSub}</p>
-          </div>
-
-          <div className="bg-gray-900 rounded-2xl p-5 space-y-3 text-left">
-            <div className="flex items-center gap-2">
-              <Camera className="w-5 h-5 text-gray-400" />
-              <p className="text-sm font-semibold text-gray-300">{t.photoTitle}</p>
+      <div className="min-h-[100dvh] flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>
+        <main className="flex-1 w-full max-w-md mx-auto px-5 flex flex-col items-center justify-center text-center gap-3 py-10">
+          <span className="w-20 h-20 rounded-full grid place-items-center" style={{ background: C.green, color: C.greenInk }}>
+            <Check className="w-10 h-10" strokeWidth={3} aria-hidden />
+          </span>
+          <h1 className="font-display text-[30px] font-extrabold tracking-tight mt-1">{t.doneTitle}</h1>
+          <p className="text-sm" style={{ color: C.sub }}>{[shortNum, info?.customerName].filter(Boolean).join(' · ')}</p>
+          {info?.collectCash && <div className="w-full mt-3 text-left">{cashBlock(t.handIn)}</div>}
+          {photoUrl && (
+            <div className="relative w-full h-44 rounded-2xl overflow-hidden mt-2">
+              <Image src={photoUrl} alt={t.photoAlt} fill className="object-cover" sizes="(max-width: 480px) 100vw, 448px" />
             </div>
-            {photoUrl ? (
-              <div className="space-y-2">
-                <div className="relative w-full h-48 rounded-xl overflow-hidden">
-                  <Image src={photoUrl} alt={t.photoAlt} fill className="object-cover" sizes="(max-width: 640px) 100vw, 640px" />
-                </div>
-                <p className="text-sm text-emerald-400 text-center font-semibold">{t.photoOk}</p>
-              </div>
-            ) : (
-              <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-700 rounded-xl p-6 cursor-pointer hover:border-emerald-500/60 transition-colors ${photoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                {photoUploading
-                  ? <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                  : <Upload className="w-8 h-8 text-gray-400" />}
-                <span className="text-sm text-gray-400">{photoUploading ? '…' : t.photoTap}</span>
-                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={photoUploading} />
-              </label>
-            )}
-            {photoError && <p className="text-red-400 text-xs">{photoError}</p>}
-          </div>
-
-          <p className="text-gray-700 text-xs">Powered by MENIUS · {token.slice(0, 8)}…</p>
-        </div>
+          )}
+          <p className="text-[13px] mt-4 max-w-xs" style={{ color: C.faint }}>{t.doneSub}</p>
+          {canInstall && !installDismissed && (
+            <button type="button" onClick={async () => { await install(); setInstallDismissed(true); }}
+              className="mt-2 text-sm font-semibold underline underline-offset-4" style={{ color: C.sub }}>
+              {t.installTitle}
+            </button>
+          )}
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gray-950 flex flex-col items-center p-5 pb-10 text-white">
-      <div className="w-full max-w-sm space-y-5 mt-8">
+    <div className="min-h-[100dvh] flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>
+      <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-4 flex flex-col gap-3">
 
-        {/* Cancellation banner */}
         {orderCancelled && (
-          <div className="flex items-start gap-3 bg-red-950/80 border border-red-700 rounded-2xl p-4">
-            <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <div role="alert" className="flex items-start gap-3 rounded-2xl p-4" style={{ background: C.redSoft, color: C.red }}>
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden />
             <div>
-              <p className="text-sm font-bold text-red-300">
-                {t.en ? 'Order cancelled' : 'Pedido cancelado'}
-              </p>
-              <p className="text-xs text-red-400 mt-0.5">
-                {t.en ? 'The restaurant cancelled this order. Please return the items.' : 'El restaurante canceló este pedido. Por favor devuelve los artículos.'}
-              </p>
+              <p className="text-[15px] font-bold">{t.cancelled}</p>
+              <p className="text-[13px] mt-0.5">{t.cancelledSub}</p>
             </div>
           </div>
         )}
 
-        {/* Offline banner */}
         {!isOnline && !offlineBannerDismissed && (
-          <div className="flex items-center gap-3 bg-amber-950/70 border border-amber-800 rounded-xl px-4 py-2.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-            <span className="text-amber-300 text-sm font-semibold flex-1">
-              {t.en ? 'No connection — actions saved' : 'Sin conexión — acciones guardadas'}
+          <button type="button" onClick={() => setOfflineBannerDismissed(true)}
+            className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold"
+            style={{ background: C.amberSoft, color: C.amber }}>
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: C.amber }} />
+            {t.offline}
+          </button>
+        )}
+
+        {/* Encabezado: el pedido, no la marca */}
+        <header className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[12px] font-semibold truncate" style={{ color: C.sub }}>
+              {deliveryStep === 'start' ? restaurantName : [info?.customerName, info?.collectCash ? `${t.collect.toLowerCase()} ${amount}` : null].filter(Boolean).join(' · ')}
+            </p>
+            <p className="font-display text-[28px] font-extrabold leading-none tracking-tight">{shortNum}</p>
+          </div>
+          {deliveryStep === 'start' || gpsStatus === 'idle' ? (
+            <span className="text-[12px] font-bold px-2.5 py-1 rounded-full" style={{ background: C.line, color: C.sub }}>{t.gpsOff}</span>
+          ) : gpsStatus === 'sharing' ? (
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full" style={{ background: C.greenSoft, color: C.greenDeep }}>
+              <span className="relative flex w-2 h-2">
+                <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: C.green }} />
+                <span className="relative inline-flex rounded-full w-2 h-2" style={{ background: C.greenDeep }} />
+              </span>
+              {deliveryStep === 'at_door' ? t.atDoorPill : t.gpsLive}
             </span>
-            <button onClick={() => setOfflineBannerDismissed(true)} className="text-amber-600 hover:text-amber-400 transition-colors text-lg leading-none">✕</button>
-          </div>
+          ) : (
+            <button type="button" onClick={startGps} className="text-[12px] font-bold px-2.5 py-1 rounded-full" style={{ background: C.redSoft, color: C.red }}>
+              {t.tryAgain}
+            </button>
+          )}
+        </header>
+        {progress}
+
+        {(gpsStatus === 'error' || gpsStatus === 'unsupported') && deliveryStep !== 'start' && (
+          <p className="rounded-xl px-3 py-2 text-[13px] font-semibold" style={{ background: C.redSoft, color: C.red }}>
+            {gpsStatus === 'unsupported' ? t.gpsDenied : t.gpsErr}
+          </p>
         )}
 
-        {/* Header */}
-        <div className="text-center space-y-1">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-3">
-            <Bike className="w-8 h-8 text-emerald-400" />
-          </div>
-          {restaurantName && (
-            <p className="text-xs font-bold text-emerald-500 uppercase tracking-widest">{restaurantName}</p>
-          )}
-          <h1 className="text-xl font-black text-white">{t.title}</h1>
-        </div>
-
-        {/* GPS status pill */}
-        {gpsStatus === 'sharing' && (
-          <div className="flex items-center justify-between gap-2 bg-emerald-950/50 border border-emerald-900 rounded-xl px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <span className="relative flex w-2 h-2 flex-shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-              </span>
-              <span className="text-emerald-400 text-sm font-semibold">{t.gpsSharing}</span>
-            </div>
-            {wakeLockActive && (
-              <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-950 border border-emerald-900 px-2 py-0.5 rounded-full">
-                {t.screenOn}
-              </span>
+        {/* 1. Recoger */}
+        {deliveryStep === 'start' && (
+          <>
+            {cashBlock(t.collect)}
+            {deliveryAddress && (
+              <section className="rounded-[18px] p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>
+                  {t.deliverTo}{info?.customerName ? ` ${info.customerName}` : ''}
+                </p>
+                <p className="font-display text-[22px] font-extrabold leading-tight">{deliveryAddress}</p>
+                {notesBlock}
+              </section>
             )}
-          </div>
-        )}
-        {gpsStatus === 'error' && (
-          <div className="bg-red-950/50 border border-red-800 rounded-xl p-3 text-center">
-            <p className="text-red-400 text-sm font-semibold">{t.gpsErr}</p>
-            {gpsError && <p className="text-red-500 text-xs mt-1">{gpsError}</p>}
-            <button onClick={startGps} className="mt-2 text-xs text-red-300 underline">{t.tryAgain}</button>
-          </div>
-        )}
-        {gpsStatus === 'unsupported' && (
-          <div className="bg-amber-950/50 border border-amber-800 rounded-xl p-3 text-center">
-            <p className="text-amber-400 text-sm">{t.gpsUnsupported}</p>
-          </div>
-        )}
-
-        {/* Step progress bar */}
-        <div className="bg-gray-900 rounded-2xl p-4">
-          <div className="flex items-center gap-0">
-            <StepDot icon={<Package className="w-4 h-4" />} label={t.step1Label} done={stepIndex > 0} active={stepIndex === 0} />
-            <StepLine done={stepIndex > 0} />
-            <StepDot icon={<DoorOpen className="w-4 h-4" />} label={t.step2Label} done={stepIndex > 1} active={stepIndex === 1} />
-            <StepLine done={stepIndex > 1} />
-            <StepDot icon={<MapPin className="w-4 h-4" />} label={t.step3Label} done={stepIndex > 2} active={stepIndex === 2} />
-          </div>
-        </div>
-
-        {/* Contextual step card */}
-        <div className="bg-gray-900 rounded-2xl p-4">
-          {deliveryStep === 'start' && (
-            <div className="flex items-start gap-3">
-              <Package className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-white">
-                  {t.en ? 'Go to the restaurant' : 'Ve al restaurante'}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {t.en ? 'Pick up the order and confirm when you have it.' : 'Recoge el pedido y confirma cuando lo tengas.'}
-                </p>
-                {restaurantName && (
-                  <p className="text-xs text-emerald-400 font-semibold mt-1.5">{restaurantName}</p>
-                )}
-              </div>
-            </div>
-          )}
-          {deliveryStep === 'picked_up' && (
-            <div className="flex items-start gap-3">
-              <Bike className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-white">
-                  {t.en ? 'On the way' : 'En camino'}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {t.en ? 'GPS is active. Navigate to the delivery address.' : 'GPS activo. Navega a la dirección de entrega.'}
-                </p>
-              </div>
-            </div>
-          )}
-          {deliveryStep === 'at_door' && (
-            <div className="flex items-start gap-3">
-              <DoorOpen className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-white">
-                  {t.en ? 'At the door' : 'En la puerta'}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {t.en ? 'Slide to confirm delivery and take a proof photo.' : 'Desliza para confirmar la entrega y toma una foto como prueba.'}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Address + navigation */}
-        {deliveryAddress && deliveryStep !== 'start' && (
-          <div className="bg-gray-900 rounded-2xl p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">{t.deliverTo}</p>
-                <p className="text-base font-semibold text-white leading-snug">{deliveryAddress}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(deliveryAddress)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 active:scale-[0.97] transition-all text-white text-sm font-bold shadow-lg shadow-blue-900/40"
-              >
-                <Navigation className="w-4 h-4 flex-shrink-0" />
-                <span>Google Maps</span>
-              </a>
-              <a
-                href={`https://waze.com/ul?q=${encodeURIComponent(deliveryAddress)}&navigate=yes`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#00D8FF]/10 border border-[#00D8FF]/30 hover:bg-[#00D8FF]/20 active:scale-[0.97] transition-all text-[#00D8FF] text-sm font-bold"
-              >
-                <Navigation className="w-4 h-4 flex-shrink-0" />
-                <span>Waze</span>
-              </a>
-            </div>
-
-            {customerPhone && (
-              <a
-                href={`tel:${customerPhone}`}
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold hover:bg-emerald-500/20 active:scale-[0.98] transition-all"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                </svg>
-                {customerPhone}
-              </a>
+            {itemCount > 0 && (
+              <section className="rounded-[18px] p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>{t.inBag(itemCount)}</p>
+                <ul className="grid gap-1 text-[14px]">
+                  {info!.items.map((it, i) => (
+                    <li key={i} className="flex gap-2"><b className="tabular-nums min-w-[26px]">{it.qty}×</b><span className="min-w-0">{it.name}</span></li>
+                  ))}
+                </ul>
+              </section>
             )}
-          </div>
+          </>
         )}
 
-        {/* Action buttons */}
-        <div className="space-y-3">
-          {deliveryStep === 'start' && (
-            <BigButton loading={actionLoading} onClick={handlePickedUp} color="emerald">
-              {t.step1Btn}
-            </BigButton>
-          )}
-          {deliveryStep === 'picked_up' && (
-            <>
-              <BigButton loading={actionLoading} onClick={handleAtDoor} color="amber">
-                {t.step2Btn}
-              </BigButton>
+        {/* 2. En camino */}
+        {deliveryStep === 'picked_up' && deliveryAddress && (
+          <>
+            <section className="rounded-[18px] p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>{t.deliverAt}</p>
+              <p className="font-display text-[22px] font-extrabold leading-tight">{deliveryAddress}</p>
+              {notesBlock}
+            </section>
+            <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(deliveryAddress)}&travelmode=driving`}
+              target="_blank" rel="noopener noreferrer"
+              className="h-14 rounded-2xl flex items-center justify-center gap-2 text-white text-[17px] font-extrabold active:scale-[0.98] transition-transform"
+              style={{ background: C.blue }}>
+              <Navigation className="w-5 h-5" aria-hidden /> {t.navigate}
+              <span className="text-[13px] font-semibold opacity-80">· Google Maps</span>
+            </a>
+            {phone && (
+              <div className="grid grid-cols-2 gap-2">
+                <a href={`tel:${phone}`} className="h-12 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-bold bg-white active:scale-[0.98] transition-transform" style={{ border: `1px solid ${C.line}` }}>
+                  <Phone className="w-[18px] h-[18px]" aria-hidden /> {t.call}
+                </a>
+                <a href={`sms:${phone}`} className="h-12 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-bold bg-white active:scale-[0.98] transition-transform" style={{ border: `1px solid ${C.line}` }}>
+                  <MessageSquare className="w-[18px] h-[18px]" aria-hidden /> {t.message}
+                </a>
+              </div>
+            )}
+            <p className="text-center text-[13px] font-semibold" style={{ color: C.sub }}>
               {gpsStatus === 'sharing' && (
-                <button
-                  onClick={enterPocketMode}
-                  className="w-full py-3 rounded-xl bg-gray-900 border border-gray-700 text-gray-300 text-sm font-bold active:scale-[0.98] transition-all"
-                >
-                  {t.pocketBtn}
-                  <span className="block text-[11px] font-normal text-gray-500 mt-0.5">{t.pocketHint}</span>
-                </button>
+                <><button type="button" onClick={enterPocketMode} className="underline underline-offset-4">{t.pocketBtn}</button>{' · '}</>
               )}
-            </>
-          )}
-          {deliveryStep === 'at_door' && (
-            <SwipeToConfirm
-              loading={actionLoading}
-              onConfirm={handleDelivered}
-              label={t.en ? 'Slide to confirm delivery' : 'Desliza para confirmar entrega'}
-            />
-          )}
-          {actionError && (
-            <p className="text-red-400 text-sm text-center">{actionError}</p>
-          )}
+              <a href={`https://waze.com/ul?q=${encodeURIComponent(deliveryAddress)}&navigate=yes`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Waze</a>
+            </p>
+            <p className="text-center text-[12px]" style={{ color: C.faint }}>{t.mapsHint}</p>
+          </>
+        )}
+
+        {/* 3. En la puerta: prueba primero, después deslizar */}
+        {deliveryStep === 'at_door' && (
+          <>
+            {cashBlock(t.collectNow)}
+            {notesBlock}
+            {photoUrl ? (
+              <label className="relative block h-40 rounded-2xl overflow-hidden cursor-pointer">
+                <Image src={photoUrl} alt={t.photoAlt} fill className="object-cover" sizes="(max-width: 480px) 100vw, 448px" />
+                <span className="absolute left-2.5 bottom-2.5 rounded-full px-3 py-1 text-[12px] font-bold bg-white/95" style={{ color: C.greenDeep }}>
+                  ✓ {t.photoOk}
+                </span>
+                <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={handlePhotoUpload} disabled={photoUploading} />
+              </label>
+            ) : handedInPerson ? (
+              <div className="flex items-center justify-between rounded-2xl px-4 h-14 text-[15px] font-bold" style={{ background: C.greenSoft, color: C.greenDeep }}>
+                <span className="flex items-center gap-2"><CheckCircle className="w-5 h-5" aria-hidden /> {t.inHandOk}</span>
+                <button type="button" onClick={() => setHandedInPerson(false)} className="text-[13px] underline underline-offset-4">{t.undo}</button>
+              </div>
+            ) : (
+              <>
+                <label className={`h-36 rounded-2xl grid place-items-center text-center bg-white cursor-pointer ${photoUploading ? 'opacity-60 pointer-events-none' : ''}`}
+                  style={{ border: '2px dashed #C9D1CD', color: C.sub }}>
+                  <span className="grid justify-items-center gap-2 text-[14px] font-semibold">
+                    <span className="w-12 h-12 rounded-full grid place-items-center text-white" style={{ background: C.ink }}>
+                      {photoUploading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden /> : <Camera className="w-5 h-5" aria-hidden />}
+                    </span>
+                    {t.photoTake}
+                  </span>
+                  <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={handlePhotoUpload} disabled={photoUploading} />
+                </label>
+                <div className="flex items-center gap-3 text-[12px] font-semibold" style={{ color: C.faint }}>
+                  <span className="flex-1 h-px" style={{ background: C.line }} />{t.or}<span className="flex-1 h-px" style={{ background: C.line }} />
+                </div>
+                <button type="button" onClick={() => setHandedInPerson(true)}
+                  className="h-12 rounded-2xl text-[15px] font-bold bg-white active:scale-[0.98] transition-transform" style={{ border: `1px solid ${C.line}` }}>
+                  {t.inHand}
+                </button>
+              </>
+            )}
+            {photoError && <p className="text-[13px] font-semibold" style={{ color: C.red }}>{photoError}</p>}
+            {photoUrl && <p className="text-center text-[12px]" style={{ color: C.faint }}>{t.photoSeen}</p>}
+            <button type="button" onClick={() => setProblemOpen(true)} className="text-center text-[13px] font-semibold underline underline-offset-4 py-1" style={{ color: C.sub }}>
+              {t.problem}
+            </button>
+          </>
+        )}
+      </main>
+
+      {/* Acción principal: siempre abajo, al alcance del pulgar */}
+      {!orderCancelled && (
+        <div className="sticky bottom-0 w-full border-t" style={{ background: C.surface, borderColor: C.line, paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <div className="max-w-md mx-auto px-4 pt-3 grid gap-2">
+            {actionError && <p className="text-center text-[13px] font-semibold" style={{ color: C.red }}>{actionError}</p>}
+            {deliveryStep === 'start' && (
+              <PrimaryButton loading={actionLoading} onClick={handlePickedUp} tone="green">{t.pickedUpBtn}</PrimaryButton>
+            )}
+            {deliveryStep === 'picked_up' && (
+              <PrimaryButton loading={actionLoading} onClick={handleAtDoor} tone="black">{t.atDoorBtn}</PrimaryButton>
+            )}
+            {deliveryStep === 'at_door' && (
+              <SwipeToConfirm loading={actionLoading} disabled={!proofReady} onConfirm={handleDelivered}
+                label={proofReady ? t.slideDone : t.slideLocked} />
+            )}
+          </div>
         </div>
+      )}
 
-        <p className="text-gray-700 text-xs text-center">
-          Powered by MENIUS · {token.slice(0, 8)}…
-        </p>
-      </div>
+      {/* Problema en la entrega */}
+      {problemOpen && (
+        <div className="fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label={t.problemTitle}>
+          <button type="button" aria-label={t.close} className="absolute inset-0 w-full h-full" style={{ background: 'rgba(14,20,18,0.45)' }} onClick={() => setProblemOpen(false)} />
+          <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-3xl px-4 pt-3 grid gap-2 max-w-md mx-auto" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
+            <span className="w-10 h-1 rounded-full mx-auto mb-1" style={{ background: C.line }} />
+            <h2 className="font-display text-[20px] font-extrabold mb-1">{t.problemTitle}</h2>
+            {phone && (
+              <>
+                <a href={`tel:${phone}`} className="h-[52px] rounded-2xl flex items-center gap-3 px-4 text-[15px] font-semibold" style={{ border: `1px solid ${C.line}` }}>
+                  <Phone className="w-[18px] h-[18px]" style={{ color: C.sub }} aria-hidden /> {t.noAnswer}
+                </a>
+                <a href={`tel:${phone}`} className="h-[52px] rounded-2xl flex items-center gap-3 px-4 text-[15px] font-semibold" style={{ border: `1px solid ${C.line}` }}>
+                  <MapPin className="w-[18px] h-[18px]" style={{ color: C.sub }} aria-hidden /> {t.cantFind}
+                </a>
+              </>
+            )}
+            {info?.restaurantPhone && (
+              <a href={`tel:${info.restaurantPhone}`} className="h-14 mt-1 rounded-2xl flex items-center justify-center text-white text-[16px] font-extrabold" style={{ background: C.black }}>
+                {t.callRest}
+              </a>
+            )}
+            <button type="button" onClick={() => setProblemOpen(false)} className="h-11 text-[14px] font-semibold" style={{ color: C.sub }}>{t.close}</button>
+          </div>
+        </div>
+      )}
 
-      {/* Pocket mode overlay — near-black (OLED-friendly), wake lock held, GPS
-          running. Exit requires a continuous 1.5s hold: pocket-fabric touches
-          are brief and random, so they never trigger it. */}
+      {/* Modo bolsillo: casi negro (OLED), pantalla encendida, GPS activo.
+          Salir exige mantener 1.5 s: los roces del bolsillo son breves. */}
       {pocketMode && (
         <div
           role="dialog"
@@ -746,7 +814,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           <span className="relative flex w-2.5 h-2.5 mb-4">
             {gpsStatus === 'sharing' ? (
               <>
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40" />
+                <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600" />
               </>
             ) : (
@@ -754,8 +822,9 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
             )}
           </span>
           <p className={`text-sm font-semibold ${gpsStatus === 'sharing' ? 'text-gray-500' : 'text-amber-500'}`}>
-            {gpsStatus === 'sharing' ? t.gpsSharing : t.gpsErr}
+            {gpsStatus === 'sharing' ? t.gpsLive : t.gpsErr}
           </p>
+          <p className="text-gray-600 text-[13px] mt-1">{[shortNum, info?.collectCash ? `${t.collect.toLowerCase()} ${amount}` : null].filter(Boolean).join(' · ')}</p>
           <p className="text-gray-500 text-xs mt-8">{t.pocketHold}</p>
           <div className="mt-3 w-32 h-1 rounded-full bg-gray-800 overflow-hidden">
             <div
@@ -768,89 +837,34 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         </div>
       )}
-
-      {/* PWA install prompt — fixed bottom, shown when driver has picked up (most valuable moment) */}
-      {canInstall && !installDismissed && deliveryStep === 'picked_up' && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-3">
-          <div className="max-w-sm mx-auto bg-gray-900 border border-gray-700 rounded-2xl p-4 flex items-center gap-3 shadow-2xl">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-              <Bike className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white">
-                {t.en ? 'Install MENIUS Driver' : 'Instalar MENIUS Repartidor'}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {t.en ? 'Works offline — never lose a delivery' : 'Funciona sin conexión — nunca pierdas una entrega'}
-              </p>
-            </div>
-            <button
-              onClick={async () => { await install(); setInstallDismissed(true); }}
-              className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold flex-shrink-0"
-            >
-              {t.en ? 'Install' : 'Instalar'}
-            </button>
-            <button onClick={() => setInstallDismissed(true)} className="text-gray-500 hover:text-gray-300 transition-colors text-lg leading-none flex-shrink-0">✕</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-function StepDot({ icon, label, done, active }: {
-  icon: React.ReactNode; label: string; done: boolean; active: boolean;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-1.5 flex-1">
-      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-        done ? 'bg-emerald-500 text-white' :
-        active ? 'bg-emerald-500 text-white ring-4 ring-emerald-500/25' :
-        'bg-gray-800 text-gray-500'
-      }`}>
-        {done ? <CheckCircle className="w-5 h-5" /> : icon}
-      </div>
-      <span className={`text-[10px] font-semibold text-center leading-tight ${
-        done ? 'text-emerald-400' : active ? 'text-white' : 'text-gray-600'
-      }`}>
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function StepLine({ done }: { done: boolean }) {
-  return (
-    <div className="flex-1 h-0.5 mb-5 relative overflow-hidden rounded-full bg-gray-800">
-      <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${done ? 'w-full bg-emerald-500' : 'w-0'}`} />
-    </div>
-  );
-}
-
-function BigButton({ children, loading, onClick, color }: {
+function PrimaryButton({ children, loading, onClick, tone }: {
   children: React.ReactNode;
   loading: boolean;
   onClick: () => void;
-  color: 'emerald' | 'amber';
+  tone: 'green' | 'black';
 }) {
-  const bg = color === 'emerald'
-    ? 'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600'
-    : 'bg-amber-500 hover:bg-amber-400 active:bg-amber-600';
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={loading}
-      className={`w-full py-5 rounded-2xl ${bg} text-white font-black text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-60 shadow-lg`}
+      className="w-full h-16 rounded-[18px] text-[18px] font-extrabold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
+      style={tone === 'green' ? { background: C.green, color: C.greenInk } : { background: C.black, color: '#fff' }}
     >
-      {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : children}
+      {loading ? <Loader2 className="w-6 h-6 animate-spin" aria-hidden /> : children}
     </button>
   );
 }
 
-// ── Swipe-to-confirm — prevents accidental delivery confirmation ───────────────
+// ── Deslizar para confirmar: evita marcar "entregado" sin querer ───────────────
 
-function SwipeToConfirm({ loading, onConfirm, label }: {
+function SwipeToConfirm({ loading, disabled, onConfirm, label }: {
   loading: boolean;
+  disabled?: boolean;
   onConfirm: () => void;
   label: string;
 }) {
@@ -861,13 +875,13 @@ function SwipeToConfirm({ loading, onConfirm, label }: {
   const dragStartX = useRef(0);
   const isDragging = useRef(false);
 
-  const THUMB_SIZE = 56; // px
+  const THUMB_SIZE = 54; // px
   const CONFIRM_THRESHOLD = 0.82;
 
-  const getTrackWidth = () => (trackRef.current?.clientWidth ?? 300) - THUMB_SIZE;
+  const getTrackWidth = () => (trackRef.current?.clientWidth ?? 300) - THUMB_SIZE - 10;
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (loading || confirmed) return;
+    if (loading || confirmed || disabled) return;
     isDragging.current = true;
     dragStartX.current = e.clientX - progress * getTrackWidth();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -895,59 +909,59 @@ function SwipeToConfirm({ loading, onConfirm, label }: {
     }
   };
 
-  const thumbLeft = `${progress * getTrackWidth()}px`;
-  const fillWidth = `calc(${progress * 100}% + ${THUMB_SIZE / 2}px)`;
+  // Si el envío falla, el deslizador vuelve al inicio para reintentar.
+  useEffect(() => {
+    if (!loading && confirmed) { setConfirmed(false); setSnapping(true); setProgress(0); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   if (loading) {
     return (
-      <div className="w-full h-16 rounded-2xl bg-emerald-900/60 border border-emerald-700 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+      <div className="w-full h-16 rounded-[18px] grid place-items-center" style={{ background: C.greenSoft, color: C.greenDeep }}>
+        <Loader2 className="w-6 h-6 animate-spin" aria-hidden />
       </div>
     );
   }
 
+  const ease = 'cubic-bezier(0.34,1.56,0.64,1)';
   return (
     <div
       ref={trackRef}
-      className="relative w-full h-16 rounded-2xl bg-emerald-900/60 border border-emerald-700 overflow-hidden select-none touch-none"
-      style={{ userSelect: 'none' }}
+      className="relative w-full h-16 rounded-[18px] overflow-hidden select-none touch-none"
+      style={{ background: disabled ? C.line : C.greenSoft, userSelect: 'none' }}
+      aria-disabled={disabled}
     >
-      {/* Fill bar */}
       <div
-        className="absolute inset-y-0 left-0 bg-emerald-500/30 rounded-2xl"
+        className="absolute inset-y-0 left-0 rounded-[18px]"
         style={{
-          width: fillWidth,
-          transition: snapping ? 'width 0.35s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
+          width: progress > 0 && !disabled ? `calc(${progress * 100}% + ${THUMB_SIZE / 2}px)` : '0px',
+          background: 'rgba(5,200,167,0.25)',
+          transition: snapping ? `width 0.35s ${ease}` : 'none',
         }}
       />
-
-      {/* Label text (fades as user swipes) */}
       <p
-        className="absolute inset-0 flex items-center justify-center text-sm font-bold text-emerald-400 pointer-events-none"
-        style={{ opacity: 1 - progress * 1.5 }}
+        className="absolute inset-0 flex items-center justify-center pl-12 text-[15px] font-extrabold pointer-events-none"
+        style={{ opacity: 1 - progress * 1.5, color: disabled ? C.faint : C.greenDeep }}
       >
-        {confirmed ? '✅' : label}
+        {label}
       </p>
-
-      {/* Draggable thumb */}
       <div
-        className="absolute top-1 bottom-1 flex items-center justify-center rounded-xl bg-emerald-500 shadow-lg shadow-emerald-900/60 cursor-grab active:cursor-grabbing"
+        role="button"
+        aria-label={label}
+        className={`absolute top-[5px] bottom-[5px] flex items-center justify-center rounded-[14px] ${disabled ? '' : 'cursor-grab active:cursor-grabbing'}`}
         style={{
           width: THUMB_SIZE,
-          left: thumbLeft,
-          transition: snapping ? 'left 0.35s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
+          left: `${5 + progress * getTrackWidth()}px`,
+          background: disabled ? '#C9D1CD' : C.green,
+          color: disabled ? '#fff' : C.greenInk,
+          transition: snapping ? `left 0.35s ${ease}` : 'none',
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        {confirmed
-          ? <CheckCircle className="w-7 h-7 text-white" />
-          : <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
-        }
+        {confirmed ? <Check className="w-6 h-6" strokeWidth={3} aria-hidden /> : <ArrowRight className="w-6 h-6" strokeWidth={2.6} aria-hidden />}
       </div>
     </div>
   );

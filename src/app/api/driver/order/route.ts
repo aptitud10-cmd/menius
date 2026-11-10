@@ -22,7 +22,13 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('orders')
-    .select('id, status, delivery_address, customer_name, customer_phone, order_number, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, driver_delivered_at, restaurants(name)')
+    .select(`
+      id, status, order_type, delivery_address, customer_name, customer_phone, order_number,
+      total, payment_method, payment_status, notes, delivery_lat, delivery_lng, delivery_photo_url,
+      driver_token_expires_at, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
+      restaurants(name, phone, currency, locale),
+      order_items(qty, notes, product:product_id(name), variant:variant_id(name))
+    `)
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
@@ -42,5 +48,22 @@ export async function GET(req: NextRequest) {
     driverPickedUpAt: (data as any).driver_picked_up_at ?? null,
     driverAtDoorAt: (data as any).driver_at_door_at ?? null,
     driverDeliveredAt: (data as any).driver_delivered_at ?? null,
+    // Lo que el repartidor necesita en la calle: cuánto cobrar (Buccaneer:
+    // 100% de los deliveries en efectivo), las notas del cliente (apto,
+    // timbre), qué lleva la bolsa y a quién llamar si hay un problema.
+    total: Number((data as any).total ?? 0),
+    paymentMethod: (data as any).payment_method ?? null,
+    paymentStatus: (data as any).payment_status ?? null,
+    notes: ((data as any).notes as string | null)?.trim() || null,
+    deliveryLat: (data as any).delivery_lat ?? null,
+    deliveryLng: (data as any).delivery_lng ?? null,
+    deliveryPhotoUrl: (data as any).delivery_photo_url ?? null,
+    restaurantPhone: ((data as any).restaurants?.phone as string | null)?.trim() || null,
+    currency: (data as any).restaurants?.currency ?? 'USD',
+    locale: (data as any).restaurants?.locale ?? null,
+    items: (((data as any).order_items ?? []) as any[]).map((i) => ({
+      qty: Number(i.qty ?? 1),
+      name: [i.product?.name, i.variant?.name].filter(Boolean).join(' · ') || null,
+    })),
   });
 }
