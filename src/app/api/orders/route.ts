@@ -1355,7 +1355,9 @@ export async function POST(request: NextRequest) {
           {
             line_items: lineItems,
             mode: "payment",
-            success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true&t=${preToken}`,
+            // custToken (solo lectura): el token del driver permite cambiar el estado
+            // del pedido y no debe quedar en Stripe ni en el historial del cliente.
+            success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true&t=${custToken}`,
             cancel_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=false`,
             metadata: { order_id: order.id, order_number: order.order_number },
             payment_intent_data: {
@@ -1498,18 +1500,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";
-    const driverTrackingUrl = preToken
-      ? `${appUrl}/driver/track/${preToken}`
-      : null;
-
     return NextResponse.json({
       order_number: order.order_number,
       order_id: order.id,
       total,
       slug: restaurant.slug,
       stripe_url: stripeUrl,
-      driver_tracking_url: driverTrackingUrl,
+      // driver_tracking_url ya no se devuelve: daba al comensal el link del
+      // driver (marcar entregado, ver datos). Solo viaja en el ticket impreso.
       // View-only token the customer uses to see their own order PII on the
       // tracker. NOT the driver token — that one never leaves the printed QR.
       tracking_token: custToken,
