@@ -310,10 +310,13 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
                   </div>
                 );
 
-                return notif.action_url ? (
+                // Solo rutas internas: un action_url externo o `javascript:` en
+                // una notificación sería phishing/XSS con un clic.
+                const safeUrl = notif.action_url && /^\/(?![/\\])/.test(notif.action_url) ? notif.action_url : null;
+                return safeUrl ? (
                   <Link
                     key={notif.id}
-                    href={notif.action_url}
+                    href={safeUrl}
                     onClick={() => setOpen(false)}
                   >
                     {content}
