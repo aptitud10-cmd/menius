@@ -32,10 +32,10 @@ export interface CustomerEmailOrder {
 
 const ORDER_SELECT = `
   id, restaurant_id, order_number, status, customer_name, customer_email, customer_locale, customer_token, customer_id,
-  order_type, payment_method, payment_status, total, tax_amount, tip_amount, delivery_fee, discount_amount, loyalty_discount,
+  order_type, payment_method, payment_status, total, tax_amount, tip_amount, delivery_fee, discount_amount,
   delivery_address, delivery_lat, delivery_lng, table_name, estimated_ready_minutes, prepared_at, created_at,
   driver_name, cancellation_reason,
-  restaurants ( name, slug, address, phone, logo_url, email, notification_email, notifications_enabled, timezone, currency, locale,
+  restaurants ( name, slug, address, phone, logo_url, email, notifications_enabled, timezone, currency, locale,
     tax_label, tax_rate, tax_included, latitude, longitude )
 `;
 
@@ -50,10 +50,11 @@ interface ItemRow {
 }
 
 async function loadItems(orderId: string): Promise<CustomerEmailItem[]> {
-  const { data } = await createAdminClient()
+  const { data, error } = await createAdminClient()
     .from('order_items')
     .select('qty, line_total, notes, products ( name ), product_variants ( name ), order_item_extras ( price, product_extras ( name ) ), order_item_modifiers ( option_name )')
     .eq('order_id', orderId);
+  if (error) logger.error('order items load failed', { orderId, code: error.code });
   return ((data ?? []) as unknown as ItemRow[]).map((r) => {
     const parts = [
       r.product_variants?.name,
@@ -71,6 +72,12 @@ async function loadItems(orderId: string): Promise<CustomerEmailItem[]> {
 }
 
 const num = (v: unknown): number => (Number.isFinite(Number(v)) ? Number(v) : 0);
+// Un reply-to inválido hace que Resend rechace el email entero (422).
+const EMAIL_RE = /^[^\s@,;/<>"]+@[^\s@,;/<>"]+\.[a-z]{2,}$/i;
+const validEmail = (v: unknown): string | null => {
+  const s = typeof v === 'string' ? v.trim() : '';
+  return s && EMAIL_RE.test(s) ? s : null;
+};
 const coord = (v: unknown): number | null => (v != null && Number.isFinite(Number(v)) ? Number(v) : null);
 
 export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerEmailOrder | null> {
@@ -91,6 +98,9 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
   const address = (r.address as string | null) ?? null;
   const locale = (o.customer_locale as string | null) ?? (r.locale as string | null) ?? 'es';
   const items = await loadItems(orderId);
+  // Solo el email público del restaurante (Ajustes). notification_email es el
+  // email de login del dueño: no se expone a los clientes.
+  const replyTo = validEmail(r.email);
 
   const ctx: CustomerEmailCtx = {
     locale: locale === 'en' ? 'en' : 'es',
@@ -111,7 +121,8 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
     paid: o.payment_status === 'paid',
     currency: String(r.currency ?? 'USD'),
     items,
-    discount: num(o.discount_amount) + num(o.loyalty_discount),
+    // discount_amount ya incluye la lealtad (order-pricing: totalDiscountAmt).
+    discount: num(o.discount_amount),
     tax: num(o.tax_amount),
     taxLabel: (r.tax_label as string | null) ?? null,
     taxRate: r.tax_rate != null ? num(r.tax_rate) : null,
@@ -121,6 +132,7 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
     total: num(o.total),
     deliveryAddress: (o.delivery_address as string | null) ?? null,
     tableName: (o.table_name as string | null) ?? null,
+    canReply: !!replyTo,
   };
 
   return {
@@ -131,7 +143,7 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
     customerEmail: (o.customer_email as string | null) || null,
     customerId: (o.customer_id as string | null) ?? null,
     notificationsOn: r.notifications_enabled !== false,
-    replyTo: ((r.email as string | null) || (r.notification_email as string | null)) ?? null,
+    replyTo,
     paymentStatus: (o.payment_status as string | null) ?? null,
     estimatedReadyMinutes: o.estimated_ready_minutes != null ? num(o.estimated_ready_minutes) : null,
     preparedAt: (o.prepared_at as string | null) ?? null,

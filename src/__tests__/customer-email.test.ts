@@ -117,9 +117,21 @@ describe('customer emails', () => {
     expect(e.html).not.toContain('<b>Pie</b>');
   });
 
+  it('only promises replies when the restaurant has a reply-to', () => {
+    expect(buildReceiptEmail(base).html).not.toContain('Reply to this email');
+    expect(buildReceiptEmail({ ...base, canReply: true }).html).toContain('Reply to this email');
+  });
+
+  it('shows the discount once', () => {
+    const e = buildReceiptEmail({ ...base, discount: 5, total: 51.78 });
+    expect(e.html.match(/Discount/g)?.length).toBe(1);
+    expect(e.html).toContain('−$5.00');
+  });
+
   it('helpers', () => {
     expect(shortOrderNumber('ORD-261110-014')).toBe('014');
     expect(cleanSenderName('Taquería "El, Güero"\n')).toBe('Taquería El Güero');
+    expect(cleanSenderName('Bar \\')).toBe('Bar');
     expect(prettyPhone('+17184295188')).toBe('(718) 429-5188');
   });
 });

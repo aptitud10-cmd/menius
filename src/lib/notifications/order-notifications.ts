@@ -110,7 +110,7 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
  * Non-blocking — errors are logged but don't affect the order flow.
  */
 export async function notifyNewOrder(payload: OrderNotificationPayload) {
-  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, customerLocale, orderType, deliveryAddress, paymentMethod, tableNumber, notes, includeUtensils, customerToken, total, items } = payload;
+  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, tableNumber, notes, total, items } = payload;
 
   try {
     let restaurant = restaurantData ?? null;
@@ -163,7 +163,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         const order = await loadCustomerEmailOrder(orderId);
         if (!order?.customerEmail) return false;
         const ok = await sendCustomerEmail(order, buildReceiptEmail(order.ctx));
-        void logNotification(orderId, restaurantId, 'email_receipt', { channel: 'email', success: ok });
+        await logNotification(orderId, restaurantId, 'email_receipt', { channel: 'email', success: ok });
         return ok;
       })());
     }
@@ -270,6 +270,11 @@ async function sendStatusEmail(opts: {
       .eq('success', true)
       .limit(1);
     if (prior && prior.length > 0) return { channel: 'none', success: true, error: 'email_already_sent' };
+    // Dos cambios casi juntos (confirmed → preparing en el KDS) no deben mandar
+    // dos emails: el primero toma el turno por 2 minutos.
+    const { checkRateLimitAsync } = await import('@/lib/rate-limit');
+    const turn = await checkRateLimitAsync(`cust-email:${orderId}:${kind}`, { limit: 1, windowSec: 120 });
+    if (!turn.allowed) return { channel: 'none', success: true, error: 'email_in_flight' };
   }
 
   const order = await loadCustomerEmailOrder(orderId);
@@ -279,12 +284,16 @@ async function sendStatusEmail(opts: {
   const travelMs = deliveryTravelMinutes(order.restaurantCoords, order.deliveryCoords) * 60_000;
   let email;
   if (kind === 'eta') {
+    // Misma hora que el seguimiento: aceptación (prepared_at) + minutos totales.
+    // Sin hora de aceptación (confirmed desde el KDS), cuenta desde ahora.
     let readyAtMs: number | null = null;
-    if (opts.estimatedMinutes != null && opts.estimatedMinutes > 0) {
+    const accepted = Date.parse(order.preparedAt ?? '');
+    if (Number.isFinite(accepted) && order.estimatedReadyMinutes && order.estimatedReadyMinutes > 0) {
+      readyAtMs = Math.max(accepted + order.estimatedReadyMinutes * 60_000, now);
+    } else if (opts.estimatedMinutes != null && opts.estimatedMinutes > 0) {
       readyAtMs = now + opts.estimatedMinutes * 60_000;
     } else if (order.estimatedReadyMinutes && order.estimatedReadyMinutes > 0) {
-      const base = Date.parse(order.preparedAt ?? order.createdAt ?? '');
-      readyAtMs = Math.max((Number.isFinite(base) ? base : now) + order.estimatedReadyMinutes * 60_000, now);
+      readyAtMs = now + order.estimatedReadyMinutes * 60_000;
     }
     const arrivalMs = order.ctx.orderType === 'delivery' && readyAtMs != null ? readyAtMs + travelMs : null;
     email = buildEtaEmail(order.ctx, { readyAtMs, arrivalMs, isUpdate: opts.etaUpdate });
@@ -296,7 +305,7 @@ async function sendStatusEmail(opts: {
     email = buildCancelledEmail(order.ctx, { reason: order.cancellationReason, refunded: order.paymentStatus === 'refunded' });
   }
   const ok = await sendCustomerEmail(order, email);
-  void logNotification(orderId, restaurantId, event, { channel: 'email', success: ok });
+  await logNotification(orderId, restaurantId, event, { channel: 'email', success: ok });
   return { channel: 'email', success: ok };
 }
 
@@ -427,7 +436,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
     .from('orders')
     .select(`
       id, restaurant_id, order_number, total, customer_name, customer_email, customer_phone,
-      order_type, delivery_address, customer_locale, customer_token,
+      order_type, delivery_address,
       restaurants ( name, slug, currency, locale, notification_email, notifications_enabled, timezone )
     `)
     .eq('id', orderId)
@@ -437,7 +446,6 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
 
   type RestaurantRow = { name: string; slug: string; currency: string | null; locale: string | null; notification_email: string | null; notifications_enabled: boolean | null; timezone?: string | null };
   type OrderRow = typeof order & {
-    customer_locale: string | null;
     customer_phone: string | null;
     order_type: string | null;
     delivery_address: string | null;
@@ -480,7 +488,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
       const full = await loadCustomerEmailOrder(orderId);
       if (!full?.customerEmail) return false;
       const ok = await sendCustomerEmail(full, buildReceiptEmail({ ...full.ctx, paid: true }));
-      void logNotification(orderId, full.restaurantId, 'email_receipt', { channel: 'email', success: ok });
+      await logNotification(orderId, full.restaurantId, 'email_receipt', { channel: 'email', success: ok });
       return ok;
     })());
   }

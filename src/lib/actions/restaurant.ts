@@ -2089,7 +2089,8 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
       const { notifyStatusChange } = await import("@/lib/notifications/order-notifications");
       await notifyStatusChange({
         allowRepeat: true,
-        etaUpdate: true,
+        // Sin hora previa no es "nueva hora": es la primera.
+        etaUpdate: prev > 0,
         orderId,
         orderNumber: o.order_number,
         restaurantId: o.restaurant_id,

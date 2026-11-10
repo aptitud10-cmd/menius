@@ -43,22 +43,6 @@ export async function GET(request: NextRequest) {
     logger.error("Automations query failed", { section, error: error.message });
   }
 
-  // Restaurant cache to avoid N+1 queries across all sections
-  const restaurantCache = new Map<
-    string,
-    { name: string; slug: string; locale: string; notification_email?: string }
-  >();
-  async function getRestaurant(id: string) {
-    if (restaurantCache.has(id)) return restaurantCache.get(id)!;
-    const { data } = await supabase
-      .from("restaurants")
-      .select("name, slug, locale, notification_email")
-      .eq("id", id)
-      .maybeSingle();
-    if (data) restaurantCache.set(id, data);
-    return data;
-  }
-
   try {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";
 
@@ -69,80 +53,9 @@ export async function GET(request: NextRequest) {
     // 3. Pedido de reseña: pedidos cerrados hace 2–26 h (el cron corre una vez
     // al día, así cada pedido entra una sola vez), en el idioma del cliente y
     // como mucho UNO por cliente cada 7 días (antes llegaban 3 iguales juntos).
-    const nowMs = Date.now();
-    const { data: closedOrders, error: closedError } = await supabase
-      .from("orders")
-      .select("id, customer_email, customer_id")
-      .in("status", ["delivered", "completed"])
-      .not("customer_email", "is", null)
-      .neq("customer_email", "")
-      .gte("updated_at", new Date(nowMs - 26 * 3600_000).toISOString())
-      .lt("updated_at", new Date(nowMs - 2 * 3600_000).toISOString())
-      // Cerrados solos por el cron: no sabemos si el cliente lo recibió.
-      .or("cancellation_reason.is.null,cancellation_reason.neq.auto_closed")
-      .order("updated_at", { ascending: false })
-      .limit(40);
-    noteQueryError("review_request", closedError);
-
-    const closed = (closedOrders ?? []) as { id: string; customer_email: string; customer_id: string | null }[];
-    if (closed.length > 0) {
-      const ids = closed.map((o) => o.id);
-      const customerIds = closed.map((o) => o.customer_id).filter((x): x is string => !!x);
-      const sevenDaysAgo = new Date(nowMs - 7 * 24 * 3600_000).toISOString();
-      const [{ data: reviewed }, { data: alreadyAsked }, { data: recentAsks }, { data: customerRows }] = await Promise.all([
-        supabase.from("reviews").select("order_id").in("order_id", ids),
-        supabase.from("order_notification_log").select("order_id").eq("event", "review_request_email").in("order_id", ids),
-        supabase.from("order_notification_log").select("order_id").eq("event", "review_request_email").gte("created_at", sevenDaysAgo).limit(1000),
-        customerIds.length
-          ? supabase.from("customers").select("id, tags").in("id", customerIds)
-          : Promise.resolve({ data: [] as { id: string; tags: string[] | null }[] }),
-      ]);
-      const skipOrder = new Set<string>([
-        ...((reviewed ?? []).map((r) => r.order_id).filter(Boolean) as string[]),
-        ...((alreadyAsked ?? []).map((r) => r.order_id).filter(Boolean) as string[]),
-      ]);
-      const unsubscribed = new Set(
-        ((customerRows ?? []) as { id: string; tags: string[] | null }[])
-          .filter((c) => (c.tags ?? []).includes("unsubscribed"))
-          .map((c) => c.id),
-      );
-      // Emails a los que ya se pidió reseña esta semana (de cualquier pedido).
-      const askedEmails = new Set<string>();
-      const recentOrderIds = (recentAsks ?? []).map((r) => r.order_id).filter(Boolean) as string[];
-      if (recentOrderIds.length) {
-        const { data: recentOrders } = await supabase.from("orders").select("customer_email").in("id", recentOrderIds.slice(0, 1000));
-        (recentOrders ?? []).forEach((o) => o.customer_email && askedEmails.add(String(o.customer_email).toLowerCase()));
-      }
-
-      for (const order of closed) {
-        const email = order.customer_email.toLowerCase();
-        if (skipOrder.has(order.id) || askedEmails.has(email)) continue;
-        if (order.customer_id && unsubscribed.has(order.customer_id)) continue;
-        try {
-          const full = await loadCustomerEmailOrder(order.id);
-          if (!full?.customerEmail || !full.notificationsOn) continue;
-          const reviewUrl = `${full.ctx.menuUrl}/review/${order.id}`;
-          const unsubscribeUrl = full.customerId ? `${appUrl}/api/unsubscribe?id=${full.customerId}` : null;
-          const sent = await sendCustomerEmail(full, buildReviewEmail(full.ctx, { reviewUrl, unsubscribeUrl }));
-          if (sent) {
-            askedEmails.add(email);
-            results.review_request++;
-            await supabase.from("order_notification_log").insert({
-              order_id: order.id,
-              restaurant_id: full.restaurantId,
-              event: "review_request_email",
-              channel: "email",
-              success: true,
-            });
-          } else {
-            logger.warn("Review request email failed to send", { order_id: order.id });
-          }
-        } catch (err) {
-          results.errors++;
-          logger.error("Review request failed", { order_id: order.id, error: err instanceof Error ? err.message : String(err) });
-        }
-      }
-    }
+    // Si falla una consulta de control (bajas, ya pedidas) no se manda nada:
+    // es mejor no pedir una reseña que escribirle a quien se dio de baja.
+    results.review_request = await sendReviewRequests(supabase, appUrl, noteQueryError, results);
 
     // ═══════════════════════════════════════════════════════════
     // PLATFORM → RESTAURANT OWNER automations (MENIUS marketing)
@@ -774,4 +687,141 @@ function buildNoOrdersEmail(
   </div>
 </body>
 </html>`;
+}
+
+// ── Pedido de reseña ───────────────────────────────────────────────────────
+
+type Db = ReturnType<typeof createAdminClient>;
+const REVIEW_BATCH = 150;
+const REVIEW_CONCURRENCY = 6;
+
+function chunks<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+async function sendReviewRequests(
+  supabase: Db,
+  appUrl: string,
+  noteQueryError: (section: string, error: { message: string } | null) => void,
+  results: { errors: number },
+): Promise<number> {
+  const nowMs = Date.now();
+  const { data: closedOrders, error: closedError } = await supabase
+    .from("orders")
+    .select("id, customer_email, customer_id")
+    .in("status", ["delivered", "completed"])
+    .not("customer_email", "is", null)
+    .neq("customer_email", "")
+    .gte("updated_at", new Date(nowMs - 26 * 3600_000).toISOString())
+    .lt("updated_at", new Date(nowMs - 2 * 3600_000).toISOString())
+    // Cerrados solos por el cron: no sabemos si el cliente lo recibió.
+    .or("cancellation_reason.is.null,cancellation_reason.neq.auto_closed")
+    // Los más viejos primero: mañana ya salen de la ventana.
+    .order("updated_at", { ascending: true })
+    .limit(REVIEW_BATCH);
+  noteQueryError("review_request", closedError);
+  if (closedError) return 0;
+
+  const closed = (closedOrders ?? []) as { id: string; customer_email: string; customer_id: string | null }[];
+  if (closed.length === 0) return 0;
+
+  const ids = closed.map((o) => o.id);
+  const emails = Array.from(new Set(closed.map((o) => o.customer_email.toLowerCase())));
+  const customerIds = Array.from(new Set(closed.map((o) => o.customer_id).filter((x): x is string => !!x)));
+  const sevenDaysAgo = new Date(nowMs - 7 * 24 * 3600_000).toISOString();
+
+  const skipOrder = new Set<string>();
+  const askedEmails = new Set<string>();
+  const unsubscribed = new Set<string>();
+
+  for (const part of chunks(ids, 100)) {
+    const [{ data: reviewed, error: e1 }, { data: asked, error: e2 }] = await Promise.all([
+      supabase.from("reviews").select("order_id").in("order_id", part),
+      supabase.from("order_notification_log").select("order_id").eq("event", "review_request_email").in("order_id", part),
+    ]);
+    noteQueryError("review_request:reviewed", e1);
+    noteQueryError("review_request:asked", e2);
+    if (e1 || e2) return 0;
+    (reviewed ?? []).forEach((r) => r.order_id && skipOrder.add(r.order_id));
+    (asked ?? []).forEach((r) => r.order_id && skipOrder.add(r.order_id));
+  }
+
+  for (const part of chunks(customerIds, 100)) {
+    const { data: rows, error } = await supabase.from("customers").select("id, tags").in("id", part);
+    noteQueryError("review_request:unsubscribed", error);
+    if (error) return 0;
+    ((rows ?? []) as { id: string; tags: string[] | null }[])
+      .filter((c) => (c.tags ?? []).includes("unsubscribed"))
+      .forEach((c) => unsubscribed.add(c.id));
+  }
+
+  // ¿A quién de este lote ya se le pidió reseña esta semana (por otro pedido)?
+  for (const part of chunks(emails, 50)) {
+    const { data: theirOrders, error } = await supabase
+      .from("orders")
+      .select("id, customer_email")
+      .in("customer_email", part)
+      .gte("updated_at", new Date(nowMs - 8 * 24 * 3600_000).toISOString())
+      .limit(1000);
+    noteQueryError("review_request:recent_orders", error);
+    if (error) return 0;
+    const emailById = new Map(((theirOrders ?? []) as { id: string; customer_email: string }[]).map((o) => [o.id, o.customer_email.toLowerCase()]));
+    for (const idPart of chunks(Array.from(emailById.keys()), 100)) {
+      const { data: logs, error: logErr } = await supabase
+        .from("order_notification_log")
+        .select("order_id")
+        .eq("event", "review_request_email")
+        .gte("created_at", sevenDaysAgo)
+        .in("order_id", idPart);
+      noteQueryError("review_request:recent_asks", logErr);
+      if (logErr) return 0;
+      (logs ?? []).forEach((l) => {
+        const e = l.order_id ? emailById.get(l.order_id) : undefined;
+        if (e) askedEmails.add(e);
+      });
+    }
+  }
+
+  // Un pedido por email (el más viejo del lote), sin dados de baja.
+  const queue: typeof closed = [];
+  const queued = new Set<string>();
+  for (const o of closed) {
+    const e = o.customer_email.toLowerCase();
+    if (skipOrder.has(o.id) || askedEmails.has(e) || queued.has(e)) continue;
+    if (o.customer_id && unsubscribed.has(o.customer_id)) continue;
+    queued.add(e);
+    queue.push(o);
+  }
+
+  let sent = 0;
+  for (const group of chunks(queue, REVIEW_CONCURRENCY)) {
+    await Promise.all(group.map(async (order) => {
+      try {
+        const full = await loadCustomerEmailOrder(order.id);
+        if (!full?.customerEmail || !full.notificationsOn) return;
+        const reviewUrl = `${full.ctx.menuUrl}/review/${order.id}`;
+        const unsubscribeUrl = full.customerId ? `${appUrl}/api/unsubscribe?id=${full.customerId}` : null;
+        const ok = await sendCustomerEmail(full, buildReviewEmail(full.ctx, { reviewUrl, unsubscribeUrl }));
+        if (!ok) {
+          logger.warn("Review request email failed to send", { order_id: order.id });
+          return;
+        }
+        sent++;
+        const { error: logErr } = await supabase.from("order_notification_log").insert({
+          order_id: order.id,
+          restaurant_id: full.restaurantId,
+          event: "review_request_email",
+          channel: "email",
+          success: true,
+        });
+        if (logErr) logger.error("Review request log insert failed", { order_id: order.id, error: logErr.message });
+      } catch (err) {
+        results.errors++;
+        logger.error("Review request failed", { order_id: order.id, error: err instanceof Error ? err.message : String(err) });
+      }
+    }));
+  }
+  return sent;
 }

@@ -52,6 +52,8 @@ export interface CustomerEmailCtx {
   total: number;
   deliveryAddress?: string | null;
   tableName?: string | null;
+  /** Hay un email válido del restaurante como reply-to: se puede responder. */
+  canReply?: boolean;
 }
 
 export interface BuiltEmail {
@@ -89,7 +91,7 @@ function firstName(name: string): string {
 
 /** Nombre limpio para el remitente: sin comillas, comas ni saltos de línea. */
 export function cleanSenderName(name: string): string {
-  return (name || 'MENIUS').replace(/["<>\r\n,;]/g, ' ').replace(/\s+/g, ' ').trim() || 'MENIUS';
+  return (name || 'MENIUS').replace(/["<>\\\r\n,;]/g, ' ').replace(/\s+/g, ' ').trim() || 'MENIUS';
 }
 
 export function fmtClock(ms: number, locale: string, timeZone?: string | null): string {
@@ -280,7 +282,7 @@ function footer(ctx: CustomerEmailCtx, extra?: string): string {
   const first = `<b class="ink" style="color:${T.ink};">${esc(r.name)}</b>${r.address ? ` · ${esc(r.address)}` : ''}`;
   const second = extra ?? [
     r.phone ? link(telHref(r.phone), prettyPhone(r.phone)) : '',
-    en ? 'Reply to this email to reach the restaurant.' : 'Responde este email para hablar con el restaurante.',
+    ctx.canReply ? (en ? 'Reply to this email to reach the restaurant.' : 'Responde este email para hablar con el restaurante.') : '',
   ].filter(Boolean).join(' · ');
   return `<tr><td class="line" style="border-top:1px solid ${T.line};padding:16px 20px 18px;">
 <div class="sub" style="font-family:${BODY};font-size:12.5px;line-height:1.55;color:${T.sub};">${first}</div>
@@ -530,6 +532,6 @@ export function buildReviewEmail(ctx: CustomerEmailCtx, opts: { reviewUrl: strin
   ];
   const footerExtra = opts.unsubscribeUrl
     ? link(opts.unsubscribeUrl, en ? 'Unsubscribe from review requests' : 'No recibir más pedidos de reseña')
-    : (en ? 'Reply to this email to reach the restaurant.' : 'Responde este email para hablar con el restaurante.');
+    : undefined;
   return { subject, preheader, html: layout(ctx, { preheader, title: subject, blocks, footerExtra }) };
 }
