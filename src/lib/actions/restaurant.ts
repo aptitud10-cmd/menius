@@ -2024,6 +2024,7 @@ export async function sendOrderNotification(
     const { notifyStatusChange } =
       await import("@/lib/notifications/order-notifications");
     const notification = await notifyStatusChange({
+      allowRepeat: true,
       orderId: order.id,
       orderNumber: order.order_number,
       restaurantId: order.restaurant_id,
@@ -2087,6 +2088,7 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
       if (!rl.allowed) return;
       const { notifyStatusChange } = await import("@/lib/notifications/order-notifications");
       await notifyStatusChange({
+        allowRepeat: true,
         orderId,
         orderNumber: o.order_number,
         restaurantId: o.restaurant_id,

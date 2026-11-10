@@ -281,11 +281,29 @@ export async function notifyStatusChange(params: {
   orderType?: string;
   deliveryAddress?: string;
   estimatedMinutes?: number;
+  /** Reenvío a propósito (botón "reenviar" o aviso de hora nueva). */
+  allowRepeat?: boolean;
 }): Promise<NotifyStatusResult> {
-  const { orderId, orderNumber, restaurantId, status, customerName, customerEmail, customerPhone, customerLocale, orderType, estimatedMinutes } = params;
+  const { orderId, orderNumber, restaurantId, status, customerName, customerEmail, customerPhone, customerLocale, orderType, estimatedMinutes, allowRepeat } = params;
 
   try {
     const adminDb = createAdminClient();
+
+    // Candado: el mismo aviso de estado sale UNA vez por pedido. Sin esto, un
+    // cron o un doble toque mandaba el mismo email en bucle (42 de ~90 emails
+    // a clientes en oct-nov 2026 fueron repetidos).
+    if (orderId && !allowRepeat) {
+      const { data: prior } = await adminDb
+        .from('order_notification_log')
+        .select('id')
+        .eq('order_id', orderId)
+        .eq('event', status)
+        .eq('success', true)
+        .limit(1);
+      if (prior && prior.length > 0) {
+        return { channel: 'none', success: true, error: 'already_sent' };
+      }
+    }
 
     const { data: restaurant } = await adminDb
       .from('restaurants')
