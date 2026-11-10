@@ -2,6 +2,7 @@
 // Orders — fondo blanco, tarjetas grises sin borde, botones negros, verde solo
 // para "nuevo" y "recibiendo pedidos". Los colores de estado nunca decoran.
 import type { Order, OrderItem } from '@/types';
+import { PREP_CHOICES, nearestChoice, kitchenMinutes } from '@/lib/orders/eta';
 
 export const C = {
   bg: '#FFFFFF',
@@ -338,19 +339,11 @@ export function itemCount(order: Order) {
 
 /** Tiempo sugerido: el mayor prep_time_minutes de los productos, o null. */
 export function suggestedPrep(order: Order): number | null {
-  const times = (order.items ?? [])
-    .map((i) => Number((i.product as { prep_time_minutes?: number } | undefined)?.prep_time_minutes ?? 0))
-    .filter((n) => n > 0);
-  return times.length ? Math.max(...times) : null;
+  return kitchenMinutes((order.items ?? []) as { product?: { prep_time_minutes?: number | null } | null }[]);
 }
 
-export const PREP_CHOICES = [10, 15, 20, 30, 45] as const;
-
-/** La opción más chica que NO promete menos de lo que tarda (12 → 15, 25 → 30). */
-export function nearestChoice(m: number) {
-  if (!Number.isFinite(m) || m <= 0) return PREP_CHOICES[1];
-  return PREP_CHOICES.find((c) => c >= m) ?? PREP_CHOICES[PREP_CHOICES.length - 1];
-}
+// Mismas reglas que el checkout (src/lib/orders/eta.ts).
+export { PREP_CHOICES, nearestChoice };
 
 /**
  * Minutos que faltan (negativo = atrasado) según el ETA guardado al aceptar.

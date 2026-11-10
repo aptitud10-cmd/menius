@@ -164,3 +164,36 @@ describe('nearestChoice (no prometer menos de lo que tarda)', () => {
     expect(nearestChoice(m)).toBe(out);
   });
 });
+
+import { estimateMinutes, travelMinutes, kitchenMinutes } from '@/lib/orders/eta';
+
+describe('estimateMinutes (tiempo prometido por pedido)', () => {
+  const rest = { latitude: 40.76322, longitude: -73.87624, delivery_radius_km: 4, estimated_delivery_minutes: 30 };
+  const it_ = (prep: number | null) => ({ product: { prep_time_minutes: prep } });
+
+  it('recoger: el plato más lento, redondeado a la opción de la tablet', () => {
+    expect(estimateMinutes({ items: [it_(3), it_(10)], orderType: 'pickup', restaurant: rest })).toBe(10);
+    expect(estimateMinutes({ items: [it_(12), it_(3)], orderType: 'pickup', restaurant: rest })).toBe(15);
+  });
+
+  it('delivery: cocina + viaje en bici eléctrica según la distancia', () => {
+    // ~2 km en línea recta → 2.6 km de calle a 24 km/h ≈ 7 min + 4 de entrega
+    const to = { lat: 40.7452, lng: -73.8762 };
+    expect(estimateMinutes({ items: [it_(15)], orderType: 'delivery', restaurant: rest, to })).toBe(30);
+    expect(estimateMinutes({ items: [it_(10)], orderType: 'delivery', restaurant: rest, to })).toBe(25);
+  });
+
+  it('delivery sin coordenadas: medio radio de entrega', () => {
+    expect(estimateMinutes({ items: [it_(10)], orderType: 'delivery', restaurant: rest, to: null })).toBe(25);
+  });
+
+  it('sin tiempos por plato: el número general del restaurante, como antes', () => {
+    expect(estimateMinutes({ items: [it_(null)], orderType: 'pickup', restaurant: rest })).toBe(30);
+    expect(kitchenMinutes([])).toBeNull();
+  });
+
+  it('viaje', () => {
+    expect(travelMinutes(0)).toBe(4);
+    expect(travelMinutes(4)).toBe(Math.ceil((4 * 1.3) / 24 * 60) + 4);
+  });
+});

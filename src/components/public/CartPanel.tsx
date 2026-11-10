@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock, RotateCcw, X } from 'lucide-react';
+import { estimateMinutes, type EtaRestaurant } from '@/lib/orders/eta';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import { showsAsRow } from '@/lib/product-display';
@@ -22,6 +23,8 @@ interface CartPanelProps {
   onCheckout: () => void;
   onClose?: () => void;
   estimatedMinutes?: number;
+  /** Datos para calcular el tiempo del carrito (plato más lento + viaje). */
+  etaRestaurant?: EtaRestaurant;
   deliveryFee?: number;
   lastOrder?: { items: LastOrderSummaryItem[] } | null;
   onReorder?: () => void;
@@ -71,6 +74,7 @@ export function CartPanel({
   onCheckout,
   onClose,
   estimatedMinutes,
+  etaRestaurant,
   deliveryFee,
   lastOrder,
   onReorder,
@@ -83,6 +87,14 @@ export function CartPanel({
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
+  const orderType = useCartStore((s) => s.selectedOrderType);
+  // Mismo cálculo que el checkout: con tiempos por plato, el del plato más
+  // lento (+ viaje si eligió delivery); si no, el número general de antes.
+  const etaMinutes = estimateMinutes({
+    items,
+    orderType,
+    restaurant: { ...etaRestaurant, estimated_delivery_minutes: estimatedMinutes ?? etaRestaurant?.estimated_delivery_minutes ?? null },
+  });
 
   // Use a ref (not state) so image-load events don't trigger re-renders of the whole panel.
   const loadedImagesRef = useRef<Set<string>>(new Set());
@@ -430,7 +442,7 @@ export function CartPanel({
           <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-2 flex-shrink-0">
             <span className="text-base leading-none">🎁</span>
             <p className="text-[11px] text-amber-700 font-semibold">
-              Tenés {points} pts disponibles para canjear en el checkout
+              Tienes {points} pts disponibles para canjear en el checkout
             </p>
           </div>
         );
@@ -438,10 +450,10 @@ export function CartPanel({
 
       {/* ── Footer: breakdown + checkout ── */}
       <div className="border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">
-        {!!estimatedMinutes && estimatedMinutes > 0 && (
+        {!!etaMinutes && etaMinutes > 0 && (
           <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-2">
             <Clock className="w-3.5 h-3.5" />
-            <span>~{estimatedMinutes} min</span>
+            <span>~{etaMinutes} min</span>
           </div>
         )}
 

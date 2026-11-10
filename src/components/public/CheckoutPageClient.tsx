@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { ArrowLeft, CheckCircle, ShoppingCart, Lock, UtensilsCrossed } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
+import { estimateMinutes } from '@/lib/orders/eta';
 import { useCheckoutStore } from '@/lib/store/checkoutStore';
 import { cn, formatPrice } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
@@ -274,6 +275,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // Snapshot of items captured before clearCart() — shown on confirmation screen
   const [confirmedItems, setConfirmedItems] = useState<{ name: string; qty: number; variant?: string; lineTotal: number }[]>([]);
   const [confirmedTotal, setConfirmedTotal] = useState(0);
+  // Tiempo prometido calculado para ESTE pedido (plato más lento + viaje en
+  // delivery). Se congela al confirmar porque el carrito se vacía después.
+  const [confirmedEta, setConfirmedEta] = useState<number | null>(null);
 
   // Demo payment simulation state
   const [demoCardNum, setDemoCardNum] = useState('4242 4242 4242 4242');
@@ -557,6 +561,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const handleWalletSuccess = useCallback((_orderId: string, orderNum: string) => {
     saveLastOrder();
     setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
+    setConfirmedEta(estimateMinutes({ items, orderType, restaurant, to: deliveryCoords }));
     setConfirmedTotal(displayTotal);
     try {
       if (rememberMe) {
@@ -750,6 +755,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       saveLastOrder();
       // Capture snapshot before clearing cart — used in confirmation screen
       setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
+      setConfirmedEta(estimateMinutes({ items, orderType, restaurant, to: deliveryCoords }));
       setConfirmedTotal(typeof data.total === 'number' ? data.total : displayTotal);
       // Save customer info for next visit
       try {
@@ -811,6 +817,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     saveLastOrder();
     // Capture snapshot before clearing cart — used in confirmation screen
     setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
+    setConfirmedEta(estimateMinutes({ items, orderType, restaurant, to: deliveryCoords }));
     setConfirmedTotal(displayTotal);
     try {
       if (rememberMe) {
@@ -1336,7 +1343,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           )}
 
           {/* Estimated time badge — shown for delivery and pickup */}
-          {restaurant.estimated_delivery_minutes && (orderType === 'delivery' || orderType === 'pickup') && (
+          {!!confirmedEta && (orderType === 'delivery' || orderType === 'pickup') && (
             <div className="flex items-center gap-2 mb-5 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-100">
               <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="12" cy="12" r="10"/><path strokeLinecap="round" d="M12 6v6l4 2"/>
@@ -1345,7 +1352,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 {orderType === 'delivery'
                   ? t.estimatedDelivery
                   : t.readyInApprox}
-                {' '}~{restaurant.estimated_delivery_minutes} min
+                {' '}~{confirmedEta} min
               </p>
             </div>
           )}
