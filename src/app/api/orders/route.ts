@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { afterResponse } from "@/lib/server/after-response";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicOrderSchema } from "@/lib/validations";
@@ -159,13 +160,13 @@ export async function POST(request: NextRequest) {
     // (non-autocomplete) addresses arrive without them and skip the radius check.
     // typeof guard first: Number(null) is 0, which would silently become a valid
     // coordinate (0,0) and falsely reject the order as out of range.
-    const deliveryLat =
+    let deliveryLat: number | null =
       typeof body.delivery_lat === "number" &&
       Number.isFinite(body.delivery_lat) &&
       Math.abs(body.delivery_lat) <= 90
         ? body.delivery_lat
         : null;
-    const deliveryLng =
+    let deliveryLng: number | null =
       typeof body.delivery_lng === "number" &&
       Number.isFinite(body.delivery_lng) &&
       Math.abs(body.delivery_lng) <= 180
@@ -230,7 +231,7 @@ export async function POST(request: NextRequest) {
     const { data: restaurant, error: restaurantDbError } = await adminDb
       .from("restaurants")
       .select(
-        "id, slug, delivery_fee, delivery_radius_km, delivery_min_order, latitude, longitude, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled",
+        "id, slug, delivery_fee, delivery_radius_km, delivery_min_order, latitude, longitude, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled, country_code",
       )
       .eq("id", restaurant_id)
       .eq("is_active", true)
@@ -291,7 +292,31 @@ export async function POST(request: NextRequest) {
       const restLat = Number(restaurant.latitude);
       const restLng = Number(restaurant.longitude);
       const radiusKm = Number(restaurant.delivery_radius_km) || 0;
+      let geocodedFromText = false;
+      // Dirección escrita a mano (sin coordenadas): se geocodifica en el
+      // servidor sesgada a la zona del local. Así se valida el radio y se
+      // guarda el punto (mapa del cliente, "Abrir mapa" del mostrador). Si no
+      // hay resultado confiable, se acepta como antes, sin punto.
       if (
+        deliveryLat === null && deliveryLng === null &&
+        restaurant.latitude != null && restaurant.longitude != null &&
+        Number.isFinite(restLat) && Number.isFinite(restLng) && delivery_address
+      ) {
+        const { geocodeNear } = await import("@/lib/geo/geocode-near");
+        const found = await geocodeNear(String(delivery_address), { lat: restLat, lng: restLng }, {
+          country: (restaurant as { country_code?: string | null }).country_code ?? null,
+        });
+        // Un punto geocodificado desde texto puede ser equivocado: NO se usa para
+        // rechazar el pedido (perderíamos un cliente legítimo). Se guarda solo si
+        // es plausible (≤ 3× el radio); si no, el pedido sigue sin punto.
+        if (found && (radiusKm <= 0 || haversineKm(restLat, restLng, found.lat, found.lng) <= radiusKm * 3)) {
+          geocodedFromText = true;
+          deliveryLat = found.lat;
+          deliveryLng = found.lng;
+        }
+      }
+      if (
+        !geocodedFromText &&
         radiusKm > 0 &&
         Number.isFinite(restLat) &&
         Number.isFinite(restLng) &&
@@ -1451,7 +1476,9 @@ export async function POST(request: NextRequest) {
         };
       });
 
-      void notifyNewOrder({
+      // Después de responder, con waitUntil (un `void` suelto puede cortarse al
+      // terminar la función en Vercel y el email no salir).
+      afterResponse(() => notifyNewOrder({
         orderId: order.id,
         orderNumber: order.order_number,
         restaurantId: restaurant_id,
@@ -1463,6 +1490,7 @@ export async function POST(request: NextRequest) {
           notification_email: restaurant.notification_email,
           notification_whatsapp: restaurant.notification_whatsapp,
           notifications_enabled: restaurant.notifications_enabled,
+          timezone: restaurant.timezone,
         },
         customerName: parsed.data.customer_name,
         customerEmail: customer_email || undefined,
@@ -1481,7 +1509,7 @@ export async function POST(request: NextRequest) {
         logger.error("notifyNewOrder failed", {
           error: err instanceof Error ? err.message : String(err),
         });
-      });
+      }));
     } catch (err) {
       logger.error("notifyNewOrder dispatch failed", {
         error: err instanceof Error ? err.message : String(err),

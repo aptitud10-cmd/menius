@@ -203,7 +203,8 @@ export function getStatusPushPayload(
     },
     out_for_delivery: {
       title: en ? `🛵 On its way!` : `🛵 ¡Va en camino!`,
-      body: en ? `Your order #${orderNumber} is on its way — track it live` : `Tu pedido #${orderNumber} va en camino — síguelo en vivo`,
+      // Sin "en vivo": también sale con "Salió" del mostrador, sin GPS del repartidor.
+      body: en ? `Your order #${orderNumber} left the restaurant and is on its way` : `Tu pedido #${orderNumber} salió y va en camino`,
     },
     at_door: {
       title: en ? `🚪 Your driver is at the door` : `🚪 Tu repartidor está en la puerta`,

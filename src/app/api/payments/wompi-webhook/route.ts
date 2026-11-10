@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { afterResponse } from "@/lib/server/after-response";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
@@ -174,12 +175,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      sendPaymentConfirmedNotifications(order.id).catch((err) => {
+      afterResponse(() => sendPaymentConfirmedNotifications(order.id).catch((err) => {
         logger.error("sendPaymentConfirmedNotifications failed", {
           orderId: order.id,
           error: err?.message,
         });
-      });
+      }));
 
       logger.info("Order marked as paid via Wompi", {
         orderId: order.id,

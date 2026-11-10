@@ -15,6 +15,8 @@ interface RestaurantNotificationData {
   notification_whatsapp?: string | null;
   notification_email?: string | null;
   notifications_enabled?: boolean | null;
+  /** IANA, p. ej. America/New_York: la hora del email al dueño. */
+  timezone?: string | null;
 }
 
 interface OrderNotificationPayload {
@@ -112,7 +114,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
       const adminDb = createAdminClient();
       const { data } = await adminDb
         .from('restaurants')
-        .select('name, slug, currency, locale, notification_whatsapp, notification_email, notifications_enabled')
+        .select('name, slug, currency, locale, notification_whatsapp, notification_email, notifications_enabled, timezone')
         .eq('id', restaurantId)
         .maybeSingle();
       restaurant = data;
@@ -173,8 +175,10 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         to: customerEmail,
         from: `${restaurant.name} <noreply@menius.app>`,
         subject: customerEn
-          ? `Order #${orderNumber} confirmed — ${restaurant.name}`
-          : `Pedido #${orderNumber} confirmado — ${restaurant.name}`,
+          // "Recibido", no "confirmado": todavía no lo aceptó el restaurante (si lo
+          // rechaza, el cliente leía "confirmado" y después "cancelado").
+          ? `Order #${orderNumber} received — ${restaurant.name}`
+          : `Pedido #${orderNumber} recibido — ${restaurant.name}`,
         html,
       }));
     }
@@ -194,6 +198,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         notes,
         tableNumber,
         locale,
+        timezone: restaurant.timezone ?? undefined,
       });
 
       emailJobs.push(sendEmail({
@@ -370,14 +375,14 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
     .select(`
       id, restaurant_id, order_number, total, customer_name, customer_email, customer_phone,
       order_type, delivery_address, customer_locale, customer_token,
-      restaurants ( name, slug, currency, locale, notification_email, notifications_enabled )
+      restaurants ( name, slug, currency, locale, notification_email, notifications_enabled, timezone )
     `)
     .eq('id', orderId)
     .maybeSingle();
 
   if (!order) return;
 
-  type RestaurantRow = { name: string; slug: string; currency: string | null; locale: string | null; notification_email: string | null; notifications_enabled: boolean | null };
+  type RestaurantRow = { name: string; slug: string; currency: string | null; locale: string | null; notification_email: string | null; notifications_enabled: boolean | null; timezone?: string | null };
   type OrderRow = typeof order & {
     customer_locale: string | null;
     customer_phone: string | null;
@@ -457,6 +462,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
       items: emailItems,
       dashboardUrl: `${appUrl}/app/orders`,
       locale: restaurantLocale, // owner email always in restaurant's language
+      timezone: restaurant.timezone ?? undefined,
     });
     const ownerEn = restaurantLocale === 'en';
     jobs.push(sendEmail({

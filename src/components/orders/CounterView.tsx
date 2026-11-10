@@ -819,20 +819,19 @@ export function CounterView({
     if (acceptingRef.current.has(order.id) || order.status !== 'pending') return;
     acceptingRef.current.add(order.id);
     setUpdatingId(order.id);
-    const chosen = mins ?? eta;
-    const eff = chosen + busyExtra;
+    // `mins` ya viene con el extra de "Ocupado" (defaultMinsFor lo suma): lo
+    // que dice el botón es exactamente lo que se guarda y se le avisa al
+    // cliente. Antes el botón decía 10 y al cliente le llegaban 30.
+    const eff = mins ?? eta + busyExtra;
+    const chosen = Math.max(5, eff - busyExtra); // preferencia de cocina, sin el extra
     setSplashQueue(q => q.filter(x => x.id !== order.id));
     // Optimistic update — move order to 'preparing' immediately in the UI
     // (con ETA y hora de aceptación, para que "listo en N min" salga bien ya).
     updateOrderLocally(order.id, { status: 'preparing', estimated_ready_minutes: eff, prepared_at: new Date().toISOString() } as Partial<Order>);
     try {
-      const etaRes = await updateOrderETA(order.id, eff);
-      if (etaRes?.error) {
-        updateOrderLocally(order.id, { status: order.status }); // revert
-        showError(etaRes.error);
-        return;
-      }
-      const res = await updateOrderStatus(order.id, 'preparing');
+      // Una sola escritura: estado + tiempo (antes eran 2 acciones en serie y el
+      // evento realtime de la primera devolvía la tarjeta a Nuevos un instante).
+      const res = await updateOrderStatus(order.id, 'preparing', undefined, { etaMinutes: eff });
       if (res?.error) {
         updateOrderLocally(order.id, { status: order.status }); // revert
         showError(res.error);
@@ -931,7 +930,7 @@ export function CounterView({
     };
   }, []);
 
-  const defaultMinsFor = useCallback((o: Order) => nearestChoice(suggestedPrep(o) ?? lastPrep), [lastPrep]);
+  const defaultMinsFor = useCallback((o: Order) => nearestChoice(suggestedPrep(o) ?? lastPrep) + busyExtra, [lastPrep, busyExtra]);
 
   const onPrimary = useCallback((o: Order, kind: PrimaryKind) => {
     if (kind === 'accept') handleAccept(o, defaultMinsFor(o));

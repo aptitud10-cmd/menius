@@ -65,7 +65,7 @@ export async function GET(req: Request) {
       const ids = toClose.map(o => o.id);
       const { data: closedRows, error: closeErr } = await adminDb
         .from('orders')
-        .update({ status: 'delivered', updated_at: new Date().toISOString() })
+        .update({ status: 'delivered', updated_at: new Date().toISOString(), cancellation_reason: 'auto_closed' })
         .in('id', ids)
         .eq('status', 'ready') // por si el mostrador lo movió mientras tanto
         .select('id');

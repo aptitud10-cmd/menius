@@ -10,6 +10,7 @@
  */
 export const dynamic = "force-dynamic";
 
+import { afterResponse } from "@/lib/server/after-response";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canTransition } from "@/lib/order-state";
@@ -88,6 +89,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Pedido ya cerrado (el mostrador tocó "Entregado" o lo cerró): recogí / en la
+  // puerta no tienen sentido — antes se aceptaban y podían mandar el push "tu
+  // repartidor está en la puerta" a un pedido ya entregado.
+  if (["delivered", "completed"].includes(order.status) && action !== "delivered" && action !== "notify_outside") {
+    return NextResponse.json({ ok: true, skipped: true, closed: true, status: order.status, action });
+  }
+
   // Block delivery-specific actions on non-delivery orders
   if (action !== "notify_outside" && (order as any).order_type !== "delivery") {
     return NextResponse.json(
@@ -131,18 +139,25 @@ export async function POST(req: NextRequest) {
     }
     updateData = {
       driver_picked_up_at: now,
+      updated_at: now,
       ...(advanceToOutForDelivery ? { status: "out_for_delivery" } : {}),
     };
   }
 
+  // El mostrador pudo tocar "Salió" (out_for_delivery) antes de que el
+  // repartidor marcara "recogí": el pedido ya salió, así que se completa la hora
+  // de recogida en vez de bloquearlo con 409.
+  const alreadyOut = order.status === "out_for_delivery";
+  const pickedUpFill = !(order as any).driver_picked_up_at && alreadyOut ? { driver_picked_up_at: now } : {};
+
   if (action === "at_door") {
-    if (!(order as any).driver_picked_up_at) {
+    if (!(order as any).driver_picked_up_at && !alreadyOut) {
       return NextResponse.json(
         { error: "Cannot mark at_door before picked_up" },
         { status: 409 },
       );
     }
-    updateData = { driver_at_door_at: now };
+    updateData = { driver_at_door_at: now, updated_at: now, ...pickedUpFill };
   }
 
   if (action === "notify_outside") {
@@ -150,7 +165,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "delivered") {
-    if (!(order as any).driver_picked_up_at) {
+    if (!(order as any).driver_picked_up_at && !alreadyOut && order.status !== "delivered") {
       return NextResponse.json(
         { error: "Cannot mark delivered before picked_up" },
         { status: 409 },
@@ -175,7 +190,7 @@ export async function POST(req: NextRequest) {
     // Double-filter by token + id — prevents a guessed id from updating a different order
     const { error: statusErr } = await supabase
       .from("orders")
-      .update({ status: "delivered", driver_delivered_at: now })
+      .update({ status: "delivered", driver_delivered_at: now, updated_at: now, ...pickedUpFill })
       .eq("driver_tracking_token", token)
       .eq("id", order.id);
 
@@ -188,8 +203,9 @@ export async function POST(req: NextRequest) {
     // Evict Redis token cache — driver can no longer send location pings
     evictTokenCache(token.slice(0, 16)).catch(() => {});
 
-    // Full notification stack (email + push + log) via notifyStatusChange
-    try {
+    // Full notification stack (email + push + log) — después de responder: el
+    // repartidor no espera a que salga el email.
+    afterResponse(async () => {
       const { notifyStatusChange } =
         await import("@/lib/notifications/order-notifications");
       await notifyStatusChange({
@@ -203,11 +219,7 @@ export async function POST(req: NextRequest) {
         orderType: (order as any).order_type || undefined,
         deliveryAddress: (order as any).delivery_address || undefined,
       });
-    } catch (err) {
-      logger.error("notifyStatusChange error on delivered", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+    });
 
     return NextResponse.json({ ok: true, action });
   }
@@ -235,7 +247,7 @@ export async function POST(req: NextRequest) {
       // picked_up → full stack (email + push) as "out for delivery".
       // at_door → push only; an email is useless when the driver is at the door.
       if (action === "picked_up" && updateData.status === "out_for_delivery") {
-        try {
+        afterResponse(async () => {
           const { notifyStatusChange } =
             await import("@/lib/notifications/order-notifications");
           await notifyStatusChange({
@@ -250,11 +262,7 @@ export async function POST(req: NextRequest) {
             orderType: (order as any).order_type || undefined,
             deliveryAddress: (order as any).delivery_address || undefined,
           });
-        } catch (err) {
-          logger.error("notifyStatusChange error on picked_up", {
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
+        });
       }
 
       // Only the FIRST at_door (the endpoint is token-public and overwrites the

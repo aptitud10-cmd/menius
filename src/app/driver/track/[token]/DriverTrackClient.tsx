@@ -163,12 +163,16 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         const cancelled = data.orderStatus === 'cancelled';
         if (cancelled) setOrderCancelled(true);
 
-        // Restore step from server timestamps so a page reload doesn't reset progress
-        if (data.driverDeliveredAt) {
+        // Restore step from server timestamps so a page reload doesn't reset progress.
+        // El estado del pedido manda: si el mostrador ya lo cerró, se muestra
+        // "entregado" (antes volvía a "en camino" y reactivaba el GPS); si el
+        // mostrador tocó "Salió", el repartidor sigue desde "en camino".
+        const closed = data.orderStatus === 'delivered' || data.orderStatus === 'completed';
+        if (data.driverDeliveredAt || closed) {
           setDeliveryStep('delivered');
         } else if (data.driverAtDoorAt) {
           setDeliveryStep('at_door');
-        } else if (data.driverPickedUpAt) {
+        } else if (data.driverPickedUpAt || data.orderStatus === 'out_for_delivery') {
           setDeliveryStep('picked_up');
           if (!cancelled) startGps();
         }

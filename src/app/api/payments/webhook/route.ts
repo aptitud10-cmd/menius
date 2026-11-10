@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { afterResponse } from "@/lib/server/after-response";
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
@@ -39,9 +40,9 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
 
   // Send payment confirmed notifications (non-blocking)
   if (status === 'paid') {
-    sendPaymentConfirmedNotifications(orderId).catch((err) => {
+    afterResponse(() => sendPaymentConfirmedNotifications(orderId).catch((err) => {
       logger.error('sendPaymentConfirmedNotifications failed', { orderId, error: err?.message });
-    });
+    }));
   }
 }
 

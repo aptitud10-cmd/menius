@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const ip = getClientIP(req);
-  const rl = await checkRateLimitAsync(`order-track:${ip}`, { limit: 30, windowSec: 60 });
+  const rl = await checkRateLimitAsync(`order-track:${ip}`, { limit: 60, windowSec: 60 });
   if (!rl.allowed) {
     return NextResponse.json({ error: 'too_many_requests' }, { status: 429 });
   }
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         id, order_number, status, order_type, total, tax_amount, tip_amount,
         delivery_fee, discount_amount, payment_method, notes, created_at, updated_at,
         customer_name, customer_phone, customer_email, delivery_address,
-        estimated_ready_minutes, prepared_at,
+        estimated_ready_minutes, prepared_at, delivery_lat, delivery_lng,
         driver_name, driver_phone, driver_assigned_at,
         driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
         delivery_photo_url, driver_tracking_token, customer_token,
@@ -98,6 +98,8 @@ export async function GET(req: NextRequest) {
       driver_lng: authorized ? safeOrder.driver_lng : null,
       delivery_photo_url: authorized ? safeOrder.delivery_photo_url : null,
       notes: authorized ? safeOrder.notes : null,
+      delivery_lat: authorized ? safeOrder.delivery_lat : null,
+      delivery_lng: authorized ? safeOrder.delivery_lng : null,
       authorized,
       // Canal del GPS en vivo: solo con token (ver live-topic.ts).
       live_topic: authorized ? liveLocationTopic(order.id) : null,

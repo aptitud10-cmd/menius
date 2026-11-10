@@ -84,6 +84,7 @@ const ES = {
   driverOnWay: 'En camino',
   driverAtDoor: 'En la puerta',
   driverWaiting: (name: string) => `Esperando a ${name}`,
+  deliveryPhoto: 'Foto de la entrega',
   total: 'Total',
   subtotal: 'Subtotal',
   tax: 'Impuestos',
@@ -188,6 +189,7 @@ const EN: Dict = {
   driverOnWay: 'On the way',
   driverAtDoor: 'At the door',
   driverWaiting: (name: string) => `Waiting for ${name}`,
+  deliveryPhoto: 'Delivery photo',
   total: 'Total',
   subtotal: 'Subtotal',
   tax: 'Tax',
@@ -344,8 +346,10 @@ export function suggestedPrep(order: Order): number | null {
 
 export const PREP_CHOICES = [10, 15, 20, 30, 45] as const;
 
+/** La opción más chica que NO promete menos de lo que tarda (12 → 15, 25 → 30). */
 export function nearestChoice(m: number) {
-  return PREP_CHOICES.reduce((best, c) => (Math.abs(c - m) < Math.abs(best - m) ? c : best), PREP_CHOICES[1]);
+  if (!Number.isFinite(m) || m <= 0) return PREP_CHOICES[1];
+  return PREP_CHOICES.find((c) => c >= m) ?? PREP_CHOICES[PREP_CHOICES.length - 1];
 }
 
 /**

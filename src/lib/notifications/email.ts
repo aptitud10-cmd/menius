@@ -79,6 +79,8 @@ export async function sendEmail({
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      // Sin tope, un Resend colgado dejaba colgada la función que lo esperaba.
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!res.ok) {
@@ -364,7 +366,7 @@ export function buildOrderConfirmationEmail(params: {
             </td>
             <td style="vertical-align:middle;">
               <span style="font-size:13px;font-weight:600;color:#059669;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                ${en ? "Order confirmed" : "Pedido confirmado"}
+                ${en ? "Order received" : "Pedido recibido"}
               </span>
             </td>
           </tr>
@@ -727,8 +729,11 @@ export function buildOwnerNewOrderEmail(params: {
   notes?: string | null;
   tableNumber?: string | null;
   locale?: string;
+  /** Zona del restaurante: el servidor corre en UTC (12:31 para un pedido de las 07:31 en NY). */
+  timezone?: string;
 }): string {
   const {
+    timezone,
     orderNumber,
     restaurantName,
     customerName,
@@ -775,10 +780,17 @@ export function buildOwnerNewOrderEmail(params: {
     bg: "#f4f4f5",
   };
 
-  const now = new Date().toLocaleTimeString(en ? "en-US" : "es-MX", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  let now: string;
+  try {
+    now = new Date().toLocaleTimeString(en ? "en-US" : "es-MX", {
+      hour: "2-digit",
+      minute: "2-digit",
+      ...(timezone ? { timeZone: timezone } : {}),
+    });
+  } catch {
+    // zona inválida guardada en la DB: hora del servidor antes que romper el email
+    now = new Date().toLocaleTimeString(en ? "en-US" : "es-MX", { hour: "2-digit", minute: "2-digit" });
+  }
 
   const header = `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#111827;">

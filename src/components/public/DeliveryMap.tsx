@@ -29,6 +29,11 @@ export interface DeliveryMapProps {
   restaurantName: string;
   driverLat?: number | null;
   driverLng?: number | null;
+  /** Coordenadas guardadas al pedir (las de la sugerencia elegida): mandan sobre el texto. */
+  deliveryLat?: number | null;
+  deliveryLng?: number | null;
+  restaurantLat?: number | null;
+  restaurantLng?: number | null;
   locale?: string;
   onEtaUpdate?: (minutes: number | null) => void;
 }
@@ -64,10 +69,29 @@ async function fetchEtaMinutes(from: Coords, to: Coords): Promise<number | null>
 
 // ── Mapbox Geocoding v6 ──────────────────────────────────────────────────────
 
-async function geocodeMapbox(address: string): Promise<Coords | null> {
+/** Distancia aproximada en km (haversine). */
+function distanceKm(a: Coords, b: Coords): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/** Una dirección de entrega a más de esto del local es un error de geocodificación. */
+const MAX_DELIVERY_KM = 60;
+
+/**
+ * near: sesga la búsqueda a la zona del restaurante. Sin esto "3915 111 street"
+ * (Corona, Queens) caía en una "111 St" de Canadá y el mapa encuadraba los dos.
+ */
+async function geocodeMapbox(address: string, near?: Coords | null): Promise<Coords | null> {
   if (!MAPBOX_TOKEN || !address) return null;
   try {
-    const url = `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(address)}&access_token=${MAPBOX_TOKEN}&limit=1`;
+    const bias = near
+      ? `&proximity=${near.lng},${near.lat}&bbox=${near.lng - 0.6},${near.lat - 0.45},${near.lng + 0.6},${near.lat + 0.45}`
+      : '';
+    const url = `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(address)}&access_token=${MAPBOX_TOKEN}&limit=1${bias}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
@@ -412,7 +436,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName, driverLat, driverLng, locale, onEtaUpdate }: DeliveryMapProps) {
+export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName, driverLat, driverLng, deliveryLat, deliveryLng, restaurantLat, restaurantLng, locale, onEtaUpdate }: DeliveryMapProps) {
   const t = getTranslations(locale ?? 'es');
   const [restaurantCoords, setRestaurantCoords] = useState<Coords | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<Coords | null>(null);
@@ -425,16 +449,25 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   );
 
   useEffect(() => {
-    if (!restaurantAddress) return;
-    Promise.all([
-      geocodeMapbox(restaurantAddress),
-      deliveryAddress ? geocodeMapbox(deliveryAddress) : Promise.resolve(null),
-    ]).then(([rCoords, dCoords]) => {
+    if (!restaurantAddress && restaurantLat == null) return;
+    let cancelled = false;
+    (async () => {
+      const rCoords: Coords | null = restaurantLat != null && restaurantLng != null
+        ? { lat: restaurantLat, lng: restaurantLng }
+        : await geocodeMapbox(restaurantAddress ?? '');
+      let dCoords: Coords | null = deliveryLat != null && deliveryLng != null
+        ? { lat: deliveryLat, lng: deliveryLng }
+        : deliveryAddress ? await geocodeMapbox(deliveryAddress, rCoords) : null;
+      // Resultado absurdo (otra ciudad/país): no se dibuja en vez de mostrar un
+      // punto falso — el mapa queda con el local y el repartidor.
+      if (dCoords && rCoords && distanceKm(rCoords, dCoords) > MAX_DELIVERY_KM) dCoords = null;
+      if (cancelled) return;
       setRestaurantCoords(rCoords);
       setDeliveryCoords(dCoords);
       setGeocodingDone(true);
-    });
-  }, [restaurantAddress, deliveryAddress]);
+    })();
+    return () => { cancelled = true; };
+  }, [restaurantAddress, deliveryAddress, deliveryLat, deliveryLng, restaurantLat, restaurantLng]);
 
   // ETA is now computed inside LiveMap alongside the route update (single API call).
   // This effect only runs when there is no driver yet — static ETA from restaurant

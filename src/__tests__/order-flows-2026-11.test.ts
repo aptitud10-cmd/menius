@@ -138,3 +138,29 @@ describe('nombre de mesa en el ticket', () => {
     expect(stripTablePrefix('Terraza 2')).toBeNull();
   });
 });
+
+import { isGpsOnlyChange } from '@/hooks/use-realtime-orders';
+import { nearestChoice } from '@/components/orders/counter/ui';
+
+describe('isGpsOnlyChange (ping de GPS no recarga el pedido)', () => {
+  const known = { id: 'o', status: 'out_for_delivery', driver_lat: 40.1, driver_lng: -73.9, driver_updated_at: '2026-11-10T12:00:00Z', driver_at_door_at: null, items: [] };
+  it('solo coordenadas → true', () => {
+    expect(isGpsOnlyChange(known, { id: 'o', status: 'out_for_delivery', driver_lat: 40.2, driver_lng: -73.8, driver_updated_at: '2026-11-10T12:00:02Z', driver_at_door_at: null })).toBe(true);
+  });
+  it('cambia el estado o una marca del repartidor → false (hay que recargar)', () => {
+    expect(isGpsOnlyChange(known, { id: 'o', status: 'delivered', driver_lat: 40.2 })).toBe(false);
+    expect(isGpsOnlyChange(known, { id: 'o', status: 'out_for_delivery', driver_lat: 40.2, driver_at_door_at: '2026-11-10T12:05:00Z' })).toBe(false);
+  });
+  it('nada cambió → false', () => {
+    expect(isGpsOnlyChange(known, { id: 'o', status: 'out_for_delivery', driver_lat: 40.1, driver_lng: -73.9 })).toBe(false);
+  });
+  it('mismo instante con otro formato no cuenta como cambio', () => {
+    expect(isGpsOnlyChange({ ...known, prepared_at: '2026-11-10T12:00:00.000Z' }, { id: 'o', prepared_at: '2026-11-10T12:00:00+00:00', driver_lat: 41 })).toBe(true);
+  });
+});
+
+describe('nearestChoice (no prometer menos de lo que tarda)', () => {
+  it.each([[12, 15], [25, 30], [10, 10], [50, 45], [0, 15]])('%i → %i', (m, out) => {
+    expect(nearestChoice(m)).toBe(out);
+  });
+});

@@ -16,6 +16,7 @@
  */
 export const dynamic = "force-dynamic";
 
+import { afterResponse } from "@/lib/server/after-response";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createLogger } from "@/lib/logger";
@@ -251,12 +252,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    sendPaymentConfirmedNotifications(order.id).catch((err) => {
+    afterResponse(() => sendPaymentConfirmedNotifications(order.id).catch((err) => {
       logger.error("sendPaymentConfirmedNotifications failed", {
         orderId: order.id,
         error: err?.message,
       });
-    });
+    }));
 
     logger.info("Order marked as paid via MercadoPago", {
       orderId: order.id,

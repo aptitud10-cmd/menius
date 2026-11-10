@@ -1,5 +1,6 @@
 "use server";
 
+import { afterResponse } from "@/lib/server/after-response";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chooseDriverToken, type CurrentDriverToken } from "@/lib/orders/driver-token";
 import { redirect } from "next/navigation";
@@ -1826,6 +1827,9 @@ export async function updateOrderStatus(
   orderId: string,
   status: string,
   cancellationReason?: string,
+  /** Aceptar: el tiempo de preparación va en la MISMA escritura que 'preparing'
+   *  (antes eran dos server actions en serie y la tarjeta rebotaba a Nuevos). */
+  opts?: { etaMinutes?: number },
 ) {
   const {
     supabase,
@@ -1875,6 +1879,10 @@ export async function updateOrderStatus(
   if (status === "preparing") {
     updatePayload.prepared_at = new Date().toISOString();
   }
+  const etaMinutes = opts?.etaMinutes != null && Number.isFinite(opts.etaMinutes)
+    ? Math.max(1, Math.min(240, Math.round(opts.etaMinutes)))
+    : null;
+  if (etaMinutes != null) updatePayload.estimated_ready_minutes = etaMinutes;
   // Pedido cerrado con repartidor: se invalida la caché del token (abajo) para
   // que /api/driver/location vuelva a leer el pedido y rechace el GPS de un
   // pedido cerrado. El enlace NO se vence: el repartidor tiene que poder
@@ -1902,8 +1910,9 @@ export async function updateOrderStatus(
   // The 5-second polling in OrderTracker is the safety net if this fails.
   void broadcastOrderUpdate(orderId, status);
 
-  // Log the transition to order_status_history (non-blocking, graceful)
-  void (async () => {
+  // Log the transition to order_status_history — después de responder, pero
+  // con waitUntil: un `void` suelto se cortaba al terminar la server action.
+  afterResponse(async () => {
     try {
       const { error: histErr } = await historyDb()
         .from("order_status_history")
@@ -1917,7 +1926,7 @@ export async function updateOrderStatus(
     } catch {
       /* best-effort */
     }
-  })();
+  });
 
   // Send transactional notification to customer via email.
   // notifyStatusChange internally fires the push notification — no duplicate call needed here.
@@ -1931,33 +1940,35 @@ export async function updateOrderStatus(
       status,
     )
   ) {
-    try {
+    // El aviso al cliente sale DESPUÉS de responder: el botón del Counter ya no
+    // espera a Resend (~150–500 ms por toque). Los fallos quedan en el log y
+    // Sentry (sendEmail); el Counter ya no recibe "falló" en vivo.
+    const o = order as any;
+    afterResponse(async () => {
       const { notifyStatusChange } =
         await import("@/lib/notifications/order-notifications");
-      notificationResult = await notifyStatusChange({
+      const result = await notifyStatusChange({
         orderId,
-        orderNumber: order.order_number,
-        restaurantId: order.restaurant_id,
+        orderNumber: o.order_number,
+        restaurantId: o.restaurant_id,
         status,
-        customerName: order.customer_name,
-        customerEmail: order.customer_email || undefined,
-        customerPhone: order.customer_phone || undefined,
-        orderType: (order as any).order_type || undefined,
-        deliveryAddress: (order as any).delivery_address || undefined,
-        estimatedMinutes: (order as any).estimated_ready_minutes ?? undefined,
+        customerName: o.customer_name,
+        customerEmail: o.customer_email || undefined,
+        customerPhone: o.customer_phone || undefined,
+        orderType: o.order_type || undefined,
+        deliveryAddress: o.delivery_address || undefined,
+        estimatedMinutes: etaMinutes ?? o.estimated_ready_minutes ?? undefined,
       });
-    } catch {
-      notificationResult = {
-        channel: "none",
-        success: false,
-        error: "internal_error",
-      };
-    }
+      if (result && !result.success && result.channel !== "none") {
+        logger.warn("status notification failed", { orderId, status, channel: result.channel, error: result.error });
+      }
+    });
+    notificationResult = { channel: "queued", success: true };
   }
 
   // Auto-earn loyalty points when order is delivered/completed
   if (["delivered", "completed"].includes(status)) {
-    void (async () => {
+    afterResponse(async () => {
       try {
         const { data: fullOrder } = await supabase
           .from("orders")
@@ -1978,10 +1989,12 @@ export async function updateOrderStatus(
       } catch {
         /* non-critical */
       }
-    })();
+    });
   }
 
-  revalidatePath("/app/orders");
+  // Sin revalidatePath: en una server action hace que la respuesta traiga el
+  // árbol RSC entero de la página actual (el Counter: hasta 200 pedidos con
+  // joins) y lo descarta. Counter, KDS y panel se actualizan por realtime.
   return { success: true, notification: notificationResult };
 }
 
@@ -2036,6 +2049,14 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
   } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
+  const { data: before } = await supabase
+    .from("orders")
+    .select("id, status, estimated_ready_minutes, prepared_at, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address")
+    .eq("id", orderId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (!before) return { error: "Orden no encontrada" };
+
   const { error } = await supabase
     .from("orders")
     .update({ estimated_ready_minutes: etaMinutes })
@@ -2043,6 +2064,35 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
     .eq("restaurant_id", restaurantId);
 
   if (error) return { error: error.message };
+
+  // El seguimiento del cliente se entera al instante (antes esperaba al sondeo).
+  void broadcastOrderUpdate(orderId, before.status as string);
+
+  // Si el pedido se demora 5 min o más, el cliente recibe el aviso con el nuevo
+  // tiempo (mismo email "en preparación ~N min"). Recortes no se avisan.
+  const prev = Number(before.estimated_ready_minutes ?? 0);
+  if (["confirmed", "preparing"].includes(before.status as string) && etaMinutes - prev >= 5) {
+    const o = before as any;
+    // El email dice "listo en ~N min" desde AHORA: lo que falta, no el total
+    // contado desde la aceptación.
+    const elapsed = o.prepared_at ? Math.max(0, Math.round((Date.now() - Date.parse(o.prepared_at)) / 60_000)) : 0;
+    const remaining = Math.max(1, etaMinutes - elapsed);
+    afterResponse(async () => {
+      const { notifyStatusChange } = await import("@/lib/notifications/order-notifications");
+      await notifyStatusChange({
+        orderId,
+        orderNumber: o.order_number,
+        restaurantId: o.restaurant_id,
+        status: "preparing",
+        customerName: o.customer_name,
+        customerEmail: o.customer_email || undefined,
+        customerPhone: o.customer_phone || undefined,
+        orderType: o.order_type || undefined,
+        deliveryAddress: o.delivery_address || undefined,
+        estimatedMinutes: remaining,
+      });
+    });
+  }
   return { success: true };
 }
 
@@ -2148,7 +2198,7 @@ export async function assignDriver(
 
   // Token del repartidor: ver chooseDriverToken (conserva el QR del ticket).
   const cur = current as CurrentDriverToken & { status?: string } | null;
-  const { token, expiresAt: tokenExpiresAt } = chooseDriverToken(driverName, cur, () => crypto.randomUUID());
+  const { token, expiresAt: tokenExpiresAt, reused } = chooseDriverToken(driverName, cur, () => crypto.randomUUID());
   const oldToken = cur?.driver_tracking_token ?? null;
 
   const updatePayload: Record<string, unknown> = {
@@ -2157,18 +2207,22 @@ export async function assignDriver(
     driver_assigned_at: driverName.trim() ? new Date().toISOString() : null,
     driver_tracking_token: token,
     driver_token_expires_at: tokenExpiresAt,
-    // Reset GPS y progreso de entrega en cada nueva asignación
-    driver_lat: null,
-    driver_lng: null,
-    driver_updated_at: null,
-    driver_picked_up_at: null,
-    driver_at_door_at: null,
-    driver_delivered_at: null,
-    // El status tiene que retroceder junto con los timestamps. Si no, la fila
-    // queda imposible (status out_for_delivery + driver_picked_up_at null): el
-    // cliente pierde el mapa y ve el pedido retroceder, y cuando el driver nuevo
-    // marque recogido la transicion out_for_delivery -> out_for_delivery falla.
-    ...(current?.status === "out_for_delivery" ? { status: "ready" } : {}),
+    updated_at: new Date().toISOString(),
+    // Reset de GPS y progreso SOLO si cambió el repartidor (token nuevo). Si es
+    // el mismo enlace —el repartidor que ya escaneó el QR y al que el cajero
+    // recién le pone nombre— se conserva lo que ya marcó: antes se borraba y el
+    // pedido retrocedía de "en camino" a "listo" (y "Salió" mandaba otro aviso).
+    ...(reused ? {} : {
+      driver_lat: null,
+      driver_lng: null,
+      driver_updated_at: null,
+      driver_picked_up_at: null,
+      driver_at_door_at: null,
+      driver_delivered_at: null,
+      // El status retrocede junto con los timestamps (si no, fila imposible:
+      // out_for_delivery sin driver_picked_up_at para el repartidor nuevo).
+      ...(current?.status === "out_for_delivery" ? { status: "ready" } : {}),
+    }),
   };
 
   // Vincular driver_id si se proporciona (usado desde la app nativa)

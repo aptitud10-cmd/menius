@@ -1696,6 +1696,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   dark={false}
                   required
                   error={!!fieldErrors.delivery_address}
+                  near={restaurant.latitude != null && restaurant.longitude != null ? { lat: restaurant.latitude, lng: restaurant.longitude } : null}
+                  country={restaurant.country_code ?? null}
                 />
                 {fieldErrors.delivery_address && (
                   <p className="text-xs text-red-500 mt-1">{fieldErrors.delivery_address}</p>

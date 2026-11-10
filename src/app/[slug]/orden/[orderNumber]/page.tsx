@@ -25,7 +25,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
   const paidSuccess = searchParams.paid === 'true';
   const token = searchParams.t ?? null;
 
-  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null; phone: string | null } | null = null;
+  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null; phone: string | null; latitude: number | null; longitude: number | null } | null = null;
   let initialOrder: any = null;
 
   try {
@@ -34,7 +34,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
     // Fetch restaurant first so we have the UUID needed for the order RPC
     const { data: restaurantData } = await adminDb
       .from('restaurants')
-      .select('id, name, slug, currency, locale, address, phone')
+      .select('id, name, slug, currency, locale, address, phone, latitude, longitude')
       .eq('slug', params.slug)
       .maybeSingle();
 
@@ -47,6 +47,8 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         address: (restaurantData as any).address ?? null,
         locale: (restaurantData as any).locale ?? null,
         phone: (restaurantData as any).phone ?? null,
+        latitude: (restaurantData as any).latitude ?? null,
+        longitude: (restaurantData as any).longitude ?? null,
       };
 
       // Fetch order server-side so the page renders with data immediately.
@@ -151,6 +153,8 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       restaurantName={restaurant.name}
       restaurantSlug={restaurant.slug}
       restaurantAddress={restaurant.address ?? undefined}
+      restaurantLat={restaurant.latitude ?? null}
+      restaurantLng={restaurant.longitude ?? null}
       restaurantPhone={restaurant.phone ?? undefined}
       orderNumber={params.orderNumber}
       trackingToken={token ?? undefined}

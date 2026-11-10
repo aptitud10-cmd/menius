@@ -107,6 +107,8 @@ function getT(locale?: string, orderType?: string) {
     progressReady: en ? 'Ready' : 'Listo',
     // ETA hero
     almostReadyEta: en ? 'Almost ready!' : '¡Ya casi!',
+    runningLate: en ? 'Taking a little longer' : 'Se está demorando un poco',
+    runningLateDesc: en ? "We'll let you know as soon as it's ready" : 'Te avisamos apenas esté listo',
     readyByLabel: (etaStr: string) => en ? `Ready by ${etaStr}` : `Listo a las ${etaStr}`,
     // Driver on the way hero
     driverOnWayHeroLabel: en ? 'Driver on the way' : 'Repartidor en camino',
@@ -271,6 +273,8 @@ interface OrderTrackerProps {
   restaurantName: string;
   restaurantSlug: string;
   restaurantAddress?: string;
+  restaurantLat?: number | null;
+  restaurantLng?: number | null;
   restaurantPhone?: string;
   orderNumber: string;
   /** Opaque per-order token; required for the API to return customer/driver PII */
@@ -282,7 +286,7 @@ interface OrderTrackerProps {
   initialOrder?: any;
 }
 
-export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantPhone, orderNumber, trackingToken, currency = 'MXN', locale, showPaidBanner = false, initialOrder }: OrderTrackerProps) {
+export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantLat, restaurantLng, restaurantPhone, orderNumber, trackingToken, currency = 'MXN', locale, showPaidBanner = false, initialOrder }: OrderTrackerProps) {
   const t = getT(locale);
   const [order, setOrder] = useState<any>(initialOrder ?? null);
   const [loading, setLoading] = useState(!initialOrder);
@@ -333,11 +337,22 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Fires even when the WebSocket is up, so GPS coordinates and ETA
   // countdown stay fresh without extra subscriptions.
   const isTerminal = ['delivered', 'completed', 'cancelled'].includes(order?.status);
+  // Entregado por el repartidor pero la foto todavía no llegó (la sube DESPUÉS
+  // de marcar entregado): se sigue consultando un rato para mostrarla sin recargar.
+  const deliveredAtMs = (order as { driver_delivered_at?: string | null } | null)?.driver_delivered_at
+    ? Date.parse((order as { driver_delivered_at: string }).driver_delivered_at) : NaN;
+  const waitingPhoto = order?.order_type === 'delivery' && order?.status === 'delivered'
+    && !(order as { delivery_photo_url?: string | null }).delivery_photo_url
+    && Number.isFinite(deliveredAtMs) && Date.now() - deliveredAtMs < 15 * 60_000;
+  // Con el canal en vivo conectado, los cambios llegan por broadcast: el sondeo
+  // es solo respaldo (15 s). Sin canal, 5 s. Antes eran 5 s siempre y dos
+  // seguimientos en el mismo Wi-Fi chocaban con el límite de 30/min por IP.
+  const pollMs = rtStatus === 'connected' ? 15_000 : 5_000;
   useEffect(() => {
-    if (!order?.id || isTerminal) return;
-    const interval = setInterval(fetchOrder, 5_000);
+    if (!order?.id || (isTerminal && !waitingPhoto)) return;
+    const interval = setInterval(fetchOrder, pollMs);
     return () => clearInterval(interval);
-  }, [order?.id, isTerminal, fetchOrder]);
+  }, [order?.id, isTerminal, waitingPhoto, pollMs, fetchOrder]);
 
   // Supabase Realtime Broadcast subscription.
   //
@@ -495,6 +510,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       : (STATUS_TO_CUSTOMER_STEP[order.status] ?? 'pending');
   const currentStepIndex = CUSTOMER_STEPS.indexOf(customerStep);
   const isComplete = ['delivered', 'completed', 'served'].includes(order.status);
+  // En camino: el repartidor marcó "recogí" o el mostrador tocó "Salió".
+  const onTheWay = order.order_type === 'delivery' && !isComplete && !isCancelled
+    && (Boolean((order as any).driver_picked_up_at) || order.status === 'out_for_delivery');
   const currentStepStyle = STEP_STYLES[order.status];
   const tWithType = getT(locale, order.order_type);
   const currentStepText = tWithType.steps[order.status as keyof typeof tWithType.steps];
@@ -858,7 +876,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                               <IconCmp className="w-9 h-9 text-white" strokeWidth={1.75} />
                             </div>
                           </div>
-                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{tWithType.orderDelivered}</h2>
+                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{(order as any).cancellation_reason === 'auto_closed' ? (tWithType.en ? 'Order closed' : 'Pedido cerrado') : tWithType.orderDelivered}</h2>
                           <p className="text-sm text-gray-400">{cfg.tagline}</p>
                         </>
                       );
@@ -928,7 +946,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                             isDone || isActive ? 'text-brand-600' : 'text-gray-300'
                           )}>
                             {key === 'ready' && order.order_type === 'delivery'
-                              ? ((order as any).driver_picked_up_at
+                              ? (onTheWay || (order as any).driver_picked_up_at
                                   ? tWithType.progressOnTheWay
                                   : tWithType.progressReady)
                               : tWithType.customerSteps[key]}
@@ -965,7 +983,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         </div>
 
         {/* ── MAP HERO — promoted to top when driver is on the road ── */}
-        {order.order_type === 'delivery' && (order as any).driver_picked_up_at && order.status !== 'delivered' && (
+        {order.order_type === 'delivery' && (order as any).driver_picked_up_at && !isComplete && !isCancelled && (
           <>
             {/* Live ETA hero — updates every ~50m of driver movement via Mapbox Directions */}
             <div className="tracker-card rounded-3xl bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] border border-orange-200 shadow-sm overflow-hidden">
@@ -995,6 +1013,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 restaurantName={restaurantName}
                 driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
                 driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
+                deliveryLat={(order as any).delivery_lat ?? null}
+                deliveryLng={(order as any).delivery_lng ?? null}
+                restaurantLat={restaurantLat}
+                restaurantLng={restaurantLng}
                 locale={locale}
                 onEtaUpdate={setLiveDeliveryEta}
               />
@@ -1011,7 +1033,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           const etaLocale    = t.en ? 'en-US' : 'es-MX';
           const etaStr       = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
           // etaTick is read here so this IIFE re-evaluates every 30s without polling
-          const minsLeft     = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000) - etaTick * 0);
+          const rawMinsLeft  = Math.round((etaTime.getTime() - Date.now()) / 60_000) - etaTick * 0;
+          const minsLeft     = Math.max(0, rawMinsLeft);
+          // Pasados 3 min de la hora prometida: decirlo, en vez de "¡Ya casi!
+          // · Listo a las 12:42" para siempre con una hora que ya pasó.
+          const runningLate  = rawMinsLeft <= -3;
           const progressPct  = Math.min(100, Math.max(0, 100 - (minsLeft / order.estimated_ready_minutes) * 100));
           const isAlmost     = minsLeft <= 2;
           return (
@@ -1062,17 +1088,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 ) : (
                   <>
                     <p className={cn(
-                      'text-5xl font-black mb-3',
+                      runningLate ? 'text-3xl font-black mb-3' : 'text-5xl font-black mb-3',
                       isAlmost ? 'text-amber-600' : 'text-[#047a65]'
                     )}>
-                      {t.almostReadyEta}
+                      {runningLate ? t.runningLate : t.almostReadyEta}
                     </p>
                     <div className={cn(
                       'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold',
                       isAlmost ? 'bg-amber-100 text-amber-700' : 'bg-white/60 text-[#047a65]'
                     )}>
                       <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      {t.readyByLabel(etaStr)}
+                      {runningLate ? t.runningLateDesc : t.readyByLabel(etaStr)}
                     </div>
                   </>
                 )}
@@ -1131,7 +1157,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* driver_picked_up_at tambien monta el bloque: si el status quedo atras
             (el KDS no marco ready antes de que el driver recogiera), el cliente
             igual ve a su repartidor en vez de una pantalla que dice "preparando". */}
-        {order.order_type === 'delivery' && (['ready', 'out_for_delivery'].includes(order.status) || Boolean((order as any).driver_picked_up_at)) && (
+        {/* Nunca con el pedido terminado: mostraba "En tu puerta" junto a "¡Entregado!". */}
+        {order.order_type === 'delivery' && !isComplete && !isCancelled && (['ready', 'out_for_delivery'].includes(order.status) || Boolean((order as any).driver_picked_up_at)) && (
           <>
             {/* Driver card — shown from assignment onwards, until driver is at door */}
             {(order as any).driver_assigned_at && !(order as any).driver_at_door_at && (
@@ -1168,7 +1195,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                         'text-sm mt-0.5',
                         (order as any).driver_picked_up_at ? 'text-blue-200' : 'text-violet-200'
                       )}>
-                        {(order as any).driver_picked_up_at ? t.headingToAddress : tWithType.steps.ready?.desc}
+                        {onTheWay ? t.headingToAddress : tWithType.steps.ready?.desc}
                       </p>
                     </div>
                     {(order as any).driver_picked_up_at && (
@@ -1206,10 +1233,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             {/* ETA pill — shown from assignment until driver picks up */}
             {['ready', 'out_for_delivery'].includes(order.status) && (order as any).driver_assigned_at && !(order as any).driver_picked_up_at && !(order as any).driver_at_door_at && Number(order.estimated_ready_minutes) > 0 && (() => {
               const tEta = getT(locale, 'delivery');
-              const assignedAt = new Date((order as any).driver_assigned_at as string);
-              if (isNaN(assignedAt.getTime())) return null;
+              // Hora de recogida = cuando la comida está lista (aceptación +
+              // tiempo de preparación), no asignación + preparación.
+              const acceptedAt = new Date(((order as any).prepared_at ?? (order as any).driver_assigned_at) as string);
+              if (isNaN(acceptedAt.getTime())) return null;
               const etaMins = Number(order.estimated_ready_minutes);
-              const etaTime = new Date(assignedAt.getTime() + etaMins * 60_000);
+              const etaTime = new Date(acceptedAt.getTime() + etaMins * 60_000);
               const minsLeft = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000));
               const etaLocale = tEta.en ? 'en-US' : 'es-MX';
               const etaStr = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
@@ -1465,6 +1494,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               restaurantName={restaurantName}
               driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
               driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
+              deliveryLat={(order as any).delivery_lat ?? null}
+              deliveryLng={(order as any).delivery_lng ?? null}
+              restaurantLat={restaurantLat}
+              restaurantLng={restaurantLng}
               locale={locale}
             />
           </div>

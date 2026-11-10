@@ -41,6 +41,8 @@ export function useRealtimeOrders({
   const [orders, setOrders] = useState<Order[]>(() =>
     initialOrders.filter((o) => !isAwaitingOnlinePayment(o))
   );
+  const ordersRef = useRef<Order[]>(orders);
+  ordersRef.current = orders;
   const [rtStatus, setRtStatus] = useState<RealtimeConnectionStatus>('reconnecting');
   // Última vez que el sondeo de 10 s trajo datos. Si el canal en vivo se cae
   // pero el sondeo sigue respondiendo, los pedidos siguen llegando: no hay que
@@ -201,7 +203,18 @@ export function useRealtimeOrders({
           filter: `restaurant_id=eq.${restaurantId}`,
         },
         async (payload: RealtimePostgresChangesPayload<{ id: string }>) => {
-          const fullOrder = await fetchFullOrder((payload.new as { id: string }).id);
+          // Ping de GPS del repartidor (cada ~2 s): solo cambian coordenadas.
+          // Se aplican en el lugar sin volver a descargar el pedido con sus
+          // ítems — antes cada ping costaba una consulta pesada por tablet.
+          const row = payload.new as Record<string, unknown> & { id: string };
+          const known = ordersRef.current.find((o) => o.id === row.id) as unknown as Record<string, unknown> | undefined;
+          if (known && isGpsOnlyChange(known, row)) {
+            setOrders((prev) => prev.map((o) => (o.id === row.id
+              ? ({ ...o, driver_lat: row.driver_lat, driver_lng: row.driver_lng, driver_updated_at: row.driver_updated_at } as unknown as Order)
+              : o)));
+            return;
+          }
+          const fullOrder = await fetchFullOrder(row.id);
           if (!fullOrder || isAwaitingOnlinePayment(fullOrder)) return;
 
           // Una orden fuera de la lista (programada creada hace días, o que
@@ -251,10 +264,14 @@ export function useRealtimeOrders({
 
   // ── Polling interval (runs regardless of WebSocket state) ─────────────────
 
+  // Con el canal en vivo conectado los cambios ya llegan por realtime: el sondeo
+  // (dos consultas pesadas con joins) es solo respaldo → cada 30 s. Sin canal,
+  // cada 10 s como antes.
+  const pollMs = rtStatus === 'connected' ? 30_000 : POLL_INTERVAL_MS;
   useEffect(() => {
-    const id = setInterval(pollOrders, POLL_INTERVAL_MS);
+    const id = setInterval(pollOrders, pollMs);
     return () => clearInterval(id);
-  }, [pollOrders]);
+  }, [pollOrders, pollMs]);
 
   // ── Immediate re-poll when tab becomes visible again ──────────────────────
   // Covers: tablet waking from sleep, user switching back from another tab,
@@ -275,4 +292,29 @@ export function useRealtimeOrders({
   }, []);
 
   return { orders, updateOrderLocally, rtStatus, lastSyncAt, refetch: pollOrders };
+}
+
+/** Campos que cambian con cada ping de GPS (trigger de order_location_latest). */
+const GPS_FIELDS = new Set(['driver_lat', 'driver_lng', 'driver_updated_at']);
+
+/**
+ * true si el UPDATE solo trae coordenadas nuevas del repartidor: todos los
+ * demás campos escalares que llegan en el evento coinciden con los que ya
+ * tenemos. Cualquier otro cambio (estado, tiempos, repartidor, pago) → refetch.
+ */
+export function isGpsOnlyChange(known: Record<string, unknown>, row: Record<string, unknown>): boolean {
+  let gpsChanged = false;
+  for (const [k, v] of Object.entries(row)) {
+    if (v !== null && typeof v === 'object') continue; // jsonb, etc.: no comparables
+    if (GPS_FIELDS.has(k)) { if (known[k] !== v) gpsChanged = true; continue; }
+    if (k === 'updated_at') continue;
+    if (!(k in known)) continue;
+    const kv = known[k];
+    if (kv === v) continue;
+    // timestamps/números pueden venir con otro formato: comparar normalizado
+    if (typeof kv === 'string' && typeof v === 'string' && !Number.isNaN(Date.parse(v)) && Date.parse(kv) === Date.parse(v)) continue;
+    if ((typeof kv === 'number' || typeof v === 'number') && kv != null && v != null && Number(kv) === Number(v)) continue;
+    return false;
+  }
+  return gpsChanged;
 }

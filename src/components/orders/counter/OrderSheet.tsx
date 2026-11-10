@@ -43,6 +43,7 @@ export function OrderSheet({
   const left = minsLeft(order);
   const subtotal = items.reduce((s, i) => s + i.lineTotal, 0);
   const phone = order.customer_phone?.trim();
+  const drv = order as Order & { driver_delivered_at?: string | null; delivery_photo_url?: string | null };
 
   const moreItems: { label: string; icon: ReactNode; onClick?: () => void; href?: string; danger?: boolean }[] = [];
   if (phone) moreItems.push({ label: T.callCustomer, icon: <Phone className="w-5 h-5" />, href: `tel:${phone.replace(/[^\d+]/g, '')}` });
@@ -154,7 +155,10 @@ export function OrderSheet({
                   <div className="grid grid-cols-4 gap-1.5 mt-1.5">
                     {[5, 10, 15, 20].map((add) => (
                       <button key={add} type="button" disabled={busy}
-                        onClick={() => onAdjustEta(order, minsSince(order.created_at) + Math.max(0, left) + add)}
+                        // Minutos desde la ACEPTACIÓN (como minsLeft, el email y el seguimiento):
+                        // transcurrido + lo que faltaba (0 si ya estaba atrasado) + lo agregado.
+                        // Antes sumaba también la espera en Nuevos (created_at).
+                        onClick={() => onAdjustEta(order, (Number(order.estimated_ready_minutes ?? 0) - left) + Math.max(0, left) + add)}
                         className="h-12 rounded-lg font-bold text-[16px] tabular-nums disabled:opacity-50" style={{ background: C.bg, color: C.ink }}>
                         +{add}
                       </button>
@@ -175,11 +179,21 @@ export function OrderSheet({
                     className="mt-1.5 h-11 rounded-lg inline-flex items-center justify-center gap-2 font-bold text-[15px]" style={{ background: C.bg, color: C.ink }}>
                     <MapPin className="w-4 h-4" /> {T.openMap}
                   </a>
-                  {order.driver_name && (
+                  {(order.driver_name || order.driver_picked_up_at || drv.driver_delivered_at) && (
                     <p className="text-[15px] mt-1.5" style={{ color: C.sub }}>
-                      {T.driver}: <b style={{ color: C.ink }}>{order.driver_name}</b>
-                      {order.driver_at_door_at ? ` · ${T.driverAtDoor}` : order.driver_picked_up_at ? ` · ${T.driverOnWay}` : ''}
+                      {T.driver}{order.driver_name ? <>: <b style={{ color: C.ink }}>{order.driver_name}</b></> : ''}
+                      {drv.driver_delivered_at
+                        ? ` · ${T.delivered} ${new Date(drv.driver_delivered_at).toLocaleTimeString(T.locale, { hour: '2-digit', minute: '2-digit' })}`
+                        : order.driver_at_door_at ? ` · ${T.driverAtDoor}` : order.driver_picked_up_at ? ` · ${T.driverOnWay}` : ''}
                     </p>
+                  )}
+                  {/* Prueba de entrega: si el cliente dice "no me llegó", acá está la foto. */}
+                  {drv.delivery_photo_url && (
+                    <a href={drv.delivery_photo_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                      <span className="text-[13px] font-bold uppercase tracking-wide" style={{ color: C.sub }}>{T.deliveryPhoto}</span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={drv.delivery_photo_url} alt={T.deliveryPhoto} className="mt-1 w-full max-h-48 object-cover rounded-lg" />
+                    </a>
                   )}
                 </Box>
               )}

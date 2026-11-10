@@ -196,6 +196,9 @@ export async function GET(request: NextRequest) {
       .neq("customer_email", "")
       .gte("updated_at", twoDaysAgo)
       .lt("updated_at", oneDayAgo)
+      // Cerrados solos por auto-complete-pickup: no sabemos si el cliente lo
+      // retiró — no se le pide reseña.
+      .or("cancellation_reason.is.null,cancellation_reason.neq.auto_closed")
       .limit(50);
     noteQueryError("review_request", deliveredError);
 

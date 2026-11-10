@@ -21,6 +21,10 @@ interface AddressAutocompleteProps {
   dark?: boolean;
   required?: boolean;
   error?: boolean;
+  /** Sesga las sugerencias a la zona del restaurante (sin esto salían otras ciudades/países). */
+  near?: { lat: number; lng: number } | null;
+  /** ISO 3166-1 alfa-2 (p. ej. 'us', 'co'): restringe a ese país. */
+  country?: string | null;
 }
 
 export function AddressAutocomplete({
@@ -33,6 +37,8 @@ export function AddressAutocomplete({
   dark = true,
   required,
   error = false,
+  near,
+  country,
 }: AddressAutocompleteProps) {
   const [localValue, setLocalValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,6 +81,15 @@ export function AddressAutocomplete({
     const ac = new google.maps.places.Autocomplete(inputRef.current, {
       types: ['address'],
       fields: ['formatted_address', 'geometry'],
+      // ~30 km alrededor del local: prioriza (no obliga) direcciones cercanas.
+      ...(near ? {
+        bounds: new google.maps.LatLngBounds(
+          { lat: near.lat - 0.27, lng: near.lng - 0.35 },
+          { lat: near.lat + 0.27, lng: near.lng + 0.35 },
+        ),
+        strictBounds: false,
+      } : {}),
+      ...(country ? { componentRestrictions: { country: country.toLowerCase() } } : {}),
     });
 
     ac.addListener('place_changed', () => {
@@ -92,6 +107,8 @@ export function AddressAutocomplete({
     });
 
     autocompleteRef.current = ac;
+  // near/country son del restaurante (no cambian): se fijan al crear el Autocomplete.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, onChange, onPlaceSelect]);
 
   const handleManualChange = (v: string) => {

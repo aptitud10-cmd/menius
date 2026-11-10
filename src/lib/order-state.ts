@@ -22,7 +22,9 @@ export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending:          ['confirmed', 'preparing', 'cancelled'],
   // confirmed → served: una mesa aceptada desde el panel web (queda en
   // 'confirmed') también se puede marcar servida desde el Counter.
-  confirmed:        ['preparing', 'almost_ready', 'ready', 'served', 'cancelled'],
+  // confirmed → out_for_delivery: delivery aceptado desde el panel web cuyo
+  // repartidor escanea el QR y marca "recogí" (antes: sin avance ni aviso).
+  confirmed:        ['preparing', 'almost_ready', 'ready', 'served', 'out_for_delivery', 'cancelled'],
   preparing:        ['almost_ready', 'served', 'ready', 'out_for_delivery', 'delivered', 'cancelled'],
   almost_ready:     ['served', 'ready', 'out_for_delivery', 'cancelled'],
   ready:            ['out_for_delivery', 'served', 'delivered', 'completed', 'cancelled'],

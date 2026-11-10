@@ -45,6 +45,10 @@ function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
     const m = Math.max(0, Math.floor((Date.now() - waitingSince(order as Order & { updated_at?: string | null })) / 60_000));
     return <span className="tabular-nums font-bold text-[16px]" style={{ color: m >= 5 ? C.amber : C.sub }}>{T.minAgo(m)}</span>;
   }
+  const pickedUpEarly = (order as Order & { driver_picked_up_at?: string | null }).driver_picked_up_at;
+  if (pickedUpEarly && !['delivered', 'completed', 'cancelled'].includes(order.status)) {
+    return <span className="tabular-nums font-bold text-[16px]" style={{ color: C.sub }}>{T.minAgo(minsSince(pickedUpEarly))}</span>;
+  }
   if (['confirmed', 'preparing', 'almost_ready'].includes(order.status)) {
     const left = minsLeft(order);
     if (left == null) return <span className="tabular-nums font-bold text-[16px]" style={{ color: C.sub }}>{T.minAgo(minsSince(order.created_at))}</span>;
@@ -67,10 +71,13 @@ function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
  * repartidor todavía en ruta.
  */
 function DriverLine({ order, T }: { order: Order; T: CounterText }) {
-  if (order.order_type !== 'delivery' || !order.driver_name) return null;
+  if (order.order_type !== 'delivery') return null;
   if (['delivered', 'completed', 'cancelled'].includes(order.status)) return null;
   const o = order as Order & { driver_picked_up_at?: string | null; driver_at_door_at?: string | null };
-  const name = shortName(order.driver_name, order.driver_name);
+  // Repartidor que escaneó el QR sin que lo asignaran en la tablet: no tiene
+  // nombre, pero sus marcas (recogí / en la puerta) sí — antes no se veía.
+  if (!order.driver_name && !o.driver_picked_up_at && !o.driver_at_door_at) return null;
+  const name = order.driver_name ? shortName(order.driver_name, order.driver_name) : T.driver;
   const text = o.driver_at_door_at ? `${T.driverAtDoor} · ${name}`
     : o.driver_picked_up_at || order.status === 'out_for_delivery' ? `${T.driverOnWay} · ${name}`
     : T.driverWaiting(name);
