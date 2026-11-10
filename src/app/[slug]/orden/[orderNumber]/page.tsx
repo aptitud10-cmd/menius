@@ -171,6 +171,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       currency={restaurant.currency ?? 'MXN'}
       locale={trackerLocale}
       showPaidBanner={paidSuccess}
+      paidParam={typeof searchParams.paid === 'string' ? searchParams.paid : undefined}
       initialOrder={initialOrder}
     />
   );

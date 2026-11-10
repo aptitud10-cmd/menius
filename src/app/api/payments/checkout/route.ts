@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const { data: order, error } = await adminDb
       .from('orders')
       .select(`
-        id, order_number, total, customer_name, restaurant_id, payment_status, customer_token,
+        id, order_number, status, total, customer_name, restaurant_id, payment_status, customer_token,
         restaurants ( currency, stripe_account_id, stripe_onboarding_complete, name, commission_plan )
       `)
       .eq('id', order_id)
@@ -49,6 +49,10 @@ export async function POST(request: NextRequest) {
     // Don't create a new Stripe session if already paid
     if ((order as any).payment_status === 'paid') {
       return NextResponse.json({ error: 'Este pedido ya fue pagado.' }, { status: 409 });
+    }
+    // Un pedido cancelado (p. ej. la sesión anterior expiró) no se vuelve a cobrar.
+    if ((order as any).status !== 'pending') {
+      return NextResponse.json({ error: 'Este pedido ya no acepta pagos.' }, { status: 409 });
     }
 
     const rest = (order as any).restaurants;

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
-    const { subscription, order_id } = await request.json();
+    const { subscription, order_id, t } = await request.json();
 
     if (!subscription || !order_id) {
       return NextResponse.json({ error: 'subscription and order_id required' }, { status: 400 });
@@ -36,14 +36,21 @@ export async function POST(request: NextRequest) {
 
     const adminDb = createAdminClient();
 
-    // Verify the order exists before storing the subscription
+    // Solo quien tiene la llave del pedido puede suscribirse: los avisos
+    // llevan el enlace con la llave del cliente (nombre, dirección, GPS del
+    // repartidor, foto de la puerta). El id del pedido no es secreto.
+    const token = typeof t === 'string' ? t : '';
+    if (!token || token.length > 200) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
     const { data: order } = await adminDb
       .from('orders')
-      .select('id')
+      .select('id, customer_token, driver_tracking_token')
       .eq('id', order_id)
       .maybeSingle();
 
-    if (!order) {
+    const okToken = !!order && (token === String(order.customer_token ?? '') || token === String(order.driver_tracking_token ?? ''));
+    if (!order || !okToken) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 

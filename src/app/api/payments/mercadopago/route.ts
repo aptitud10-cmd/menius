@@ -78,8 +78,9 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     // VIEW-ONLY customer_token — the driver action token never rides redirect URLs.
     const successUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).customer_token ? `&t=${(order as any).customer_token}` : ''}`;
-    const failureUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=false`;
-    const pendingUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=pending`;
+    const tokenQs = (order as any).customer_token ? `&t=${(order as any).customer_token}` : '';
+    const failureUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=false${tokenQs}`;
+    const pendingUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=pending${tokenQs}`;
 
     // Initialize MP client with restaurant's own token
     const mpClient = new MercadoPagoConfig({ accessToken: restaurant.mp_access_token });

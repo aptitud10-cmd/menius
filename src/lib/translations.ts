@@ -127,6 +127,7 @@ export interface Translations {
   deliveryDesc: string;
   // Cart — dynamic strings
   reorderLastOrder: string;
+  reorderChooseOptions: string;
   tapToRemove: string;
   youMayAlsoLike: string;
   peopleAlsoOrder: string;
@@ -499,6 +500,7 @@ const es: Translations = {
   pickupDesc: 'Ordena y recoge en persona',
   deliveryDesc: 'Recibe en tu dirección',
   reorderLastOrder: 'Repetir último pedido',
+  reorderChooseOptions: 'Elige de nuevo las opciones de: ',
   tapToRemove: 'Toca − de nuevo para eliminar',
   youMayAlsoLike: 'También te puede gustar',
   peopleAlsoOrder: 'También piden con esto',
@@ -854,6 +856,7 @@ const en: Translations = {
   pickupDesc: 'Order ahead and pick up',
   deliveryDesc: 'Get it delivered to you',
   reorderLastOrder: 'Reorder last order',
+  reorderChooseOptions: 'Choose the options again for: ',
   tapToRemove: 'Tap − again to remove',
   youMayAlsoLike: 'You may also like',
   peopleAlsoOrder: 'People also order',

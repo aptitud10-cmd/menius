@@ -27,6 +27,8 @@ interface CartState {
   tableName: string | null;
   selectedOrderType: OrderType | null;
   lastOrder: LastOrder | null;
+  /** Platos del último "repetir" que necesitan elegir opciones de nuevo (no se persiste). */
+  reorderSkipped: string[];
   addItem: (product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
   replaceItem: (index: number, product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
   removeItem: (index: number) => void;
@@ -64,6 +66,7 @@ export const useCartStore = create<CartState>()(
       tableName: null,
       selectedOrderType: null,
       lastOrder: null,
+      reorderSkipped: [],
 
       setRestaurantId: (id) => {
         const current = get().restaurantId;
@@ -150,9 +153,13 @@ export const useCartStore = create<CartState>()(
         if (!lastOrder) return 0;
         const productMap = new Map(products.map((p) => [p.id, p]));
         const newItems = [];
+        const skipped: string[] = [];
         for (const saved of lastOrder.items) {
           const product = productMap.get(saved.productId);
           if (!product || !product.is_active) continue;
+          // Con opciones (acompañante obligatorio, salsas…) no se puede repetir
+          // a ciegas: el checkout lo rechaza. Se avisa para elegirlas de nuevo.
+          if (product.has_modifiers) { skipped.push(saved.productName || product.name); continue; }
           // product.variants is empty under the slim pattern, so fall back to the
           // snapshot saved with the order — otherwise the surcharge is lost.
           const variant: ProductVariant | null = saved.variantId
@@ -168,8 +175,9 @@ export const useCartStore = create<CartState>()(
           const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
           newItems.push({ uid, product, variant, extras: [], modifierSelections: [], qty: saved.qty, notes: '', lineTotal });
         }
-        set({ items: newItems });
-        return newItems.length;
+        // Se suma a lo que ya haya en el carrito (antes lo reemplazaba sin avisar).
+        set({ items: [...get().items, ...newItems], reorderSkipped: skipped });
+        return newItems.length + skipped.length;
       },
 
       clearCart: () => set({ items: [] }),

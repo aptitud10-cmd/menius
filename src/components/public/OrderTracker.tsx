@@ -295,11 +295,13 @@ interface OrderTrackerProps {
   currency?: string;
   locale?: string;
   showPaidBanner?: boolean;
+  /** ?paid= de la vuelta de la pasarela: 'true' | 'false' | 'pending' */
+  paidParam?: string;
   /** Pre-fetched order data from the server component — renders immediately without a client fetch */
   initialOrder?: any;
 }
 
-export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantLat, restaurantLng, restaurantPhone, orderNumber, trackingToken, currency = 'MXN', locale, showPaidBanner = false, initialOrder }: OrderTrackerProps) {
+export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantLat, restaurantLng, restaurantPhone, orderNumber, trackingToken, currency = 'MXN', locale, showPaidBanner = false, paidParam, initialOrder }: OrderTrackerProps) {
   const t = getT(locale);
   const [order, setOrder] = useState<any>(initialOrder ?? null);
   const [loading, setLoading] = useState(!initialOrder);
@@ -854,7 +856,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* ── STATUS HERO CARD ── */}
         <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           {awaitingPayment ? (
-            <PaymentPendingCard orderId={order.id} restaurantSlug={restaurantSlug} justPaid={showPaidBanner} t={t} />
+            <PaymentPendingCard orderId={order.id} restaurantSlug={restaurantSlug} paidParam={paidParam}
+              createdAt={order.created_at} paymentMethod={order.payment_method} currency={currency} t={t} />
           ) : isCancelled ? (
             <div className="text-center py-12 px-6">
               <div className="w-20 h-20 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-5">
@@ -1061,6 +1064,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           // Delivery listo esperando al repartidor: sin esto no había ninguna
           // hora de llegada entre "listo" y "salió".
           || (order.order_type === 'delivery' && ['almost_ready', 'ready'].includes(order.status) && !(order as any).driver_picked_up_at && !onTheWay)
+          // "Salió" desde el mostrador sin que el repartidor usara su página:
+          // no hay GPS ni mapa, pero sí una hora de llegada.
+          || (order.order_type === 'delivery' && order.status === 'out_for_delivery' && !(order as any).driver_picked_up_at && !atDoor)
         ) && (() => {
           // Cuenta desde que el restaurante ACEPTÓ (prepared_at), igual que el email "listo en ~N min".
           const acceptedAtRaw = (order as { prepared_at?: string | null }).prepared_at ?? order.updated_at ?? order.created_at;
@@ -1081,7 +1087,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           const dLat = Number((order as any).delivery_lat), dLng = Number((order as any).delivery_lng);
           const km = restaurantLat != null && restaurantLng != null && Number.isFinite(dLat) && Number.isFinite(dLng) && (order as any).delivery_lat != null
             ? haversineKm(restaurantLat, restaurantLng, dLat, dLng) : 2;
-          const arrival      = new Date(Math.max(etaTime.getTime(), Date.now()) + travelMinutes(km) * 60_000);
+          const departedAt   = order.status === 'out_for_delivery' ? Date.parse(order.updated_at) : NaN;
+          // Listo: ya no faltan minutos de cocina. Salió: cuenta desde que salió.
+          const leaveAt      = Number.isFinite(departedAt) ? departedAt
+            : order.status === 'ready' ? Date.now()
+            : Math.max(etaTime.getTime(), Date.now());
+          const arrival      = new Date(Math.max(leaveAt + travelMinutes(km) * 60_000, Date.now() + 60_000));
           const arrStr       = arrival.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
           const arrMins      = Math.max(1, Math.round((arrival.getTime() - Date.now()) / 60_000));
           const shownMins    = isDelivery ? arrMins : minsLeft;
@@ -1276,35 +1287,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               </div>
             )}
 
-            {/* ETA pill — shown from assignment until driver picks up */}
-            {['ready', 'out_for_delivery'].includes(order.status) && (order as any).driver_assigned_at && !(order as any).driver_picked_up_at && !(order as any).driver_at_door_at && Number(order.estimated_ready_minutes) > 0 && (() => {
-              const tEta = getT(locale, 'delivery');
-              // Hora de recogida = cuando la comida está lista (aceptación +
-              // tiempo de preparación), no asignación + preparación.
-              const acceptedAt = new Date(((order as any).prepared_at ?? (order as any).driver_assigned_at) as string);
-              if (isNaN(acceptedAt.getTime())) return null;
-              const etaMins = Number(order.estimated_ready_minutes);
-              const etaTime = new Date(acceptedAt.getTime() + etaMins * 60_000);
-              const minsLeft = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000));
-              const etaLocale = tEta.en ? 'en-US' : 'es-MX';
-              const etaStr = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
-              return (
-                <div className="tracker-card flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-violet-50 border border-violet-100">
-                  <Clock className="w-4 h-4 text-violet-400 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-violet-600">{tEta.driverAssignedEtaLabel}</p>
-                    <p className="text-xs text-violet-400 truncate">{tEta.driverAssignedSubtitle}</p>
-                  </div>
-                  <div className="flex-shrink-0 text-right">
-                    {minsLeft > 0 ? (
-                      <p className="text-base font-black text-violet-700 tabular-nums">~{minsLeft} min</p>
-                    ) : (
-                      <p className="text-sm font-black text-violet-700">{etaStr}</p>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
+            {/* (La "Recogida estimada" se quitó: la llegada estimada de arriba ya cubre este tramo.) */}
 
             {/* "Driver at door" — highest urgency, full pulsing card */}
             {(order as any).driver_at_door_at && (
@@ -1351,8 +1334,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         )}
 
         {/* Push notification prompt */}
-        {!isCancelled && !isComplete && !awaitingPayment && (
-          <PushSubscriptionPrompt orderId={order.id} locale={locale} />
+        {!isCancelled && !isComplete && !awaitingPayment && order.authorized && trackingToken && (
+          <PushSubscriptionPrompt orderId={order.id} token={trackingToken} locale={locale} />
         )}
 
         {/* ── ITEMS SUMMARY CARD — visible immediately, no accordion ── */}
@@ -1619,9 +1602,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   variantPriceDelta: (it.variant_price_delta as number | null) ?? null,
                   qty: Number(it.qty) || 1,
                 }));
-              if (saved.length > 0) {
-                useCartStore.setState({ lastOrder: { restaurantId, items: saved, date: new Date().toISOString() } });
-              }
+              if (saved.length === 0) { window.location.href = `/${restaurantSlug}`; return; }
+              useCartStore.setState({ lastOrder: { restaurantId, items: saved, date: new Date().toISOString() } });
               window.location.href = `/${restaurantSlug}?reorder=1`;
             }}
             className="tracker-card block w-full py-3.5 rounded-2xl bg-[#05c8a7] text-white text-center font-bold text-sm hover:bg-[#04b096] active:scale-[0.98] transition-all shadow-lg shadow-[#05c8a7]/20"
@@ -1807,23 +1789,53 @@ function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tab
 
 // Pedido online sin cobrar: antes decía "Recibido" aunque el cliente hubiera
 // cancelado el pago (el mostrador ni lo ve y a las 24 h se cancela solo).
-function PaymentPendingCard({ orderId, restaurantSlug, justPaid, t }: {
-  orderId: string; restaurantSlug: string; justPaid: boolean; t: ReturnType<typeof getT>;
+// Ojo: justo después de pagar bien, el pedido sigue "sin cobrar" unos
+// segundos hasta que llega la confirmación de la pasarela (y con Apple/Google
+// Pay no hay ?paid=true): en esa ventana se dice "Confirmando", nunca
+// "no se cobró", para no invitar a pagar dos veces.
+const CONFIRM_WINDOW_MS = 3 * 60_000;
+function PaymentPendingCard({ orderId, restaurantSlug, paidParam, createdAt, paymentMethod, currency, t }: {
+  orderId: string; restaurantSlug: string; paidParam?: string; createdAt: string;
+  paymentMethod?: string | null; currency: string; t: ReturnType<typeof getT>;
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  // Recién volvió de pagar bien: la confirmación de Stripe tarda unos segundos.
-  if (justPaid) {
+  const [now, setNow] = useState(() => Date.now());
+  const [mountedAt] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 5_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const age = now - Date.parse(createdAt);
+  const confirming =
+    paidParam === 'pending' // MercadoPago/OXXO: queda pendiente de verdad
+    || (paidParam === 'true' && now - mountedAt < 60_000)
+    || (paidParam !== 'false' && paidParam !== 'true' && (paymentMethod === 'wallet' || age < CONFIRM_WINDOW_MS));
+
+  if (confirming) {
     return (
       <div className="text-center py-10 px-6" role="status" aria-live="polite">
         <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-gray-200 border-t-[#05c8a7] motion-safe:animate-spin" aria-hidden />
-        <h2 className="text-xl font-black text-gray-900">{t.en ? 'Confirming your payment…' : 'Confirmando tu pago…'}</h2>
-        <p className="text-sm text-gray-500 mt-1">{t.en ? 'This takes a few seconds.' : 'Tarda unos segundos.'}</p>
+        <h2 className="text-xl font-black text-gray-900">
+          {paidParam === 'pending'
+            ? (t.en ? 'Your payment is pending' : 'Tu pago está pendiente')
+            : (t.en ? 'Confirming your payment…' : 'Confirmando tu pago…')}
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          {paidParam === 'pending'
+            ? (t.en ? 'We will let you know as soon as it is confirmed.' : 'Te avisamos apenas se confirme.')
+            : (t.en ? 'This takes a few seconds.' : 'Tarda unos segundos.')}
+        </p>
       </div>
     );
   }
+
+  // El reintento abre Stripe: no aplica a restaurantes con Wompi (COP).
+  const canRetry = currency.toUpperCase() !== 'COP';
   const retry = async () => {
-    setBusy(true); setErr('');
+    setBusy(true);
+    setErr('');
     try {
       const res = await fetch('/api/payments/checkout', {
         method: 'POST',
@@ -1845,16 +1857,18 @@ function PaymentPendingCard({ orderId, restaurantSlug, justPaid, t }: {
       </div>
       <h2 className="text-2xl font-black text-gray-900 mb-1">{t.payFailedTitle}</h2>
       <p className="text-sm text-gray-600 max-w-xs mx-auto">{t.payFailedDesc}</p>
-      <button type="button" onClick={retry} disabled={busy}
-        className="mt-5 w-full h-12 rounded-2xl bg-gray-900 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-60">
-        {busy ? '…' : t.payRetry}
-      </button>
+      {canRetry && (
+        <button type="button" onClick={retry} disabled={busy}
+          className="mt-5 w-full h-12 rounded-2xl bg-gray-900 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-60">
+          {busy ? '…' : t.payRetry}
+        </button>
+      )}
       {err && <p className="mt-3 text-sm font-semibold text-red-600">{err}</p>}
     </div>
   );
 }
 
-function PushSubscriptionPrompt({ orderId, locale }: { orderId: string; locale?: string }) {
+function PushSubscriptionPrompt({ orderId, token, locale }: { orderId: string; token: string; locale?: string }) {
   const t = getT(locale);
   const [state, setState] = useState<'idle' | 'subscribed' | 'denied' | 'unsupported'>('idle');
 
@@ -1873,12 +1887,15 @@ function PushSubscriptionPrompt({ orderId, locale }: { orderId: string; locale?:
     const res = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: sub.toJSON(), order_id: orderId }),
+      body: JSON.stringify({ subscription: sub.toJSON(), order_id: orderId, t: token }),
     });
     if (!res.ok) return false;
-    try { localStorage.setItem(`push-subscribed-${orderId}`, '1'); } catch { /* sin storage */ }
+    // Un navegador = una suscripción (endpoint único en la base): sigue al
+    // último pedido que se abrió. Se recuerda cuál, para re-apuntar si el
+    // cliente vuelve a un pedido anterior.
+    try { localStorage.setItem('menius-push-order', orderId); } catch { /* sin storage */ }
     return true;
-  }, [orderId]);
+  }, [orderId, token]);
 
   useEffect(() => {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -1887,7 +1904,7 @@ function PushSubscriptionPrompt({ orderId, locale }: { orderId: string; locale?:
     }
     if (Notification.permission === 'denied') { setState('denied'); return; }
     let done = false;
-    try { done = !!localStorage.getItem(`push-subscribed-${orderId}`); } catch { /* sin storage */ }
+    try { done = localStorage.getItem('menius-push-order') === orderId; } catch { /* sin storage */ }
     if (done) { setState('subscribed'); return; }
     if (Notification.permission === 'granted') {
       setState('subscribed');
