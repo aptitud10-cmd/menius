@@ -1208,49 +1208,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upsert customer record (non-blocking). adminDb: SECURITY INVOKER y
-    // customers solo admite al dueño en RLS — con la anon key fallaba siempre
-    // y el CRM no registraba a los comensales.
-    adminDb
-      .rpc("upsert_customer_from_order", {
-        p_restaurant_id: restaurant_id,
-        p_name: parsed.data.customer_name,
-        p_email: customer_email || "",
-        p_phone: parsed.data.customer_phone || "",
-        p_address: delivery_address || "",
-        p_order_total: total,
-      })
-      .then(({ error: custErr }) => {
-        if (custErr) {
-          logger.error("upsert_customer failed", { error: custErr.message });
-          return;
-        }
-        // Remove reactivation_sent tag now that the customer ordered again, so they can
-        // receive future reactivation emails if they become inactive again.
-        if (customer_email) {
-          adminDb
-            .from("customers")
-            .select("id, tags")
-            .eq("restaurant_id", restaurant_id)
-            .ilike("email", customer_email)
-            .maybeSingle()
-            .then(({ data: cust }) => {
-              if (cust && (cust.tags ?? []).includes("reactivation_sent")) {
-                const newTags = (cust.tags as string[]).filter(
-                  (t) => t !== "reactivation_sent",
-                );
-                // Sin .then() el builder de Supabase no se ejecuta nunca.
-                adminDb
-                  .from("customers")
-                  .update({ tags: newTags })
-                  .eq("id", cust.id)
-                  .then(({ error: tagErr }) => {
-                    if (tagErr) logger.warn("reactivation tag cleanup failed", { error: tagErr.message });
-                  });
-              }
-            });
-        }
-      });
+    // El cliente del CRM lo crea/actualiza el trigger trg_link_order_to_customer
+    // (BEFORE INSERT en orders → upsert_customer_from_order) y deja
+    // orders.customer_id. Antes la ruta lo llamaba OTRA vez con la anon key:
+    // fallaba siempre en silencio (y con permisos habría contado doble), y
+    // arrastraba la limpieza del tag de reactivación, que nunca corría.
+    // Remove reactivation_sent tag now that the customer ordered again, so they
+    // can receive future reactivation emails if they become inactive again.
+    if (customer_email) {
+      adminDb
+        .from("customers")
+        .select("id, tags")
+        .eq("restaurant_id", restaurant_id)
+        .ilike("email", customer_email)
+        .maybeSingle()
+        .then(({ data: cust }) => {
+          if (cust && (cust.tags ?? []).includes("reactivation_sent")) {
+            const newTags = (cust.tags as string[]).filter(
+              (t) => t !== "reactivation_sent",
+            );
+            // Sin .then() el builder de Supabase no se ejecuta nunca.
+            adminDb
+              .from("customers")
+              .update({ tags: newTags })
+              .eq("id", cust.id)
+              .then(({ error: tagErr }) => {
+                if (tagErr) logger.warn("reactivation tag cleanup failed", { error: tagErr.message });
+              });
+          }
+        });
+    }
 
     // First order "wow" email — fire-and-forget to restaurant owner
     if (restaurant.notification_email) {
