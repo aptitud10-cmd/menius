@@ -54,21 +54,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Upsert by endpoint (globally UNIQUE in prod): one row per browser,
-    // re-pointed to its most recent order. The old payload wrote a
-    // `subscription` column that doesn't exist — no subscription was ever saved.
-    const { error } = await adminDb
+    // Una fila por (pedido, navegador): un mismo teléfono puede seguir varios
+    // pedidos a la vez (migración 20261110d). Si esa migración aún no se corrió,
+    // la única restricción es por endpoint (42P10 con el onConflict nuevo) →
+    // se vuelve al comportamiento anterior: el navegador sigue al último pedido.
+    const row = {
+      order_id,
+      endpoint: subscription.endpoint,
+      keys_p256dh: p256dh,
+      keys_auth: auth,
+      created_at: new Date().toISOString(),
+    };
+    let { error } = await adminDb
       .from('push_subscriptions')
-      .upsert(
-        {
-          order_id,
-          endpoint: subscription.endpoint,
-          keys_p256dh: p256dh,
-          keys_auth: auth,
-          created_at: new Date().toISOString(),
-        },
-        { onConflict: 'endpoint' }
-      );
+      .upsert(row, { onConflict: 'order_id,endpoint' });
+    if (error?.code === '42P10') {
+      ({ error } = await adminDb.from('push_subscriptions').upsert(row, { onConflict: 'endpoint' }));
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

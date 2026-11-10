@@ -35,6 +35,7 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
 
   if (!data) {
     logger.info('Order already in target payment status, skipping notifications', { orderId, status });
+    if (status === 'paid' && paymentIntent) await refundIfDuplicatePayment(orderId, paymentIntent);
     return;
   }
 
@@ -43,6 +44,39 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
     afterResponse(() => sendPaymentConfirmedNotifications(orderId).catch((err) => {
       logger.error('sendPaymentConfirmedNotifications failed', { orderId, error: err?.message });
     }));
+  }
+}
+
+/**
+ * Cobro doble: el pedido ya estaba pagado con OTRO PaymentIntent (dos pestañas
+ * de pago, Apple Pay y luego tarjeta, etc.). El segundo cobro se devuelve
+ * completo y solo. Mismo PaymentIntent = el mismo pago avisado por dos eventos
+ * (session.completed + payment_intent.succeeded) → no se toca.
+ */
+async function refundIfDuplicatePayment(orderId: string, paymentIntentId: string) {
+  const { data: ord } = await createAdminClient()
+    .from('orders')
+    .select('payment_status, payment_intent_id')
+    .eq('id', orderId)
+    .maybeSingle();
+  const kept = (ord as { payment_status?: string; payment_intent_id?: string | null } | null);
+  if (!kept || kept.payment_status !== 'paid' || !kept.payment_intent_id || kept.payment_intent_id === paymentIntentId) return;
+  try {
+    const refund = await getStripe().refunds.create(
+      {
+        payment_intent: paymentIntentId,
+        reason: 'duplicate',
+        reverse_transfer: true,
+        refund_application_fee: false,
+        metadata: { order_id: orderId, kept_payment_intent: kept.payment_intent_id },
+      },
+      { idempotencyKey: `dup-refund:${paymentIntentId}` },
+    );
+    logger.warn('Duplicate payment refunded', { orderId, refunded: paymentIntentId, kept: kept.payment_intent_id, refundId: refund.id });
+  } catch (err) {
+    // No se relanza: el pedido ya está pagado; el reembolso queda para revisión manual.
+    logger.error('Duplicate payment refund failed', { orderId, paymentIntentId, error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { orderId, paymentIntentId, context: 'duplicate-payment-refund' });
   }
 }
 

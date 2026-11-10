@@ -1274,6 +1274,19 @@ function PaymentPendingCard({ orderId, restaurantSlug, paidParam, createdAt, pay
   );
 }
 
+/** Pedidos con avisos activos en este navegador (incluye la clave vieja de 1 solo pedido). */
+function readPushOrders(): string[] {
+  try {
+    const raw = localStorage.getItem('menius-push-orders');
+    const list = raw ? JSON.parse(raw) : [];
+    const legacy = localStorage.getItem('menius-push-order');
+    const ids = Array.isArray(list) ? list.filter((x): x is string => typeof x === 'string') : [];
+    return legacy && !ids.includes(legacy) ? [...ids, legacy] : ids;
+  } catch {
+    return [];
+  }
+}
+
 function PushSubscriptionPrompt({ orderId, token, locale }: { orderId: string; token: string; locale?: string }) {
   const t = getT(locale);
   const [state, setState] = useState<'idle' | 'subscribed' | 'denied' | 'unsupported'>('idle');
@@ -1296,10 +1309,11 @@ function PushSubscriptionPrompt({ orderId, token, locale }: { orderId: string; t
       body: JSON.stringify({ subscription: sub.toJSON(), order_id: orderId, t: token }),
     });
     if (!res.ok) return false;
-    // Un navegador = una suscripción (endpoint único en la base): sigue al
-    // último pedido que se abrió. Se recuerda cuál, para re-apuntar si el
-    // cliente vuelve a un pedido anterior.
-    try { localStorage.setItem('menius-push-order', orderId); } catch { /* sin storage */ }
+    // Se recuerdan los pedidos ya suscritos en este navegador (los últimos 20).
+    try {
+      const list = readPushOrders().filter((id) => id !== orderId);
+      localStorage.setItem('menius-push-orders', JSON.stringify([orderId, ...list].slice(0, 20)));
+    } catch { /* sin storage */ }
     return true;
   }, [orderId, token]);
 
@@ -1310,7 +1324,7 @@ function PushSubscriptionPrompt({ orderId, token, locale }: { orderId: string; t
     }
     if (Notification.permission === 'denied') { setState('denied'); return; }
     let done = false;
-    try { done = localStorage.getItem('menius-push-order') === orderId; } catch { /* sin storage */ }
+    done = readPushOrders().includes(orderId);
     if (done) { setState('subscribed'); return; }
     if (Notification.permission === 'granted') {
       setState('subscribed');

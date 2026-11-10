@@ -106,7 +106,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const bodyLocale: string = body.locale ?? "es";
+    // Idioma que eligió el cliente en el menú. Si el pedido llega sin él
+    // (otra app o integración), los avisos usan el idioma del restaurante.
+    const sentLocale: "es" | "en" | null = body.locale === "en" || body.locale === "es" ? body.locale : null;
+    const bodyLocale: string = sentLocale ?? "es";
     const bodyEn = bodyLocale === "en";
 
     // Honeypot — bots typically fill hidden fields; real users never see this field
@@ -243,6 +246,7 @@ export async function POST(request: NextRequest) {
         error: restaurantDbError.message,
       });
     }
+    const customerLocale: string = sentLocale ?? (restaurant?.locale === "en" ? "en" : "es");
     if (!restaurant) {
       return NextResponse.json(
         {
@@ -886,7 +890,7 @@ export async function POST(request: NextRequest) {
       driver_tracking_token: isDelivery ? preToken : null,
       driver_token_expires_at: preTokenExpiresAt,
       customer_token: custToken,
-      customer_locale: bodyLocale,
+      customer_locale: customerLocale,
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
@@ -1475,7 +1479,7 @@ export async function POST(request: NextRequest) {
         customerName: parsed.data.customer_name,
         customerEmail: customer_email || undefined,
         customerPhone: parsed.data.customer_phone || undefined,
-        customerLocale: bodyLocale,
+        customerLocale,
         orderType: order_type || "dine_in",
         deliveryAddress: delivery_address || null,
         paymentMethod: parsed.data.payment_method || undefined,

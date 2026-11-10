@@ -30,11 +30,13 @@ const mockChargeRetrieve = vi.fn();
 const mockTransferRetrieve = vi.fn();
 const mockCreateReversal = vi.fn();
 const mockPIRetrieve = vi.fn();
+const mockRefundCreate = vi.fn();
 vi.mock('@/lib/stripe', () => ({
   getStripe: () => ({
     webhooks: { constructEvent: mockConstructEvent },
     charges: { retrieve: mockChargeRetrieve },
     paymentIntents: { retrieve: mockPIRetrieve },
+    refunds: { create: mockRefundCreate },
     transfers: { retrieve: mockTransferRetrieve, createReversal: mockCreateReversal },
   }),
   getPaymentsWebhookSecret: () => 'whsec_test',
@@ -179,6 +181,36 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     const res = await POST(req as never);
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
+  });
+
+  it('refunds a second, different payment for an order that was already paid', async () => {
+    const session = { metadata: { order_id: 'order-dup' }, payment_status: 'paid', payment_intent: 'pi_B', amount_total: 2500 };
+    mockConstructEvent.mockReturnValue({ id: 'evt_dup_pay', type: 'checkout.session.completed', data: { object: session } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 25 }, error: null });           // monto
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });                    // ya estaba pagado
+    mockMaybeSingle.mockResolvedValueOnce({ data: { payment_status: 'paid', payment_intent_id: 'pi_A' }, error: null });
+    mockRefundCreate.mockResolvedValue({ id: 're_1' });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockRefundCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ payment_intent: 'pi_B', reason: 'duplicate', reverse_transfer: true }),
+      { idempotencyKey: 'dup-refund:pi_B' },
+    );
+  });
+
+  it('does NOT refund when the same payment arrives twice (session + payment_intent events)', async () => {
+    const session = { metadata: { order_id: 'order-same' }, payment_status: 'paid', payment_intent: 'pi_A', amount_total: 2500 };
+    mockConstructEvent.mockReturnValue({ id: 'evt_same_pay', type: 'checkout.session.completed', data: { object: session } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 25 }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { payment_status: 'paid', payment_intent_id: 'pi_A' }, error: null });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockRefundCreate).not.toHaveBeenCalled();
   });
 
   it('does NOT mark paid when the charged amount is below the order total', async () => {
