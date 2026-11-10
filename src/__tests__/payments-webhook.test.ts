@@ -7,7 +7,7 @@ const mockMaybeSingle = vi.fn();
 // legacy (order_number en vez del UUID de la orden).
 const mockLimit = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
 const mockOrder = vi.fn(() => ({ limit: mockLimit, maybeSingle: mockMaybeSingle }));
-const mockNeq = vi.fn(() => ({ select: mockSelect, maybeSingle: mockMaybeSingle, order: mockOrder }));
+const mockNeq: ReturnType<typeof vi.fn> = vi.fn(() => ({ select: mockSelect, maybeSingle: mockMaybeSingle, order: mockOrder, neq: mockNeq }));
 const mockSelect = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder }));
 const mockEq = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder }));
 const mockUpdate = vi.fn(() => ({ eq: mockEq }));
@@ -128,7 +128,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
     mockOrder.mockReturnValue({ limit: mockLimit, maybeSingle: mockMaybeSingle });
     mockLimit.mockReturnValue({ maybeSingle: mockMaybeSingle });
-    mockNeq.mockReturnValue({ select: mockSelect, maybeSingle: mockMaybeSingle, order: mockOrder });
+    mockNeq.mockReturnValue({ select: mockSelect, maybeSingle: mockMaybeSingle, order: mockOrder, neq: mockNeq });
     mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder });
   });
 
@@ -166,10 +166,10 @@ describe('POST /api/payments/webhook (Stripe)', () => {
   });
 
   it('marks order as paid for checkout.session.completed with payment_status=paid', async () => {
-    const session = { metadata: { order_id: 'order-1' }, payment_status: 'paid', payment_intent: 'pi_1' };
+    const session = { metadata: { order_id: 'order-1' }, payment_status: 'paid', payment_intent: 'pi_1', amount_total: 2500 };
     mockConstructEvent.mockReturnValue({ id: 'evt_1', type: 'checkout.session.completed', data: { object: session } });
-    // Not yet processed
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    // Amount check: order total matches the charged amount
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 25 }, error: null });
     // updateOrderPayment: neq → select → maybeSingle returns the updated row
     mockMaybeSingle.mockResolvedValueOnce({ data: { id: 'order-1' }, error: null });
     mockUpsert.mockResolvedValue({ error: null });
@@ -179,6 +179,19 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     const res = await POST(req as never);
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
+  });
+
+  it('does NOT mark paid when the charged amount is below the order total', async () => {
+    const session = { metadata: { order_id: 'order-1b' }, payment_status: 'paid', payment_intent: 'pi_1b', amount_total: 1800 };
+    mockConstructEvent.mockReturnValue({ id: 'evt_1b', type: 'checkout.session.completed', data: { object: session } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 25 }, error: null });
+    mockUpsert.mockResolvedValue({ error: null });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
+    const res = await POST(req as never);
+    expect(res.status).toBe(200);
+    expect(mockUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
   });
 
   it('does NOT update order for checkout.session.completed with payment_status=unpaid', async () => {
@@ -234,6 +247,8 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     const res = await POST(req as never);
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'failed' }));
+    // Un pedido ya cobrado nunca pasa a 'failed'.
+    expect(mockNeq).toHaveBeenCalledWith('payment_status', 'paid');
   });
 
   it('marks order as paid for payment_intent.succeeded (Apple Pay / Google Pay)', async () => {

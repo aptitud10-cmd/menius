@@ -12,16 +12,18 @@ const logger = createLogger('payments-webhook');
 
 async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', paymentIntent?: string) {
   const adminDb = createAdminClient();
-  const { data, error } = await adminDb
+  let q = adminDb
     .from('orders')
     .update({
       payment_status: status,
       ...(paymentIntent ? { payment_intent_id: paymentIntent } : {}),
     })
     .eq('id', orderId)
-    .neq('payment_status', status)
-    .select('id')
-    .maybeSingle();
+    .neq('payment_status', status);
+  // Un evento tardío (session.expired, un intento fallido previo reintentado)
+  // no puede pasar a 'failed' un pedido que ya se cobró.
+  if (status === 'failed') q = q.neq('payment_status', 'paid');
+  const { data, error } = await q.select('id').maybeSingle();
 
   if (error) {
     logger.error('Failed to update order payment status', { orderId, status, error: error.message });
@@ -187,6 +189,19 @@ export async function POST(request: NextRequest) {
       switch (event.type) {
         case 'checkout.session.completed': {
           if (orderId && session.payment_status === 'paid') {
+            // El monto cobrado tiene que cubrir el total del pedido. Si no, no se
+            // marca pagado (el Counter lo mostraría como cobrado) y se avisa.
+            const { data: ord } = await createAdminClient()
+              .from('orders')
+              .select('total')
+              .eq('id', orderId)
+              .maybeSingle();
+            const expectedCents = ord ? Math.round(Number(ord.total) * 100) : null;
+            if (expectedCents != null && typeof session.amount_total === 'number' && session.amount_total + 1 < expectedCents) {
+              logger.error('Checkout amount below order total — not marking paid', { orderId, amountTotal: session.amount_total, expectedCents });
+              captureError(new Error('Stripe checkout amount below order total'), { orderId, amountTotal: session.amount_total, expectedCents });
+              break;
+            }
             await updateOrderPayment(orderId, 'paid', session.payment_intent ?? '');
             if (session.payment_intent) {
               await recoverInternationalCardSurcharge(stripe, idOf(session.payment_intent) as string);

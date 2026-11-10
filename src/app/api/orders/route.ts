@@ -384,7 +384,9 @@ export async function POST(request: NextRequest) {
     try {
       let sub: { status: string; trial_end?: string | null } | null = null;
       if (restaurant.commission_plan !== true) {
-        const { data } = await supabase
+        // adminDb: con la anon key RLS no deja leer subscriptions → sub
+        // llegaba siempre null y el gate de plan decidía sobre nada.
+        const { data } = await adminDb
           .from("subscriptions")
           .select(
             "status, trial_end, current_period_end, plan_id, past_due_since",
@@ -694,7 +696,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: orderNum } = await supabase.rpc("generate_order_number", {
+    // adminDb: la función es SECURITY INVOKER y cuenta los pedidos del día;
+    // con la anon key RLS no la deja ver pedidos y casi todos caían al número
+    // de respaldo ORD-<base36> en vez del correlativo.
+    const { data: orderNum } = await adminDb.rpc("generate_order_number", {
       rest_id: restaurant_id,
     });
     const orderNumber =
@@ -702,7 +707,8 @@ export async function POST(request: NextRequest) {
 
     let discountAmt = 0;
     if (promo_code) {
-      const { data: promo } = await supabase
+      // adminDb: promotions ya no es legible con la anon key.
+      const { data: promo } = await adminDb
         .from("promotions")
         .select(
           "discount_type, discount_value, min_order, expires_at, max_uses, current_uses, is_active",
@@ -1202,8 +1208,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upsert customer record (non-blocking)
-    supabase
+    // Upsert customer record (non-blocking). adminDb: SECURITY INVOKER y
+    // customers solo admite al dueño en RLS — con la anon key fallaba siempre
+    // y el CRM no registraba a los comensales.
+    adminDb
       .rpc("upsert_customer_from_order", {
         p_restaurant_id: restaurant_id,
         p_name: parsed.data.customer_name,
@@ -1231,10 +1239,14 @@ export async function POST(request: NextRequest) {
                 const newTags = (cust.tags as string[]).filter(
                   (t) => t !== "reactivation_sent",
                 );
+                // Sin .then() el builder de Supabase no se ejecuta nunca.
                 adminDb
                   .from("customers")
                   .update({ tags: newTags })
-                  .eq("id", cust.id);
+                  .eq("id", cust.id)
+                  .then(({ error: tagErr }) => {
+                    if (tagErr) logger.warn("reactivation tag cleanup failed", { error: tagErr.message });
+                  });
               }
             });
         }
@@ -1313,27 +1325,23 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Reuse productMap + variantMap built earlier (line 243-244) — saves a
-        // ~300-500ms round-trip to Supabase per online order.
-        const lineItems = parsed.data.items.map((item) => {
-          const prodName = productMap.get(item.product_id)?.name ?? "Item";
-          const variantName = item.variant_id
-            ? variantMap.get(item.variant_id)?.name
-            : undefined;
-          return {
+        // Una sola línea con el total validado en el servidor (subtotal + envío
+        // + impuestos + propina − descuentos). Antes se mandaban los productos
+        // sueltos: Stripe cobraba solo los items y el restaurante perdía envío,
+        // impuestos y propina, y los descuentos no se aplicaban. Mismo patrón
+        // que /api/payments/checkout.
+        const lineItems: import("stripe").Stripe.Checkout.SessionCreateParams["line_items"] = [
+          {
             price_data: {
               currency: (restaurant.currency || "usd").toLowerCase(),
               product_data: {
-                name: [prodName, variantName]
-                  .filter(Boolean)
-                  .join(" – ")
-                  .slice(0, 500),
+                name: `${restaurant.name} — ${order.order_number}`.slice(0, 500),
               },
-              unit_amount: Math.round(Number(item.unit_price) * 100),
+              unit_amount: Math.round(total * 100),
             },
-            quantity: item.qty,
-          };
-        });
+            quantity: 1,
+          },
+        ];
 
         // Application fee on the gross order total (after discounts): 4% for
         // commission_plan, Stripe's processing at cost for every other plan.

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
@@ -61,7 +62,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    // Admin client: la escritura pública a `reviews` ya no está abierta en RLS
+    // (la anon key insertaba directo por PostgREST, saltándose rate limit,
+    // honeypot y validación). Toda la validación vive aquí arriba.
+    const supabase = createAdminClient();
 
     const { data: restaurant } = await supabase
       .from('restaurants')
@@ -109,10 +113,13 @@ export async function POST(request: NextRequest) {
         rating: parsed.data.rating,
         comment: sanitizeMultiline(parsed.data.comment ?? '', 500),
       })
-      .select()
+      .select('id, customer_name, rating, comment, created_at')
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      logger.error('Review insert failed', { error: error.message });
+      return NextResponse.json({ error: 'Could not save the review' }, { status: 500 });
+    }
     return NextResponse.json({ review: data });
   } catch (err) {
     logger.error('POST failed', { error: err instanceof Error ? err.message : String(err) });

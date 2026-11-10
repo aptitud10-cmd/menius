@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { UUID_RE } from '@/lib/constants';
@@ -26,7 +26,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: en ? 'Invalid restaurant_id' : 'restaurant_id inválido' }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    // Admin client: los códigos ya no son legibles con la anon key (se podían
+    // listar todos los cupones activos de cualquier tienda). Solo se responde
+    // si el código exacto existe.
+    const supabase = createAdminClient();
 
     const { data: promo, error } = await supabase
       .from('promotions')
