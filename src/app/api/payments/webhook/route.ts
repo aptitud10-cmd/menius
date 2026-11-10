@@ -229,6 +229,16 @@ export async function POST(request: NextRequest) {
         case 'checkout.session.expired': {
           if (orderId) {
             await updateOrderPayment(orderId, 'failed');
+            // El cliente abandonó el pago: el pedido nunca se mostró en cocina
+            // (isAwaitingOnlinePayment) y ya no se puede pagar con esta sesión.
+            // Se cancela para que no quede 'pending' colgado para siempre.
+            const { error: cancelErr } = await createAdminClient()
+              .from('orders')
+              .update({ status: 'cancelled' })
+              .eq('id', orderId)
+              .eq('status', 'pending')
+              .neq('payment_status', 'paid');
+            if (cancelErr) logger.warn('Could not cancel expired unpaid order', { orderId, error: cancelErr.message });
             logger.info('Checkout session expired', { orderId });
           }
           break;

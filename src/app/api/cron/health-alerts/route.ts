@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
       .from('orders')
       .select('id, order_number, restaurant_id, total, created_at', { count: 'exact' })
       .eq('status', 'pending')
+      // Pagos online sin cobrar no cuentan como atascados (ver monitor-orders).
+      .or('payment_method.is.null,payment_method.not.in.(online,wallet),payment_status.eq.paid')
       .lt('created_at', h24ago)
       .limit(20),
 

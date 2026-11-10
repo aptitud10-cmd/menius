@@ -44,6 +44,8 @@ export default async function DashboardPage() {
       .from('orders')
       .select('id, total, status, created_at, order_type')
       .eq('restaurant_id', restaurantId)
+      // Sin pagos online pendientes de cobro (isAwaitingOnlinePayment): no existen para el restaurante.
+      .or('status.neq.pending,payment_method.is.null,payment_method.not.in.(online,wallet),payment_status.eq.paid')
       .gte('created_at', todayStart.toISOString()),
     supabase
       .from('products')
@@ -59,6 +61,8 @@ export default async function DashboardPage() {
       .from('orders')
       .select('id, restaurant_id, table_id, order_number, status, customer_name, customer_phone, notes, total, created_at')
       .eq('restaurant_id', restaurantId)
+      // Sin pagos online pendientes de cobro (isAwaitingOnlinePayment): no existen para el restaurante.
+      .or('status.neq.pending,payment_method.is.null,payment_method.not.in.(online,wallet),payment_status.eq.paid')
       .order('created_at', { ascending: false })
       .limit(5),
     supabase

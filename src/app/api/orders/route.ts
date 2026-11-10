@@ -1408,7 +1408,14 @@ export async function POST(request: NextRequest) {
     // notifItems is built rich (variant + modifiers + extras + notes) from the
     // in-memory maps already loaded for validation, so notifyNewOrder doesn't
     // need to re-query order_items + JOINs. Saves ~1-3s on email dispatch.
-    try {
+    // Pago online/wallet: el restaurante (y el email de "pedido confirmado" al
+    // cliente) se entera recién cuando la pasarela confirma el cobro —
+    // sendPaymentConfirmedNotifications desde el webhook. Avisar ahora haría
+    // cocinar pedidos que quizá nunca se paguen.
+    const awaitingPayment =
+      parsed.data.payment_method === "online" ||
+      parsed.data.payment_method === "wallet";
+    if (!awaitingPayment) try {
       // Build a one-off product_extras name lookup. We already have extraMap
       // (id → {id, product_id, price}) but no name; one cheap query is fine.
       const extraIds = parsed.data.items.flatMap((i) =>

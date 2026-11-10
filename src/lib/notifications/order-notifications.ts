@@ -365,7 +365,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   const { data: order } = await adminDb
     .from('orders')
     .select(`
-      id, order_number, total, customer_name, customer_email, customer_phone,
+      id, restaurant_id, order_number, total, customer_name, customer_email, customer_phone,
       order_type, delivery_address, customer_locale, customer_token,
       restaurants ( name, slug, currency, locale, notification_email, notifications_enabled )
     `)
@@ -386,6 +386,19 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   const rawRest = typedOrder.restaurants;
   const restaurant: RestaurantRow | null = Array.isArray(rawRest) ? (rawRest[0] ?? null) : rawRest;
   if (!restaurant) return;
+
+  // Los pedidos online no avisan al crearse (no estaban cobrados): este es el
+  // aviso de "pedido nuevo" en el panel, igual que notifyNewOrder para efectivo.
+  createDashboardNotification({
+    restaurantId: (order as { restaurant_id?: string }).restaurant_id ?? '',
+    type: 'new_order',
+    title: `Nuevo pedido #${order.order_number}`,
+    body: `${order.customer_name} — ${formatPrice(Number(order.total), restaurant.currency ?? 'MXN')}`,
+    actionUrl: '/app/orders',
+    metadata: { order_id: order.id, order_number: order.order_number },
+  }).catch((err) => {
+    logger.error('Failed to create dashboard notification (paid)', { error: err instanceof Error ? err.message : String(err), orderId });
+  });
 
   const notificationsOn = restaurant.notifications_enabled !== false;
   if (!notificationsOn) return;

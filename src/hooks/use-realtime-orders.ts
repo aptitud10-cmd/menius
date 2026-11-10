@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { Order } from '@/types';
+import { isAwaitingOnlinePayment } from '@/lib/order-state';
 import type { RealtimePostgresChangesPayload, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 
 interface UseRealtimeOrdersOptions {
@@ -34,9 +35,16 @@ export function useRealtimeOrders({
   onNewOrder,
   onOrderUpdate,
 }: UseRealtimeOrdersOptions) {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  // Pedidos online sin cobrar no existen para el restaurante hasta que se
+  // pagan (isAwaitingOnlinePayment). No entran a la lista ni a knownIds: cuando
+  // el webhook los marca 'paid', el UPDATE/poll los trae como pedido NUEVO.
+  const [orders, setOrders] = useState<Order[]>(() =>
+    initialOrders.filter((o) => !isAwaitingOnlinePayment(o))
+  );
   const [rtStatus, setRtStatus] = useState<RealtimeConnectionStatus>('reconnecting');
-  const knownIdsRef = useRef<Set<string>>(new Set(initialOrders.map((o) => o.id)));
+  const knownIdsRef = useRef<Set<string>>(
+    new Set(initialOrders.filter((o) => !isAwaitingOnlinePayment(o)).map((o) => o.id))
+  );
   // Tracks the last-seen status per order to deduplicate UPDATE notifications
   // fired by both realtime and polling for the same transition.
   const lastStatusRef = useRef<Map<string, string>>(
@@ -106,10 +114,12 @@ export function useRealtimeOrders({
 
     if (!data) return;
 
-    const fetched: Order[] = [...data, ...(scheduled ?? [])].map((o) => {
-      const row = o as typeof o & { order_items?: unknown[] };
-      return { ...o, items: row.order_items ?? [] } as unknown as Order;
-    });
+    const fetched: Order[] = [...data, ...(scheduled ?? [])]
+      .map((o) => {
+        const row = o as typeof o & { order_items?: unknown[] };
+        return { ...o, items: row.order_items ?? [] } as unknown as Order;
+      })
+      .filter((o) => !isAwaitingOnlinePayment(o));
 
     setOrders(prev => {
       const fetchedMap = new Map(fetched.map(o => [o.id, o]));
@@ -159,7 +169,7 @@ export function useRealtimeOrders({
         },
         async (payload: RealtimePostgresChangesPayload<{ id: string }>) => {
           const fullOrder = await fetchFullOrder((payload.new as { id: string }).id);
-          if (!fullOrder) return;
+          if (!fullOrder || isAwaitingOnlinePayment(fullOrder)) return;
 
           if (!knownIdsRef.current.has(fullOrder.id)) {
             knownIdsRef.current.add(fullOrder.id);
@@ -182,7 +192,7 @@ export function useRealtimeOrders({
         },
         async (payload: RealtimePostgresChangesPayload<{ id: string }>) => {
           const fullOrder = await fetchFullOrder((payload.new as { id: string }).id);
-          if (!fullOrder) return;
+          if (!fullOrder || isAwaitingOnlinePayment(fullOrder)) return;
 
           // Una orden fuera de la lista (programada creada hace días, o que
           // quedó fuera de la ventana) se agrega en vez de descartarse. Si

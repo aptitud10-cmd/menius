@@ -60,3 +60,25 @@ export const REVENUE_STATUSES: OrderStatus[] = ['completed', 'delivered', 'serve
 export function isRevenueStatus(status: string): boolean {
   return REVENUE_STATUSES.includes(status as OrderStatus);
 }
+
+/**
+ * Pedido online (tarjeta, Wompi, MercadoPago, Apple/Google Pay) que todavía no
+ * se cobró. Nace al tocar "Pagar", ANTES de que el cliente pase por la pasarela:
+ * Counter, KDS y Pedidos no lo muestran, no suenan ni imprimen hasta que el
+ * webhook marca payment_status='paid' — entonces aparece como pedido nuevo.
+ * Si nunca se paga, la cocina nunca se entera.
+ *
+ * Solo aplica mientras sigue 'pending': si el personal ya lo movió (pedidos
+ * viejos de antes de esta regla), se sigue viendo.
+ */
+export function isAwaitingOnlinePayment(order: {
+  payment_method?: string | null;
+  payment_status?: string | null;
+  status?: string | null;
+}): boolean {
+  return (
+    (order.payment_method === 'online' || order.payment_method === 'wallet') &&
+    order.payment_status !== 'paid' &&
+    order.status === 'pending'
+  );
+}

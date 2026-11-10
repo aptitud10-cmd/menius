@@ -33,11 +33,29 @@ async function runMonitorOrders(): Promise<NextResponse> {
   const h24ago = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const alertsCreated: string[] = [];
 
+  // 0. Pagos online abandonados: el pedido nunca se mostró en cocina
+  // (isAwaitingOnlinePayment). A las 25 h ya vencieron todas las sesiones de
+  // pago (Stripe Checkout dura 24 h), así que se cancela para no dejarlo
+  // 'pending' para siempre.
+  const h25ago = new Date(now.getTime() - 25 * 60 * 60 * 1000).toISOString();
+  const { error: abandonErr } = await db
+    .from('orders')
+    .update({ status: 'cancelled' })
+    .eq('status', 'pending')
+    .in('payment_method', ['online', 'wallet'])
+    .neq('payment_status', 'paid')
+    .lt('created_at', h25ago);
+  if (abandonErr) {
+    logger.warn('Failed to cancel abandoned unpaid online orders', { error: abandonErr.message });
+  }
+
   // 1. Stuck pending orders (>1h in 'pending')
   const { data: stuckOrders, error: stuckErr } = await db
     .from('orders')
     .select('id, order_number, restaurant_id, total, created_at')
     .eq('status', 'pending')
+    // Pagos online sin cobrar no están "atascados": el restaurante ni los ve.
+    .or('payment_method.is.null,payment_method.not.in.(online,wallet),payment_status.eq.paid')
     .lt('created_at', h1ago)
     .order('created_at', { ascending: false })
     .limit(20);
