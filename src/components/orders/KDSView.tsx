@@ -10,7 +10,7 @@ import {
   Undo2, AlertTriangle, User, MapPin, History, LogOut,
   Hash, MessageSquare, PhoneCall,
 } from 'lucide-react';
-import { updateOrderStatus, undoOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
+import { updateOrderStatus, undoOrderStatus, updateOrderETA, setPauseOrders } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -82,6 +82,8 @@ interface Props {
   taxLabel?: string;
   taxIncluded?: boolean;
   kdsStations?: KDSStation[];
+  /** restaurants.orders_paused_until al cargar — la pausa vive en la DB. */
+  initialPausedUntil?: string | null;
 }
 
 interface Undo { orderId: string; num: string; prev: OrderStatus; next: OrderStatus; ts: number }
@@ -89,7 +91,7 @@ interface Undo { orderId: string; num: string; prev: OrderStatus; next: OrderSta
 /* ══════════════════════════════════════════════════════════════════════
    KDSView — Toast / Fresh KDS style
    ══════════════════════════════════════════════════════════════════════ */
-export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, restaurantSlug, taxLabel, taxIncluded, kdsStations = [] }: Props) {
+export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, restaurantSlug, taxLabel, taxIncluded, kdsStations = [], initialPausedUntil = null }: Props) {
   const { t, locale } = useDashboardLocale();
   const isEn = locale === 'en';
   const [tab, setTab] = useState<Tab>('active');
@@ -112,10 +114,11 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   /* Persisted settings */
   const ls = (k: string, def: boolean) => typeof window !== 'undefined' ? localStorage.getItem(k) !== (def ? 'false' : 'true') : def;
   const [autoPrint, setAutoPrint] = useState(() => typeof window !== 'undefined' && localStorage.getItem('menius-auto-print') === 'true');
+  // Antes la pausa del KDS solo se guardaba en este navegador: la tienda seguía
+  // recibiendo pedidos. Ahora es la misma pausa que el Counter (restaurants.orders_paused_until).
   const [pausedUntil, setPausedUntil] = useState<number | null>(() => {
-    if (typeof window === 'undefined') return null;
-    const t = parseInt(localStorage.getItem('kds-paused-until') ?? '', 10);
-    return t > Date.now() ? t : null;
+    const ms = initialPausedUntil ? new Date(initialPausedUntil).getTime() : NaN;
+    return Number.isFinite(ms) && ms > Date.now() ? ms : null;
   });
   const [showPause, setShowPause] = useState(false);
   const [pauseOpt, setPauseOpt] = useState(30);
@@ -155,7 +158,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     if (!pausedUntil) { setPauseLeft(''); return; }
     const t = setInterval(() => {
       const d = pausedUntil - Date.now();
-      if (d <= 0) { setPausedUntil(null); localStorage.removeItem('kds-paused-until'); setPauseLeft(''); return; }
+      if (d <= 0) { setPausedUntil(null); setPauseLeft(''); return; }
       const h = Math.floor(d / 3600000), m = Math.floor((d % 3600000) / 60000), s = Math.floor((d % 60000) / 1000);
       setPauseLeft(h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`);
     }, 1000);
@@ -284,10 +287,20 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     }
   }, [undo, updateOrderLocally, friendlyStatusError]);
 
-  const doPause = () => {
+  const pauseFailedMsg = isEn ? "Couldn't change the pause. Check the connection." : 'No se pudo cambiar la pausa. Revisa la conexión.';
+  const doPause = async () => {
     let ms = pauseOpt * 60000;
     if (pauseOpt === 9999) { const n = new Date(); ms = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime(); }
-    const u = Date.now() + ms; setPausedUntil(u); localStorage.setItem('kds-paused-until', String(u)); setShowPause(false);
+    const prev = pausedUntil;
+    const u = Date.now() + ms; setPausedUntil(u); setShowPause(false);
+    const res = await setPauseOrders(new Date(u).toISOString()).catch(() => ({ error: 'network' }));
+    if (res?.error) { setPausedUntil(prev); setOosToast({ msg: pauseFailedMsg, ok: false }); setTimeout(() => setOosToast(null), 4000); }
+  };
+  const doUnpause = async () => {
+    const prev = pausedUntil;
+    setPausedUntil(null);
+    const res = await setPauseOrders(null).catch(() => ({ error: 'network' }));
+    if (res?.error) { setPausedUntil(prev); setOosToast({ msg: pauseFailedMsg, ok: false }); setTimeout(() => setOosToast(null), 4000); }
   };
 
   const tog = (k: string, set: (v: boolean) => void, v: boolean) => { set(v); localStorage.setItem(k, String(v)); };
@@ -410,7 +423,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         {pausedUntil && (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse">
             <Pause className="w-3 h-3" /> {pauseLeft}
-            <button onClick={() => { setPausedUntil(null); localStorage.removeItem('kds-paused-until'); }} className="underline ml-0.5 text-[10px]">X</button>
+            <button onClick={doUnpause} className="underline ml-0.5 text-[10px]">X</button>
           </span>
         )}
 

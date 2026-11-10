@@ -558,6 +558,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
             restaurant={data.restaurant}
             mainProduct={mainProduct}
             packOptions={packOptions || []}
+            whatsappNumber={data.notificationWhatsapp ?? undefined}
           />
         </>
       );

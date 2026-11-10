@@ -11,7 +11,7 @@ export default async function CounterTabletPage() {
   const [{ data: restaurant }, { data: orders }] = await Promise.all([
     supabase
       .from('restaurants')
-      .select('name, currency, slug, locale, latitude, longitude, tax_label, tax_included')
+      .select('name, currency, slug, locale, latitude, longitude, tax_label, tax_included, orders_paused_until')
       .eq('id', restaurantId)
       .maybeSingle(),
     supabase
@@ -51,6 +51,7 @@ export default async function CounterTabletPage() {
         taxLabel={(restaurant as any)?.tax_label ?? undefined}
         taxIncluded={(restaurant as any)?.tax_included ?? false}
         tabletMode
+        initialPausedUntil={restaurant?.orders_paused_until ?? null}
       />
     </div>
   );

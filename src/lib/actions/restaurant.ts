@@ -20,6 +20,7 @@ import {
   VALID_TRANSITIONS,
   ALL_STATUSES,
   canTransition,
+  REVENUE_STATUSES,
 } from "@/lib/order-state";
 import { broadcastOrderUpdate } from "@/lib/realtime/broadcast-order";
 
@@ -2296,26 +2297,30 @@ export async function closeShift(closingCash: number, notes?: string) {
     .from("orders")
     .select("total, payment_method, payment_breakdown")
     .eq("restaurant_id", restaurantId)
-    .eq("status", "delivered")
+    // Misma definición de venta que home/analytics: antes solo 'delivered'
+    // → pickup ('completed') y mesa ('served') no entraban a la caja.
+    .in("status", REVENUE_STATUSES)
     .gte("created_at", shift.opened_at);
 
   const totalRevenue = (orders ?? []).reduce(
     (sum: number, o: any) => sum + Number(o.total ?? 0),
     0,
   );
-  const totalCash = (orders ?? []).reduce((sum: number, o: any) => {
-    const bd = o.payment_breakdown;
-    if (bd?.cash) return sum + Number(bd.cash);
-    if (o.payment_method === "cash") return sum + Number(o.total ?? 0);
-    return sum;
-  }, 0);
-  const totalCard = (orders ?? []).reduce((sum: number, o: any) => {
-    const bd = o.payment_breakdown;
-    if (bd?.card) return sum + Number(bd.card);
-    if (o.payment_method === "online" || o.payment_method === "card")
-      return sum + Number(o.total ?? 0);
-    return sum;
-  }, 0);
+  // Si la orden tiene desglose (pago mixto), manda el desglose para AMBOS
+  // lados. Antes cada lado caía por separado a payment_method: un pago
+  // "card" con desglose {cash: 10} sumaba 10 en efectivo Y el total en tarjeta.
+  const split = (o: { total: unknown; payment_method: string | null; payment_breakdown: unknown }) => {
+    const bd = o.payment_breakdown as { cash?: unknown; card?: unknown } | null;
+    if (bd && (bd.cash != null || bd.card != null)) {
+      return { cash: Number(bd.cash ?? 0) || 0, card: Number(bd.card ?? 0) || 0 };
+    }
+    const total = Number(o.total ?? 0) || 0;
+    if (o.payment_method === "cash") return { cash: total, card: 0 };
+    if (o.payment_method === "online" || o.payment_method === "card") return { cash: 0, card: total };
+    return { cash: 0, card: 0 };
+  };
+  const totalCash = (orders ?? []).reduce((sum: number, o: any) => sum + split(o).cash, 0);
+  const totalCard = (orders ?? []).reduce((sum: number, o: any) => sum + split(o).card, 0);
 
   const expectedCash = Number(shift.opening_cash) + totalCash;
   const cashDifference = closingCash - expectedCash;

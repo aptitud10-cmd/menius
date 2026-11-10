@@ -127,6 +127,9 @@ export async function updatePassword(newPassword: string) {
 
 export async function logout() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  // Solo esta sesión. El default ('global') revoca TODAS las sesiones del
+  // usuario, incluidas las tablets del mostrador vinculadas con código: el
+  // dueño cerraba sesión en su computadora y el Counter dejaba de recibir pedidos.
+  await supabase.auth.signOut({ scope: 'local' });
   redirect('/login');
 }

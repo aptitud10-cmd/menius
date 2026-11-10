@@ -68,6 +68,8 @@ export interface LimitedMode {
 
 export interface MenuData {
   restaurant: Restaurant;
+  /** Server-only: the high-conversion layout's WhatsApp CTA. Not part of `restaurant`. */
+  notificationWhatsapp: string | null;
   categories: Category[];
   products: Product[];
   isOwner: boolean;
@@ -287,17 +289,33 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
 
     // The row comes from select('*') and is passed as a PROP to client
     // components (MenuShell/CheckoutPageClient) — anything left here ships to
-    // every visitor's browser. Strip credential columns; boolean flags like
-    // wompi_connected / mp_enabled stay (the checkout gate needs them).
+    // every visitor's browser. Strip credentials and internal/owner-only data;
+    // boolean flags like wompi_connected / mp_enabled stay (the checkout gate
+    // needs them). A NEW private column must be added to this list.
     const {
       mp_access_token: _mp,
       wompi_integrity_secret_enc: _wi,
       wompi_events_secret_enc: _we,
-      ...publicRestaurant
+      owner_user_id: _owner,
+      notification_email: _nEmail,
+      notification_whatsapp: notificationWhatsapp,
+      notifications_enabled: _nEnabled,
+      fiscal_rfc: _fRfc,
+      fiscal_razon_social: _fRazon,
+      fiscal_regimen_fiscal: _fRegimen,
+      fiscal_lugar_expedicion: _fLugar,
+      commission_plan: _commission,
+      is_legacy_free: _legacy,
+      tags: _tags,
+      stripe_account_id: stripeAccountId,
+      ...rest
     } = restaurant as Record<string, unknown>;
+    // The checkout only checks that a Stripe account exists — never send the id.
+    const publicRestaurant = { ...rest, stripe_account_id: stripeAccountId ? 'connected' : null };
 
     return {
       restaurant: publicRestaurant as unknown as Restaurant,
+      notificationWhatsapp: (notificationWhatsapp as string | null) ?? null,
       categories: (categories ?? []) as unknown as Category[],
       products: mappedProducts as unknown as Product[],
       isOwner: false,

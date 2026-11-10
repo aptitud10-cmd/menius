@@ -111,6 +111,7 @@ function getT(locale?: string) {
     pause60:     en ? '1 hour'           : '1 hora',
     pause120:    en ? '2 hours'          : '2 horas',
     pauseTomorrow: en ? 'Until tomorrow' : 'Hasta mañana',
+    pauseFailed: en ? "Couldn't change the pause. Check the connection and try again." : 'No se pudo cambiar la pausa. Revisa la conexión e intenta de nuevo.',
     autoPrint:   en ? 'Auto-print'       : 'Auto-impresión',
     todaySummary: en ? "Today's summary" : 'Resumen de hoy',
     todayOrders: en ? 'orders'           : 'órdenes',
@@ -337,6 +338,8 @@ interface CounterViewProps {
   tabletMode?: boolean;
   /** Tablet vinculada con código: solo Counter, sin reembolsos ni enlaces al panel. */
   isDevice?: boolean;
+  /** restaurants.orders_paused_until al cargar — la pausa vive en la DB, no en el aparato. */
+  initialPausedUntil?: string | null;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -346,6 +349,7 @@ interface CounterViewProps {
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
   restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false, isDevice = false,
+  initialPausedUntil = null,
 }: CounterViewProps) {
   const t = getT(locale);
 
@@ -412,7 +416,10 @@ export function CounterView({
   const [busyExtra, setBusyExtra] = useState(0);
 
   // ── Pause state ──
-  const [pausedUntil, setPausedUntil] = useState<number | null>(null);
+  const [pausedUntil, setPausedUntil] = useState<number | null>(() => {
+    const ms = initialPausedUntil ? new Date(initialPausedUntil).getTime() : NaN;
+    return Number.isFinite(ms) && ms > Date.now() ? ms : null;
+  });
   const [pauseModalOpen, setPauseModalOpen] = useState(false);
 
   // ── Auto-print on accept ──
@@ -1057,15 +1064,22 @@ export function CounterView({
       ms = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime();
     }
     const until = Date.now() + ms;
+    const prev = pausedUntil;
     setPausedUntil(until);
     setPauseModalOpen(false);
-    await setPauseOrders(new Date(until).toISOString()).catch(() => {});
-  }, []);
+    // Si no se guarda, la tienda sigue recibiendo pedidos: no mostrar "Pausado".
+    const res = await setPauseOrders(new Date(until).toISOString()).catch(() => ({ error: 'network' }));
+    if (res?.error) { setPausedUntil(prev); showError(t.pauseFailed); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pausedUntil, t]);
 
   const doUnpause = useCallback(async () => {
+    const prev = pausedUntil;
     setPausedUntil(null);
-    await setPauseOrders(null).catch(() => {});
-  }, []);
+    const res = await setPauseOrders(null).catch(() => ({ error: 'network' }));
+    if (res?.error) { setPausedUntil(prev); showError(t.pauseFailed); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pausedUntil, t]);
 
   const toggleStock = useCallback(async (productId: string, currentInStock: boolean) => {
     setStockUpdating(productId);
