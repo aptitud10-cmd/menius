@@ -91,7 +91,7 @@ function getT(locale?: string, orderType?: string) {
     deliveryFee: en ? 'Delivery fee' : 'Costo de envío',
     discount: en ? 'Discount' : 'Descuento',
     total: 'Total',
-    viewPreviousOrders: en ? 'View all my previous orders →' : 'Ver todos mis pedidos anteriores →',
+    viewPreviousOrders: en ? 'My orders' : 'Mis pedidos',
     reorder: en ? '🔄 Order the same again' : '🔄 Volver a pedir lo mismo',
     reviewTitle: en ? 'How was your experience?' : '¿Cómo estuvo tu experiencia?',
     reviewPlaceholder: en ? 'Tell us about your experience (optional)' : 'Cuéntanos tu experiencia (opcional)',
@@ -640,6 +640,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     ? (en ? 'Live location' : 'Ubicación en vivo')
     : (en ? `Location from ${locAgeMin} min ago` : `Ubicación de hace ${locAgeMin} min`);
 
+  // Aviso de efectivo en camino/en la puerta: si se muestra, "Tu pedido" no lo repite.
+  const cashRowShown = isDelivery && cashDue && (onTheWay || atDoor);
   const itemCount = (o.order_items ?? []).reduce((n: number, it: any) => n + (Number(it.qty) || 1), 0);
   const payLine = isCancelled ? null
     : cashDue ? (isDelivery ? (en ? 'Pay on delivery, in cash' : 'Pagas al recibir, en efectivo') : (en ? 'Pay in cash' : 'Pagas en efectivo'))
@@ -824,10 +826,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             </section>
 
             {/* ── Efectivo: que lo tenga listo cuando llega ── */}
-            {isDelivery && cashDue && (onTheWay || atDoor) && (
-              <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: K.orangeSoft, color: K.orange }}>
-                <span className="text-[14px] font-bold">{atDoor ? (en ? 'Pay on delivery' : 'Paga al recibir') : (en ? 'Have the cash ready' : 'Ten listo el efectivo')}</span>
-                <span className="font-display text-[24px] font-extrabold tabular-nums">{amount}</span>
+            {cashRowShown && (
+              <div className={`${card} flex items-center justify-between gap-3 px-4 py-3`} style={cardStyle}>
+                <span className="text-[14px] font-semibold" style={{ color: K.sub }}>{atDoor ? (en ? 'Pay on delivery, in cash' : 'Paga al recibir, en efectivo') : (en ? 'Have the cash ready' : 'Ten listo el efectivo')}</span>
+                <span className="font-display text-[22px] font-extrabold tabular-nums" style={{ color: K.ink }}>{amount}</span>
               </div>
             )}
 
@@ -913,7 +915,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             <summary className="list-none cursor-pointer px-4 py-3.5 flex items-center justify-between gap-3 min-h-[52px]">
               <span className="min-w-0">
                 <span className="block text-[15px] font-bold">{t.yourOrderLabel} · {itemCount} {itemCount === 1 ? t.itemSingular : t.itemPlural}</span>
-                {payLine && <span className="block text-[13px]" style={{ color: K.sub }}>{payLine}</span>}
+                {payLine && !cashRowShown && <span className="block text-[13px]" style={{ color: K.sub }}>{payLine}</span>}
               </span>
               <span className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-[15px] font-bold tabular-nums">{amount}</span>
@@ -976,12 +978,15 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               locale={en ? 'en' : 'es'}
             />
           )}
-          <Link href={`/${restaurantSlug}`} className="h-11 grid place-items-center text-[14px] font-semibold" style={{ color: K.sub }}>
-            {t.backToMenu}
-          </Link>
-          <Link href={`/${restaurantSlug}/mis-pedidos`} className="h-11 grid place-items-center text-[13px]" style={{ color: K.faint }}>
-            {t.viewPreviousOrders}
-          </Link>
+          <nav className="flex items-center justify-center gap-1 text-[14px] font-semibold" style={{ color: K.sub }}>
+            <Link href={`/${restaurantSlug}`} className="h-11 px-3 grid place-items-center">
+              {t.backToMenu}
+            </Link>
+            <span aria-hidden style={{ color: K.faint }}>·</span>
+            <Link href={`/${restaurantSlug}/mis-pedidos`} className="h-11 px-3 grid place-items-center">
+              {t.viewPreviousOrders}
+            </Link>
+          </nav>
           <OrderHistorySaver order={o} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} trackingToken={trackingToken} />
         </div>
       </main>
