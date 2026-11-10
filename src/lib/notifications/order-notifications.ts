@@ -506,7 +506,7 @@ function getStatusSubject(status: string, orderNumber: string, restaurantName: s
         confirmed: `Pedido #${orderNumber} confirmado`,
         preparing: `Tu pedido #${orderNumber} se está preparando`,
         ready: `¡Tu pedido #${orderNumber} está listo!`,
-        out_for_delivery: `¡Tu pedido #${orderNumber} va en camino!`,
+        out_for_delivery: `¡Tu pedido #${orderNumber} viene en camino!`,
         delivered: deliveredEs,
         cancelled: `Pedido #${orderNumber} cancelado`,
       };

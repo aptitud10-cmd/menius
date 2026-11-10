@@ -612,7 +612,7 @@ export function buildStatusUpdateEmail(params: {
     out_for_delivery: {
       icon: "🛵",
       titleEn: "Your order is on its way!",
-      titleEs: "¡Tu pedido va en camino!",
+      titleEs: "¡Tu pedido viene en camino!",
       // Sin mencionar el mapa: también sale cuando el mostrador toca "Salió" y
       // el repartidor no usa su página (no hay ubicación en vivo).
       msgEn: "Your order left the restaurant and is heading your way.",
