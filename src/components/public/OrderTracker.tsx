@@ -94,7 +94,7 @@ function getT(locale?: string, orderType?: string) {
     almostReadyHeading: en ? 'Almost ready — head over!' : '¡Casi listo — ve saliendo!',
     almostReadyDesc: en ? 'Your order will be ready by the time you arrive' : 'Tu pedido estará listo cuando llegues',
     // Driver on the way
-    driverOnWayHeading: en ? 'Driver is on the way!' : '¡Tu repartidor va en camino!',
+    driverOnWayHeading: en ? 'Driver is on the way!' : '¡Tu repartidor viene en camino!',
     driverOnWayDesc: en ? 'Stay close to your delivery address' : 'Mantente cerca de tu dirección de entrega',
     // Pickup ready block
     pickupReadyHeading: en ? 'Your order is READY!' : '¡Tu pedido está LISTO!',
@@ -551,7 +551,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       return isPickup ? (en ? 'Picked up' : 'Recogido') : isDineIn ? (en ? 'Served' : 'Servido') : (en ? 'Delivered' : 'Entregado');
     }
     if (atDoor) return driverName ? (en ? `${driverName} is at your door` : `${driverName} está en tu puerta`) : t.atDoorTitle;
-    if (onTheWay) return driverName ? (en ? `${driverName} is on the way` : `${driverName} va en camino`) : (en ? 'Your order is on the way' : 'Tu pedido va en camino');
+    if (onTheWay) return driverName ? (en ? `${driverName} is on the way` : `${driverName} viene en camino`) : (en ? 'Your order is on the way' : 'Tu pedido viene en camino');
     switch (o.status) {
       case 'pending': return scheduledLabel ? (en ? 'Order scheduled' : 'Pedido programado') : (en ? `Waiting for ${restaurantName} to confirm` : `Esperando que ${restaurantName} confirme`);
       case 'almost_ready': return isPickup ? (en ? 'Almost ready — head over' : 'Casi listo, ya puedes salir') : (en ? 'Almost ready' : 'Casi listo');
