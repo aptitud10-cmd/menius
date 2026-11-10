@@ -7,6 +7,7 @@ import ReviewPageClient from '@/components/public/ReviewPageClient';
 
 interface PageProps {
   params: { slug: string; orderId: string };
+  searchParams?: { r?: string };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -17,12 +18,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ReviewPage({ params }: PageProps) {
+export default async function ReviewPage({ params, searchParams }: PageProps) {
   const adminDb = createAdminClient();
 
   const { data: order } = await adminDb
     .from('orders')
-    .select('id, status, customer_name, restaurant_id, restaurants(id, name, slug, locale)')
+    .select('id, status, customer_name, customer_locale, restaurant_id, restaurants(id, name, slug, locale)')
     .eq('id', params.orderId)
     .maybeSingle();
 
@@ -35,6 +36,10 @@ export default async function ReviewPage({ params }: PageProps) {
   // Only allow reviews for orders that have actually been placed (not cancelled or still pending)
   if (order.status === 'cancelled') return notFound();
 
+  // El email de reseña trae la estrella tocada (?r=1..5): llega ya marcada.
+  const r = Number(searchParams?.r);
+  const initialRating = Number.isInteger(r) && r >= 1 && r <= 5 ? r : 0;
+
   return (
     <ReviewPageClient
       restaurantId={restaurant.id}
@@ -42,7 +47,8 @@ export default async function ReviewPage({ params }: PageProps) {
       restaurantSlug={params.slug}
       orderId={order.id}
       customerName={order.customer_name ?? ''}
-      locale={restaurant.locale ?? 'es'}
+      locale={order.customer_locale ?? restaurant.locale ?? 'es'}
+      initialRating={initialRating}
     />
   );
 }

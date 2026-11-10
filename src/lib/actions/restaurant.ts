@@ -2069,8 +2069,8 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
   // El seguimiento del cliente se entera al instante (antes esperaba al sondeo).
   void broadcastOrderUpdate(orderId, before.status as string);
 
-  // Si el pedido se demora 5 min o más, el cliente recibe el aviso con el nuevo
-  // tiempo (mismo email "en preparación ~N min"). Recortes no se avisan.
+  // Si el pedido se demora 5 min o más, el cliente recibe el email "Nueva hora"
+  // con la hora del reloj recalculada. Recortes no se avisan.
   const prev = Number(before.estimated_ready_minutes ?? 0);
   if (["confirmed", "preparing"].includes(before.status as string) && etaMinutes - prev >= 5) {
     const o = before as any;
@@ -2089,6 +2089,7 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
       const { notifyStatusChange } = await import("@/lib/notifications/order-notifications");
       await notifyStatusChange({
         allowRepeat: true,
+        etaUpdate: true,
         orderId,
         orderNumber: o.order_number,
         restaurantId: o.restaurant_id,

@@ -11,13 +11,15 @@ interface Props {
   orderId: string;
   customerName: string;
   locale: string;
+  /** Estrella que el cliente tocó en el email (1–5); 0 = ninguna. */
+  initialRating?: number;
 }
 
 const STAR_LABEL_KEYS = ['starLabel1', 'starLabel2', 'starLabel3', 'starLabel4', 'starLabel5'] as const;
 
-export default function ReviewPageClient({ restaurantId, restaurantName, restaurantSlug, orderId, customerName, locale }: Props) {
+export default function ReviewPageClient({ restaurantId, restaurantName, restaurantSlug, orderId, customerName, locale, initialRating = 0 }: Props) {
   const t = getTranslations(locale);
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(initialRating);
   const [hovered, setHovered] = useState(0);
   const [name, setName] = useState(customerName);
   const [comment, setComment] = useState('');

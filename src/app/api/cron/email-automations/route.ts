@@ -4,6 +4,8 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/notifications/email";
+import { buildReviewEmail } from "@/lib/notifications/customer-email";
+import { loadCustomerEmailOrder, sendCustomerEmail } from "@/lib/notifications/customer-email-data";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("email-automations");
@@ -60,224 +62,87 @@ export async function GET(request: NextRequest) {
   try {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";
 
-    // 1. Welcome emails: customers created in last 24h who haven't received a welcome
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: newCustomers, error: newCustomersError } = await supabase
-      .from("customers")
-      .select("id, name, email, restaurant_id, tags")
-      .not("email", "is", null)
-      .neq("email", "")
-      .gte("created_at", oneDayAgo)
-      .limit(100);
-    noteQueryError("welcome", newCustomersError);
+    // 1–2. Bienvenida y "te extrañamos" automáticos: APAGADOS (2026-11-10).
+    // Son publicidad y el cliente nunca aceptó recibirla (CAN-SPAM). Vuelven
+    // cuando el checkout tenga una casilla de consentimiento de marketing.
 
-    const welcomeOutcomes = await Promise.allSettled(
-      (newCustomers ?? []).map(async (customer) => {
-        if ((customer.tags ?? []).includes("welcome_sent")) return false;
-        if ((customer.tags ?? []).includes("unsubscribed")) return false;
-
-        const restaurant = await getRestaurant(customer.restaurant_id);
-        if (!restaurant) return false;
-
-        const en = restaurant.locale === "en";
-        const menuUrl = `${appUrl}/${restaurant.slug}`;
-        const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
-
-        const sent = await sendEmail({
-          to: customer.email,
-          subject: en
-            ? `Welcome to ${restaurant.name}! 🎉`
-            : `¡Bienvenido a ${restaurant.name}! 🎉`,
-          html: buildWelcomeEmail(
-            customer.name || (en ? "Customer" : "Cliente"),
-            restaurant.name,
-            menuUrl,
-            unsubUrl,
-            en,
-          ),
-        });
-
-        if (sent) {
-          const newTags = [...(customer.tags ?? []), "welcome_sent"];
-          await supabase
-            .from("customers")
-            .update({ tags: newTags })
-            .eq("id", customer.id);
-          return true;
-        } else {
-          logger.warn("Welcome email failed to send", {
-            customer_id: customer.id,
-          });
-          return false;
-        }
-      }),
-    );
-    results.welcome = welcomeOutcomes.filter(
-      (r) => r.status === "fulfilled" && r.value === true,
-    ).length;
-    results.errors += welcomeOutcomes.filter(
-      (r) => r.status === "rejected",
-    ).length;
-
-    // 2. Reactivation: customers inactive 30+ days
-    const thirtyDaysAgo = new Date(
-      Date.now() - 30 * 24 * 60 * 60 * 1000,
-    ).toISOString();
-    const sixtyDaysAgo = new Date(
-      Date.now() - 60 * 24 * 60 * 60 * 1000,
-    ).toISOString();
-    const { data: inactiveCustomers, error: inactiveError } = await supabase
-      .from("customers")
-      .select("id, name, email, restaurant_id, tags, last_order_at")
-      .not("email", "is", null)
-      .neq("email", "")
-      .lt("last_order_at", thirtyDaysAgo)
-      .gte("last_order_at", sixtyDaysAgo)
-      .limit(50);
-    noteQueryError("reactivation", inactiveError);
-
-    const reactivationOutcomes = await Promise.allSettled(
-      (inactiveCustomers ?? []).map(async (customer) => {
-        if ((customer.tags ?? []).includes("reactivation_sent")) return false;
-        if ((customer.tags ?? []).includes("unsubscribed")) return false;
-
-        const restaurant = await getRestaurant(customer.restaurant_id);
-        if (!restaurant) return false;
-
-        const en = restaurant.locale === "en";
-        const menuUrl = `${appUrl}/${restaurant.slug}`;
-        const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
-
-        const sent = await sendEmail({
-          to: customer.email,
-          subject: en
-            ? `${customer.name ? customer.name + ", your" : "Your"} table at ${restaurant.name} is waiting`
-            : `${customer.name ? customer.name + ", tu" : "Tu"} mesa en ${restaurant.name} te espera`,
-          html: buildReactivationEmail(
-            customer.name || (en ? "Customer" : "Cliente"),
-            restaurant.name,
-            menuUrl,
-            unsubUrl,
-            en,
-          ),
-        });
-
-        if (sent) {
-          const newTags = [...(customer.tags ?? []), "reactivation_sent"];
-          await supabase
-            .from("customers")
-            .update({ tags: newTags })
-            .eq("id", customer.id);
-          return true;
-        } else {
-          logger.warn("Reactivation email failed to send", {
-            customer_id: customer.id,
-          });
-          return false;
-        }
-      }),
-    );
-    results.reactivation = reactivationOutcomes.filter(
-      (r) => r.status === "fulfilled" && r.value === true,
-    ).length;
-    results.errors += reactivationOutcomes.filter(
-      (r) => r.status === "rejected",
-    ).length;
-
-    // 3. Review request: delivered orders from 1-2 days ago without a review
-    const twoDaysAgo = new Date(
-      Date.now() - 2 * 24 * 60 * 60 * 1000,
-    ).toISOString();
-    const { data: deliveredOrders, error: deliveredError } = await supabase
+    // 3. Pedido de reseña: pedidos cerrados hace 2–26 h (el cron corre una vez
+    // al día, así cada pedido entra una sola vez), en el idioma del cliente y
+    // como mucho UNO por cliente cada 7 días (antes llegaban 3 iguales juntos).
+    const nowMs = Date.now();
+    const { data: closedOrders, error: closedError } = await supabase
       .from("orders")
-      .select("id, order_number, customer_name, customer_email, restaurant_id, customer_token")
-      .eq("status", "delivered")
+      .select("id, customer_email, customer_id")
+      .in("status", ["delivered", "completed"])
       .not("customer_email", "is", null)
       .neq("customer_email", "")
-      .gte("updated_at", twoDaysAgo)
-      .lt("updated_at", oneDayAgo)
-      // Cerrados solos por auto-complete-pickup: no sabemos si el cliente lo
-      // retiró — no se le pide reseña.
+      .gte("updated_at", new Date(nowMs - 26 * 3600_000).toISOString())
+      .lt("updated_at", new Date(nowMs - 2 * 3600_000).toISOString())
+      // Cerrados solos por el cron: no sabemos si el cliente lo recibió.
       .or("cancellation_reason.is.null,cancellation_reason.neq.auto_closed")
-      .limit(50);
-    noteQueryError("review_request", deliveredError);
+      .order("updated_at", { ascending: false })
+      .limit(40);
+    noteQueryError("review_request", closedError);
 
-    const deliveredOrderIds = (deliveredOrders ?? []).map((o) => o.id);
-    const reviewedOrderIds = new Set<string>();
-    // Orders that already received a review-request email — prevents duplicate
-    // sends if this cron is retried within the same 1–2 day window (idempotency).
-    const emailedOrderIds = new Set<string>();
-    if (deliveredOrderIds.length > 0) {
-      const [{ data: existingReviews }, { data: sentEmails }] =
-        await Promise.all([
-          supabase
-            .from("reviews")
-            .select("order_id")
-            .in("order_id", deliveredOrderIds),
-          supabase
-            .from("order_notification_log")
-            .select("order_id")
-            .eq("event", "review_request_email")
-            .in("order_id", deliveredOrderIds),
-        ]);
-      (existingReviews ?? []).forEach(
-        (r) => r.order_id && reviewedOrderIds.add(r.order_id),
+    const closed = (closedOrders ?? []) as { id: string; customer_email: string; customer_id: string | null }[];
+    if (closed.length > 0) {
+      const ids = closed.map((o) => o.id);
+      const customerIds = closed.map((o) => o.customer_id).filter((x): x is string => !!x);
+      const sevenDaysAgo = new Date(nowMs - 7 * 24 * 3600_000).toISOString();
+      const [{ data: reviewed }, { data: alreadyAsked }, { data: recentAsks }, { data: customerRows }] = await Promise.all([
+        supabase.from("reviews").select("order_id").in("order_id", ids),
+        supabase.from("order_notification_log").select("order_id").eq("event", "review_request_email").in("order_id", ids),
+        supabase.from("order_notification_log").select("order_id").eq("event", "review_request_email").gte("created_at", sevenDaysAgo).limit(1000),
+        customerIds.length
+          ? supabase.from("customers").select("id, tags").in("id", customerIds)
+          : Promise.resolve({ data: [] as { id: string; tags: string[] | null }[] }),
+      ]);
+      const skipOrder = new Set<string>([
+        ...((reviewed ?? []).map((r) => r.order_id).filter(Boolean) as string[]),
+        ...((alreadyAsked ?? []).map((r) => r.order_id).filter(Boolean) as string[]),
+      ]);
+      const unsubscribed = new Set(
+        ((customerRows ?? []) as { id: string; tags: string[] | null }[])
+          .filter((c) => (c.tags ?? []).includes("unsubscribed"))
+          .map((c) => c.id),
       );
-      (sentEmails ?? []).forEach(
-        (r) => r.order_id && emailedOrderIds.add(r.order_id),
-      );
-    }
+      // Emails a los que ya se pidió reseña esta semana (de cualquier pedido).
+      const askedEmails = new Set<string>();
+      const recentOrderIds = (recentAsks ?? []).map((r) => r.order_id).filter(Boolean) as string[];
+      if (recentOrderIds.length) {
+        const { data: recentOrders } = await supabase.from("orders").select("customer_email").in("id", recentOrderIds.slice(0, 1000));
+        (recentOrders ?? []).forEach((o) => o.customer_email && askedEmails.add(String(o.customer_email).toLowerCase()));
+      }
 
-    const reviewOutcomes = await Promise.allSettled(
-      (deliveredOrders ?? []).map(async (order) => {
-        if (reviewedOrderIds.has(order.id) || emailedOrderIds.has(order.id))
-          return false;
-
-        const restaurant = await getRestaurant(order.restaurant_id);
-        if (!restaurant) return false;
-
-        const en = restaurant.locale === "en";
-        // Link directly to the order tracker page so the review form is visible immediately
-        const custToken = (order as { customer_token?: string | null }).customer_token;
-        const reviewUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}${custToken ? `?t=${custToken}` : ""}`;
-
-        const sent = await sendEmail({
-          to: order.customer_email,
-          subject: en
-            ? `How was your order at ${restaurant.name}? ⭐`
-            : `¿Cómo estuvo tu pedido en ${restaurant.name}? ⭐`,
-          html: buildReviewRequestEmail(
-            order.customer_name || (en ? "Customer" : "Cliente"),
-            restaurant.name,
-            reviewUrl,
-            en,
-          ),
-        });
-
-        if (sent) {
-          // Mark as sent so a cron retry doesn't email the same customer again.
-          await supabase.from("order_notification_log").insert({
-            order_id: order.id,
-            restaurant_id: order.restaurant_id,
-            event: "review_request_email",
-            channel: "email",
-            success: true,
-          });
-          return true;
-        } else {
-          logger.warn("Review request email failed to send", {
-            order_id: order.id,
-          });
-          return false;
+      for (const order of closed) {
+        const email = order.customer_email.toLowerCase();
+        if (skipOrder.has(order.id) || askedEmails.has(email)) continue;
+        if (order.customer_id && unsubscribed.has(order.customer_id)) continue;
+        try {
+          const full = await loadCustomerEmailOrder(order.id);
+          if (!full?.customerEmail || !full.notificationsOn) continue;
+          const reviewUrl = `${full.ctx.menuUrl}/review/${order.id}`;
+          const unsubscribeUrl = full.customerId ? `${appUrl}/api/unsubscribe?id=${full.customerId}` : null;
+          const sent = await sendCustomerEmail(full, buildReviewEmail(full.ctx, { reviewUrl, unsubscribeUrl }));
+          if (sent) {
+            askedEmails.add(email);
+            results.review_request++;
+            await supabase.from("order_notification_log").insert({
+              order_id: order.id,
+              restaurant_id: full.restaurantId,
+              event: "review_request_email",
+              channel: "email",
+              success: true,
+            });
+          } else {
+            logger.warn("Review request email failed to send", { order_id: order.id });
+          }
+        } catch (err) {
+          results.errors++;
+          logger.error("Review request failed", { order_id: order.id, error: err instanceof Error ? err.message : String(err) });
         }
-      }),
-    );
-    results.review_request = reviewOutcomes.filter(
-      (r) => r.status === "fulfilled" && r.value === true,
-    ).length;
-    results.errors += reviewOutcomes.filter(
-      (r) => r.status === "rejected",
-    ).length;
+      }
+    }
 
     // ═══════════════════════════════════════════════════════════
     // PLATFORM → RESTAURANT OWNER automations (MENIUS marketing)
@@ -660,129 +525,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
-
-function escHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function buildUnsubscribeFooter(
-  unsubUrl: string,
-  restaurantName: string,
-  en: boolean,
-): string {
-  return `<p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
-    ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`} ·
-    <a href="${unsubUrl}" style="color:#9ca3af;text-decoration:underline;">
-      ${en ? "Unsubscribe" : "Darme de baja"}
-    </a>
-  </p>`;
-}
-
-function buildWelcomeEmail(
-  name: string,
-  restaurantName: string,
-  menuUrl: string,
-  unsubUrl: string,
-  en = false,
-): string {
-  const safeName = escHtml(name);
-  const safeRest = escHtml(restaurantName);
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
-    <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${safeRest}</h1>
-    </div>
-    <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:32px 24px;">
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${safeName}` : `Hola ${safeName}`}, 👋</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Welcome to <strong>${safeRest}</strong>! We're thrilled to have you as a customer.` : `¡Bienvenido a <strong>${safeRest}</strong>! Estamos encantados de tenerte como cliente.`}</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? "You can browse our full menu and place orders anytime from your phone." : "Puedes ver nuestro menú completo y hacer pedidos en cualquier momento desde tu celular."}</p>
-      <a href="${menuUrl}" style="display:block;margin-top:24px;padding:14px;background:#7c3aed;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        ${en ? "View our menu" : "Ver nuestro menú"}
-      </a>
-    </div>
-    ${buildUnsubscribeFooter(unsubUrl, safeRest, en)}
-  </div>
-</body>
-</html>`;
-}
-
-function buildReactivationEmail(
-  name: string,
-  restaurantName: string,
-  menuUrl: string,
-  unsubUrl: string,
-  en = false,
-): string {
-  const safeName = escHtml(name);
-  const safeRest = escHtml(restaurantName);
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
-    <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${safeRest}</h1>
-    </div>
-    <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:32px 24px;">
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${safeName}` : `Hola ${safeName}`}, 😢</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `It's been a while since your last visit and <strong>we miss you</strong>. We've been preparing delicious new dishes and would love for you to come back and try them.` : `Hace tiempo que no nos visitas y <strong>te echamos de menos</strong>. Hemos estado preparando cosas deliciosas y nos encantaría que vuelvas a probarlas.`}</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? "We hope to see you again soon!" : "¡Te esperamos de vuelta!"}</p>
-      <a href="${menuUrl}" style="display:block;margin-top:24px;padding:14px;background:#7c3aed;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        ${en ? "Order again" : "Pedir de nuevo"}
-      </a>
-    </div>
-    ${buildUnsubscribeFooter(unsubUrl, safeRest, en)}
-  </div>
-</body>
-</html>`;
-}
-
-function buildReviewRequestEmail(
-  name: string,
-  restaurantName: string,
-  menuUrl: string,
-  en = false,
-): string {
-  const safeName = escHtml(name);
-  const safeRest = escHtml(restaurantName);
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
-    <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${safeRest}</h1>
-    </div>
-    <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:32px 24px;">
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${safeName}` : `Hola ${safeName}`}, ⭐</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `We hope you enjoyed your order at <strong>${safeRest}</strong>!` : `¡Esperamos que hayas disfrutado tu pedido en <strong>${safeRest}</strong>!`}</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? "Your opinion means a lot to us. Would you leave a quick review? It only takes a minute." : "Tu opinión es muy importante para nosotros. ¿Nos dejarías una reseña rápida? Solo toma un minuto."}</p>
-      <a href="${menuUrl}" style="display:block;margin-top:24px;padding:14px;background:#f59e0b;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        ${en ? "Leave a review ⭐" : "Dejar mi reseña ⭐"}
-      </a>
-    </div>
-    <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
-      ${en ? `Sent by ${safeRest} via MENIUS` : `Enviado por ${safeRest} a través de MENIUS`}
-    </p>
-  </div>
-</body>
-</html>`;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PLATFORM EMAILS (MENIUS → Restaurant Owners)
-// ═══════════════════════════════════════════════════════════════
 
 function buildTrialExpiringEmail(
   restaurantName: string,

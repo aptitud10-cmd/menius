@@ -1,6 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createDashboardNotification } from './dashboard-notifications';
-import { sendEmail, buildOrderConfirmationEmail, buildStatusUpdateEmail, buildOwnerNewOrderEmail, buildPaymentReceiptEmail, type OrderEmailItem } from './email';
+import { sendEmail, buildOwnerNewOrderEmail, type OrderEmailItem } from './email';
+import {
+  buildReceiptEmail, buildEtaEmail, buildReadyEmail, buildOnTheWayEmail, buildCancelledEmail,
+  deliveryTravelMinutes, customerEmailKind, type CustomerEmailKind,
+} from './customer-email';
+import { loadCustomerEmailOrder, sendCustomerEmail } from './customer-email-data';
 import { formatPrice } from '@/lib/utils';
 import { createLogger } from '@/lib/logger';
 
@@ -125,13 +130,10 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     const currency = restaurant.currency ?? 'MXN';
     const totalFormatted = formatPrice(total, currency);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}${customerToken ? `?t=${customerToken}` : ''}`;
     const restaurantLocale = restaurant.locale ?? 'es';
-    // Customer-facing comms use the locale from the checkout session; owner-facing use restaurant locale
-    const customerEffectiveLocale = customerLocale ?? restaurantLocale;
-    const locale = restaurantLocale; // kept for owner email + legacy references
+    // El email al cliente toma su idioma del pedido (customer-email-data); este es el del dueño.
+    const locale = restaurantLocale;
     const en = locale === 'en';
-    const customerEn = customerEffectiveLocale === 'en';
     const notificationsOn = restaurant.notifications_enabled !== false;
 
     // Use rich items from the caller when available — saves a JOIN query.
@@ -155,32 +157,15 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
 
     const emailJobs: Promise<boolean>[] = [];
 
-    // Confirmation email to customer — use customer's language, not restaurant's
-    if (notificationsOn && customerEmail) {
-      const html = buildOrderConfirmationEmail({
-        customerName,
-        orderNumber,
-        restaurantName: restaurant.name,
-        total: totalFormatted,
-        items: richItems,
-        trackingUrl,
-        orderType,
-        paymentMethod,
-        tableNumber,
-        notes,
-        locale: customerEffectiveLocale,
-      });
-
-      emailJobs.push(sendEmail({
-        to: customerEmail,
-        from: `${restaurant.name} <noreply@menius.app>`,
-        subject: customerEn
-          // "Recibido", no "confirmado": todavía no lo aceptó el restaurante (si lo
-          // rechaza, el cliente leía "confirmado" y después "cancelado").
-          ? `Order #${orderNumber} received — ${restaurant.name}`
-          : `Pedido #${orderNumber} recibido — ${restaurant.name}`,
-        html,
-      }));
+    // Recibo al cliente (email 1 de 3), con el desglose leído de la base.
+    if (notificationsOn && customerEmail && orderId) {
+      emailJobs.push((async () => {
+        const order = await loadCustomerEmailOrder(orderId);
+        if (!order?.customerEmail) return false;
+        const ok = await sendCustomerEmail(order, buildReceiptEmail(order.ctx));
+        void logNotification(orderId, restaurantId, 'email_receipt', { channel: 'email', success: ok });
+        return ok;
+      })());
     }
 
     // New order alert to restaurant owner
@@ -265,6 +250,56 @@ async function logNotification(
   } catch { /* non-critical — logging must never break the happy path */ }
 }
 
+/** Envía (una sola vez por pedido, salvo reenvío) el email de un estado. */
+async function sendStatusEmail(opts: {
+  orderId: string;
+  restaurantId: string;
+  kind: CustomerEmailKind;
+  estimatedMinutes?: number;
+  etaUpdate?: boolean;
+  allowRepeat?: boolean;
+}): Promise<NotifyStatusResult> {
+  const { orderId, restaurantId, kind } = opts;
+  const event = `email_${kind}`;
+  if (!opts.allowRepeat) {
+    const { data: prior } = await createAdminClient()
+      .from('order_notification_log')
+      .select('id')
+      .eq('order_id', orderId)
+      .eq('event', event)
+      .eq('success', true)
+      .limit(1);
+    if (prior && prior.length > 0) return { channel: 'none', success: true, error: 'email_already_sent' };
+  }
+
+  const order = await loadCustomerEmailOrder(orderId);
+  if (!order?.customerEmail) return { channel: 'none', success: false, error: 'no_contact_info' };
+
+  const now = Date.now();
+  const travelMs = deliveryTravelMinutes(order.restaurantCoords, order.deliveryCoords) * 60_000;
+  let email;
+  if (kind === 'eta') {
+    let readyAtMs: number | null = null;
+    if (opts.estimatedMinutes != null && opts.estimatedMinutes > 0) {
+      readyAtMs = now + opts.estimatedMinutes * 60_000;
+    } else if (order.estimatedReadyMinutes && order.estimatedReadyMinutes > 0) {
+      const base = Date.parse(order.preparedAt ?? order.createdAt ?? '');
+      readyAtMs = Math.max((Number.isFinite(base) ? base : now) + order.estimatedReadyMinutes * 60_000, now);
+    }
+    const arrivalMs = order.ctx.orderType === 'delivery' && readyAtMs != null ? readyAtMs + travelMs : null;
+    email = buildEtaEmail(order.ctx, { readyAtMs, arrivalMs, isUpdate: opts.etaUpdate });
+  } else if (kind === 'ready') {
+    email = buildReadyEmail(order.ctx);
+  } else if (kind === 'on_the_way') {
+    email = buildOnTheWayEmail(order.ctx, { arrivalMs: now + travelMs, driverName: order.driverName });
+  } else {
+    email = buildCancelledEmail(order.ctx, { reason: order.cancellationReason, refunded: order.paymentStatus === 'refunded' });
+  }
+  const ok = await sendCustomerEmail(order, email);
+  void logNotification(orderId, restaurantId, event, { channel: 'email', success: ok });
+  return { channel: 'email', success: ok };
+}
+
 /**
  * Send notifications when order status changes.
  * Returns the primary channel used and whether it succeeded.
@@ -283,8 +318,10 @@ export async function notifyStatusChange(params: {
   estimatedMinutes?: number;
   /** Reenvío a propósito (botón "reenviar" o aviso de hora nueva). */
   allowRepeat?: boolean;
+  /** La cocina cambió la hora: el email dice "Nueva hora". */
+  etaUpdate?: boolean;
 }): Promise<NotifyStatusResult> {
-  const { orderId, orderNumber, restaurantId, status, customerName, customerEmail, customerPhone, customerLocale, orderType, estimatedMinutes, allowRepeat } = params;
+  const { orderId, orderNumber, restaurantId, status, customerEmail, customerPhone, customerLocale, orderType, estimatedMinutes, allowRepeat, etaUpdate } = params;
 
   try {
     const adminDb = createAdminClient();
@@ -329,18 +366,16 @@ export async function notifyStatusChange(params: {
       if (!customerLocale && orderRow?.customer_locale) resolvedCustomerLocale = orderRow.customer_locale;
       custToken = (orderRow as { customer_token?: string | null } | null)?.customer_token ?? null;
     }
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}${custToken ? `?t=${custToken}` : ''}`;
-    const reviewUrl = orderId ? `${appUrl}/${restaurant.slug}/review/${orderId}` : undefined;
-
+    // Emails al cliente: solo 3 por pedido (hora exacta, listo / en camino,
+    // cancelado). El resto de los estados va por seguimiento y push.
     let result: NotifyStatusResult;
-
-    if (customerEmail) {
-      const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: resolvedCustomerLocale, orderType, estimatedMinutes });
-      const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, resolvedCustomerLocale, orderType), html });
-      result = { channel: 'email', success: emailOk };
-    } else {
+    const kind = customerEmailKind(status, orderType);
+    if (!kind) {
+      result = { channel: 'none', success: true, error: 'no_email_for_status' };
+    } else if (!customerEmail || !orderId) {
       result = { channel: 'none', success: false, error: 'no_contact_info' };
+    } else {
+      result = await sendStatusEmail({ orderId, restaurantId, kind, estimatedMinutes, etaUpdate, allowRepeat });
     }
 
     void logNotification(orderId, restaurantId, status, result);
@@ -431,12 +466,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
 
   const currency = restaurant.currency ?? 'MXN';
   const restaurantLocale = restaurant.locale ?? 'es';
-  // Use customer's checkout language for customer receipt; restaurant locale for owner notification
-  const customerLocale = typedOrder.customer_locale ?? restaurantLocale;
-  const en = customerLocale === 'en';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  const custToken = (order as { customer_token?: string | null }).customer_token ?? null;
-  const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}${custToken ? `?t=${custToken}` : ''}`;
   const totalFormatted = formatPrice(Number(order.total), currency);
 
   // Fetch rich items (variants, modifiers, extras) so the receipt shows full detail
@@ -444,26 +474,15 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
 
   const jobs: Promise<boolean>[] = [];
 
-  // Receipt to customer — use customer's language
+  // Recibo pagado al cliente (email 1 de 3 de los pedidos online).
   if (order.customer_email) {
-    const html = buildPaymentReceiptEmail({
-      customerName: order.customer_name,
-      orderNumber: order.order_number,
-      restaurantName: restaurant.name,
-      total: totalFormatted,
-      items: emailItems,
-      trackingUrl,
-      locale: customerLocale,
-    });
-
-    jobs.push(sendEmail({
-      to: order.customer_email,
-      from: `${restaurant.name} <noreply@menius.app>`,
-      subject: en
-        ? `✅ Payment confirmed — Order #${order.order_number} at ${restaurant.name}`
-        : `✅ Pago confirmado — Pedido #${order.order_number} en ${restaurant.name}`,
-      html,
-    }));
+    jobs.push((async () => {
+      const full = await loadCustomerEmailOrder(orderId);
+      if (!full?.customerEmail) return false;
+      const ok = await sendCustomerEmail(full, buildReceiptEmail({ ...full.ctx, paid: true }));
+      void logNotification(orderId, full.restaurantId, 'email_receipt', { channel: 'email', success: ok });
+      return ok;
+    })());
   }
 
   // Notification to restaurant owner
@@ -499,35 +518,3 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   }
 }
 
-function getStatusSubject(status: string, orderNumber: string, restaurantName: string, locale = 'es', orderType?: string): string {
-  const en = locale === 'en';
-  const deliveredEn = orderType === 'pickup'
-    ? `Order #${orderNumber} picked up — Enjoy!`
-    : orderType === 'dine_in'
-      ? `Order #${orderNumber} served — Enjoy!`
-      : `Order #${orderNumber} delivered — Enjoy!`;
-  const deliveredEs = orderType === 'pickup'
-    ? `Pedido #${orderNumber} recogido — ¡Buen provecho!`
-    : orderType === 'dine_in'
-      ? `Pedido #${orderNumber} servido — ¡Buen provecho!`
-      : `Pedido #${orderNumber} entregado — ¡Buen provecho!`;
-  const subjects: Record<string, string> = en
-    ? {
-        confirmed: `Order #${orderNumber} confirmed`,
-        preparing: `Your order #${orderNumber} is being prepared`,
-        ready: `Your order #${orderNumber} is ready!`,
-        out_for_delivery: `Your order #${orderNumber} is on its way!`,
-        delivered: deliveredEn,
-        cancelled: `Order #${orderNumber} cancelled`,
-      }
-    : {
-        confirmed: `Pedido #${orderNumber} confirmado`,
-        preparing: `Tu pedido #${orderNumber} se está preparando`,
-        ready: `¡Tu pedido #${orderNumber} está listo!`,
-        out_for_delivery: `¡Tu pedido #${orderNumber} viene en camino!`,
-        delivered: deliveredEs,
-        cancelled: `Pedido #${orderNumber} cancelado`,
-      };
-  const fallback = en ? `Order #${orderNumber} update` : `Actualización pedido #${orderNumber}`;
-  return `${subjects[status] ?? fallback} — ${restaurantName}`;
-}
