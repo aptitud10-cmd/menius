@@ -849,7 +849,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   locale={locale}
                   onEtaUpdate={setLiveDeliveryEta}
                 />
-                <span className="absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[12px] font-bold shadow-sm" style={{ background: 'rgba(255,255,255,0.95)', color: locAgeMin != null && locAgeMin >= 2 ? K.amber : K.greenDeep }}>
+                <span className="absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[12px] font-bold shadow-sm" style={{ background: K.card, color: locAgeMin != null && locAgeMin >= 2 ? K.amber : K.greenDeep }}>
                   {locLabel}
                 </span>
               </section>

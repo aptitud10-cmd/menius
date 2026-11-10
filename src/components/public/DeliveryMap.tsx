@@ -62,10 +62,24 @@ async function fetchDirections(from: Coords, to: Coords): Promise<DirectionsResu
 }
 
 // Used when driver is not yet active — ETA from restaurant to delivery address
-async function fetchEtaMinutes(from: Coords, to: Coords): Promise<number | null> {
-  const { etaMinutes } = await fetchDirections(from, to);
-  return etaMinutes;
+// ── Look: mismos tokens que el seguimiento (--tk-* viven en .mt-root) ──────────
+
+const prefersDark = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+
+const RESTAURANT_PIN = `<div style="width:30px;height:30px;border-radius:10px;background:var(--tk-card,#fff);border:2px solid var(--tk-ink,#0E1412);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.18)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="stroke:var(--tk-ink,#0E1412)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M10 20v-5h4v5"/></svg></div>`;
+const HOME_PIN = `<div style="width:34px;height:34px;border-radius:50%;background:var(--tk-green,#05C8A7);border:3px solid var(--tk-card,#fff);display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.25)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#04241E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5.5 9.5V20h13V9.5"/></svg></div>`;
+/** Rumbo en grados (0 = norte, sentido horario) de a hacia b. */
+function bearingDeg(a: Coords, b: Coords): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLng = toRad(b.lng - a.lng);
+  const y = Math.sin(dLng) * Math.cos(toRad(b.lat));
+  const x = Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) - Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(dLng);
+  return (Math.atan2(y, x) * 180) / Math.PI;
 }
+
+// Flecha hacia el norte; el marcador entero gira con setRotation(rumbo).
+const DRIVER_PIN = `<svg width="18" height="18" viewBox="0 0 24 24" style="fill:var(--tk-btn-fg,#fff)"><path d="M12 2.5l7 18.5-7-4-7 4z"/></svg>`;
 
 // ── Mapbox Geocoding v6 ──────────────────────────────────────────────────────
 
@@ -106,14 +120,28 @@ async function geocodeMapbox(address: string, near?: Coords | null): Promise<Coo
 
 // ── Fallback (no geocode or no token) ────────────────────────────────────────
 
-function MapFallback({ deliveryAddress, restaurantAddress }: DeliveryMapProps) {
+function OpenInMapsLink({ address, label }: { address: string; label: string }) {
+  return (
+    <a
+      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="h-11 flex items-center justify-center gap-1.5 text-[13px] font-semibold border-t"
+      style={{ color: 'var(--tk-sub, #6b7280)', borderColor: 'var(--tk-line, #e5e7eb)' }}
+    >
+      <ExternalLink className="w-3.5 h-3.5" aria-hidden />
+      {label}
+    </a>
+  );
+}
+
+function MapFallback({ deliveryAddress, restaurantAddress, locale }: DeliveryMapProps) {
   const address = deliveryAddress ?? restaurantAddress;
   if (!address) return null;
   const gmapsEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed&z=15`;
-  const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
   return (
-    <div className="space-y-2">
-      <div className="w-full h-52 rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+    <div>
+      <div className="w-full h-64 overflow-hidden">
         <iframe
           src={gmapsEmbedUrl}
           width="100%"
@@ -121,18 +149,10 @@ function MapFallback({ deliveryAddress, restaurantAddress }: DeliveryMapProps) {
           style={{ border: 0 }}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
-          title="Mapa de entrega"
+          title={locale === 'en' ? 'Delivery map' : 'Mapa de entrega'}
         />
       </div>
-      <a
-        href={gmapsUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors py-1"
-      >
-        <ExternalLink className="w-3 h-3" />
-        Abrir en Google Maps
-      </a>
+      <OpenInMapsLink address={address} label={getTranslations(locale ?? 'es').mapOpenInMaps} />
     </div>
   );
 }
@@ -144,24 +164,19 @@ interface LiveMapProps {
   deliveryCoords: Coords | null;
   restaurantName: string;
   driverCoords: Coords | null;
-  etaMinutes: number | null;
   t: Translations;
   onEtaUpdate?: (minutes: number | null) => void;
 }
 
-function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, etaMinutes: etaMinutesProp, t, onEtaUpdate }: LiveMapProps) {
+function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, t, onEtaUpdate }: LiveMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
   const driverElRef = useRef<HTMLDivElement | null>(null);
   const currentDriverPos = useRef<Coords | null>(null);
-  const driverHeadingRef = useRef<number>(0);
   const animFrameRef = useRef<number | null>(null);
   const lastRoutePosRef = useRef<Coords | null>(null);
   const [ready, setReady] = useState(false);
-  // Local ETA updated from Directions API alongside route geometry (single call)
-  const [liveEta, setLiveEta] = useState<number | null>(etaMinutesProp);
-  const etaMinutes = liveEta ?? etaMinutesProp;
 
   // Smooth linear interpolation between two positions
   const animateMarkerTo = useCallback((target: Coords) => {
@@ -171,21 +186,14 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
     const startTime = performance.now();
     const duration = 1500; // 1.5s smooth animation
 
-    // Rotación del marcador según dirección de avance (bearing) — da el toque
-    // "va manejando" estilo Uber. Solo si hubo desplazamiento real (>~5m), para
-    // no girar el ícono por jitter de GPS cuando el driver está detenido.
+    // La flecha apunta hacia donde va (rumbo). Solo si hubo desplazamiento real
+    // (>~5m), para no girarla por jitter de GPS con el repartidor detenido.
+    // setRotation y no style.transform: Mapbox usa el transform del elemento
+    // para posicionarlo y lo pisaba.
     const dLat = target.lat - start.lat;
     const dLng = target.lng - start.lng;
     if (Math.abs(dLat) > 0.00005 || Math.abs(dLng) > 0.00005) {
-      const toRad = (d: number) => (d * Math.PI) / 180;
-      const y = Math.sin(toRad(dLng)) * Math.cos(toRad(target.lat));
-      const x =
-        Math.cos(toRad(start.lat)) * Math.sin(toRad(target.lat)) -
-        Math.sin(toRad(start.lat)) * Math.cos(toRad(target.lat)) * Math.cos(toRad(dLng));
-      const bearing = (Math.atan2(y, x) * 180) / Math.PI;
-      driverHeadingRef.current = bearing;
-      // El emoji 🛵 ya "mira" a la izquierda; -90° lo orienta hacia el avance.
-      driverElRef.current.style.transform = `rotate(${bearing - 90}deg)`;
+      driverMarkerRef.current.setRotation(bearingDeg(start, target));
     }
 
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -237,9 +245,13 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
       if (deliveryCoords) points.push([deliveryCoords.lng, deliveryCoords.lat]);
       if (driverCoords) points.push([driverCoords.lng, driverCoords.lat]);
 
+      const dark = prefersDark();
+      const routeColor = dark ? '#5BE3C9' : '#0E1412';
       const map = new mapboxgl.Map({
         container: containerRef.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
+        // Mapa sobrio (gris) para que el color lo pongan los puntos y la ruta;
+        // oscuro si el teléfono está en oscuro, como el resto de la página.
+        style: dark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
         center: driverCoords
           ? [driverCoords.lng, driverCoords.lat]
           : deliveryCoords
@@ -263,7 +275,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
       // Restaurant marker
       const restaurantEl = document.createElement('div');
-      restaurantEl.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;background:#059669;border:2.5px solid white;box-shadow:0 2px 10px rgba(5,150,105,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;">🍽️</div>`;
+      restaurantEl.innerHTML = RESTAURANT_PIN;
       new mapboxgl.Marker({ element: restaurantEl, anchor: 'center' })
         .setLngLat([restaurantCoords.lng, restaurantCoords.lat])
         .setPopup(new mapboxgl.Popup({ offset: 20 }).setText(restaurantName))
@@ -272,7 +284,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
       // Delivery address marker
       if (deliveryCoords) {
         const destEl = document.createElement('div');
-        destEl.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;background:#2563eb;border:2.5px solid white;box-shadow:0 2px 10px rgba(37,99,235,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;">📍</div>`;
+        destEl.innerHTML = HOME_PIN;
         new mapboxgl.Marker({ element: destEl, anchor: 'center' })
           .setLngLat([deliveryCoords.lng, deliveryCoords.lat])
           .setPopup(new mapboxgl.Popup({ offset: 20 }).setText(t.mapDeliveryAddress))
@@ -301,9 +313,9 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
             source: 'route',
             layout: { 'line-join': 'round', 'line-cap': 'round' },
             paint: {
-              'line-color': '#047a65',
-              'line-width': 6,
-              'line-opacity': 0.25,
+              'line-color': routeColor,
+              'line-width': 8,
+              'line-opacity': 0.12,
             },
           });
           // Main route line — dashed until real geometry arrives
@@ -313,19 +325,19 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
             source: 'route',
             layout: { 'line-join': 'round', 'line-cap': 'round' },
             paint: {
-              'line-color': '#10b981',
+              'line-color': routeColor,
               'line-width': 4,
               'line-dasharray': [2, 2],
-              'line-opacity': 0.85,
+              'line-opacity': 0.9,
             },
           });
         });
       }
 
-      // Driver marker (moto) — always created, hidden if no coords yet
+      // Repartidor: círculo con flecha — always created, hidden if no coords yet
       const driverEl = document.createElement('div');
-      driverEl.style.cssText = 'width:44px;height:44px;border-radius:50%;background:#f97316;border:3px solid white;box-shadow:0 3px 14px rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;font-size:22px;transition:opacity 0.3s ease, transform 0.8s ease-out;';
-      driverEl.textContent = '🛵';
+      driverEl.style.cssText = 'width:40px;height:40px;border-radius:50%;background:var(--tk-btn,#111816);border:3px solid var(--tk-card,#fff);box-shadow:0 3px 12px rgba(0,0,0,.3);display:grid;place-items:center;transition:opacity 0.3s ease;';
+      driverEl.innerHTML = DRIVER_PIN;
       driverElRef.current = driverEl;
 
       const initPos: [number, number] = driverCoords
@@ -334,11 +346,13 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
       driverEl.style.opacity = driverCoords ? '1' : '0';
 
-      const driverMarker = new mapboxgl.Marker({ element: driverEl, anchor: 'center' })
+      const driverMarker = new mapboxgl.Marker({ element: driverEl, anchor: 'center', rotationAlignment: 'map' })
         .setLngLat(initPos)
         .addTo(map);
 
       driverMarkerRef.current = driverMarker;
+      // Antes del primer movimiento, la flecha mira hacia la casa del cliente.
+      if (driverCoords && deliveryCoords) driverMarker.setRotation(bearingDeg(driverCoords, deliveryCoords));
       if (driverCoords) currentDriverPos.current = driverCoords;
 
       mapRef.current = map;
@@ -388,7 +402,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
     lastRoutePosRef.current = driverCoords;
 
     fetchDirections(driverCoords, deliveryCoords).then(({ etaMinutes: eta, routeCoords }) => {
-      if (eta !== null) { setLiveEta(eta); onEtaUpdate?.(eta); }
+      if (eta !== null) onEtaUpdate?.(eta);
 
       if (!routeCoords || !map.getSource('route')) return;
       // Update GeoJSON source with real road geometry
@@ -406,30 +420,10 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, driverCoords?.lat, driverCoords?.lng]);
 
+  // Los minutos van en el bloque grande del seguimiento; el mapa no los repite.
   return (
-    <div className="relative w-full" style={{ minHeight: 240 }}>
-      <div className="w-full h-60 rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ minHeight: 240 }}>
-        <div ref={containerRef} className="w-full h-full" />
-      </div>
-      {/* ETA chip — overlaid bottom-left on the map, only when driver is active */}
-      {driverCoords && etaMinutes !== null && (
-        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-orange-200 shadow-md rounded-full px-3 py-1.5 pointer-events-none">
-          <span className="text-base leading-none">🛵</span>
-          <span className="text-sm font-bold text-gray-900">
-            ~{etaMinutes} min
-          </span>
-          <span className="text-xs text-gray-400 font-medium">
-            {t.mapRemaining}
-          </span>
-        </div>
-      )}
-      {/* Loading ETA chip while calculating */}
-      {driverCoords && etaMinutes === null && ready && (
-        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm rounded-full px-3 py-1.5 pointer-events-none">
-          <span className="text-base leading-none">🛵</span>
-          <span className="text-xs text-gray-400 font-medium">{t.mapCalculating}</span>
-        </div>
-      )}
+    <div className="w-full h-64 overflow-hidden">
+      <div ref={containerRef} className="w-full h-full" />
     </div>
   );
 }
@@ -441,7 +435,6 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   const [restaurantCoords, setRestaurantCoords] = useState<Coords | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<Coords | null>(null);
   const [geocodingDone, setGeocodingDone] = useState(false);
-  const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
 
   const driverCoords = useMemo<Coords | null>(
     () => (driverLat != null && driverLng != null) ? { lat: driverLat, lng: driverLng } : null,
@@ -469,19 +462,11 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
     return () => { cancelled = true; };
   }, [restaurantAddress, deliveryAddress, deliveryLat, deliveryLng, restaurantLat, restaurantLng]);
 
-  // ETA is now computed inside LiveMap alongside the route update (single API call).
-  // This effect only runs when there is no driver yet — static ETA from restaurant
-  // to delivery address as a rough estimate before dispatch.
-  useEffect(() => {
-    if (driverCoords || !restaurantCoords || !deliveryCoords) return;
-    fetchEtaMinutes(restaurantCoords, deliveryCoords).then((mins) => {
-      if (mins !== null) setEtaMinutes(mins);
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!driverCoords, restaurantCoords, deliveryCoords]);
+  // El ETA en vivo se calcula dentro de LiveMap junto con la ruta (una sola
+  // llamada) y sube por onEtaUpdate al bloque grande del seguimiento.
 
   if (!geocodingDone) {
-    return <div className="w-full h-60 rounded-2xl bg-gray-100 animate-pulse" />;
+    return <div className="w-full h-64 animate-pulse" style={{ background: 'var(--tk-surface, #f3f4f6)' }} />;
   }
 
   if (!restaurantCoords || !MAPBOX_TOKEN) {
@@ -490,38 +475,22 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
         restaurantAddress={restaurantAddress}
         deliveryAddress={deliveryAddress}
         restaurantName={restaurantName}
+        locale={locale}
       />
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div>
       <LiveMap
         restaurantCoords={restaurantCoords}
         deliveryCoords={deliveryCoords}
         restaurantName={restaurantName}
         driverCoords={driverCoords}
-        etaMinutes={etaMinutes}
         t={t}
         onEtaUpdate={onEtaUpdate}
       />
-      {driverCoords && (
-        <div className="flex items-center gap-1.5 justify-center">
-          <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-          <p className="text-xs text-gray-500 font-medium">
-            {etaMinutes !== null ? t.mapDriverOnWay(etaMinutes) : t.mapDriverLive}
-          </p>
-        </div>
-      )}
-      <a
-        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress ?? restaurantAddress ?? '')}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors py-1"
-      >
-        <ExternalLink className="w-3 h-3" />
-        {t.mapOpenInMaps}
-      </a>
+      <OpenInMapsLink address={deliveryAddress ?? restaurantAddress ?? ''} label={t.mapOpenInMaps} />
     </div>
   );
 }

@@ -51,7 +51,8 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com https://client.crisp.chat https://api.mapbox.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://generativelanguage.googleapis.com https://api.resend.com https://client.crisp.chat wss://client.relay.crisp.chat https://storage.crisp.chat https://*.sentry.io https://*.ingest.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com",
               // 'self' allows the landing-page hero to embed demo menu slugs in an iframe
-              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://game.crisp.chat https://challenges.cloudflare.com",
+              // maps.google.com / www.google.com: mapa de reserva del seguimiento (si Mapbox falla)
+              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://game.crisp.chat https://challenges.cloudflare.com https://maps.google.com https://www.google.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
