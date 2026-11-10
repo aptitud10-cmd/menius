@@ -26,6 +26,8 @@ export const C = {
 export type Lang = 'es' | 'en';
 
 const ES = {
+  /** Idioma para fechas y horas (el de la tienda, no el del navegador). */
+  locale: 'es',
   receiving: 'Recibiendo pedidos',
   paused: (m: number) => `Pausado · ${m} min`,
   busy: (m: number) => `Ocupado · +${m} min`,
@@ -80,6 +82,7 @@ const ES = {
   driver: 'Repartidor',
   driverOnWay: 'En camino',
   driverAtDoor: 'En la puerta',
+  driverWaiting: (name: string) => `Esperando a ${name}`,
   total: 'Total',
   subtotal: 'Subtotal',
   tax: 'Impuestos',
@@ -126,6 +129,7 @@ const ES = {
 type Dict = { [K in keyof typeof ES]: (typeof ES)[K] extends (...a: infer A) => string ? (...a: A) => string : string };
 
 const EN: Dict = {
+  locale: 'en-US',
   receiving: 'Receiving orders',
   paused: (m) => `Paused · ${m} min`,
   busy: (m) => `Busy · +${m} min`,
@@ -180,6 +184,7 @@ const EN: Dict = {
   driver: 'Driver',
   driverOnWay: 'On the way',
   driverAtDoor: 'At the door',
+  driverWaiting: (name: string) => `Waiting for ${name}`,
   total: 'Total',
   subtotal: 'Subtotal',
   tax: 'Tax',
@@ -367,10 +372,10 @@ export function waitingSince(o: Pick<Order, 'created_at' | 'scheduled_for'> & { 
 }
 
 /** Hora pactada de un programado: "12:30", o "mar 12:30" si no es hoy. */
-export function scheduledWhen(iso: string) {
+export function scheduledWhen(iso: string, locale?: string) {
   const d = new Date(iso);
   const today = d.toDateString() === new Date().toDateString();
-  return d.toLocaleString([], today ? { hour: '2-digit', minute: '2-digit' } : { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(locale ? [locale] : [], today ? { hour: '2-digit', minute: '2-digit' } : { weekday: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 export function isClosed(order: Order) {

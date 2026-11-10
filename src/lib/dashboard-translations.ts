@@ -1600,7 +1600,7 @@ const es: DashboardTranslations = {
   kds_prepare: "PREPARAR",
   kds_markReady: "LISTA",
   kds_deliver: "ENTREGAR",
-  kds_pickup: "Pickup",
+  kds_pickup: "Recoger",
   kds_delivery: "Delivery",
   kds_cash: "Efectivo",
   kds_online: "En línea",

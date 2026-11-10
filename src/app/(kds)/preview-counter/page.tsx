@@ -68,6 +68,12 @@ const ORDERS: Order[] = [
     items: [item('p7', 1, 'Western Omelette', 12.5), item('p8', 1, 'Coffee', 2.5)],
   }),
   order({
+    id: 'o6', order_number: 'ORD-261110-010', status: 'out_for_delivery', customer_name: 'Rosa Diaz',
+    order_type: 'delivery', delivery_address: '31-20 82nd St', total: 29.4, created_at: ago(35),
+    driver_name: 'Carlos Mendez', driver_picked_up_at: ago(4),
+    items: [item('p10', 2, 'Chicken Wings', 11.0), item('p11', 1, 'Lemonade', 3.5)],
+  } as Parameters<typeof order>[0]),
+  order({
     id: 'o5', order_number: 'ORD-261110-016', status: 'pending', customer_name: 'Luis Perez',
     order_type: 'delivery', delivery_address: '25-10 Astoria Blvd', total: 56.0, created_at: ago(5),
     scheduled_for: new Date(Date.now() + 3 * 3600_000).toISOString(),

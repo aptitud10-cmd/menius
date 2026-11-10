@@ -171,7 +171,7 @@ export function OrderSheet({
               {order.order_type === 'delivery' && order.delivery_address && (
                 <Box k={T.address}>
                   <p className="text-[16px] leading-snug select-text">{order.delivery_address}</p>
-                  <a href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer"
+                  <a href={mapsUrl(order)} target="_blank" rel="noopener noreferrer"
                     className="mt-1.5 h-11 rounded-lg inline-flex items-center justify-center gap-2 font-bold text-[15px]" style={{ background: C.bg, color: C.ink }}>
                     <MapPin className="w-4 h-4" /> {T.openMap}
                   </a>
@@ -245,4 +245,16 @@ function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between gap-3"><dt>{k}</dt><dd className="tabular-nums">{v}</dd></div>
   );
+}
+
+/**
+ * Google Maps del pedido: con las coordenadas que se guardaron al pedir (punto
+ * exacto, sirve aunque la dirección escrita sea ambigua); si no hay, por texto.
+ */
+function mapsUrl(order: Order) {
+  const o = order as Order & { delivery_lat?: number | null; delivery_lng?: number | null };
+  if (typeof o.delivery_lat === 'number' && typeof o.delivery_lng === 'number') {
+    return `https://www.google.com/maps/search/?api=1&query=${o.delivery_lat},${o.delivery_lng}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address ?? '')}`;
 }

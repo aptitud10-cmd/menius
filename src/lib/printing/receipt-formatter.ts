@@ -145,7 +145,11 @@ export function buildReceiptHTML(data: ReceiptData): string {
 
   // ── A: Order type banner label ──
   const typeBannerLabel = (() => {
-    if (tableName) return en ? `DINE-IN — ${tableName.toUpperCase()}` : `EN MESA — ${tableName.toUpperCase()}`;
+    // tableName suele venir como "Mesa 5": sin quitar el prefijo salía "EN MESA — MESA 5".
+    if (tableName) {
+      const n = tableName.replace(/^\s*(mesa|table)\s*/i, '').toUpperCase() || tableName.toUpperCase();
+      return en ? `TABLE ${n}` : `MESA ${n}`;
+    }
     if (orderType === 'delivery') return 'DELIVERY';
     if (orderType === 'pickup') return en ? 'PICKUP' : 'PARA RECOGER';
     if (orderType === 'dine_in') return en ? 'DINE-IN' : 'EN LOCAL';

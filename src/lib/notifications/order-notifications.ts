@@ -215,7 +215,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     createDashboardNotification({
       restaurantId,
       type: 'new_order',
-      title: `Nuevo pedido #${orderNumber}`,
+      title: en ? `New order #${orderNumber}` : `Nuevo pedido #${orderNumber}`,
       body: `${customerName} — ${totalFormatted}`,
       actionUrl: '/app/orders',
       metadata: { order_id: orderId, order_number: orderNumber },
@@ -330,10 +330,13 @@ export async function notifyStatusChange(params: {
         const trackUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}${custToken ? `?t=${custToken}` : ''}`;
         const payload = getStatusPushPayload(status, orderNumber, restaurant.name, trackUrl, resolvedCustomerLocale, orderType);
         // Web push (browser notifications on menius.app tab)
-        sendPushToOrder(orderId, payload).catch(() => {});
+        // Un push roto antes no dejaba rastro: ahora queda en el log.
+        const logPushErr = (channel: string) => (err: unknown) =>
+          logger.warn('push failed', { channel, orderId, status, error: err instanceof Error ? err.message : String(err) });
+        sendPushToOrder(orderId, payload).catch(logPushErr('web'));
         // Expo push (Menius mobile app — guest-first, matched by phone)
         if (customerPhone) {
-          sendExpoPushToCustomerByPhone(customerPhone, payload).catch(() => {});
+          sendExpoPushToCustomerByPhone(customerPhone, payload).catch(logPushErr('expo'));
         }
 
         // Clean up subscriptions after terminal statuses — no more updates coming
@@ -343,7 +346,7 @@ export async function notifyStatusChange(params: {
             adminDb.from('push_subscriptions').delete().eq('order_id', orderId),
           ).catch(() => {});
         }
-      }).catch(() => {});
+      }).catch((err) => logger.warn('push module failed', { orderId, error: err instanceof Error ? err.message : String(err) }));
     }
 
     return result;
@@ -392,7 +395,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   createDashboardNotification({
     restaurantId: (order as { restaurant_id?: string }).restaurant_id ?? '',
     type: 'new_order',
-    title: `Nuevo pedido #${order.order_number}`,
+    title: restaurant.locale === 'en' ? `New order #${order.order_number}` : `Nuevo pedido #${order.order_number}`,
     body: `${order.customer_name} — ${formatPrice(Number(order.total), restaurant.currency ?? 'MXN')}`,
     actionUrl: '/app/orders',
     metadata: { order_id: order.id, order_number: order.order_number },

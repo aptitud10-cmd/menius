@@ -1,5 +1,6 @@
 "use server";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { chooseDriverToken, type CurrentDriverToken } from "@/lib/orders/driver-token";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -24,6 +25,16 @@ import {
   REVENUE_STATUSES,
 } from "@/lib/order-state";
 import { broadcastOrderUpdate } from "@/lib/realtime/broadcast-order";
+
+/**
+ * order_status_history solo tiene política de LECTURA para el dueño: con el
+ * cliente de sesión los INSERT fallaban en silencio (0 filas en prod) y la
+ * tablet (sesión de dispositivo) no podía leerlo. Se usa el admin SIEMPRE
+ * después de verificar que el pedido pertenece al restaurante autenticado.
+ */
+function historyDb() {
+  return createAdminClient();
+}
 
 const EN_CURRENCIES = new Set(["USD", "GBP", "CAD", "AUD", "NZD"]);
 function inferLocale(currency: string): string {
@@ -1793,7 +1804,7 @@ export async function undoOrderStatus(orderId: string, toStatus: string) {
   void broadcastOrderUpdate(orderId, toStatus);
 
   try {
-    await supabase.from("order_status_history").insert({
+    await historyDb().from("order_status_history").insert({
       order_id: orderId,
       from_status: current,
       to_status: toStatus,
@@ -1822,7 +1833,7 @@ export async function updateOrderStatus(
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, status, payment_status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, estimated_ready_minutes, restaurants ( slug, name )",
+      "id, status, payment_status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, estimated_ready_minutes, driver_tracking_token, driver_delivered_at, restaurants ( slug, name )",
     )
     .eq("id", orderId)
     .eq("restaurant_id", restaurantId)
@@ -1857,6 +1868,17 @@ export async function updateOrderStatus(
   if (status === "preparing") {
     updatePayload.prepared_at = new Date().toISOString();
   }
+  // Pedido cerrado con repartidor: el enlace del repartidor deja de servir
+  // (antes /api/driver/location seguía aceptando GPS y, si el repartidor
+  // recargaba, su página volvía a mandar ubicación) y queda la hora de entrega.
+  const driverToken = (order as { driver_tracking_token?: string | null }).driver_tracking_token ?? null;
+  const isFinal = ["delivered", "completed", "cancelled"].includes(status);
+  if (isFinal && driverToken) {
+    updatePayload.driver_token_expires_at = new Date().toISOString();
+    if (status === "delivered" && !(order as { driver_delivered_at?: string | null }).driver_delivered_at) {
+      updatePayload.driver_delivered_at = new Date().toISOString();
+    }
+  }
 
   const { error } = await supabase
     .from("orders")
@@ -1865,6 +1887,11 @@ export async function updateOrderStatus(
     .eq("restaurant_id", restaurantId);
 
   if (error) return { error: error.message };
+
+  if (isFinal && driverToken) {
+    const { evictTokenCache } = await import("@/lib/tracking/token-cache");
+    evictTokenCache(driverToken.slice(0, 16)).catch(() => {});
+  }
 
   // Broadcast to customer tracking page.
   // Static import ensures the module is ready — fire-and-forget so status
@@ -1875,7 +1902,7 @@ export async function updateOrderStatus(
   // Log the transition to order_status_history (non-blocking, graceful)
   void (async () => {
     try {
-      await supabase
+      await historyDb()
         .from("order_status_history")
         .insert({
           order_id: orderId,
@@ -2032,7 +2059,7 @@ export async function fetchOrderStatusHistory(orderId: string) {
     .maybeSingle();
   if (!order) return { error: "Not found" };
 
-  const { data, error } = await supabase
+  const { data, error } = await historyDb()
     .from("order_status_history")
     .select("id, from_status, to_status, note, created_at")
     .eq("order_id", orderId)
@@ -2326,7 +2353,9 @@ export async function closeShift(closingCash: number, notes?: string) {
     }
     const total = Number(o.total ?? 0) || 0;
     if (o.payment_method === "cash") return { cash: total, card: 0 };
-    if (o.payment_method === "online" || o.payment_method === "card") return { cash: 0, card: total };
+    // wallet = Apple/Google Pay: es cobro con tarjeta. Sin esto quedaba fuera de
+    // efectivo y de tarjeta y la suma no daba el total de ventas.
+    if (o.payment_method === "online" || o.payment_method === "card" || o.payment_method === "wallet") return { cash: 0, card: total };
     return { cash: 0, card: 0 };
   };
   const totalCash = (orders ?? []).reduce((sum: number, o: any) => sum + split(o).cash, 0);

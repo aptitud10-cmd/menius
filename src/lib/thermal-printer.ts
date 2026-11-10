@@ -213,7 +213,7 @@ export function buildReceipt(data: ReceiptData): Uint8Array {
   if (data.orderType) {
     const typeLabel: Record<string, string> = {
       dine_in: 'En local',
-      pickup: 'Para llevar',
+      pickup: 'Para recoger',
       delivery: 'Delivery',
     };
     e.row('Tipo:', typeLabel[data.orderType] || data.orderType);

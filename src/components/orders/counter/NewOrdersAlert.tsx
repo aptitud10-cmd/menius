@@ -111,7 +111,7 @@ function AlertBody({
         </div>
         {order.scheduled_for && (
           <p className="-mt-1 self-start text-[18px] min-[880px]:text-[22px] font-extrabold rounded-xl px-3.5 py-1.5" style={{ background: C.greenInk, color: '#fff' }}>
-            {T.scheduledFor(scheduledWhen(order.scheduled_for))}
+            {T.scheduledFor(scheduledWhen(order.scheduled_for, T.locale))}
           </p>
         )}
         {order.delivery_address && (

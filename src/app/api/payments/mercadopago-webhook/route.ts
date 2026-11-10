@@ -146,20 +146,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Idempotency guard — insert before any mutation; duplicate raises 23505
-    const eventId = `mp:${paymentId}`;
-    const { error: insertErr } = await adminDb
-      .from("processed_webhook_events")
-      .insert({ event_id: eventId, event_type: "payment.approved" });
-
-    if (insertErr) {
-      if (insertErr.code === "23505") {
-        logger.info("Duplicate MP webhook — skipping", { eventId });
-        return NextResponse.json({ received: true });
-      }
-      throw insertErr;
-    }
-
     if (order.payment_status === "paid") {
       return NextResponse.json({ received: true });
     }
@@ -212,6 +198,24 @@ export async function POST(req: NextRequest) {
         received: receivedAmount,
       });
       return NextResponse.json({ received: true });
+    }
+
+    // Idempotency guard — se reclama RECIÉN con el pago verificado como
+    // aprobado y con el monto correcto. Antes se reclamaba al llegar el aviso:
+    // si el primero venía "pending" (pagos en efectivo/OXXO/PSE), el aviso de
+    // "approved" se descartaba como duplicado y el pedido nunca quedaba pagado
+    // (ni aparecía en el Counter). Wompi ya lo hacía así.
+    const eventId = `mp:${paymentId}`;
+    const { error: insertErr } = await adminDb
+      .from("processed_webhook_events")
+      .insert({ event_id: eventId, event_type: "payment.approved" });
+
+    if (insertErr) {
+      if (insertErr.code === "23505") {
+        logger.info("Duplicate MP webhook — skipping", { eventId });
+        return NextResponse.json({ received: true });
+      }
+      throw insertErr;
     }
 
     // Mark order as paid

@@ -100,7 +100,7 @@ export function OrderReceipt({
 
   const orderTypeLabels: Record<string, string> = {
     dine_in: en ? 'Dine-in' : 'En local',
-    pickup: en ? 'Pickup' : 'Para llevar',
+    pickup: en ? 'Pickup' : 'Para recoger',
     delivery: 'Delivery',
   };
 
@@ -393,7 +393,7 @@ function buildBrowserReceiptHtml(data: ReceiptData, isEn = false): string {
 
   const orderTypeLabels: Record<string, string> = {
     dine_in: isEn ? 'Dine-in' : 'En local',
-    pickup: isEn ? 'Pickup' : 'Para llevar',
+    pickup: isEn ? 'Pickup' : 'Para recoger',
     delivery: 'Delivery',
   };
 

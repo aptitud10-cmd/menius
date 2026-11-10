@@ -20,9 +20,9 @@ import { getCounterAppBridge } from '@/lib/printing/native-bridge';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { PrinterConfig } from '@/lib/printing/PrinterConfig';
 import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
-import { fetchSuggestedEta, clampEta } from '@/lib/utils/eta';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
+import { isRevenueStatus } from '@/lib/order-state';
 import { counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
 import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
 import { NewOrdersAlert } from './counter/NewOrdersAlert';
@@ -422,7 +422,6 @@ export function CounterView({
   // that React state can't (auto-accept + manual tap firing in the same tick).
   const acceptingRef = useRef<Set<string>>(new Set());
   const [eta, setEta] = useState(15);
-  const [suggestedEta, setSuggestedEta] = useState<number | null>(null);
   const [busyExtra, setBusyExtra] = useState(0);
 
   // ── Pause state ──
@@ -446,6 +445,7 @@ export function CounterView({
   // One tab per restaurant owns sound/push/print side effects (see handleNewOrder)
   const isLeader = useLeaderTab(`menius-counter-leader:${restaurantId}`);
   const isLeaderRef = useRef(isLeader);
+  const printedOnArrivalRef = useRef<Set<string>>(new Set());
   isLeaderRef.current = isLeader;
 
   // ── Cancel/reject ──
@@ -663,6 +663,7 @@ export function CounterView({
       );
       // Print immediately on arrival if enabled
       if (printOnArrivalRef.current && !isFutureScheduled) {
+        printedOnArrivalRef.current.add(order.id);
         PrinterService.printOrder(order, undefined, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
       }
     }
@@ -800,36 +801,12 @@ export function CounterView({
       .finally(() => setStockLoading(false));
   }, [sidebarOpen]);
 
-  // Dynamic ETA suggestion for delivery orders (must be after selectedOrder is defined)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    setSuggestedEta(null);
-    if (!selectedOrder || selectedOrder.order_type !== 'delivery') {
-      // For non-delivery: set eta default from max prep_time_minutes in the order items
-      if (selectedOrder?.items?.length) {
-        const maxPrepTime = Math.max(...selectedOrder.items.map(i => (i.product as any)?.prep_time_minutes ?? 0));
-        if (maxPrepTime > 0) setEta(clampEta(maxPrepTime));
-      }
-      return;
-    }
-    if (!restaurantLat || !restaurantLng || !selectedOrder.delivery_address) {
-      // Still use prep time for delivery ETA default
-      if (selectedOrder.items?.length) {
-        const maxPrepTime = Math.max(...selectedOrder.items.map(i => (i.product as any)?.prep_time_minutes ?? 0));
-        if (maxPrepTime > 0) setEta(clampEta(maxPrepTime));
-      }
-      return;
-    }
-    fetchSuggestedEta(restaurantLat, restaurantLng, selectedOrder.delivery_address)
-      .then(mins => { if (mins) setSuggestedEta(clampEta(mins)); })
-      .catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrder?.id, restaurantLat, restaurantLng]);
   const isPaused = !!pausedUntil && Date.now() < pausedUntil;
   const pauseLeftMins = pausedUntil ? Math.max(0, Math.ceil((pausedUntil - Date.now()) / 60_000)) : 0;
   const effectiveEta = eta + busyExtra;
   const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
-  const todayRevenue = todayOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
+  // Misma regla que el dashboard (REVENUE_STATUSES): solo pedidos cerrados son venta.
+  const todayRevenue = todayOrders.filter(o => isRevenueStatus(o.status)).reduce((s, o) => s + Number(o.total), 0);
 
   // ── Actions ──
   const handleAccept = useCallback(async (order: Order, mins?: number) => {
@@ -860,7 +837,8 @@ export function CounterView({
         return;
       }
       playAcceptSound();
-      const shouldPrint = autoPrint || order.order_type === 'dine_in';
+      // Si ya salió el ticket al llegar ("imprimir al llegar"), no se imprime otro al aceptar.
+      const shouldPrint = (autoPrint || order.order_type === 'dine_in') && !printedOnArrivalRef.current.has(order.id);
       if (shouldPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
       // Se queda donde estaba: la tarjeta pasa sola a "Preparando".
       setSheetId(prev => (prev === order.id ? null : prev));
@@ -878,81 +856,6 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally, locale, taxLabel, taxIncluded, showNotif]);
 
-
-  const handleMarkReady = useCallback(async (order: Order) => {
-    setUpdatingId(order.id);
-    updateOrderLocally(order.id, { status: 'ready' }); // optimistic
-    try {
-      const res = await updateOrderStatus(order.id, 'ready');
-      if (res?.error) {
-        updateOrderLocally(order.id, { status: order.status }); // revert
-        showError(res.error);
-        return;
-      }
-      setActiveTab('ready');
-      setSelectedId(order.id);
-      setShowDetailMobile(true);
-      if (res.notification) showNotif(res.notification, order.id);
-    } catch {
-      updateOrderLocally(order.id, { status: order.status }); // revert
-      showError(t.en ? 'Unexpected error' : 'Error inesperado');
-    } finally { setUpdatingId(null); }
-  }, [t, updateOrderLocally, showNotif]);
-
-  const handleMarkServed = useCallback(async (order: Order) => {
-    setUpdatingId(order.id);
-    updateOrderLocally(order.id, { status: 'served' }); // optimistic — moves to 'ready' tab
-    try {
-      const res = await updateOrderStatus(order.id, 'served');
-      if (res?.error) {
-        updateOrderLocally(order.id, { status: order.status }); // revert
-        showError(res.error);
-        return;
-      }
-      if (res.notification) showNotif(res.notification, order.id);
-    } catch {
-      updateOrderLocally(order.id, { status: order.status }); // revert
-      showError(t.en ? 'Unexpected error' : 'Error inesperado');
-    } finally { setUpdatingId(null); }
-  }, [t, updateOrderLocally, showNotif]);
-
-  const handleMarkAlmostReady = useCallback(async (order: Order) => {
-    setUpdatingId(order.id);
-    updateOrderLocally(order.id, { status: 'almost_ready' }); // optimistic
-    try {
-      const res = await updateOrderStatus(order.id, 'almost_ready');
-      if (res?.error) {
-        updateOrderLocally(order.id, { status: order.status }); // revert
-        showError(res.error);
-        return;
-      }
-      if (res.notification) showNotif(res.notification, order.id);
-    } catch {
-      updateOrderLocally(order.id, { status: order.status }); // revert
-      showError(t.en ? 'Unexpected error' : 'Error inesperado');
-    } finally { setUpdatingId(null); }
-  }, [t, updateOrderLocally, showNotif]);
-
-  const handleMarkOutForDelivery = useCallback(async (order: Order) => {
-    if (!order.driver_picked_up_at) {
-      showError(t.en ? 'Driver has not confirmed pickup yet' : 'El repartidor aún no confirmó la recolección');
-      return;
-    }
-    setUpdatingId(order.id);
-    updateOrderLocally(order.id, { status: 'out_for_delivery' }); // optimistic
-    try {
-      const res = await updateOrderStatus(order.id, 'out_for_delivery');
-      if (res?.error) {
-        updateOrderLocally(order.id, { status: order.status }); // revert
-        showError(res.error);
-        return;
-      }
-      if (res.notification) showNotif(res.notification, order.id);
-    } catch {
-      updateOrderLocally(order.id, { status: order.status }); // revert
-      showError(t.en ? 'Unexpected error' : 'Error inesperado');
-    } finally { setUpdatingId(null); }
-  }, [t, updateOrderLocally, showNotif, showError]);
 
   // ── Rediseño: acción principal de cada tarjeta ──────────────────────────
   const statusFor = (o: Order, kind: PrimaryKind): Order['status'] =>
@@ -1143,7 +1046,7 @@ export function CounterView({
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [cancelModal, t]);
+  }, [cancelModal, cancelReason, t]);
 
   const handleAssignDriver = useCallback(async () => {
     if (!driverModal) return;

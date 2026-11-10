@@ -36,7 +36,7 @@ export function primaryAction(order: Order, T: CounterText, acceptMins: number):
 function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
   if (order.status === 'pending' && order.scheduled_for) {
     // Programado: lo que importa es la hora pactada, no cuándo se hizo el pedido.
-    return <span className="tabular-nums font-extrabold text-[16px]" style={{ color: C.ink }}>{T.scheduledFor(scheduledWhen(order.scheduled_for))}</span>;
+    return <span className="tabular-nums font-extrabold text-[16px]" style={{ color: C.ink }}>{T.scheduledFor(scheduledWhen(order.scheduled_for, T.locale))}</span>;
   }
   if (order.status === 'pending') {
     const m = Math.max(0, Math.floor((Date.now() - waitingSince(order as Order & { updated_at?: string | null })) / 60_000));
@@ -48,8 +48,35 @@ function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
     if (left < 0) return <span className="tabular-nums font-extrabold text-[16px]" style={{ color: C.red }}>{T.late(-left)}</span>;
     return <span className="tabular-nums font-bold text-[16px]" style={{ color: left <= 3 ? C.amber : C.sub }}>{T.readyIn(left)}</span>;
   }
+  // En camino: no "espera" en el local — cuánto hace que salió, sin alarma.
+  const pickedUp = (order as Order & { driver_picked_up_at?: string | null }).driver_picked_up_at;
+  if (order.status === 'out_for_delivery' || pickedUp) {
+    const m = minsSince(pickedUp ?? (order.updated_at as string | undefined) ?? order.created_at);
+    return <span className="tabular-nums font-bold text-[16px]" style={{ color: C.sub }}>{T.minAgo(m)}</span>;
+  }
   const since = minsSince((order.updated_at as string | undefined) ?? order.created_at);
   return <span className="tabular-nums font-bold text-[16px]" style={{ color: since >= 10 ? C.amber : C.sub }}>{T.waiting(since)}</span>;
+}
+
+/**
+ * Delivery con repartidor: si todavía lo esperan o si ya va en camino. Sin esto
+ * "Listo" y "En camino" se veían iguales y un toque cerraba el pedido con el
+ * repartidor todavía en ruta.
+ */
+function DriverLine({ order, T }: { order: Order; T: CounterText }) {
+  if (order.order_type !== 'delivery' || !order.driver_name) return null;
+  if (['delivered', 'completed', 'cancelled'].includes(order.status)) return null;
+  const o = order as Order & { driver_picked_up_at?: string | null; driver_at_door_at?: string | null };
+  const name = shortName(order.driver_name, order.driver_name);
+  const text = o.driver_at_door_at ? `${T.driverAtDoor} · ${name}`
+    : o.driver_picked_up_at || order.status === 'out_for_delivery' ? `${T.driverOnWay} · ${name}`
+    : T.driverWaiting(name);
+  const moving = !!(o.driver_at_door_at || o.driver_picked_up_at || order.status === 'out_for_delivery');
+  return (
+    <p className="text-[15px] font-bold rounded-lg px-2.5 py-1.5" style={moving ? { background: C.blue, color: '#fff' } : { background: C.surface2, color: C.ink }}>
+      {text}
+    </p>
+  );
 }
 
 export function OrderCard({
@@ -98,6 +125,8 @@ export function OrderCard({
         {isNew && <><span aria-hidden>·</span><span className="tabular-nums font-semibold" style={{ color: C.ink }}>{money(Number(order.total), currency)}</span></>}
         {paidOnline && <span className="text-[13px] font-bold px-2 py-0.5 rounded-md" style={{ background: C.greenSoft, color: C.greenDeep }}>{T.paidOnline}</span>}
       </div>
+
+      <DriverLine order={order} T={T} />
 
       {allergies.length > 0 && (
         <p className="text-[15px] font-extrabold rounded-lg px-2.5 py-1.5 leading-snug" style={{ background: C.redSoft, color: C.red }}>
