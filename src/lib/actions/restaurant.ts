@@ -1844,7 +1844,10 @@ export async function updateOrderStatus(
     };
   }
 
-  const updatePayload: Record<string, unknown> = { status };
+  // updated_at = hora del último cambio de estado. En prod no hay trigger que
+  // la mantenga: sin esto quedaba igual a created_at para siempre y el Counter
+  // ("esperando N min" en Listos) contaba desde la creación del pedido.
+  const updatePayload: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
   if (status === "cancelled" && cancellationReason) {
     updatePayload.cancellation_reason = cancellationReason;
   }
@@ -1964,7 +1967,7 @@ export async function sendOrderNotification(
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, order_number, customer_name, customer_email, customer_phone, restaurant_id, order_type, delivery_address",
+      "id, order_number, customer_name, customer_email, customer_phone, restaurant_id, order_type, delivery_address, estimated_ready_minutes",
     )
     .eq("id", orderId)
     .eq("restaurant_id", restaurantId)
@@ -1985,6 +1988,7 @@ export async function sendOrderNotification(
       customerPhone: order.customer_phone || undefined,
       orderType: (order as any).order_type || undefined,
       deliveryAddress: (order as any).delivery_address || undefined,
+      estimatedMinutes: (order as any).estimated_ready_minutes ?? undefined,
     });
     return { success: true, notification };
   } catch {
@@ -2105,17 +2109,35 @@ export async function assignDriver(
   // Read current status so we can broadcast the right value after update
   const { data: current } = await supabase
     .from("orders")
-    .select("status")
+    .select("status, driver_name, driver_tracking_token, driver_token_expires_at")
     .eq("id", orderId)
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
 
-  // Generate a unique tracking token for this delivery
-  const token = driverName.trim() ? crypto.randomUUID() : null;
+  // Token del repartidor. El pedido delivery ya nace con uno y ese es el QR que
+  // sale impreso en el ticket al aceptar: si se reemplaza en la PRIMERA
+  // asignación (o al reasignar al mismo repartidor), el QR del ticket deja de
+  // funcionar y el repartidor no puede marcar "recogido". Solo se genera uno
+  // nuevo al cambiar de repartidor (revoca el enlace del anterior) o si venció.
+  const newName = driverName.trim();
+  const cur = current as {
+    status?: string; driver_name?: string | null;
+    driver_tracking_token?: string | null; driver_token_expires_at?: string | null;
+  } | null;
+  const existingValid = !!cur?.driver_tracking_token
+    && (!cur.driver_token_expires_at || new Date(cur.driver_token_expires_at).getTime() > Date.now());
+  const sameOrFirstDriver = !cur?.driver_name || cur.driver_name.trim() === newName;
+  const token = !newName
+    ? null
+    : existingValid && sameOrFirstDriver
+      ? (cur!.driver_tracking_token as string)
+      : crypto.randomUUID();
 
-  const tokenExpiresAt = token
-    ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    : null;
+  const tokenExpiresAt = !token
+    ? null
+    : token === cur?.driver_tracking_token && cur?.driver_token_expires_at
+      ? cur.driver_token_expires_at
+      : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   const updatePayload: Record<string, unknown> = {
     driver_name: driverName.trim() || null,

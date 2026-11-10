@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { Order } from '@/types';
-import { isAwaitingOnlinePayment } from '@/lib/order-state';
+import { isAwaitingOnlinePayment, OPEN_ORDER_STATUSES, olderOpenOrdersFilter } from '@/lib/order-state';
 import type { RealtimePostgresChangesPayload, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 
 interface UseRealtimeOrdersOptions {
@@ -103,16 +103,15 @@ export function useRealtimeOrders({
         .gte('created_at', since)
         .order('created_at', { ascending: false })
         .limit(150),
-      // Programados pendientes creados hace más de 6 h (p. ej. ayer para hoy):
-      // sin esta consulta no aparecían nunca en el Counter.
+      // Pedidos ABIERTOS creados hace más de 6 h (programados de ayer para hoy,
+      // aceptados o no): sin esta consulta desaparecían del tablero al recargar.
       supabase
         .from('orders')
         .select(ORDER_SELECT)
         .eq('restaurant_id', restaurantId)
-        .eq('status', 'pending')
-        .not('scheduled_for', 'is', null)
-        .gte('scheduled_for', since)
+        .in('status', OPEN_ORDER_STATUSES)
         .lt('created_at', since)
+        .or(olderOpenOrdersFilter(since))
         .limit(50),
     ]);
 

@@ -6,6 +6,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { getStripe } from '@/lib/stripe';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
+import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 
 const logger = createLogger('payments:refund');
 
@@ -18,6 +19,10 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { order_id, reason } = body;
+    // Motivo escrito por el restaurante (opcional): se guarda como en una cancelación normal.
+    const cancellationReason = typeof body.cancellation_reason === 'string'
+      ? body.cancellation_reason.trim().slice(0, 300) || null
+      : null;
 
     if (!order_id || typeof order_id !== 'string' || !UUID_RE.test(order_id)) {
       return NextResponse.json({ error: 'order_id inválido' }, { status: 400 });
@@ -31,7 +36,7 @@ export async function POST(req: NextRequest) {
     // Fetch order — verify it belongs to this tenant's restaurant
     const { data: order, error: orderErr } = await adminDb
       .from('orders')
-      .select('id, order_number, total, payment_status, payment_intent_id, status, promo_code, restaurant_id, restaurants(stripe_account_id, stripe_onboarding_complete, commission_plan)')
+      .select('id, order_number, total, payment_status, payment_intent_id, status, promo_code, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, restaurants(stripe_account_id, stripe_onboarding_complete, commission_plan)')
       .eq('id', order_id)
       .eq('restaurant_id', tenant.restaurantId)
       .maybeSingle();
@@ -95,7 +100,12 @@ export async function POST(req: NextRequest) {
     // Mark order as refunded
     const { error: updateErr } = await adminDb
       .from('orders')
-      .update({ payment_status: 'refunded', status: 'cancelled' })
+      .update({
+        payment_status: 'refunded',
+        status: 'cancelled',
+        updated_at: new Date().toISOString(),
+        ...(cancellationReason ? { cancellation_reason: cancellationReason } : {}),
+      })
       .eq('id', order.id);
 
     if (updateErr) {
@@ -118,6 +128,39 @@ export async function POST(req: NextRequest) {
         .then(({ error: decErr }) => {
           if (decErr) logger.warn('promo decrement failed on refund', { orderId: order.id, error: decErr.message });
         });
+    }
+
+    // Igual que una cancelación normal (updateOrderStatus): la página de
+    // seguimiento se entera al instante, queda el historial y el cliente recibe
+    // el aviso. Antes el cliente que había pagado no se enteraba de nada.
+    void broadcastOrderUpdate(order.id, 'cancelled');
+    void adminDb
+      .from('order_status_history')
+      .insert({ order_id: order.id, from_status: order.status, to_status: 'cancelled', note: cancellationReason })
+      .then(({ error: histErr }) => {
+        if (histErr) logger.warn('status history insert failed on refund', { orderId: order.id, error: histErr.message });
+      });
+    try {
+      const o = order as typeof order & {
+        customer_name: string | null; customer_email: string | null; customer_phone: string | null;
+        order_type: string | null; delivery_address: string | null;
+      };
+      const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
+      await notifyStatusChange({
+        orderId: o.id,
+        orderNumber: o.order_number,
+        restaurantId: o.restaurant_id,
+        status: 'cancelled',
+        customerName: o.customer_name ?? '',
+        customerEmail: o.customer_email || undefined,
+        customerPhone: o.customer_phone || undefined,
+        orderType: o.order_type || undefined,
+        deliveryAddress: o.delivery_address || undefined,
+      });
+    } catch (notifyErr) {
+      // El reembolso ya se hizo: un aviso fallido no debe fallar la respuesta.
+      logger.error('refund: customer notification failed', { orderId: order.id });
+      captureError(notifyErr, { route: '/api/payments/refund', orderId: order.id, step: 'notify' });
     }
 
     logger.info('Order refunded', { orderId: order.id, orderNumber: order.order_number, refundId: refund.id });

@@ -1,15 +1,16 @@
 /**
- * Auto-advance pickup orders through the correct status flow:
+ * Limpieza de pedidos para recoger olvidados en "Listo".
  *
- * Step 1 — preparing → ready (when ETA passes):
- *   Notifies the customer "your food is ready for pickup".
- *   The counter must then press "Delivered" when the customer collects.
+ * Si el mostrador se olvida de tocar "Recogido", el pedido queda para siempre
+ * en la columna Listos. Pasadas READY_TIMEOUT_MINS en 'ready' se cierra como
+ * 'delivered' SIN avisar al cliente (no sabemos si de verdad lo retiró).
  *
- * Step 2 — ready → delivered (after READY_TIMEOUT_MINS without manual action):
- *   If the counter forgets to press "Delivered" after the customer picks up,
- *   the order auto-completes after 10 minutes in 'ready'.
+ * Antes este cron además pasaba 'preparing' → 'ready' al vencer el tiempo
+ * estimado y le mandaba al cliente "tu pedido está listo" aunque la cocina no
+ * hubiera terminado, y cerraba como "recogido" (con email) a los 10 min. Se
+ * quitó (2026-11): cuándo está listo lo decide el mostrador.
  *
- * Runs every 3 minutes via Vercel Cron.
+ * Corre cada 10 minutos (vercel.json).
  */
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -21,8 +22,19 @@ import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 
 const logger = createLogger('auto-complete-pickup');
 
-const DEFAULT_ETA_MINS = 15;
-const READY_TIMEOUT_MINS = 10;
+const READY_TIMEOUT_MINS = 120;
+
+/**
+ * Hora en que el pedido quedó listo. updated_at la fija updateOrderStatus en
+ * cada cambio de estado; en pedidos viejos (sin ese dato) quedó igual a
+ * created_at, así que se toma la más tardía entre updated_at y prepared_at.
+ */
+function readySince(o: { updated_at: string | null; prepared_at: string | null; created_at: string }): number {
+  return Math.max(
+    new Date(o.updated_at ?? o.created_at).getTime(),
+    o.prepared_at ? new Date(o.prepared_at).getTime() : 0,
+  );
+}
 
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
@@ -33,100 +45,40 @@ export async function GET(req: Request) {
 
   try {
     const adminDb = createAdminClient();
-    const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
-
-    // ── Step 1: preparing → ready when ETA has passed ─────────────────────
-    const { data: preparingOrders, error: prepErr } = await adminDb
-      .from('orders')
-      .select('id, order_number, restaurant_id, updated_at, prepared_at, estimated_ready_minutes, customer_name, customer_email, customer_phone, order_type, delivery_address')
-      .eq('status', 'preparing')
-      .eq('order_type', 'pickup');
-
-    if (prepErr) return NextResponse.json({ error: prepErr.message }, { status: 500 });
-
     const now = Date.now();
 
-    const toMarkReady = (preparingOrders ?? []).filter(o => {
-      const etaMins = o.estimated_ready_minutes ?? DEFAULT_ETA_MINS;
-      // Use prepared_at when available — immune to ETA edits and other row updates
-      // that would reset updated_at and delay the auto-ready transition.
-      // Falls back to updated_at for orders created before this column was added.
-      const preparingAt = new Date((o as any).prepared_at ?? o.updated_at).getTime();
-      return now - preparingAt >= etaMins * 60 * 1000;
-    });
-
-    let markedReady = 0;
-    if (toMarkReady.length > 0) {
-      const ids = toMarkReady.map(o => o.id);
-      const readyNow = new Date().toISOString();
-      const { error: readyErr } = await adminDb
-        .from('orders')
-        .update({ status: 'ready', updated_at: readyNow })
-        .in('id', ids);
-
-      if (!readyErr) {
-        markedReady = ids.length;
-        for (const o of toMarkReady) {
-          broadcastOrderUpdate(o.id, 'ready').catch(() => {});
-          notifyStatusChange({
-            orderId: o.id,
-            orderNumber: o.order_number,
-            restaurantId: o.restaurant_id,
-            status: 'ready',
-            customerName: o.customer_name,
-            customerEmail: o.customer_email || undefined,
-            customerPhone: o.customer_phone || undefined,
-            orderType: o.order_type || undefined,
-            deliveryAddress: o.delivery_address || undefined,
-          }).catch(() => {});
-        }
-        logger.info(`Marked ${markedReady} pickup orders as ready`, { ids });
-      }
-    }
-
-    // ── Step 2: ready → delivered after READY_TIMEOUT_MINS ────────────────
     const { data: readyOrders, error: readyFetchErr } = await adminDb
       .from('orders')
-      .select('id, order_number, restaurant_id, updated_at, customer_name, customer_email, customer_phone, order_type, delivery_address')
+      .select('id, updated_at, prepared_at, created_at')
       .eq('status', 'ready')
       .eq('order_type', 'pickup');
 
-    if (readyFetchErr) return NextResponse.json({ error: readyFetchErr.message }, { status: 500 });
-
-    const toDeliver = (readyOrders ?? []).filter(o => {
-      const readyAt = new Date(o.updated_at).getTime();
-      return now - readyAt >= READY_TIMEOUT_MINS * 60 * 1000;
-    });
-
-    let markedDelivered = 0;
-    if (toDeliver.length > 0) {
-      const ids = toDeliver.map(o => o.id);
-      const { error: deliverErr } = await adminDb
-        .from('orders')
-        .update({ status: 'delivered', updated_at: new Date().toISOString() })
-        .in('id', ids);
-
-      if (!deliverErr) {
-        markedDelivered = ids.length;
-        for (const o of toDeliver) {
-          broadcastOrderUpdate(o.id, 'delivered').catch(() => {});
-          notifyStatusChange({
-            orderId: o.id,
-            orderNumber: o.order_number,
-            restaurantId: o.restaurant_id,
-            status: 'delivered',
-            customerName: o.customer_name,
-            customerEmail: o.customer_email || undefined,
-            customerPhone: o.customer_phone || undefined,
-            orderType: o.order_type || undefined,
-            deliveryAddress: o.delivery_address || undefined,
-          }).catch(() => {});
-        }
-        logger.info(`Auto-delivered ${markedDelivered} pickup orders after ${READY_TIMEOUT_MINS} min in ready`, { ids });
-      }
+    if (readyFetchErr) {
+      logger.error('fetch failed', { error: readyFetchErr.message });
+      return NextResponse.json({ error: readyFetchErr.message }, { status: 500 });
     }
 
-    return NextResponse.json({ markedReady, markedDelivered });
+    const toClose = (readyOrders ?? []).filter(o => now - readySince(o) >= READY_TIMEOUT_MINS * 60_000);
+
+    let closed = 0;
+    if (toClose.length > 0) {
+      const ids = toClose.map(o => o.id);
+      const { error: closeErr } = await adminDb
+        .from('orders')
+        .update({ status: 'delivered', updated_at: new Date().toISOString() })
+        .in('id', ids)
+        .eq('status', 'ready'); // por si el mostrador lo movió mientras tanto
+
+      if (closeErr) {
+        logger.error('close failed', { error: closeErr.message, ids });
+        return NextResponse.json({ error: closeErr.message }, { status: 500 });
+      }
+      closed = ids.length;
+      for (const id of ids) broadcastOrderUpdate(id, 'delivered').catch(() => {});
+      logger.info(`Closed ${closed} pickup orders forgotten in ready > ${READY_TIMEOUT_MINS} min`, { ids });
+    }
+
+    return NextResponse.json({ closed });
   } catch (err) {
     logger.error('Unexpected error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });

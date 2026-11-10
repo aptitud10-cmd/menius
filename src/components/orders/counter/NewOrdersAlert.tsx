@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { Order } from '@/types';
 import {
-  C, type CounterText, PREP_CHOICES, money, parseItem, isAllergyText, stripNoteLabel,
+  C, type CounterText, PREP_CHOICES, money, scheduledWhen, parseItem, isAllergyText, stripNoteLabel,
 } from './ui';
 import { KindTag } from './KindTag';
 
@@ -109,6 +109,11 @@ function AlertBody({
           <span aria-hidden>·</span>
           <span>{paidOnline ? T.paidOnline : T.cash}</span>
         </div>
+        {order.scheduled_for && (
+          <p className="-mt-1 self-start text-[18px] min-[880px]:text-[22px] font-extrabold rounded-xl px-3.5 py-1.5" style={{ background: C.greenInk, color: '#fff' }}>
+            {T.scheduledFor(scheduledWhen(order.scheduled_for))}
+          </p>
+        )}
         {order.delivery_address && (
           <p className="-mt-2 text-[18px] min-[880px]:text-[22px] font-semibold leading-snug">{order.delivery_address}</p>
         )}

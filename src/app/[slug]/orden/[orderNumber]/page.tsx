@@ -75,6 +75,17 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         const drvToken = (orderData as any).driver_tracking_token as string | null;
         const authorized = !!token && ((!!custToken && token === custToken) || (!!drvToken && token === drvToken));
         const { driver_tracking_token: _omit, customer_token: _omit2, ...safeOrder } = orderData as any;
+        // select('*') trae también coordenadas de la casa del cliente, GPS del
+        // repartidor, foto de la puerta, notas e ids internos: sin token, fuera.
+        if (!authorized) {
+          for (const k of [
+            'driver_lat', 'driver_lng', 'delivery_lat', 'delivery_lng', 'delivery_photo_url', 'notes',
+            'customer_id', 'driver_id', 'payment_intent_id',
+            'cancellation_reason',
+          ]) {
+            if (k in safeOrder) safeOrder[k] = null;
+          }
+        }
         initialOrder = {
           ...safeOrder,
           customer_name: authorized ? safeOrder.customer_name : null,
@@ -90,7 +101,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
             qty: item.qty,
             unit_price: item.unit_price,
             line_total: item.line_total,
-            notes: item.notes,
+            notes: authorized ? item.notes : null,
             product_name: item.product?.name ?? null,
             variant_name: item.variant?.name ?? null,
           })),

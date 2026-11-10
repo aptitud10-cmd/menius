@@ -8,6 +8,13 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useNotifications } from '@/hooks/use-notifications';
 import { formatPrice } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import { isAwaitingOnlinePayment } from '@/lib/order-state';
+
+type OrderLite = {
+  id: string; order_number: string; customer_name: string; total: number;
+  status?: string | null; payment_method?: string | null; payment_status?: string | null;
+  updated_at?: string | null;
+};
 
 interface OrderNotifierProps {
   restaurantId: string;
@@ -50,7 +57,11 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
   const pollNowRef = useRef<(() => void) | null>(null);
   const backoffRef = useRef(15_000); // current poll interval when RT is down
 
-  const handleNewOrder = useCallback((order: { id: string; order_number: string; customer_name: string; total: number }) => {
+  const handleNewOrder = useCallback((order: OrderLite) => {
+    // Pedido online sin cobrar: el restaurante no lo ve hasta que se paga (igual
+    // que el Counter). No se marca como conocido: cuando el pago entra, el UPDATE
+    // lo trae y entonces sí suena.
+    if (isAwaitingOnlinePayment(order)) return;
     if (knownIdsRef.current.has(order.id)) return;
     knownIdsRef.current.add(order.id);
 
@@ -83,14 +94,14 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
         const since = lastPollRef.current ?? new Date(Date.now() - 60_000).toISOString();
         const { data } = await supabase
           .from('orders')
-          .select('id, order_number, customer_name, total, created_at')
+          .select('id, order_number, customer_name, total, created_at, status, payment_method, payment_status')
           .eq('restaurant_id', restaurantId)
           .gt('created_at', since)
           .order('created_at', { ascending: false })
           .limit(10);
 
         if (!data) return;
-        for (const o of data) handleNewOrder(o as { id: string; order_number: string; customer_name: string; total: number });
+        for (const o of data) handleNewOrder(o as OrderLite);
         if (data.length > 0) lastPollRef.current = data[0].created_at as string;
       } catch { /* silent — best effort */ }
     };
@@ -130,8 +141,25 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
           table: 'orders',
           filter: `restaurant_id=eq.${restaurantId}`,
         },
-        (payload: RealtimePostgresChangesPayload<{ id: string; order_number: string; customer_name: string; total: number }>) => {
-          handleNewOrder(payload.new as { id: string; order_number: string; customer_name: string; total: number });
+        (payload: RealtimePostgresChangesPayload<OrderLite>) => {
+          handleNewOrder(payload.new as OrderLite);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `restaurant_id=eq.${restaurantId}`,
+        },
+        (payload: RealtimePostgresChangesPayload<OrderLite>) => {
+          // Pedido online que se acaba de cobrar: recién ahora es "nuevo" para el restaurante.
+          // updated_at reciente = el webhook acaba de marcarlo pagado (no otra
+          // edición de un pedido viejo que esta pestaña no conocía).
+          const o = payload.new as OrderLite;
+          const fresh = !!o.updated_at && Date.now() - Date.parse(o.updated_at) < 120_000;
+          if (o.status === 'pending' && o.payment_status === 'paid' && fresh) handleNewOrder(o);
         }
       )
       .subscribe((status: string) => {

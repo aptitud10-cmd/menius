@@ -16,6 +16,8 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
     .from('orders')
     .update({
       payment_status: status,
+      // Hora del cobro: el aviso del panel solo suena por pagos recién entrados.
+      ...(status === 'paid' ? { updated_at: new Date().toISOString() } : {}),
       ...(paymentIntent ? { payment_intent_id: paymentIntent } : {}),
     })
     .eq('id', orderId)

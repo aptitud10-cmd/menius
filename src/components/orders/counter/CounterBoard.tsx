@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { KindTag } from './KindTag';
 import {
   C, type CounterText, orderKind, shortName, minsSince, minsLeft, itemCount,
-  orderAllergies, money, stripNoteLabel,
+  orderAllergies, money, stripNoteLabel, scheduledWhen,
 } from './ui';
 
 export type PrimaryKind = 'accept' | 'ready' | 'serve' | 'deliver' | 'complete';
@@ -34,6 +34,10 @@ export function primaryAction(order: Order, T: CounterText, acceptMins: number):
 }
 
 function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
+  if (order.status === 'pending' && order.scheduled_for) {
+    // Programado: lo que importa es la hora pactada, no cuándo se hizo el pedido.
+    return <span className="tabular-nums font-extrabold text-[16px]" style={{ color: C.ink }}>{T.scheduledFor(scheduledWhen(order.scheduled_for))}</span>;
+  }
   if (order.status === 'pending') {
     const m = minsSince(order.created_at);
     return <span className="tabular-nums font-bold text-[16px]" style={{ color: m >= 5 ? C.amber : C.sub }}>{T.minAgo(m)}</span>;

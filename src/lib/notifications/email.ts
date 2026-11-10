@@ -587,12 +587,24 @@ export function buildStatusUpdateEmail(params: {
         : "El chef está trabajando en tu pedido ahora mismo. ¡Ya casi!",
       color: "#7c3aed",
     },
+    // El texto depende del tipo: "pásalo a recoger" a un delivery o a una
+    // mesa confunde al cliente.
     ready: {
       icon: "🔔",
       titleEn: "Your order is ready!",
       titleEs: "¡Tu pedido está listo!",
-      msgEn: "Your order is ready and waiting for you. Come and get it!",
-      msgEs: "Tu pedido está listo y te espera. ¡Pásalo a recoger!",
+      msgEn:
+        orderType === "delivery"
+          ? "Your order is ready and will leave with the driver very soon."
+          : orderType === "dine_in"
+            ? "Your order is ready and on its way to your table."
+            : "Your order is ready and waiting for you. Come and get it!",
+      msgEs:
+        orderType === "delivery"
+          ? "Tu pedido está listo y sale muy pronto con el repartidor."
+          : orderType === "dine_in"
+            ? "Tu pedido está listo y va camino a tu mesa."
+            : "Tu pedido está listo y te espera. ¡Pásalo a recoger!",
       color: "#d97706",
     },
     out_for_delivery: {

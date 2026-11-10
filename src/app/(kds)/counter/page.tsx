@@ -1,4 +1,5 @@
 import { getDashboardContext } from '@/lib/get-dashboard-context';
+import { OPEN_ORDER_STATUSES, olderOpenOrdersFilter } from '@/lib/order-state';
 import { CounterView } from '@/components/orders/CounterView';
 import { isDeviceSession } from '@/lib/auth/device-session';
 
@@ -48,10 +49,9 @@ export default async function CounterPage() {
         )
       `)
       .eq('restaurant_id', restaurantId)
-      .eq('status', 'pending')
-      .not('scheduled_for', 'is', null)
-      .gte('scheduled_for', sixHoursAgo)
+      .in('status', OPEN_ORDER_STATUSES)
       .lt('created_at', sixHoursAgo)
+      .or(olderOpenOrdersFilter(sixHoursAgo))
       .limit(50),
     isDeviceSession(supabase),
   ]);

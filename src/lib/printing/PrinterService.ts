@@ -74,6 +74,14 @@ function mapOrderToReceipt(
       ? `${appUrl}/driver/track/${trackingToken}`
       : undefined;
 
+  // Programado: la hora pactada va al principio de las notas del ticket. Así sale
+  // en todas las impresoras (HTML y la app Android) sin actualizar la app.
+  const scheduledMs = rawOrder.scheduled_for ? new Date(rawOrder.scheduled_for).getTime() : NaN;
+  const scheduledLine = Number.isFinite(scheduledMs)
+    ? `${locale === 'en' ? 'SCHEDULED FOR' : 'PROGRAMADO PARA'} ${new Date(scheduledMs).toLocaleString(locale === 'en' ? 'en-US' : 'es', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
+    : null;
+  const ticketNotes = [scheduledLine, order.notes?.trim() || null].filter(Boolean).join(' · ') || undefined;
+
   const tipAmt = Number(order.tip_amount) || 0;
   const feeAmt = Number(order.delivery_fee) || 0;
   const discountAmt = Number(order.discount_amount) || 0;
@@ -102,7 +110,7 @@ function mapOrderToReceipt(
     taxLabel: taxAmt ? (taxLabel ?? 'Tax') : undefined,
     taxIncluded: taxIncluded ?? false,
     total: order.total,
-    notes: order.notes ?? undefined,
+    notes: ticketNotes,
     etaMinutes,
     currency,
     timestamp: new Date(order.created_at),

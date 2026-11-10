@@ -671,6 +671,7 @@ export function CounterView({
       showSuccess(`${t.newScheduledOrder} #${order.order_number} · ${when}`);
       return;
     }
+    promotedRef.current?.add(order.id);
     setSplashQueue(q => (q.some(x => x.id === order.id) ? q : [...q, order]));
     setAlertAck(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -687,18 +688,49 @@ export function CounterView({
   );
 
   // ── Derived lists ──
+  // Reloj de 30 s: un programado pasa de "Programados" a "Nuevos" (con la
+  // alerta verde) SCHEDULED_SPLASH_LEAD_MS antes de su hora, sin esperar al
+  // cron activate-scheduled (que corre cada 10 min y llegaba tarde).
+  const [clock, setClock] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setClock(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const isDue = useCallback((o: Order) =>
+    !o.scheduled_for || new Date(o.scheduled_for).getTime() <= clock + SCHEDULED_SPLASH_LEAD_MS,
+  [clock]);
+  /** Desde cuándo un pedido nuevo "espera respuesta": la llegada, o para un programado, el inicio de su ventana. */
+  const waitingSince = (o: Order) => (o.scheduled_for
+    ? new Date(Math.max(new Date(o.created_at).getTime(), new Date(o.scheduled_for).getTime() - SCHEDULED_SPLASH_LEAD_MS)).toISOString()
+    : o.created_at);
+
   const scheduledOrders = useMemo(() =>
-    ordersView.filter(o => o.status === 'pending' && o.scheduled_for)
+    ordersView.filter(o => o.status === 'pending' && o.scheduled_for && !isDue(o))
       .sort((a, b) => new Date(a.scheduled_for!).getTime() - new Date(b.scheduled_for!).getTime()),
-    [ordersView]);
+    [ordersView, isDue]);
 
   const newOrders = useMemo(() =>
-    ordersView.filter(o => o.status === 'pending' && !o.scheduled_for)
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-    [ordersView]);
+    ordersView.filter(o => o.status === 'pending' && isDue(o))
+      .sort((a, b) => new Date(waitingSince(a)).getTime() - new Date(waitingSince(b)).getTime()),
+    [ordersView, isDue]);
+
+  // Programado que entra en su ventana: misma alerta que un pedido recién llegado.
+  // Los que ya estaban en ventana al abrir el Counter (o llegaron así por
+  // handleNewOrder) se marcan sin alertar.
+  const promotedRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const due = ordersView.filter(o => o.status === 'pending' && o.scheduled_for && isDue(o));
+    if (promotedRef.current === null) { promotedRef.current = new Set(due.map(o => o.id)); return; }
+    const fresh = due.filter(o => !promotedRef.current!.has(o.id));
+    if (fresh.length === 0) return;
+    fresh.forEach(o => promotedRef.current!.add(o.id));
+    if (isLeaderRef.current) playNewOrderSound();
+    setSplashQueue(q => [...q, ...fresh.filter(o => !q.some(x => x.id === o.id))]);
+    setAlertAck(false);
+  }, [ordersView, isDue]);
 
   const overdueCount = useMemo(() =>
-    newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length,
+    newOrders.filter(o => elapsedMins(waitingSince(o)) >= SLA_WARN_MINS).length,
     [newOrders]);
 
   const prepOrders = useMemo(() =>
@@ -746,7 +778,7 @@ export function CounterView({
   // SLA urgent beep (after 5 min without response)
   useEffect(() => {
     newOrders.forEach(o => {
-      if (elapsedMins(o.created_at) >= SLA_WARN_MINS && !urgentRef.current.has(o.id)) {
+      if (elapsedMins(waitingSince(o)) >= SLA_WARN_MINS && !urgentRef.current.has(o.id)) {
         urgentRef.current.add(o.id);
         playUrgentSound();
         sendPushNotification(
@@ -815,7 +847,8 @@ export function CounterView({
     const eff = chosen + busyExtra;
     setSplashQueue(q => q.filter(x => x.id !== order.id));
     // Optimistic update — move order to 'preparing' immediately in the UI
-    updateOrderLocally(order.id, { status: 'preparing' });
+    // (con ETA y hora de aceptación, para que "listo en N min" salga bien ya).
+    updateOrderLocally(order.id, { status: 'preparing', estimated_ready_minutes: eff, prepared_at: new Date().toISOString() } as Partial<Order>);
     try {
       const etaRes = await updateOrderETA(order.id, eff);
       if (etaRes?.error) {
@@ -954,7 +987,11 @@ export function CounterView({
       } catch {
         showError(t.en ? 'Unexpected error' : 'Error inesperado');
       } finally {
-        setPendingStatus(p => { const c = { ...p }; delete c[order.id]; return c; });
+        // Si mientras tanto se tocó otro cambio sobre el mismo pedido, su marca
+        // local sigue vigente: borrarla hacía que la tarjeta saltara hacia atrás.
+        if (!pendingTimers.current.has(order.id)) {
+          setPendingStatus(p => { const c = { ...p }; delete c[order.id]; return c; });
+        }
         setUpdatingId(null);
       }
     };
@@ -978,8 +1015,17 @@ export function CounterView({
   // Si la página se cierra con un cambio en espera, se envía igual.
   useEffect(() => {
     const flush = () => { pendingTimers.current.forEach(p => { clearTimeout(p.timer); p.run(); }); };
+    // En el WebView de Android, mandar la app al fondo o apagar la pantalla NO
+    // dispara pagehide: visibilitychange sí. Mientras la página sigue viva el
+    // envío se completa; si después la matan, el cambio ya salió.
+    const onHidden = () => { if (document.visibilityState === 'hidden') flush(); };
     window.addEventListener('pagehide', flush);
-    return () => { window.removeEventListener('pagehide', flush); flush(); };
+    document.addEventListener('visibilitychange', onHidden);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onHidden);
+      flush();
+    };
   }, []);
 
   const defaultMinsFor = useCallback((o: Order) => nearestChoice(suggestedPrep(o) ?? lastPrep), [lastPrep]);
@@ -990,7 +1036,8 @@ export function CounterView({
   }, [handleAccept, commitStatus, defaultMinsFor]);
 
   const resendNotice = useCallback(async (o: Order) => {
-    const ev = ['confirmed', 'preparing', 'ready', 'out_for_delivery'].includes(o.status) ? o.status : 'ready';
+    // almost_ready reenvía "en preparación"; served/cerrados no ofrecen reenvío.
+    const ev = o.status === 'almost_ready' ? 'preparing' : o.status;
     const res = await sendOrderNotification(o.id, ev).catch(() => null);
     const n = res && 'notification' in res ? res.notification : null;
     if (n?.channel === 'email' && n.success) showSuccess(T.noticeSent);
@@ -1088,7 +1135,7 @@ export function CounterView({
       const res = await fetch('/api/payments/refund', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: cancelModal.orderId, reason: 'requested_by_customer' }),
+        body: JSON.stringify({ order_id: cancelModal.orderId, reason: 'requested_by_customer', cancellation_reason: cancelReason || undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { showError(data.error ?? (t.en ? 'Refund failed' : 'El reembolso falló')); return; }
@@ -1403,7 +1450,7 @@ export function CounterView({
           onPrimary={onPrimary}
           onAdjustEta={(o, m) => { updateOrderLocally(o.id, { estimated_ready_minutes: m }); void handleAdjustEta(o, m); }}
           more={{
-            onResendNotice: sheetOrder.customer_email && !['pending', 'cancelled', 'delivered', 'completed'].includes(sheetOrder.status)
+            onResendNotice: sheetOrder.customer_email && ['confirmed', 'preparing', 'almost_ready', 'ready', 'out_for_delivery'].includes(sheetOrder.status)
               ? () => resendNotice(sheetOrder) : undefined,
             onEditItems: !['delivered', 'completed', 'cancelled'].includes(sheetOrder.status)
               ? () => openEditItems(sheetOrder.id) : undefined,
@@ -1416,7 +1463,8 @@ export function CounterView({
                   setSelectedDriverId(o.driver_id ?? null);
                 }
               : undefined,
-            onCancel: !['delivered', 'completed', 'cancelled'].includes(sheetOrder.status)
+            // served no se puede cancelar (transición inválida): la mesa ya comió.
+            onCancel: !['delivered', 'completed', 'cancelled', 'served'].includes(sheetOrder.status)
               ? () => { setCancelModal({ orderId: sheetOrder.id, type: sheetOrder.status === 'pending' ? 'reject' : 'cancel' }); setCancelReason(''); }
               : undefined,
           }}
@@ -2128,7 +2176,7 @@ export function CounterView({
                 className="flex-1 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-50"
                 style={{ background: GREEN }}
               >
-                {assigningDriver ? '…' : driverPhone ? `📲 ${t.assignDriver}` : t.assignDriver}
+                {assigningDriver ? '…' : t.assignDriver}
               </button>
             </div>
             {/* Print driver sheet with QR */}

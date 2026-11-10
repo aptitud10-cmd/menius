@@ -189,7 +189,7 @@ function getT(locale?: string, orderType?: string) {
       confirmed:        { label: en ? 'Preparing'      : 'En preparación',    desc: en ? 'Your order is being prepared'         : 'Tu pedido se está preparando' },
       preparing:        { label: en ? 'Preparing'      : 'En preparación',    desc: en ? 'Your order is being prepared'         : 'Tu pedido se está preparando' },
       almost_ready:     { label: en ? 'Almost ready!'  : '¡Casi listo!',      desc: en ? 'Your order will be ready very soon'   : 'Tu pedido estará listo en unos minutos' },
-      ready:            { label: en ? 'Ready'          : 'Listo',             desc: isDelivery ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!') : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!') },
+      ready:            { label: en ? 'Ready'          : 'Listo',             desc: isDelivery ? (en ? 'Ready — leaving with the driver soon' : 'Listo — sale pronto con el repartidor') : orderType === 'dine_in' ? (en ? 'Your order is on its way to your table!' : '¡Tu pedido va camino a tu mesa!') : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!') },
       out_for_delivery: { label: en ? 'On its way!'    : '¡En camino!',       desc: en ? 'Your order is out for delivery'       : 'Tu pedido está en camino a tu puerta' },
       served:           { label: en ? 'Served!'        : '¡Servido!',         desc: en ? 'Your order has been served'           : 'Tu pedido fue servido en tu mesa' },
       delivered: {
@@ -513,7 +513,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       // subtitulo: el cliente veia una pantalla que no explicaba nada.
       case 'cancelled':        return en
                                  ? `Contact ${restaurantName} if you have questions`
-                                 : `Contactá a ${restaurantName} si tenés dudas`;
+                                 : `Contacta a ${restaurantName} si tienes dudas`;
       default:                 return '';
     }
   })();
@@ -847,7 +847,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                               <IconCmp className="w-9 h-9 text-white" strokeWidth={1.75} />
                             </div>
                           </div>
-                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{t.orderDelivered}</h2>
+                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{tWithType.orderDelivered}</h2>
                           <p className="text-sm text-gray-400">{cfg.tagline}</p>
                         </>
                       );
@@ -993,7 +993,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* ── ETA HERO — dual display: minutes countdown + exact clock time ── */}
         {order.estimated_ready_minutes && ['confirmed', 'preparing'].includes(order.status) && (() => {
-          const confirmedAt  = order.updated_at ? new Date(order.updated_at) : new Date(order.created_at);
+          // Cuenta desde que el restaurante ACEPTÓ (prepared_at), igual que el email "listo en ~N min".
+          const acceptedAtRaw = (order as { prepared_at?: string | null }).prepared_at ?? order.updated_at ?? order.created_at;
+          const confirmedAt  = new Date(acceptedAtRaw);
           const etaTime      = new Date(confirmedAt.getTime() + order.estimated_ready_minutes * 60_000);
           const etaLocale    = t.en ? 'en-US' : 'es-MX';
           const etaStr       = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });

@@ -20,7 +20,9 @@ export type OrderStatus =
 
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending:          ['confirmed', 'preparing', 'cancelled'],
-  confirmed:        ['preparing', 'almost_ready', 'ready', 'cancelled'],
+  // confirmed → served: una mesa aceptada desde el panel web (queda en
+  // 'confirmed') también se puede marcar servida desde el Counter.
+  confirmed:        ['preparing', 'almost_ready', 'ready', 'served', 'cancelled'],
   preparing:        ['almost_ready', 'served', 'ready', 'out_for_delivery', 'delivered', 'cancelled'],
   almost_ready:     ['served', 'ready', 'out_for_delivery', 'cancelled'],
   ready:            ['out_for_delivery', 'served', 'delivered', 'completed', 'cancelled'],
@@ -81,4 +83,22 @@ export function isAwaitingOnlinePayment(order: {
     order.payment_status !== 'paid' &&
     order.status === 'pending'
   );
+}
+
+/** Estados de un pedido todavía en curso (no cerrado ni cancelado). */
+export const OPEN_ORDER_STATUSES: OrderStatus[] = [
+  'pending', 'confirmed', 'preparing', 'almost_ready', 'ready', 'out_for_delivery', 'served',
+];
+
+/**
+ * Filtro PostgREST `or()` para la segunda consulta del Counter: pedidos ABIERTOS
+ * creados antes de la ventana de 6 h que igual tienen que verse. Programados
+ * (aceptados o no) cuya hora cae desde `sinceIso` en adelante, o creados en las
+ * últimas 48 h (p. ej. un programado de ayer ya activado — el cron le borra
+ * scheduled_for — o un pedido que quedó abierto). Sin esto, un programado hecho
+ * ayer para hoy desaparecía del tablero apenas se aceptaba y se recargaba.
+ */
+export function olderOpenOrdersFilter(sinceIso: string, now = Date.now()): string {
+  const twoDaysAgo = new Date(now - 48 * 60 * 60 * 1000).toISOString();
+  return `scheduled_for.gte.${sinceIso},created_at.gte.${twoDaysAgo}`;
 }

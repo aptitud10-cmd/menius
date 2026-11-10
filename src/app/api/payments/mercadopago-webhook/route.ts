@@ -220,6 +220,7 @@ export async function POST(req: NextRequest) {
       .update({
         payment_status: "paid",
         payment_intent_id: String(payment.id),
+        updated_at: new Date().toISOString(),
       })
       .eq("id", order.id);
 

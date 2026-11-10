@@ -21,6 +21,10 @@ import type { Order, OrderStatus } from '@/types';
 
 /* ── Status flow ── KDS starts from confirmed (pending is handled by Counter) */
 const NEXT: Record<string, OrderStatus> = { confirmed: 'preparing', preparing: 'ready', ready: 'delivered' };
+// Una mesa lista pasa a 'served' (igual que en el Counter, que luego la cierra
+// como 'completed'); antes el KDS la cerraba como 'delivered'.
+const nextStatus = (o: Order): OrderStatus | undefined =>
+  o.status === 'ready' && o.order_type === 'dine_in' ? 'served' : NEXT[o.status];
 
 const TYPE_META: Record<string, { icon: typeof Utensils }> = {
   dine_in:  { icon: Utensils },
@@ -190,7 +194,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   /* Derived lists */
   const active = useMemo(() => {
     // KDS only shows confirmed+ orders; pending orders must be accepted by Counter first
-    let r = orders.filter(o => !['pending', 'delivered', 'cancelled'].includes(o.status) && (Date.now() - new Date(o.created_at).getTime()) / 60000 <= AUTO_ARCHIVE_MIN);
+    // served/completed: la mesa ya tiene su comida — fuera de la cocina.
+    let r = orders.filter(o => !['pending', 'delivered', 'cancelled', 'served', 'completed'].includes(o.status) && (Date.now() - new Date(o.created_at).getTime()) / 60000 <= AUTO_ARCHIVE_MIN);
     if (filter !== 'all') r = r.filter(o => o.order_type === filter);
     if (stationFilter !== 'all') {
       r = r.filter(o => (o.items ?? []).some((item: any) => item.product?.station_id === stationFilter));
@@ -325,7 +330,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         case 'Enter': {
           e.preventDefault();
           const o = active[selectedIdx];
-          if (o) { const n = NEXT[o.status]; if (n) bump(o.id, n); }
+          if (o) { const n = nextStatus(o); if (n) bump(o.id, n); }
           break;
         }
         case 'ArrowRight':
@@ -546,7 +551,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
                 <div key={o.id} style={{ gridColumn: (o.items?.reduce((s: number, i: any) => s + i.qty, 0) ?? 0) >= 8 ? 'span 2' : undefined }}
                   onClick={() => setSelectedIdx(idx)}>
                   <Ticket order={o} currency={currency} busyExtra={busyExtra} isNew={newIds.has(o.id)} isExpanded={expanded.has(o.id)} isSelected={idx === selectedIdx}
-                    onBump={() => { const n = NEXT[o.status]; if (n) bump(o.id, n); }}
+                    onBump={() => { const n = nextStatus(o); if (n) bump(o.id, n); }}
                     onCancel={() => bump(o.id, 'cancelled')} onPrint={() => setPrintOrder(o)}
                     onExpand={() => toggleExp(o.id)} onOOS={markOOS}
                     />
@@ -707,7 +712,7 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
   const payLabel: Record<string, string> = { cash: t.kds_cash, online: t.kds_online };
   const dietLabel: Record<string, string> = { spicy: `🌶️ ${t.kds_spicy}`, dairy_free: `🥛 ${t.kds_dairyFree}` };
   const u = urgency(order.created_at, busyExtra);
-  const nxt = NEXT[order.status];
+  const nxt = nextStatus(order);
   const tm = TYPE_META[order.order_type ?? ''];
   const pm = PAY_META[order.payment_method ?? ''];
   const table = (order as any).table?.name ?? (order as any).table_name ?? null;

@@ -339,10 +339,22 @@ export function nearestChoice(m: number) {
   return PREP_CHOICES.reduce((best, c) => (Math.abs(c - m) < Math.abs(best - m) ? c : best), PREP_CHOICES[1]);
 }
 
-/** Minutos que faltan (negativo = atrasado) según el ETA guardado al aceptar. */
+/**
+ * Minutos que faltan (negativo = atrasado) según el ETA guardado al aceptar.
+ * Cuenta desde la aceptación (prepared_at), igual que el email y la página de
+ * seguimiento del cliente; created_at solo como respaldo para pedidos viejos.
+ */
 export function minsLeft(order: Order): number | null {
   if (order.estimated_ready_minutes == null) return null;
-  return order.estimated_ready_minutes - minsSince(order.created_at);
+  const acceptedAt = (order as { prepared_at?: string | null }).prepared_at ?? order.created_at;
+  return order.estimated_ready_minutes - minsSince(acceptedAt);
+}
+
+/** Hora pactada de un programado: "12:30", o "mar 12:30" si no es hoy. */
+export function scheduledWhen(iso: string) {
+  const d = new Date(iso);
+  const today = d.toDateString() === new Date().toDateString();
+  return d.toLocaleString([], today ? { hour: '2-digit', minute: '2-digit' } : { weekday: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 export function isClosed(order: Order) {

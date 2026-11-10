@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
         id, order_number, status, order_type, total, tax_amount, tip_amount,
         delivery_fee, discount_amount, payment_method, notes, created_at, updated_at,
         customer_name, customer_phone, customer_email, delivery_address,
-        estimated_ready_minutes,
+        estimated_ready_minutes, prepared_at,
         driver_name, driver_phone, driver_assigned_at,
         driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
         delivery_photo_url, driver_tracking_token, customer_token,
@@ -91,6 +91,12 @@ export async function GET(req: NextRequest) {
       delivery_address: authorized ? safeOrder.delivery_address : null,
       driver_name: authorized ? safeOrder.driver_name : null,
       driver_phone: authorized ? safeOrder.driver_phone : null,
+      // Ubicación en vivo del repartidor (cerca de la casa del cliente), foto de
+      // la puerta y notas: también son privados. Sin token no se devuelven.
+      driver_lat: authorized ? safeOrder.driver_lat : null,
+      driver_lng: authorized ? safeOrder.driver_lng : null,
+      delivery_photo_url: authorized ? safeOrder.delivery_photo_url : null,
+      notes: authorized ? safeOrder.notes : null,
       authorized,
       table_name: (order.table as any)?.name ?? null,
       order_items: ((order.order_items ?? []) as any[]).map((item: any) => ({
@@ -98,7 +104,7 @@ export async function GET(req: NextRequest) {
         qty: item.qty,
         unit_price: item.unit_price,
         line_total: item.line_total,
-        notes: item.notes,
+        notes: authorized ? item.notes : null,
         product_name: item.product?.name ?? null,
         variant_name: item.variant?.name ?? null,
       })),
