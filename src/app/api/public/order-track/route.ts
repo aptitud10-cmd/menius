@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
         estimated_ready_minutes, prepared_at, delivery_lat, delivery_lng,
         driver_name, driver_phone, driver_assigned_at,
         driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
-        delivery_photo_url, driver_tracking_token, customer_token,
+        delivery_photo_url, driver_tracking_token, customer_token, cancellation_reason,
         table:table_id(name),
         order_items(
           id, qty, unit_price, line_total, notes,
@@ -80,7 +80,9 @@ export async function GET(req: NextRequest) {
     const authorized = !!token && ((!!custToken && token === custToken) || (!!drvToken && token === drvToken));
 
     // Strip both tokens from the payload regardless — they must never reach the client.
-    const { driver_tracking_token: _omit, customer_token: _omit2, ...safeOrder } = order as any;
+    // El motivo de cancelación es texto libre del restaurante: no se devuelve.
+    // Solo se expone si el sistema cerró el pedido solo (para el título).
+    const { driver_tracking_token: _omit, customer_token: _omit2, cancellation_reason: reason, ...safeOrder } = order as any;
 
     const shaped = {
       ...safeOrder,
@@ -101,6 +103,7 @@ export async function GET(req: NextRequest) {
       delivery_lat: authorized ? safeOrder.delivery_lat : null,
       delivery_lng: authorized ? safeOrder.delivery_lng : null,
       authorized,
+      auto_closed: reason === 'auto_closed',
       // Canal del GPS en vivo: solo con token (ver live-topic.ts).
       live_topic: authorized ? liveLocationTopic(order.id) : null,
       table_name: (order.table as any)?.name ?? null,

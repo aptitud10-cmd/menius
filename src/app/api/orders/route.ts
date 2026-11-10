@@ -160,13 +160,13 @@ export async function POST(request: NextRequest) {
     // (non-autocomplete) addresses arrive without them and skip the radius check.
     // typeof guard first: Number(null) is 0, which would silently become a valid
     // coordinate (0,0) and falsely reject the order as out of range.
-    let deliveryLat: number | null =
+    const deliveryLat: number | null =
       typeof body.delivery_lat === "number" &&
       Number.isFinite(body.delivery_lat) &&
       Math.abs(body.delivery_lat) <= 90
         ? body.delivery_lat
         : null;
-    let deliveryLng: number | null =
+    const deliveryLng: number | null =
       typeof body.delivery_lng === "number" &&
       Number.isFinite(body.delivery_lng) &&
       Math.abs(body.delivery_lng) <= 180
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
     const { data: restaurant, error: restaurantDbError } = await adminDb
       .from("restaurants")
       .select(
-        "id, slug, delivery_fee, delivery_radius_km, delivery_min_order, latitude, longitude, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled, country_code",
+        "id, slug, delivery_fee, delivery_radius_km, delivery_min_order, latitude, longitude, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled",
       )
       .eq("id", restaurant_id)
       .eq("is_active", true)
@@ -292,31 +292,11 @@ export async function POST(request: NextRequest) {
       const restLat = Number(restaurant.latitude);
       const restLng = Number(restaurant.longitude);
       const radiusKm = Number(restaurant.delivery_radius_km) || 0;
-      let geocodedFromText = false;
-      // Dirección escrita a mano (sin coordenadas): se geocodifica en el
-      // servidor sesgada a la zona del local. Así se valida el radio y se
-      // guarda el punto (mapa del cliente, "Abrir mapa" del mostrador). Si no
-      // hay resultado confiable, se acepta como antes, sin punto.
+      // Dirección escrita a mano (sin coordenadas): no se geocodifica aquí.
+      // Guardar el punto de Mapbox va contra sus términos (geocodificación
+      // temporal) y sumaba hasta 3 s al pedido. El mapa del cliente la ubica al
+      // mostrarla, sesgada a la zona del local (DeliveryMap.geocodeMapbox).
       if (
-        deliveryLat === null && deliveryLng === null &&
-        restaurant.latitude != null && restaurant.longitude != null &&
-        Number.isFinite(restLat) && Number.isFinite(restLng) && delivery_address
-      ) {
-        const { geocodeNear } = await import("@/lib/geo/geocode-near");
-        const found = await geocodeNear(String(delivery_address), { lat: restLat, lng: restLng }, {
-          country: (restaurant as { country_code?: string | null }).country_code ?? null,
-        });
-        // Un punto geocodificado desde texto puede ser equivocado: NO se usa para
-        // rechazar el pedido (perderíamos un cliente legítimo). Se guarda solo si
-        // es plausible (≤ 3× el radio); si no, el pedido sigue sin punto.
-        if (found && (radiusKm <= 0 || haversineKm(restLat, restLng, found.lat, found.lng) <= radiusKm * 3)) {
-          geocodedFromText = true;
-          deliveryLat = found.lat;
-          deliveryLng = found.lng;
-        }
-      }
-      if (
-        !geocodedFromText &&
         radiusKm > 0 &&
         Number.isFinite(restLat) &&
         Number.isFinite(restLng) &&

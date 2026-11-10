@@ -11,12 +11,18 @@ export function afterResponse(task: () => Promise<unknown>): void {
   const p = Promise.resolve().then(task).catch((err) => {
     console.error('[afterResponse] task failed', err instanceof Error ? err.message : String(err));
   });
-  try {
-    const holder = (globalThis as Record<symbol, unknown>)[Symbol.for('@vercel/request-context')] as
-      | { get?: () => RequestContext | undefined }
-      | undefined;
-    holder?.get?.()?.waitUntil?.(p);
-  } catch {
-    /* sin contexto de Vercel: la promesa corre igual */
+  // El runtime de Vercel publica '@vercel/request-context'; Next 14 lee
+  // '@next/request-context'. Se usa el primero que exista.
+  for (const key of ['@vercel/request-context', '@next/request-context']) {
+    try {
+      const holder = (globalThis as Record<symbol, unknown>)[Symbol.for(key)] as
+        | { get?: () => RequestContext | undefined }
+        | undefined;
+      const ctx = holder?.get?.();
+      if (ctx?.waitUntil) { ctx.waitUntil(p); return; }
+    } catch {
+      /* sin contexto: probar el siguiente */
+    }
   }
+  /* sin contexto (local/tests): la promesa corre igual */
 }

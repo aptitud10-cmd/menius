@@ -98,6 +98,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
           driver_name: authorized ? safeOrder.driver_name : null,
           driver_phone: authorized ? safeOrder.driver_phone : null,
           authorized,
+          auto_closed: (orderData as { cancellation_reason?: string | null }).cancellation_reason === 'auto_closed',
           live_topic: authorized ? liveLocationTopic(orderData.id) : null,
           table_name: (orderData.table as any)?.name ?? null,
           order_items: ((orderData.order_items ?? []) as any[]).map((item: any) => ({

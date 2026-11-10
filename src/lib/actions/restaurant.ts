@@ -2051,7 +2051,7 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
 
   const { data: before } = await supabase
     .from("orders")
-    .select("id, status, estimated_ready_minutes, prepared_at, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address")
+    .select("id, status, estimated_ready_minutes, prepared_at, created_at, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address")
     .eq("id", orderId)
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
@@ -2073,11 +2073,18 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
   const prev = Number(before.estimated_ready_minutes ?? 0);
   if (["confirmed", "preparing"].includes(before.status as string) && etaMinutes - prev >= 5) {
     const o = before as any;
-    // El email dice "listo en ~N min" desde AHORA: lo que falta, no el total
-    // contado desde la aceptación.
-    const elapsed = o.prepared_at ? Math.max(0, Math.round((Date.now() - Date.parse(o.prepared_at)) / 60_000)) : 0;
+    // El email dice "listo en ~N min" desde AHORA: lo que falta, no el total.
+    // Se cuenta desde el mismo punto que el Counter (aceptación, o llegada si
+    // no hay hora de aceptación).
+    const startIso = o.prepared_at ?? o.created_at;
+    const elapsed = startIso ? Math.max(0, Math.round((Date.now() - Date.parse(startIso)) / 60_000)) : 0;
     const remaining = Math.max(1, etaMinutes - elapsed);
     afterResponse(async () => {
+      // Varios +5 seguidos = un solo email (el seguimiento en vivo ya muestra
+      // el tiempo nuevo al instante).
+      const { checkRateLimitAsync } = await import("@/lib/rate-limit");
+      const rl = await checkRateLimitAsync(`eta-mail:${orderId}`, { limit: 1, windowSec: 180 });
+      if (!rl.allowed) return;
       const { notifyStatusChange } = await import("@/lib/notifications/order-notifications");
       await notifyStatusChange({
         orderId,

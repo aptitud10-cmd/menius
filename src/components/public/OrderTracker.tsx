@@ -876,7 +876,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                               <IconCmp className="w-9 h-9 text-white" strokeWidth={1.75} />
                             </div>
                           </div>
-                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{(order as any).cancellation_reason === 'auto_closed' ? (tWithType.en ? 'Order closed' : 'Pedido cerrado') : tWithType.orderDelivered}</h2>
+                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{(order as { auto_closed?: boolean }).auto_closed ? (tWithType.en ? 'Order closed' : 'Pedido cerrado') : tWithType.orderDelivered}</h2>
                           <p className="text-sm text-gray-400">{cfg.tagline}</p>
                         </>
                       );

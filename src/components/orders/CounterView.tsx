@@ -819,11 +819,13 @@ export function CounterView({
     if (acceptingRef.current.has(order.id) || order.status !== 'pending') return;
     acceptingRef.current.add(order.id);
     setUpdatingId(order.id);
-    // `mins` ya viene con el extra de "Ocupado" (defaultMinsFor lo suma): lo
-    // que dice el botón es exactamente lo que se guarda y se le avisa al
-    // cliente. Antes el botón decía 10 y al cliente le llegaban 30.
+    // `mins` es el total elegido (con el extra de "Ocupado" ya incluido por
+    // defaultMinsFor, o el que tocó el cajero): lo que dice el botón es
+    // exactamente lo que se guarda y se le avisa al cliente.
     const eff = mins ?? eta + busyExtra;
-    const chosen = Math.max(5, eff - busyExtra); // preferencia de cocina, sin el extra
+    // La preferencia de cocina solo se aprende en modo normal: con "Ocupado"
+    // no se puede separar cuánto del número elegido era el extra.
+    const learn = busyExtra === 0;
     setSplashQueue(q => q.filter(x => x.id !== order.id));
     // Optimistic update — move order to 'preparing' immediately in the UI
     // (con ETA y hora de aceptación, para que "listo en N min" salga bien ya).
@@ -843,8 +845,10 @@ export function CounterView({
       if (shouldPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
       // Se queda donde estaba: la tarjeta pasa sola a "Preparando".
       setSheetId(prev => (prev === order.id ? null : prev));
-      setLastPrep(chosen);
-      try { localStorage.setItem('counter-last-prep', String(chosen)); } catch { /* sin storage */ }
+      if (learn) {
+        setLastPrep(eff);
+        try { localStorage.setItem('counter-last-prep', String(eff)); } catch { /* sin storage */ }
+      }
       showSuccess(T.accepted(order.order_number?.split('-').pop() ?? '', eff));
       if (res.notification) showNotif(res.notification, order.id);
     } catch {
@@ -930,7 +934,10 @@ export function CounterView({
     };
   }, []);
 
-  const defaultMinsFor = useCallback((o: Order) => nearestChoice(suggestedPrep(o) ?? lastPrep) + busyExtra, [lastPrep, busyExtra]);
+  // Los botones de tiempo son el TOTAL que se le promete al cliente. Con
+  // "Ocupado" activo, el extra se suma y se redondea a una opción de la lista
+  // (así el botón por defecto siempre está marcado en la hoja y en la alerta).
+  const defaultMinsFor = useCallback((o: Order) => nearestChoice((suggestedPrep(o) ?? lastPrep) + busyExtra), [lastPrep, busyExtra]);
 
   const onPrimary = useCallback((o: Order, kind: PrimaryKind) => {
     if (kind === 'accept') handleAccept(o, defaultMinsFor(o));

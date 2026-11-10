@@ -407,6 +407,14 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         body: JSON.stringify({ token, action }),
       });
       if (res.ok) {
+        const body = await res.json().catch(() => ({}));
+        // El mostrador ya cerró el pedido: no se avanza a "en camino" ni se
+        // prende el GPS; la pantalla pasa directo a entregado.
+        if (body?.closed) {
+          stopGps();
+          setDeliveryStep('delivered');
+          return false;
+        }
         if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
         return true;
       }
