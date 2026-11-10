@@ -151,6 +151,8 @@ export const reviewSubmitSchema = z.object({
   customer_name: z.string().min(1).max(100),
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(500).default(''),
+  /** Reporte privado de un problema con el pedido: lo ve el dueño, no se publica. */
+  issue: z.boolean().optional(),
 });
 
 export const restaurantUpdateSchema = z.object({

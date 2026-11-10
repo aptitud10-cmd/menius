@@ -89,6 +89,17 @@ function DriverLine({ order, T }: { order: Order; T: CounterText }) {
   );
 }
 
+/** Pickup: el cliente tocó "Ya llegué" en su seguimiento. */
+function ArrivedLine({ order, T }: { order: Order; T: CounterText }) {
+  if (order.order_type !== 'pickup' || !order.customer_arrived_at) return null;
+  if (['delivered', 'completed', 'cancelled'].includes(order.status)) return null;
+  return (
+    <p className="text-[15px] font-bold rounded-lg px-2.5 py-1.5" style={{ background: C.violet, color: '#fff' }}>
+      {T.customerArrived}
+    </p>
+  );
+}
+
 export function OrderCard({
   order, T, currency, acceptMins, busy, onOpen, onPrimary,
 }: {
@@ -137,6 +148,7 @@ export function OrderCard({
       </div>
 
       <DriverLine order={order} T={T} />
+      <ArrivedLine order={order} T={T} />
 
       {allergies.length > 0 && (
         <p className="text-[15px] font-extrabold rounded-lg px-2.5 py-1.5 leading-snug" style={{ background: C.redSoft, color: C.red }}>

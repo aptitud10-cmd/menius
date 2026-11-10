@@ -452,7 +452,8 @@ CREATE TABLE public.orders (
   delivery_lat double precision,
   delivery_lng double precision,
   customer_id uuid,
-  shift_id uuid
+  shift_id uuid,
+  customer_arrived_at timestamp with time zone
 );
 
 CREATE TABLE public.device_pairings (

@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone, DoorOpen, Zap } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { formatPrice, cn } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
+import { C } from '@/components/orders/counter/ui';
 import { travelMinutes, haversineKm } from '@/lib/orders/eta';
 import { isAwaitingOnlinePayment } from '@/lib/order-state';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -254,33 +254,6 @@ function getT(locale?: string, orderType?: string) {
   };
 }
 
-const STEP_STYLES: Record<string, { icon: typeof Clock; color: string; bg: string }> = {
-  pending:          { icon: Clock,        color: 'text-amber-600',   bg: 'bg-amber-100' },
-  confirmed:        { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
-  preparing:        { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
-  almost_ready:     { icon: Zap,          color: 'text-amber-500',   bg: 'bg-amber-50' },
-  ready:            { icon: Bell,         color: 'text-orange-600',  bg: 'bg-orange-100' },
-  out_for_delivery: { icon: Truck,        color: 'text-violet-600',  bg: 'bg-violet-100' },
-  served:           { icon: Utensils,     color: 'text-teal-600',    bg: 'bg-teal-50' },
-  delivered:        { icon: Package,      color: 'text-[#05c8a7]',   bg: 'bg-[#d0f7f1]' },
-  completed:        { icon: CheckCircle2,  color: 'text-[#05c8a7]',   bg: 'bg-[#d0f7f1]' },
-  cancelled:        { icon: XCircle,       color: 'text-gray-500',    bg: 'bg-gray-100' },
-};
-
-// Customer-visible progress steps: confirmed and preparing both map to step 1 ("En preparación")
-const CUSTOMER_STEPS = ['pending', 'preparing', 'ready', 'delivered'] as const;
-const STATUS_TO_CUSTOMER_STEP: Record<string, typeof CUSTOMER_STEPS[number]> = {
-  pending:          'pending',
-  confirmed:        'preparing',
-  preparing:        'preparing',
-  almost_ready:     'preparing',
-  ready:            'ready',
-  out_for_delivery: 'ready',
-  served:           'ready',
-  delivered:        'delivered',
-  completed:        'delivered',
-};
-
 interface OrderTrackerProps {
   restaurantId: string;
   restaurantName: string;
@@ -312,7 +285,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Updated without HTTP refetch so the map marker moves in real-time.
   const [liveDriverCoords, setLiveDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [liveDeliveryEta, setLiveDeliveryEta] = useState<number | null>(null);
-  const [chefMessageIndex, setChefMessageIndex] = useState(0);
+  // Cuándo llegó la última posición del repartidor (para "de hace N min").
+  const [lastLocAt, setLastLocAt] = useState<number | null>(null);
+  const [arriving, setArriving] = useState(false);
   const [etaTick, setEtaTick] = useState(0);
 
   const hasInitialOrder = !!initialOrder;
@@ -395,19 +370,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [order?.id, isTerminal, fetchOrder]);
 
-  // Rotate chef messages every 6s while pickup order is being prepared
-  useEffect(() => {
-    if (order?.order_type !== 'pickup' || !['confirmed', 'preparing'].includes(order?.status)) return;
-    const interval = setInterval(() => setChefMessageIndex(i => (i + 1) % 5), 6000);
-    return () => clearInterval(interval);
-  }, [order?.order_type, order?.status]);
-
   // Tick every 30s so ETA hero re-renders with live minsLeft without waiting for the 5s poll
   useEffect(() => {
-    if (!order?.estimated_ready_minutes || !['confirmed', 'preparing'].includes(order?.status)) return;
+    // Horas y "ubicación de hace N min" se recalculan solas mientras está activo.
+    if (!order?.id || ['delivered', 'completed', 'cancelled', 'served'].includes(order?.status)) return;
     const interval = setInterval(() => setEtaTick(n => n + 1), 30_000);
     return () => clearInterval(interval);
-  }, [order?.estimated_ready_minutes, order?.status]);
+  }, [order?.id, order?.status]);
 
   useEffect(() => {
     if (!order?.id || isTerminal) return;
@@ -448,6 +417,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       .on('broadcast', { event: 'location_update' }, ({ payload }: { payload: Record<string, unknown> }) => {
         if (typeof payload?.lat === 'number' && typeof payload?.lng === 'number') {
           setLiveDriverCoords({ lat: payload.lat, lng: payload.lng });
+          setLastLocAt(Date.now());
         }
       })
       .subscribe();
@@ -514,1216 +484,632 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     );
   }
 
-  const isCancelled = order.status === 'cancelled';
-  // Un delivery ya recogido esta al menos en 'ready' aunque el status diga otra
-  // cosa: el timestamp del driver es el hecho fisico y manda sobre el status.
-  const customerStep =
-    order.order_type === 'delivery' &&
-    (order as any).driver_picked_up_at &&
-    !['delivered', 'completed', 'cancelled'].includes(order.status)
-      ? 'ready'
-      : (STATUS_TO_CUSTOMER_STEP[order.status] ?? 'pending');
-  const currentStepIndex = CUSTOMER_STEPS.indexOf(customerStep);
-  const isComplete = ['delivered', 'completed', 'served'].includes(order.status);
+  // ───────────────────────── Diseño 2026-11 ─────────────────────────
+  // Arriba siempre lo mismo: en qué va y cuándo llega. Todo lo demás debajo y
+  // plegado. Misma familia visual que el Counter y la página del repartidor.
+  const o = order as any;
+  const en = t.en;
+  const dateLocale = en ? 'en-US' : 'es-MX';
+  const isDelivery = o.order_type === 'delivery';
+  const isPickup = o.order_type === 'pickup';
+  const isDineIn = o.order_type === 'dine_in';
+  const isCancelled = o.status === 'cancelled';
+  const isComplete = ['delivered', 'completed', 'served'].includes(o.status);
+  const isActive = !isCancelled && !isComplete;
   // En camino: el repartidor marcó "recogí" o el mostrador tocó "Salió".
-  const onTheWay = order.order_type === 'delivery' && !isComplete && !isCancelled
-    && (Boolean((order as any).driver_picked_up_at) || order.status === 'out_for_delivery');
-  const atDoor = onTheWay && Boolean((order as any).driver_at_door_at);
-  const awaitingPayment = isAwaitingOnlinePayment(order);
-  const refunded = isCancelled && order.payment_status === 'refunded';
-  const scheduledIso = (order as { scheduled_for?: string | null }).scheduled_for;
-  const scheduledLabel = scheduledIso && order.status === 'pending'
-    ? new Date(scheduledIso).toLocaleString(locale === 'en' ? 'en-US' : 'es-MX', { weekday: 'short', hour: 'numeric', minute: '2-digit' })
-    : null;
-  const currentStepStyle = STEP_STYLES[order.status];
-  const tWithType = getT(locale, order.order_type);
-  const currentStepText = tWithType.steps[order.status as keyof typeof tWithType.steps];
+  const onTheWay = isDelivery && isActive && (Boolean(o.driver_picked_up_at) || o.status === 'out_for_delivery');
+  const atDoor = onTheWay && Boolean(o.driver_at_door_at);
+  const awaitingPayment = isAwaitingOnlinePayment(o);
+  const refunded = isCancelled && o.payment_status === 'refunded';
+  const autoClosed = Boolean(o.auto_closed);
+  const shortNum = String(o.order_number ?? '').split('-').pop();
+  const driverName = String(o.driver_name ?? '').trim().split(' ')[0] || null;
+  const fmtClock = (ms: number) => new Date(ms).toLocaleTimeString(dateLocale, { hour: 'numeric', minute: '2-digit' });
+  const now = Date.now() + etaTick * 0;
+  const cashDue = o.payment_method === 'cash' && o.payment_status !== 'paid';
+  const amount = formatPrice(Number(o.total) || 0, currency);
 
-  // Dynamic subtitle per status
-  const statusSubtitle = (() => {
-    const en = tWithType.en;
-    switch (order.status) {
-      case 'pending':          return scheduledLabel
-                                 ? tWithType.scheduledFor(scheduledLabel)
-                                 : (en ? `${restaurantName} received your order` : `${restaurantName} recibió tu pedido`);
-      case 'confirmed':
-      case 'preparing':        return en ? `${restaurantName} is preparing your order` : `${restaurantName} está preparando tu pedido`;
-      case 'almost_ready':     return en ? 'Your order will be ready very soon!' : '¡Tu pedido estará listo en unos minutos!';
-      case 'ready':            return order.order_type === 'delivery'
-                                 ? ((order as any).driver_at_door_at
-                                     ? (en ? 'Your driver is at the door!' : '¡Tu repartidor está en la puerta!')
-                                     : (order as any).driver_picked_up_at
-                                       ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!')
-                                       : (en ? 'Your order is ready for dispatch' : 'Tu pedido está listo para envío'))
-                                 : order.order_type === 'dine_in'
-                                   ? (en ? 'Your order is on its way to your table!' : '¡Tu pedido va en camino a tu mesa!')
-                                   : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
-      case 'out_for_delivery': return atDoor
-                                 ? (en ? 'Please head to the door' : 'Por favor acércate a la puerta')
-                                 : (en ? 'Your driver is on the way!' : '¡Tu repartidor está en camino!');
-      case 'served':           return en ? 'Enjoy your meal!' : '¡Buen provecho!';
-      case 'delivered':        return en ? 'Enjoy your meal!' : '¡Buen provecho!';
-      case 'completed':        return en ? 'Enjoy your meal!' : '¡Buen provecho!';
-      // Sin este caso el pedido cancelado caia en el default y quedaba sin
-      // subtitulo: el cliente veia una pantalla que no explicaba nada.
-      case 'cancelled':        return en
-                                 ? `Contact ${restaurantName} if you have questions`
-                                 : `Contacta a ${restaurantName} si tienes dudas`;
-      default:                 return '';
+  // Programado: su hora, mientras espera.
+  const scheduledLabel = o.scheduled_for && o.status === 'pending'
+    ? new Date(o.scheduled_for).toLocaleString(dateLocale, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
+    : null;
+
+  // Cocina: desde que el restaurante ACEPTÓ (prepared_at), igual que el email.
+  const acceptedMs = Date.parse(o.prepared_at ?? o.updated_at ?? o.created_at);
+  const readyMs = Number(o.estimated_ready_minutes) > 0 && Number.isFinite(acceptedMs)
+    ? acceptedMs + Number(o.estimated_ready_minutes) * 60_000 : null;
+  const kitchenLate = readyMs != null && ['confirmed', 'preparing'].includes(o.status) && now - readyMs > 3 * 60_000;
+
+  // Delivery: cuándo LLEGA (cocina + viaje en bici, mismo cálculo del checkout).
+  const dLat = Number(o.delivery_lat), dLng = Number(o.delivery_lng);
+  const km = restaurantLat != null && restaurantLng != null && o.delivery_lat != null && Number.isFinite(dLat) && Number.isFinite(dLng)
+    ? haversineKm(restaurantLat, restaurantLng, dLat, dLng) : 2;
+  let arrivalMs: number | null = null;
+  if (isDelivery && isActive && !atDoor) {
+    if (onTheWay) {
+      if (liveDeliveryEta != null) arrivalMs = now + liveDeliveryEta * 60_000;
+      else {
+        const left = Date.parse(o.driver_picked_up_at ?? o.updated_at);
+        arrivalMs = Math.max((Number.isFinite(left) ? left : now) + travelMinutes(km) * 60_000, now + 60_000);
+      }
+    } else if (readyMs != null && o.status !== 'pending') {
+      const leave = o.status === 'ready' ? now : Math.max(readyMs, now);
+      arrivalMs = leave + travelMinutes(km) * 60_000;
+    }
+  }
+  // Ventana de 10 min antes de salir (estudio Booth 2025: una ventana estrecha
+  // deja más conforme que una hora puntual); en camino, minutos y hora.
+  const windowStart = arrivalMs != null ? Math.floor((arrivalMs - 4 * 60_000) / 300_000) * 300_000 : null;
+
+  // Hora del cierre (entregado / recogido / servido).
+  const closedMs = Date.parse(o.driver_delivered_at ?? o.updated_at);
+
+  const headline = (() => {
+    if (isCancelled) return en ? 'Order cancelled' : 'Pedido cancelado';
+    if (isComplete) {
+      if (autoClosed) return en ? 'Order closed' : 'Pedido cerrado';
+      return isPickup ? (en ? 'Picked up' : 'Recogido') : isDineIn ? (en ? 'Served' : 'Servido') : (en ? 'Delivered' : 'Entregado');
+    }
+    if (atDoor) return driverName ? (en ? `${driverName} is at your door` : `${driverName} está en tu puerta`) : t.atDoorTitle;
+    if (onTheWay) return driverName ? (en ? `${driverName} is on the way` : `${driverName} va en camino`) : (en ? 'Your order is on the way' : 'Tu pedido va en camino');
+    switch (o.status) {
+      case 'pending': return scheduledLabel ? (en ? 'Order scheduled' : 'Pedido programado') : (en ? `Waiting for ${restaurantName} to confirm` : `Esperando que ${restaurantName} confirme`);
+      case 'almost_ready': return isPickup ? (en ? 'Almost ready — head over' : 'Casi listo, ya puedes salir') : (en ? 'Almost ready' : 'Casi listo');
+      case 'ready': return isPickup ? (en ? 'Your order is ready' : 'Tu pedido está listo')
+        : isDineIn ? (en ? 'On its way to your table' : 'Va camino a tu mesa')
+        : (en ? 'Ready — leaving soon' : 'Listo, sale en breve');
+      default: return en ? "We're preparing your order" : 'Estamos preparando tu pedido';
     }
   })();
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(14px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .tracker-card { animation: fadeInUp 0.45s ease-out both; }
-        .tracker-card:nth-child(2) { animation-delay: 0.05s; }
-        .tracker-card:nth-child(3) { animation-delay: 0.1s; }
-        .tracker-card:nth-child(4) { animation-delay: 0.15s; }
-        @keyframes deliveredPop {
-          0%   { transform: scale(0.5); opacity: 0; }
-          70%  { transform: scale(1.08); opacity: 1; }
-          100% { transform: scale(1);   opacity: 1; }
-        }
-        .delivered-icon { animation: deliveredPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
-        @keyframes ringExpand {
-          0%   { transform: scale(0.7); opacity: 0.6; }
-          100% { transform: scale(1.45); opacity: 0; }
-        }
-        .delivered-ring { animation: ringExpand 1.1s ease-out 0.2s both; }
-        @keyframes statusSlideIn {
-          from { opacity: 0; transform: translateY(10px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .status-hero-inner { animation: statusSlideIn 0.3s cubic-bezier(0.22,1,0.36,1) both; }
-        @keyframes chefFadeIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .chef-msg { animation: chefFadeIn 0.4s ease-out both; }
-        @keyframes stateIllustration {
-          0%   { transform: scale(0.7) rotate(-8deg); opacity: 0; }
-          60%  { transform: scale(1.08) rotate(2deg); opacity: 1; }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
-        }
-        .state-illustration { animation: stateIllustration 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
-        @keyframes floatBob {
-          0%, 100% { transform: translateY(0px); }
-          50%      { transform: translateY(-5px); }
-        }
-        .float-bob { animation: floatBob 2.5s ease-in-out infinite; }
-        /* Flowing shimmer on the in-progress timeline segment (the line leaving
-           the active step). Repeating gradient slides left→right to read as
-           "this stage is happening now" — the Uber-style animated bars. */
-        @keyframes timelineFlow {
-          from { background-position: 0 0; }
-          to   { background-position: 24px 0; }
-        }
-        .timeline-flow {
-          background-image: repeating-linear-gradient(
-            90deg,
-            #05c8a7 0px,
-            #05c8a7 8px,
-            #7ee8d6 8px,
-            #7ee8d6 16px
-          );
-          background-size: 24px 100%;
-          animation: timelineFlow 0.7s linear infinite;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .timeline-flow { animation: none; }
-        }
-      `}</style>
+  const subline = (() => {
+    if (isCancelled) return refunded ? t.refunded(amount) : (en ? `Questions? Call ${restaurantName}.` : `¿Dudas? Llama a ${restaurantName}.`);
+    if (isComplete) {
+      const when = Number.isFinite(closedMs) ? fmtClock(closedMs) : '';
+      return [when, isDelivery && driverName ? (en ? `by ${driverName}` : `por ${driverName}`) : null].filter(Boolean).join(' · ');
+    }
+    if (atDoor) return o.notes ? String(o.notes) : (en ? 'Please head to the door' : 'Acércate a la puerta');
+    if (o.status === 'pending') return scheduledLabel ? t.scheduledFor(scheduledLabel) : (en ? "We'll let you know as soon as they accept it." : 'Te avisamos apenas lo acepte.');
+    if (isDelivery && onTheWay && arrivalMs != null) {
+      const mins = Math.max(1, Math.round((arrivalMs - now) / 60_000));
+      return en ? `Arrives in ~${mins} min · ${fmtClock(arrivalMs)}` : `Llega en ~${mins} min · ${fmtClock(arrivalMs)}`;
+    }
+    if (isDelivery && windowStart != null) {
+      if (kitchenLate) return en ? `Running a little late · arrives around ${fmtClock(arrivalMs!)}` : `Va un poco atrasado · llega aprox. a las ${fmtClock(arrivalMs!)}`;
+      return en ? `Arrives between ${fmtClock(windowStart)} and ${fmtClock(windowStart + 600_000)}` : `Llega entre ${fmtClock(windowStart)} y ${fmtClock(windowStart + 600_000)}`;
+    }
+    if (isDineIn && o.table_name) return en ? `Table ${o.table_name}` : `Mesa ${o.table_name}`;
+    if (readyMs != null && ['confirmed', 'preparing', 'almost_ready'].includes(o.status)) {
+      if (kitchenLate) return `${t.runningLate} · ${t.runningLateDesc.toLowerCase()}`;
+      return t.readyByLabel(fmtClock(readyMs));
+    }
+    return '';
+  })();
 
-      {/* Sticky nav bar — minimal: back + name + live badge only */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Link href={`/${restaurantSlug}`} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors active:scale-95 flex-shrink-0">
-              <ArrowLeft className="w-4.5 h-4.5 text-gray-500" />
-            </Link>
-            <h1 className="text-[15px] font-black font-display tracking-tight text-gray-900 truncate">{restaurantName}</h1>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* En un pedido cerrado no hay nada que escuchar: el canal se cierra a
-                propósito y antes mostraba "Sin conexión" en rojo sobre "¡Entregado!". */}
-            {isTerminal || isComplete ? null : rtStatus === 'connected' ? (
-              <div className="flex items-center gap-1.5 text-[11px] text-[#047a65] font-bold bg-[#e6faf7] px-3 py-1.5 rounded-full border border-[#b3efe6]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] animate-pulse" />
+  // Barra de 4 tramos por tipo de pedido.
+  const stepLabels = isDelivery
+    ? [en ? 'Received' : 'Recibido', en ? 'Preparing' : 'Preparando', en ? 'On the way' : 'En camino', en ? 'Delivered' : 'Entregado']
+    : [en ? 'Received' : 'Recibido', en ? 'Preparing' : 'Preparando', en ? 'Ready' : 'Listo', isPickup ? (en ? 'Picked up' : 'Recogido') : (en ? 'Served' : 'Servido')];
+  const stepIndex = isComplete ? 3
+    : onTheWay ? 2
+    : o.status === 'pending' ? 0
+    : o.status === 'ready' && !isDelivery ? 2
+    : 1;
+
+  // Ubicación del repartidor: en vivo o "de hace N min" (sin fingir).
+  const hasDriverGps = liveDriverCoords != null || (o.driver_lat != null && o.driver_lng != null);
+  const locMs = lastLocAt ?? (o.driver_updated_at ? Date.parse(o.driver_updated_at) : NaN);
+  const locAgeMin = Number.isFinite(locMs) ? Math.floor((now - locMs) / 60_000) : null;
+  const locLabel = locAgeMin == null || locAgeMin < 1
+    ? (en ? 'Live location' : 'Ubicación en vivo')
+    : (en ? `Location from ${locAgeMin} min ago` : `Ubicación de hace ${locAgeMin} min`);
+
+  const itemCount = (o.order_items ?? []).reduce((n: number, it: any) => n + (Number(it.qty) || 1), 0);
+  const payLine = isCancelled ? null
+    : cashDue ? (isDelivery ? (en ? 'Pay on delivery, in cash' : 'Pagas al recibir, en efectivo') : (en ? 'Pay in cash' : 'Pagas en efectivo'))
+    : o.payment_status === 'paid' ? (en ? 'Paid online' : 'Pagado online') : null;
+
+  const reorder = () => {
+    // Mismo mecanismo que "Repetir mi último pedido" del menú.
+    const saved = ((o.order_items ?? []) as any[])
+      .filter((it) => it.product_id)
+      .map((it) => ({
+        productId: it.product_id as string,
+        productName: (it.product_name as string) ?? '',
+        variantId: (it.variant_id as string | null) ?? null,
+        variantName: (it.variant_name as string | null) ?? null,
+        variantPriceDelta: (it.variant_price_delta as number | null) ?? null,
+        qty: Number(it.qty) || 1,
+      }));
+    if (saved.length === 0) { window.location.href = `/${restaurantSlug}`; return; }
+    useCartStore.setState({ lastOrder: { restaurantId, items: saved, date: new Date().toISOString() } });
+    window.location.href = `/${restaurantSlug}?reorder=1`;
+  };
+
+  const markArrived = async () => {
+    if (!trackingToken || arriving) return;
+    setArriving(true);
+    try {
+      const res = await fetch('/api/public/order-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: o.id, t: trackingToken, action: 'arrived' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setOrder((prev: any) => ({ ...prev, customer_arrived_at: data.arrived_at ?? new Date().toISOString() }));
+    } finally {
+      setArriving(false);
+    }
+  };
+
+  const card = 'bg-white rounded-[20px] border';
+  const cardStyle = { borderColor: C.line };
+  const showDock = !awaitingPayment;
+
+  return (
+    <div className="min-h-[100dvh] flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>
+      {/* Barra superior mínima: volver · restaurante · #pedido · en vivo */}
+      <header className="sticky z-40 border-b backdrop-blur-md" style={{ top: 'env(safe-area-inset-top, 0px)', background: 'rgba(244,246,245,0.92)', borderColor: C.line }}>
+        <div className="max-w-md mx-auto px-2 h-14 flex items-center gap-1">
+          <Link href={`/${restaurantSlug}`} aria-label={t.backToMenu} className="w-11 h-11 rounded-xl grid place-items-center active:scale-95 transition-transform">
+            <ArrowLeft className="w-5 h-5" style={{ color: C.sub }} aria-hidden />
+          </Link>
+          <p className="flex-1 min-w-0 truncate text-[14px] font-semibold" style={{ color: C.sub }}>
+            {restaurantName}{shortNum ? ` · #${shortNum}` : ''}
+          </p>
+          {isActive && !awaitingPayment && (
+            rtStatus === 'connected' ? (
+              <span className="mr-2 inline-flex items-center gap-1.5 text-[12px] font-bold" style={{ color: C.greenDeep }}>
+                <span className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse" style={{ background: C.greenDeep }} aria-hidden />
                 {t.live}
-              </div>
-            ) : rtStatus === 'reconnecting' ? (
-              <div className="flex items-center gap-1.5 text-[11px] text-amber-600 font-bold bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100">
-                <Wifi className="w-3 h-3 animate-pulse" />
-                {t.connecting}
-              </div>
+              </span>
             ) : (
-              <div className="flex items-center gap-1.5 text-[11px] text-red-500 font-bold bg-red-50 px-3 py-1.5 rounded-full border border-red-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                {t.offline}
-              </div>
-            )}
-          </div>
+              <span className="mr-2 text-[12px] font-bold" style={{ color: C.amber }}>{t.connecting}</span>
+            )
+          )}
         </div>
       </header>
 
-      {/* Restaurant identity — hero section below sticky nav */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-5 pt-7 pb-6 text-center">
+      <main className="flex-1 w-full max-w-md mx-auto px-4 pt-5 pb-6 flex flex-col gap-3">
 
-          {/* Restaurant name — large, font-display, the star of the header */}
-          <h2 className="text-[26px] font-black font-display tracking-tight text-gray-900 leading-tight mb-1">
-            {restaurantName}
-          </h2>
-
-          {/* Order type pill — centered, colored, right below the name */}
-          <div className="flex justify-center mt-3 mb-4">
-            <span className={cn(
-              'inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-full',
-              order.order_type === 'delivery' ? 'bg-violet-100 text-violet-600' :
-              order.order_type === 'pickup'   ? 'bg-orange-100 text-orange-600' :
-              'bg-teal-100 text-teal-600'
-            )}>
-              {order.order_type === 'delivery' ? <Truck className="w-3.5 h-3.5" /> :
-               order.order_type === 'pickup'   ? <ShoppingBag className="w-3.5 h-3.5" /> :
-               <Utensils className="w-3.5 h-3.5" />}
-              {order.order_type === 'delivery' ? t.orderTypePillDelivery :
-               order.order_type === 'pickup'   ? t.orderTypePillPickup :
-               t.orderTypePillDineIn}
-            </span>
-          </div>
-
-          {/* Dine-in from QR: table number prominent */}
-          {order.order_type === 'dine_in' && (order as any).table_name ? (
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Utensils className="w-4 h-4 text-teal-400 flex-shrink-0" />
-              <span className="text-sm text-gray-600 font-semibold">
-                {t.yourTable} <span className="text-teal-600 font-black text-base">{(order as any).table_name}</span>
-              </span>
-            </div>
-          ) : (
-            /* Pickup / Delivery: address as map CTA + phone as call button */
-            (restaurantAddress || restaurantPhone) && (
-              <div className="flex flex-wrap justify-center gap-2 mb-4">
-                {restaurantAddress && (
-                  <a
-                    href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-[12px] text-gray-600 font-semibold hover:bg-gray-100 active:scale-95 transition-all max-w-[240px]"
-                  >
-                    <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="truncate">{restaurantAddress}</span>
-                  </a>
-                )}
-                {restaurantPhone && (
-                  <a
-                    href={`tel:${restaurantPhone}`}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-[12px] text-gray-600 font-semibold hover:bg-gray-100 active:scale-95 transition-all"
-                  >
-                    <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    {restaurantPhone}
-                  </a>
-                )}
-              </div>
-            )
-          )}
-
-          {/* Order number — centered, subtle */}
-          <p className="text-[11px] text-gray-400 font-medium tracking-wide">
-            {t.orderLabel} <span className="font-bold text-gray-700">#{order.order_number}</span>
-          </p>
-        </div>
-      </div>
-
-      {/* MENIUS branding banner */}
-      <div className="bg-gray-50 border-b border-gray-100 py-1.5 px-4 flex items-center justify-center gap-1.5">
-        <Zap className="w-3 h-3 text-[#05c8a7]" />
-        <span className="text-[11px] text-gray-400 font-medium">Powered by <strong className="text-gray-500">MENIUS</strong></span>
-        <span className="text-gray-300 text-[11px]">·</span>
-        <span className="text-[11px] text-gray-400">menius.app</span>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 py-5 space-y-3">
-
-        {/* Payment confirmed banner */}
         {paidBannerVisible && !awaitingPayment && (
-          <div className="tracker-card flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-[#e6faf7] border border-[#b3efe6]">
-            <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
-              <CreditCard className="w-4 h-4 text-[#05c8a7]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-[#047a65]">{t.paymentConfirmed}</p>
-              <p className="text-xs text-[#05c8a7] mt-0.5">{t.paymentConfirmedDesc}</p>
-            </div>
-            <button
-              onClick={() => setPaidBannerVisible(false)}
-              className="flex-shrink-0 p-1 text-[#05c8a7] hover:text-[#047a65] transition-colors"
-              aria-label={t.closeBanner}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+          <div className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold" style={{ background: C.greenSoft, color: C.greenDeep }}>
+            <span className="flex items-center gap-2"><Check className="w-4 h-4" aria-hidden />{t.paymentConfirmed}</span>
+            <button type="button" onClick={() => setPaidBannerVisible(false)} aria-label={t.closeBanner} className="w-11 h-11 -mr-3 grid place-items-center">
+              <XCircle className="w-4 h-4" aria-hidden />
             </button>
           </div>
         )}
 
-        {/* ── ALMOST READY — pickup: head over now ── */}
-        {order.order_type === 'pickup' && order.status === 'almost_ready' && (
-          <div className="tracker-card bg-amber-50 border-2 border-amber-200 rounded-3xl px-5 py-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <Zap className="w-6 h-6 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-sm font-black text-amber-700">{t.almostReadyHeading}</p>
-              <p className="text-xs text-amber-600 mt-0.5">{t.almostReadyDesc}</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── OUT FOR DELIVERY — driver context (only if no specific driver card below) ── */}
-        {order.order_type === 'delivery' && order.status === 'out_for_delivery' && !(order as any).driver_picked_up_at && (
-          <div className="tracker-card bg-violet-50 border-2 border-violet-200 rounded-3xl px-5 py-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
-              <Truck className="w-6 h-6 text-violet-600" />
-            </div>
-            <div>
-              <p className="text-sm font-black text-violet-700">{t.driverOnWayHeading}</p>
-              <p className="text-xs text-violet-500 mt-0.5">{t.driverOnWayDesc}</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── PICKUP READY BLOCK ── */}
-        {order.order_type === 'pickup' && order.status === 'ready' && (
-          <div className="tracker-card bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-3xl overflow-hidden">
-            <div className="px-6 pt-7 pb-5 text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <ShoppingBag className="w-8 h-8 text-emerald-600" />
-              </div>
-              <h2 className="text-2xl font-black text-emerald-700 mb-1">
-                {t.pickupReadyHeading}
-              </h2>
-              <p className="text-sm text-emerald-600 mb-5">
-                {t.pickupReadyDesc}
-              </p>
-              {(restaurantAddress || restaurantPhone) && (
-                <div className="bg-white/70 rounded-2xl px-4 py-3 space-y-2.5 text-left mb-4">
-                  {restaurantAddress && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-emerald-800 font-medium">{restaurantAddress}</span>
-                    </div>
-                  )}
-                  {restaurantPhone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                      <span className="text-sm text-emerald-800 font-medium">{restaurantPhone}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="flex gap-2 justify-center flex-wrap">
-                {restaurantAddress && (
-                  <a
-                    href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold px-4 py-2 hover:bg-emerald-600 active:scale-95 transition-all"
-                  >
-                    <MapPin className="w-3.5 h-3.5" />
-                    {t.openInMaps}
-                  </a>
-                )}
-                {restaurantPhone && (
-                  <a
-                    href={`tel:${restaurantPhone}`}
-                    className="flex items-center gap-1.5 rounded-full bg-white border-2 border-emerald-300 text-emerald-700 text-xs font-bold px-4 py-2 hover:bg-emerald-50 active:scale-95 transition-all"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    {t.call}
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── STATUS HERO CARD ── */}
-        <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          {awaitingPayment ? (
-            <PaymentPendingCard orderId={order.id} restaurantSlug={restaurantSlug} paidParam={paidParam}
-              createdAt={order.created_at} paymentMethod={order.payment_method} currency={currency} t={t} />
-          ) : isCancelled ? (
-            <div className="text-center py-12 px-6">
-              <div className="w-20 h-20 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-5">
-                <XCircle className="w-10 h-10 text-red-500" />
-              </div>
-              <h2 className="text-2xl font-black text-red-600 mb-1">{t.orderCancelled}</h2>
-              <p className="text-sm text-gray-500">{t.orderCancelledDesc}</p>
-              {refunded && (
-                <p className="mt-3 text-sm font-semibold text-gray-700 max-w-xs mx-auto">{t.refunded(formatPrice(Number(order.total) || 0, currency))}</p>
-              )}
-            </div>
-          ) : (
-            <>
-              {/* Colored accent strip */}
-              <div className={cn(
-                'h-1 w-full',
-                isComplete ? 'bg-[#05c8a7]' :
-                order.status === 'out_for_delivery' ? 'bg-violet-500' :
-                order.status === 'served' ? 'bg-teal-400' :
-                order.status === 'ready' ? 'bg-orange-400' :
-                order.status === 'almost_ready' ? 'bg-amber-400' :
-                ['confirmed', 'preparing'].includes(order.status) ? 'bg-violet-500' :
-                'bg-amber-400'
-              )} />
-
-              {/* Icon + title + subtitle — keyed so React re-mounts with animation on status change */}
-              <div key={order.status} className="status-hero-inner px-6 pt-8 pb-6 text-center">
-                {isComplete ? (
-                  <>
-                    {(() => {
-                      const typeConfig = {
-                        pickup:   { icon: ShoppingBag,  solid: '#f97316', tagline: tWithType.taglinePickup },
-                        dine_in:  { icon: Utensils,     solid: '#7c3aed', tagline: tWithType.taglineDineIn },
-                        delivery: { icon: CheckCircle2, solid: '#059669', tagline: tWithType.taglineDelivery },
-                      };
-                      const cfg = typeConfig[order.order_type as keyof typeof typeConfig] ?? typeConfig.delivery;
-                      const IconCmp = cfg.icon;
-                      return (
-                        <>
-                          {/* Icon with expanding ring — single element, no emoji */}
-                          <div className="relative w-20 h-20 mx-auto mb-6">
-                            <div
-                              className="delivered-ring absolute inset-0 rounded-full"
-                              style={{ background: cfg.solid }}
-                            />
-                            <div
-                              className="delivered-icon relative w-20 h-20 rounded-full flex items-center justify-center"
-                              style={{ background: cfg.solid }}
-                            >
-                              <IconCmp className="w-9 h-9 text-white" strokeWidth={1.75} />
-                            </div>
-                          </div>
-                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{(order as { auto_closed?: boolean }).auto_closed ? (tWithType.en ? 'Order closed' : 'Pedido cerrado') : tWithType.orderDelivered}</h2>
-                          <p className="text-sm text-gray-400">{cfg.tagline}</p>
-                        </>
-                      );
-                    })()}
-                  </>
-                ) : currentStepStyle && currentStepText ? (
-                  <>
-                    {/* Thematic illustration per status */}
-                    <StateIllustration status={order.status} orderType={order.order_type} />
-                    <h2 className="text-2xl font-black text-gray-900 mb-1">{atDoor ? t.atDoorTitle : currentStepText.label}</h2>
-                    <p className="text-sm text-gray-500 leading-snug">{statusSubtitle}</p>
-                  </>
-                ) : null}
-              </div>
-
-              {/* ── Timeline with circles ── */}
-              <div className="px-6 pb-8">
-                <div className="flex items-start">
-                  {CUSTOMER_STEPS.map((key, i) => {
-                    const isDone   = i < currentStepIndex;
-                    const isActive = i === currentStepIndex;
-                    return (
-                      <Fragment key={key}>
-                        {/* Circle + label */}
-                        <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                          <div className="relative">
-                            {/* Ping ring on active step */}
-                            {isActive && (
-                              <span className="absolute inset-0 rounded-full bg-brand-400 animate-ping opacity-30" />
-                            )}
-                            <motion.div
-                              initial={false}
-                              animate={{
-                                scale: isActive ? 1.12 : 1,
-                                backgroundColor: isDone || isActive ? '#05c8a7' : '#ffffff',
-                                borderColor: isDone || isActive ? '#05c8a7' : '#e5e7eb',
-                              }}
-                              transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                              className="relative w-9 h-9 rounded-full flex items-center justify-center border-2"
-                            >
-                              <AnimatePresence mode="wait">
-                                {isDone ? (
-                                  <motion.span
-                                    key="check"
-                                    initial={{ scale: 0, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    exit={{ scale: 0, opacity: 0 }}
-                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                                  >
-                                    <Check className="w-4 h-4 text-white" strokeWidth={3} />
-                                  </motion.span>
-                                ) : isActive ? (
-                                  <motion.div
-                                    key="active-dot"
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="w-2 h-2 rounded-full bg-white"
-                                  />
-                                ) : (
-                                  <motion.div key="inactive-dot" className="w-2 h-2 rounded-full bg-gray-300" />
-                                )}
-                              </AnimatePresence>
-                            </motion.div>
-                          </div>
-                          <span className={cn(
-                            'text-[9px] font-semibold text-center leading-tight w-14 transition-colors duration-500',
-                            isDone || isActive ? 'text-brand-600' : 'text-gray-300'
-                          )}>
-                            {key === 'ready' && order.order_type === 'delivery'
-                              ? (onTheWay || (order as any).driver_picked_up_at
-                                  ? tWithType.progressOnTheWay
-                                  : tWithType.progressReady)
-                              : tWithType.customerSteps[key]}
-                          </span>
-                        </div>
-
-                        {/* Connecting line between circles — fills with brand color as
-                            steps complete. The segment LEAVING the active step shows a
-                            flowing shimmer ("this stage is in progress"). */}
-                        {i < CUSTOMER_STEPS.length - 1 && (() => {
-                          const isInProgress = i === currentStepIndex && !isComplete;
-                          return (
-                            <div className="flex-1 h-0.5 mt-[18px] mx-1 bg-gray-100 relative overflow-hidden rounded-full">
-                              {isInProgress ? (
-                                <span className="timeline-flow absolute inset-0 rounded-full opacity-80" />
-                              ) : (
-                                <motion.div
-                                  className="absolute inset-y-0 left-0 bg-brand-500 rounded-full"
-                                  initial={false}
-                                  animate={{ width: i < currentStepIndex ? '100%' : '0%' }}
-                                  transition={{ duration: 0.7, ease: 'easeOut' }}
-                                />
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </Fragment>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* ── MAP HERO — promoted to top when driver is on the road ── */}
-        {order.order_type === 'delivery' && (order as any).driver_picked_up_at && !isComplete && !isCancelled && !atDoor && (
+        {awaitingPayment ? (
+          <section className={card} style={cardStyle}>
+            <PaymentPendingCard orderId={o.id} restaurantSlug={restaurantSlug} paidParam={paidParam}
+              createdAt={o.created_at} paymentMethod={o.payment_method} currency={currency} t={t} />
+          </section>
+        ) : (
           <>
-            {/* Live ETA hero — updates every ~50m of driver movement via Mapbox Directions */}
-            <div className="tracker-card rounded-3xl bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] border border-orange-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-7 text-center">
-                <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest mb-3">
-                  {t.driverOnWayHeroLabel}
-                </p>
-                {liveDeliveryEta !== null ? (
-                  <>
-                    <div className="flex items-end justify-center gap-1 mb-1">
-                      <span className="text-[72px] font-black text-orange-600 leading-none tabular-nums">~{liveDeliveryEta}</span>
-                      <span className="text-2xl font-bold text-orange-400 mb-3">min</span>
-                    </div>
-                    <p className="text-sm text-orange-500 font-medium">
-                      {t.estimatedArrival}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-3xl font-black text-orange-600 mb-1">🛵</p>
-                )}
-              </div>
-            </div>
-            <div className="tracker-card rounded-3xl shadow-md">
-              <DeliveryMap
-                restaurantAddress={restaurantAddress}
-                deliveryAddress={order.delivery_address}
-                restaurantName={restaurantName}
-                driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
-                driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
-                deliveryLat={(order as any).delivery_lat ?? null}
-                deliveryLng={(order as any).delivery_lng ?? null}
-                restaurantLat={restaurantLat}
-                restaurantLng={restaurantLng}
-                locale={locale}
-                onEtaUpdate={setLiveDeliveryEta}
-              />
-            </div>
-          </>
-        )}
-
-        {/* ── ETA HERO — dual display: minutes countdown + exact clock time ── */}
-        {order.estimated_ready_minutes && (
-          ['confirmed', 'preparing'].includes(order.status)
-          // Delivery listo esperando al repartidor: sin esto no había ninguna
-          // hora de llegada entre "listo" y "salió".
-          || (order.order_type === 'delivery' && ['almost_ready', 'ready'].includes(order.status) && !(order as any).driver_picked_up_at && !onTheWay)
-          // "Salió" desde el mostrador sin que el repartidor usara su página:
-          // no hay GPS ni mapa, pero sí una hora de llegada.
-          || (order.order_type === 'delivery' && order.status === 'out_for_delivery' && !(order as any).driver_picked_up_at && !atDoor)
-        ) && (() => {
-          // Cuenta desde que el restaurante ACEPTÓ (prepared_at), igual que el email "listo en ~N min".
-          const acceptedAtRaw = (order as { prepared_at?: string | null }).prepared_at ?? order.updated_at ?? order.created_at;
-          const confirmedAt  = new Date(acceptedAtRaw);
-          const etaTime      = new Date(confirmedAt.getTime() + order.estimated_ready_minutes * 60_000);
-          const etaLocale    = t.en ? 'en-US' : 'es-MX';
-          const etaStr       = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
-          // etaTick is read here so this IIFE re-evaluates every 30s without polling
-          const rawMinsLeft  = Math.round((etaTime.getTime() - Date.now()) / 60_000) - etaTick * 0;
-          const minsLeft     = Math.max(0, rawMinsLeft);
-          // Pasados 3 min de la hora prometida: decirlo, en vez de "¡Ya casi!
-          // · Listo a las 12:42" para siempre con una hora que ya pasó.
-          const runningLate  = rawMinsLeft <= -3 && ['confirmed', 'preparing'].includes(order.status);
-          const progressPct  = Math.min(100, Math.max(0, 100 - (minsLeft / order.estimated_ready_minutes) * 100));
-          // Delivery: lo que importa es cuándo LLEGA (cocina + viaje en bici,
-          // mismo cálculo que prometió el checkout), no cuándo sale de cocina.
-          const isDelivery   = order.order_type === 'delivery';
-          const dLat = Number((order as any).delivery_lat), dLng = Number((order as any).delivery_lng);
-          const km = restaurantLat != null && restaurantLng != null && Number.isFinite(dLat) && Number.isFinite(dLng) && (order as any).delivery_lat != null
-            ? haversineKm(restaurantLat, restaurantLng, dLat, dLng) : 2;
-          const departedAt   = order.status === 'out_for_delivery' ? Date.parse(order.updated_at) : NaN;
-          // Listo: ya no faltan minutos de cocina. Salió: cuenta desde que salió.
-          const leaveAt      = Number.isFinite(departedAt) ? departedAt
-            : order.status === 'ready' ? Date.now()
-            : Math.max(etaTime.getTime(), Date.now());
-          const arrival      = new Date(Math.max(leaveAt + travelMinutes(km) * 60_000, Date.now() + 60_000));
-          const arrStr       = arrival.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
-          const arrMins      = Math.max(1, Math.round((arrival.getTime() - Date.now()) / 60_000));
-          const shownMins    = isDelivery ? arrMins : minsLeft;
-          const isAlmost     = !isDelivery && minsLeft <= 2;
-          return (
-            <div className={cn(
-              'tracker-card rounded-3xl border shadow-sm overflow-hidden',
-              isAlmost
-                ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'
-                : 'bg-gradient-to-br from-[#e6faf7] to-[#d0f7f1] border-[#b3efe6]'
-            )}>
-              <div className="px-6 pt-6 pb-5 text-center">
-                {/* Label */}
-                <p className={cn(
-                  'text-[10px] font-black uppercase tracking-widest mb-4',
-                  isAlmost ? 'text-amber-500' : 'text-[#05c8a7]'
-                )}>
-                  {isDelivery ? t.estimatedArrivalLabel : t.estimatedTime}
-                </p>
-
-                {shownMins > 0 && !runningLate ? (
-                  <>
-                    {/* Big minutes */}
-                    <div className="flex items-end justify-center gap-1.5 mb-3">
-                      <span className={cn(
-                        'text-[80px] font-black leading-none tabular-nums',
-                        isAlmost ? 'text-amber-600' : 'text-[#047a65]'
-                      )}>~{shownMins}</span>
-                      <span className={cn(
-                        'text-2xl font-bold mb-4',
-                        isAlmost ? 'text-amber-400' : 'text-[#05c8a7]'
-                      )}>min</span>
-                    </div>
-
-                    {/* Divider line */}
-                    <div className={cn(
-                      'w-12 h-px mx-auto mb-3',
-                      isAlmost ? 'bg-amber-200' : 'bg-[#b3efe6]'
-                    )} />
-
-                    {/* Exact clock time — secondary but visible */}
-                    <div className={cn(
-                      'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold',
-                      isAlmost ? 'bg-amber-100 text-amber-700' : 'bg-white/60 text-[#047a65]'
-                    )}>
-                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      {isDelivery ? t.arrivesByLabel(arrStr) : t.readyByLabel(etaStr)}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className={cn(
-                      runningLate ? 'text-3xl font-black mb-3' : 'text-5xl font-black mb-3',
-                      isAlmost ? 'text-amber-600' : 'text-[#047a65]'
-                    )}>
-                      {runningLate ? t.runningLate : t.almostReadyEta}
-                    </p>
-                    <div className={cn(
-                      'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold',
-                      isAlmost ? 'bg-amber-100 text-amber-700' : 'bg-white/60 text-[#047a65]'
-                    )}>
-                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      {isDelivery ? t.arrivesByLabel(arrStr) : runningLate ? t.runningLateDesc : t.readyByLabel(etaStr)}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Progress bar — fills as time passes */}
-              <div className={cn('h-1.5 relative overflow-hidden', isAlmost ? 'bg-amber-100' : 'bg-[#d0f7f1]')}>
-                <div
-                  className={cn('absolute inset-y-0 left-0 transition-all duration-[1500ms] ease-out', isAlmost ? 'bg-amber-400' : 'bg-[#05c8a7]')}
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ── DINE-IN TABLE CONTEXT CARD ── */}
-        {order.order_type === 'dine_in' && !isCancelled && (order as any).table_name && (
-          <div className="tracker-card bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-3xl px-6 py-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-violet-100 flex items-center justify-center flex-shrink-0">
-                <Utensils className="w-7 h-7 text-violet-600" />
-              </div>
-              <div>
-                <p className="text-[11px] font-bold text-violet-400 uppercase tracking-widest mb-0.5">
-                  {t.yourTable}
-                </p>
-                <p className="text-3xl font-black text-violet-700 leading-tight">{(order as any).table_name}</p>
-                <p className="text-sm text-violet-500 mt-1">
-                  {t.foodBroughtToTable}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── PICKUP CHEF MESSAGES — cross-fade between rotating messages ── */}
-        {order.order_type === 'pickup' && ['confirmed', 'preparing'].includes(order.status) && (
-          <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 relative overflow-hidden" style={{ minHeight: '60px' }}>
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={chefMessageIndex}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.4, ease: 'easeInOut' }}
-                className="text-sm font-semibold text-gray-600 text-center"
-              >
-                {t.chefMessages[chefMessageIndex]}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* ── DRIVER CARD + STATUS BANNERS (delivery only) ── */}
-        {/* driver_picked_up_at tambien monta el bloque: si el status quedo atras
-            (el KDS no marco ready antes de que el driver recogiera), el cliente
-            igual ve a su repartidor en vez de una pantalla que dice "preparando". */}
-        {/* Nunca con el pedido terminado: mostraba "En tu puerta" junto a "¡Entregado!". */}
-        {order.order_type === 'delivery' && !isComplete && !isCancelled && (['ready', 'out_for_delivery'].includes(order.status) || Boolean((order as any).driver_picked_up_at)) && (
-          <>
-            {/* Driver card — shown from assignment onwards, until driver is at door */}
-            {(order as any).driver_assigned_at && !(order as any).driver_at_door_at && (
-              <div className="tracker-card rounded-3xl overflow-hidden shadow-lg">
-                <div className={cn(
-                  'px-5 py-5',
-                  (order as any).driver_picked_up_at
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-500'
-                    : 'bg-gradient-to-r from-violet-600 to-violet-500'
-                )}>
-                  <div className="flex items-center gap-4">
-                    <div className="relative flex-shrink-0">
-                      <div className={cn(
-                        'w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl',
-                        !(order as any).driver_picked_up_at && 'opacity-80'
-                      )}>
-                        🛵
-                      </div>
-                      {(order as any).driver_picked_up_at && (
-                        <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#05c8a7] border-2 border-blue-600 animate-pulse" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={cn(
-                        'text-[10px] font-bold uppercase tracking-widest',
-                        (order as any).driver_picked_up_at ? 'text-blue-200' : 'text-violet-200'
-                      )}>
-                        {t.yourDriver}
-                      </p>
-                      <p className="text-lg font-black text-white leading-tight truncate">
-                        {(order as any).driver_name?.trim() || t.driverAssigned}
-                      </p>
-                      <p className={cn(
-                        'text-sm mt-0.5',
-                        (order as any).driver_picked_up_at ? 'text-blue-200' : 'text-violet-200'
-                      )}>
-                        {onTheWay ? t.headingToAddress : tWithType.steps.ready?.desc}
-                      </p>
-                    </div>
-                    {(order as any).driver_picked_up_at && (
-                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#05c8a7] animate-pulse" />
-                        <span className="text-[9px] font-bold text-blue-200 uppercase">GPS</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {(order as any).driver_phone && (
-                  <div className={cn(
-                    'px-5 py-3 border-t',
-                    (order as any).driver_picked_up_at
-                      ? 'bg-blue-50 border-blue-100'
-                      : 'bg-violet-50 border-violet-100'
-                  )}>
-                    <a
-                      href={`tel:${(order as any).driver_phone}`}
-                      className={cn(
-                        'flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-white font-bold text-sm active:scale-[0.98] transition-all border',
-                        (order as any).driver_picked_up_at
-                          ? 'border-blue-200 text-blue-700 hover:bg-blue-100'
-                          : 'border-violet-200 text-violet-700 hover:bg-violet-100'
-                      )}
-                    >
-                      <Phone className="w-4 h-4" />
-                      {(order as any).driver_name ? t.callDriverDirect((order as any).driver_name) : t.callDriver}
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* (La "Recogida estimada" se quitó: la llegada estimada de arriba ya cubre este tramo.) */}
-
-            {/* "Driver at door" — highest urgency, full pulsing card */}
-            {(order as any).driver_at_door_at && (
-              <div className="tracker-card rounded-3xl overflow-hidden shadow-xl border-2 border-orange-300">
-                <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-5">
-                  <div className="flex items-center gap-4">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl animate-bounce">
-                        🚪
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-orange-100 uppercase tracking-widest">
-                        {t.driverArrived}
-                      </p>
-                      <p className="text-xl font-black text-white leading-tight truncate">
-                        {(order as any).driver_name?.trim() || t.atYourDoor}
-                      </p>
-                      <p className="text-sm text-orange-100 mt-0.5">
-                        {t.comeToTheDoor}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                {(order as any).driver_phone && (
-                  <div className="bg-orange-50 px-5 py-3 border-t border-orange-200">
-                    <a
-                      href={`tel:${(order as any).driver_phone}`}
-                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-white border border-orange-200 text-orange-700 font-bold text-sm hover:bg-orange-100 active:scale-[0.98] transition-all"
-                    >
-                      <Phone className="w-4 h-4" />
-                      {(order as any).driver_name ? t.callDriverDirect((order as any).driver_name) : t.callDriver}
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ── WAITER CALL BUTTON (dine-in only, while order is active) ── */}
-        {order.order_type === 'dine_in' && !isCancelled && !isComplete && (
-          <WaiterCallButton orderId={order.id} tableName={(order as any).table_name} locale={locale} />
-        )}
-
-        {/* Push notification prompt */}
-        {!isCancelled && !isComplete && !awaitingPayment && order.authorized && trackingToken && (
-          <PushSubscriptionPrompt orderId={order.id} token={trackingToken} locale={locale} />
-        )}
-
-        {/* ── ITEMS SUMMARY CARD — visible immediately, no accordion ── */}
-        {!isCancelled && order.order_items?.length > 0 && (
-          <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-gray-900">{t.yourOrderLabel}</h3>
-              <span className="text-xs font-semibold text-gray-400">{order.order_items.length} {order.order_items.length === 1 ? t.itemSingular : t.itemPlural}</span>
-            </div>
-            <div className="px-5 py-3 space-y-2.5">
-              {order.order_items.map((item: any) => {
-                const productName = item.product_name ?? item.products?.name ?? t.productFallback;
-                const variantName = item.variant_name ?? item.product_variants?.name;
-                return (
-                  <div key={item.id} className="flex items-baseline justify-between gap-2">
-                    <p className="text-sm text-gray-700 min-w-0 truncate">
-                      <span className="font-bold text-brand-600">{item.qty}×</span>{' '}
-                      {productName}
-                      {variantName && <span className="text-gray-400 text-xs ml-1">({variantName})</span>}
-                    </p>
-                    <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="px-5 py-3 border-t border-gray-50 flex items-center justify-between">
-              <span className="text-sm font-bold text-gray-900">Total</span>
-              <span className="text-base font-black text-gray-900">{formatPrice(Number(order.total), currency)}</span>
-            </div>
-          </div>
-        )}
-
-        {/* ── ORDER DETAILS CARD ── */}
-        <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          {/* Section header */}
-          <div className="px-5 py-4 border-b border-gray-50">
-            <h3 className="text-sm font-bold text-gray-900">{t.orderDetails}</h3>
-          </div>
-
-          {/* Customer info rows — structured per order type */}
-          <div className="px-5 py-4 space-y-3">
-            {/* Name */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">{t.customer}</span>
-              <span className="text-sm font-semibold text-gray-800">{order.customer_name}</span>
-            </div>
-
-            {/* Phone */}
-            {order.customer_phone && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">{t.phone}</span>
-                <a
-                  href={`tel:${order.customer_phone}`}
-                  className="flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  {order.customer_phone}
-                </a>
-              </div>
-            )}
-
-            {/* Email */}
-            {order.customer_email && (
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-sm text-gray-400 flex-shrink-0">{t.email}</span>
-                <span className="text-sm font-semibold text-gray-800 text-right truncate">{order.customer_email}</span>
-              </div>
-            )}
-
-            {/* Delivery address — prominent */}
-            {order.order_type === 'delivery' && order.delivery_address && (
-              <div className="mt-1 rounded-2xl bg-violet-50 border border-violet-200 px-4 py-3 flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[11px] font-bold text-violet-500 uppercase tracking-wide mb-0.5">{t.address}</p>
-                  <p className="text-sm font-semibold text-violet-900">{order.delivery_address}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Table name — dine-in */}
-            {order.order_type === 'dine_in' && order.table_name && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">{t.table}</span>
-                <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
-                  <Utensils className="w-3.5 h-3.5 text-gray-400" /> {order.table_name}
+            {/* ── Estado + hora: lo único que importa de un vistazo ── */}
+            <section className="pt-1 grid gap-2" aria-live="polite">
+              {isComplete && (
+                <span className="w-14 h-14 rounded-full grid place-items-center mb-1" style={{ background: C.green, color: C.greenInk }}>
+                  <Check className="w-7 h-7" strokeWidth={3} aria-hidden />
                 </span>
-              </div>
-            )}
-
-            {/* Order type */}
-            {t.orderTypes[order.order_type as keyof typeof t.orderTypes] && (() => {
-              const ot = t.orderTypes[order.order_type as keyof typeof t.orderTypes];
-              return (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">{t.type}</span>
-                  <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
-                    <ot.icon className="w-3.5 h-3.5 text-gray-400" /> {ot.label}
-                  </span>
-                </div>
-              );
-            })()}
-
-            {/* Payment method */}
-            {t.paymentMethods[order.payment_method as keyof typeof t.paymentMethods] && (() => {
-              const pm = t.paymentMethods[order.payment_method as keyof typeof t.paymentMethods];
-              return (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400">{t.payment}</span>
-                  <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
-                    <pm.icon className="w-3.5 h-3.5 text-gray-400" /> {pm.label}
-                  </span>
-                </div>
-              );
-            })()}
-
-            {/* Notes */}
-            {order.notes && (
-              <div className="flex items-start justify-between gap-4">
-                <span className="text-sm text-gray-400 flex-shrink-0">{t.notes}</span>
-                <span className="text-sm text-gray-600 text-right max-w-[60%] italic">&quot;{order.notes}&quot;</span>
-              </div>
-            )}
-          </div>
-
-          {/* Price breakdown */}
-          <div className="px-5 py-4 border-t border-gray-100 space-y-2">
-            {/* Subtotal — only shown when there are additional line items to explain */}
-            {(Number(order.tax_amount) > 0 || Number(order.tip_amount) > 0 || Number(order.delivery_fee) > 0 || Number(order.discount_amount) > 0) && (() => {
-              const subtotal = Number(order.total)
-                - Number(order.tax_amount ?? 0)
-                - Number(order.tip_amount ?? 0)
-                - Number(order.delivery_fee ?? 0)
-                + Number(order.discount_amount ?? 0);
-              return (
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>{t.subtotal}</span>
-                  <span>{formatPrice(subtotal, currency)}</span>
-                </div>
-              );
-            })()}
-
-            {Number(order.discount_amount) > 0 && (
-              <div className="flex items-center justify-between text-sm text-[#05c8a7]">
-                <span>{t.discount}</span>
-                <span>-{formatPrice(Number(order.discount_amount), currency)}</span>
-              </div>
-            )}
-
-            {order.order_type === 'delivery' && Number(order.delivery_fee) > 0 && (
-              <div className="flex items-center justify-between text-sm text-gray-500">
-                <span>{t.deliveryFee}</span>
-                <span>{formatPrice(Number(order.delivery_fee), currency)}</span>
-              </div>
-            )}
-
-            {Number(order.tax_amount) > 0 && (
-              <div className="flex items-center justify-between text-sm text-gray-500">
-                <span>{t.taxes}</span>
-                <span>{formatPrice(Number(order.tax_amount), currency)}</span>
-              </div>
-            )}
-
-            {Number(order.tip_amount) > 0 && (
-              <div className="flex items-center justify-between text-sm text-gray-500">
-                <span>{t.tip}</span>
-                <span>{formatPrice(Number(order.tip_amount), currency)}</span>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-              <span className="text-base font-bold text-gray-900">{t.total}</span>
-              <span className="text-2xl font-black text-brand-600">{formatPrice(Number(order.total), currency)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* El mapa solo aparece con el repartidor en camino (arriba). Antes de
-            salir no hay nada que mirar, y después de entregado mostraba
-            "Repartidor en camino · ~1 min" debajo de "¡Pedido entregado!". */}
-
-        {/* Delivery proof photo */}
-        {isComplete && (order as any).delivery_photo_url && (
-          <div className="tracker-card">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
-              {t.deliveryPhotoLabel}
-            </p>
-            <a href={(order as any).delivery_photo_url} target="_blank" rel="noopener noreferrer">
-              <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
-                <Image
-                  src={(order as any).delivery_photo_url}
-                  alt={t.deliveryProofAlt}
-                  fill
-                  sizes="(max-width: 640px) 100vw, 480px"
-                  className="object-contain"
-                />
-              </div>
-            </a>
-          </div>
-        )}
-
-        {/* ── EVENT TIMELINE (delivery orders only) ── */}
-        {order.order_type === 'delivery' && (() => {
-          const tl = getT(locale, 'delivery');
-          const events: { label: string; ts: string }[] = [];
-          if (order.created_at) events.push({ label: tl.timelineOrdered, ts: order.created_at });
-          if ((order as any).driver_assigned_at) events.push({ label: tl.timelineReady, ts: (order as any).driver_assigned_at });
-          if ((order as any).driver_picked_up_at) events.push({ label: tl.timelinePickedUp, ts: (order as any).driver_picked_up_at });
-          if ((order as any).driver_at_door_at) events.push({ label: tl.timelineAtDoor, ts: (order as any).driver_at_door_at });
-          if ((order as any).driver_delivered_at) events.push({ label: tl.timelineDelivered, ts: (order as any).driver_delivered_at });
-          if (events.length < 2) return null;
-          const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(t.en ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit' });
-          return (
-            <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-50">
-                <h3 className="text-sm font-bold text-gray-900">{t.timelineTitle}</h3>
-              </div>
-              <div className="px-5 py-4">
-                <div className="relative">
-                  <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-100" />
-                  <div className="space-y-4">
-                    {events.map((ev, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className={cn(
-                          'relative z-10 w-4 h-4 rounded-full border-2 flex-shrink-0',
-                          i === events.length - 1
-                            ? 'bg-brand-500 border-brand-500'
-                            : 'bg-white border-gray-300'
-                        )} />
-                        <div className="flex-1 flex items-center justify-between min-w-0">
-                          <span className={cn(
-                            'text-sm truncate',
-                            i === events.length - 1 ? 'font-bold text-gray-900' : 'text-gray-500'
-                          )}>{ev.label}</span>
-                          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{fmtTime(ev.ts)}</span>
-                        </div>
-                      </div>
+              )}
+              {isCancelled && (
+                <span className="w-14 h-14 rounded-full grid place-items-center mb-1" style={{ background: C.redSoft, color: C.red }}>
+                  <XCircle className="w-7 h-7" aria-hidden />
+                </span>
+              )}
+              {/* En la puerta lo dice la tarjeta negra de abajo: sin repetirlo. */}
+              <h1 className={atDoor ? 'sr-only' : 'font-display text-[30px] font-extrabold leading-[1.08] tracking-tight'} style={{ textWrap: 'balance' } as React.CSSProperties}>
+                {headline}
+              </h1>
+              {subline && !atDoor && (
+                <p className="text-[16px] font-semibold leading-snug" style={{ color: isCancelled ? C.sub : kitchenLate ? C.amber : C.ink }}>
+                  {subline}
+                </p>
+              )}
+              {!isCancelled && (
+                <div className="mt-2" aria-hidden>
+                  <div className="grid grid-cols-4 gap-1">
+                    {stepLabels.map((_, i) => (
+                      <i key={i} className="h-1.5 rounded-full" style={{ background: i <= stepIndex ? (isPickup ? C.violet : C.ink) : C.line }} />
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-4 mt-1.5 text-[11.5px] font-semibold">
+                    {stepLabels.map((l, i) => (
+                      <span key={l} style={{ color: i === stepIndex ? C.ink : C.faint }}>{l}</span>
                     ))}
                   </div>
                 </div>
+              )}
+            </section>
+
+            {/* ── En la puerta ── */}
+            {atDoor && (
+              <section className="rounded-[20px] px-5 py-5 grid gap-1" style={{ background: C.ink, color: '#fff' }} role="status">
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: '#7FE3CF' }}>{en ? 'Now' : 'Ahora'}</p>
+                <p className="font-display text-[24px] font-extrabold leading-tight">{headline}</p>
+                {o.notes && <p className="text-[14px]" style={{ color: '#B7C2BE' }}>{o.notes}</p>}
+              </section>
+            )}
+
+            {/* ── Efectivo: que lo tenga listo cuando llega ── */}
+            {isDelivery && cashDue && (onTheWay || atDoor) && (
+              <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: C.orangeSoft, color: C.orange }}>
+                <span className="text-[14px] font-bold">{atDoor ? (en ? 'Pay on delivery' : 'Paga al recibir') : (en ? 'Have the cash ready' : 'Ten listo el efectivo')}</span>
+                <span className="font-display text-[24px] font-extrabold tabular-nums">{amount}</span>
               </div>
+            )}
+
+            {/* ── Mapa: solo en camino ── */}
+            {onTheWay && !atDoor && hasDriverGps && (
+              <section className="relative rounded-[20px] overflow-hidden border" style={cardStyle}>
+                <DeliveryMap
+                  restaurantAddress={restaurantAddress}
+                  deliveryAddress={o.delivery_address}
+                  restaurantName={restaurantName}
+                  driverLat={liveDriverCoords?.lat ?? o.driver_lat ?? null}
+                  driverLng={liveDriverCoords?.lng ?? o.driver_lng ?? null}
+                  deliveryLat={o.delivery_lat ?? null}
+                  deliveryLng={o.delivery_lng ?? null}
+                  restaurantLat={restaurantLat}
+                  restaurantLng={restaurantLng}
+                  locale={locale}
+                  onEtaUpdate={setLiveDeliveryEta}
+                />
+                <span className="absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[12px] font-bold shadow-sm" style={{ background: 'rgba(255,255,255,0.95)', color: locAgeMin != null && locAgeMin >= 2 ? C.amber : C.greenDeep }}>
+                  {locLabel}
+                </span>
+              </section>
+            )}
+            {onTheWay && !atDoor && !hasDriverGps && (
+              <p className="text-[13px] font-semibold px-1" style={{ color: C.faint }}>
+                {en ? 'Live location will appear when the driver shares it.' : 'La ubicación en vivo aparece cuando el repartidor la comparte.'}
+              </p>
+            )}
+
+            {/* ── Pickup listo: número grande + cómo llegar ── */}
+            {isPickup && o.status === 'ready' && (
+              <section className="rounded-[20px] px-5 py-5 text-center grid gap-1" style={{ background: C.violetSoft, color: C.violet }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em]">{en ? 'Show this number' : 'Muestra este número'}</p>
+                <p className="font-display text-[56px] font-extrabold leading-none tabular-nums tracking-tight">{shortNum}</p>
+                <p className="text-[14px] font-bold" style={{ color: C.ink }}>
+                  {[o.customer_name ? (en ? `For ${o.customer_name}` : `A nombre de ${o.customer_name}`) : null,
+                    cashDue ? (en ? `pay ${amount} at pickup` : `pagas ${amount} al recoger`) : null].filter(Boolean).join(' · ')}
+                </p>
+              </section>
+            )}
+            {isPickup && isActive && restaurantAddress && ['almost_ready', 'ready'].includes(o.status) && (
+              <section className={`${card} px-4 py-3 flex items-center justify-between gap-3`} style={cardStyle}>
+                <p className="text-[14px] font-semibold min-w-0">{restaurantAddress}</p>
+                <a href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`} target="_blank" rel="noopener noreferrer"
+                  className="flex-shrink-0 h-11 px-3 rounded-xl grid place-items-center text-[14px] font-bold" style={{ color: C.greenDeep }}>
+                  {en ? 'Directions' : 'Cómo llegar'}
+                </a>
+              </section>
+            )}
+
+            {/* ── Mesa ── */}
+            {isDineIn && isActive && (
+              <>
+                <WaiterCallButton orderId={o.id} tableName={o.table_name} locale={locale} />
+                <Link href={`/${restaurantSlug}`} className="h-12 rounded-2xl grid place-items-center text-[15px] font-bold bg-white border" style={cardStyle}>
+                  {t.addMoreItems}
+                </Link>
+              </>
+            )}
+
+            {/* ── Dirección + instrucciones (editables hasta que sale) ── */}
+            {isDelivery && isActive && !onTheWay && o.delivery_address && (
+              <DeliveryInstructions
+                orderId={o.id}
+                token={o.authorized ? trackingToken : undefined}
+                address={o.delivery_address}
+                notes={o.notes ?? ''}
+                en={en}
+                onSaved={(notes) => setOrder((prev: any) => ({ ...prev, notes }))}
+              />
+            )}
+
+            {/* ── Entregado: foto + una sola pregunta ── */}
+            {isComplete && o.delivery_photo_url && (
+              <a href={o.delivery_photo_url} target="_blank" rel="noopener noreferrer" className="relative block w-full aspect-[4/3] rounded-[20px] overflow-hidden border" style={cardStyle}>
+                <Image src={o.delivery_photo_url} alt={t.deliveryProofAlt} fill sizes="(max-width: 480px) 100vw, 448px" className="object-cover" />
+              </a>
+            )}
+            {isComplete && !autoClosed && (
+              <FeedbackPrompt restaurantId={restaurantId} orderId={o.id} customerName={o.customer_name} restaurantPhone={restaurantPhone} en={en} />
+            )}
+
+            {isActive && o.authorized && trackingToken && (
+              <PushSubscriptionPrompt orderId={o.id} token={trackingToken} locale={locale} />
+            )}
+          </>
+        )}
+
+        {/* ── Tu pedido (plegado) ── */}
+        {!isCancelled && (o.order_items?.length ?? 0) > 0 && (
+          <details className={`${card} group`} style={cardStyle}>
+            <summary className="list-none cursor-pointer px-4 py-3.5 flex items-center justify-between gap-3 min-h-[52px]">
+              <span className="min-w-0">
+                <span className="block text-[15px] font-bold">{t.yourOrderLabel} · {itemCount} {itemCount === 1 ? t.itemSingular : t.itemPlural}</span>
+                {payLine && <span className="block text-[13px]" style={{ color: C.sub }}>{payLine}</span>}
+              </span>
+              <span className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-[15px] font-bold tabular-nums">{amount}</span>
+                <span className="text-[18px] transition-transform group-open:rotate-90" style={{ color: C.faint }} aria-hidden>›</span>
+              </span>
+            </summary>
+            <div className="px-4 pb-4 grid gap-3 border-t" style={{ borderColor: C.line }}>
+              <ul className="grid gap-2 pt-3">
+                {(o.order_items as any[]).map((item) => (
+                  <li key={item.id} className="flex items-baseline justify-between gap-3 text-[14px]">
+                    <span className="min-w-0">
+                      <b className="tabular-nums">{item.qty}×</b> {item.product_name ?? t.productFallback}
+                      {item.variant_name && <span style={{ color: C.faint }}> · {item.variant_name}</span>}
+                      {item.notes && <span className="block text-[12.5px]" style={{ color: C.sub }}>{item.notes}</span>}
+                    </span>
+                    <span className="tabular-nums flex-shrink-0" style={{ color: C.sub }}>{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="grid gap-1 pt-2 border-t text-[13.5px]" style={{ borderColor: C.line, color: C.sub }}>
+                {Number(o.discount_amount) > 0 && <div className="flex justify-between"><span>{t.discount}</span><span>-{formatPrice(Number(o.discount_amount), currency)}</span></div>}
+                {isDelivery && Number(o.delivery_fee) > 0 && <div className="flex justify-between"><span>{t.deliveryFee}</span><span>{formatPrice(Number(o.delivery_fee), currency)}</span></div>}
+                {Number(o.tax_amount) > 0 && <div className="flex justify-between"><span>{t.taxes}</span><span>{formatPrice(Number(o.tax_amount), currency)}</span></div>}
+                {Number(o.tip_amount) > 0 && <div className="flex justify-between"><span>{t.tip}</span><span>{formatPrice(Number(o.tip_amount), currency)}</span></div>}
+                <div className="flex justify-between text-[15px] font-bold pt-1" style={{ color: C.ink }}><span>{t.total}</span><span className="tabular-nums">{amount}</span></div>
+              </div>
+              {!isDelivery && o.notes && <p className="text-[13px]" style={{ color: C.sub }}>{t.notes}: {o.notes}</p>}
+              {isDelivery && (() => {
+                const events: { label: string; ts: string }[] = [];
+                if (o.created_at) events.push({ label: t.timelineOrdered, ts: o.created_at });
+                if (o.driver_picked_up_at) events.push({ label: t.timelinePickedUp, ts: o.driver_picked_up_at });
+                if (o.driver_at_door_at) events.push({ label: t.timelineAtDoor, ts: o.driver_at_door_at });
+                if (o.driver_delivered_at) events.push({ label: t.timelineDelivered, ts: o.driver_delivered_at });
+                if (events.length < 2) return null;
+                return (
+                  <ol className="grid gap-1 pt-2 border-t text-[13px]" style={{ borderColor: C.line, color: C.sub }}>
+                    {events.map((ev) => (
+                      <li key={ev.label} className="flex justify-between"><span>{ev.label}</span><span className="tabular-nums">{fmtClock(Date.parse(ev.ts))}</span></li>
+                    ))}
+                  </ol>
+                );
+              })()}
             </div>
-          );
-        })()}
-
-        {/* Review prompt */}
-        {isComplete && (
-          <ReviewPrompt restaurantId={restaurantId} orderId={order.id} customerName={order.customer_name} locale={locale} />
+          </details>
         )}
 
-        {/* Reorder */}
-        {isComplete && order.order_items?.length > 0 && (
-          <button
-            onClick={() => {
-              // Mismo mecanismo que "Repetir mi último pedido" del menú: se guarda
-              // como último pedido y el menú lo pone en el carrito al abrir.
-              const saved = (order.order_items as any[])
-                .filter((it) => it.product_id)
-                .map((it) => ({
-                  productId: it.product_id as string,
-                  productName: (it.product_name as string) ?? '',
-                  variantId: (it.variant_id as string | null) ?? null,
-                  variantName: (it.variant_name as string | null) ?? null,
-                  variantPriceDelta: (it.variant_price_delta as number | null) ?? null,
-                  qty: Number(it.qty) || 1,
-                }));
-              if (saved.length === 0) { window.location.href = `/${restaurantSlug}`; return; }
-              useCartStore.setState({ lastOrder: { restaurantId, items: saved, date: new Date().toISOString() } });
-              window.location.href = `/${restaurantSlug}?reorder=1`;
-            }}
-            className="tracker-card block w-full py-3.5 rounded-2xl bg-[#05c8a7] text-white text-center font-bold text-sm hover:bg-[#04b096] active:scale-[0.98] transition-all shadow-lg shadow-[#05c8a7]/20"
-          >
-            {t.reorder}
-          </button>
-        )}
-
-        {/* CFDI invoice */}
         {isComplete && currency === 'MXN' && (
-          <CfdiButton orderId={order.id} restaurantId={restaurantId} t={t} />
+          <CfdiButton orderId={o.id} restaurantId={restaurantId} t={t} />
         )}
 
-        {/* ── DINE-IN: ADD MORE ITEMS ── */}
-        {order.order_type === 'dine_in' && !isCancelled && !isComplete && (
-          <Link
-            href={`/${restaurantSlug}`}
-            className="tracker-card flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-[#05c8a7] text-white font-bold text-sm hover:bg-[#04b096] active:scale-[0.98] transition-all shadow-lg shadow-[#05c8a7]/20"
-          >
-            <Utensils className="w-4 h-4" />
-            {t.addMoreItems}
-          </Link>
-        )}
-
-        {/* ── CTA BUTTONS ── */}
-        <div className="tracker-card space-y-2.5">
-          {/* When complete: share receipt is the prominent action; back to menu becomes secondary */}
-          {isComplete && order.order_items?.length > 0 && (
+        <div className="grid gap-1 pt-1">
+          {isComplete && (o.order_items?.length ?? 0) > 0 && (
             <ShareReceiptButton
-              orderNumber={order.order_number}
+              orderNumber={o.order_number}
               restaurantName={restaurantName}
               restaurantSlug={restaurantSlug}
-              total={Number(order.total)}
+              total={Number(o.total)}
               currency={currency}
-              items={(order.order_items as any[]).map((i: any) => ({
-                name: i.product_name ?? i.products?.name ?? 'Item',
-                qty: i.qty,
-              }))}
-              locale={locale === 'en' ? 'en' : 'es'}
+              items={(o.order_items as any[]).map((i: any) => ({ name: i.product_name ?? 'Item', qty: i.qty }))}
+              locale={en ? 'en' : 'es'}
             />
           )}
-          <Link
-            href={`/${restaurantSlug}`}
-            className={cn(
-              'block w-full py-4 rounded-2xl text-center font-bold text-sm active:scale-[0.98] transition-all',
-              isComplete
-                ? 'bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50'
-                : 'bg-brand-500 text-white hover:bg-brand-600 shadow-md shadow-brand-500/20'
-            )}
-          >
+          <Link href={`/${restaurantSlug}`} className="h-11 grid place-items-center text-[14px] font-semibold" style={{ color: C.sub }}>
             {t.backToMenu}
           </Link>
-          {restaurantPhone && (
-            <a
-              href={`tel:${restaurantPhone}`}
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 active:scale-[0.98] transition-all"
-            >
-              <Phone className="w-4 h-4" />
-              {t.callRestaurant}
-            </a>
-          )}
+          <Link href={`/${restaurantSlug}/mis-pedidos`} className="h-11 grid place-items-center text-[13px]" style={{ color: C.faint }}>
+            {t.viewPreviousOrders}
+          </Link>
+          <OrderHistorySaver order={o} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} trackingToken={trackingToken} />
         </div>
+      </main>
 
-        {/* My orders history link */}
-        <Link
-          href={`/${restaurantSlug}/mis-pedidos`}
-          className="block w-full py-2.5 text-center text-xs text-gray-400 hover:text-brand-600 transition-colors"
-        >
-          {t.viewPreviousOrders}
-        </Link>
-
-        {/* Save order to local history */}
-        <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} trackingToken={trackingToken} />
-      </div>
+      {/* ── Acción principal abajo, al alcance del pulgar ── */}
+      {showDock && (
+        <div className="sticky bottom-0 w-full border-t" style={{ background: C.surface, borderColor: C.line, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+          <div className="max-w-md mx-auto px-4 pt-3 grid gap-2">
+            {isPickup && o.status === 'ready' && o.authorized && trackingToken ? (
+              o.customer_arrived_at ? (
+                <p className="h-14 rounded-2xl grid place-items-center text-[16px] font-bold" style={{ background: C.greenSoft, color: C.greenDeep }} role="status">
+                  {en ? "We told them you're here" : 'Ya avisamos que llegaste'}
+                </p>
+              ) : (
+                <button type="button" onClick={markArrived} disabled={arriving}
+                  className="h-14 rounded-2xl text-[17px] font-extrabold text-white active:scale-[0.98] transition-transform disabled:opacity-60"
+                  style={{ background: C.violet }}>
+                  {en ? "I'm here" : 'Ya llegué'}
+                </button>
+              )
+            ) : isComplete && (o.order_items?.length ?? 0) > 0 ? (
+              <button type="button" onClick={reorder}
+                className="h-14 rounded-2xl text-[17px] font-extrabold active:scale-[0.98] transition-transform"
+                style={{ background: C.green, color: C.greenInk }}>
+                {en ? 'Order the same again' : 'Pedir lo mismo otra vez'}
+              </button>
+            ) : restaurantPhone ? (
+              <a href={`tel:${restaurantPhone}`}
+                className="h-12 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-bold bg-white border active:scale-[0.98] transition-transform"
+                style={cardStyle}>
+                <Phone className="w-[18px] h-[18px]" aria-hidden /> {t.callRestaurant}
+              </a>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Thematic animated illustration per order status.
-// Large emoji + bouncing/floating CSS animation — swaps with status-hero transition.
-function StateIllustration({ status, orderType }: { status: string; orderType?: string }) {
-  const config: Record<string, { emoji: string; bg: string; ring: string; float?: boolean }> = {
-    pending:          { emoji: '📋', bg: 'bg-amber-100',  ring: 'ring-amber-200',  float: false },
-    confirmed:        { emoji: '👨‍🍳', bg: 'bg-violet-100', ring: 'ring-violet-200', float: true  },
-    preparing:        { emoji: '🍳', bg: 'bg-violet-100', ring: 'ring-violet-200', float: true  },
-    almost_ready:     { emoji: '⚡', bg: 'bg-amber-50',   ring: 'ring-amber-200',  float: false },
-    ready:            orderType === 'delivery'
-                        ? { emoji: '🛵', bg: 'bg-orange-100', ring: 'ring-orange-200', float: true }
-                        : orderType === 'dine_in'
-                          ? { emoji: '🍽️', bg: 'bg-teal-100',  ring: 'ring-teal-200',  float: false }
-                          : { emoji: '🛍️', bg: 'bg-orange-100', ring: 'ring-orange-200', float: false },
-    out_for_delivery: { emoji: '🛵', bg: 'bg-violet-100', ring: 'ring-violet-200', float: true  },
-    served:           { emoji: '✨', bg: 'bg-teal-50',    ring: 'ring-teal-200',   float: false },
-    // delivered/cancelled/completed faltaban, y son el final de CASI TODO pedido:
-    // en prod, 134 delivered + 68 cancelled + 1 completed de 225 ordenes (90%).
-    // Sin entrada en este mapa el `return null` de abajo borraba la ilustracion
-    // justo en la pantalla que el cliente mira al recibir su comida. Los otros
-    // dos mapas del componente (steps y STEP_STYLES) ya cubrian delivered — este
-    // se quedo atras.
-    delivered:        orderType === 'pickup'
-                        ? { emoji: '🛍️', bg: 'bg-[#d0f7f1]', ring: 'ring-teal-200', float: false }
-                        : orderType === 'dine_in'
-                          ? { emoji: '✨', bg: 'bg-teal-50',   ring: 'ring-teal-200', float: false }
-                          : { emoji: '✅', bg: 'bg-[#d0f7f1]', ring: 'ring-teal-200', float: false },
-    completed:        { emoji: '✅', bg: 'bg-[#d0f7f1]', ring: 'ring-teal-200',  float: false },
-    cancelled:        { emoji: '🚫', bg: 'bg-gray-100',  ring: 'ring-gray-200',  float: false },
+// Dirección + instrucciones de entrega. Editables desde el seguimiento hasta
+// que el repartidor recoge (DoorDash Drive): en edificios de Queens el timbre
+// o el apartamento hacen la diferencia.
+function DeliveryInstructions({ orderId, token, address, notes, en, onSaved }: {
+  orderId: string; token?: string; address: string; notes: string; en: boolean; onSaved: (notes: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(notes);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  const save = async () => {
+    if (!token) return;
+    setSaving(true); setErr('');
+    try {
+      const res = await fetch('/api/public/order-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId, t: token, action: 'notes', notes: draft }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) { onSaved(data.notes ?? draft); setEditing(false); }
+      else setErr(res.status === 409
+        ? (en ? 'The driver already has your order. Call the restaurant.' : 'El repartidor ya salió con tu pedido. Llama al restaurante.')
+        : (en ? 'Could not save. Try again.' : 'No se pudo guardar. Intenta de nuevo.'));
+    } catch {
+      setErr(en ? 'Could not save. Try again.' : 'No se pudo guardar. Intenta de nuevo.');
+    }
+    setSaving(false);
+  };
+  return (
+    <section className="bg-white rounded-[20px] border px-4 py-3.5 grid gap-2" style={{ borderColor: C.line }}>
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>{en ? 'Deliver to' : 'Entregar en'}</p>
+      <p className="text-[16px] font-bold leading-snug">{address}</p>
+      {editing ? (
+        <>
+          <label htmlFor="delivery-notes" className="sr-only">{en ? 'Delivery instructions' : 'Instrucciones de entrega'}</label>
+          <textarea id="delivery-notes" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={300} rows={3}
+            placeholder={en ? 'Apt, buzzer, gate code…' : 'Apto, timbre, código del portón…'}
+            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: C.line }} />
+          {err && <p className="text-[13px] font-semibold" style={{ color: C.red }}>{err}</p>}
+          <div className="flex gap-2">
+            <button type="button" onClick={save} disabled={saving} className="h-11 px-4 rounded-xl text-[14px] font-bold text-white disabled:opacity-60" style={{ background: C.ink }}>
+              {saving ? '…' : (en ? 'Save' : 'Guardar')}
+            </button>
+            <button type="button" onClick={() => { setEditing(false); setDraft(notes); setErr(''); }} className="h-11 px-4 rounded-xl text-[14px] font-semibold" style={{ color: C.sub }}>
+              {en ? 'Cancel' : 'Cancelar'}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          {notes && <p className="rounded-xl px-3 py-2 text-[13.5px] font-semibold" style={{ background: '#FFF8E6', color: '#6B4A00' }}>{notes}</p>}
+          {token && (
+            <button type="button" onClick={() => { setDraft(notes); setEditing(true); }} className="justify-self-start h-11 -ml-1 px-1 text-[14px] font-bold" style={{ color: C.greenDeep }}>
+              {notes ? (en ? 'Edit instructions' : 'Editar instrucciones') : (en ? 'Add instructions' : 'Agregar instrucciones')}
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+// Una sola pregunta al final (peak-end). "Todo bien" lleva a la reseña
+// pública; "Hubo un problema" le llega al dueño en privado (no se publica).
+function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, en }: {
+  restaurantId: string; orderId: string; customerName: string; restaurantPhone?: string; en: boolean;
+}) {
+  const [mode, setMode] = useState<'ask' | 'good' | 'issue' | 'done'>('ask');
+  const [rating, setRating] = useState(5);
+  const [reason, setReason] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
+  const [sending, setSending] = useState(false);
+  const reasons = en
+    ? ['Something was missing', 'It arrived cold', 'It arrived late', 'Other']
+    : ['Faltó algo', 'Llegó frío', 'Llegó tarde', 'Otro'];
+
+  const send = async () => {
+    setSending(true);
+    const issue = mode === 'issue';
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurantId, order_id: orderId, customer_name: customerName || (en ? 'Customer' : 'Cliente'),
+          rating: issue ? 2 : rating,
+          comment: issue ? [reason, comment.trim()].filter(Boolean).join(': ') : comment.trim(),
+          issue, _hp: '',
+        }),
+      });
+      if (res.ok || res.status === 409) setMode('done');
+    } catch { /* se puede reintentar */ }
+    setSending(false);
   };
 
-  const cfg = config[status];
-  if (!cfg) return null;
-
+  if (mode === 'done') {
+    return (
+      <p className="rounded-2xl px-4 py-3 text-[14px] font-semibold" style={{ background: C.greenSoft, color: C.greenDeep }} role="status">
+        {en ? 'Thanks — the restaurant got your message.' : 'Gracias, el restaurante recibió tu mensaje.'}
+      </p>
+    );
+  }
   return (
-    <div className={cn('state-illustration w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5 ring-4', cfg.bg, cfg.ring)}>
-      <span className={cn('text-4xl select-none', cfg.float && 'float-bob')}>
-        {cfg.emoji}
-      </span>
-    </div>
+    <section className="bg-white rounded-[20px] border px-4 py-4 grid gap-3" style={{ borderColor: C.line }}>
+      {mode === 'ask' && (
+        <>
+          <p className="text-[16px] font-bold">{en ? 'Did everything arrive OK?' : '¿Llegó todo bien?'}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setMode('good')} className="h-12 rounded-2xl border text-[15px] font-bold" style={{ borderColor: C.line }}>
+              {en ? 'Yes, all good' : 'Sí, todo bien'}
+            </button>
+            <button type="button" onClick={() => setMode('issue')} className="h-12 rounded-2xl border text-[15px] font-bold" style={{ borderColor: C.line }}>
+              {en ? 'There was a problem' : 'Hubo un problema'}
+            </button>
+          </div>
+        </>
+      )}
+      {mode === 'good' && (
+        <>
+          <p className="text-[16px] font-bold">{en ? 'How would you rate it?' : '¿Cómo lo calificas?'}</p>
+          <div className="flex gap-1" role="radiogroup" aria-label={en ? 'Rating' : 'Calificación'}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n}`}
+                onClick={() => setRating(n)} className="w-11 h-11 grid place-items-center">
+                <Star className="w-7 h-7" style={{ color: n <= rating ? '#F5A524' : C.line }} fill={n <= rating ? '#F5A524' : 'none'} aria-hidden />
+              </button>
+            ))}
+          </div>
+          <label htmlFor="review-comment" className="sr-only">{en ? 'Comment' : 'Comentario'}</label>
+          <textarea id="review-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} rows={2}
+            placeholder={en ? 'Anything to add? (optional)' : '¿Algo que agregar? (opcional)'}
+            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: C.line }} />
+          <button type="button" onClick={send} disabled={sending} className="h-12 rounded-2xl text-[15px] font-bold text-white disabled:opacity-60" style={{ background: C.ink }}>
+            {sending ? '…' : (en ? 'Send' : 'Enviar')}
+          </button>
+        </>
+      )}
+      {mode === 'issue' && (
+        <>
+          <p className="text-[16px] font-bold">{en ? 'What happened?' : '¿Qué pasó?'}</p>
+          <div className="flex flex-wrap gap-2">
+            {reasons.map((r) => (
+              <button key={r} type="button" onClick={() => setReason(r)} aria-pressed={reason === r}
+                className="h-11 px-4 rounded-full border text-[14px] font-semibold"
+                style={reason === r ? { background: C.ink, color: '#fff', borderColor: C.ink } : { borderColor: C.line }}>
+                {r}
+              </button>
+            ))}
+          </div>
+          <label htmlFor="issue-comment" className="sr-only">{en ? 'Details' : 'Detalles'}</label>
+          <textarea id="issue-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={400} rows={2}
+            placeholder={en ? 'Tell us a bit more (optional)' : 'Cuéntanos un poco más (opcional)'}
+            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: C.line }} />
+          <button type="button" onClick={send} disabled={sending || !reason} className="h-12 rounded-2xl text-[15px] font-bold text-white disabled:opacity-50" style={{ background: C.ink }}>
+            {sending ? '…' : (en ? 'Send to the restaurant' : 'Enviar al restaurante')}
+          </button>
+          {restaurantPhone && (
+            <a href={`tel:${restaurantPhone}`} className="text-center text-[14px] font-semibold h-11 grid place-items-center" style={{ color: C.sub }}>
+              {en ? 'Or call the restaurant' : 'O llama al restaurante'}
+            </a>
+          )}
+        </>
+      )}
+    </section>
   );
 }
-
 
 function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tableName?: string | null; locale?: string }) {
   const t = getT(locale);
@@ -1943,145 +1329,6 @@ function PushSubscriptionPrompt({ orderId, token, locale }: { orderId: string; t
       >
         {t.notifyMe}
       </button>
-    </div>
-  );
-}
-
-function ReviewPrompt({ restaurantId, orderId, customerName, locale }: { restaurantId: string; orderId: string; customerName: string; locale?: string }) {
-  const t = getT(locale);
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurant_id: restaurantId, order_id: orderId, customer_name: customerName, rating, comment, _hp: '' }),
-      });
-      // 409 = already reviewed; treat as success
-      if (res.ok || res.status === 409) setSubmitted(true);
-    } catch { /* silent — inline prompt, no critical path */ }
-    finally { setSubmitting(false); }
-  };
-
-  if (submitted) {
-    return (
-      <div className="bg-[#e6faf7] border border-[#b3efe6] rounded-2xl p-5 text-center">
-        <Star className="w-8 h-8 text-[#05c8a7] mx-auto mb-2" />
-        <p className="text-[#047a65] font-semibold">{t.reviewThanks}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <h3 className="font-bold text-sm mb-3 text-center">{t.reviewTitle}</h3>
-      <div className="flex justify-center gap-1 mb-3">
-        {[1, 2, 3, 4, 5].map(s => (
-          <button key={s} onClick={() => setRating(s)}>
-            <Star className={cn('w-7 h-7 transition', s <= rating ? 'text-amber-500 fill-amber-500' : 'text-gray-300')} />
-          </button>
-        ))}
-      </div>
-      <textarea
-        value={comment} onChange={e => setComment(e.target.value)}
-        placeholder={t.reviewPlaceholder} rows={2} maxLength={500}
-        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none mb-3"
-      />
-      <button
-        onClick={handleSubmit}
-        disabled={submitting}
-        className="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-400 disabled:opacity-50 transition"
-      >
-        {submitting ? t.reviewSubmitting : t.reviewSubmit}
-      </button>
-    </div>
-  );
-}
-
-function OrderSuccessRedirect({ restaurantSlug, locale }: { restaurantSlug: string; locale?: string }) {
-  const t = getT(locale);
-  const router = useRouter();
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push(`/${restaurantSlug}`);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [router, restaurantSlug]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const colors = ['#10b981', '#059669', '#34d399', '#6ee7b7', '#a7f3d0', '#fbbf24', '#f59e0b', '#fb923c'];
-    const dots: HTMLSpanElement[] = [];
-
-    for (let i = 0; i < 40; i++) {
-      const dot = document.createElement('span');
-      const size = Math.random() * 6 + 4;
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const left = Math.random() * 100;
-      const delay = Math.random() * 600;
-      const duration = Math.random() * 1200 + 1000;
-
-      Object.assign(dot.style, {
-        position: 'absolute',
-        width: `${size}px`,
-        height: `${size}px`,
-        borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-        backgroundColor: color,
-        left: `${left}%`,
-        top: '50%',
-        opacity: '1',
-        transform: `rotate(${Math.random() * 360}deg)`,
-        animation: `confetti-fall ${duration}ms ${delay}ms ease-out forwards`,
-        pointerEvents: 'none',
-      });
-
-      dots.push(dot);
-      el.appendChild(dot);
-    }
-
-    return () => {
-      dots.forEach((d) => d.remove());
-    };
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <style>{`
-        @keyframes confetti-fall {
-          0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
-          100% { transform: translateY(120px) rotate(${Math.random() > 0.5 ? '' : '-'}540deg) scale(0); opacity: 0; }
-        }
-        @keyframes fade-in-up {
-          0% { opacity: 0; transform: translateY(16px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-      <div
-        ref={containerRef}
-        className="text-center max-w-sm relative overflow-hidden"
-        style={{ animation: 'fade-in-up 0.5s ease-out' }}
-      >
-        <div className="w-16 h-16 rounded-2xl bg-[#d0f7f1] flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-8 h-8 text-[#05c8a7]" />
-        </div>
-        <h2 className="text-lg font-bold text-gray-900 mb-1">{t.orderProcessedHeading}</h2>
-        <p className="text-sm text-gray-500 mb-6 animate-pulse">{t.returningToMenu}</p>
-        <Link
-          href={`/${restaurantSlug}`}
-              className="px-6 py-3 rounded-xl bg-[#05c8a7] text-white font-semibold text-sm hover:bg-[#04b096] transition-colors"
-        >
-          {t.goToMenu}
-        </Link>
-      </div>
     </div>
   );
 }

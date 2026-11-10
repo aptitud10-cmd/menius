@@ -261,6 +261,8 @@ export interface Order {
   driver_token_expires_at?: string | null;
   driver_picked_up_at?: string | null;
   driver_at_door_at?: string | null;
+  /** Pickup: el cliente avisó "Ya llegué" desde su seguimiento. */
+  customer_arrived_at?: string | null;
   driver_delivered_at?: string | null;
   delivery_photo_url?: string | null;
   cancellation_reason?: string | null;

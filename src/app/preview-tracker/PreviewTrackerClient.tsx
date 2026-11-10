@@ -33,7 +33,7 @@ function mock(state: string, type: string) {
     preparing: {},
     late: { prepared_at: ago(22) },
     ready: { status: 'ready', updated_at: ago(1) },
-    on_the_way: { status: 'out_for_delivery', driver_name: 'Carlos', driver_phone: '+17185550100', driver_assigned_at: ago(6), driver_picked_up_at: ago(5), driver_lat: 40.7570, driver_lng: -73.8700 },
+    on_the_way: { status: 'out_for_delivery', driver_name: 'Carlos', driver_phone: '+17185550100', driver_assigned_at: ago(6), driver_picked_up_at: ago(5), driver_lat: 40.7570, driver_lng: -73.8700, driver_updated_at: ago(0.1) },
     at_door: { status: 'out_for_delivery', driver_name: 'Carlos', driver_picked_up_at: ago(9), driver_at_door_at: ago(0.5), driver_lat: 40.7489, driver_lng: -73.8606 },
     delivered: { status: 'delivered', driver_name: 'Carlos', driver_picked_up_at: ago(14), driver_at_door_at: ago(5), driver_delivered_at: ago(4), updated_at: ago(4) },
     picked_up: { status: 'delivered', updated_at: ago(2) },
@@ -41,6 +41,8 @@ function mock(state: string, type: string) {
     scheduled: { status: 'pending', scheduled_for: new Date(Date.now() + 3 * 3600_000).toISOString(), prepared_at: null },
     unpaid: { status: 'pending', payment_method: 'online', payment_status: 'pending', prepared_at: null, estimated_ready_minutes: null },
     refunded: { status: 'cancelled', payment_method: 'online', payment_status: 'refunded' },
+    arrived: { status: 'ready', customer_arrived_at: ago(0.5) },
+    salio: { status: 'out_for_delivery', updated_at: ago(3) },
   };
   return { ...base, ...(s[state] ?? {}) };
 }

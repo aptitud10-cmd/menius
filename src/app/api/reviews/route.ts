@@ -112,6 +112,8 @@ export async function POST(request: NextRequest) {
         customer_name: sanitizeText(parsed.data.customer_name, 100),
         rating: parsed.data.rating,
         comment: sanitizeMultiline(parsed.data.comment ?? '', 500),
+        // "Hubo un problema" desde el seguimiento: va al dueño, no al menú público.
+        ...(parsed.data.issue ? { is_visible: false } : {}),
       })
       .select('id, customer_name, rating, comment, created_at')
       .single();

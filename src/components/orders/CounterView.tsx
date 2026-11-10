@@ -690,6 +690,21 @@ export function CounterView({
     [orders, pendingStatus],
   );
 
+  // Pickup: el cliente tocó "Ya llegué" en su seguimiento → suena y avisa.
+  // La primera pasada solo registra (al abrir la tablet no suenan los viejos).
+  const arrivedSeenRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const arrived = orders.filter(o => o.order_type === 'pickup' && o.customer_arrived_at && !['delivered', 'completed', 'cancelled'].includes(o.status));
+    if (!arrivedSeenRef.current) { arrivedSeenRef.current = new Set(arrived.map(o => o.id)); return; }
+    for (const o of arrived) {
+      if (arrivedSeenRef.current.has(o.id)) continue;
+      arrivedSeenRef.current.add(o.id);
+      if (isLeaderRef.current) playNewOrderSound();
+      showSuccess(T.customerArrivedToast(o.customer_name?.split(' ')[0] || T.customer, o.order_number?.split('-').pop() ?? ''));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
+
   // ── Derived lists ──
   // Reloj de 30 s: un programado pasa de "Programados" a "Nuevos" (con la
   // alerta verde) SCHEDULED_SPLASH_LEAD_MS antes de su hora, sin esperar al

@@ -42,15 +42,15 @@ export async function GET(req: NextRequest) {
 
     // Only select fields needed for the tracking UI — never expose payment tokens or internal tokens.
     // driver_tracking_token is selected solely to authenticate the caller; it is NOT returned.
-    const { data: order, error } = await db
-      .from('orders')
-      .select(`
+    // customer_arrived_at llega con la migración 20261110c: si todavía no se
+    // corrió, se reintenta sin esa columna en vez de romper el seguimiento.
+    const BASE_SELECT = `
         id, order_number, status, order_type, total, tax_amount, tip_amount,
         delivery_fee, discount_amount, payment_method, payment_status, scheduled_for, notes, created_at, updated_at,
         customer_name, customer_phone, customer_email, delivery_address,
         estimated_ready_minutes, prepared_at, delivery_lat, delivery_lng,
         driver_name, driver_phone, driver_assigned_at,
-        driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
+        driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at, driver_updated_at,
         delivery_photo_url, driver_tracking_token, customer_token, cancellation_reason,
         table:table_id(name),
         order_items(
@@ -58,10 +58,17 @@ export async function GET(req: NextRequest) {
           product:product_id(name),
           variant:variant_id(name, price_delta)
         )
-      `)
+      `;
+    const runSelect = (extra: string) => db
+      .from('orders')
+      .select(extra ? BASE_SELECT.replace('driver_updated_at,', `driver_updated_at, ${extra},`) : BASE_SELECT)
       .eq('order_number', orderNumber)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
+    let res = await runSelect('customer_arrived_at');
+    if (res.error && (res.error as { code?: string }).code === '42703') res = await runSelect('');
+    const { error } = res;
+    const order = res.data as any;
 
     if (error) {
       log.error('[order-track] DB query failed', { orderNumber, restaurantId, error: error.message });
