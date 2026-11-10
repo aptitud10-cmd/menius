@@ -611,10 +611,10 @@ export function buildStatusUpdateEmail(params: {
       icon: "🛵",
       titleEn: "Your order is on its way!",
       titleEs: "¡Tu pedido va en camino!",
-      msgEn:
-        "The driver picked up your order and is heading your way. Track it live on the map!",
-      msgEs:
-        "El repartidor recogió tu pedido y va hacia ti. ¡Síguelo en vivo en el mapa!",
+      // Sin mencionar el mapa: también sale cuando el mostrador toca "Salió" y
+      // el repartidor no usa su página (no hay ubicación en vivo).
+      msgEn: "Your order left the restaurant and is heading your way.",
+      msgEs: "Tu pedido salió del restaurante y va camino a ti.",
       color: "#2563eb",
     },
     delivered: (() => {

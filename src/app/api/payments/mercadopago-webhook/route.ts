@@ -219,14 +219,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Mark order as paid
-    const { error } = await adminDb
+    // .neq("paid"): un segundo pago aprobado distinto sobre el mismo pedido no
+    // vuelve a marcarlo ni a notificar dos veces.
+    const { data: paidRow, error } = await adminDb
       .from("orders")
       .update({
         payment_status: "paid",
         payment_intent_id: String(payment.id),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", order.id);
+      .eq("id", order.id)
+      .neq("payment_status", "paid")
+      .select("id")
+      .maybeSingle();
 
     if (error) {
       // Release the idempotency claim so MP's retry isn't dropped as duplicate
@@ -239,6 +244,11 @@ export async function POST(req: NextRequest) {
         error: error.message,
       });
       return NextResponse.json({ error: "update_failed" }, { status: 500 });
+    }
+
+    if (!paidRow) {
+      logger.info("MP: order already paid — skipping notifications", { orderId: order.id });
+      return NextResponse.json({ received: true });
     }
 
     sendPaymentConfirmedNotifications(order.id).catch((err) => {

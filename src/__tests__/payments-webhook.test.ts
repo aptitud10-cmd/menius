@@ -616,6 +616,9 @@ describe('POST /api/payments/mercadopago-webhook', () => {
       data: { mp_access_token: 'APP_USR-token', mp_enabled: true },
       error: null,
     });
+    // update().eq().neq('payment_status','paid').select().maybeSingle()
+    const updNeq = vi.fn(() => ({ select: () => ({ maybeSingle: async () => ({ data: { id: 'order-mp2' }, error: null }) }) }));
+    mockUpdate.mockReturnValueOnce({ eq: () => ({ neq: updNeq }) } as never);
 
     const req = makeRequest(
       `http://localhost/api/payments/mercadopago-webhook?data.id=${DATA_ID}`,
@@ -625,5 +628,9 @@ describe('POST /api/payments/mercadopago-webhook', () => {
     const res = await POST(req as never);
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
+    // No vuelve a marcar (ni notificar) un pedido que ya estaba pagado.
+    expect(updNeq).toHaveBeenCalledWith('payment_status', 'paid');
+    // La marca de idempotencia se toma recién con el pago verificado.
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ event_id: `mp:${DATA_ID}` }));
   });
 });

@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     // Fetch order — verify it belongs to this tenant's restaurant
     const { data: order, error: orderErr } = await adminDb
       .from('orders')
-      .select('id, order_number, total, payment_status, payment_intent_id, status, promo_code, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, restaurants(stripe_account_id, stripe_onboarding_complete, commission_plan)')
+      .select('id, order_number, total, payment_status, payment_intent_id, status, promo_code, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, driver_tracking_token, restaurants(stripe_account_id, stripe_onboarding_complete, commission_plan)')
       .eq('id', order_id)
       .eq('restaurant_id', tenant.restaurantId)
       .maybeSingle();
@@ -134,6 +134,13 @@ export async function POST(req: NextRequest) {
     // seguimiento se entera al instante, queda el historial y el cliente recibe
     // el aviso. Antes el cliente que había pagado no se enteraba de nada.
     void broadcastOrderUpdate(order.id, 'cancelled');
+    // Igual que updateOrderStatus: sin caché, el GPS del repartidor de un pedido
+    // cancelado se rechaza en el próximo ping.
+    const refundDriverToken = (order as { driver_tracking_token?: string | null }).driver_tracking_token;
+    if (refundDriverToken) {
+      const { evictTokenCache } = await import('@/lib/tracking/token-cache');
+      evictTokenCache(refundDriverToken.slice(0, 16)).catch(() => {});
+    }
     void adminDb
       .from('order_status_history')
       .insert({ order_id: order.id, from_status: order.status, to_status: 'cancelled', note: cancellationReason })

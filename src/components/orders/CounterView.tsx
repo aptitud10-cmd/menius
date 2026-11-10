@@ -663,8 +663,10 @@ export function CounterView({
       );
       // Print immediately on arrival if enabled
       if (printOnArrivalRef.current && !isFutureScheduled) {
-        printedOnArrivalRef.current.add(order.id);
-        PrinterService.printOrder(order, undefined, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
+        // Se marca solo si salió: si la impresora falló al llegar, aceptar reimprime.
+        PrinterService.printOrder(order, undefined, restaurantName, currency, locale, taxLabel, taxIncluded)
+          .then(() => { printedOnArrivalRef.current.add(order.id); })
+          .catch(() => {});
       }
     }
     if (isFutureScheduled) {
@@ -860,6 +862,7 @@ export function CounterView({
   // ── Rediseño: acción principal de cada tarjeta ──────────────────────────
   const statusFor = (o: Order, kind: PrimaryKind): Order['status'] =>
     kind === 'ready' ? 'ready'
+      : kind === 'dispatch' ? 'out_for_delivery'
       : kind === 'serve' ? 'served'
       : kind === 'complete' ? 'completed'
       : (o.order_type === 'dine_in' ? 'completed' : 'delivered');
@@ -899,7 +902,7 @@ export function CounterView({
     pendingTimers.current.set(order.id, { timer, run });
 
     const num = order.order_number?.split('-').pop() ?? '';
-    const msg = kind === 'ready' ? T.markedReady(num) : kind === 'serve' ? T.markedServed(num) : T.markedDelivered(num);
+    const msg = kind === 'ready' ? T.markedReady(num) : kind === 'serve' ? T.markedServed(num) : kind === 'dispatch' ? T.markedDispatched(num) : T.markedDelivered(num);
     showSuccess(msg, {
       label: T.undo,
       run: () => {

@@ -1,3 +1,4 @@
+import { tableBanner } from './table-label';
 import type { ReceiptData, ReceiptLineItem } from './types';
 
 // 80mm thermal printer — ~42 chars per line at 12px monospace
@@ -145,11 +146,8 @@ export function buildReceiptHTML(data: ReceiptData): string {
 
   // ── A: Order type banner label ──
   const typeBannerLabel = (() => {
-    // tableName suele venir como "Mesa 5": sin quitar el prefijo salía "EN MESA — MESA 5".
-    if (tableName) {
-      const n = tableName.replace(/^\s*(mesa|table)\s*/i, '').toUpperCase() || tableName.toUpperCase();
-      return en ? `TABLE ${n}` : `MESA ${n}`;
-    }
+    // tableName suele venir como "Mesa 5": antes salía "EN MESA — MESA 5".
+    if (tableName) return tableBanner(tableName, en);
     if (orderType === 'delivery') return 'DELIVERY';
     if (orderType === 'pickup') return en ? 'PICKUP' : 'PARA RECOGER';
     if (orderType === 'dine_in') return en ? 'DINE-IN' : 'EN LOCAL';

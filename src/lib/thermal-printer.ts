@@ -1,3 +1,4 @@
+import { stripTablePrefix } from './printing/table-label';
 /**
  * ESC/POS thermal printer encoder.
  * Supports 80mm and 58mm thermal printers via:
@@ -219,7 +220,8 @@ export function buildReceipt(data: ReceiptData): Uint8Array {
     e.row('Tipo:', typeLabel[data.orderType] || data.orderType);
   }
   if (data.tableName) {
-    e.row('Mesa:', data.tableName);
+    // "Mesa 5" → "Mesa: 5" (antes "Mesa: Mesa 5"); "Terraza 2" queda entero.
+    e.row('Mesa:', stripTablePrefix(data.tableName) || data.tableName);
   }
 
   e.line('=');

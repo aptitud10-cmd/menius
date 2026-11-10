@@ -1780,7 +1780,7 @@ export async function undoOrderStatus(orderId: string, toStatus: string) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, status")
+    .select("id, status, driver_tracking_token")
     .eq("id", orderId)
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
@@ -1803,14 +1803,21 @@ export async function undoOrderStatus(orderId: string, toStatus: string) {
 
   void broadcastOrderUpdate(orderId, toStatus);
 
-  try {
-    await historyDb().from("order_status_history").insert({
-      order_id: orderId,
-      from_status: current,
-      to_status: toStatus,
-      note: "undo",
-    });
-  } catch { /* history is best-effort */ }
+  // El pedido vuelve a estar abierto: la caché del token se invalida para que
+  // el GPS del repartidor se acepte otra vez.
+  const undoToken = (order as { driver_tracking_token?: string | null }).driver_tracking_token;
+  if (undoToken) {
+    const { evictTokenCache } = await import("@/lib/tracking/token-cache");
+    evictTokenCache(undoToken.slice(0, 16)).catch(() => {});
+  }
+
+  const { error: histErr } = await historyDb().from("order_status_history").insert({
+    order_id: orderId,
+    from_status: current,
+    to_status: toStatus,
+    note: "undo",
+  });
+  if (histErr) logger.warn("history insert failed (undo)", { orderId, error: histErr.message });
 
   return {};
 }
@@ -1833,7 +1840,7 @@ export async function updateOrderStatus(
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, status, payment_status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, estimated_ready_minutes, driver_tracking_token, driver_delivered_at, restaurants ( slug, name )",
+      "id, status, payment_status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, estimated_ready_minutes, driver_tracking_token, restaurants ( slug, name )",
     )
     .eq("id", orderId)
     .eq("restaurant_id", restaurantId)
@@ -1868,17 +1875,13 @@ export async function updateOrderStatus(
   if (status === "preparing") {
     updatePayload.prepared_at = new Date().toISOString();
   }
-  // Pedido cerrado con repartidor: el enlace del repartidor deja de servir
-  // (antes /api/driver/location seguía aceptando GPS y, si el repartidor
-  // recargaba, su página volvía a mandar ubicación) y queda la hora de entrega.
+  // Pedido cerrado con repartidor: se invalida la caché del token (abajo) para
+  // que /api/driver/location vuelva a leer el pedido y rechace el GPS de un
+  // pedido cerrado. El enlace NO se vence: el repartidor tiene que poder
+  // recargar su página, ver "entregado"/"cancelado" y subir la foto, y un
+  // "deshacer" del KDS tiene que dejarlo funcionando.
   const driverToken = (order as { driver_tracking_token?: string | null }).driver_tracking_token ?? null;
   const isFinal = ["delivered", "completed", "cancelled"].includes(status);
-  if (isFinal && driverToken) {
-    updatePayload.driver_token_expires_at = new Date().toISOString();
-    if (status === "delivered" && !(order as { driver_delivered_at?: string | null }).driver_delivered_at) {
-      updatePayload.driver_delivered_at = new Date().toISOString();
-    }
-  }
 
   const { error } = await supabase
     .from("orders")
@@ -1902,7 +1905,7 @@ export async function updateOrderStatus(
   // Log the transition to order_status_history (non-blocking, graceful)
   void (async () => {
     try {
-      await historyDb()
+      const { error: histErr } = await historyDb()
         .from("order_status_history")
         .insert({
           order_id: orderId,
@@ -1910,8 +1913,9 @@ export async function updateOrderStatus(
           to_status: status,
           note: cancellationReason ?? null,
         });
+      if (histErr) logger.warn("history insert failed", { orderId, error: histErr.message });
     } catch {
-      /* table may not exist yet — safe to ignore */
+      /* best-effort */
     }
   })();
 

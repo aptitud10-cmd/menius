@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     // Cache miss — hit Postgres (O(log n) via partial index on driver_tracking_token)
     const { data: order } = await supabase
       .from('orders')
-      .select('id, order_type, driver_token_expires_at')
+      .select('id, order_type, status, driver_token_expires_at')
       .eq('driver_tracking_token', token)
       .maybeSingle();
 
@@ -69,6 +69,12 @@ export async function POST(req: NextRequest) {
         { error: 'Location is only valid for delivery orders' },
         { status: 409 },
       );
+    }
+
+    // Pedido cerrado o cancelado: no más GPS. Al cerrar se invalida la caché
+    // (updateOrderStatus / reembolso), así que el siguiente ping llega acá.
+    if (['delivered', 'completed', 'cancelled'].includes((order as any).status)) {
+      return NextResponse.json({ error: 'Order closed' }, { status: 409 });
     }
 
     orderId = order.id as string;

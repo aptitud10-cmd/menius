@@ -9,7 +9,7 @@ import {
   orderAllergies, money, stripNoteLabel, scheduledWhen, waitingSince,
 } from './ui';
 
-export type PrimaryKind = 'accept' | 'ready' | 'serve' | 'deliver' | 'complete';
+export type PrimaryKind = 'accept' | 'ready' | 'serve' | 'dispatch' | 'deliver' | 'complete';
 
 /** La única acción principal de cada estado. Siempre la misma etiqueta y lugar. */
 export function primaryAction(order: Order, T: CounterText, acceptMins: number): { kind: PrimaryKind; label: string } | null {
@@ -23,7 +23,10 @@ export function primaryAction(order: Order, T: CounterText, acceptMins: number):
       return dineIn ? { kind: 'serve', label: T.serve } : { kind: 'ready', label: T.ready };
     case 'ready':
       if (dineIn) return { kind: 'serve', label: T.serve };
-      return { kind: 'deliver', label: order.order_type === 'pickup' ? T.pickedUp : T.delivered };
+      // Delivery: "Salió" → el cliente recibe "va en camino" aunque el
+      // repartidor no use su página (si la usa, su "Recogí" hace lo mismo).
+      if (order.order_type === 'delivery') return { kind: 'dispatch', label: T.dispatched };
+      return { kind: 'deliver', label: T.pickedUp };
     case 'out_for_delivery':
       return { kind: 'deliver', label: T.delivered };
     case 'served':

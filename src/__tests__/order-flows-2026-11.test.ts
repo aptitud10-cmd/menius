@@ -95,3 +95,46 @@ describe('liveLocationTopic', () => {
     expect(liveLocationTopic('x')).toBeNull();
   });
 });
+
+import { primaryAction } from '@/components/orders/counter/CounterBoard';
+import { counterText } from '@/components/orders/counter/ui';
+import { tableBanner, stripTablePrefix } from '@/lib/printing/table-label';
+import type { Order } from '@/types';
+
+describe('primaryAction por tipo y estado', () => {
+  const T = counterText('es');
+  const o = (status: string, order_type: string) => ({ id: 'x', status, order_type } as unknown as Order);
+  it('delivery listo → Salió; en camino → Entregado', () => {
+    expect(primaryAction(o('ready', 'delivery'), T, 15)?.kind).toBe('dispatch');
+    expect(primaryAction(o('out_for_delivery', 'delivery'), T, 15)?.kind).toBe('deliver');
+  });
+  it('recoger listo → Recogido; mesa lista → Servido → Cerrar mesa', () => {
+    expect(primaryAction(o('ready', 'pickup'), T, 15)).toEqual({ kind: 'deliver', label: 'Recogido' });
+    expect(primaryAction(o('ready', 'dine_in'), T, 15)?.kind).toBe('serve');
+    expect(primaryAction(o('served', 'dine_in'), T, 15)?.kind).toBe('complete');
+  });
+  it('ready → out_for_delivery es una transición válida', () => {
+    expect(canTransition('ready', 'out_for_delivery')).toBe(true);
+  });
+});
+
+describe('nombre de mesa en el ticket', () => {
+  it.each([
+    ['Mesa 5', 'MESA 5'],
+    ['Table 12', 'MESA 12'],
+    ['7', 'MESA 7'],
+    ['Mesa', 'MESA'],
+    ['Terraza 2', 'EN MESA — TERRAZA 2'],
+    ['Mesanine 1', 'EN MESA — MESANINE 1'],
+    ['Tablero 3', 'EN MESA — TABLERO 3'],
+  ])('%s → %s', (name, expected) => {
+    expect(tableBanner(name, false)).toBe(expected);
+  });
+  it('en inglés', () => {
+    expect(tableBanner('Mesa 5', true)).toBe('TABLE 5');
+  });
+  it('fila "Mesa:" sin repetir la palabra', () => {
+    expect(stripTablePrefix('Mesa 5')).toBe('5');
+    expect(stripTablePrefix('Terraza 2')).toBeNull();
+  });
+});
