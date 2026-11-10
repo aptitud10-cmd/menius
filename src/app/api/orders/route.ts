@@ -17,6 +17,7 @@ import { captureError } from "@/lib/error-reporting";
 import { getStripe } from "@/lib/stripe";
 import {
   computeUnitPrice,
+  canonicalizeModifiers,
   computeOrderTotals,
   resolveCommission,
   computeApplicationFeeCents,
@@ -444,7 +445,7 @@ export async function POST(request: NextRequest) {
       modGroupIds.length > 0
         ? await supabase
             .from("modifier_options")
-            .select("id, group_id, price_delta")
+            .select("id, group_id, name, price_delta")
             .in("group_id", modGroupIds)
         : { data: [] };
 
@@ -518,12 +519,35 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      const itemGroups = modGroupsByProduct.get(item.product_id) ?? [];
+
+      // Modificadores canónicos desde la DB. Antes se aceptaba lo que mandaba el
+      // cliente: opciones inexistentes o '__legacy' ($0 pero con el nombre que
+      // quisiera — "Size: Large" gratis), opciones de OTRO producto, repetidas,
+      // y group_name/option_name inventados que llegaban así a cocina y ticket.
+      // Ahora solo pasan opciones reales de los grupos de este producto, una vez
+      // cada una, con nombre y precio de la DB.
+      {
+        const { modifiers: canonical, dropped } = canonicalizeModifiers(
+          item.modifiers ?? [],
+          itemGroups,
+          modOptionMap,
+        );
+        if (dropped > 0) {
+          logger.warn("dropped invalid modifiers (unknown, legacy, foreign or duplicate)", {
+            restaurant_id,
+            product: item.product_id,
+            dropped,
+          });
+        }
+        (item as Record<string, unknown>).modifiers = canonical;
+      }
+
       // Conditional groups: a group with depends_on_option_id only exists while
       // that option is selected. Its modifiers are stripped here, BEFORE pricing,
       // so a forged (or merely stale) cart cannot bill a side that the chosen
       // Style never included — the client hides the group, the server refuses to
       // charge for it.
-      const itemGroups = modGroupsByProduct.get(item.product_id) ?? [];
       const conditionalGroups = itemGroups.filter(
         (g) => g.depends_on_option_id,
       );
@@ -573,36 +597,6 @@ export async function POST(request: NextRequest) {
       }
       const expectedUnitPrice = priceResult.unitPrice;
 
-      // Log legacy/unknown modifiers for visibility (computeUnitPrice already uses $0 for both)
-      for (const mod of item.modifiers ?? []) {
-        const isLegacy =
-          !mod.option_id || String(mod.option_id).startsWith("__legacy");
-        if (isLegacy) {
-          logger.warn(
-            "legacy modifier — using $0 for security (migrate to modifier_options)",
-            {
-              restaurant_id,
-              product: item.product_id,
-              option_id: mod.option_id,
-            },
-          );
-        } else if (mod.option_id && !modOptionMap.has(mod.option_id)) {
-          logger.error(
-            "modifier option not found in DB — possible forged request, using $0",
-            {
-              restaurant_id,
-              option_id: mod.option_id,
-              product: item.product_id,
-            },
-          );
-          captureError(new Error("modifier option not found in DB"), {
-            restaurant_id,
-            option_id: mod.option_id,
-            product: item.product_id,
-          });
-        }
-      }
-
       const groups = modGroupsByProduct.get(item.product_id) ?? [];
       const chosenAfterPrune = new Set(
         (item.modifiers ?? [])
@@ -610,7 +604,6 @@ export async function POST(request: NextRequest) {
           .filter((id): id is string => !!id),
       );
       for (const grp of groups) {
-        if (!grp.is_required) continue;
         // A hidden conditional group must not block the order: a Regular burger
         // has no side to choose, so requiring one would reject a valid cart.
         if (
@@ -619,26 +612,27 @@ export async function POST(request: NextRequest) {
         ) {
           continue;
         }
+        // Modifiers are canonical at this point (real group_id from the DB).
+        const selected = (item.modifiers ?? []).filter(
+          (m) => m.group_id === grp.id,
+        ).length;
+        // max_select applies to EVERY group — before, only required groups were
+        // checked, so an optional "pick up to 2" group accepted any number.
+        if (grp.max_select > 0 && selected > grp.max_select) {
+          return NextResponse.json(
+            { error: `Máximo ${grp.max_select} opción(es) en "${grp.name}".` },
+            { status: 400 },
+          );
+        }
+        if (!grp.is_required) continue;
         // Skip validation if the group has no options — avoids blocking orders
         // when a required modifier group was created but has no options yet
         if (!groupsWithOptions.has(grp.id)) continue;
-        // Match by group_id (preferred) OR group_name (fallback for legacy/stale cart items).
-        // Using both avoids failures when the client has stale cart data or when group
-        // names differ by case/whitespace from the database value.
-        const selected = (item.modifiers ?? []).filter(
-          (m) => m.group_id === grp.id || m.group_name === grp.name,
-        ).length;
         if (selected < grp.min_select) {
           return NextResponse.json(
             {
               error: `Selecciona al menos ${grp.min_select} opción(es) en "${grp.name}".`,
             },
-            { status: 400 },
-          );
-        }
-        if (grp.max_select > 0 && selected > grp.max_select) {
-          return NextResponse.json(
-            { error: `Máximo ${grp.max_select} opción(es) en "${grp.name}".` },
             { status: 400 },
           );
         }

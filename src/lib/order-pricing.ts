@@ -27,6 +27,48 @@ export interface ModOptionRecord {
   price_delta: number;
 }
 
+export interface CanonicalModifier {
+  group_id: string;
+  group_name: string;
+  option_id: string;
+  option_name: string;
+  price_delta: number;
+}
+
+/**
+ * Reconstruye los modificadores de un ítem desde la DB. Descarta opciones
+ * inexistentes o '__legacy', opciones de grupos que no son de este producto y
+ * repetidas; nombres y precio salen de la DB, nunca del cliente (antes un
+ * option_id '__legacy' con option_name "Large" pasaba gratis a cocina).
+ */
+export function canonicalizeModifiers(
+  modifiers: ReadonlyArray<{ option_id?: string | null }>,
+  productGroups: ReadonlyArray<{ id: string; name: string }>,
+  modOptionMap: Map<string, { id: string; group_id: string; name: string; price_delta: number | string | null }>,
+): { modifiers: CanonicalModifier[]; dropped: number } {
+  const groupById = new Map(productGroups.map((g) => [g.id, g]));
+  const seen = new Set<string>();
+  const out: CanonicalModifier[] = [];
+  let dropped = 0;
+  for (const m of modifiers) {
+    const opt = m.option_id ? modOptionMap.get(m.option_id) : undefined;
+    const grp = opt ? groupById.get(opt.group_id) : undefined;
+    if (!opt || !grp || seen.has(opt.id)) {
+      dropped++;
+      continue;
+    }
+    seen.add(opt.id);
+    out.push({
+      group_id: grp.id,
+      group_name: grp.name,
+      option_id: opt.id,
+      option_name: opt.name,
+      price_delta: Number(opt.price_delta) || 0,
+    });
+  }
+  return { modifiers: out, dropped };
+}
+
 export interface UnitPriceResult {
   unitPrice: number;
   error?: string;

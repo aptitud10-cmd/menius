@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeUnitPrice,
+  canonicalizeModifiers,
   computeOrderTotals,
   resolveCommission,
   computeApplicationFeeCents,
@@ -419,5 +420,47 @@ describe('internationalCardSurchargeCents', () => {
   it('feeModelFor: 4% es commission, 0% es passthrough', () => {
     expect(feeModelFor(400)).toBe('commission');
     expect(feeModelFor(0)).toBe('passthrough');
+  });
+});
+
+describe('canonicalizeModifiers', () => {
+  const groups = [
+    { id: 'g-sauce', name: 'Sauces on the Side' },
+    { id: 'g-extra', name: 'Extra Sauce' },
+  ];
+  const opts = new Map([
+    ['o-ranch', { id: 'o-ranch', group_id: 'g-sauce', name: 'Ranch', price_delta: 0 }],
+    ['o-xbbq', { id: 'o-xbbq', group_id: 'g-extra', name: 'BBQ', price_delta: '0.75' }],
+    // Opción real, pero de un grupo de OTRO producto
+    ['o-large', { id: 'o-large', group_id: 'g-other-product', name: 'Large', price_delta: 3 }],
+  ]);
+
+  it('keeps real options with DB names and prices, ignoring client names', () => {
+    const r = canonicalizeModifiers(
+      [{ option_id: 'o-xbbq', option_name: 'FREE', group_name: 'whatever', price_delta: 0 } as never],
+      groups,
+      opts,
+    );
+    expect(r.dropped).toBe(0);
+    expect(r.modifiers).toEqual([
+      { group_id: 'g-extra', group_name: 'Extra Sauce', option_id: 'o-xbbq', option_name: 'BBQ', price_delta: 0.75 },
+    ]);
+  });
+
+  it('drops legacy, unknown, foreign-product and duplicate options', () => {
+    const r = canonicalizeModifiers(
+      [
+        { option_id: '__legacy1' },
+        { option_id: 'nope' },
+        { option_id: 'o-large' },
+        { option_id: 'o-ranch' },
+        { option_id: 'o-ranch' },
+        { option_id: '' },
+      ],
+      groups,
+      opts,
+    );
+    expect(r.modifiers.map((m) => m.option_id)).toEqual(['o-ranch']);
+    expect(r.dropped).toBe(5);
   });
 });
