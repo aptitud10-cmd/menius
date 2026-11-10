@@ -6,6 +6,7 @@ import { getStripe } from '@/lib/stripe';
 import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,7 +88,8 @@ export async function POST(request: NextRequest) {
 
       accountId = account.id;
 
-      await supabase
+      // stripe_account_id lo escribe solo el servidor (el dueño no tiene UPDATE en esa columna).
+      await createAdminClient()
         .from('restaurants')
         .update({ stripe_account_id: accountId })
         .eq('id', restaurant.id);

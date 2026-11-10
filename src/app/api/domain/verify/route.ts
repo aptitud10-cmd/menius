@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { isDeviceSession } from '@/lib/auth/device-session';
@@ -54,7 +55,8 @@ export async function POST(request: Request) {
       );
 
       if (pointsToVercel) {
-        await supabase
+        // domain_verified lo escribe solo el servidor, después de comprobar el DNS.
+        await createAdminClient()
           .from('restaurants')
           .update({ domain_verified: true })
           .eq('id', profile.default_restaurant_id);

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { getTenant } from '@/lib/auth/get-tenant';
@@ -40,14 +41,14 @@ export async function GET() {
     const isComplete = onboardingComplete && readyToProcessPayments;
 
     if (isComplete && !restaurant.stripe_onboarding_complete) {
-      await supabase
+      await createAdminClient()
         .from('restaurants')
         .update({ stripe_onboarding_complete: true })
         .eq('id', restaurant.id);
     }
 
     if (!isComplete && restaurant.stripe_onboarding_complete) {
-      await supabase
+      await createAdminClient()
         .from('restaurants')
         .update({ stripe_onboarding_complete: false })
         .eq('id', restaurant.id);
