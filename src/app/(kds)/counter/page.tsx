@@ -52,6 +52,7 @@ export default async function CounterPage() {
       .in('status', OPEN_ORDER_STATUSES)
       .lt('created_at', sixHoursAgo)
       .or(olderOpenOrdersFilter(sixHoursAgo))
+      .order('created_at', { ascending: false })
       .limit(50),
     isDeviceSession(supabase),
   ]);

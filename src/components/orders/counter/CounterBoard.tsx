@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { KindTag } from './KindTag';
 import {
   C, type CounterText, orderKind, shortName, minsSince, minsLeft, itemCount,
-  orderAllergies, money, stripNoteLabel, scheduledWhen,
+  orderAllergies, money, stripNoteLabel, scheduledWhen, waitingSince,
 } from './ui';
 
 export type PrimaryKind = 'accept' | 'ready' | 'serve' | 'deliver' | 'complete';
@@ -39,7 +39,7 @@ function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
     return <span className="tabular-nums font-extrabold text-[16px]" style={{ color: C.ink }}>{T.scheduledFor(scheduledWhen(order.scheduled_for))}</span>;
   }
   if (order.status === 'pending') {
-    const m = minsSince(order.created_at);
+    const m = Math.max(0, Math.floor((Date.now() - waitingSince(order as Order & { updated_at?: string | null })) / 60_000));
     return <span className="tabular-nums font-bold text-[16px]" style={{ color: m >= 5 ? C.amber : C.sub }}>{T.minAgo(m)}</span>;
   }
   if (['confirmed', 'preparing', 'almost_ready'].includes(order.status)) {

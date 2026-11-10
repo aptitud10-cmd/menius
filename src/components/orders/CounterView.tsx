@@ -23,7 +23,7 @@ import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import { fetchSuggestedEta, clampEta } from '@/lib/utils/eta';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
-import { counterText, nearestChoice, suggestedPrep } from './counter/ui';
+import { counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
 import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
 import { NewOrdersAlert } from './counter/NewOrdersAlert';
 import { OrderSheet } from './counter/OrderSheet';
@@ -699,10 +699,7 @@ export function CounterView({
   const isDue = useCallback((o: Order) =>
     !o.scheduled_for || new Date(o.scheduled_for).getTime() <= clock + SCHEDULED_SPLASH_LEAD_MS,
   [clock]);
-  /** Desde cuándo un pedido nuevo "espera respuesta": la llegada, o para un programado, el inicio de su ventana. */
-  const waitingSince = (o: Order) => (o.scheduled_for
-    ? new Date(Math.max(new Date(o.created_at).getTime(), new Date(o.scheduled_for).getTime() - SCHEDULED_SPLASH_LEAD_MS)).toISOString()
-    : o.created_at);
+  const waitingSinceIso = (o: Order) => new Date(waitingSince(o as Order & { updated_at?: string | null })).toISOString();
 
   const scheduledOrders = useMemo(() =>
     ordersView.filter(o => o.status === 'pending' && o.scheduled_for && !isDue(o))
@@ -711,7 +708,7 @@ export function CounterView({
 
   const newOrders = useMemo(() =>
     ordersView.filter(o => o.status === 'pending' && isDue(o))
-      .sort((a, b) => new Date(waitingSince(a)).getTime() - new Date(waitingSince(b)).getTime()),
+      .sort((a, b) => waitingSince(a as Order & { updated_at?: string | null }) - waitingSince(b as Order & { updated_at?: string | null })),
     [ordersView, isDue]);
 
   // Programado que entra en su ventana: misma alerta que un pedido recién llegado.
@@ -730,7 +727,7 @@ export function CounterView({
   }, [ordersView, isDue]);
 
   const overdueCount = useMemo(() =>
-    newOrders.filter(o => elapsedMins(waitingSince(o)) >= SLA_WARN_MINS).length,
+    newOrders.filter(o => elapsedMins(waitingSinceIso(o)) >= SLA_WARN_MINS).length,
     [newOrders]);
 
   const prepOrders = useMemo(() =>
@@ -778,7 +775,7 @@ export function CounterView({
   // SLA urgent beep (after 5 min without response)
   useEffect(() => {
     newOrders.forEach(o => {
-      if (elapsedMins(waitingSince(o)) >= SLA_WARN_MINS && !urgentRef.current.has(o.id)) {
+      if (elapsedMins(waitingSinceIso(o)) >= SLA_WARN_MINS && !urgentRef.current.has(o.id)) {
         urgentRef.current.add(o.id);
         playUrgentSound();
         sendPushNotification(
@@ -2371,4 +2368,4 @@ function SidebarSection({
 }
 
 // Un programado que vence dentro de este margen se trata como pedido inmediato.
-const SCHEDULED_SPLASH_LEAD_MS = 30 * 60_000;
+const SCHEDULED_SPLASH_LEAD_MS = SCHEDULED_LEAD_MS;

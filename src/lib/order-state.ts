@@ -92,13 +92,16 @@ export const OPEN_ORDER_STATUSES: OrderStatus[] = [
 
 /**
  * Filtro PostgREST `or()` para la segunda consulta del Counter: pedidos ABIERTOS
- * creados antes de la ventana de 6 h que igual tienen que verse. Programados
- * (aceptados o no) cuya hora cae desde `sinceIso` en adelante, o creados en las
- * últimas 48 h (p. ej. un programado de ayer ya activado — el cron le borra
- * scheduled_for — o un pedido que quedó abierto). Sin esto, un programado hecho
- * ayer para hoy desaparecía del tablero apenas se aceptaba y se recargaba.
+ * creados antes de la ventana de 6 h que igual tienen que verse. Sin esto, un
+ * programado hecho ayer para hoy desaparecía del tablero al aceptarlo y recargar.
+ *  1. Programados (aceptados o no) cuya hora cae desde `sinceIso` en adelante.
+ *  2. Ya aceptados (status ≠ pending) creados en las últimas 48 h: p. ej. un
+ *     programado de ayer ya activado (el cron le borra scheduled_for).
+ *  3. Pendientes tocados en las últimas 6 h (updated_at): el programado recién
+ *     activado sin responder. Un pendiente en efectivo que nadie respondió hace
+ *     más de 6 h NO vuelve (antes de esto reaparecía en Nuevos y sonaba).
  */
 export function olderOpenOrdersFilter(sinceIso: string, now = Date.now()): string {
   const twoDaysAgo = new Date(now - 48 * 60 * 60 * 1000).toISOString();
-  return `scheduled_for.gte.${sinceIso},created_at.gte.${twoDaysAgo}`;
+  return `scheduled_for.gte.${sinceIso},and(status.neq.pending,created_at.gte.${twoDaysAgo}),and(status.eq.pending,updated_at.gte.${sinceIso})`;
 }

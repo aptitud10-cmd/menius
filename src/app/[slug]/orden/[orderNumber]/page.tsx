@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { liveLocationTopic } from '@/lib/realtime/live-topic';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -95,6 +96,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
           driver_name: authorized ? safeOrder.driver_name : null,
           driver_phone: authorized ? safeOrder.driver_phone : null,
           authorized,
+          live_topic: authorized ? liveLocationTopic(orderData.id) : null,
           table_name: (orderData.table as any)?.name ?? null,
           order_items: ((orderData.order_items ?? []) as any[]).map((item: any) => ({
             id: item.id,

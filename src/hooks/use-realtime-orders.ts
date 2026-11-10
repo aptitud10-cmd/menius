@@ -112,6 +112,7 @@ export function useRealtimeOrders({
         .in('status', OPEN_ORDER_STATUSES)
         .lt('created_at', since)
         .or(olderOpenOrdersFilter(since))
+        .order('created_at', { ascending: false })
         .limit(50),
     ]);
 
@@ -133,7 +134,12 @@ export function useRealtimeOrders({
         if (!knownIdsRef.current.has(order.id)) {
           knownIdsRef.current.add(order.id);
           lastStatusRef.current.set(order.id, order.status);
-          onNewOrderRef.current?.(order);
+          // Los de la segunda consulta (creados antes de la ventana de 6 h) se
+          // incorporan EN SILENCIO: no son pedidos que acaban de llegar. Sin
+          // esto el KDS (que carga solo 6 h) sonaba y reimprimía los de ayer.
+          if (new Date(order.created_at).getTime() >= new Date(since).getTime()) {
+            onNewOrderRef.current?.(order);
+          }
         }
         // Update detection — only notify if status actually changed since last notification
         // This prevents realtime + poll from firing the same callback twice.

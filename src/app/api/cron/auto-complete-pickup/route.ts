@@ -63,19 +63,21 @@ export async function GET(req: Request) {
     let closed = 0;
     if (toClose.length > 0) {
       const ids = toClose.map(o => o.id);
-      const { error: closeErr } = await adminDb
+      const { data: closedRows, error: closeErr } = await adminDb
         .from('orders')
         .update({ status: 'delivered', updated_at: new Date().toISOString() })
         .in('id', ids)
-        .eq('status', 'ready'); // por si el mostrador lo movió mientras tanto
+        .eq('status', 'ready') // por si el mostrador lo movió mientras tanto
+        .select('id');
 
       if (closeErr) {
         logger.error('close failed', { error: closeErr.message, ids });
         return NextResponse.json({ error: closeErr.message }, { status: 500 });
       }
-      closed = ids.length;
-      for (const id of ids) broadcastOrderUpdate(id, 'delivered').catch(() => {});
-      logger.info(`Closed ${closed} pickup orders forgotten in ready > ${READY_TIMEOUT_MINS} min`, { ids });
+      const closedIds = (closedRows ?? []).map(r => r.id as string);
+      closed = closedIds.length;
+      for (const id of closedIds) broadcastOrderUpdate(id, 'delivered').catch(() => {});
+      logger.info(`Closed ${closed} pickup orders forgotten in ready > ${READY_TIMEOUT_MINS} min`, { ids: closedIds });
     }
 
     return NextResponse.json({ closed });

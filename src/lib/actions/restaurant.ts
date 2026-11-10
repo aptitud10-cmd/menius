@@ -1,5 +1,6 @@
 "use server";
 
+import { chooseDriverToken, type CurrentDriverToken } from "@/lib/orders/driver-token";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { revalidatePublicMenu } from "@/lib/revalidate-public-menu";
@@ -2114,30 +2115,10 @@ export async function assignDriver(
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
 
-  // Token del repartidor. El pedido delivery ya nace con uno y ese es el QR que
-  // sale impreso en el ticket al aceptar: si se reemplaza en la PRIMERA
-  // asignación (o al reasignar al mismo repartidor), el QR del ticket deja de
-  // funcionar y el repartidor no puede marcar "recogido". Solo se genera uno
-  // nuevo al cambiar de repartidor (revoca el enlace del anterior) o si venció.
-  const newName = driverName.trim();
-  const cur = current as {
-    status?: string; driver_name?: string | null;
-    driver_tracking_token?: string | null; driver_token_expires_at?: string | null;
-  } | null;
-  const existingValid = !!cur?.driver_tracking_token
-    && (!cur.driver_token_expires_at || new Date(cur.driver_token_expires_at).getTime() > Date.now());
-  const sameOrFirstDriver = !cur?.driver_name || cur.driver_name.trim() === newName;
-  const token = !newName
-    ? null
-    : existingValid && sameOrFirstDriver
-      ? (cur!.driver_tracking_token as string)
-      : crypto.randomUUID();
-
-  const tokenExpiresAt = !token
-    ? null
-    : token === cur?.driver_tracking_token && cur?.driver_token_expires_at
-      ? cur.driver_token_expires_at
-      : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  // Token del repartidor: ver chooseDriverToken (conserva el QR del ticket).
+  const cur = current as CurrentDriverToken & { status?: string } | null;
+  const { token, expiresAt: tokenExpiresAt } = chooseDriverToken(driverName, cur, () => crypto.randomUUID());
+  const oldToken = cur?.driver_tracking_token ?? null;
 
   const updatePayload: Record<string, unknown> = {
     driver_name: driverName.trim() || null,
@@ -2181,6 +2162,13 @@ export async function assignDriver(
     .eq("restaurant_id", restaurantId);
 
   if (error) return { error: error.message };
+
+  // La caché de tokens (Redis, 2 h) guarda el vencimiento: se invalida si el
+  // token cambió (revocar al repartidor anterior) o si se extendió.
+  if (oldToken) {
+    const { evictTokenCache } = await import("@/lib/tracking/token-cache");
+    evictTokenCache(oldToken.slice(0, 16)).catch(() => {});
+  }
 
   // Notify customer tracker so it can refetch and show driver name/phone
   if (current?.status) {

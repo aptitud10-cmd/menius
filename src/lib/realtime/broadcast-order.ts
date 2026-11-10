@@ -23,6 +23,7 @@
  *   - cron/auto-complete-pickup
  */
 import { createLogger } from '@/lib/logger';
+import { liveLocationTopic } from './live-topic';
 
 const logger = createLogger('broadcast-order');
 
@@ -90,6 +91,9 @@ export async function broadcastDriverLocation(
     return;
   }
 
+  const liveTopic = liveLocationTopic(orderId);
+  if (!liveTopic) return;
+
   try {
     const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
       method: 'POST',
@@ -101,7 +105,8 @@ export async function broadcastDriverLocation(
       body: JSON.stringify({
         messages: [
           {
-            topic: `order-track:${orderId}`,
+            // Canal secreto (no el público order-track:{id}): ver live-topic.ts.
+            topic: liveTopic,
             event: 'location_update',
             payload: { orderId, lat, lng, ts: Date.now() },
           },

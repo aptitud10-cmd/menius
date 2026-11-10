@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { UUID_RE } from '@/lib/constants';
 import { log } from '@/lib/logger';
+import { liveLocationTopic } from '@/lib/realtime/live-topic';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,6 +99,8 @@ export async function GET(req: NextRequest) {
       delivery_photo_url: authorized ? safeOrder.delivery_photo_url : null,
       notes: authorized ? safeOrder.notes : null,
       authorized,
+      // Canal del GPS en vivo: solo con token (ver live-topic.ts).
+      live_topic: authorized ? liveLocationTopic(order.id) : null,
       table_name: (order.table as any)?.name ?? null,
       order_items: ((order.order_items ?? []) as any[]).map((item: any) => ({
         id: item.id,

@@ -51,6 +51,7 @@ export default async function CounterTabletPage() {
       .in('status', OPEN_ORDER_STATUSES)
       .lt('created_at', sixHoursAgo)
       .or(olderOpenOrdersFilter(sixHoursAgo))
+      .order('created_at', { ascending: false })
       .limit(50),
   ]);
 

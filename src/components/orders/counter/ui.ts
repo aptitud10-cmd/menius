@@ -350,6 +350,22 @@ export function minsLeft(order: Order): number | null {
   return order.estimated_ready_minutes - minsSince(acceptedAt);
 }
 
+/** Margen con que un programado pasa a Nuevos antes de su hora. */
+export const SCHEDULED_LEAD_MS = 30 * 60_000;
+
+/**
+ * Desde cuándo un pedido NUEVO espera respuesta: su llegada; para un programado,
+ * el inicio de su ventana; para uno ya activado por el cron (scheduled_for
+ * borrado, updated_at = activación), la activación. Sin esto un programado de
+ * ayer mostraba "hace 1200 min" y disparaba el aviso de urgente al instante.
+ */
+export function waitingSince(o: Pick<Order, 'created_at' | 'scheduled_for'> & { updated_at?: string | null }): number {
+  const created = new Date(o.created_at).getTime();
+  if (o.scheduled_for) return Math.max(created, new Date(o.scheduled_for).getTime() - SCHEDULED_LEAD_MS);
+  const touched = o.updated_at ? new Date(o.updated_at).getTime() : created;
+  return Math.max(created, touched);
+}
+
 /** Hora pactada de un programado: "12:30", o "mar 12:30" si no es hoy. */
 export function scheduledWhen(iso: string) {
   const d = new Date(iso);

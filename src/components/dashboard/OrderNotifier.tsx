@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Bell, X, ShoppingBag } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
@@ -29,7 +30,17 @@ interface OrderToast {
   timestamp: number;
 }
 
-export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
+/**
+ * En el Counter (/app/counter/...) no se monta: el Counter tiene su propia
+ * alerta y sonido, y este aviso sonaba encima y tapaba la pantalla con toasts.
+ */
+export function OrderNotifier(props: OrderNotifierProps) {
+  const pathname = usePathname();
+  if (pathname?.startsWith('/app/counter')) return null;
+  return <OrderNotifierInner {...props} />;
+}
+
+function OrderNotifierInner({ restaurantId, currency }: OrderNotifierProps) {
   const { t } = useDashboardLocale();
   const {
     hasPermission,
@@ -92,17 +103,22 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
       try {
         const supabase = getSupabaseBrowser();
         const since = lastPollRef.current ?? new Date(Date.now() - 60_000).toISOString();
+        const startedAt = new Date(Date.now() - 30_000).toISOString(); // margen por reloj desfasado; knownIds evita repetir
         const { data } = await supabase
           .from('orders')
-          .select('id, order_number, customer_name, total, created_at, status, payment_method, payment_status')
+          .select('id, order_number, customer_name, total, created_at, updated_at, status, payment_method, payment_status')
           .eq('restaurant_id', restaurantId)
-          .gt('created_at', since)
+          // updated_at: un pedido online que se cobró recién (el webhook fija
+          // updated_at) se creó antes de `since` y si no, nunca sonaba.
+          .or(`created_at.gt.${since},and(status.eq.pending,payment_status.eq.paid,updated_at.gt.${since})`)
           .order('created_at', { ascending: false })
           .limit(10);
 
         if (!data) return;
         for (const o of data) handleNewOrder(o as OrderLite);
-        if (data.length > 0) lastPollRef.current = data[0].created_at as string;
+        // Hora de la consulta (no el created_at más nuevo): así un pago que entra
+        // sobre un pedido viejo sigue cayendo en la ventana siguiente.
+        lastPollRef.current = startedAt;
       } catch { /* silent — best effort */ }
     };
 

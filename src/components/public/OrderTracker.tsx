@@ -390,13 +390,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         // are always up-to-date rather than relying on the partial payload.
         fetchOrder();
       })
-      .on('broadcast', { event: 'location_update' }, ({ payload }: { payload: Record<string, unknown> }) => {
-        // Move the map marker directly from the broadcast payload.
-        // No HTTP refetch needed — coords arrive in the payload itself.
-        if (typeof payload?.lat === 'number' && typeof payload?.lng === 'number') {
-          setLiveDriverCoords({ lat: payload.lat, lng: payload.lng });
-        }
-      })
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           setRtStatus('connected');
@@ -412,6 +405,24 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     };
   // fetchOrder is stable (useCallback with fixed deps)
   }, [order?.id, isTerminal, fetchOrder]);
+
+  // GPS en vivo del repartidor: canal secreto que el servidor entrega solo con
+  // el token del pedido (live_topic). Sin token no hay canal: el mapa no se
+  // muestra y la ubicación no viaja a quien adivine el pedido.
+  const liveTopic = (order as { live_topic?: string | null } | null)?.live_topic ?? null;
+  useEffect(() => {
+    if (!liveTopic || isTerminal) return;
+    const supabase = getSupabaseBrowser();
+    const channel = supabase
+      .channel(liveTopic)
+      .on('broadcast', { event: 'location_update' }, ({ payload }: { payload: Record<string, unknown> }) => {
+        if (typeof payload?.lat === 'number' && typeof payload?.lng === 'number') {
+          setLiveDriverCoords({ lat: payload.lat, lng: payload.lng });
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [liveTopic, isTerminal]);
 
   if (loading) {
     return (
