@@ -27,6 +27,12 @@ import { useDashboardLocale } from "@/hooks/use-dashboard-locale";
 import type { Table, TableStatus } from "@/types";
 import { UpgradePromptModal } from "@/components/dashboard/UpgradePromptModal";
 
+// Estado (disponible/ocupada/reservada) y capacidad de mesa: las columnas
+// `status`/`capacity` NO existen en la tabla `tables` de producción, así que
+// guardarlas fallaba. Ocultos hasta que haya un flujo de mesas real (decisión
+// 2026-11-10: el QR de mesa no se desarrolla por ahora).
+const SHOW_TABLE_META = false;
+
 const TABLE_STATUS_CONFIG: Record<
   TableStatus,
   { label: string; color: string; bg: string; dot: string }
@@ -520,10 +526,12 @@ function QRTableCard({
                 <Pencil className="w-3 h-3 text-white/70" />
               </button>
             </div>
-            <StatusBadge
-              status={table.status ?? "available"}
-              onSelect={(s) => onStatusChange(table.id, s)}
-            />
+            {SHOW_TABLE_META && (
+              <StatusBadge
+                status={table.status ?? "available"}
+                onSelect={(s) => onStatusChange(table.id, s)}
+              />
+            )}
           </>
         )}
       </div>
@@ -590,7 +598,7 @@ function QRTableCard({
 
       {/* Footer */}
       <div className="px-4 py-3 border-t border-gray-200 flex items-center gap-2">
-        <div className="flex items-center gap-1.5 flex-1">
+        <div className={cn("flex items-center gap-1.5 flex-1", !SHOW_TABLE_META && "invisible")}>
           <Users className="w-3.5 h-3.5 text-gray-400" />
           <input
             type="number"
