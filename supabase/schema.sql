@@ -564,11 +564,10 @@ CREATE TABLE public.promotions (
   created_at timestamp with time zone DEFAULT now()
 );
 
--- Indices unicos en prod (verificado 2026-11-10, pg_constraint): solo
---   push_subscriptions_endpoint_key UNIQUE (endpoint).
--- La migracion 20261110d lo reemplaza por
---   push_subscriptions_order_endpoint UNIQUE (order_id, endpoint)
--- (/api/push/subscribe usa ese onConflict y cae a 'endpoint' si da 42P10).
+-- Indices unicos en prod (verificado 2026-11-10, pg_indexes):
+--   push_subscriptions_endpoint_key UNIQUE (endpoint)  <- la migracion 20261110d lo quita
+--   push_subscriptions_order_endpoint UNIQUE INDEX (order_id, endpoint)
+-- /api/push/subscribe usa onConflict 'order_id,endpoint'.
 CREATE TABLE public.push_subscriptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   endpoint text NOT NULL,

@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Una fila por (pedido, navegador): un mismo teléfono puede seguir varios
-    // pedidos a la vez (migración 20261110d). Si esa migración aún no se corrió,
-    // la única restricción es por endpoint (42P10 con el onConflict nuevo) →
-    // se vuelve al comportamiento anterior: el navegador sigue al último pedido.
+    // pedidos a la vez (migración 20261110d). Mientras siga la restricción vieja
+    // por endpoint, el mismo navegador en otro pedido choca (23505) → se vuelve
+    // al comportamiento anterior: el navegador sigue al último pedido.
     const row = {
       order_id,
       endpoint: subscription.endpoint,
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     let { error } = await adminDb
       .from('push_subscriptions')
       .upsert(row, { onConflict: 'order_id,endpoint' });
-    if (error?.code === '42P10') {
+    if (error?.code === '23505' || error?.code === '42P10') {
       ({ error } = await adminDb.from('push_subscriptions').upsert(row, { onConflict: 'endpoint' }));
     }
 
