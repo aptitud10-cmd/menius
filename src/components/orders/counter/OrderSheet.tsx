@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { Printer, MoreHorizontal, X, Phone, Send, Pencil, Wallet, Bike, History, Ban, MapPin } from 'lucide-react';
+import { Printer, MoreHorizontal, X, Phone, Send, Pencil, Bike, History, Ban, MapPin } from 'lucide-react';
 import type { Order } from '@/types';
 import {
-  C, type CounterText, PREP_CHOICES, kindLabel, orderKind, money, parseItem, isAllergyText, stripNoteLabel,
+  C, type CounterText, PREP_CHOICES, money, parseItem, isAllergyText, stripNoteLabel,
   minsSince, minsLeft, isClosed,
 } from './ui';
+import { KindTag } from './KindTag';
 import { primaryAction, type PrimaryKind } from './CounterBoard';
 
 export interface SheetMoreActions {
   onResendNotice?: () => void;
   onEditItems?: () => void;
-  onMixedPayment?: () => void;
   onAssignDriver?: () => void;
   onCancel?: () => void;
 }
@@ -35,7 +35,6 @@ export function OrderSheet({
   const [moreOpen, setMoreOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [mins, setMins] = useState(acceptMins);
-  const kind = orderKind(order);
   const items = (order.items ?? []).map(parseItem);
   const action = primaryAction(order, T, mins);
   const shortNum = order.order_number?.split('-').pop() ?? '';
@@ -49,7 +48,6 @@ export function OrderSheet({
   if (phone) moreItems.push({ label: T.callCustomer, icon: <Phone className="w-5 h-5" />, href: `tel:${phone.replace(/[^\d+]/g, '')}` });
   if (more.onResendNotice) moreItems.push({ label: T.resendNotice, icon: <Send className="w-5 h-5" />, onClick: more.onResendNotice });
   if (more.onEditItems) moreItems.push({ label: T.editItems, icon: <Pencil className="w-5 h-5" />, onClick: more.onEditItems });
-  if (more.onMixedPayment) moreItems.push({ label: T.mixedPayment, icon: <Wallet className="w-5 h-5" />, onClick: more.onMixedPayment });
   if (more.onAssignDriver) moreItems.push({ label: T.assignDriver, icon: <Bike className="w-5 h-5" />, onClick: more.onAssignDriver });
   if (historySlot) moreItems.push({ label: T.statusHistory, icon: <History className="w-5 h-5" />, onClick: () => setShowHistory((v) => !v) });
   if (more.onCancel) moreItems.push({ label: order.status === 'pending' ? T.rejectOrder : T.cancelOrder, icon: <Ban className="w-5 h-5" />, onClick: more.onCancel, danger: true });
@@ -64,9 +62,7 @@ export function OrderSheet({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
               <h2 className="font-extrabold text-[26px] leading-tight truncate">{order.customer_name || '—'}</h2>
-              <span className="text-[13px] font-extrabold tracking-wide px-2 py-0.5 rounded-md" style={{ background: kind.soft, color: kind.color }}>
-                {kindLabel(order, T)}
-              </span>
+              <KindTag order={order} T={T} />
             </div>
             <p className="text-[15px] tabular-nums" style={{ color: C.sub }}>
               #{shortNum} · {T.minAgo(minsSince(order.created_at))}

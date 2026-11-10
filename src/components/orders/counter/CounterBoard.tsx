@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import type { Order } from '@/types';
 import { cn } from '@/lib/utils';
+import { KindTag } from './KindTag';
 import {
-  C, type CounterText, kindLabel, orderKind, shortName, minsSince, minsLeft, itemCount,
+  C, type CounterText, orderKind, shortName, minsSince, minsLeft, itemCount,
   orderAllergies, money, stripNoteLabel,
 } from './ui';
 
@@ -86,9 +87,7 @@ export function OrderCard({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap text-[15px]" style={{ color: C.sub }}>
-        <span className="text-[13px] font-extrabold tracking-wide px-2 py-0.5 rounded-md" style={{ background: kind.soft, color: kind.color }}>
-          {kindLabel(order, T)}
-        </span>
+        <KindTag order={order} T={T} />
         <span className="tabular-nums">#{shortNum}</span>
         <span aria-hidden>·</span>
         <span>{T.items(itemCount(order))}</span>

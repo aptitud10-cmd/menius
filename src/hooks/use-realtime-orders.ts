@@ -42,6 +42,10 @@ export function useRealtimeOrders({
     initialOrders.filter((o) => !isAwaitingOnlinePayment(o))
   );
   const [rtStatus, setRtStatus] = useState<RealtimeConnectionStatus>('reconnecting');
+  // Última vez que el sondeo de 10 s trajo datos. Si el canal en vivo se cae
+  // pero el sondeo sigue respondiendo, los pedidos siguen llegando: no hay que
+  // alarmar al operador con "sin conexión".
+  const [lastSyncAt, setLastSyncAt] = useState<number>(() => Date.now());
   const knownIdsRef = useRef<Set<string>>(
     new Set(initialOrders.filter((o) => !isAwaitingOnlinePayment(o)).map((o) => o.id))
   );
@@ -113,6 +117,7 @@ export function useRealtimeOrders({
     ]);
 
     if (!data) return;
+    setLastSyncAt(Date.now());
 
     const fetched: Order[] = [...data, ...(scheduled ?? [])]
       .map((o) => {
@@ -264,5 +269,5 @@ export function useRealtimeOrders({
     );
   }, []);
 
-  return { orders, updateOrderLocally, rtStatus, refetch: pollOrders };
+  return { orders, updateOrderLocally, rtStatus, lastSyncAt, refetch: pollOrders };
 }

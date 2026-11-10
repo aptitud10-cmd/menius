@@ -53,7 +53,7 @@ export function CounterTopBar({
       <span className="flex-1" />
       {(scheduledCount > 0 || view === 'scheduled') && (
         <button type="button" onClick={() => onView('scheduled')} className={btn}
-          style={view === 'scheduled' ? { background: C.black, color: '#fff' } : { background: C.blueSoft, color: C.blue }}>
+          style={view === 'scheduled' ? { background: C.black, color: '#fff' } : { background: C.surface, color: C.ink }}>
           <CalendarClock className="w-5 h-5" />
           <span className="hidden sm:inline">{T.scheduled}</span>
           <span className="tabular-nums">{scheduledCount}</span>

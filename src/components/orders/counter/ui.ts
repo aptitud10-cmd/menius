@@ -47,7 +47,7 @@ const ES = {
   serve: 'Servido',
   closeTable: 'Cerrar mesa',
   delivered: 'Entregado',
-  pickedUp: 'Retirado',
+  pickedUp: 'Recogido',
   items: (n: number) => `${n} ${n === 1 ? 'producto' : 'productos'}`,
   minAgo: (m: number) => (m < 1 ? 'ahora' : `hace ${m} min`),
   readyIn: (m: number) => `listo en ${m} min`,
@@ -56,7 +56,7 @@ const ES = {
   paidOnline: 'Pagado online',
   cash: 'Efectivo',
   delivery: 'DELIVERY',
-  pickup: 'RETIRO',
+  pickup: 'RECOGER',
   dineIn: 'MESA',
   allergy: 'ALERGIA',
   note: 'Nota',
@@ -92,7 +92,6 @@ const ES = {
   callCustomer: 'Llamar al cliente',
   resendNotice: 'Reenviar aviso al cliente',
   editItems: 'Editar productos',
-  mixedPayment: 'Registrar pago mixto',
   assignDriver: 'Asignar repartidor',
   statusHistory: 'Historial de estados',
   cancelOrder: 'Cancelar pedido',
@@ -192,7 +191,6 @@ const EN: Dict = {
   callCustomer: 'Call customer',
   resendNotice: 'Resend customer notice',
   editItems: 'Edit items',
-  mixedPayment: 'Record split payment',
   assignDriver: 'Assign driver',
   statusHistory: 'Status history',
   cancelOrder: 'Cancel order',
@@ -252,9 +250,9 @@ export function shortName(name: string | null | undefined, fallback: string) {
 
 export function orderKind(order: Order) {
   const t = order.order_type ?? 'dine_in';
-  if (t === 'delivery') return { key: 'delivery' as const, color: C.blue, soft: C.blueSoft };
-  if (t === 'pickup') return { key: 'pickup' as const, color: C.violet, soft: C.violetSoft };
-  return { key: 'dine_in' as const, color: C.orange, soft: C.orangeSoft };
+  if (t === 'delivery') return { key: 'delivery' as const, color: C.blue };
+  if (t === 'pickup') return { key: 'pickup' as const, color: C.violet };
+  return { key: 'dine_in' as const, color: C.black };
 }
 
 export function kindLabel(order: Order, T: CounterText) {

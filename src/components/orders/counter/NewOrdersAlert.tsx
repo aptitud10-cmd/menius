@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import type { Order } from '@/types';
 import {
-  C, type CounterText, PREP_CHOICES, kindLabel, orderKind, money, parseItem, isAllergyText, stripNoteLabel,
+  C, type CounterText, PREP_CHOICES, money, parseItem, isAllergyText, stripNoteLabel,
 } from './ui';
+import { KindTag } from './KindTag';
 
 /**
  * Una sola alerta para todos los pedidos que llegan (estilo Uber, pero con el
@@ -67,7 +68,6 @@ function AlertBody({
   const [mins, setMins] = useState(initialMins);
   const [left, setLeft] = useState<number | null>(autoAcceptSecs);
   const [fired, setFired] = useState(false);
-  const kind = orderKind(order);
   const items = (order.items ?? []).map(parseItem);
   const paidOnline = (order as { payment_status?: string }).payment_status === 'paid';
 
@@ -104,9 +104,7 @@ function AlertBody({
         </h1>
 
         <div className="flex items-center gap-3 flex-wrap text-[19px] min-[880px]:text-[24px] font-semibold">
-          <span className="text-[15px] font-extrabold tracking-wide px-2.5 py-1 rounded-lg" style={{ background: '#fff', color: kind.color }}>
-            {kindLabel(order, T)}
-          </span>
+          <KindTag order={order} T={T} size="lg" />
           <span className="tabular-nums">{money(Number(order.total), currency)}</span>
           <span aria-hidden>·</span>
           <span>{paidOnline ? T.paidOnline : T.cash}</span>

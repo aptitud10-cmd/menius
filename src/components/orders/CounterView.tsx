@@ -12,7 +12,7 @@ import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-re
 import { useLeaderTab } from '@/hooks/use-leader-tab';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
-  sendOrderNotification, updatePaymentBreakdown, openShift, closeShift,
+  sendOrderNotification, openShift, closeShift,
   fetchOrderStatusHistory,
 } from '@/lib/actions/restaurant';
 import { PrinterService } from '@/lib/printing/PrinterService';
@@ -476,12 +476,7 @@ export function CounterView({
   const [stockLoading, setStockLoading] = useState(false);
   const [stockUpdating, setStockUpdating] = useState<string | null>(null);
 
-  // ── Split payment ──
-  const [splitPayModal, setSplitPayModal] = useState<{ order: Order } | null>(null);
-  const [splitCash, setSplitCash] = useState('');
-  const [splitCard, setSplitCard] = useState('');
   const [deliveryGuardModal, setDeliveryGuardModal] = useState<{ order: Order } | null>(null);
-  const [savingSplit, setSavingSplit] = useState(false);
 
   // ── Shift management ──
   interface ActiveShift { id: string; opening_cash: number; opened_at: string }
@@ -681,7 +676,7 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder, t.newScheduledOrder]);
 
-  const { orders, updateOrderLocally, rtStatus, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
+  const { orders, updateOrderLocally, rtStatus, lastSyncAt, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
   // Pedidos con los cambios "en espera de deshacer" aplicados.
   const ordersView = useMemo(
@@ -1056,67 +1051,6 @@ export function CounterView({
     setEditSaving(false);
   }, [t.en, orders, updateOrderLocally]);
 
-  const getFinalDeliveryStatus = (order: Order) =>
-    order.order_type === 'dine_in' ? 'completed' : 'delivered';
-
-  const handleDeliver = useCallback(async (order: Order, bypassGuard = false) => {
-    // For delivery orders: warn if driver hasn't confirmed pickup yet
-    if (!bypassGuard && order.order_type === 'delivery' && !order.driver_picked_up_at) {
-      setDeliveryGuardModal({ order });
-      return;
-    }
-    // For cash or unset payment, offer split/mixed payment before marking delivered
-    if (order.payment_method === 'cash' || !order.payment_method) {
-      setSplitCash('');
-      setSplitCard('');
-      setSavingSplit(false);
-      setSplitPayModal({ order });
-      return;
-    }
-    setUpdatingId(order.id);
-    try {
-      const res = await updateOrderStatus(order.id, getFinalDeliveryStatus(order));
-      if (res?.error) { showError(res.error); return; }
-      setActiveTab('history');
-      setSelectedId(null);
-      setShowDetailMobile(false);
-    } catch {
-      showError(t.en ? 'Unexpected error' : 'Error inesperado');
-    } finally { setUpdatingId(null); }
-  }, [t]);
-
-  const doDeliver = useCallback(async (order: Order) => {
-    setUpdatingId(order.id);
-    try {
-      const res = await updateOrderStatus(order.id, getFinalDeliveryStatus(order));
-      if (res?.error) { showError(res.error); return; }
-      setActiveTab('history');
-      setSelectedId(null);
-      setShowDetailMobile(false);
-      setSplitPayModal(null);
-      setSavingSplit(false);
-    } catch {
-      showError(t.en ? 'Unexpected error' : 'Error inesperado');
-    } finally { setUpdatingId(null); }
-  }, [t]);
-
-  const handleSplitDeliver = useCallback(async () => {
-    if (!splitPayModal) return;
-    const order = splitPayModal.order;
-    const cash = parseFloat(splitCash) || 0;
-    const card = parseFloat(splitCard) || 0;
-    setSavingSplit(true);
-    try {
-      if (cash > 0 || card > 0) {
-        await updatePaymentBreakdown(order.id, { cash: cash || undefined, card: card || undefined });
-      }
-      await doDeliver(order);
-    } catch {
-      showError(t.en ? 'Unexpected error' : 'Error inesperado');
-      setSavingSplit(false);
-    }
-  }, [splitPayModal, splitCash, splitCard, doDeliver, t]);
-
   const handleAdjustEta = useCallback(async (order: Order, newEta: number) => {
     setUpdatingId(order.id);
     try {
@@ -1286,9 +1220,13 @@ export function CounterView({
     return () => clearInterval(id);
   }, [alertQueue.length, alertAck, isLeader]);
 
+  // "Sin conexión" solo si de verdad no llegan pedidos: sin red, o el canal en
+  // vivo caído Y el sondeo de 10 s sin responder hace más de 35 s. Antes bastaba
+  // con que el canal en vivo parpadeara (pantalla apagada, app en segundo plano,
+  // renovación de sesión) para pintar la franja roja aunque todo funcionara.
+  const offline = !isOnline || (rtStatus !== 'connected' && Date.now() - lastSyncAt > 35_000);
   const storeState: StoreState =
-    !isOnline || rtStatus === 'disconnected' ? { kind: 'offline' }
-      : rtStatus === 'reconnecting' ? { kind: 'reconnecting' }
+    offline ? { kind: 'offline' }
       : isPaused ? { kind: 'paused', minsLeft: pauseLeftMins }
       : busyExtra > 0 ? { kind: 'busy', extra: busyExtra }
       : { kind: 'open' };
@@ -1390,7 +1328,7 @@ export function CounterView({
       )}
 
       {/* ── Sin conexión: banda fija, lo más importante que puede pasar ── */}
-      {(!isOnline || rtStatus === 'disconnected') && (
+      {offline && (
         <div role="alert" className="flex-none bg-red-600 text-white text-[15px] font-bold py-2.5 px-4 flex items-center justify-center gap-2 z-20">
           <WifiOff className="w-4 h-4" />
           {t.offlineBanner}
@@ -1469,10 +1407,6 @@ export function CounterView({
               ? () => resendNotice(sheetOrder) : undefined,
             onEditItems: !['delivered', 'completed', 'cancelled'].includes(sheetOrder.status)
               ? () => openEditItems(sheetOrder.id) : undefined,
-            onMixedPayment: (sheetOrder.payment_method === 'cash' || !sheetOrder.payment_method)
-              && ['ready', 'out_for_delivery', 'served'].includes(sheetOrder.status)
-              ? () => { setSplitCash(''); setSplitCard(''); setSavingSplit(false); setSplitPayModal({ order: sheetOrder }); }
-              : undefined,
             onAssignDriver: sheetOrder.order_type === 'delivery' && !['delivered', 'completed', 'cancelled'].includes(sheetOrder.status)
               ? () => {
                   const o = sheetOrder as Order & { driver_tracking_token?: string | null };
@@ -1977,79 +1911,6 @@ export function CounterView({
                   {t.confirmCancel}
                 </button>
               )}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ══ SPLIT PAYMENT MODAL ══ */}
-      {splitPayModal && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setSplitPayModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#F0F0F0]">
-              <p className="text-base font-black text-[#111]">{t.en ? '💳 Payment at delivery' : '💳 Cobro al entregar'}</p>
-              <p className="text-xs text-[#888] mt-0.5">{t.en ? 'Enter amounts (optional — split if mixed)' : 'Ingresa montos (opcional — divide si es mixto)'}</p>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              <div className="flex justify-between items-center py-2 px-3 bg-[#F5F5F5] rounded-xl">
-                <span className="text-sm font-bold text-[#111]">{t.total}</span>
-                <span className="text-xl font-black text-[#111]">{fmt(Number(splitPayModal.order.total), currency)}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-[#888] uppercase tracking-wide mb-1 block">💵 {t.en ? 'Cash' : 'Efectivo'}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={splitCash}
-                    onChange={e => setSplitCash(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-[#888] uppercase tracking-wide mb-1 block">💳 {t.en ? 'Card' : 'Tarjeta'}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={splitCard}
-                    onChange={e => setSplitCard(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
-                  />
-                </div>
-              </div>
-              {(parseFloat(splitCash) || 0) + (parseFloat(splitCard) || 0) > 0 && (
-                <div className={cn(
-                  'flex justify-between text-xs px-3 py-2 rounded-lg font-semibold',
-                  Math.abs(((parseFloat(splitCash) || 0) + (parseFloat(splitCard) || 0)) - Number(splitPayModal.order.total)) < 0.01
-                    ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                )}>
-                  <span>{t.en ? 'Sum' : 'Suma'}</span>
-                  <span>{fmt((parseFloat(splitCash) || 0) + (parseFloat(splitCard) || 0), currency)}</span>
-                </div>
-              )}
-            </div>
-            <div className="px-5 pb-5 flex gap-2">
-              <button
-                onClick={() => setSplitPayModal(null)}
-                className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]"
-              >
-                {t.no}
-              </button>
-              <button
-                onClick={handleSplitDeliver}
-                disabled={savingSplit || !!updatingId}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50"
-                style={{ background: savingSplit || updatingId ? '#AAA' : '#111' }}
-              >
-                {savingSplit || updatingId
-                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
-                  : <>{t.deliveredBtnFor(splitPayModal.order.order_type)}</>}
-              </button>
             </div>
           </div>
         </>
