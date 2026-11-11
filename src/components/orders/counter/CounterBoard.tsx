@@ -205,12 +205,12 @@ export function CounterBoard({
             key={c.key}
             type="button"
             onClick={() => setMobileCol(c.key)}
-            className="flex-1 h-12 rounded-xl font-bold text-[16px] flex items-center justify-center gap-2"
+            className="flex-auto min-w-0 h-12 px-2 max-[379px]:px-1.5 rounded-xl font-bold text-[15px] max-[379px]:text-[14px] min-[400px]:text-[16px] flex items-center justify-center gap-1.5 max-[379px]:gap-1"
             style={mobileCol === c.key ? { background: C.black, color: '#fff' } : { background: C.surface, color: C.ink }}
           >
-            {c.title}
+            <span className="truncate">{c.title}</span>
             <span
-              className="tabular-nums min-w-[26px] h-[26px] px-1.5 rounded-full text-[14px] font-extrabold inline-flex items-center justify-center"
+              className="flex-none tabular-nums min-w-[26px] h-[26px] max-[379px]:min-w-[22px] max-[379px]:h-[22px] px-1.5 rounded-full text-[14px] max-[379px]:text-[13px] font-extrabold inline-flex items-center justify-center"
               style={c.key === 'new' && c.orders.length > 0
                 ? { background: C.green, color: C.greenInk }
                 : { background: mobileCol === c.key ? 'rgba(255,255,255,.2)' : C.surface2 }}

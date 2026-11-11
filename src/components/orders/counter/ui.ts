@@ -30,6 +30,7 @@ const ES = {
   /** Idioma para fechas y horas (el de la tienda, no el del navegador). */
   locale: 'es',
   receiving: 'Recibiendo pedidos',
+  receivingShort: 'Abierto',
   paused: (m: number) => `Pausado · ${m} min`,
   busy: (m: number) => `Ocupado · +${m} min`,
   offline: 'Sin conexión',
@@ -139,6 +140,7 @@ type Dict = { [K in keyof typeof ES]: (typeof ES)[K] extends (...a: infer A) => 
 const EN: Dict = {
   locale: 'en-US',
   receiving: 'Receiving orders',
+  receivingShort: 'Open',
   paused: (m) => `Paused · ${m} min`,
   busy: (m) => `Busy · +${m} min`,
   offline: 'Offline',

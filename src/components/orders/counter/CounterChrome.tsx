@@ -23,10 +23,17 @@ export function StatusPill({ state, T, onClick }: { state: StoreState; T: Counte
   }[state.kind];
   return (
     <button type="button" onClick={onClick}
-      className="h-12 px-4 rounded-full inline-flex items-center gap-2.5 font-bold text-[16px] whitespace-nowrap"
+      className="h-12 min-w-0 px-3 sm:px-4 rounded-full inline-flex items-center gap-2.5 font-bold text-[15px] sm:text-[16px] whitespace-nowrap"
       style={{ background: look.bg, color: look.fg }}>
-      <span className="w-2.5 h-2.5 rounded-full" style={{ background: look.dot, boxShadow: state.kind === 'open' ? `0 0 0 4px ${C.green}33` : undefined }} />
-      {look.text}
+      <span className="flex-none w-2.5 h-2.5 rounded-full" style={{ background: look.dot, boxShadow: state.kind === 'open' ? `0 0 0 4px ${C.green}33` : undefined }} />
+      {state.kind === 'open' ? (
+        <>
+          <span className="md:hidden">{T.receivingShort}</span>
+          <span className="hidden md:inline truncate">{look.text}</span>
+        </>
+      ) : (
+        <span className="truncate">{look.text}</span>
+      )}
     </button>
   );
 }
@@ -39,32 +46,34 @@ export function CounterTopBar({
   T: CounterText; restaurantName: string; state: StoreState; view: CounterViewMode; scheduledCount: number;
   onStatus: () => void; onView: (v: CounterViewMode) => void; onMenu: () => void;
 }) {
-  const btn = 'h-12 px-4 rounded-xl inline-flex items-center gap-2 font-bold text-[16px] whitespace-nowrap';
+  // En celular y tablet vertical los botones son solo ícono (48 px); el nombre
+  // de la tienda sale desde 768 px: antes no cabían y "Menú" quedaba cortado fuera de la pantalla.
+  const btn = 'flex-none h-12 min-w-12 px-3 lg:px-4 rounded-xl inline-flex items-center justify-center gap-2 font-bold text-[16px] whitespace-nowrap';
   return (
-    <header className="flex-none flex items-center gap-3 px-4 min-h-[68px] border-b" style={{ background: C.bg, borderColor: C.line, paddingTop: 'env(safe-area-inset-top)' }}>
+    <header className="flex-none flex items-center gap-2 sm:gap-3 px-3 sm:px-4 min-h-[68px] border-b" style={{ background: C.bg, borderColor: C.line, paddingTop: 'env(safe-area-inset-top)' }}>
       {view !== 'board' ? (
         <button type="button" onClick={() => onView('board')} className={btn} style={{ background: C.surface, color: C.ink }}>
-          <ArrowLeft className="w-5 h-5" /> {T.backToBoard}
+          <ArrowLeft className="w-5 h-5" /> <span className="hidden md:inline">{T.backToBoard}</span>
         </button>
       ) : (
-        <span className="font-extrabold text-[19px] truncate max-w-[260px]" style={{ color: C.ink }}>{restaurantName}</span>
+        <span className="hidden md:inline font-extrabold text-[19px] truncate max-w-[260px]" style={{ color: C.ink }}>{restaurantName}</span>
       )}
       <StatusPill state={state} T={T} onClick={onStatus} />
-      <span className="flex-1" />
+      <span className="flex-1 min-w-0" />
       {(scheduledCount > 0 || view === 'scheduled') && (
         <button type="button" onClick={() => onView('scheduled')} className={btn}
           style={view === 'scheduled' ? { background: C.black, color: '#fff' } : { background: C.surface, color: C.ink }}>
           <CalendarClock className="w-5 h-5" />
-          <span className="hidden sm:inline">{T.scheduled}</span>
+          <span className="hidden lg:inline">{T.scheduled}</span>
           <span className="tabular-nums">{scheduledCount}</span>
         </button>
       )}
       <button type="button" onClick={() => onView('history')} className={btn}
         style={view === 'history' ? { background: C.black, color: '#fff' } : { background: C.surface, color: C.ink }}>
-        <History className="w-5 h-5" /> <span className="hidden sm:inline">{T.history}</span>
+        <History className="w-5 h-5" /> <span className="hidden lg:inline">{T.history}</span>
       </button>
       <button type="button" onClick={onMenu} className={btn} style={{ background: C.surface, color: C.ink }}>
-        <MenuIcon className="w-5 h-5" /> <span className="hidden sm:inline">{T.menu}</span>
+        <MenuIcon className="w-5 h-5" /> <span className="hidden lg:inline">{T.menu}</span>
       </button>
     </header>
   );
