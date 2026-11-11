@@ -124,16 +124,20 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       .from('restaurants')
       .select('*')
       .eq('slug', slug)
-      .single();
+      .maybeSingle();
 
-    if (restaurantError || !restaurant) {
-      logger.error('Restaurant not found', {
+    // Un slug que no existe (bots probando /ads.txt, /config.js, /about…) es un
+    // 404 normal, no un error: antes llenaba los errores de Vercel y tapaba los
+    // reales. Solo se reporta si la consulta misma falló.
+    if (restaurantError) {
+      logger.error('Restaurant query failed', {
         slug,
-        error: restaurantError?.message,
-        code: restaurantError?.code,
+        error: restaurantError.message,
+        code: restaurantError.code,
       });
       return null;
     }
+    if (!restaurant) return null;
 
     // Parallelize all data fetching: subscription, categories, products, reviews
     const [

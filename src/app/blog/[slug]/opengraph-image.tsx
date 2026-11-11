@@ -101,7 +101,7 @@ export default function BlogOgImage({ params }: { params: { slug: string } }) {
                 color: '#9ca3af',
               }}
             >
-              {readTime} min
+              {`${readTime} min`}
             </div>
           </div>
         </div>
