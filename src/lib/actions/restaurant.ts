@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { revalidatePublicMenu } from "@/lib/revalidate-public-menu";
 import { createClient } from "@/lib/supabase/server";
-import { isDeviceSession } from "@/lib/auth/device-session";
+import { getDeviceSession, isDeviceSession } from "@/lib/auth/device-session";
 import { sanitizeText, sanitizeMultiline } from "@/lib/sanitize";
 import { captureError } from "@/lib/error-reporting";
 import { createLogger } from "@/lib/logger";
@@ -330,16 +330,16 @@ async function getAuthenticatedRestaurant(
       restaurantSlug: "",
     };
 
-  const [{ data: profile }, isDevice] = await Promise.all([
+  const [{ data: profile }, device] = await Promise.all([
     supabase
       .from("profiles")
       .select("default_restaurant_id")
       .eq("user_id", user.id)
       .maybeSingle(),
-    isDeviceSession(supabase),
+    getDeviceSession(supabase),
   ]);
 
-  if (isDevice && !opts.allowDevice)
+  if (device.isDevice && !opts.allowDevice)
     return {
       error: "No disponible en la tablet" as const,
       supabase,
@@ -347,7 +347,9 @@ async function getAuthenticatedRestaurant(
       restaurantSlug: "",
     };
 
-  if (!profile?.default_restaurant_id)
+  // La tablet sigue a la tienda a la que se vinculó, no a la elegida en el panel.
+  const restaurantId = device.restaurantId ?? profile?.default_restaurant_id;
+  if (!restaurantId)
     return {
       error: "Sin restaurante" as const,
       supabase,
@@ -358,12 +360,12 @@ async function getAuthenticatedRestaurant(
   const { data: rest } = await supabase
     .from("restaurants")
     .select("slug")
-    .eq("id", profile.default_restaurant_id)
+    .eq("id", restaurantId)
     .maybeSingle();
 
   return {
     supabase,
-    restaurantId: profile.default_restaurant_id,
+    restaurantId,
     restaurantSlug: rest?.slug ?? "",
     error: null,
   };

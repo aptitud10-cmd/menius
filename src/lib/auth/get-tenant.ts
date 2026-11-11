@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { isDeviceSession } from '@/lib/auth/device-session';
+import { getDeviceSession } from '@/lib/auth/device-session';
 
 export interface TenantInfo {
   userId: string;
@@ -37,22 +37,25 @@ export async function getTenant(opts: GetTenantOptions = {}): Promise<TenantInfo
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [{ data: profile }, isDevice] = await Promise.all([
+  const [{ data: profile }, device] = await Promise.all([
     supabase
       .from('profiles')
       .select('default_restaurant_id')
       .eq('user_id', user.id)
       .maybeSingle(),
-    isDeviceSession(supabase),
+    getDeviceSession(supabase),
   ]);
+  const isDevice = device.isDevice;
 
   if (isDevice && !opts.allowDevice) return null;
-  if (!profile?.default_restaurant_id) return null;
+  // La tablet sigue a la tienda a la que se vinculó, no a la elegida en el panel.
+  const restaurantId = device.restaurantId ?? profile?.default_restaurant_id;
+  if (!restaurantId) return null;
 
   const { data: owned } = await supabase
     .from('restaurants')
     .select('id')
-    .eq('id', profile.default_restaurant_id)
+    .eq('id', restaurantId)
     .eq('owner_user_id', user.id)
     .maybeSingle();
 
@@ -60,7 +63,7 @@ export async function getTenant(opts: GetTenantOptions = {}): Promise<TenantInfo
 
   return {
     userId: user.id,
-    restaurantId: profile.default_restaurant_id,
+    restaurantId,
     email: user.email,
     isDevice,
   };

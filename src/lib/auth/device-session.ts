@@ -24,6 +24,31 @@ export async function isDeviceSession(supabase: SupabaseClient): Promise<boolean
   return data === true;
 }
 
+/**
+ * Sesión de tablet + la tienda a la que se vinculó (device_sessions.restaurant_id).
+ *
+ * Con varias tiendas, la tablet tiene que seguir a SU tienda y no a la que el
+ * dueño tenga elegida en el panel (profiles.default_restaurant_id): antes, si
+ * el dueño cambiaba de tienda, la tablet de la tienda A empezaba a recibir y
+ * mover los pedidos de la B.
+ *
+ * Si la función SQL todavía no existe (migración 20261111a pendiente) o falla,
+ * cae al comportamiento anterior: isDeviceSession (falla cerrado) y sin tienda.
+ */
+export async function getDeviceSession(
+  supabase: SupabaseClient,
+): Promise<{ isDevice: boolean; restaurantId: string | null }> {
+  const { data, error } = await supabase.rpc('current_device_restaurant_id');
+  if (!error) {
+    const rid = typeof data === 'string' && data ? data : null;
+    return { isDevice: rid != null, restaurantId: rid };
+  }
+  if (error.code !== 'PGRST202') {
+    logger.error('current_device_restaurant_id failed', { message: error.message });
+  }
+  return { isDevice: await isDeviceSession(supabase), restaurantId: null };
+}
+
 /** session_id de un access token recién emitido por Supabase Auth (no verifica firma). */
 export function sessionIdFromAccessToken(accessToken: string | undefined | null): string | null {
   if (!accessToken) return null;

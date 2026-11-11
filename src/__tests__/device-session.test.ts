@@ -27,29 +27,50 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+// rpc por nombre: current_device_restaurant_id (tienda de la tablet o null) y
+// current_session_is_device (respaldo mientras la migración no esté aplicada).
+type RpcResult = { data: unknown; error: { message: string; code?: string } | null };
+function rpcs(device: RpcResult, isDevice: RpcResult = { data: false, error: null }) {
+  rpc.mockImplementation(async (fn: string) => (fn === 'current_device_restaurant_id' ? device : isDevice));
+}
+const MISSING = { data: null, error: { message: 'not found', code: 'PGRST202' } };
+
 describe('getTenant — tablet sessions only get the Counter', () => {
   it('owner on their own phone/computer: full tenant', async () => {
     owner();
-    rpc.mockResolvedValue({ data: false, error: null });
+    rpcs({ data: null, error: null });
     expect(await getTenant()).toEqual({ userId: 'u1', restaurantId: 'r1', email: 'o@x.com', isDevice: false });
-    expect(rpc).toHaveBeenCalledWith('current_session_is_device');
+    expect(rpc).toHaveBeenCalledWith('current_device_restaurant_id');
   });
 
   it('paired tablet: denied by default (refunds, keys, menu, settings…)', async () => {
     owner();
-    rpc.mockResolvedValue({ data: true, error: null });
+    rpcs({ data: 'r1', error: null });
     expect(await getTenant()).toBeNull();
   });
 
   it('paired tablet on a Counter route: allowed, and flagged', async () => {
     owner();
-    rpc.mockResolvedValue({ data: true, error: null });
+    rpcs({ data: 'r1', error: null });
     expect(await getTenant({ allowDevice: true })).toMatchObject({ restaurantId: 'r1', isDevice: true });
+  });
+
+  it('multi-tienda: la tablet sigue a SU tienda, no a la elegida en el panel', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'o@x.com' } } });
+    reads.push({ data: { default_restaurant_id: 'r1' } }, { data: { id: 'r2' } });
+    rpcs({ data: 'r2', error: null });
+    expect(await getTenant({ allowDevice: true })).toMatchObject({ restaurantId: 'r2', isDevice: true });
+  });
+
+  it('migración pendiente: cae a current_session_is_device (tablet detectada)', async () => {
+    owner();
+    rpcs(MISSING, { data: true, error: null });
+    expect(await getTenant()).toBeNull();
   });
 
   it('fails closed: if the check errors, the session is treated as a tablet', async () => {
     owner();
-    rpc.mockResolvedValue({ data: null, error: { message: 'down' } });
+    rpcs({ data: null, error: { message: 'down' } }, { data: null, error: { message: 'down' } });
     expect(await getTenant()).toBeNull();
   });
 });
