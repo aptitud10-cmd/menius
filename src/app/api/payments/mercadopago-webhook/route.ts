@@ -1,18 +1,20 @@
 /**
- * POST /api/payments/mercadopago-webhook
+ * POST /api/payments/mercadopago-webhook?oid=<order uuid>
  *
- * Receives MercadoPago IPN (Instant Payment Notification) events.
- * Configure this URL in MP Dashboard → Tu negocio → Configuraciones → Webhooks.
+ * Avisos de pago de MercadoPago (Checkout Pro). La preferencia se crea con el
+ * token de CADA restaurante y notification_url = este endpoint con ?oid=.
  *
- * MP sends a notification with the payment id; we query MP's API to verify
- * the actual payment status (never trust the webhook payload alone).
+ * El aviso NO se cree: solo dispara la verificación. Con el token del
+ * restaurante dueño del pedido se consulta el pago (data.id) a la API de MP y
+ * se exige: external_reference === id del pedido, status approved y monto
+ * exacto. Un aviso falso no puede fabricar un pago aprobado en la cuenta del
+ * restaurante con ese pedido y ese monto.
  *
- * Signature verification uses the x-signature header (HMAC-SHA256).
- * Required env var:
- *   MP_WEBHOOK_SECRET — the secret from MP Dashboard → Webhooks → Clave secreta
- *
- * Each restaurant has their own MP Access Token stored in restaurants.mp_access_token.
- * We load it to make the verification request against that restaurant's MP account.
+ * Por qué no se valida x-signature: la clave secreta es POR APLICACIÓN de MP
+ * (la del restaurante, no la de MENIUS). La versión anterior la validaba con
+ * un MP_WEBHOOK_SECRET único de la plataforma —ningún aviso real coincidía— y
+ * además buscaba el pedido en data.external_reference, que el aviso de MP no
+ * trae: ningún pago de MercadoPago se confirmaba.
  */
 export const dynamic = "force-dynamic";
 
@@ -22,128 +24,47 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createLogger } from "@/lib/logger";
 import { captureError } from "@/lib/error-reporting";
 import { sendPaymentConfirmedNotifications } from "@/lib/notifications/order-notifications";
-import { createHmac, timingSafeEqual } from "crypto";
+import { checkRateLimitAsync, getClientIP } from "@/lib/rate-limit";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 
 const logger = createLogger("mp-webhook");
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(req: NextRequest) {
   try {
-    const webhookSecret = process.env.MP_WEBHOOK_SECRET?.trim();
-    if (!webhookSecret) {
-      logger.error(
-        "MP_WEBHOOK_SECRET not configured — rejecting to prevent spoofed confirmations",
-      );
-      return NextResponse.json(
-        { error: "Webhook not configured" },
-        { status: 503 },
-      );
-    }
+    const rl = await checkRateLimitAsync(`mp-webhook:${getClientIP(req)}`, { limit: 120, windowSec: 60 });
+    if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-    // ── Signature verification ────────────────────────────────────────────────
-    // MP sends: x-signature: ts=<timestamp>,v1=<hmac>
-    // Signed string: "id:<id>;request-id:<x-request-id>;ts:<timestamp>;"
-    const xSignature = req.headers.get("x-signature") ?? "";
-    const xRequestId = req.headers.get("x-request-id") ?? "";
     const { searchParams } = new URL(req.url);
-    const dataId = searchParams.get("data.id") ?? "";
-
-    const tsMatch = xSignature.match(/ts=([^,]+)/);
-    const v1Match = xSignature.match(/v1=([^,]+)/);
-    const ts = tsMatch?.[1] ?? "";
-    const receivedHmac = v1Match?.[1] ?? "";
-
-    // All three components are required — reject if any is missing
-    if (!ts || !receivedHmac || !dataId) {
-      logger.warn("MP webhook missing signature components", {
-        hasTs: !!ts,
-        hasHmac: !!receivedHmac,
-        hasDataId: !!dataId,
-      });
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
-
-    const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-    const computed = createHmac("sha256", webhookSecret)
-      .update(manifest)
-      .digest("hex");
-    const safe = (a: string, b: string) =>
-      a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
-    if (!safe(computed, receivedHmac)) {
-      logger.warn("MP webhook signature mismatch", { dataId });
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
-
     const body = await req.json().catch(() => ({}));
-    const type: string = body?.type ?? body?.action ?? "";
-    const paymentId: string = String(body?.data?.id ?? body?.id ?? "");
+    const type: string = searchParams.get("type") ?? body?.type ?? body?.action ?? "";
+    const paymentId = String(searchParams.get("data.id") ?? body?.data?.id ?? "").trim();
 
-    logger.info("MP webhook received", { type, paymentId });
+    // Solo interesan los pagos (merchant_order, etc. se ignoran).
+    if (!type.includes("payment") || !paymentId) {
+      return NextResponse.json({ received: true });
+    }
+    if (!/^\d{1,24}$/.test(paymentId)) {
+      return NextResponse.json({ error: "Invalid payment id" }, { status: 400 });
+    }
 
-    // We only care about payment confirmations
-    if (
-      !["payment", "payment.created", "payment.updated"].some((t) =>
-        type.includes(t),
-      )
-    ) {
+    const orderId = searchParams.get("oid") ?? "";
+    if (!UUID_RE.test(orderId)) {
+      logger.warn("MP webhook without order id", { paymentId });
       return NextResponse.json({ received: true });
     }
 
-    if (!paymentId) {
-      return NextResponse.json({ received: true });
-    }
-
-    // ── Fetch payment from MP to verify status (never trust payload alone) ───
-    // We need the order to find which restaurant's token to use.
-    // First: find the order by payment_intent_id (preference id) or by looking
-    // up the external_reference from MP's payment object.
-    // Strategy: fetch payment with the platform token if configured,
-    // fallback: find order by external_reference returned in the payload.
+    logger.info("MP webhook received", { type, paymentId, orderId });
 
     const adminDb = createAdminClient();
-
-    // MP sends external_reference in some notification types
-    const externalRef: string = body?.data?.external_reference ?? "";
-
-    let order: {
-      id: string;
-      payment_status: string;
-      restaurant_id: string;
-      total: number;
-    } | null = null;
-
-    if (externalRef) {
-      // New checkouts send the order UUID; legacy in-flight ones may still send
-      // order_number (NOT unique — take most recent; amount check below guards).
-      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (UUID_RE.test(externalRef)) {
-        const { data } = await adminDb
-          .from("orders")
-          .select("id, payment_status, restaurant_id, total")
-          .eq("id", externalRef)
-          .maybeSingle();
-        order = data;
-      } else {
-        const { data } = await adminDb
-          .from("orders")
-          .select("id, payment_status, restaurant_id, total")
-          .eq("order_number", externalRef)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        order = data;
-      }
-    }
+    const { data: order } = await adminDb
+      .from("orders")
+      .select("id, payment_status, restaurant_id, total")
+      .eq("id", orderId)
+      .maybeSingle<{ id: string; payment_status: string; restaurant_id: string; total: number }>();
 
     if (!order) {
-      // Try by payment_intent_id = preference id stored at checkout creation
-      // MP payment object has metadata.order_id
-      // We'll look up order after fetching the payment using any available token
-      // For now, return 200 — MP will retry and we'll catch it when external_reference is included
-      logger.warn("MP webhook: could not identify order", {
-        paymentId,
-        externalRef,
-      });
+      logger.warn("MP webhook: order not found", { paymentId, orderId });
       return NextResponse.json({ received: true });
     }
 
@@ -170,7 +91,27 @@ export async function POST(req: NextRequest) {
       accessToken: restaurant.mp_access_token,
     });
     const paymentClient = new Payment(mpClient);
-    const payment = await paymentClient.get({ id: paymentId });
+    let payment: Awaited<ReturnType<Payment["get"]>>;
+    try {
+      payment = await paymentClient.get({ id: paymentId });
+    } catch (err) {
+      // El pago no existe en la cuenta de ESTE restaurante (aviso falso o de
+      // otro pedido): 200 para que MP no reintente. Otro error → 500 y reintento.
+      const status = (err as { status?: number })?.status;
+      if (status === 404 || status === 401 || status === 403) {
+        logger.warn("MP webhook: payment not found for this restaurant", { paymentId, orderId: order.id, status });
+        return NextResponse.json({ received: true });
+      }
+      throw err;
+    }
+
+    // El pago tiene que ser de ESTE pedido (la preferencia se creó con
+    // external_reference = order.id). Sin esto, un pago aprobado de otro
+    // pedido del mismo restaurante podía marcar este como pagado.
+    if (String(payment.external_reference ?? "") !== order.id) {
+      logger.warn("MP webhook: payment belongs to another order", { paymentId, orderId: order.id });
+      return NextResponse.json({ received: true });
+    }
 
     if (payment.status !== "approved") {
       logger.info("MP payment not approved", {

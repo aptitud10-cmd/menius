@@ -114,7 +114,9 @@ export async function POST(req: NextRequest) {
         },
         auto_return: 'approved',
         // Webhook to confirm payment server-side
-        notification_url: `${appUrl}/api/payments/mercadopago-webhook`,
+        // ?oid=: el aviso de MP solo trae el id del pago; el pedido dice con
+        // qué token (el del restaurante) verificarlo. MP agrega data.id y type.
+        notification_url: `${appUrl}/api/payments/mercadopago-webhook?oid=${order.id}`,
         metadata: {
           order_id: order.id,
           restaurant_id: order.restaurant_id,

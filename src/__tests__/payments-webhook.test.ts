@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createHmac, createHash } from 'crypto';
+import { createHash } from 'crypto';
 
 // ── Supabase admin mock ───────────────────────────────────────────────────────
 const mockMaybeSingle = vi.fn();
@@ -61,12 +61,17 @@ vi.mock('@/lib/error-reporting', () => ({
 }));
 
 // ── MercadoPago SDK mock ──────────────────────────────────────────────────────
+const { mockMpGet } = vi.hoisted(() => ({ mockMpGet: vi.fn() }));
 vi.mock('mercadopago', () => {
-  const mockGet = vi.fn().mockResolvedValue({ status: 'approved', id: 'mp-pay-1' });
-  function Payment() { return { get: mockGet }; }
+  function Payment() { return { get: mockMpGet }; }
   function MercadoPagoConfig() {}
   return { MercadoPagoConfig, Payment };
 });
+
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimitAsync: vi.fn().mockResolvedValue({ allowed: true }),
+  getClientIP: () => '127.0.0.1',
+}));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -92,12 +97,6 @@ function wompiChecksum(body: Record<string, unknown>, secret: string): string {
   return createHash('sha256').update(toHash).digest('hex');
 }
 
-/** Build a valid MP x-signature header value. */
-function mpSignature(dataId: string, requestId: string, ts: string, secret: string): string {
-  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
-  const v1 = createHmac('sha256', secret).update(manifest).digest('hex');
-  return `ts=${ts},v1=${v1}`;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STRIPE WEBHOOK
@@ -552,116 +551,92 @@ describe('POST /api/payments/wompi-webhook', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('POST /api/payments/mercadopago-webhook', () => {
-  const MP_SECRET = 'mp-test-secret';
-  const DATA_ID = 'mp-pay-99';
-  const REQUEST_ID = 'req-abc';
-  const TS = '1700000000';
+  const PAY_ID = '1234567890';
+  const OID = '11111111-2222-4333-8444-555555555555';
+  const url = (q: string) => `http://localhost/api/payments/mercadopago-webhook?${q}`;
+  const pendingOrder = { id: OID, payment_status: 'pending', restaurant_id: 'rest-2', total: 25 };
+  const mpRestaurant = { mp_access_token: 'APP_USR-token', mp_enabled: true };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Resetear la queue de Once para evitar contaminación entre describes
     mockMaybeSingle.mockReset();
     mockInsert.mockReset();
-    vi.stubEnv('MP_WEBHOOK_SECRET', MP_SECRET);
+    mockMpGet.mockReset();
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
     mockInsert.mockResolvedValue({ error: null });
     mockUpdate.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
     mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
-    mockOrder.mockReturnValue({ limit: mockLimit, maybeSingle: mockMaybeSingle });
-    mockLimit.mockReturnValue({ maybeSingle: mockMaybeSingle });
     mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder });
   });
 
-  it('returns 503 when MP_WEBHOOK_SECRET is not set', async () => {
-    vi.stubEnv('MP_WEBHOOK_SECRET', '');
+  it('ignora eventos que no son de pago', async () => {
     const { POST } = await import('@/app/api/payments/mercadopago-webhook/route');
-    const req = makeRequest('http://localhost/api/payments/mercadopago-webhook', {});
-    const res = await POST(req as never);
-    expect(res.status).toBe(503);
+    const res = await POST(makeRequest(url(`data.id=${PAY_ID}&type=merchant_order&oid=${OID}`), {}) as never);
+    expect(res.status).toBe(200);
+    expect(mockMpGet).not.toHaveBeenCalled();
   });
 
-  it('returns 401 when x-signature does not match', async () => {
+  it('sin ?oid no consulta nada ni marca pagado', async () => {
     const { POST } = await import('@/app/api/payments/mercadopago-webhook/route');
-    const body = { type: 'payment', data: { id: DATA_ID } };
-    const req = makeRequest(
-      `http://localhost/api/payments/mercadopago-webhook?data.id=${DATA_ID}`,
-      body,
-      { 'x-signature': `ts=${TS},v1=badsignature`, 'x-request-id': REQUEST_ID },
-    );
-    const res = await POST(req as never);
-    expect(res.status).toBe(401);
+    const res = await POST(makeRequest(url(`data.id=${PAY_ID}&type=payment`), { type: 'payment', data: { id: PAY_ID } }) as never);
+    expect(res.status).toBe(200);
+    expect(mockMpGet).not.toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it('returns 200 for irrelevant event type without updating', async () => {
+  it('pedido ya pagado: no consulta MP', async () => {
     const { POST } = await import('@/app/api/payments/mercadopago-webhook/route');
-    const sig = mpSignature(DATA_ID, REQUEST_ID, TS, MP_SECRET);
-    const body = { type: 'plan', data: { id: DATA_ID } };
-    const req = makeRequest(
-      `http://localhost/api/payments/mercadopago-webhook?data.id=${DATA_ID}`,
-      body,
-      { 'x-signature': sig, 'x-request-id': REQUEST_ID },
-    );
-    const res = await POST(req as never);
+    mockMaybeSingle.mockResolvedValueOnce({ data: { ...pendingOrder, payment_status: 'paid' }, error: null });
+    const res = await POST(makeRequest(url(`data.id=${PAY_ID}&type=payment&oid=${OID}`), {}) as never);
+    expect(res.status).toBe(200);
+    expect(mockMpGet).not.toHaveBeenCalled();
+  });
+
+  it('pago de OTRO pedido (external_reference distinto): no marca pagado', async () => {
+    const { POST } = await import('@/app/api/payments/mercadopago-webhook/route');
+    mockMaybeSingle.mockResolvedValueOnce({ data: pendingOrder, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: mpRestaurant, error: null });
+    mockMpGet.mockResolvedValue({ id: PAY_ID, status: 'approved', transaction_amount: 25, external_reference: 'otro-pedido' });
+    const res = await POST(makeRequest(url(`data.id=${PAY_ID}&type=payment&oid=${OID}`), {}) as never);
+    expect(res.status).toBe(200);
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it('pago inexistente en la cuenta del restaurante (404): 200 sin reintento', async () => {
+    const { POST } = await import('@/app/api/payments/mercadopago-webhook/route');
+    mockMaybeSingle.mockResolvedValueOnce({ data: pendingOrder, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: mpRestaurant, error: null });
+    mockMpGet.mockRejectedValue({ status: 404, message: 'not found' });
+    const res = await POST(makeRequest(url(`data.id=${PAY_ID}&type=payment&oid=${OID}`), {}) as never);
     expect(res.status).toBe(200);
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it('returns 200 immediately when order is already paid (idempotency)', async () => {
+  it('monto distinto: no marca pagado', async () => {
     const { POST } = await import('@/app/api/payments/mercadopago-webhook/route');
-    const sig = mpSignature(DATA_ID, REQUEST_ID, TS, MP_SECRET);
-    const body = {
-      type: 'payment',
-      data: { id: DATA_ID, external_reference: 'ORD-MP1' },
-    };
-    // Order already paid
-    mockMaybeSingle.mockResolvedValue({
-      data: { id: 'order-mp1', payment_status: 'paid', restaurant_id: 'rest-1' },
-      error: null,
-    });
-
-    const req = makeRequest(
-      `http://localhost/api/payments/mercadopago-webhook?data.id=${DATA_ID}`,
-      body,
-      { 'x-signature': sig, 'x-request-id': REQUEST_ID },
-    );
-    const res = await POST(req as never);
+    mockMaybeSingle.mockResolvedValueOnce({ data: pendingOrder, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: mpRestaurant, error: null });
+    mockMpGet.mockResolvedValue({ id: PAY_ID, status: 'approved', transaction_amount: 1, external_reference: OID });
+    const res = await POST(makeRequest(url(`data.id=${PAY_ID}&type=payment&oid=${OID}`), {}) as never);
     expect(res.status).toBe(200);
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it('marks order as paid when payment is approved', async () => {
+  it('pago aprobado, del pedido y por el monto: marca pagado', async () => {
     const { POST } = await import('@/app/api/payments/mercadopago-webhook/route');
-    const sig = mpSignature(DATA_ID, REQUEST_ID, TS, MP_SECRET);
-    const body = {
-      type: 'payment',
-      data: { id: DATA_ID, external_reference: 'ORD-MP2' },
-    };
-
-    // First maybeSingle: find order by external_reference
-    mockMaybeSingle.mockResolvedValueOnce({
-      data: { id: 'order-mp2', payment_status: 'pending', restaurant_id: 'rest-2' },
-      error: null,
-    });
-    // Second maybeSingle: restaurant with mp_enabled + token
-    mockMaybeSingle.mockResolvedValueOnce({
-      data: { mp_access_token: 'APP_USR-token', mp_enabled: true },
-      error: null,
-    });
-    // update().eq().neq('payment_status','paid').select().maybeSingle()
-    const updNeq = vi.fn(() => ({ select: () => ({ maybeSingle: async () => ({ data: { id: 'order-mp2' }, error: null }) }) }));
+    mockMaybeSingle.mockResolvedValueOnce({ data: pendingOrder, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: mpRestaurant, error: null });
+    mockMpGet.mockResolvedValue({ id: PAY_ID, status: 'approved', transaction_amount: 25, external_reference: OID });
+    const updNeq = vi.fn(() => ({ select: () => ({ maybeSingle: async () => ({ data: { id: OID }, error: null }) }) }));
     mockUpdate.mockReturnValueOnce({ eq: () => ({ neq: updNeq }) } as never);
 
-    const req = makeRequest(
-      `http://localhost/api/payments/mercadopago-webhook?data.id=${DATA_ID}`,
-      body,
-      { 'x-signature': sig, 'x-request-id': REQUEST_ID },
-    );
-    const res = await POST(req as never);
+    // Aviso real de MP: el body solo trae data.id (sin external_reference).
+    const res = await POST(makeRequest(url(`data.id=${PAY_ID}&type=payment&oid=${OID}`), { type: 'payment', data: { id: PAY_ID } }) as never);
     expect(res.status).toBe(200);
+    expect(mockMpGet).toHaveBeenCalledWith({ id: PAY_ID });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
-    // No vuelve a marcar (ni notificar) un pedido que ya estaba pagado.
     expect(updNeq).toHaveBeenCalledWith('payment_status', 'paid');
-    // La marca de idempotencia se toma recién con el pago verificado.
-    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ event_id: `mp:${DATA_ID}` }));
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ event_id: `mp:${PAY_ID}` }));
   });
 });
