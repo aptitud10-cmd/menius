@@ -653,9 +653,12 @@ export function CounterView({
 
   // ── Effects ──
 
-  // Tick every second for live countdown timers
+  // Reloj de la pantalla: todo lo que muestra es en minutos ("hace 3 min",
+  // pausa, aviso urgente a los 5 min). Antes era cada 1 s y re-renderizaba el
+  // Counter entero 60 veces por minuto; la cuenta regresiva de auto-aceptar
+  // tiene su propio reloj en NewOrdersAlert.
   useEffect(() => {
-    const id = setInterval(() => tick(n => n + 1), 1_000);
+    const id = setInterval(() => tick(n => n + 1), 15_000);
     return () => clearInterval(id);
   }, []);
 
@@ -903,7 +906,7 @@ export function CounterView({
         if (isLeaderRef.current) playUrgentSound();
         sendPushNotification(
           `⚠️ ${t.urgent} · ${restaurantName}`,
-          `#${o.order_number} — ${SLA_WARN_MINS} min without response`
+          `#${o.order_number} — ${SLA_WARN_MINS} min ${t.en ? 'without response' : 'sin respuesta'}`
         );
       }
     });
