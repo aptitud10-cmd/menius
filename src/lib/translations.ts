@@ -47,6 +47,9 @@ export interface Translations {
   orderSent: string;
   orderSentDesc: string;
   payNow: string;
+  completePaymentTitle: string;
+  completePaymentDesc: string;
+  totalToPay: string;
   redirecting: string;
   trackOrder: string;
   backToMenu: string;
@@ -447,6 +450,9 @@ const es: Translations = {
   orderSent: '¡Pedido enviado!',
   orderSentDesc: 'Tu pedido está en camino a la cocina',
   payNow: 'Pagar ahora',
+  completePaymentTitle: 'Completá tu pago',
+  completePaymentDesc: 'Tu pedido llega a la cocina apenas se confirme el pago.',
+  totalToPay: 'Total a pagar',
   redirecting: 'Redirigiendo...',
   trackOrder: 'Seguir mi pedido',
   backToMenu: 'Volver al menú',
@@ -811,6 +817,9 @@ const en: Translations = {
   orderSent: 'Order placed!',
   orderSentDesc: 'Your order is on its way to the kitchen',
   payNow: 'Pay now',
+  completePaymentTitle: 'Complete your payment',
+  completePaymentDesc: 'Your order goes to the kitchen as soon as the payment is confirmed.',
+  totalToPay: 'Total to pay',
   redirecting: 'Redirecting...',
   trackOrder: 'Track my order',
   backToMenu: 'Back to menu',

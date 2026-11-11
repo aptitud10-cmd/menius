@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { estimateMinutes } from '@/lib/orders/eta';
 import { useCheckoutStore } from '@/lib/store/checkoutStore';
+import { setPendingPayment } from '@/lib/pending-payment';
 import { cn, formatPrice } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
@@ -227,6 +228,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [orderError, setOrderError] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const [orderId, setOrderId] = useState('');
+  // Pedido creado con pago online (Wompi / Mercado Pago / Stripe sin redirect)
+  // que TODAVÍA no se pagó. La confirmación dice "Completá tu pago", muestra
+  // los botones de pago y no vacía el carrito (W9). Distinto de paymentMethod:
+  // tras Apple/Google Pay el método sigue siendo 'online' pero ya está pagado.
+  const [awaitingPayment, setAwaitingPayment] = useState(false);
   const [trackingToken, setTrackingToken] = useState('');
   const [payLoading, setPayLoading] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
@@ -352,7 +358,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   useEffect(() => {
     if (step !== 'confirmation' || !orderNumber || !orderId) return;
     if (orderId === 'demo-order-id') return;
-    if (paymentMethod === 'online') return;
+    if (awaitingPayment) return;
     const tokenQs = trackingToken ? `?t=${encodeURIComponent(trackingToken)}` : '';
     trackRedirectTimer.current = setTimeout(() => {
       // replace, not push: the cart is already cleared, so "back" from the
@@ -365,7 +371,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         trackRedirectTimer.current = null;
       }
     };
-  }, [step, orderNumber, orderId, paymentMethod, router, slug, trackingToken]);
+  }, [step, orderNumber, orderId, awaitingPayment, router, slug, trackingToken]);
 
 
   const belowDeliveryMin = orderType === 'delivery' && deliveryMinOrder > 0 && cartTotal < deliveryMinOrder;
@@ -601,6 +607,41 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     }
   }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, customerEmail, orderNotes, arrivalTime, orderType, deliveryAddress, deliveryCoords, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
 
+  // B2 — la Idempotency-Key se renueva cuando cambia lo que se va a pedir.
+  // Antes era una por sesión de checkout: si el cliente volvía de Stripe con
+  // "atrás", cambiaba el carrito y confirmaba, el servidor devolvía el pedido
+  // VIEJO (otro monto, otros platos) como si fuera un reintento. Un reintento
+  // de red real no cambia nada de esto, así que conserva la clave.
+  const orderPayloadSig = useMemo(
+    () =>
+      JSON.stringify([
+        buildOrderItemsPayload(),
+        orderType,
+        paymentMethod,
+        tipAmount,
+        promoResult?.valid ? promoCode.trim() : '',
+        loyaltyPointsToRedeem,
+        deliveryAddress.trim(),
+        scheduleEnabled ? scheduledFor : '',
+        customerName.trim(),
+        customerPhone.trim(),
+        customerEmail.trim(),
+        orderNotes.trim(),
+        includeUtensils,
+        tableName || manualTableName.trim(),
+      ]),
+    [buildOrderItemsPayload, orderType, paymentMethod, tipAmount, promoResult, promoCode, loyaltyPointsToRedeem, deliveryAddress, scheduleEnabled, scheduledFor, customerName, customerPhone, customerEmail, orderNotes, includeUtensils, tableName, manualTableName],
+  );
+  const firstPayloadSigRef = useRef(true);
+  useEffect(() => {
+    if (firstPayloadSigRef.current) {
+      firstPayloadSigRef.current = false;
+      return;
+    }
+    idempotencyKeyRef.current = crypto.randomUUID();
+    walletIdempotencyKeyRef.current = `${idempotencyKeyRef.current}-w`;
+  }, [orderPayloadSig]);
+
   // Wallet success: order already created + charged. Mirror the confirmation
   // bookkeeping from handleSubmitOrder (snapshot, save customer, track, confetti).
   const handleWalletSuccess = useCallback((_orderId: string, orderNum: string) => {
@@ -782,6 +823,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       }
       // Online payment: redirect immediately — no need for order id in local state
       if (data.stripe_url) {
+        // B1: el carrito queda intacto hasta que el seguimiento vea el pedido
+        // pagado (si cancela en Stripe, vuelve con su carrito).
+        if (data.order_id) setPendingPayment({ restaurantId: restaurant.id, orderId: data.order_id });
         setRedirectingToPay(true);
         window.location.href = data.stripe_url;
         return;
@@ -796,6 +840,21 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       // Demo restaurant + online payment → show simulated card payment step
       if (restaurant.id.startsWith('demo') && paymentMethod === 'online') {
         setStep('payment');
+        return;
+      }
+      // W9 — pago online sin redirect inmediato (Wompi, Mercado Pago, o el
+      // mismo pedido devuelto por idempotencia): el pedido NO está pagado.
+      // Antes se mostraba "¡Pedido enviado!" + "Total cobrado" y se vaciaba el
+      // carrito antes de pagar. Ahora: "Completá tu pago", carrito intacto, y
+      // en Colombia se abre Wompi directo.
+      if (paymentMethod === 'online') {
+        setPendingPayment({ restaurantId: restaurant.id, orderId: data.order_id });
+        setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
+        setConfirmedEta(estimateMinutes({ items, orderType, restaurant, to: deliveryCoords }));
+        setConfirmedTotal(typeof data.total === 'number' ? data.total : displayTotal);
+        setAwaitingPayment(true);
+        setStep('confirmation');
+        if (isColombianRestaurant) void handlePayWompi(data.order_id);
         return;
       }
       saveLastOrder();
@@ -904,9 +963,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const isColombianRestaurant = currencyUpper === 'COP';
   const isMpSupportedCurrency = MP_CURRENCIES.has(currencyUpper);
 
-  const handlePayOnline = async () => {
+  // `id` explícito cuando se llama justo después de crear el pedido (el estado
+  // orderId todavía no se actualizó). Desde un onClick llega el evento → se ignora.
+  const handlePayOnline = async (id?: unknown) => {
+    const oid = typeof id === 'string' ? id : orderId;
     if (isColombianRestaurant) {
-      await handlePayWompi();
+      await handlePayWompi(oid);
       return;
     }
     setPayLoading(true);
@@ -914,7 +976,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       const res = await fetch('/api/payments/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
+        body: JSON.stringify({ order_id: oid, slug: restaurant.slug }),
       });
       const text = await res.text();
       const parsed = safeParseJson<{ error?: string; url?: string | null }>(text);
@@ -936,13 +998,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     }
   };
 
-  const handlePayWompi = async () => {
+  const handlePayWompi = async (id?: unknown) => {
+    const oid = typeof id === 'string' ? id : orderId;
     setPayLoading(true);
     try {
       const res = await fetch('/api/payments/wompi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
+        body: JSON.stringify({ order_id: oid, slug: restaurant.slug }),
       });
       const text = await res.text();
       const parsed = safeParseJson<{
@@ -1356,10 +1419,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         >
           <div className="w-20 h-20 rounded-full bg-[#e6faf7] flex items-center justify-center mb-6">
-            <CheckCircle className="w-10 h-10 text-[#047a65]" />
+            {awaitingPayment
+              ? <Lock className="w-9 h-9 text-[#047a65]" />
+              : <CheckCircle className="w-10 h-10 text-[#047a65]" />}
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">{t.orderSent}</h2>
-          <p className="text-sm text-gray-500 mb-3">{t.orderSentDesc}</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">{awaitingPayment ? t.completePaymentTitle : t.orderSent}</h2>
+          <p className="text-sm text-gray-500 mb-3">{awaitingPayment ? t.completePaymentDesc : t.orderSentDesc}</p>
           <p className="text-4xl font-bold text-gray-900 mb-5 tabular-nums">#{orderNumber}</p>
 
           {/* Order summary — reassures user of what they ordered */}
@@ -1375,14 +1440,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </div>
               ))}
               <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
-                <span className="text-sm font-bold text-gray-900">{t.totalCharged}</span>
+                <span className="text-sm font-bold text-gray-900">{awaitingPayment ? t.totalToPay : t.totalCharged}</span>
                 <span className="text-sm font-bold text-emerald-600 tabular-nums">{fmtPrice(confirmedTotal)}</span>
               </div>
             </div>
           )}
 
           {/* Auto-redirect hint — shown for non-online, non-demo orders */}
-          {orderId && orderId !== 'demo-order-id' && paymentMethod !== 'online' && (
+          {orderId && orderId !== 'demo-order-id' && !awaitingPayment && (
             <p className="text-xs text-gray-400 mb-2 animate-pulse">
               {t.redirectingToTracking}
             </p>
@@ -1409,7 +1474,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 {orderError}
               </div>
             )}
-            {paymentMethod === 'online' && orderId && !restaurant.id.startsWith('demo') && (
+            {awaitingPayment && orderId && !restaurant.id.startsWith('demo') && (
               <button
                 onClick={handlePayOnline}
                 disabled={payLoading}
@@ -1436,7 +1501,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             )}
 
             {/* MercadoPago button — LatAm currencies only; COP goes through Wompi */}
-            {paymentMethod === 'online' && orderId && !restaurant.id.startsWith('demo') && restaurant.mp_enabled && isMpSupportedCurrency && !isColombianRestaurant && (
+            {awaitingPayment && orderId && !restaurant.id.startsWith('demo') && restaurant.mp_enabled && isMpSupportedCurrency && !isColombianRestaurant && (
               <button
                 onClick={handlePayMercadoPago}
                 disabled={payLoading}

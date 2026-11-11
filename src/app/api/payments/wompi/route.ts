@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const adminDb = createAdminClient();
     const { data: order, error } = await adminDb
       .from('orders')
-      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, customer_token, restaurants ( currency, country_code, wompi_connected, wompi_public_key, wompi_integrity_secret_enc )')
+      .select('id, status, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, customer_token, restaurants ( currency, country_code, wompi_connected, wompi_public_key, wompi_integrity_secret_enc )')
       .eq('id', order_id)
       .maybeSingle();
 
@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
     // Prevent generating a new payment session for an already-paid order
     if (order.payment_status === 'paid') {
       return NextResponse.json({ error: 'Esta orden ya fue pagada' }, { status: 409 });
+    }
+    // W10: un pedido cancelado (por el restaurante o por expiración) no se cobra.
+    if ((order as { status?: string }).status === 'cancelled') {
+      return NextResponse.json({ error: 'Este pedido ya no acepta pagos.' }, { status: 409 });
     }
 
     const restaurantData = (order as unknown as {

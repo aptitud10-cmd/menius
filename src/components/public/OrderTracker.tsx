@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { CheckCircle2, Check, Clock, Bell, XCircle, ArrowLeft, Star, Utensils, ShoppingBag, Truck, CreditCard, Banknote, Phone } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { readPendingPayment, clearPendingPayment } from '@/lib/pending-payment';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { formatPrice } from '@/lib/utils';
@@ -328,6 +329,18 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const [etaTick, setEtaTick] = useState(0);
 
   const hasInitialOrder = !!initialOrder;
+
+  // B1/W9 — el checkout deja el carrito intacto al mandar a pagar online. Se
+  // vacía acá, cuando ESTE pedido figura pagado (el webhook puede llegar unos
+  // segundos después de la vuelta: el efecto re-corre con el realtime).
+  useEffect(() => {
+    if (!order?.id || order.payment_status !== 'paid') return;
+    const pending = readPendingPayment();
+    if (!pending || pending.orderId !== order.id) return;
+    const cart = useCartStore.getState();
+    if (cart.restaurantId === pending.restaurantId) cart.clearCart();
+    clearPendingPayment();
+  }, [order?.id, order?.payment_status]);
 
   const fetchOrder = useCallback(async () => {
     try {

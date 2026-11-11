@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const { data: order } = await adminDb
       .from("orders")
       .select(
-        "id, total, order_number, payment_intent_id, payment_status, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
+        "id, status, total, order_number, payment_intent_id, payment_status, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
       )
       .eq("id", order_id)
       .maybeSingle();
@@ -54,6 +54,14 @@ export async function POST(request: NextRequest) {
     if ((order as any).payment_status === "paid") {
       return NextResponse.json(
         { error: "Esta orden ya fue pagada" },
+        { status: 409 },
+      );
+    }
+
+    // W10: un pedido cancelado no se cobra (antes solo se miraba "paid").
+    if ((order as { status?: string }).status === "cancelled") {
+      return NextResponse.json(
+        { error: "Este pedido ya no acepta pagos." },
         { status: 409 },
       );
     }
@@ -75,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rest = (order as any)?.restaurants;
-    const currency = (rest?.currency || "mxn").toLowerCase();
+    const currency = (rest?.currency || "usd").toLowerCase();
     const amount = Math.round(Number(order.total) * 100);
 
     if (amount <= 0) {

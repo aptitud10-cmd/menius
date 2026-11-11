@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       .from('orders')
       .select(`
         id, order_number, total, customer_name, customer_email, customer_phone,
-        payment_status, restaurant_id, customer_token,
+        status, payment_status, restaurant_id, customer_token,
         restaurants ( currency, mp_access_token, mp_enabled, name, locale )
       `)
       .eq('id', order_id)
@@ -61,6 +61,10 @@ export async function POST(req: NextRequest) {
 
     if (order.payment_status === 'paid') {
       return NextResponse.json({ error: 'Order already paid' }, { status: 409 });
+    }
+    // W10: un pedido cancelado (por el restaurante o por expiración) no se cobra.
+    if ((order as { status?: string }).status === 'cancelled') {
+      return NextResponse.json({ error: 'This order no longer accepts payments.' }, { status: 409 });
     }
 
     const restaurant = (order as any).restaurants as {

@@ -944,7 +944,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Reject free-tier online payments BEFORE inserting the order to avoid ghost records.
-    if (parsed.data.payment_method === "online" && isFreeTier) {
+    // Apple/Google Pay ("wallet") es cobro online igual: antes solo se miraba
+    // "online" y el wallet saltaba el gate de plan (W8).
+    if (
+      (parsed.data.payment_method === "online" || parsed.data.payment_method === "wallet") &&
+      isFreeTier
+    ) {
       return NextResponse.json(
         {
           error: en
