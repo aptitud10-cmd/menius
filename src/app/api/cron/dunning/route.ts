@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail, buildDunningEmail } from '@/lib/notifications/email';
 import { createLogger } from '@/lib/logger';
+import { withRestaurants } from '@/lib/billing/with-restaurants';
 import { PAST_DUE_GRACE_DAYS } from '@/lib/auth/check-plan';
 import { PLANS } from '@/lib/plans';
 
@@ -36,9 +37,9 @@ export async function GET(request: NextRequest) {
   const billingUrl = `${appUrl}/app/billing`;
 
   try {
-    const { data: subs, error: subsError } = await adminDb
+    const { data: rawSubs, error: subsError } = await adminDb
       .from('subscriptions')
-      .select('id, plan_id, past_due_since, dunning_stage, restaurants(name, slug, locale, notification_email)')
+      .select('id, restaurant_id, plan_id, past_due_since, dunning_stage')
       .eq('status', 'past_due')
       .not('past_due_since', 'is', null);
 
@@ -49,7 +50,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: subsError.message }, { status: 500 });
     }
 
-    if (!subs || subs.length === 0) {
+    const { rows: subs, error: restError } = await withRestaurants(
+      adminDb,
+      rawSubs ?? [],
+      'name, slug, locale, notification_email',
+    );
+    if (restError) {
+      logger.error('Failed to fetch restaurants for dunning', { error: restError });
+      return NextResponse.json({ error: restError }, { status: 500 });
+    }
+
+    if (subs.length === 0) {
       return NextResponse.json({ message: 'No past_due subscriptions', sent: 0 });
     }
 

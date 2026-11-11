@@ -8,6 +8,7 @@ import {
   buildMenuOptimizerAlertEmail,
 } from "@/lib/notifications/email";
 import { createLogger } from "@/lib/logger";
+import { withRestaurants } from "@/lib/billing/with-restaurants";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { OptimizerInsight } from "@/app/api/ai/menu-optimizer/route";
 
@@ -32,13 +33,12 @@ export async function GET(request: NextRequest) {
 
   try {
     // Obtener restaurantes activos con plan active o trialing, con email del owner
-    const { data: activeRestaurants, error: activeError } = await supabase
+    // Sin embed restaurants(...): subscriptions no tiene FK a restaurants.
+    // Los sin notification_email se descartan abajo, en eligibleRestaurants.
+    const { data: activeSubs, error: activeError } = await supabase
       .from("subscriptions")
-      .select(
-        "restaurant_id, restaurants(id, name, locale, currency, notification_email)",
-      )
-      .in("status", ["active", "trialing"])
-      .not("restaurants.notification_email", "is", null);
+      .select("restaurant_id")
+      .in("status", ["active", "trialing"]);
 
     if (activeError) {
       logger.error("Failed to fetch active restaurants", {
@@ -47,7 +47,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: activeError.message }, { status: 500 });
     }
 
-    if (!activeRestaurants || activeRestaurants.length === 0) {
+    const { rows: activeRestaurants, error: restError } = await withRestaurants(
+      supabase,
+      activeSubs ?? [],
+      "name, locale, currency, notification_email",
+    );
+    if (restError) {
+      logger.error("Failed to fetch restaurants for optimizer alerts", { error: restError });
+      return NextResponse.json({ error: restError }, { status: 500 });
+    }
+
+    if (activeRestaurants.length === 0) {
       logger.info("No active restaurants found for menu optimizer alerts");
       return NextResponse.json({ ok: true, ...counters });
     }

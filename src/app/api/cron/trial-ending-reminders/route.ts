@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, buildTrialEndingEmail } from "@/lib/notifications/email";
 import { createLogger } from "@/lib/logger";
+import { withRestaurants } from "@/lib/billing/with-restaurants";
 
 const logger = createLogger("cron:trial-ending-reminders", { report: true });
 
@@ -37,11 +38,9 @@ export async function GET(request: NextRequest) {
       Date.now() + 3 * 24 * 60 * 60 * 1000,
     ).toISOString();
 
-    const { data: subs } = await adminDb
+    const { data: rawSubs, error: subsError } = await adminDb
       .from("subscriptions")
-      .select(
-        "restaurant_id, trial_end, restaurants(name, slug, locale, notification_email)",
-      )
+      .select("restaurant_id, trial_end")
       .eq("status", "trialing")
       // Floor at now: an already-expired trial shouldn't be told it has 3 days
       // left. billing-reconciliation flips those to canceled anyway.
@@ -49,7 +48,24 @@ export async function GET(request: NextRequest) {
       .lte("trial_end", windowEnd)
       .is("trial_ending_reminder_sent_at", null);
 
-    if (!subs || subs.length === 0) {
+    // Antes el error ni se leía: con el embed roto (sin FK) cada corrida decía
+    // "no hay pruebas por vencer" y en 8 pruebas no salió ni un aviso.
+    if (subsError) {
+      logger.error("Failed to fetch trialing subscriptions", { error: subsError.message });
+      return NextResponse.json({ error: subsError.message }, { status: 500 });
+    }
+
+    const { rows: subs, error: restError } = await withRestaurants(
+      adminDb,
+      rawSubs ?? [],
+      "name, slug, locale, notification_email",
+    );
+    if (restError) {
+      logger.error("Failed to fetch restaurants for trial reminders", { error: restError });
+      return NextResponse.json({ error: restError }, { status: 500 });
+    }
+
+    if (subs.length === 0) {
       return NextResponse.json({
         message: "No trials ending within 3 days",
         sent: 0,
