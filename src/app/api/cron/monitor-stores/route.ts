@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createAlertOnce } from '@/lib/dev-tool/alerts';
 import { createLogger } from '@/lib/logger';
 
-const logger = createLogger('monitor-stores');
+const logger = createLogger('monitor-stores', { report: true });
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app';
 
 export async function GET(request: NextRequest) {

@@ -11,7 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createLogger } from "@/lib/logger";
 import { publishPost, isAutoPublishEnabled } from "@/lib/social/publish";
 
-const logger = createLogger("cron-social-posts");
+const logger = createLogger("cron-social-posts", { report: true });
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;

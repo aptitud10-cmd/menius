@@ -270,7 +270,9 @@ CREATE TABLE public.menius_posts (
   status text NOT NULL DEFAULT 'draft'::text,
   source text NOT NULL DEFAULT 'auto'::text,
   created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now()
+  updated_at timestamp with time zone DEFAULT now(),
+  published_at timestamp with time zone,
+  external_post_id text
 );
 
 CREATE TABLE public.menu_categories (
@@ -543,7 +545,9 @@ CREATE TABLE public.products (
   stock_qty integer,
   low_stock_threshold integer DEFAULT 5,
   track_inventory boolean DEFAULT false,
-  compare_at_price numeric DEFAULT NULL::numeric
+  compare_at_price numeric DEFAULT NULL::numeric,
+  hide_image boolean NOT NULL DEFAULT false,
+  dine_in_only boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE public.profiles (
@@ -683,7 +687,9 @@ CREATE TABLE public.reviews (
   rating integer NOT NULL,
   comment text DEFAULT ''::text,
   is_visible boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now()
+  created_at timestamp with time zone DEFAULT now(),
+  owner_response text,
+  ai_suggested_response text
 );
 
 CREATE TABLE public.shifts (
@@ -755,7 +761,8 @@ CREATE TABLE public.subscriptions (
   updated_at timestamp with time zone DEFAULT now(),
   cancel_at timestamp with time zone,
   past_due_since timestamp with time zone,
-  dunning_stage smallint NOT NULL DEFAULT 0
+  dunning_stage smallint NOT NULL DEFAULT 0,
+  trial_ending_reminder_sent_at timestamp with time zone
 );
 
 CREATE TABLE public.tables (

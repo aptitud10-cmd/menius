@@ -5,8 +5,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, RefreshCcw, ShoppingBag } from 'lucide-react';
 import { getTranslations, type Translations } from '@/lib/translations';
+import * as Sentry from '@sentry/nextjs';
 
 export default function OrderTrackingError({
+  error,
   reset,
 }: {
   error: Error;
@@ -17,6 +19,8 @@ export default function OrderTrackingError({
 
   const [slug, setSlug] = useState('');
   const [t, setT] = useState<Translations>(() => getTranslations('es'));
+
+  useEffect(() => { Sentry.captureException(error); }, [error]);
 
   useEffect(() => {
     const parts = window.location.pathname.split('/');

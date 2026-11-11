@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { sendEmail } from '@/lib/notifications/email';
 
-const logger = createLogger('rls-drift-check');
+const logger = createLogger('rls-drift-check', { report: true });
 
 /**
  * RLS drift detector.

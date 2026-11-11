@@ -1,5 +1,7 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
+import { useEffect } from 'react';
 import Link from 'next/link';
 
 function getLocale(): string {
@@ -15,6 +17,7 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => { Sentry.captureException(error); }, [error]);
   const en = getLocale() === 'en';
 
   return (

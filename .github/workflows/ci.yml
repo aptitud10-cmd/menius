@@ -26,6 +26,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Antes el CI no chequeaba tipos: un error de TS recién aparecía en el
+      # build de Vercel (o en producción, en código que no se compila en build).
+      - name: Type check
+        run: npx tsc --noEmit -p .
+
       - name: Unit tests
         run: npm run test
         env:

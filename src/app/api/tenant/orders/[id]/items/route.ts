@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Verify order belongs to this restaurant and is editable
     const { data: order } = await supabase
       .from('orders')
-      .select('id, status, total, restaurant_id')
+      .select('id, status, total, restaurant_id, payment_method, payment_status')
       .eq('id', orderId)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
@@ -27,6 +27,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     if (['delivered', 'completed', 'cancelled'].includes(order.status)) {
       return NextResponse.json({ error: 'Cannot modify a completed order' }, { status: 400 });
+    }
+    // Pagado online: cambiar platos cambiaba el total sin cobrar ni devolver la
+    // diferencia (y sin recalcular el impuesto). Se cancela/reembolsa y se rehace.
+    if (order.payment_status === 'paid' && ['online', 'wallet'].includes(String(order.payment_method))) {
+      return NextResponse.json({ error: 'This order was paid online and cannot be edited. Refund it and create a new one.' }, { status: 409 });
     }
 
     // Fetch product price
@@ -105,7 +110,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     // Verify order belongs to this restaurant
     const { data: order } = await supabase
       .from('orders')
-      .select('id, status')
+      .select('id, status, payment_method, payment_status')
       .eq('id', orderId)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
@@ -113,6 +118,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     if (['delivered', 'completed', 'cancelled'].includes(order.status)) {
       return NextResponse.json({ error: 'Cannot modify a completed order' }, { status: 400 });
+    }
+    // Pagado online: cambiar platos cambiaba el total sin cobrar ni devolver la
+    // diferencia (y sin recalcular el impuesto). Se cancela/reembolsa y se rehace.
+    if (order.payment_status === 'paid' && ['online', 'wallet'].includes(String(order.payment_method))) {
+      return NextResponse.json({ error: 'This order was paid online and cannot be edited. Refund it and create a new one.' }, { status: 409 });
     }
 
     // Must keep at least 1 item

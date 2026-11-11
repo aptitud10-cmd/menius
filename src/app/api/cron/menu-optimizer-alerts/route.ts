@@ -11,7 +11,7 @@ import { createLogger } from "@/lib/logger";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { OptimizerInsight } from "@/app/api/ai/menu-optimizer/route";
 
-const logger = createLogger("cron:menu-optimizer-alerts");
+const logger = createLogger("cron:menu-optimizer-alerts", { report: true });
 
 const CRON_SECRET = process.env.CRON_SECRET;
 

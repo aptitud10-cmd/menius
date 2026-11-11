@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 
-const logger = createLogger('cleanup-demo-images');
+const logger = createLogger('cleanup-demo-images', { report: true });
 
 const DEMO_PREFIXES = ['ai-enhance', 'ai-generate'];
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

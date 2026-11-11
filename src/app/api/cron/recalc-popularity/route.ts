@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 
-const logger = createLogger('recalc-popularity');
+const logger = createLogger('recalc-popularity', { report: true });
 
 export async function GET(request: NextRequest) {
   const auth = request.headers.get('authorization');

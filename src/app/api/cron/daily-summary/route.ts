@@ -11,7 +11,7 @@ import { buildWeeklyDigestEmail } from '@/lib/notifications/retention-emails';
 import { createLogger } from '@/lib/logger';
 import { isRevenueStatus } from '@/lib/order-state';
 
-const logger = createLogger('weekly-digest');
+const logger = createLogger('weekly-digest', { report: true });
 
 /**
  * ISO-8601 week key, e.g. "2026_W32". Used to make the weekly send idempotent:

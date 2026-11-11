@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, buildTrialEndingEmail } from "@/lib/notifications/email";
 import { createLogger } from "@/lib/logger";
 
-const logger = createLogger("cron:trial-ending-reminders");
+const logger = createLogger("cron:trial-ending-reminders", { report: true });
 
 // Runs daily. Finds restaurants whose trial ends in exactly 3 days and sends a warning.
 // This is independent of Stripe webhooks — restaurants on trial without a Stripe subscription

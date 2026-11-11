@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const { data: order } = await adminDb
       .from("orders")
       .select(
-        "id, total, order_number, payment_intent_id, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
+        "id, total, order_number, payment_intent_id, payment_status, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
       )
       .eq("id", order_id)
       .maybeSingle();

@@ -8,7 +8,7 @@ import { createLogger } from '@/lib/logger';
 import { PAST_DUE_GRACE_DAYS } from '@/lib/auth/check-plan';
 import { PLANS } from '@/lib/plans';
 
-const logger = createLogger('cron:dunning');
+const logger = createLogger('cron:dunning', { report: true });
 
 // Dunning email sequence for past_due subscriptions. Runs hourly.
 // Stage timing (days since past_due_since) → dunning_stage to advance to:

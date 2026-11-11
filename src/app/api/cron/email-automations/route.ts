@@ -8,7 +8,7 @@ import { buildReviewEmail } from "@/lib/notifications/customer-email";
 import { loadCustomerEmailOrder, sendCustomerEmail } from "@/lib/notifications/customer-email-data";
 import { createLogger } from "@/lib/logger";
 
-const logger = createLogger("email-automations");
+const logger = createLogger("email-automations", { report: true });
 
 const CRON_SECRET = process.env.CRON_SECRET;
 

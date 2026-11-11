@@ -18,12 +18,15 @@ export function LandingStickyCta({ locale }: { locale: LandingLocale }) {
 
   useEffect(() => {
     if (dismissed) return;
-    // IntersectionObserver on a sentinel div injected into document.body.
-    // Immune to Safari's dynamic viewport (address bar show/hide changes
-    // window.innerHeight, breaking scroll-based calculations).
-    const topSentinel = document.createElement('div');
-    topSentinel.style.cssText = 'position:absolute;top:500px;left:0;height:1px;width:1px;pointer-events:none';
-    document.body.appendChild(topSentinel);
+    // En mobile el que scrollea es .landing-bg (body scroll container en
+    // globals.css), no el body: el centinela que iba en el body nunca salía de
+    // la pantalla y el CTA no aparecía nunca. Se lee el scroll del contenedor
+    // correcto, igual que LandingNav. Se mide scrollTop (no innerHeight), así
+    // que la barra dinámica de Safari no lo afecta.
+    const mobile = window.matchMedia('(max-width: 768px)').matches;
+    const scroller = mobile ? (document.querySelector('.landing-bg, .root-scroll') as HTMLElement | null) : null;
+    const target: HTMLElement | Window = scroller ?? window;
+    const getY = () => (scroller ? scroller.scrollTop : window.scrollY);
 
     const footer = document.querySelector('footer');
 
@@ -31,10 +34,13 @@ export function LandingStickyCta({ locale }: { locale: LandingLocale }) {
     let nearBottom = false;
     const update = () => setVisible(pastTop && !nearBottom);
 
-    const topObs = new IntersectionObserver(
-      ([e]) => { pastTop = !e.isIntersecting; update(); },
-    );
-    topObs.observe(topSentinel);
+    let rafId = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => { pastTop = getY() > 500; update(); });
+    };
+    target.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
 
     let bottomObs: IntersectionObserver | null = null;
     if (footer) {
@@ -46,9 +52,9 @@ export function LandingStickyCta({ locale }: { locale: LandingLocale }) {
     }
 
     return () => {
-      topObs.disconnect();
+      target.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(rafId);
       bottomObs?.disconnect();
-      topSentinel.remove();
     };
   }, [dismissed]);
 

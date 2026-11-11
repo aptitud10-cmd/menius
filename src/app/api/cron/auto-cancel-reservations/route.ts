@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { localDateTimeToUTC } from '@/lib/date-utils';
 
-const logger = createLogger('auto-cancel-reservations');
+const logger = createLogger('auto-cancel-reservations', { report: true });
 
 const GRACE_MS = 2 * 60 * 60 * 1000;
 

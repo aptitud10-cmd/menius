@@ -7,7 +7,7 @@ import { createLogger } from '@/lib/logger';
 import { sendEmail } from '@/lib/notifications/email';
 import { PLANS } from '@/lib/plans';
 
-const logger = createLogger('health-alerts');
+const logger = createLogger('health-alerts', { report: true });
 
 const ALERT_THRESHOLDS = {
   stuckOrdersMin: 1,

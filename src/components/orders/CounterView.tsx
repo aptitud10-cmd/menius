@@ -1157,10 +1157,17 @@ export function CounterView({
       });
       if (res.ok) {
         setStockProducts(prev => prev.map(p => p.id === productId ? { ...p, in_stock: !currentInStock } : p));
+      } else {
+        // Antes fallaba en silencio: el cajero creía que el plato quedó agotado
+        // y la tienda lo seguía vendiendo.
+        showError(t.en ? 'Could not update the item. Try again.' : 'No se pudo cambiar el plato. Intenta de nuevo.');
       }
-    } catch { /* ignore */ }
+    } catch {
+      showError(t.en ? 'No connection — the item was not updated.' : 'Sin conexión: el plato no se cambió.');
+    }
     finally { setStockUpdating(null); }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
   // ── Shift handlers ──
   const handleOpenShift = useCallback(async () => {

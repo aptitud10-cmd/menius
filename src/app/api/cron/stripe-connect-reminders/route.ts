@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/notifications/email';
 import { createLogger } from '@/lib/logger';
 
-const logger = createLogger('cron:stripe-connect-reminders');
+const logger = createLogger('cron:stripe-connect-reminders', { report: true });
 
 // Each send is recorded as `stripe_reminder_1|2|3` in restaurants.tags, so the
 // nudge stops after three Mondays instead of running for the life of the account.

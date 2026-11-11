@@ -20,7 +20,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 
-const logger = createLogger('auto-complete-pickup');
+const logger = createLogger('auto-complete-pickup', { report: true });
 
 const READY_TIMEOUT_MINS = 120;
 

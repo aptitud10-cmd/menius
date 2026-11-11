@@ -74,12 +74,35 @@ export function maskEmail(email: string | null | undefined): string | null | und
   return `${email[0]}***${email.slice(at)}`;
 }
 
-export function createLogger(context: string) {
+/**
+ * Errores a Sentry (sin Telegram). Para los crons: antes su logger.error solo
+ * iba a la consola de Vercel y un cron roto pasaba días sin que nadie se enterara.
+ */
+function reportToSentry(context: string, message: string, data?: Record<string, unknown>) {
+  const extras: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data ?? {})) {
+    extras[k] = typeof v === 'string' && v.includes('@') && v.includes('.') ? maskEmail(v) : v;
+  }
+  import('@sentry/nextjs')
+    .then((Sentry) => {
+      Sentry.withScope((scope) => {
+        scope.setTag('logger', context);
+        scope.setExtras(extras);
+        Sentry.captureMessage(`[${context}] ${message}`, 'error');
+      });
+    })
+    .catch(() => { /* Sentry no disponible: queda el log */ });
+}
+
+export function createLogger(context: string, opts?: { report?: boolean }) {
   return {
     debug: (message: string, data?: Record<string, unknown>) => emit('debug', context, message, data),
     info: (message: string, data?: Record<string, unknown>) => emit('info', context, message, data),
     warn: (message: string, data?: Record<string, unknown>) => emit('warn', context, message, data),
-    error: (message: string, data?: Record<string, unknown>) => emit('error', context, message, data),
+    error: (message: string, data?: Record<string, unknown>) => {
+      emit('error', context, message, data);
+      if (opts?.report) reportToSentry(context, message, data);
+    },
   };
 }
 
