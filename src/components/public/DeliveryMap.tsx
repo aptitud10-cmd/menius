@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { ExternalLink } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import { getTranslations } from '@/lib/translations';
 import type { Translations } from '@/lib/translations';
 
@@ -166,9 +167,14 @@ interface LiveMapProps {
   driverCoords: Coords | null;
   t: Translations;
   onEtaUpdate?: (minutes: number | null) => void;
+  /** Mapbox no pudo dibujar (llave, estilo, WebGL): se pasa al mapa de Google. */
+  onFail: (reason: string) => void;
 }
 
-function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, t, onEtaUpdate }: LiveMapProps) {
+/** Si el estilo no cargó en este tiempo, el mapa quedó negro: se pasa al de reserva. */
+const MAP_LOAD_TIMEOUT_MS = 12_000;
+
+function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, t, onEtaUpdate, onFail }: LiveMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
@@ -247,7 +253,11 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
       const dark = prefersDark();
       const routeColor = dark ? '#5BE3C9' : '#0E1412';
-      const map = new mapboxgl.Map({
+      // Antes, si Mapbox fallaba (llave, estilo, sin WebGL) el cliente veía un
+      // recuadro negro sin aviso. Ahora cae al mapa de Google y queda en Sentry.
+      let map: any;
+      try {
+      map = new mapboxgl.Map({
         container: containerRef.current,
         // Mapa sobrio (gris) para que el color lo pongan los puntos y la ruta;
         // oscuro si el teléfono está en oscuro, como el resto de la página.
@@ -260,6 +270,19 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
         zoom: 14,
         attributionControl: false,
         logoPosition: 'bottom-right',
+      });
+      } catch (err) {
+        onFail(err instanceof Error ? err.message : 'map init failed');
+        return;
+      }
+      let styleLoaded = false;
+      const loadTimer = setTimeout(() => { if (!styleLoaded && !cancelled) onFail('style load timeout'); }, MAP_LOAD_TIMEOUT_MS);
+      map.on('load', () => { styleLoaded = true; clearTimeout(loadTimer); });
+      map.on('error', (e: { error?: { message?: string; status?: number } }) => {
+        // Después de cargar, un tile caído es pasajero; antes, el mapa queda vacío.
+        if (styleLoaded || cancelled) return;
+        clearTimeout(loadTimer);
+        onFail(e?.error?.status ? `HTTP ${e.error.status}: ${e.error.message ?? ''}` : (e?.error?.message ?? 'map error'));
       });
 
       // Fit map to show all markers
@@ -435,6 +458,15 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   const [restaurantCoords, setRestaurantCoords] = useState<Coords | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<Coords | null>(null);
   const [geocodingDone, setGeocodingDone] = useState(false);
+  const [liveFailed, setLiveFailed] = useState(false);
+  const failReported = useRef(false);
+  const handleMapFail = useCallback((reason: string) => {
+    if (!failReported.current) {
+      failReported.current = true;
+      Sentry.captureMessage(`DeliveryMap: Mapbox falló — ${reason}`, 'warning');
+    }
+    setLiveFailed(true);
+  }, []);
 
   const driverCoords = useMemo<Coords | null>(
     () => (driverLat != null && driverLng != null) ? { lat: driverLat, lng: driverLng } : null,
@@ -469,7 +501,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
     return <div className="w-full h-64 animate-pulse" style={{ background: 'var(--tk-surface, #f3f4f6)' }} />;
   }
 
-  if (!restaurantCoords || !MAPBOX_TOKEN) {
+  if (!restaurantCoords || !MAPBOX_TOKEN || liveFailed) {
     return (
       <MapFallback
         restaurantAddress={restaurantAddress}
@@ -489,6 +521,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
         driverCoords={driverCoords}
         t={t}
         onEtaUpdate={onEtaUpdate}
+        onFail={handleMapFail}
       />
       <OpenInMapsLink address={deliveryAddress ?? restaurantAddress ?? ''} label={t.mapOpenInMaps} />
     </div>

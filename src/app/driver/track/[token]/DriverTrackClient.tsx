@@ -182,6 +182,9 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle');
   const [gpsError, setGpsError] = useState('');
   const [deliveryStep, setDeliveryStep] = useState<DeliveryStep>('start');
+  // El canal realtime se suscribe una vez: lee el paso actual de acá.
+  const stepRef = useRef<DeliveryStep>('start');
+  stepRef.current = deliveryStep;
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -276,8 +279,15 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
           setOrderCancelled(true);
           stopGps();
         } else if (status === 'out_for_delivery') {
-          setDeliveryStep('picked_up');
-          startGps();
+          // Solo AVANZA desde "recoger" (el mostrador tocó "Salió"). El servidor
+          // también emite out_for_delivery al marcar "Llegué a la puerta" (el
+          // estado del pedido no cambia): antes eso devolvía al repartidor a
+          // "en camino" justo después de avanzar — el botón "no hacía nada" y
+          // nunca aparecían la foto ni el deslizar para entregar.
+          if (stepRef.current === 'start') {
+            setDeliveryStep('picked_up');
+            startGps();
+          }
         } else if (status === 'delivered') {
           stopGps();
           setDeliveryStep('delivered');
