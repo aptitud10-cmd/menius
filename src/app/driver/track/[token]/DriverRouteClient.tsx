@@ -17,6 +17,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Check, Loader2, ScanLine, X, AlertTriangle, UserRound } from 'lucide-react';
 import { C, money } from '@/components/orders/counter/ui';
 import { MAX_ROUTE_ORDERS } from '@/lib/orders/driver-route';
@@ -43,11 +44,15 @@ type Stop = {
   pickedUp: boolean;
   delivered: boolean;
   cancelled: boolean;
+  /** Su QR ya no sirve (reasignado a otro repartidor, vencido): sale del viaje. */
+  gone?: boolean;
   restaurantName: string | null;
 };
 
 const shortNum = (n: string | null | undefined) => (n ? `#${n.split('-').pop()}` : '#—');
-const isDone = (s: Stop | undefined) => !!s && (s.delivered || s.cancelled);
+const isDone = (s: Stop | undefined) => !!s && (s.delivered || s.cancelled || !!s.gone);
+/** Sumar solo si los tickets anteriores se escanearon hace poco (mismo viaje). */
+const MERGE_WINDOW_MS = 30 * 60 * 1000;
 
 function readJSON<T>(key: string): T | null {
   try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : null; } catch { return null; }
@@ -55,16 +60,23 @@ function readJSON<T>(key: string): T | null {
 function writeJSON(key: string, v: unknown) {
   try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* modo privado */ }
 }
-function readRoute(): string[] | null {
+function readRoute(): { tokens: string[]; at: number } | null {
   const v = readJSON<{ tokens?: unknown; at?: unknown }>(STORE_KEY);
   if (!v || !Array.isArray(v.tokens) || typeof v.at !== 'number' || Date.now() - v.at > STORE_TTL_MS) return null;
-  return v.tokens.filter((t): t is string => typeof t === 'string').slice(0, MAX_ROUTE_ORDERS);
+  return { tokens: v.tokens.filter((t): t is string => typeof t === 'string').slice(0, MAX_ROUTE_ORDERS), at: v.at };
 }
 const writeRoute = (tokens: string[]) => writeJSON(STORE_KEY, { tokens, at: Date.now() });
 
+const goneStop = (token: string): Stop => ({
+  token, restaurantId: null, orderNumber: null, customerName: null, address: null, total: 0, currency: 'USD',
+  collectCash: false, status: 'gone', pickedUp: false, delivered: false, cancelled: false, gone: true, restaurantName: null,
+});
+
+/** null = sin red (se reintenta); gone = el QR ya no sirve. */
 async function fetchStop(token: string): Promise<Stop | null> {
   try {
     const res = await fetch(`/api/driver/order?token=${encodeURIComponent(token)}`);
+    if (res.status === 404 || res.status === 410) return goneStop(token);
     if (!res.ok) return null;
     const d = await res.json();
     const closed = d.orderStatus === 'delivered' || d.orderStatus === 'completed';
@@ -133,8 +145,9 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
   const [stops, setStops] = useState<Record<string, Stop>>({});
   const [scanOpen, setScanOpen] = useState(false);
   const [scanMsg, setScanMsg] = useState<{ tone: 'info' | 'ok' | 'error'; text: string } | null>(null);
-  /** Aviso arriba de la lista: "#043 se sumó a tu viaje". */
-  const [joinedNote, setJoinedNote] = useState<string | null>(null);
+  /** Aviso arriba: "#043 se sumó a tu viaje" o por qué no se pudo. */
+  const [joinedNote, setJoinedNote] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [me, setMe] = useState<Me | null>(null);
@@ -161,25 +174,37 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
   useEffect(() => {
     (async () => {
       const stored = readRoute();
-      if (stored && stored.includes(token)) {
-        setRoute(stored);
-        loadStops(stored);
+      if (stored && stored.tokens.includes(token)) {
+        setRoute(stored.tokens);
+        loadStops(stored.tokens);
         return;
       }
-      // Escaneó otro ticket con la cámara del teléfono: si tiene un viaje que
-      // todavía no salió, se suma solo (como escanear con el botón).
-      if (stored && stored.length > 0 && stored.length < MAX_ROUTE_ORDERS) {
-        const list = await loadStops(stored);
-        const pending = list.filter((s): s is Stop => !!s && !s.pickedUp && !isDone(s)).map((s) => s.token);
-        if (pending.length > 0 && pending.length === list.filter((s) => s && !isDone(s)).length) {
-          const next = [...pending, token];
+      if (stored && stored.tokens.length > 0) {
+        const list = await loadStops(stored.tokens);
+        const live = list.filter((s): s is Stop => !!s && !isDone(s));
+        // Va en camino con un viaje: ese viaje no se pisa nunca (iOS recarga la
+        // pestaña al volver de Maps). Este ticket va en el próximo viaje.
+        if (live.some((s) => s.pickedUp)) {
+          setRoute(stored.tokens);
+          setJoinedNote({ tone: 'error', text: reasonText('out', en) });
+          return;
+        }
+        // Escaneó otro ticket con la cámara del teléfono minutos después: se
+        // suma solo al viaje que todavía no salió (igual que con el botón).
+        const fresh = Date.now() - stored.at < MERGE_WINDOW_MS;
+        if (fresh && live.length > 0 && live.length < MAX_ROUTE_ORDERS) {
+          const next = [...live.map((s) => s.token), token];
           const r = await saveRoute(next);
+          const [mine] = await loadStops([token]);
           if (r.ok) {
             commit(next);
-            const [mine] = await loadStops([token]);
-            setJoinedNote(en ? `${shortNum(mine?.orderNumber)} was added to your trip` : `${shortNum(mine?.orderNumber)} se sumó a tu viaje`);
-            return;
+            setJoinedNote({ tone: 'ok', text: en ? `${shortNum(mine?.orderNumber)} was added to your trip` : `${shortNum(mine?.orderNumber)} se sumó a tu viaje` });
+          } else {
+            // Sin pisar el viaje guardado: este ticket queda solo en esta pestaña.
+            setRoute([token]);
+            setJoinedNote({ tone: 'error', text: `${shortNum(mine?.orderNumber)}: ${reasonText(r.reason, en)}` });
           }
+          return;
         }
       }
       commit([token]);
@@ -187,14 +212,34 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
     })();
   }, [token, loadStops, commit, en]);
 
+  useEffect(() => {
+    if (!joinedNote) return;
+    const id = setTimeout(() => setJoinedNote(null), joinedNote.tone === 'ok' ? 5000 : 9000);
+    return () => clearTimeout(id);
+  }, [joinedNote]);
+
+  // Antes de salir, un ticket que ya no sirve (lo reasignaron) sale del viaje.
+  useEffect(() => {
+    if (!route || route.length < 2) return;
+    if (route.some((t) => stops[t]?.pickedUp)) return;
+    const gone = route.filter((t) => stops[t]?.gone);
+    if (gone.length === 0) return;
+    const next = route.filter((t) => !gone.includes(t));
+    if (next.length === 0) return;
+    commit(next);
+    void saveRoute(next, gone);
+    setJoinedNote({ tone: 'error', text: en ? 'A ticket is no longer yours (reassigned) and left the trip.' : 'Un ticket ya no es tuyo (lo reasignaron) y salió del viaje.' });
+    if (gone.includes(token)) router.replace(`/driver/track/${next[0]}${en ? '?lang=en' : ''}`);
+  }, [route, stops, commit, en, token, router]);
+
   // Otra pestaña (otro QR abierto con la cámara) cambió el viaje: misma lista acá.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== STORE_KEY) return;
       const next = readRoute();
-      if (!next || !next.includes(token)) return;
-      setRoute(next);
-      loadStops(next);
+      if (!next || !next.tokens.includes(token)) return;
+      setRoute(next.tokens);
+      loadStops(next.tokens);
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -251,36 +296,55 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
     const next = route.filter((x) => x !== t);
     commit(next);
     void saveRoute(next, [t]);
+    // Quitó el ticket con el que se abrió esta página: la URL pasa a otro del
+    // viaje, si no al recargar (iOS lo hace al volver de Maps) se perdía el viaje.
+    if (t === token && next.length > 0) {
+      router.replace(`/driver/track/${next[0]}${en ? '?lang=en' : ''}`);
+    }
   };
 
   // ── Salir con todos ──
   const pickUpAll = async () => {
-    if (!route) return;
+    if (!route || busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setError('');
     const pending = route.filter((t) => !stops[t]?.pickedUp && !isDone(stops[t]));
+    const queued: string[] = [];
     for (const t of pending) {
       try {
-        const res = await fetch('/api/driver/status', {
+        await fetch('/api/driver/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: t, action: 'picked_up', ...(me ? { driver: { id: me.id, name: me.name } } : {}) }),
         });
-        if (!res.ok && res.status !== 409) {
-          const d = await res.json().catch(() => ({}));
-          setError(d.error ?? (en ? 'Error — try again' : 'Error, intenta de nuevo'));
-        }
       } catch {
+        // Sin red: queda en cola y se manda solo al volver la señal.
         await queueStatusAction(t, 'picked_up');
+        queued.push(t);
       }
     }
+    // Lo que diga el servidor manda: cancelados salen del viaje, los que
+    // fallaron se avisan y su parada vuelve a ofrecer "Ya tengo el pedido".
+    const fresh = await loadStops(pending.filter((t) => !queued.includes(t)));
+    const failed = fresh.filter((s): s is Stop => !!s && !s.pickedUp && !isDone(s));
+    const cancelled = fresh.filter((s): s is Stop => !!s && s.cancelled);
+    if (queued.length) {
+      setStops((prev) => {
+        const next = { ...prev };
+        for (const t of queued) if (next[t]) next[t] = { ...next[t], pickedUp: true };
+        return next;
+      });
+    }
+    if (failed.length || cancelled.length) {
+      setError([
+        failed.length ? (en ? `Could not mark ${failed.map((s) => shortNum(s.orderNumber)).join(', ')}. Try again.` : `No se pudo marcar ${failed.map((s) => shortNum(s.orderNumber)).join(', ')}. Intenta de nuevo.`) : null,
+        cancelled.length ? (en ? `${cancelled.map((s) => shortNum(s.orderNumber)).join(', ')} was cancelled: leave that bag.` : `${cancelled.map((s) => shortNum(s.orderNumber)).join(', ')} se canceló: deja esa bolsa.`) : null,
+      ].filter(Boolean).join(' '));
+    }
     if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
-    setStops((prev) => {
-      const next = { ...prev };
-      for (const t of pending) if (next[t]) next[t] = { ...next[t], pickedUp: true };
-      return next;
-    });
     setBusy(false);
+    busyRef.current = false;
   };
 
   // ── En camino: la parada actual es la primera sin terminar ──
@@ -333,6 +397,16 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
       items={r.map((t) => shortNum(stops[t]?.orderNumber))} />
   );
 
+  // Aviso arriba (se sumó / no se pudo / va en el próximo viaje). Se cierra solo o tocándolo.
+  const toast = joinedNote && (
+    <button type="button" onClick={() => setJoinedNote(null)} role="status"
+      className="fixed inset-x-3 z-[80] max-w-md mx-auto flex items-start gap-2 rounded-2xl px-4 py-3 text-left text-[14px] font-bold shadow-lg"
+      style={{ top: 'max(0.75rem, env(safe-area-inset-top))', ...(joinedNote.tone === 'ok' ? { background: C.greenSoft, color: C.greenDeep } : { background: C.redSoft, color: C.red }) }}>
+      {joinedNote.tone === 'ok' ? <Check className="w-4 h-4 mt-0.5 flex-shrink-0" strokeWidth={3} aria-hidden /> : <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />}
+      {joinedNote.text}
+    </button>
+  );
+
   const whoLine = me && (
     <p className="flex items-center justify-center gap-1.5 text-[13px] font-semibold" style={{ color: C.sub }}>
       <UserRound className="w-4 h-4" aria-hidden />
@@ -360,6 +434,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
         <DriverTrackClient key={only} token={only} lang={lang} driver={me}
           startExtra={canAdd ? <div className="grid gap-3 pt-1">{scanButton}{whoLine}</div> : whoLine} />
         {scanner}
+        {toast}
       </>
     );
   }
@@ -393,8 +468,10 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
                   <span className="min-w-0">
                     <b className="tabular-nums">{shortNum(s.orderNumber)}</b>
                     <span style={{ color: C.sub }}> · {s.customerName}</span>
-                    <span className="block text-[12.5px] font-semibold" style={{ color: s.cancelled ? C.red : C.greenDeep }}>
-                      {s.cancelled ? (en ? 'Cancelled — bring the bag back' : 'Cancelado: devuelve la bolsa') : (en ? 'Delivered' : 'Entregado')}
+                    <span className="block text-[12.5px] font-semibold" style={{ color: s.cancelled ? C.red : s.gone ? C.faint : C.greenDeep }}>
+                      {s.cancelled ? (en ? 'Cancelled — bring the bag back' : 'Cancelado: devuelve la bolsa')
+                        : s.gone ? (en ? 'No longer yours (reassigned)' : 'Ya no es tuyo (lo reasignaron)')
+                        : (en ? 'Delivered' : 'Entregado')}
                     </span>
                   </span>
                   <span className="tabular-nums font-bold flex-shrink-0" style={{ color: s.collectCash && s.delivered ? C.ink : C.faint }}>
@@ -420,7 +497,12 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
 
   // En camino: parada por parada con la pantalla de siempre.
   if (!notLeft && current && routeCtx) {
-    return <DriverTrackClient key={current} token={current} lang={lang} route={routeCtx} driver={me} />;
+    return (
+      <>
+        <DriverTrackClient key={current} token={current} lang={lang} route={routeCtx} driver={me} />
+        {toast}
+      </>
+    );
   }
 
   // Antes de salir: los tickets escaneados, en orden de entrega.
@@ -429,11 +511,6 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
   return (
     <Shell>
       <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-4 grid content-start gap-3">
-        {joinedNote && (
-          <p className="flex items-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-bold" style={{ background: C.greenSoft, color: C.greenDeep }} role="status">
-            <Check className="w-4 h-4" strokeWidth={3} aria-hidden /> {joinedNote}
-          </p>
-        )}
         <header>
           <p className="text-[12px] font-semibold" style={{ color: C.sub }}>
             {[first?.restaurantName, cashTotal > 0 ? (en ? `collect ${money(cashTotal, cur)} total` : `cobrar ${money(cashTotal, cur)} en total`) : null].filter(Boolean).join(' · ')}
@@ -482,6 +559,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
         </BigButton>
       </Dock>
       {scanner}
+      {toast}
     </Shell>
   );
 }

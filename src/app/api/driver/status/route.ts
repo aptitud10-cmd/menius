@@ -126,6 +126,14 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
   let updateData: Record<string, unknown> = {};
 
+  // "Recogido" una sola vez. Repetirlo con un ticket abierto (el cliente ya
+  // tiene la bolsa, o alguien fotografió el ticket) permitía cambiar el nombre
+  // del repartidor, correr la hora de salida y —con driver.id del equipo—
+  // escribir en el pedido el teléfono de cada repartidor y leerlo después.
+  if (action === "picked_up" && (order as { driver_picked_up_at?: string | null }).driver_picked_up_at) {
+    return NextResponse.json({ ok: true, skipped: true, action });
+  }
+
   if (action === "picked_up") {
     const advanceToOutForDelivery = canTransition(
       order.status,

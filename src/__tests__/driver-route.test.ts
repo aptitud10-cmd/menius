@@ -81,7 +81,10 @@ describe('pickupDriverFields (quién lo lleva)', () => {
       .toEqual({ driver_name: 'Carlos', driver_assigned_at: now, driver_id: 'd1', driver_phone: '+1718' });
   });
   it('si el asignado era otro, borra su teléfono', () => {
-    expect(pickupDriverFields({ name: 'José', prevName: 'Carlos', pool: null, now }).driver_phone).toBeNull();
+    const other = pickupDriverFields({ name: 'José', prevName: 'Carlos', pool: null, now });
+    expect(other.driver_phone).toBeNull();
+    expect(other.driver_id).toBeNull();
+    expect(pickupDriverFields({ name: 'José', prevName: 'Carlos', pool: { id: 'd2', phone: '' }, now }).driver_id).toBe('d2');
     expect('driver_phone' in pickupDriverFields({ name: 'carlos', prevName: 'Carlos', pool: null, now })).toBe(false);
   });
   it('sin nombre no toca nada', () => {

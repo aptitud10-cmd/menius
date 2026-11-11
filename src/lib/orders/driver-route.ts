@@ -100,7 +100,9 @@ export function pickupDriverFields(input: {
   if (!name) return {};
   const out: Record<string, unknown> = { driver_name: name, driver_assigned_at: input.now };
   const prev = (input.prevName ?? '').trim();
-  if (prev && prev.toLowerCase() !== name.toLowerCase()) out.driver_phone = null;
+  // Lo lleva otro que el asignado: ni su teléfono ni su cuenta (la app nativa
+  // lista por driver_id) siguen valiendo.
+  if (prev && prev.toLowerCase() !== name.toLowerCase()) { out.driver_phone = null; out.driver_id = null; }
   if (input.pool) {
     out.driver_id = input.pool.id;
     const phone = (input.pool.phone ?? '').trim();
