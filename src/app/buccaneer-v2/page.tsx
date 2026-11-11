@@ -180,7 +180,7 @@ export default function BuccaneerV2Page() {
         </a>
       </nav>
 
-      <main id="main">
+      <main id="main-content">
         {/* ------------------------------------------------------------ Now */}
         <section className="b2-hero" id="top">
           <span id="b2-top-sentinel" className="b2-sentinel" aria-hidden="true" />

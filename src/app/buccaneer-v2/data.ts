@@ -61,14 +61,16 @@ export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; al
 /**
  * AI product compositions (AD 6): already live on the menu, reused by URL, only
  * ever shown as small framed thumbnails inside Midday and Evening.
+ * The pre-optimized 640px `-sm.webp` variant (20–35 KB), not the `ai/` original:
+ * two of those originals weigh ~1.4 MB each for a 160px box.
  */
 const CDN =
-  'https://hdlhmqvbaxzhmhtablwt.supabase.co/storage/v1/object/public/product-images/ai/a1f5af6a-1805-49d2-b494-f074ac657357';
+  'https://hdlhmqvbaxzhmhtablwt.supabase.co/storage/v1/object/public/product-images/opt/a1f5af6a-1805-49d2-b494-f074ac657357';
 export const THUMBS = {
-  burgers: `${CDN}/cheeseburger-1794385130172.jpg`,
-  lunch: `${CDN}/club-turkey-bacon-1794342289068.jpg`,
-  dinner: `${CDN}/lobster-tails-1786533460195.jpg`,
-  appetizers: `${CDN}/the-sampler-1786537907822.jpg`,
+  burgers: `${CDN}/cheeseburger-1794385130172-sm.webp`,
+  lunch: `${CDN}/club-turkey-bacon-1794342289068-sm.webp`,
+  dinner: `${CDN}/lobster-tails-1786533460195-sm.webp`,
+  appetizers: `${CDN}/the-sampler-1786537907822-sm.webp`,
 };
 
 // ---------------------------------------------------------------------------
