@@ -70,7 +70,7 @@ function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
  * "Listo" y "En camino" se veían iguales y un toque cerraba el pedido con el
  * repartidor todavía en ruta.
  */
-function DriverLine({ order, T }: { order: Order; T: CounterText }) {
+function DriverLine({ order, T, routeStop }: { order: Order; T: CounterText; routeStop?: { stop: number; of: number } }) {
   if (order.order_type !== 'delivery') return null;
   if (['delivered', 'completed', 'cancelled'].includes(order.status)) return null;
   const o = order as Order & { driver_picked_up_at?: string | null; driver_at_door_at?: string | null };
@@ -78,9 +78,10 @@ function DriverLine({ order, T }: { order: Order; T: CounterText }) {
   // nombre, pero sus marcas (recogí / en la puerta) sí — antes no se veía.
   if (!order.driver_name && !o.driver_picked_up_at && !o.driver_at_door_at) return null;
   const name = order.driver_name ? shortName(order.driver_name, order.driver_name) : T.driver;
-  const text = o.driver_at_door_at ? `${T.driverAtDoor} · ${name}`
+  const base = o.driver_at_door_at ? `${T.driverAtDoor} · ${name}`
     : o.driver_picked_up_at || order.status === 'out_for_delivery' ? `${T.driverOnWay} · ${name}`
     : T.driverWaiting(name);
+  const text = routeStop ? `${base} · ${T.routeStop(routeStop.stop, routeStop.of)}` : base;
   const moving = !!(o.driver_at_door_at || o.driver_picked_up_at || order.status === 'out_for_delivery');
   return (
     <p className="text-[15px] font-bold rounded-lg px-2.5 py-1.5" style={moving ? { background: C.blue, color: '#fff' } : { background: C.surface2, color: C.ink }}>
@@ -101,10 +102,11 @@ function ArrivedLine({ order, T }: { order: Order; T: CounterText }) {
 }
 
 export function OrderCard({
-  order, T, currency, acceptMins, busy, onOpen, onPrimary,
+  order, T, currency, acceptMins, busy, onOpen, onPrimary, routeStop,
 }: {
   order: Order; T: CounterText; currency: string; acceptMins: number; busy: boolean;
   onOpen: () => void; onPrimary: (kind: PrimaryKind) => void;
+  routeStop?: { stop: number; of: number };
 }) {
   const kind = orderKind(order);
   const isNew = order.status === 'pending';
@@ -147,7 +149,7 @@ export function OrderCard({
         {paidOnline && <span className="text-[13px] font-bold px-2 py-0.5 rounded-md" style={{ background: C.greenSoft, color: C.greenDeep }}>{T.paidOnline}</span>}
       </div>
 
-      <DriverLine order={order} T={T} />
+      <DriverLine order={order} T={T} routeStop={routeStop} />
       <ArrivedLine order={order} T={T} />
 
       {allergies.length > 0 && (
@@ -176,7 +178,7 @@ export function OrderCard({
 type ColKey = 'new' | 'prep' | 'ready';
 
 export function CounterBoard({
-  T, currency, newOrders, prepOrders, readyOrders, busyIds, acceptMinsFor, onOpen, onPrimary,
+  T, currency, newOrders, prepOrders, readyOrders, busyIds, acceptMinsFor, onOpen, onPrimary, routeStops,
 }: {
   T: CounterText; currency: string;
   newOrders: Order[]; prepOrders: Order[]; readyOrders: Order[];
@@ -184,6 +186,7 @@ export function CounterBoard({
   acceptMinsFor: (o: Order) => number;
   onOpen: (o: Order) => void;
   onPrimary: (o: Order, kind: PrimaryKind) => void;
+  routeStops?: Map<string, { stop: number; of: number }>;
 }) {
   // En pantallas angostas (tablet vertical, celular) se ve una columna a la vez.
   const [mobileCol, setMobileCol] = useState<ColKey>('new');
@@ -246,6 +249,7 @@ export function CounterBoard({
                     busy={busyIds.has(o.id)}
                     onOpen={() => onOpen(o)}
                     onPrimary={(kind) => onPrimary(o, kind)}
+                    routeStop={routeStops?.get(o.id)}
                   />
                 ))
               )}

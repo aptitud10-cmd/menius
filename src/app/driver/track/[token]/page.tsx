@@ -3,7 +3,7 @@
  * Reads `?lang` from searchParams (server-side, always reliable) and
  * passes it to the client component that handles all interactivity.
  */
-import { DriverTrackClient } from './DriverTrackClient';
+import { DriverRouteClient } from './DriverRouteClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,5 +14,5 @@ interface PageProps {
 
 export default function DriverTrackPage({ params, searchParams }: PageProps) {
   const lang = searchParams?.lang === 'en' ? 'en' : 'es';
-  return <DriverTrackClient token={params.token} lang={lang} />;
+  return <DriverRouteClient token={params.token} lang={lang} />;
 }

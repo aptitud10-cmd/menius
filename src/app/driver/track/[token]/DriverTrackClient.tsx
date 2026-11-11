@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle, Check, Camera, Loader2, MapPin, AlertTriangle, Navigation,
-  Phone, MessageSquare, Banknote, ArrowRight,
+  Phone, MessageSquare, Banknote, ArrowRight, ArrowDown, Plus,
 } from 'lucide-react';
 import { C, money } from '@/components/orders/counter/ui';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -99,7 +99,7 @@ function openDriverDB(): Promise<IDBDatabase> {
   });
 }
 
-async function queueStatusAction(token: string, action: string): Promise<void> {
+export async function queueStatusAction(token: string, action: string): Promise<void> {
   try {
     const db = await openDriverDB();
     await new Promise<void>((resolve, reject) => {
@@ -147,9 +147,32 @@ async function replayQueuedActions(): Promise<void> {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function DriverTrackClient({ token, lang }: { token: string; lang: string }) {
+/** Cuando este pedido es una parada de una ruta (lo maneja DriverRouteClient). */
+export type RouteCtx = {
+  index: number;            // 0-based
+  total: number;
+  /** Tokens que siguen recibiendo GPS (paradas sin entregar). */
+  gpsTokens: string[];
+  upcoming: { shortNum: string; address: string | null }[];
+  /** La parada terminó (entregada, cancelada o cerrada por el mostrador). */
+  onStopDone: () => void;
+  /** Mandarla al final de la ruta. */
+  onSkip: () => void;
+};
+
+export function DriverTrackClient({ token, lang, route, onAddOrder }: {
+  token: string;
+  lang: string;
+  route?: RouteCtx;
+  /** Solo en el paso "recoger" de un pedido suelto: abre el escáner. */
+  onAddOrder?: () => void;
+}) {
   const t = getT(lang);
   const { canInstall, install } = usePWAInstall();
+  // El callback de watchPosition queda con el primer render: los tokens de la
+  // ruta se leen de una ref para no mandar GPS a paradas ya entregadas.
+  const gpsTokensRef = useRef<string[] | null>(route?.gpsTokens ?? null);
+  gpsTokensRef.current = route?.gpsTokens ?? null;
 
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle');
   const [gpsError, setGpsError] = useState('');
@@ -300,10 +323,12 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
     }
 
     try {
+      const many = gpsTokensRef.current;
       const res = await fetch('/api/driver/location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, lat, lng }),
+        // Ruta: un solo GPS para todas las paradas que faltan.
+        body: JSON.stringify(many && many.length > 0 ? { tokens: many, lat, lng } : { token, lat, lng }),
       });
       // Only record last-send after a successful send so retries aren't throttled
       if (res.status !== 410) {
@@ -558,6 +583,11 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
     </div>
   );
 
+  // ── Ruta: la parada terminó → la maneja DriverRouteClient (siguiente o resumen) ──
+  if (route && deliveryStep === 'delivered') {
+    return <RouteAdvance onDone={route.onStopDone} />;
+  }
+
   // ── Entregado ──
   if (deliveryStep === 'delivered') {
     return (
@@ -613,7 +643,10 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         <header className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[12px] font-semibold truncate" style={{ color: C.sub }}>
-              {deliveryStep === 'start' ? restaurantName : [info?.customerName, info?.collectCash ? `${t.collect.toLowerCase()} ${amount}` : null].filter(Boolean).join(' · ')}
+              {[
+                route ? (t.en ? `Stop ${route.index + 1} of ${route.total}` : `Parada ${route.index + 1} de ${route.total}`) : null,
+                ...(deliveryStep === 'start' ? [restaurantName] : [info?.customerName, info?.collectCash ? `${t.collect.toLowerCase()} ${amount}` : null]),
+              ].filter(Boolean).join(' · ')}
             </p>
             <p className="font-display text-[28px] font-extrabold leading-none tracking-tight">{shortNum}</p>
           </div>
@@ -664,6 +697,13 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
                 </ul>
               </section>
             )}
+            {onAddOrder && !orderCancelled && (
+              <button type="button" onClick={onAddOrder}
+                className="h-14 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-bold active:scale-[0.98] transition-transform"
+                style={{ border: `2px dashed ${C.line}`, color: C.ink }}>
+                <Plus className="w-5 h-5" aria-hidden /> {t.en ? 'Add another order to this trip' : 'Agregar otro pedido a este viaje'}
+              </button>
+            )}
           </>
         )}
 
@@ -699,6 +739,22 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
               <a href={`https://waze.com/ul?q=${encodeURIComponent(deliveryAddress)}&navigate=yes`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Waze</a>
             </p>
             <p className="text-center text-[12px]" style={{ color: C.faint }}>{t.mapsHint}</p>
+            {route && route.upcoming.length > 0 && (
+              <section className="rounded-[18px] p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>{t.en ? 'Then' : 'Después'}</p>
+                <ol className="grid gap-1.5">
+                  {route.upcoming.map((u, i) => (
+                    <li key={i} className="flex gap-2 text-[14px] min-w-0">
+                      <b className="tabular-nums flex-shrink-0">{u.shortNum}</b>
+                      <span className="truncate" style={{ color: C.sub }}>{u.address}</span>
+                    </li>
+                  ))}
+                </ol>
+                <button type="button" onClick={route.onSkip} className="justify-self-start text-[13px] font-semibold underline underline-offset-4 py-1" style={{ color: C.sub }}>
+                  {t.en ? 'Skip this stop — deliver it last' : 'Saltar esta parada: la entrego al final'}
+                </button>
+              </section>
+            )}
           </>
         )}
 
@@ -750,6 +806,17 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         )}
       </main>
 
+      {/* Ruta: pedido cancelado → la bolsa vuelve al local, la ruta sigue */}
+      {orderCancelled && route && (
+        <div className="sticky bottom-0 w-full border-t" style={{ background: C.surface, borderColor: C.line, paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <div className="max-w-md mx-auto px-4 pt-3">
+            <PrimaryButton loading={false} onClick={route.onStopDone} tone="black">
+              {route.index + 1 < route.total ? (t.en ? 'Continue to the next stop' : 'Seguir con la siguiente parada') : (t.en ? 'Finish the trip' : 'Terminar el viaje')}
+            </PrimaryButton>
+          </div>
+        </div>
+      )}
+
       {/* Acción principal: siempre abajo, al alcance del pulgar */}
       {!orderCancelled && (
         <div className="sticky bottom-0 w-full border-t" style={{ background: C.surface, borderColor: C.line, paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
@@ -785,6 +852,12 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
                   <MapPin className="w-[18px] h-[18px]" style={{ color: C.sub }} aria-hidden /> {t.cantFind}
                 </a>
               </>
+            )}
+            {route && route.index + 1 < route.total && (
+              <button type="button" onClick={() => { setProblemOpen(false); route.onSkip(); }}
+                className="h-[52px] rounded-2xl flex items-center gap-3 px-4 text-[15px] font-semibold text-left" style={{ border: `1px solid ${C.line}` }}>
+                <ArrowDown className="w-[18px] h-[18px]" style={{ color: C.sub }} aria-hidden /> {t.en ? 'Skip — deliver it last' : 'Saltar: lo entrego al final'}
+              </button>
             )}
             {info?.restaurantPhone && (
               <a href={`tel:${info.restaurantPhone}`} className="h-14 mt-1 rounded-2xl flex items-center justify-center text-white text-[16px] font-extrabold" style={{ background: C.black }}>
@@ -837,6 +910,21 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Parada terminada dentro de una ruta: avisa una vez y DriverRouteClient avanza. */
+function RouteAdvance({ onDone }: { onDone: () => void }) {
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current) return;
+    done.current = true;
+    onDone();
+  }, [onDone]);
+  return (
+    <div className="min-h-[100dvh] grid place-items-center" style={{ background: C.surface }}>
+      <Loader2 className="w-7 h-7 animate-spin" style={{ color: C.sub }} aria-hidden />
     </div>
   );
 }

@@ -776,6 +776,23 @@ export function CounterView({
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [ordersView]);
 
+  // Ruta del repartidor: "parada 2 de 3" (los pedidos del mismo batch_id).
+  const routeStops = useMemo(() => {
+    const groups = new Map<string, { id: string; seq: number }[]>();
+    for (const o of ordersView as (Order & { batch_id?: string | null; batch_seq?: number | null })[]) {
+      if (!o.batch_id || o.status === 'cancelled') continue;
+      const g = groups.get(o.batch_id) ?? [];
+      g.push({ id: o.id, seq: o.batch_seq ?? 99 });
+      groups.set(o.batch_id, g);
+    }
+    const out = new Map<string, { stop: number; of: number }>();
+    groups.forEach((g) => {
+      if (g.length < 2) return;
+      g.sort((a, b) => a.seq - b.seq).forEach((x, i) => out.set(x.id, { stop: i + 1, of: g.length }));
+    });
+    return out;
+  }, [ordersView]);
+
   const historyOrders = useMemo(() => {
     let r = ordersView.filter(o => ['delivered', 'completed', 'cancelled'].includes(o.status))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -1360,6 +1377,7 @@ export function CounterView({
           acceptMinsFor={defaultMinsFor}
           onOpen={(o) => setSheetId(o.id)}
           onPrimary={onPrimary}
+          routeStops={routeStops}
         />
       ) : (
         <OrdersListView
