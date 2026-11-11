@@ -486,7 +486,7 @@ function BigButton({ children, onClick, loading, tone }: { children: React.React
 function IconBtn({ children, label, onClick, disabled }: { children: React.ReactNode; label: string; onClick: () => void; disabled?: boolean }) {
   return (
     <button type="button" aria-label={label} title={label} onClick={onClick} disabled={disabled}
-      className="w-10 h-10 rounded-xl grid place-items-center active:scale-95 transition-transform disabled:opacity-30"
+      className="w-11 h-11 rounded-xl grid place-items-center active:scale-95 transition-transform disabled:opacity-30"
       style={{ border: `1px solid ${C.line}`, color: C.ink }}>
       {children}
     </button>

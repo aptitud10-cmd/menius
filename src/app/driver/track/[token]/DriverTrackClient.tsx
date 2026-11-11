@@ -639,21 +639,32 @@ export function DriverTrackClient({ token, lang, route, onAddOrder }: {
           </button>
         )}
 
+        {/* Ruta: en qué parada va (puntos: hechas en tinta, la actual en verde) */}
+        {route && (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.08em]" style={{ color: C.ink }}>
+              {t.en ? `Stop ${route.index + 1} of ${route.total}` : `Parada ${route.index + 1} de ${route.total}`}
+            </p>
+            <span className="flex gap-1.5" aria-hidden>
+              {Array.from({ length: route.total }, (_, i) => (
+                <i key={i} className="w-2.5 h-2.5 rounded-full" style={{ background: i < route.index ? C.ink : i === route.index ? C.green : C.line }} />
+              ))}
+            </span>
+          </div>
+        )}
+
         {/* Encabezado: el pedido, no la marca */}
         <header className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[12px] font-semibold truncate" style={{ color: C.sub }}>
-              {[
-                route ? (t.en ? `Stop ${route.index + 1} of ${route.total}` : `Parada ${route.index + 1} de ${route.total}`) : null,
-                ...(deliveryStep === 'start' ? [restaurantName] : [info?.customerName, info?.collectCash ? `${t.collect.toLowerCase()} ${amount}` : null]),
-              ].filter(Boolean).join(' · ')}
+              {deliveryStep === 'start' ? restaurantName : [info?.customerName, info?.collectCash ? `${t.collect.toLowerCase()} ${amount}` : null].filter(Boolean).join(' · ')}
             </p>
             <p className="font-display text-[28px] font-extrabold leading-none tracking-tight">{shortNum}</p>
           </div>
           {deliveryStep === 'start' || gpsStatus === 'idle' ? (
             <span className="text-[12px] font-bold px-2.5 py-1 rounded-full" style={{ background: C.line, color: C.sub }}>{t.gpsOff}</span>
           ) : gpsStatus === 'sharing' ? (
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full" style={{ background: C.greenSoft, color: C.greenDeep }}>
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ background: C.greenSoft, color: C.greenDeep }}>
               <span className="relative flex w-2 h-2">
                 <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: C.green }} />
                 <span className="relative inline-flex rounded-full w-2 h-2" style={{ background: C.greenDeep }} />

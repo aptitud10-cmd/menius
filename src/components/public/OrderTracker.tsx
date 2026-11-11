@@ -815,7 +815,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               {hero && (
                 <div className="rounded-[20px] px-5 py-4 grid gap-0.5" style={hero.tone === 'ink' ? { background: K.ink, color: K.card } : { background: K.green, color: K.greenInk }}>
                   <p className="text-[12.5px] font-bold uppercase tracking-[0.06em] opacity-85">{hero.label}</p>
-                  <p className="font-display text-[44px] font-extrabold leading-[1.02] tracking-tight tabular-nums" style={{ textWrap: 'balance' } as React.CSSProperties}>{hero.big}</p>
+                  {/* "11:35–11:45 p.m." no entra a 44 px en un teléfono de 375: baja a 36. */}
+                  <p className={`font-display ${hero.big.length > 14 ? 'text-[36px]' : 'text-[44px]'} font-extrabold leading-[1.02] tracking-tight tabular-nums whitespace-nowrap`}>{hero.big}</p>
                   {hero.sub && <p className="text-[14.5px] font-semibold">{hero.sub}</p>}
                 </div>
               )}

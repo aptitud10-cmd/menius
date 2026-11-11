@@ -43,6 +43,8 @@ function mock(state: string, type: string) {
     refunded: { status: 'cancelled', payment_method: 'online', payment_status: 'refunded' },
     arrived: { status: 'ready', customer_arrived_at: ago(0.5) },
     salio: { status: 'out_for_delivery', updated_at: ago(3) },
+    // Ruta: el repartidor entrega 1 pedido antes del tuyo.
+    route: { status: 'out_for_delivery', driver_name: 'Carlos', driver_phone: '+17185550100', driver_assigned_at: ago(6), driver_picked_up_at: ago(5), driver_lat: 40.7570, driver_lng: -73.8700, driver_updated_at: ago(0.1), stops_ahead: 1 },
   };
   return { ...base, ...(s[state] ?? {}) };
 }
