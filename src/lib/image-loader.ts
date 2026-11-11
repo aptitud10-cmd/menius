@@ -24,7 +24,10 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 // transformación al vuelo tardaba ~1 s por foto la primera vez (medido
 // 2026-11-11: 0.96 s en frío vs 0.09 s el archivo estático) y las fotos del
 // menú aparecían de a una. Además cada transformación se factura.
-const OPTIMIZED_LG = /\/product-images\/opt\/.+-lg\.jpg$/;
+//   - `opt/…-lg.jpg` / `-sm.webp`: el lote de Buccaneer (scripts/.product-output/opt).
+//   - `…__lg.jpg` / `__sm.webp`: lo que sube uploadOptimizedProductImage desde
+//     el dashboard y las rutas de IA, en cualquier carpeta del bucket.
+const OPTIMIZED_LG = /\/product-images\/(?:opt\/.+-lg|.+__lg)\.jpg$/;
 
 export function supabaseLoader({ src, width, quality }: LoaderParams): string {
   if (!src) return '';
@@ -33,7 +36,10 @@ export function supabaseLoader({ src, width, quality }: LoaderParams): string {
   if (!isSupabaseUrl) return src;
 
   if (OPTIMIZED_LG.test(src)) {
-    return width <= 640 ? src.replace(/-lg\.jpg$/, '-sm.webp') : src;
+    if (width > 640) return src;
+    return src.endsWith('__lg.jpg')
+      ? src.replace(/__lg\.jpg$/, '__sm.webp')
+      : src.replace(/-lg\.jpg$/, '-sm.webp');
   }
 
   // Antes acá se servían sin transformar las imágenes bajo /ai- y /admin-regen/,

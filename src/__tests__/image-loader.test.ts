@@ -74,6 +74,13 @@ describe('supabaseLoader', () => {
       }
     });
 
+    it('lo subido desde el dashboard (__lg.jpg) pide su gemela __sm.webp', () => {
+      const up = `${STORAGE}/user-id/burger-123__lg.jpg`;
+      expect(supabaseLoader({ src: up, width: 640 })).toBe(`${STORAGE}/user-id/burger-123__sm.webp`);
+      expect(supabaseLoader({ src: up, width: 1080 })).toBe(up);
+      expect(supabaseLoader({ src: up, width: 384 })).not.toContain('/render/image/');
+    });
+
     it('un .jpg normal fuera de /opt/ se sigue transformando', () => {
       expect(supabaseLoader({ src: `${STORAGE}/ai/r/foo-lg.jpg`, width: 640 })).toContain('/render/image/');
     });

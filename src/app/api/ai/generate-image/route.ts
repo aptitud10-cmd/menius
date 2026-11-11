@@ -7,6 +7,7 @@ import { getTenant } from "@/lib/auth/get-tenant";
 import { getEffectivePlanId } from "@/lib/auth/check-plan";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
+import { uploadOptimizedProductImage } from "@/lib/product-image-upload";
 import {
   buildFoodPrompt,
   analyzeIngredients,
@@ -476,36 +477,32 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
       preprocessed = sharp(rawBuffer);
     }
 
+    // Intermedio de alta calidad (ya recortado): el helper genera los dos
+    // tamaños finales que el menú sirve directo del CDN.
     const buffer = await preprocessed
       .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 82 })
+      .webp({ quality: 92 })
       .toBuffer();
 
-    const ext = "webp";
-    const fileName = `${tenant.userId}/ai-${Date.now()}.${ext}`;
-
     const adminSupabase = createAdminClient();
-    const { error: uploadError } = await adminSupabase.storage
-      .from("product-images")
-      .upload(fileName, buffer, {
-        contentType: "image/webp",
-        cacheControl: "31536000",
-        upsert: false,
-      });
-
-    if (uploadError) {
+    let publicUrl: string;
+    try {
+      publicUrl = await uploadOptimizedProductImage(
+        adminSupabase,
+        `${tenant.userId}/ai-${Date.now()}`,
+        buffer,
+      );
+    } catch (uploadErr: unknown) {
       return NextResponse.json(
-        { error: `Error guardando imagen: ${uploadError.message}` },
+        {
+          error: `Error guardando imagen: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
+        },
         { status: 500 },
       );
     }
 
-    const { data: urlData } = adminSupabase.storage
-      .from("product-images")
-      .getPublicUrl(fileName);
-
     return NextResponse.json({
-      url: urlData.publicUrl,
+      url: publicUrl,
       generated: true,
       usedAnchor: !!anchorBase64,
       anchorSource,

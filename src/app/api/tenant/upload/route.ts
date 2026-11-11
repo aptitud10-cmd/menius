@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { uploadOptimizedProductImage } from '@/lib/product-image-upload';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,18 +36,11 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    let optimizedBuffer: Buffer;
-    const contentType = 'image/webp';
-    const ext = 'webp';
-
     try {
       const sharp = (await import('sharp')).default;
       // Sharp validates the actual file content — if this throws, the file
       // is not a real image regardless of what Content-Type the client claimed.
-      optimizedBuffer = await sharp(buffer)
-        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 72 })
-        .toBuffer();
+      await sharp(buffer).metadata();
     } catch {
       // Reject: file claims to be an image but Sharp cannot decode it.
       // Uploading the original would store arbitrary content in a public bucket.
@@ -63,25 +57,23 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 60);
-    const fileName = `${tenant.userId}/${slug || 'img'}-${Date.now()}.${ext}`;
-
-    const { error: uploadError } = await adminDb.storage
-      .from('product-images')
-      .upload(fileName, optimizedBuffer, {
-        contentType,
-        cacheControl: '31536000',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    // Dos tamaños ya optimizados (ver lib/product-image-upload.ts): el menú
+    // los sirve directo del CDN en vez de transformarlos al vuelo.
+    let url: string;
+    try {
+      url = await uploadOptimizedProductImage(
+        adminDb,
+        `${tenant.userId}/${slug || 'img'}-${Date.now()}`,
+        buffer,
+      );
+    } catch (e: unknown) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : 'Error subiendo la imagen' },
+        { status: 500 },
+      );
     }
 
-    const { data: urlData } = adminDb.storage
-      .from('product-images')
-      .getPublicUrl(fileName);
-
-    return NextResponse.json({ url: urlData.publicUrl });
+    return NextResponse.json({ url });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }

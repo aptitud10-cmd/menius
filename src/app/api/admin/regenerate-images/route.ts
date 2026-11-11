@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
+import { uploadOptimizedProductImage } from '@/lib/product-image-upload';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { buildFoodPrompt, analyzeIngredients } from '@/lib/ai/food-prompt';
 
@@ -299,51 +300,29 @@ export async function POST(request: NextRequest) {
 
                 const rawBuffer = Buffer.from(imageBase64, 'base64');
 
-                // El buffer del modelo se subía tal cual y promediaba 763 KB —
-                // diez veces lo que pesan las fotos que sí pasan por este paso.
-                // Mismo tratamiento que master-anchors y tenant/upload.
-                let buffer: Buffer;
+                // Dos tamaños ya optimizados (lib/product-image-upload.ts): el
+                // menú los sirve del CDN sin transformarlos al vuelo. Si sharp no
+                // puede decodificar, el modelo no devolvió una imagen válida y no
+                // se sube nada (sería basura en un bucket público). El nombre
+                // lleva Date.now(): cada objeto es inmutable, caché de un año.
+                let publicUrl: string;
                 try {
-                  const sharp = (await import('sharp')).default;
-                  buffer = await sharp(rawBuffer)
-                    .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-                    .webp({ quality: 82 })
-                    .toBuffer();
+                  publicUrl = await uploadOptimizedProductImage(
+                    adminSupabase,
+                    `admin-regen/${restaurantId}/${product.id}-${Date.now()}`,
+                    rawBuffer,
+                  );
                 } catch (err) {
-                  // Si sharp no puede decodificar, el modelo no devolvió una
-                  // imagen válida: subir el buffer crudo dejaría basura en un
-                  // bucket público.
-                  logger.warn('sharp could not decode generated image', {
+                  logger.warn('optimized upload failed', {
                     productId: product.id,
                     error: err instanceof Error ? err.message : String(err),
                   });
                   return false;
                 }
 
-                const fileName = `admin-regen/${restaurantId}/${product.id}-${Date.now()}.webp`;
-
-                const { error: uploadError } = await adminSupabase.storage
-                  .from('product-images')
-                  .upload(fileName, buffer, {
-                    contentType: 'image/webp',
-                    // The name carries Date.now(), so each object is immutable:
-                    // cache for a year (an hour made every visit revalidate).
-                    cacheControl: '31536000',
-                    upsert: true,
-                  });
-
-                if (uploadError) {
-                  logger.warn('Upload failed', { productId: product.id, error: uploadError.message });
-                  return false;
-                }
-
-                const { data: urlData } = adminSupabase.storage
-                  .from('product-images')
-                  .getPublicUrl(fileName);
-
                 const { error: updateError } = await adminSupabase
                   .from('products')
-                  .update({ image_url: urlData.publicUrl })
+                  .update({ image_url: publicUrl })
                   .eq('id', product.id);
 
                 if (updateError) {
