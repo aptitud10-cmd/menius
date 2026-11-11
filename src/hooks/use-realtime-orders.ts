@@ -48,6 +48,8 @@ export function useRealtimeOrders({
   // pero el sondeo sigue respondiendo, los pedidos siguen llegando: no hay que
   // alarmar al operador con "sin conexión".
   const [lastSyncAt, setLastSyncAt] = useState<number>(() => Date.now());
+  // Última vez que esta pantalla cambió cada pedido (updateOrderLocally).
+  const touchedRef = useRef<Map<string, number>>(new Map());
   const knownIdsRef = useRef<Set<string>>(
     new Set(initialOrders.filter((o) => !isAwaitingOnlinePayment(o)).map((o) => o.id))
   );
@@ -95,6 +97,7 @@ export function useRealtimeOrders({
   // This guarantees orders arrive even when WebSocket is unavailable.
 
   const pollOrders = useCallback(async () => {
+    const startedAt = Date.now();
     const supabase = getSupabaseBrowser();
     const since = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
     const [{ data }, { data: scheduled }] = await Promise.all([
@@ -131,7 +134,13 @@ export function useRealtimeOrders({
     setOrders(prev => {
       const fetchedMap = new Map(fetched.map(o => [o.id, o]));
 
+      // Respuesta que salió ANTES de un cambio hecho en esta pantalla: para ese
+      // pedido trae el estado viejo. Antes lo pisaba y la tarjeta "saltaba
+      // hacia atrás" hasta el siguiente poll (30 s con realtime conectado).
+      const staleForLocal = (id: string) => (touchedRef.current.get(id) ?? 0) > startedAt;
+
       for (const order of fetched) {
+        if (staleForLocal(order.id)) continue;
         // New order detection — deduplicated via knownIdsRef
         if (!knownIdsRef.current.has(order.id)) {
           knownIdsRef.current.add(order.id);
@@ -154,7 +163,7 @@ export function useRealtimeOrders({
 
       // Merge: update orders within the poll window, keep orders outside it unchanged
       // This prevents older orders (loaded at initial page load) from disappearing.
-      const merged = prev.map(o => fetchedMap.get(o.id) ?? o);
+      const merged = prev.map(o => (staleForLocal(o.id) ? o : fetchedMap.get(o.id) ?? o));
       const existingIds = new Set(prev.map(o => o.id));
       for (const o of fetched) {
         if (!existingIds.has(o.id)) merged.push(o);
@@ -286,6 +295,7 @@ export function useRealtimeOrders({
   }, [pollOrders]);
 
   const updateOrderLocally = useCallback((orderId: string, updates: Partial<Order>) => {
+    touchedRef.current.set(orderId, Date.now());
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o))
     );

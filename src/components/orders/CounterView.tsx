@@ -899,7 +899,8 @@ export function CounterView({
     newOrders.forEach(o => {
       if (elapsedMins(waitingSinceIso(o)) >= SLA_WARN_MINS && !urgentRef.current.has(o.id)) {
         urgentRef.current.add(o.id);
-        playUrgentSound();
+        // Solo la pestaña principal suena (con dos pestañas sonaba doble).
+        if (isLeaderRef.current) playUrgentSound();
         sendPushNotification(
           `⚠️ ${t.urgent} · ${restaurantName}`,
           `#${o.order_number} — ${SLA_WARN_MINS} min without response`

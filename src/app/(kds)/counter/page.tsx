@@ -24,7 +24,7 @@ export default async function CounterPage() {
         table:tables ( name ),
         order_items (
           id, qty, unit_price, line_total, notes,
-          product:products ( id, name, image_url, dietary_tags ),
+          product:products ( id, name, image_url, dietary_tags, prep_time_minutes ),
           variant:product_variants ( name ),
           order_item_extras ( price, product_extras ( name ) ),
           order_item_modifiers ( group_name, option_name, price_delta )
@@ -42,7 +42,7 @@ export default async function CounterPage() {
         table:tables ( name ),
         order_items (
           id, qty, unit_price, line_total, notes,
-          product:products ( id, name, image_url, dietary_tags ),
+          product:products ( id, name, image_url, dietary_tags, prep_time_minutes ),
           variant:product_variants ( name ),
           order_item_extras ( price, product_extras ( name ) ),
           order_item_modifiers ( group_name, option_name, price_delta )
