@@ -353,6 +353,16 @@ interface CounterViewProps {
   initialPausedUntil?: string | null;
   /** Solo para la vista previa de desarrollo: pedidos que arrancan en la alerta. */
   previewAlertIds?: string[];
+  /** Solo para la vista previa de desarrollo: arranca mostrando este reporte Z. */
+  previewShiftReport?: ShiftReport;
+}
+
+export interface ShiftReport {
+  totalOrders: number; totalRevenue: number; totalCash: number;
+  totalCard: number; expectedCash: number; cashDifference: number;
+  openingCash: number; closingCash: number;
+  openedAt: string; closedAt: string;
+  cashByDriver: { name: string | null; orders: number; cash: number }[];
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -362,7 +372,7 @@ interface CounterViewProps {
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
   restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false, isDevice = false,
-  initialPausedUntil = null, previewAlertIds,
+  initialPausedUntil = null, previewAlertIds, previewShiftReport,
 }: CounterViewProps) {
   const t = getT(locale);
 
@@ -511,18 +521,12 @@ export function CounterView({
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   });
-  const [shiftModal, setShiftModal] = useState<'open' | 'close' | 'report' | null>(null);
+  const [shiftModal, setShiftModal] = useState<'open' | 'close' | 'report' | null>(previewShiftReport ? 'report' : null);
   const [shiftOpenCash, setShiftOpenCash] = useState('0');
   const [shiftCloseCash, setShiftCloseCash] = useState('');
   const [shiftNotes, setShiftNotes] = useState('');
   const [shiftSaving, setShiftSaving] = useState(false);
-  interface ShiftReport {
-    totalOrders: number; totalRevenue: number; totalCash: number;
-    totalCard: number; expectedCash: number; cashDifference: number;
-    openingCash: number; closingCash: number;
-    openedAt: string; closedAt: string;
-  }
-  const [shiftReport, setShiftReport] = useState<ShiftReport | null>(null);
+  const [shiftReport, setShiftReport] = useState<ShiftReport | null>(previewShiftReport ?? null);
   // El turno vive en la DB; el localStorage es solo para pintar rápido. Se
   // sincroniza al abrir y al volver a la pestaña: así una tablet ve el turno
   // que abrió o cerró otra (antes cada una creía en su propia copia).
@@ -1314,6 +1318,7 @@ export function CounterView({
         closingCash: s.closingCash,
         openedAt: shift.opened_at,
         closedAt: shift.closed_at,
+        cashByDriver: Array.isArray(s.cashByDriver) ? s.cashByDriver : [],
       });
       setShiftModal('report');
     } catch { showError(t.en ? 'Error closing shift' : 'Error al cerrar turno'); }
@@ -2195,6 +2200,22 @@ export function CounterView({
                 <span className="text-sm">{t.shiftDiff}</span>
                 <span className="text-sm">{shiftReport.cashDifference >= 0 ? '+' : ''}{fmt(shiftReport.cashDifference, currency)}</span>
               </div>
+              {shiftReport.cashByDriver.length > 0 && (
+                <div className="pt-3">
+                  <p className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1">
+                    {t.en ? 'Delivery cash by driver' : 'Efectivo de delivery por repartidor'}
+                  </p>
+                  {shiftReport.cashByDriver.map((d) => (
+                    <div key={d.name ?? '—'} className="flex justify-between items-center py-2 border-b border-[#F0F0F0]">
+                      <span className="text-sm text-[#555]">
+                        {d.name ?? (t.en ? 'No driver name' : 'Sin repartidor')}
+                        <span className="text-[#AAAAAA]"> · {d.orders} {d.orders === 1 ? (t.en ? 'order' : 'pedido') : (t.en ? 'orders' : 'pedidos')}</span>
+                      </span>
+                      <span className="text-sm font-bold text-[#111] tabular-nums">{fmt(d.cash, currency)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="px-5 pb-5 flex-shrink-0">
               <button

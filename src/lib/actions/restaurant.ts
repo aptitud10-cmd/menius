@@ -2417,7 +2417,7 @@ export async function closeShift(closingCash: number, notes?: string) {
   // Aggregate orders since shift opened
   const { data: orders } = await supabase
     .from("orders")
-    .select("total, payment_method, payment_breakdown")
+    .select("total, payment_method, payment_breakdown, order_type, driver_name")
     .eq("restaurant_id", restaurantId)
     // Misma definición de venta que home/analytics: antes solo 'delivered'
     // → pickup ('completed') y mesa ('served') no entraban a la caja.
@@ -2445,6 +2445,22 @@ export async function closeShift(closingCash: number, notes?: string) {
   };
   const totalCash = (orders ?? []).reduce((sum: number, o: any) => sum + split(o).cash, 0);
   const totalCard = (orders ?? []).reduce((sum: number, o: any) => sum + split(o).card, 0);
+
+  // Efectivo de delivery por repartidor: cuánto le tiene que entregar cada uno a
+  // la caja. Sin nombre (asignado sin "¿Quién eres?") va en "Sin repartidor" (null).
+  const byDriver = new Map<string | null, { orders: number; cash: number }>();
+  for (const o of (orders ?? []) as { order_type: string | null; driver_name: string | null; total: unknown; payment_method: string | null; payment_breakdown: unknown }[]) {
+    if (o.order_type !== "delivery") continue;
+    const cash = split(o).cash;
+    if (cash <= 0) continue;
+    const name = o.driver_name?.trim() || null;
+    const row = byDriver.get(name) ?? { orders: 0, cash: 0 };
+    row.orders += 1;
+    row.cash += cash;
+    byDriver.set(name, row);
+  }
+  const cashByDriver = Array.from(byDriver, ([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.cash - a.cash);
 
   const expectedCash = Number(shift.opening_cash) + totalCash;
   const cashDifference = closingCash - expectedCash;
@@ -2480,6 +2496,7 @@ export async function closeShift(closingCash: number, notes?: string) {
       cashDifference,
       openingCash: shift.opening_cash,
       closingCash,
+      cashByDriver,
     },
   };
 }

@@ -86,7 +86,7 @@ const ORDERS: Order[] = [
   }),
 ];
 
-export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string } }) {
+export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string } }) {
   if (process.env.NODE_ENV === 'production') notFound();
   return (
     <CounterView
@@ -99,6 +99,16 @@ export default function PreviewCounterPage({ searchParams }: { searchParams: { e
       restaurantLng={null}
       isDevice
       previewAlertIds={searchParams.alert ? ['o1', 'o2'] : undefined}
+      previewShiftReport={searchParams.z ? {
+        totalOrders: 23, totalRevenue: 612.4, totalCash: 401.15, totalCard: 211.25,
+        expectedCash: 501.15, cashDifference: -3.0, openingCash: 100, closingCash: 498.15,
+        openedAt: new Date(Date.now() - 8 * 3600e3).toISOString(), closedAt: new Date().toISOString(),
+        cashByDriver: [
+          { name: 'Leo', orders: 9, cash: 214.6 },
+          { name: 'Carlos', orders: 4, cash: 97.3 },
+          { name: null, orders: 1, cash: 18.0 },
+        ],
+      } : undefined}
     />
   );
 }
