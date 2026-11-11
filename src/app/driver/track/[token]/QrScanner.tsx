@@ -17,12 +17,15 @@ export function tokenFromQr(text: string): string | null {
   return m ? m[1] : null;
 }
 
-export function QrScanner({ en, onToken, onClose, message }: {
+export function QrScanner({ en, onToken, onClose, message, items }: {
   en: boolean;
   onToken: (token: string) => void;
+  /** "Listo": cierra el escáner (queda abierto entre ticket y ticket). */
   onClose: () => void;
-  /** Resultado del último intento (error o "agregando…"), lo pone el padre. */
-  message?: { tone: 'info' | 'error'; text: string } | null;
+  /** Resultado del último intento (sumado, error, "agregando…"), lo pone el padre. */
+  message?: { tone: 'info' | 'ok' | 'error'; text: string } | null;
+  /** Números de los pedidos que ya van en el viaje. */
+  items: string[];
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [camError, setCamError] = useState<string | null>(null);
@@ -102,7 +105,7 @@ export function QrScanner({ en, onToken, onClose, message }: {
   return (
     <div className="fixed inset-0 z-[95] bg-black flex flex-col" role="dialog" aria-modal="true" aria-label={en ? 'Scan the order QR' : 'Escanear el QR del pedido'}>
       <div className="flex items-center justify-between px-4 pt-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
-        <p className="text-white text-[16px] font-bold">{en ? 'Scan the QR on the next ticket' : 'Escanea el QR del siguiente ticket'}</p>
+        <p className="text-white text-[16px] font-bold">{en ? 'Scan each ticket you take' : 'Escanea cada ticket que llevas'}</p>
         <button type="button" onClick={onClose} aria-label={en ? 'Close' : 'Cerrar'} className="w-11 h-11 rounded-full grid place-items-center bg-white/15 text-white">
           <X className="w-5 h-5" aria-hidden />
         </button>
@@ -114,12 +117,25 @@ export function QrScanner({ en, onToken, onClose, message }: {
           <p className="absolute inset-x-6 top-1/2 -translate-y-1/2 rounded-2xl bg-white px-4 py-3 text-center text-[14px] font-semibold text-gray-900">{camError}</p>
         )}
       </div>
-      <div className="px-4 pt-3 min-h-[76px]" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
-        {message && (
-          <p className={`rounded-2xl px-4 py-3 text-center text-[15px] font-bold ${message.tone === 'error' ? 'bg-red-50 text-red-700' : 'bg-white text-gray-900'}`} role="status">
-            {message.text}
-          </p>
-        )}
+      <div className="px-4 pt-3 grid gap-3" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
+        <p
+          className={`rounded-2xl px-4 py-3 text-center text-[15px] font-bold ${
+            message?.tone === 'error' ? 'bg-red-50 text-red-700' : message?.tone === 'ok' ? 'bg-emerald-400 text-emerald-950' : 'bg-white/10 text-white'}`}
+          role="status" aria-live="polite"
+        >
+          {message?.text ?? (en ? 'Hold the ticket QR inside the square' : 'Pon el QR del ticket dentro del cuadro')}
+        </p>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-white/60">
+              {en ? `In your trip · ${items.length}` : `En tu viaje · ${items.length}`}
+            </p>
+            <p className="text-white text-[16px] font-extrabold truncate tabular-nums">{items.join('  ·  ')}</p>
+          </div>
+          <button type="button" onClick={onClose} className="h-14 px-7 rounded-2xl bg-white text-gray-950 text-[17px] font-extrabold flex-shrink-0 active:scale-[0.98] transition-transform">
+            {en ? 'Done' : 'Listo'}
+          </button>
+        </div>
       </div>
     </div>
   );

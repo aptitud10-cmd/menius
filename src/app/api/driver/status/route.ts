@@ -18,6 +18,8 @@ import { checkRateLimitAsync, getClientIP } from "@/lib/rate-limit";
 import { createLogger } from "@/lib/logger";
 import { broadcastOrderUpdate } from "@/lib/realtime/broadcast-order";
 import { evictTokenCache } from "@/lib/tracking/token-cache";
+import { UUID_RE } from "@/lib/constants";
+import { pickupDriverFields } from "@/lib/orders/driver-route";
 
 const logger = createLogger("driver-status");
 
@@ -41,7 +43,10 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const { token, action } = body as { token?: string; action?: DriverAction };
+  const { token, action, driver } = body as { token?: string; action?: DriverAction; driver?: { id?: unknown; name?: unknown } };
+  // Quién lo lleva (lo eligió en "¿Quién eres?" en su teléfono). Solo se usa en picked_up.
+  const driverName = typeof driver?.name === "string" ? driver.name.trim().slice(0, 60) : "";
+  const driverPoolId = typeof driver?.id === "string" && UUID_RE.test(driver.id) ? driver.id : null;
 
   if (!token || token.length > 200)
     return NextResponse.json({ error: "token is required" }, { status: 400 });
@@ -61,7 +66,7 @@ export async function POST(req: NextRequest) {
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
     .select(
-      "id, status, order_type, customer_phone, customer_name, customer_email, customer_locale, customer_token, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, batch_id, restaurants(name, locale, slug, currency, notifications_enabled)",
+      "id, status, order_type, customer_phone, customer_name, customer_email, customer_locale, customer_token, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, batch_id, driver_name, restaurants(name, locale, slug, currency, notifications_enabled)",
     )
     .eq("driver_tracking_token", token)
     .maybeSingle();
@@ -142,6 +147,28 @@ export async function POST(req: NextRequest) {
       updated_at: now,
       ...(advanceToOutForDelivery ? { status: "out_for_delivery" } : {}),
     };
+
+    // El que escaneó y sale con el pedido es quien lo lleva: su nombre va al
+    // seguimiento del cliente y al Counter. Sin tocar el token (el QR sigue).
+    if (driverName) {
+      let pool: { id: string; phone: string | null } | null = null;
+      if (driverPoolId) {
+        const { data } = await supabase
+          .from("drivers")
+          .select("id, phone")
+          .eq("id", driverPoolId)
+          .eq("restaurant_id", order.restaurant_id)
+          .eq("is_active", true)
+          .maybeSingle();
+        pool = data ? { id: data.id as string, phone: (data.phone as string | null) ?? null } : null;
+      }
+      Object.assign(updateData, pickupDriverFields({
+        name: driverName,
+        prevName: (order as { driver_name?: string | null }).driver_name,
+        pool,
+        now,
+      }));
+    }
   }
 
   // El mostrador pudo tocar "Salió" (out_for_delivery) antes de que el

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MAX_ROUTE_ORDERS, chooseBatchId, parseRouteTokens, stopsAhead, validateRoute, fetchStopsAhead,
+  MAX_ROUTE_ORDERS, chooseBatchId, parseRouteTokens, stopsAhead, validateRoute, fetchStopsAhead, pickupDriverFields,
   type RouteOrderRow,
 } from '@/lib/orders/driver-route';
 import { tokenFromQr } from '@/app/driver/track/[token]/QrScanner';
@@ -69,6 +69,23 @@ describe('fetchStopsAhead', () => {
     expect(await fetchStopsAhead(db(mates), { ...base, status: 'ready' })).toBe(0);
     expect(await fetchStopsAhead(db(mates), { ...base, driver_at_door_at: '2026-11-10T00:00:00Z' })).toBe(0);
     expect(await fetchStopsAhead(db(mates), { ...base, batch_id: null })).toBe(0);
+  });
+});
+
+describe('pickupDriverFields (quién lo lleva)', () => {
+  const now = '2026-11-10T20:00:00Z';
+  it('pone el nombre; teléfono solo del equipo', () => {
+    expect(pickupDriverFields({ name: ' Carlos ', prevName: null, pool: null, now }))
+      .toEqual({ driver_name: 'Carlos', driver_assigned_at: now });
+    expect(pickupDriverFields({ name: 'Carlos', prevName: null, pool: { id: 'd1', phone: '+1718' }, now }))
+      .toEqual({ driver_name: 'Carlos', driver_assigned_at: now, driver_id: 'd1', driver_phone: '+1718' });
+  });
+  it('si el asignado era otro, borra su teléfono', () => {
+    expect(pickupDriverFields({ name: 'José', prevName: 'Carlos', pool: null, now }).driver_phone).toBeNull();
+    expect('driver_phone' in pickupDriverFields({ name: 'carlos', prevName: 'Carlos', pool: null, now })).toBe(false);
+  });
+  it('sin nombre no toca nada', () => {
+    expect(pickupDriverFields({ name: '  ', prevName: 'Carlos', pool: null, now })).toEqual({});
   });
 });
 

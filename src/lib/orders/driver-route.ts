@@ -85,6 +85,30 @@ export function stopsAhead(mySeq: number | null, mates: BatchMate[]): number {
   ).length;
 }
 
+/**
+ * Al salir ("Ya tengo el pedido" / "Salir con N pedidos"): quien escaneó es
+ * quien lo lleva. Nombre al cliente y al Counter; teléfono solo si viene del
+ * equipo del restaurante; si era otro el asignado, su teléfono se borra.
+ */
+export function pickupDriverFields(input: {
+  name: string;
+  prevName: string | null | undefined;
+  pool: { id: string; phone: string | null } | null;
+  now: string;
+}): Record<string, unknown> {
+  const name = input.name.trim().slice(0, 60);
+  if (!name) return {};
+  const out: Record<string, unknown> = { driver_name: name, driver_assigned_at: input.now };
+  const prev = (input.prevName ?? '').trim();
+  if (prev && prev.toLowerCase() !== name.toLowerCase()) out.driver_phone = null;
+  if (input.pool) {
+    out.driver_id = input.pool.id;
+    const phone = (input.pool.phone ?? '').trim();
+    if (phone) out.driver_phone = phone;
+  }
+  return out;
+}
+
 /** Minutos extra por cada parada antes de la tuya: ~3 en la puerta + ~6 de tramo. */
 export const MINUTES_PER_STOP_AHEAD = 9;
 

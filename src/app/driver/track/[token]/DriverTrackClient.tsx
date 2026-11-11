@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle, Check, Camera, Loader2, MapPin, AlertTriangle, Navigation,
-  Phone, MessageSquare, Banknote, ArrowRight, ArrowDown, Plus,
+  Phone, MessageSquare, Banknote, ArrowRight, ArrowDown,
 } from 'lucide-react';
 import { C, money } from '@/components/orders/counter/ui';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -160,12 +160,14 @@ export type RouteCtx = {
   onSkip: () => void;
 };
 
-export function DriverTrackClient({ token, lang, route, onAddOrder }: {
+export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
   token: string;
   lang: string;
   route?: RouteCtx;
-  /** Solo en el paso "recoger" de un pedido suelto: abre el escáner. */
-  onAddOrder?: () => void;
+  /** Paso "recoger" de un pedido suelto: escanear otro ticket + quién lo lleva. */
+  startExtra?: React.ReactNode;
+  /** Quién lo lleva (elegido en el teléfono): su nombre va al cliente y al Counter. */
+  driver?: { id: string | null; name: string } | null;
 }) {
   const t = getT(lang);
   const { canInstall, install } = usePWAInstall();
@@ -481,7 +483,7 @@ export function DriverTrackClient({ token, lang, route, onAddOrder }: {
       const res = await fetch('/api/driver/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action }),
+        body: JSON.stringify({ token, action, ...(action === 'picked_up' && driver?.name ? { driver } : {}) }),
       });
       if (res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -708,13 +710,7 @@ export function DriverTrackClient({ token, lang, route, onAddOrder }: {
                 </ul>
               </section>
             )}
-            {onAddOrder && !orderCancelled && (
-              <button type="button" onClick={onAddOrder}
-                className="h-14 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-bold active:scale-[0.98] transition-transform"
-                style={{ border: `2px dashed ${C.line}`, color: C.ink }}>
-                <Plus className="w-5 h-5" aria-hidden /> {t.en ? 'Add another order to this trip' : 'Agregar otro pedido a este viaje'}
-              </button>
-            )}
+            {!orderCancelled && startExtra}
           </>
         )}
 

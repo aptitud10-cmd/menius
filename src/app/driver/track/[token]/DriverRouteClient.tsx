@@ -1,28 +1,38 @@
 'use client';
 
 /**
- * Ruta del repartidor: varios pedidos en un mismo viaje (tope 4).
+ * Viaje del repartidor: uno o varios pedidos (tope 4), como el "Live Order
+ * Tracking" de Uber para restaurantes con repartidores propios: se escanea el
+ * QR de cada ticket y el orden de escaneo es el orden de entrega.
  *
- * - Un pedido suelto se ve igual que siempre (DriverTrackClient), con un botón
- *   para agregar otro pedido escaneando su QR dentro de la página.
- * - Con 2+ pedidos: lista para ordenar → "Ya tengo los N pedidos" (un solo GPS)
- *   → parada por parada con la pantalla de siempre → resumen de caja.
- * - Cada pedido se sigue abriendo solo con SU token. La lista de tokens vive en
- *   este teléfono (localStorage); el servidor solo guarda batch_id/batch_seq.
+ * - Primer ticket: con la cámara del teléfono (abre esta página). La primera
+ *   vez en ese teléfono pregunta "¿Quién eres?" (equipo del restaurante); el
+ *   nombre va al cliente y al Counter al salir.
+ * - Siguientes: "Escanear otro ticket" abre la cámara dentro de la página y
+ *   queda abierta; cada QR suma el pedido. Si en vez de eso usa la cámara del
+ *   teléfono otra vez, el pedido se suma solo al viaje que todavía no salió.
+ * - "Salir con N pedidos" → un solo GPS → parada por parada → caja.
+ * - Cada pedido se abre solo con SU token. La lista vive en este teléfono
+ *   (localStorage); el servidor guarda batch_id/batch_seq.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, Loader2, Plus, X, AlertTriangle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Loader2, ScanLine, X, AlertTriangle, UserRound } from 'lucide-react';
 import { C, money } from '@/components/orders/counter/ui';
 import { MAX_ROUTE_ORDERS } from '@/lib/orders/driver-route';
 import { DriverTrackClient, queueStatusAction, type RouteCtx } from './DriverTrackClient';
 import { QrScanner } from './QrScanner';
 
 const STORE_KEY = 'menius-driver-route-v1';
+const ME_KEY = 'menius-driver-me-v1';
 const STORE_TTL_MS = 8 * 60 * 60 * 1000;
+
+type Me = { id: string | null; name: string; restaurantId: string };
+type TeamMember = { id: string; name: string };
 
 type Stop = {
   token: string;
+  restaurantId: string | null;
   orderNumber: string | null;
   customerName: string | null;
   address: string | null;
@@ -36,21 +46,21 @@ type Stop = {
   restaurantName: string | null;
 };
 
-const shortNum = (n: string | null) => (n ? `#${n.split('-').pop()}` : '#—');
+const shortNum = (n: string | null | undefined) => (n ? `#${n.split('-').pop()}` : '#—');
 const isDone = (s: Stop | undefined) => !!s && (s.delivered || s.cancelled);
 
-function readStore(): string[] | null {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return null;
-    const v = JSON.parse(raw) as { tokens?: unknown; at?: unknown };
-    if (!Array.isArray(v.tokens) || typeof v.at !== 'number' || Date.now() - v.at > STORE_TTL_MS) return null;
-    return v.tokens.filter((t): t is string => typeof t === 'string').slice(0, MAX_ROUTE_ORDERS);
-  } catch { return null; }
+function readJSON<T>(key: string): T | null {
+  try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : null; } catch { return null; }
 }
-function writeStore(tokens: string[]) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ tokens, at: Date.now() })); } catch { /* modo privado */ }
+function writeJSON(key: string, v: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* modo privado */ }
 }
+function readRoute(): string[] | null {
+  const v = readJSON<{ tokens?: unknown; at?: unknown }>(STORE_KEY);
+  if (!v || !Array.isArray(v.tokens) || typeof v.at !== 'number' || Date.now() - v.at > STORE_TTL_MS) return null;
+  return v.tokens.filter((t): t is string => typeof t === 'string').slice(0, MAX_ROUTE_ORDERS);
+}
+const writeRoute = (tokens: string[]) => writeJSON(STORE_KEY, { tokens, at: Date.now() });
 
 async function fetchStop(token: string): Promise<Stop | null> {
   try {
@@ -60,6 +70,7 @@ async function fetchStop(token: string): Promise<Stop | null> {
     const closed = d.orderStatus === 'delivered' || d.orderStatus === 'completed';
     return {
       token,
+      restaurantId: d.restaurantId ?? null,
       orderNumber: d.orderNumber ?? null,
       customerName: d.customerName ?? null,
       address: d.deliveryAddress ?? null,
@@ -99,31 +110,37 @@ function reasonText(reason: string, en: boolean): string {
     other_restaurant: 'Ese pedido es de otro restaurante.',
     too_many: `Máximo ${MAX_ROUTE_ORDERS} pedidos por viaje.`,
     network: 'Sin conexión. Intenta de nuevo.',
-    dup: 'Ese pedido ya está en tu viaje.',
+    dup: 'Ese ticket ya está en tu viaje.',
+    out: 'Ya saliste con este viaje. Ese pedido va en el próximo.',
   };
   const enT: Record<string, string> = {
     not_found: "That QR isn't a delivery order.",
     not_delivery: "That order isn't for delivery.",
     closed: 'That order is already closed.',
     expired: "That order's QR expired.",
-    other_restaurant: "That order is from another restaurant.",
+    other_restaurant: 'That order is from another restaurant.',
     too_many: `Up to ${MAX_ROUTE_ORDERS} orders per trip.`,
     network: 'No connection. Try again.',
-    dup: 'That order is already in your trip.',
+    dup: 'That ticket is already in your trip.',
+    out: "You already left on this trip. That order goes on the next one.",
   };
-  return (en ? enT : es)[reason] ?? (en ? 'Could not add it. Try again.' : 'No se pudo agregar. Intenta de nuevo.');
+  return (en ? enT : es)[reason] ?? (en ? 'Could not add it. Try again.' : 'No se pudo sumar. Intenta de nuevo.');
 }
 
 export function DriverRouteClient({ token, lang }: { token: string; lang: string }) {
   const en = lang === 'en';
   const [route, setRoute] = useState<string[] | null>(null);
   const [stops, setStops] = useState<Record<string, Stop>>({});
-  /** Ruta guardada en este teléfono a la que se puede sumar el pedido de la URL. */
-  const [mergeOffer, setMergeOffer] = useState<string[] | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
-  const [scanMsg, setScanMsg] = useState<{ tone: 'info' | 'error'; text: string } | null>(null);
+  const [scanMsg, setScanMsg] = useState<{ tone: 'info' | 'ok' | 'error'; text: string } | null>(null);
+  /** Aviso arriba de la lista: "#043 se sumó a tu viaje". */
+  const [joinedNote, setJoinedNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [me, setMe] = useState<Me | null>(null);
+  const [team, setTeam] = useState<TeamMember[] | null>(null);
+  const [askWho, setAskWho] = useState(false);
+  const busyRef = useRef(false);
 
   const loadStops = useCallback(async (tokens: string[]) => {
     const list = await Promise.all(tokens.map(fetchStop));
@@ -135,88 +152,108 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
     return list;
   }, []);
 
-  // Arranque: ¿este token ya es parte de la ruta guardada? ¿hay una ruta a la que sumarlo?
+  const commit = useCallback((tokens: string[]) => {
+    setRoute(tokens);
+    writeRoute(tokens);
+  }, []);
+
+  // ── Arranque ──
   useEffect(() => {
     (async () => {
-      const stored = readStore();
+      const stored = readRoute();
       if (stored && stored.includes(token)) {
         setRoute(stored);
         loadStops(stored);
         return;
       }
-      if (stored && stored.length > 0) {
+      // Escaneó otro ticket con la cámara del teléfono: si tiene un viaje que
+      // todavía no salió, se suma solo (como escanear con el botón).
+      if (stored && stored.length > 0 && stored.length < MAX_ROUTE_ORDERS) {
         const list = await loadStops(stored);
         const pending = list.filter((s): s is Stop => !!s && !s.pickedUp && !isDone(s)).map((s) => s.token);
-        if (pending.length > 0 && pending.length < MAX_ROUTE_ORDERS) {
-          setMergeOffer(pending);
-          loadStops([token]);
-          return;
+        if (pending.length > 0 && pending.length === list.filter((s) => s && !isDone(s)).length) {
+          const next = [...pending, token];
+          const r = await saveRoute(next);
+          if (r.ok) {
+            commit(next);
+            const [mine] = await loadStops([token]);
+            setJoinedNote(en ? `${shortNum(mine?.orderNumber)} was added to your trip` : `${shortNum(mine?.orderNumber)} se sumó a tu viaje`);
+            return;
+          }
         }
       }
-      setRoute([token]);
-      writeStore([token]);
+      commit([token]);
       loadStops([token]);
     })();
+  }, [token, loadStops, commit, en]);
+
+  // Otra pestaña (otro QR abierto con la cámara) cambió el viaje: misma lista acá.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORE_KEY) return;
+      const next = readRoute();
+      if (!next || !next.includes(token)) return;
+      setRoute(next);
+      loadStops(next);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, [token, loadStops]);
 
-  const commit = useCallback((tokens: string[]) => {
-    setRoute(tokens);
-    writeStore(tokens);
-  }, []);
+  // ── ¿Quién eres? (una vez por teléfono y restaurante) ──
+  const restaurantId = route ? (stops[route[0]]?.restaurantId ?? null) : null;
+  useEffect(() => {
+    if (!restaurantId) return;
+    const saved = readJSON<Me>(ME_KEY);
+    if (saved && saved.restaurantId === restaurantId && saved.name) { setMe(saved); return; }
+    setAskWho(true);
+  }, [restaurantId]);
+  useEffect(() => {
+    if (!askWho || team) return;
+    fetch(`/api/driver/team?token=${encodeURIComponent(token)}`)
+      .then((r) => (r.ok ? r.json() : { drivers: [] }))
+      .then((d) => setTeam(Array.isArray(d.drivers) ? d.drivers : []))
+      .catch(() => setTeam([]));
+  }, [askWho, team, token]);
+  const chooseMe = (m: { id: string | null; name: string }) => {
+    if (!restaurantId || !m.name.trim()) return;
+    const v: Me = { id: m.id, name: m.name.trim().slice(0, 60), restaurantId };
+    writeJSON(ME_KEY, v);
+    setMe(v);
+    setAskWho(false);
+  };
 
-  // ── Agregar un pedido (escáner o la oferta de unir) ──
-  const addToken = useCallback(async (t: string, base: string[]) => {
-    if (base.includes(t)) { setScanMsg({ tone: 'error', text: reasonText('dup', en) }); return false; }
-    if (base.length >= MAX_ROUTE_ORDERS) { setScanMsg({ tone: 'error', text: reasonText('too_many', en) }); return false; }
-    setScanMsg({ tone: 'info', text: en ? 'Adding…' : 'Agregando…' });
-    const next = [...base, t];
-    const r = await saveRoute(next);
-    if (!r.ok) { setScanMsg({ tone: 'error', text: reasonText(r.reason, en) }); return false; }
-    commit(next);
-    await loadStops([t]);
-    setScanMsg(null);
-    return true;
-  }, [commit, loadStops, en]);
-
+  // ── Sumar un ticket desde el escáner ──
   const onScan = useCallback(async (t: string) => {
-    if (!route || busy) return;
-    setBusy(true);
-    const ok = await addToken(t, route);
-    setBusy(false);
-    if (ok) setScanOpen(false);
-  }, [route, busy, addToken]);
+    if (!route || busyRef.current) return;
+    if (route.includes(t)) { setScanMsg({ tone: 'error', text: reasonText('dup', en) }); return; }
+    if (route.some((x) => stops[x]?.pickedUp && !isDone(stops[x]))) { setScanMsg({ tone: 'error', text: reasonText('out', en) }); return; }
+    if (route.length >= MAX_ROUTE_ORDERS) { setScanMsg({ tone: 'error', text: reasonText('too_many', en) }); return; }
+    busyRef.current = true;
+    setScanMsg({ tone: 'info', text: en ? 'Adding…' : 'Sumando…' });
+    const next = [...route, t];
+    const r = await saveRoute(next);
+    if (!r.ok) {
+      setScanMsg({ tone: 'error', text: reasonText(r.reason, en) });
+    } else {
+      commit(next);
+      const [s] = await loadStops([t]);
+      setScanMsg({ tone: 'ok', text: en ? `✓ ${shortNum(s?.orderNumber)} added` : `✓ ${shortNum(s?.orderNumber)} sumado` });
+      if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+    }
+    busyRef.current = false;
+  }, [route, stops, commit, loadStops, en]);
 
-  const acceptMerge = async () => {
-    if (!mergeOffer) return;
-    setBusy(true);
-    const ok = await addToken(token, mergeOffer);
-    setBusy(false);
-    if (ok) setMergeOffer(null);
-  };
+  const openScanner = () => { setScanMsg(null); setScanOpen(true); };
 
-  const declineMerge = () => {
-    setMergeOffer(null);
-    commit([token]);
-  };
-
-  // ── Ordenar / quitar (antes de salir) ──
-  const move = async (i: number, dir: -1 | 1) => {
-    if (!route) return;
-    const j = i + dir;
-    if (j < 0 || j >= route.length) return;
-    const next = [...route];
-    [next[i], next[j]] = [next[j], next[i]];
-    commit(next);
-    void saveRoute(next);
-  };
-  const remove = async (t: string) => {
+  const remove = (t: string) => {
     if (!route) return;
     const next = route.filter((x) => x !== t);
     commit(next);
     void saveRoute(next, [t]);
   };
 
-  // ── Salir: "Ya tengo los N pedidos" ──
+  // ── Salir con todos ──
   const pickUpAll = async () => {
     if (!route) return;
     setBusy(true);
@@ -227,7 +264,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
         const res = await fetch('/api/driver/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: t, action: 'picked_up' }),
+          body: JSON.stringify({ token: t, action: 'picked_up', ...(me ? { driver: { id: me.id, name: me.name } } : {}) }),
         });
         if (!res.ok && res.status !== 409) {
           const d = await res.json().catch(() => ({}));
@@ -252,7 +289,6 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
 
   const onStopDone = useCallback(async () => {
     if (!current) return;
-    // Lo que el servidor dice manda (entregado / cancelado / cerrado por el mostrador).
     const [s] = await loadStops([current]);
     if (!s || !isDone(s)) {
       setStops((prev) => (prev[current] ? { ...prev, [current]: { ...prev[current], delivered: true } } : prev));
@@ -263,8 +299,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
     if (!route || !current) return;
     const done = route.filter((t) => isDone(stops[t]));
     const pending = route.filter((t) => !isDone(stops[t]) && t !== current);
-    const next = [...done, ...pending, current];
-    commit(next);
+    commit([...done, ...pending, current]);
     void saveRoute([...pending, current]);
   }, [route, current, stops, commit]);
 
@@ -275,7 +310,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
       index: currentIndex,
       total: route.length,
       gpsTokens: route.filter((t) => !isDone(stops[t])),
-      upcoming: pendingAfter.map((t) => ({ shortNum: shortNum(stops[t]?.orderNumber ?? null), address: stops[t]?.address ?? null })),
+      upcoming: pendingAfter.map((t) => ({ shortNum: shortNum(stops[t]?.orderNumber), address: stops[t]?.address ?? null })),
       onStopDone,
       onSkip,
     };
@@ -283,60 +318,52 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
 
   // ───────────────────────── Render ─────────────────────────
 
-  if (!route && !mergeOffer) return <Spinner />;
+  if (!route) return <Spinner />;
+  const r = route;
+  const first = stops[r[0]];
+  const notLeft = r.every((t) => !stops[t]?.pickedUp);
 
-  // Pantalla: sumar este pedido a la ruta que ya tiene en el teléfono.
-  if (mergeOffer) {
-    const me = stops[token];
-    return (
-      <Shell>
-        <main className="flex-1 w-full max-w-md mx-auto px-4 pt-6 pb-4 grid content-start gap-3">
-          <p className="text-[12px] font-semibold" style={{ color: C.sub }}>{me?.restaurantName}</p>
-          <h1 className="font-display text-[28px] font-extrabold leading-tight tracking-tight">
-            {en ? `Add ${shortNum(me?.orderNumber ?? null)} to your trip?` : `¿Sumar ${shortNum(me?.orderNumber ?? null)} a tu viaje?`}
-          </h1>
-          <p className="text-[15px]" style={{ color: C.sub }}>
-            {en ? 'You already have these orders, not picked up yet:' : 'Ya tienes estos pedidos, todavía sin salir:'}
-          </p>
-          <ul className="grid gap-2">
-            {mergeOffer.map((t) => (
-              <li key={t} className="rounded-2xl bg-white px-4 py-3 flex gap-2 text-[14px]" style={{ border: `1px solid ${C.line}` }}>
-                <b className="tabular-nums">{shortNum(stops[t]?.orderNumber ?? null)}</b>
-                <span className="truncate" style={{ color: C.sub }}>{stops[t]?.address}</span>
-              </li>
-            ))}
-          </ul>
-          {scanMsg?.tone === 'error' && <p className="text-[13px] font-semibold" style={{ color: C.red }}>{scanMsg.text}</p>}
-        </main>
-        <Dock>
-          <BigButton onClick={acceptMerge} loading={busy} tone="green">{en ? 'Add to my trip' : 'Sumar a mi viaje'}</BigButton>
-          <button type="button" onClick={declineMerge} className="h-12 text-[15px] font-bold" style={{ color: C.sub }}>
-            {en ? 'Only this order' : 'Solo este pedido'}
-          </button>
-        </Dock>
-      </Shell>
-    );
+  // ¿Quién eres? — antes de salir, una sola vez en este teléfono.
+  if (askWho && notLeft && first && !isDone(first)) {
+    return <WhoAreYou en={en} restaurantName={first.restaurantName} team={team} onPick={chooseMe} />;
   }
 
-  const r = route!;
   const scanner = scanOpen && (
-    <QrScanner en={en} onToken={onScan} onClose={() => { setScanOpen(false); setScanMsg(null); }} message={scanMsg} />
+    <QrScanner en={en} onToken={onScan} onClose={() => { setScanOpen(false); setScanMsg(null); }} message={scanMsg}
+      items={r.map((t) => shortNum(stops[t]?.orderNumber))} />
   );
 
-  // Un solo pedido: la pantalla de siempre, con "Agregar otro pedido".
+  const whoLine = me && (
+    <p className="flex items-center justify-center gap-1.5 text-[13px] font-semibold" style={{ color: C.sub }}>
+      <UserRound className="w-4 h-4" aria-hidden />
+      {en ? `You're taking it, ${me.name}` : `Lo llevas tú, ${me.name}`}
+      <span aria-hidden>·</span>
+      <button type="button" onClick={() => setAskWho(true)} className="underline underline-offset-4">{en ? 'Not you?' : '¿No eres tú?'}</button>
+    </p>
+  );
+
+  const scanButton = (
+    <button type="button" onClick={openScanner}
+      className="h-14 rounded-2xl flex items-center justify-center gap-2 text-[16px] font-extrabold active:scale-[0.98] transition-transform"
+      style={{ background: C.ink, color: '#fff' }}>
+      <ScanLine className="w-5 h-5" aria-hidden /> {en ? 'Scan another ticket' : 'Escanear otro ticket'}
+    </button>
+  );
+
+  // Un solo pedido: la pantalla de siempre + escanear otro ticket.
   if (r.length < 2) {
-    const only = r[0] ?? token;
+    const only = r[0];
     const s = stops[only];
+    const canAdd = !!s && !s.pickedUp && !isDone(s);
     return (
       <>
-        <DriverTrackClient key={only} token={only} lang={lang}
-          onAddOrder={s && !s.pickedUp && !isDone(s) ? () => { setScanMsg(null); setScanOpen(true); } : undefined} />
+        <DriverTrackClient key={only} token={only} lang={lang} driver={me}
+          startExtra={canAdd ? <div className="grid gap-3 pt-1">{scanButton}{whoLine}</div> : whoLine} />
         {scanner}
       </>
     );
   }
 
-  const anyPicked = r.some((t) => stops[t]?.pickedUp);
   const loaded = r.every((t) => stops[t]);
 
   // Viaje terminado: resumen de caja.
@@ -383,31 +410,39 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
               {en ? 'Return the cancelled bags to the restaurant.' : 'Devuelve al restaurante las bolsas de los pedidos cancelados.'}
             </p>
           )}
+          <p className="text-[13px] text-center mt-2" style={{ color: C.faint }}>
+            {en ? 'Your next trip starts by scanning its first ticket.' : 'El próximo viaje empieza escaneando su primer ticket.'}
+          </p>
         </main>
       </Shell>
     );
   }
 
   // En camino: parada por parada con la pantalla de siempre.
-  if (anyPicked && current && routeCtx) {
-    return <DriverTrackClient key={current} token={current} lang={lang} route={routeCtx} />;
+  if (!notLeft && current && routeCtx) {
+    return <DriverTrackClient key={current} token={current} lang={lang} route={routeCtx} driver={me} />;
   }
 
-  // Antes de salir: la lista del viaje.
+  // Antes de salir: los tickets escaneados, en orden de entrega.
   const cashTotal = r.reduce((n, t) => n + (stops[t]?.collectCash ? stops[t].total : 0), 0);
-  const cur = stops[r[0]]?.currency ?? 'USD';
+  const cur = first?.currency ?? 'USD';
   return (
     <Shell>
       <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-4 grid content-start gap-3">
+        {joinedNote && (
+          <p className="flex items-center gap-2 rounded-2xl px-4 py-3 text-[14px] font-bold" style={{ background: C.greenSoft, color: C.greenDeep }} role="status">
+            <Check className="w-4 h-4" strokeWidth={3} aria-hidden /> {joinedNote}
+          </p>
+        )}
         <header>
           <p className="text-[12px] font-semibold" style={{ color: C.sub }}>
-            {[stops[r[0]]?.restaurantName, cashTotal > 0 ? (en ? `collect ${money(cashTotal, cur)} total` : `cobrar ${money(cashTotal, cur)} en total`) : null].filter(Boolean).join(' · ')}
+            {[first?.restaurantName, cashTotal > 0 ? (en ? `collect ${money(cashTotal, cur)} total` : `cobrar ${money(cashTotal, cur)} en total`) : null].filter(Boolean).join(' · ')}
           </p>
           <h1 className="font-display text-[28px] font-extrabold leading-none tracking-tight">
             {en ? `Your trip · ${r.length} orders` : `Tu viaje · ${r.length} pedidos`}
           </h1>
           <p className="text-[13px] mt-1.5" style={{ color: C.faint }}>
-            {en ? 'Order = delivery order. Use the arrows to change it.' : 'El orden es el de entrega. Cámbialo con las flechas.'}
+            {en ? 'Delivered in the order you scanned them.' : 'Se entregan en el orden en que los escaneaste.'}
           </p>
         </header>
 
@@ -415,10 +450,10 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
           {r.map((t, i) => {
             const s = stops[t];
             return (
-              <li key={t} className="rounded-[18px] bg-white p-3 flex items-center gap-3" style={{ border: `1px solid ${C.line}` }}>
+              <li key={t} className="rounded-[18px] bg-white p-3 pl-4 flex items-center gap-3" style={{ border: `1px solid ${C.line}` }}>
                 <span className="w-8 h-8 rounded-full grid place-items-center text-[14px] font-extrabold flex-shrink-0" style={{ background: C.ink, color: '#fff' }}>{i + 1}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-bold truncate">{shortNum(s?.orderNumber ?? null)}{s?.customerName ? ` · ${s.customerName}` : ''}</span>
+                  <span className="block text-[15px] font-bold truncate">{shortNum(s?.orderNumber)}{s?.customerName ? ` · ${s.customerName}` : ''}</span>
                   <span className="block text-[13px] leading-snug" style={{ color: C.sub }}>{s?.address ?? '…'}</span>
                   {s && (
                     <span className="block text-[12.5px] font-bold mt-0.5" style={{ color: s.collectCash ? C.orange : C.greenDeep }}>
@@ -426,31 +461,80 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
                     </span>
                   )}
                 </span>
-                <span className="grid grid-cols-1 gap-1 flex-shrink-0">
-                  <IconBtn label={en ? 'Move up' : 'Subir'} disabled={i === 0} onClick={() => move(i, -1)}><ArrowUp className="w-4 h-4" /></IconBtn>
-                  <IconBtn label={en ? 'Move down' : 'Bajar'} disabled={i === r.length - 1} onClick={() => move(i, 1)}><ArrowDown className="w-4 h-4" /></IconBtn>
-                </span>
-                <IconBtn label={en ? 'Remove from trip' : 'Quitar del viaje'} onClick={() => remove(t)}><X className="w-4 h-4" /></IconBtn>
+                <button type="button" aria-label={en ? `Remove ${shortNum(s?.orderNumber)} from the trip` : `Quitar ${shortNum(s?.orderNumber)} del viaje`}
+                  onClick={() => remove(t)}
+                  className="w-11 h-11 rounded-xl grid place-items-center flex-shrink-0 active:scale-95 transition-transform"
+                  style={{ border: `1px solid ${C.line}`, color: C.sub }}>
+                  <X className="w-4 h-4" aria-hidden />
+                </button>
               </li>
             );
           })}
         </ol>
 
-        {r.length < MAX_ROUTE_ORDERS && (
-          <button type="button" onClick={() => { setScanMsg(null); setScanOpen(true); }}
-            className="h-14 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-bold active:scale-[0.98] transition-transform"
-            style={{ border: `2px dashed ${C.line}`, color: C.ink }}>
-            <Plus className="w-5 h-5" aria-hidden /> {en ? 'Add another order' : 'Agregar otro pedido'}
-          </button>
-        )}
+        {r.length < MAX_ROUTE_ORDERS && scanButton}
+        {whoLine}
         {error && <p className="text-[13px] font-semibold" style={{ color: C.red }}>{error}</p>}
       </main>
       <Dock>
-        <BigButton onClick={pickUpAll} loading={busy || !loaded} tone="green">
-          {en ? `I have the ${r.length} orders` : `Ya tengo los ${r.length} pedidos`}
+        <BigButton onClick={pickUpAll} loading={busy || !loaded}>
+          {en ? `Leave with ${r.length} orders` : `Salir con ${r.length} pedidos`}
         </BigButton>
       </Dock>
       {scanner}
+    </Shell>
+  );
+}
+
+// ── ¿Quién eres? ──
+
+function WhoAreYou({ en, restaurantName, team, onPick }: {
+  en: boolean;
+  restaurantName: string | null;
+  team: TeamMember[] | null;
+  onPick: (m: { id: string | null; name: string }) => void;
+}) {
+  const [typed, setTyped] = useState('');
+  return (
+    <Shell>
+      <main className="flex-1 w-full max-w-md mx-auto px-4 pt-8 pb-4 grid content-start gap-4">
+        <div>
+          <p className="text-[12px] font-semibold" style={{ color: C.sub }}>{restaurantName}</p>
+          <h1 className="font-display text-[30px] font-extrabold leading-tight tracking-tight">{en ? 'Who are you?' : '¿Quién eres?'}</h1>
+          <p className="text-[14px] mt-1" style={{ color: C.sub }}>
+            {en ? 'The customer will see your name. We only ask once on this phone.' : 'El cliente verá tu nombre. Solo se pregunta una vez en este teléfono.'}
+          </p>
+        </div>
+        {team === null ? (
+          <Loader2 className="w-6 h-6 animate-spin justify-self-center" style={{ color: C.sub }} aria-hidden />
+        ) : team.length > 0 && (
+          <div className="grid gap-2">
+            {team.map((d) => (
+              <button key={d.id} type="button" onClick={() => onPick({ id: d.id, name: d.name })}
+                className="h-16 rounded-2xl bg-white px-4 flex items-center gap-3 text-[18px] font-extrabold text-left active:scale-[0.98] transition-transform"
+                style={{ border: `1px solid ${C.line}` }}>
+                <span className="w-10 h-10 rounded-full grid place-items-center text-[16px] font-extrabold" style={{ background: C.ink, color: '#fff' }} aria-hidden>
+                  {d.name.slice(0, 1).toUpperCase()}
+                </span>
+                {d.name}
+              </button>
+            ))}
+          </div>
+        )}
+        <form className="grid gap-2" onSubmit={(e) => { e.preventDefault(); onPick({ id: null, name: typed }); }}>
+          <label htmlFor="drv-name" className="text-[13px] font-bold" style={{ color: C.sub }}>
+            {team && team.length > 0 ? (en ? 'Not on the list? Type your name' : '¿No estás en la lista? Escribe tu nombre') : (en ? 'Your name' : 'Tu nombre')}
+          </label>
+          <div className="flex gap-2">
+            <input id="drv-name" value={typed} onChange={(e) => setTyped(e.target.value)} maxLength={60} autoComplete="given-name"
+              placeholder={en ? 'e.g. Carlos' : 'Ej. Carlos'}
+              className="flex-1 min-w-0 h-14 rounded-2xl bg-white px-4 text-[16px] font-semibold outline-none" style={{ border: `1px solid ${C.line}` }} />
+            <button type="submit" disabled={!typed.trim()} className="h-14 px-5 rounded-2xl text-[16px] font-extrabold disabled:opacity-40" style={{ background: C.ink, color: '#fff' }}>
+              {en ? 'Go' : 'Listo'}
+            </button>
+          </div>
+        </form>
+      </main>
     </Shell>
   );
 }
@@ -474,21 +558,12 @@ function Dock({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-function BigButton({ children, onClick, loading, tone }: { children: React.ReactNode; onClick: () => void; loading: boolean; tone: 'green' | 'black' }) {
+function BigButton({ children, onClick, loading }: { children: React.ReactNode; onClick: () => void; loading: boolean }) {
   return (
     <button type="button" onClick={onClick} disabled={loading}
       className="w-full h-16 rounded-[18px] text-[18px] font-extrabold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
-      style={tone === 'green' ? { background: C.green, color: C.greenInk } : { background: C.black, color: '#fff' }}>
+      style={{ background: C.green, color: C.greenInk }}>
       {loading ? <Loader2 className="w-6 h-6 animate-spin" aria-hidden /> : children}
-    </button>
-  );
-}
-function IconBtn({ children, label, onClick, disabled }: { children: React.ReactNode; label: string; onClick: () => void; disabled?: boolean }) {
-  return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} disabled={disabled}
-      className="w-11 h-11 rounded-xl grid place-items-center active:scale-95 transition-transform disabled:opacity-30"
-      style={{ border: `1px solid ${C.line}`, color: C.ink }}>
-      {children}
     </button>
   );
 }

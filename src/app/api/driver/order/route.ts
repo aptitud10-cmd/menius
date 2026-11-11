@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await supabase
     .from('orders')
     .select(`
-      id, status, order_type, delivery_address, customer_name, customer_phone, order_number,
+      id, restaurant_id, status, order_type, delivery_address, customer_name, customer_phone, order_number,
       total, payment_method, payment_status, notes, delivery_lat, delivery_lng, delivery_photo_url,
       driver_token_expires_at, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
       restaurants(name, phone, currency, locale),
@@ -39,6 +39,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     orderId: data.id,
+    // Para recordar en el teléfono quién es el repartidor de ESTE restaurante.
+    restaurantId: (data as { restaurant_id?: string }).restaurant_id ?? null,
     orderStatus: data.status,
     deliveryAddress: data.delivery_address ?? null,
     customerName: data.customer_name ?? null,
