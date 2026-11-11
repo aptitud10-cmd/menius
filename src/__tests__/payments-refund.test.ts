@@ -101,4 +101,22 @@ describe('POST /api/payments/refund', () => {
     expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ order_id: ORDER_ID, to_status: 'cancelled' }));
     expect(mockNotify).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelled', customerEmail: 'ana@example.com', orderType: 'pickup' }));
   });
+
+  it('Wompi / Mercado Pago: cancela sin Stripe y pide la devolución manual', async () => {
+    const neq = vi.fn().mockResolvedValue({ error: null });
+    mockUpdateEq.mockReturnValueOnce({ neq });
+    for (const [tx, provider] of [['12345-1668624561-38705', 'Wompi'], ['1234567890', 'Mercado Pago']] as const) {
+      mockMaybeSingle.mockResolvedValueOnce({ data: { ...paidOrder, payment_intent_id: tx, restaurants: null }, error: null });
+      if (provider === 'Mercado Pago') mockUpdateEq.mockReturnValueOnce({ neq });
+      const res = await POST(makeRequest());
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.manual_refund).toEqual({ provider, transaction_id: tx, amount: 30 });
+    }
+    expect(mockRefundCreate).not.toHaveBeenCalled();
+    // Queda cancelada pero NO "refunded": el dinero todavía no volvió.
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelled' }));
+    expect(mockUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'refunded' }));
+    expect(mockNotify).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelled' }));
+  });
 });

@@ -491,7 +491,8 @@ export function buildOnTheWayEmail(ctx: CustomerEmailCtx, opts: { arrivalMs: num
 }
 
 // ── 4. Cancelado / reembolsado ────────────────────────────────────────────
-export function buildCancelledEmail(ctx: CustomerEmailCtx, opts: { reason?: string | null; refunded: boolean }): BuiltEmail {
+/** refundPending: pagó online por una pasarela sin reembolso automático (Wompi, Mercado Pago): el restaurante lo devuelve a mano. */
+export function buildCancelledEmail(ctx: CustomerEmailCtx, opts: { reason?: string | null; refunded: boolean; refundPending?: boolean }): BuiltEmail {
   const en = isEn(ctx.locale);
   const n = shortOrderNumber(ctx.orderNumber);
   const total = money(ctx, ctx.total);
@@ -501,7 +502,9 @@ export function buildCancelledEmail(ctx: CustomerEmailCtx, opts: { reason?: stri
     : (en ? `Order #${n} was cancelled — ${ctx.restaurant.name}` : `Pedido #${n} cancelado — ${ctx.restaurant.name}`);
   const preheader = opts.refunded
     ? (en ? `${total} back to your card in 5–10 business days` : `${total} vuelven a tu tarjeta en 5 a 10 días hábiles`)
-    : (en ? 'Call the restaurant if you have questions' : 'Llama al restaurante si tienes dudas');
+    : opts.refundPending
+      ? (en ? `The restaurant will refund your ${total}` : `El restaurante te devolverá ${total}`)
+      : (en ? 'Call the restaurant if you have questions' : 'Llama al restaurante si tienes dudas');
   const reason = (opts.reason ?? '').trim();
   const showReason = reason && reason !== 'auto_closed';
   const blocks = [
@@ -509,7 +512,9 @@ export function buildCancelledEmail(ctx: CustomerEmailCtx, opts: { reason?: stri
     `${heading(name ? (en ? `Sorry, ${esc(name)}. Your order was cancelled.` : `Lo sentimos, ${esc(name)}. Tu pedido fue cancelado.`) : (en ? 'Sorry. Your order was cancelled.' : 'Lo sentimos. Tu pedido fue cancelado.'))}${showReason ? `<div style="height:6px;line-height:6px;">&nbsp;</div>${para(`${en ? 'Reason from the restaurant' : 'Motivo del restaurante'}: “${esc(reason)}”`)}` : ''}`,
     opts.refunded
       ? infoBlock([{ k: en ? 'Refund' : 'Reembolso', v: `<b>${esc(total)}</b> ${en ? 'back to your card' : 'vuelven a tu tarjeta'}` }, { v: en ? 'Usually arrives in 5–10 business days.' : 'Suele llegar en 5 a 10 días hábiles.' }])
-      : '',
+      : opts.refundPending
+        ? infoBlock([{ k: en ? 'Refund' : 'Reembolso', v: en ? `The restaurant will refund your <b>${esc(total)}</b>` : `El restaurante te devolverá <b>${esc(total)}</b>` }, { v: en ? 'If it hasn’t arrived in a few days, call them.' : 'Si no te llega en unos días, llámalo.' }])
+        : '',
     ctx.restaurant.phone ? button(telHref(ctx.restaurant.phone), en ? `Call ${ctx.restaurant.name}` : `Llamar a ${ctx.restaurant.name}`) : '',
     button(ctx.menuUrl, en ? 'Order something else' : 'Pedir otra cosa', true),
   ];

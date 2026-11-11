@@ -103,6 +103,10 @@ describe('customer emails', () => {
     const b = buildCancelledEmail({ ...base, paid: true }, { reason: 'auto_closed', refunded: true });
     expect(b.subject).toBe('Order #014 was cancelled — refund on the way');
     expect(b.html).not.toContain('auto_closed');
+    // Wompi / Mercado Pago: el restaurante devuelve el pago a mano.
+    const c = buildCancelledEmail({ ...base, paid: true }, { refunded: false, refundPending: true });
+    expect(c.html).toContain('The restaurant will refund your');
+    expect(c.html).not.toContain('back to your card');
   });
 
   it('review email links each star with its rating and has unsubscribe', () => {

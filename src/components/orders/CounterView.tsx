@@ -606,12 +606,12 @@ export function CounterView({
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setErrorToast(null), 4500);
   };
-  const showSuccess = (msg: string, action?: { label: string; run: () => void }) => {
+  const showSuccess = (msg: string, action?: { label: string; run: () => void }, ms?: number) => {
     setErrorToast(null);
     setSuccessToast(msg);
     setToastAction(action ?? null);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => { setSuccessToast(null); setToastAction(null); }, action ? 4500 : 3000);
+    toastTimer.current = setTimeout(() => { setSuccessToast(null); setToastAction(null); }, ms ?? (action ? 4500 : 3000));
   };
 
   // Imprime y AVISA si falló. printOrder nunca rechaza (devuelve el trabajo en
@@ -1185,11 +1185,22 @@ export function CounterView({
       setCancelModal(null);
       setCancelReason('');
       setRefundRequired(false);
-      showSuccess(t.en ? 'Order refunded and cancelled' : 'Orden reembolsada y cancelada');
+      const manual = data.manual_refund as { provider: string; transaction_id: string | null; amount: number } | undefined;
+      if (manual) {
+        // Wompi / Mercado Pago: no hay reembolso automático; lo hace el restaurante.
+        const tx = manual.transaction_id ? (t.en ? ` (transaction ${manual.transaction_id})` : ` (transacción ${manual.transaction_id})`) : '';
+        const ok = { label: t.en ? 'Got it' : 'Entendido', run: () => { setSuccessToast(null); setToastAction(null); } };
+        showSuccess(t.en
+          ? `Order cancelled. Refund ${fmt(manual.amount, currency)} to the customer from your ${manual.provider} dashboard${tx}.`
+          : `Pedido cancelado. Devuelve ${fmt(manual.amount, currency)} al cliente desde tu panel de ${manual.provider}${tx}.`, ok, 20_000);
+      } else {
+        showSuccess(t.en ? 'Order refunded and cancelled' : 'Orden reembolsada y cancelada');
+      }
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [cancelModal, cancelReason, t]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cancelModal, cancelReason, t, currency]);
 
   const handleAssignDriver = useCallback(async () => {
     if (!driverModal) return;

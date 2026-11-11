@@ -302,7 +302,7 @@ async function sendStatusEmail(opts: {
   } else if (kind === 'on_the_way') {
     email = buildOnTheWayEmail(order.ctx, { arrivalMs: now + travelMs, driverName: order.driverName });
   } else {
-    email = buildCancelledEmail(order.ctx, { reason: order.cancellationReason, refunded: order.paymentStatus === 'refunded' });
+    email = buildCancelledEmail(order.ctx, { reason: order.cancellationReason, refunded: order.paymentStatus === 'refunded', refundPending: order.paymentStatus === 'paid' });
   }
   const ok = await sendCustomerEmail(order, email);
   await logNotification(orderId, restaurantId, event, { channel: 'email', success: ok });

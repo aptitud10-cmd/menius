@@ -53,8 +53,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Esta orden ya fue cancelada.' }, { status: 409 });
     }
 
-    if (!order.payment_intent_id) {
-      return NextResponse.json({ error: 'No se encontró el PaymentIntent para esta orden. Realiza el reembolso manualmente desde Stripe.' }, { status: 422 });
+    // Wompi y Mercado Pago no tienen reembolso automático aquí (no guardamos su
+    // llave privada): se cancela y el restaurante devuelve el pago desde su
+    // panel. Antes la ruta respondía "no tiene Stripe" y el pedido pagado
+    // quedaba trabado: no se podía cancelar de ninguna forma.
+    const txId = String(order.payment_intent_id ?? '');
+    if (!txId.startsWith('pi_')) {
+      const provider = /^\d+$/.test(txId) ? 'Mercado Pago' : 'Wompi';
+      const { error: cancelErr } = await adminDb
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+          ...(cancellationReason ? { cancellation_reason: cancellationReason } : {}),
+        })
+        .eq('id', order.id)
+        .neq('status', 'cancelled');
+      if (cancelErr) {
+        logger.error('Manual-refund cancel failed', { orderId: order.id, error: cancelErr.message });
+        return NextResponse.json({ error: 'No se pudo cancelar la orden.' }, { status: 500 });
+      }
+      await afterCancel(adminDb, order, cancellationReason);
+      logger.info('Order cancelled — manual refund pending', { orderId: order.id, provider });
+      return NextResponse.json({
+        success: true,
+        manual_refund: { provider, transaction_id: txId || null, amount: Number(order.total) },
+      });
     }
 
     const rest = (order as any).restaurants;
@@ -119,56 +143,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Reembolso procesado en Stripe pero no se pudo actualizar la orden. Contacta soporte.' }, { status: 500 });
     }
 
-    // Release the promo usage this order consumed so a cancelled order doesn't
-    // permanently eat into the campaign's budget. Fire-and-forget: the refund
-    // already succeeded; a failed decrement must not fail the request.
-    if ((order as any).promo_code) {
-      adminDb
-        .rpc('decrement_promo_usage', { p_code: (order as any).promo_code, p_restaurant_id: order.restaurant_id })
-        .then(({ error: decErr }) => {
-          if (decErr) logger.warn('promo decrement failed on refund', { orderId: order.id, error: decErr.message });
-        });
-    }
-
-    // Igual que una cancelación normal (updateOrderStatus): la página de
-    // seguimiento se entera al instante, queda el historial y el cliente recibe
-    // el aviso. Antes el cliente que había pagado no se enteraba de nada.
-    void broadcastOrderUpdate(order.id, 'cancelled');
-    // Igual que updateOrderStatus: sin caché, el GPS del repartidor de un pedido
-    // cancelado se rechaza en el próximo ping.
-    const refundDriverToken = (order as { driver_tracking_token?: string | null }).driver_tracking_token;
-    if (refundDriverToken) {
-      const { evictTokenCache } = await import('@/lib/tracking/token-cache');
-      evictTokenCache(refundDriverToken.slice(0, 16)).catch(() => {});
-    }
-    void adminDb
-      .from('order_status_history')
-      .insert({ order_id: order.id, from_status: order.status, to_status: 'cancelled', note: cancellationReason })
-      .then(({ error: histErr }) => {
-        if (histErr) logger.warn('status history insert failed on refund', { orderId: order.id, error: histErr.message });
-      });
-    try {
-      const o = order as typeof order & {
-        customer_name: string | null; customer_email: string | null; customer_phone: string | null;
-        order_type: string | null; delivery_address: string | null;
-      };
-      const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
-      await notifyStatusChange({
-        orderId: o.id,
-        orderNumber: o.order_number,
-        restaurantId: o.restaurant_id,
-        status: 'cancelled',
-        customerName: o.customer_name ?? '',
-        customerEmail: o.customer_email || undefined,
-        customerPhone: o.customer_phone || undefined,
-        orderType: o.order_type || undefined,
-        deliveryAddress: o.delivery_address || undefined,
-      });
-    } catch (notifyErr) {
-      // El reembolso ya se hizo: un aviso fallido no debe fallar la respuesta.
-      logger.error('refund: customer notification failed', { orderId: order.id });
-      captureError(notifyErr, { route: '/api/payments/refund', orderId: order.id, step: 'notify' });
-    }
+    await afterCancel(adminDb, order, cancellationReason);
 
     logger.info('Order refunded', { orderId: order.id, orderNumber: order.order_number, refundId: refund.id });
 
@@ -182,5 +157,66 @@ export async function POST(req: NextRequest) {
     captureError(err, { route: '/api/payments/refund' });
     logger.error('Refund error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno al procesar el reembolso.' }, { status: 500 });
+  }
+}
+
+type RefundableOrder = {
+  id: string; order_number: string; status: string; restaurant_id: string;
+  promo_code?: string | null; driver_tracking_token?: string | null;
+  customer_name?: string | null; customer_email?: string | null; customer_phone?: string | null;
+  order_type?: string | null; delivery_address?: string | null;
+};
+
+/** Lo mismo que una cancelación normal: promo, tiempo real, historial y aviso al cliente. */
+async function afterCancel(adminDb: ReturnType<typeof createAdminClient>, order: RefundableOrder, cancellationReason: string | null) {
+  // Release the promo usage this order consumed so a cancelled order doesn't
+  // permanently eat into the campaign's budget. Fire-and-forget: the refund
+  // already succeeded; a failed decrement must not fail the request.
+  if (order.promo_code) {
+    adminDb
+      .rpc('decrement_promo_usage', { p_code: order.promo_code, p_restaurant_id: order.restaurant_id })
+      .then(({ error: decErr }) => {
+        if (decErr) logger.warn('promo decrement failed on refund', { orderId: order.id, error: decErr.message });
+      });
+  }
+
+  // Igual que una cancelación normal (updateOrderStatus): la página de
+  // seguimiento se entera al instante, queda el historial y el cliente recibe
+  // el aviso. Antes el cliente que había pagado no se enteraba de nada.
+  void broadcastOrderUpdate(order.id, 'cancelled');
+  // Igual que updateOrderStatus: sin caché, el GPS del repartidor de un pedido
+  // cancelado se rechaza en el próximo ping.
+  const refundDriverToken = (order as { driver_tracking_token?: string | null }).driver_tracking_token;
+  if (refundDriverToken) {
+    const { evictTokenCache } = await import('@/lib/tracking/token-cache');
+    evictTokenCache(refundDriverToken.slice(0, 16)).catch(() => {});
+  }
+  void adminDb
+    .from('order_status_history')
+    .insert({ order_id: order.id, from_status: order.status, to_status: 'cancelled', note: cancellationReason })
+    .then(({ error: histErr }) => {
+      if (histErr) logger.warn('status history insert failed on refund', { orderId: order.id, error: histErr.message });
+    });
+  try {
+    const o = order as typeof order & {
+      customer_name: string | null; customer_email: string | null; customer_phone: string | null;
+      order_type: string | null; delivery_address: string | null;
+    };
+    const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
+    await notifyStatusChange({
+      orderId: o.id,
+      orderNumber: o.order_number,
+      restaurantId: o.restaurant_id,
+      status: 'cancelled',
+      customerName: o.customer_name ?? '',
+      customerEmail: o.customer_email || undefined,
+      customerPhone: o.customer_phone || undefined,
+      orderType: o.order_type || undefined,
+      deliveryAddress: o.delivery_address || undefined,
+    });
+  } catch (notifyErr) {
+    // El reembolso ya se hizo: un aviso fallido no debe fallar la respuesta.
+    logger.error('refund: customer notification failed', { orderId: order.id });
+    captureError(notifyErr, { route: '/api/payments/refund', orderId: order.id, step: 'notify' });
   }
 }
