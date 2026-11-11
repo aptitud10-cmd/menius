@@ -81,15 +81,14 @@ function makeRequest(url: string, body: string | object, headers: Record<string,
   });
 }
 
-/** Build a valid Wompi checksum for the given body + secret. */
+/** Checksum válido según la doc de Wompi: propiedades (rutas dentro de `data`) + timestamp + secreto. */
 function wompiChecksum(body: Record<string, unknown>, secret: string): string {
-  const props = ['event', 'timestamp', 'data.transaction.id'];
+  const props = ['transaction.id', 'transaction.status'];
   const toHash = props.map(prop => {
-    const parts = prop.split('.');
-    let val: unknown = body;
-    for (const p of parts) val = (val as Record<string, unknown>)?.[p];
+    let val: unknown = body.data;
+    for (const p of prop.split('.')) val = (val as Record<string, unknown>)?.[p];
     return String(val ?? '');
-  }).join('') + secret;
+  }).join('') + String(body.timestamp) + secret;
   return createHash('sha256').update(toHash).digest('hex');
 }
 
@@ -455,7 +454,7 @@ describe('POST /api/payments/wompi-webhook', () => {
       event: 'transaction.updated',
       timestamp: 1234567890,
       data: { transaction: { id: 'tx-ns', status: 'APPROVED', reference: 'ORD-NS' } },
-      signature: { properties: ['event', 'timestamp', 'data.transaction.id'], checksum: 'x' },
+      signature: { properties: ['transaction.id', 'transaction.status'], checksum: 'x' },
     };
     const req = makeRequest('http://localhost/api/payments/wompi-webhook', body);
     const res = await POST(req as never);
@@ -475,7 +474,7 @@ describe('POST /api/payments/wompi-webhook', () => {
       event: 'transaction.updated',
       timestamp: 1234567890,
       data: { transaction: { id: 'tx-1', status: 'APPROVED', reference: 'ORD-001' } },
-      signature: { properties: ['event', 'timestamp', 'data.transaction.id'], checksum: 'bad-checksum' },
+      signature: { properties: ['transaction.id', 'transaction.status'], checksum: 'bad-checksum' },
     };
     const req = makeRequest('http://localhost/api/payments/wompi-webhook', body);
     const res = await POST(req as never);
@@ -488,7 +487,7 @@ describe('POST /api/payments/wompi-webhook', () => {
       event: 'transaction.updated',
       timestamp: 1234567890,
       data: { transaction: { id: 'tx-dup', status: 'APPROVED', reference: 'ORD-DUP' } },
-      signature: { properties: ['event', 'timestamp', 'data.transaction.id'], checksum: '' },
+      signature: { properties: ['transaction.id', 'transaction.status'], checksum: '' },
     };
     body.signature.checksum = wompiChecksum(body, WOMPI_SECRET);
     // Simulate unique constraint violation (already processed)
@@ -508,7 +507,7 @@ describe('POST /api/payments/wompi-webhook', () => {
       // amount_in_cents debe coincidir con el total de la orden: el route lo
       // valida para que una referencia colisionada no pague la orden equivocada.
       data: { transaction: { id: 'tx-2', status: 'APPROVED', reference: 'ORD-002', amount_in_cents: 10000 } },
-      signature: { properties: ['event', 'timestamp', 'data.transaction.id'], checksum: '' },
+      signature: { properties: ['transaction.id', 'transaction.status'], checksum: '' },
     };
     body.signature.checksum = wompiChecksum(body, WOMPI_SECRET);
 
@@ -537,7 +536,7 @@ describe('POST /api/payments/wompi-webhook', () => {
       event: 'transaction.updated',
       timestamp: 1234567890,
       data: { transaction: { id: 'tx-3', status: 'DECLINED', reference: 'ORD-003' } },
-      signature: { properties: ['event', 'timestamp', 'data.transaction.id'], checksum: '' },
+      signature: { properties: ['transaction.id', 'transaction.status'], checksum: '' },
     };
     body.signature.checksum = wompiChecksum(body, WOMPI_SECRET);
 

@@ -30,6 +30,13 @@ const MAX_LIMIT = 50;
  * Body: { device_uuid, limit? }
  */
 export async function POST(request: NextRequest) {
+  // Apagado mientras la app esté en pausa: el teléfono de `app_devices` lo
+  // escribe el propio dispositivo sin verificar (/api/app/device), así que
+  // cualquiera podía registrar el número de otro y leer sus pedidos. Se vuelve
+  // a prender cuando la app verifique el teléfono (código por SMS).
+  if (process.env.APP_ORDER_HISTORY_ENABLED !== '1') {
+    return NextResponse.json({ error: 'Order history is not available', orders: [] }, { status: 410 });
+  }
   try {
     const ip = getClientIP(request);
     const rl = await checkRateLimitAsync(`app-orders:${ip}`, { limit: 30, windowSec: 60 });

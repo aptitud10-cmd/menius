@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { afterResponse } from "@/lib/server/after-response";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
-import { createHash, timingSafeEqual } from "crypto";
+import { wompiEventChecksum, wompiChecksumMatches } from "@/lib/payments/wompi-checksum";
 import { createLogger } from "@/lib/logger";
 import { captureError } from "@/lib/error-reporting";
 import { sendPaymentConfirmedNotifications } from "@/lib/notifications/order-notifications";
@@ -97,20 +97,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
     }
 
-    // Verify checksum: SHA256(properties.map(p => body[p]).join('') + eventsSecret)
-    const toHash =
-      sig.properties
-        .map((prop: string) => {
-          const parts = prop.split(".");
-          let val: unknown = body;
-          for (const p of parts) val = (val as Record<string, unknown>)?.[p];
-          return String(val ?? "");
-        })
-        .join("") + eventsSecret;
-    const computed = createHash("sha256").update(toHash).digest("hex");
-    const safe = (a: string, b: string) =>
-      a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
-    if (!safe(computed, sig.checksum)) {
+    // Checksum según la doc de Wompi: propiedades de `data` + timestamp + secreto.
+    if (!wompiChecksumMatches(wompiEventChecksum(body, eventsSecret), sig.checksum)) {
       logger.warn("Wompi webhook signature mismatch", { reference });
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
