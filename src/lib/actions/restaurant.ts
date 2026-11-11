@@ -24,7 +24,9 @@ import {
   ALL_STATUSES,
   canTransition,
   REVENUE_STATUSES,
+  isRevenueStatus,
 } from "@/lib/order-state";
+import { getStartOfDayUTC } from "@/lib/date-utils";
 import { broadcastOrderUpdate } from "@/lib/realtime/broadcast-order";
 
 /**
@@ -2500,4 +2502,40 @@ export async function getActiveShift() {
 
   if (error) return { error: error.message };
   return { shift: data ?? null };
+}
+
+/**
+ * "Resumen de hoy" del Counter con la MISMA regla que el dashboard: desde la
+ * medianoche en la zona del restaurante, sin pagos online sin cobrar, y venta
+ * = REVENUE_STATUSES. El Counter lo calculaba con lo que tenía cargado (las
+ * últimas 6 h, en la hora del dispositivo): de noche no coincidía.
+ */
+export async function getTodaySummary() {
+  const {
+    supabase,
+    restaurantId,
+    error: authErr,
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
+  if (authErr) return { error: authErr };
+
+  const { data: rest } = await supabase
+    .from("restaurants")
+    .select("timezone")
+    .eq("id", restaurantId)
+    .maybeSingle();
+  const tz = (rest?.timezone as string | null) ?? "America/Mexico_City";
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("total, status")
+    .eq("restaurant_id", restaurantId)
+    .or("status.neq.pending,payment_method.is.null,payment_method.not.in.(online,wallet),payment_status.eq.paid")
+    .gte("created_at", getStartOfDayUTC(tz).toISOString());
+  if (error) return { error: error.message };
+
+  const rows = data ?? [];
+  const sales = rows
+    .filter((o) => isRevenueStatus(o.status as string))
+    .reduce((sum, o) => sum + Number(o.total ?? 0), 0);
+  return { orders: rows.length, sales };
 }

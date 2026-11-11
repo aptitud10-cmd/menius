@@ -12,7 +12,7 @@ import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-re
 import { useLeaderTab } from '@/hooks/use-leader-tab';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
-  sendOrderNotification, openShift, closeShift, getActiveShift,
+  sendOrderNotification, openShift, closeShift, getActiveShift, getTodaySummary,
   fetchOrderStatusHistory,
 } from '@/lib/actions/restaurant';
 import { PrinterService } from '@/lib/printing/PrinterService';
@@ -925,9 +925,20 @@ export function CounterView({
   const isPaused = !!pausedUntil && Date.now() < pausedUntil;
   const pauseLeftMins = pausedUntil ? Math.max(0, Math.ceil((pausedUntil - Date.now()) / 60_000)) : 0;
   const effectiveEta = eta + busyExtra;
-  const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
-  // Misma regla que el dashboard (REVENUE_STATUSES): solo pedidos cerrados son venta.
-  const todayRevenue = todayOrders.filter(o => isRevenueStatus(o.status)).reduce((s, o) => s + Number(o.total), 0);
+  // Resumen de hoy: lo calcula el servidor con la regla del dashboard (día del
+  // restaurante completo). Mientras carga, lo que hay en memoria.
+  const [todaySummary, setTodaySummary] = useState<{ orders: number; sales: number } | null>(null);
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    let alive = true;
+    getTodaySummary().then(r => {
+      if (alive && r && !('error' in r && r.error) && 'orders' in r) setTodaySummary({ orders: r.orders ?? 0, sales: r.sales ?? 0 });
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [sidebarOpen]);
+  const localToday = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
+  const todayOrdersCount = todaySummary?.orders ?? localToday.length;
+  const todayRevenue = todaySummary?.sales ?? localToday.filter(o => isRevenueStatus(o.status)).reduce((s, o) => s + Number(o.total), 0);
 
   // ── Actions ──
   const handleAccept = useCallback(async (order: Order, mins?: number) => {
@@ -1679,7 +1690,7 @@ export function CounterView({
                 <div className="px-3 py-3 rounded-xl bg-[#F5F5F5] space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="text-[#888]">{t.todayOrders}</span>
-                    <span className="font-bold text-[#111]">{todayOrders.length}</span>
+                    <span className="font-bold text-[#111]">{todayOrdersCount}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-[#888]">{t.en ? 'Sales' : 'Ventas'}</span>

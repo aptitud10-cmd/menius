@@ -136,18 +136,18 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const [online, setOnline] = useState(true);
   useEffect(() => {
     const off = () => setOnline(false);
-    const on = () => {
-      setOnline(true);
-      const q = offlineQueue.current.splice(0);
-      q.forEach(({ id, status }) => updateOrderStatus(id, status as any));
-    };
+    const on = () => { setOnline(true); void flushRef.current(); };
     window.addEventListener('online', on); window.addEventListener('offline', off); setOnline(navigator.onLine);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
   /* Wake Lock */
   const wl = useRef<any>(null);
-  const offlineQueue = useRef<{ id: string; status: string }[]>([]);
+  // Cambios hechos sin red: se reenvían EN ORDEN al volver (un pedido puede
+  // pasar preparando→listo sin red; en paralelo llegaban desordenados).
+  const offlineQueue = useRef<{ id: string; status: OrderStatus; prev: OrderStatus; num: string }[]>([]);
+  const [queuedCount, setQueuedCount] = useState(0);
+  const flushRef = useRef<() => Promise<void>>(async () => {});
   useEffect(() => {
     let ok = true;
     const acq = async () => { try { if ('wakeLock' in navigator && ok) wl.current = await (navigator as any).wakeLock.request('screen'); } catch {} };
@@ -257,31 +257,80 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const friendlyStatusError = useCallback((e: string) => e === 'PAID_ORDER_NEEDS_REFUND'
     ? (isEn ? 'This order is paid — cancel it from Counter to refund the customer' : 'Esta orden está pagada — cancelala desde Counter para reembolsar al cliente')
     : e, [isEn]);
+  // 'network' = no llegó al servidor (se encola); {error} = el servidor lo rechazó.
+  const sendStatus = useCallback(async (id: string, next: OrderStatus): Promise<{ error?: string } | 'network'> => {
+    try { return (await updateOrderStatus(id, next)) ?? {}; } catch { return 'network'; }
+  }, []);
+  const flushing = useRef(false);
+  const flushQueue = useCallback(async () => {
+    // Un solo reenvío a la vez ('online' + el reintento de 15 s podían mandar
+    // el mismo cambio dos veces y el rechazo del segundo revertía el ticket).
+    if (!navigator.onLine || flushing.current) return;
+    flushing.current = true;
+    try {
+    while (offlineQueue.current.length) {
+      const item = offlineQueue.current[0];
+      const r = await sendStatus(item.id, item.status);
+      if (r === 'network') break; // sigue sin llegar: se reintenta más tarde
+      const at = offlineQueue.current.indexOf(item);
+      if (at !== -1) offlineQueue.current.splice(at, 1);
+      if (r.error) {
+        updateOrderLocally(item.id, { status: item.prev });
+        setOosToast({ msg: `#${item.num}: ${friendlyStatusError(r.error)}`, ok: false });
+        setTimeout(() => setOosToast(null), 5000);
+      }
+    }
+    } finally { flushing.current = false; }
+    setQueuedCount(offlineQueue.current.length);
+  }, [sendStatus, updateOrderLocally, friendlyStatusError]);
+  flushRef.current = flushQueue;
+  // El evento 'online' no garantiza que el servidor responda: reintento cada 15 s.
+  useEffect(() => {
+    if (!queuedCount) return;
+    const iv = setInterval(() => { void flushRef.current(); }, 15_000);
+    return () => clearInterval(iv);
+  }, [queuedCount]);
+
   const bump = useCallback(async (id: string, next: OrderStatus) => {
     const o = orders.find(x => x.id === id); if (!o) return;
     updateOrderLocally(id, { status: next });
-    if (navigator.onLine) {
-      const result = await updateOrderStatus(id, next);
-      if (result?.error) {
+    const enqueue = () => {
+      offlineQueue.current.push({ id, status: next, prev: o.status as OrderStatus, num: o.order_number });
+      setQueuedCount(offlineQueue.current.length);
+    };
+    // Con cambios en cola, este va detrás (mismo orden en que se hicieron).
+    if (navigator.onLine && offlineQueue.current.length === 0) {
+      const result = await sendStatus(id, next);
+      if (result === 'network') {
+        enqueue();
+      } else if (result.error) {
         updateOrderLocally(id, { status: o.status });
         setOosToast({ msg: friendlyStatusError(result.error), ok: false });
         setTimeout(() => setOosToast(null), 4000);
         return;
       }
     } else {
-      offlineQueue.current.push({ id, status: next });
+      enqueue();
     }
     if (next === 'ready') playSound('success');
     if (undoRef.current) clearTimeout(undoRef.current);
     setUndo({ orderId: id, num: o.order_number, prev: o.status, next, ts: Date.now() });
     undoRef.current = setTimeout(() => setUndo(null), 5000);
-  }, [orders, updateOrderLocally, playSound, friendlyStatusError]);
+  }, [orders, updateOrderLocally, playSound, friendlyStatusError, sendStatus]);
 
   const doUndo = useCallback(async () => {
     if (!undo) return;
     const { orderId, prev, next } = undo;
     updateOrderLocally(orderId, { status: prev });
     setUndo(null); if (undoRef.current) clearTimeout(undoRef.current);
+    // Si el cambio aún no salió (en cola), basta con sacarlo de la cola.
+    const qi = offlineQueue.current.findIndex(q => q.id === orderId && q.status === next);
+    // (Si ya se está enviando —el primero mientras se vacía la cola— va por el camino normal.)
+    if (qi !== -1 && !(qi === 0 && flushing.current) && !offlineQueue.current.slice(qi + 1).some(q => q.id === orderId)) {
+      offlineQueue.current.splice(qi, 1);
+      setQueuedCount(offlineQueue.current.length);
+      return;
+    }
     // undoOrderStatus, NOT updateOrderStatus: the state machine has no
     // backward edges, so the regular action rejected every undo.
     const result = await undoOrderStatus(orderId, prev);
@@ -587,8 +636,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">F</kbd>{t.kds_searchKey}
           <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">R</kbd>Recall
         </span>
-        {!online && offlineQueue.current.length > 0 && (
-          <span className="text-red-400 font-bold">📴 {offlineQueue.current.length} {t.kds_queued}</span>
+        {queuedCount > 0 && (
+          <span className="text-red-400 font-bold">📴 {queuedCount} {t.kds_queued}</span>
         )}
       </div>
 
