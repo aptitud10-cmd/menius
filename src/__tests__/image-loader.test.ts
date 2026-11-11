@@ -54,6 +54,31 @@ describe('supabaseLoader', () => {
     expect(supabaseLoader({ src: '', width: 640 })).toBe('');
   });
 
+  // Fotos pre-optimizadas (2026-11-11): se sirven estáticas, sin /render/image/.
+  describe('fotos ya optimizadas en /opt/', () => {
+    const lg = `${STORAGE}/opt/rest-id/bbq-burger-123-lg.jpg`;
+
+    it('tarjetas y miniaturas (≤640) piden la versión -sm.webp', () => {
+      for (const width of [64, 384, 640]) {
+        expect(supabaseLoader({ src: lg, width })).toBe(`${STORAGE}/opt/rest-id/bbq-burger-123-sm.webp`);
+      }
+    });
+
+    it('anchos grandes usan el -lg.jpg tal cual', () => {
+      expect(supabaseLoader({ src: lg, width: 1080 })).toBe(lg);
+    });
+
+    it('nunca pasan por la transformación al vuelo', () => {
+      for (const width of [64, 640, 828, 1920]) {
+        expect(supabaseLoader({ src: lg, width })).not.toContain('/render/image/');
+      }
+    });
+
+    it('un .jpg normal fuera de /opt/ se sigue transformando', () => {
+      expect(supabaseLoader({ src: `${STORAGE}/ai/r/foo-lg.jpg`, width: 640 })).toContain('/render/image/');
+    });
+  });
+
   it('usa & cuando la URL ya tiene query string', () => {
     const out = supabaseLoader({ src: `${STORAGE}/foo.jpg?token=abc`, width: 640 });
     expect(out).toContain('?token=abc&width=640');

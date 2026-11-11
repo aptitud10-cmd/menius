@@ -18,11 +18,23 @@ interface LoaderParams {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 
+// Fotos ya optimizadas al subirlas (product-images/opt/…): existen en dos
+// archivos, `-lg.jpg` (≤1200px, el que guarda image_url) y `-sm.webp` (640px).
+// Se sirven directo desde el CDN, sin pasar por /render/image/: la
+// transformación al vuelo tardaba ~1 s por foto la primera vez (medido
+// 2026-11-11: 0.96 s en frío vs 0.09 s el archivo estático) y las fotos del
+// menú aparecían de a una. Además cada transformación se factura.
+const OPTIMIZED_LG = /\/product-images\/opt\/.+-lg\.jpg$/;
+
 export function supabaseLoader({ src, width, quality }: LoaderParams): string {
   if (!src) return '';
 
   const isSupabaseUrl = src.includes('.supabase.co/storage/');
   if (!isSupabaseUrl) return src;
+
+  if (OPTIMIZED_LG.test(src)) {
+    return width <= 640 ? src.replace(/-lg\.jpg$/, '-sm.webp') : src;
+  }
 
   // Antes acá se servían sin transformar las imágenes bajo /ai- y /admin-regen/,
   // con el argumento de que ya venían optimizadas y que /render/image/ devolvía
