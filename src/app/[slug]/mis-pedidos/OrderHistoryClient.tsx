@@ -46,8 +46,6 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
   const [error, setError] = useState('');
   const [reorderedId, setReorderedId] = useState<string | null>(null);
 
-  const addItem = useCartStore((s) => s.addItem);
-  const setOpen = useCartStore((s) => s.setOpen);
 
   const fmtPrice = (n: number) => formatPrice(n, currency);
 
@@ -87,14 +85,24 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
     }
   };
 
+  // Mismo mecanismo que "Pedir lo mismo" del seguimiento: el menú vuelve a armar
+  // el carrito con los productos actuales y avisa los que tienen opciones (antes
+  // se agregaban sin el acompañante obligatorio y el checkout respondía 400).
   const handleReorder = (order: Order) => {
-    for (const item of order.order_items) {
-      if (!item.product) continue;
-      addItem(item.product, item.variant ?? null, [], item.quantity, '');
-    }
+    const saved = order.order_items
+      .filter((it) => it.product_id)
+      .map((it) => ({
+        productId: it.product_id,
+        productName: it.product_name ?? '',
+        variantId: it.variant_id ?? null,
+        variantName: it.variant_name ?? null,
+        variantPriceDelta: (it.variant?.price_delta as number | null | undefined) ?? null,
+        qty: Number(it.quantity) || 1,
+      }));
+    if (saved.length === 0) return;
     setReorderedId(order.id);
-    setOpen(true);
-    setTimeout(() => setReorderedId(null), 2000);
+    useCartStore.setState({ lastOrder: { restaurantId, items: saved, date: new Date().toISOString() } });
+    window.location.href = `/${restaurantSlug}?reorder=1`;
   };
 
   return (

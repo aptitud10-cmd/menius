@@ -9,7 +9,7 @@ import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { useCartStore } from '@/store/cartStore';
-import { tName } from '@/lib/i18n';
+import { tName, tDesc } from '@/lib/i18n';
 import { getBlurUrl, supabaseLoader } from '@/lib/image-loader';
 import { getTranslations } from '@/lib/translations';
 import type { ProductCardProps } from './ProductCard';
@@ -183,9 +183,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         <h3 className={cn('font-bold text-[15px] line-clamp-2 leading-snug', outOfStock ? 'text-ink-400' : 'text-ink-950')}>
           {displayName}
         </h3>
-        {product.description && !outOfStock && (
+        {tDesc(product, locale, defaultLocale) && !outOfStock && (
           <p className="text-xs text-ink-600 line-clamp-1 mt-0.5 leading-snug">
-            {product.description}
+            {tDesc(product, locale, defaultLocale)}
           </p>
         )}
         {hasModifiers && !outOfStock && (

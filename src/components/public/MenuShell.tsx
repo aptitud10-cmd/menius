@@ -3590,11 +3590,11 @@ export function MenuShell({
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-[15px] font-semibold text-gray-900 truncate">
-                            {product.name}
+                            {tName(product, locale, defaultLocale)}
                           </p>
-                          {product.description && (
+                          {tDesc(product, locale, defaultLocale) && (
                             <p className="text-xs text-gray-400 truncate mt-0.5">
-                              {product.description}
+                              {tDesc(product, locale, defaultLocale)}
                             </p>
                           )}
                         </div>
@@ -3656,11 +3656,11 @@ export function MenuShell({
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-[15px] font-semibold text-gray-900 truncate">
-                            {product.name}
+                            {tName(product, locale, defaultLocale)}
                           </p>
-                          {product.description && (
+                          {tDesc(product, locale, defaultLocale) && (
                             <p className="text-xs text-gray-400 truncate mt-0.5">
-                              {product.description}
+                              {tDesc(product, locale, defaultLocale)}
                             </p>
                           )}
                         </div>

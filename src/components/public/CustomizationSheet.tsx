@@ -84,14 +84,23 @@ export function CustomizationSheet({
     setModifiersLoading(true);
     setModifiersError(false);
     fetch(`/api/product-modifiers?productId=${product.id}`)
-      .then((r) => r.json())
+      // Un 500/429 devolvía {error} y el for…of de abajo tiraba TypeError: el
+      // menú dejaba de abrir productos. Ahora es el estado de error con reintento.
+      .then((r) => {
+        if (!r.ok) throw new Error(`product-modifiers ${r.status}`);
+        return r.json();
+      })
       .then(
         (data: {
-          modifier_groups: ModifierGroup[];
-          variants: ProductVariant[];
-          extras: ProductExtra[];
+          modifier_groups?: ModifierGroup[];
+          variants?: ProductVariant[];
+          extras?: ProductExtra[];
         }) => {
-          setLazyModifiers(data);
+          setLazyModifiers({
+            modifier_groups: Array.isArray(data?.modifier_groups) ? data.modifier_groups : [],
+            variants: Array.isArray(data?.variants) ? data.variants : [],
+            extras: Array.isArray(data?.extras) ? data.extras : [],
+          });
           setModifiersLoading(false);
         },
       )

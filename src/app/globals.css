@@ -301,6 +301,19 @@ html, body {
        text-sm (ej. editor de modificadores) de forma sistémica. */
     font-size: 16px;
   }
+  /* La regla de arriba es por elemento (0,0,1) y pierde contra .text-sm (0,1,0)
+     de Tailwind: mesa/hora del checkout, email de Mis pedidos y la reseña
+     seguían haciendo zoom en iPhone. Estas ganan (0,1,1) solo con tamaños
+     chicos; un input más grande que 16px conserva el suyo. */
+  input[class*="text-xs"], input[class*="text-sm"],
+  select[class*="text-xs"], select[class*="text-sm"],
+  textarea[class*="text-xs"], textarea[class*="text-sm"],
+  input[class*="text-[10px]"], input[class*="text-[11px]"], input[class*="text-[12px]"],
+  input[class*="text-[13px]"], input[class*="text-[14px]"], input[class*="text-[15px]"],
+  textarea[class*="text-[13px]"], textarea[class*="text-[14px]"], textarea[class*="text-[15px]"],
+  select[class*="text-[13px]"], select[class*="text-[14px]"], select[class*="text-[15px]"] {
+    font-size: 16px;
+  }
 }
 
 /* Instant tap response — eliminates 300ms delay on Android/older iOS.
