@@ -285,13 +285,20 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
       .then((d) => setTeam(Array.isArray(d.drivers) ? d.drivers : []))
       .catch(() => setTeam([]));
   }, [askWho, team, token]);
-  const chooseMe = (m: { id: string | null; name: string }) => {
+  const chooseMe = useCallback((m: { id: string | null; name: string }) => {
     if (!restaurantId || !m.name.trim()) return;
     const v: Me = { id: m.id, name: m.name.trim().slice(0, 60), restaurantId };
     writeJSON(ME_KEY, v);
     setMe(v);
     setAskWho(false);
-  };
+  }, [restaurantId]);
+  // Restaurante con un solo repartidor en el Equipo: es él. Sin preguntar —
+  // escanea y ya se sabe nombre y teléfono. Si no es él, "¿No eres tú?".
+  const askedByHandRef = useRef(false);
+  useEffect(() => {
+    if (askWho && !askedByHandRef.current && team && team.length === 1) chooseMe(team[0]);
+  }, [askWho, team, chooseMe]);
+  const askAgain = () => { askedByHandRef.current = true; setAskWho(true); };
 
   // ── Sumar un ticket desde el escáner ──
   const onScan = useCallback(async (t: string) => {
@@ -428,6 +435,10 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
   const notLeft = r.every((t) => !stops[t]?.pickedUp);
 
   // ¿Quién eres? — antes de salir, una sola vez en este teléfono.
+  // Mientras se averigua si hay un solo repartidor (entonces no se pregunta).
+  if (askWho && !askedByHandRef.current && (team === null || team.length === 1) && notLeft && first && !isDone(first)) {
+    return <Spinner />;
+  }
   if (askWho && notLeft && first && !isDone(first)) {
     return <WhoAreYou en={en} restaurantName={first.restaurantName} team={team} onPick={chooseMe} />;
   }
@@ -452,7 +463,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
       <UserRound className="w-4 h-4" aria-hidden />
       {en ? `You're taking it, ${me.name}` : `Lo llevas tú, ${me.name}`}
       <span aria-hidden>·</span>
-      <button type="button" onClick={() => setAskWho(true)} className="underline underline-offset-4">{en ? 'Not you?' : '¿No eres tú?'}</button>
+      <button type="button" onClick={askAgain} className="underline underline-offset-4">{en ? 'Not you?' : '¿No eres tú?'}</button>
     </p>
   );
 
