@@ -159,6 +159,12 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
   const [me, setMe] = useState<Me | null>(null);
   const [team, setTeam] = useState<TeamMember[] | null>(null);
   const [askWho, setAskWho] = useState(false);
+  /**
+   * Abrió un ticket nuevo con un viaje todavía en camino en este teléfono. Si un
+   * pedido de ese viaje quedó abierto (se olvidó de marcarlo y el mostrador no lo
+   * cerró), cada ticket nuevo lo devolvía al viaje viejo hasta 8 h: sin salida.
+   */
+  const [blockedNew, setBlockedNew] = useState(false);
   const busyRef = useRef(false);
 
   const loadStops = useCallback(async (tokens: string[]) => {
@@ -195,7 +201,8 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
         // pestaña al volver de Maps). Este ticket va en el próximo viaje.
         if (live.some((s) => s.pickedUp)) {
           setRoute(stored.tokens);
-          setJoinedNote({ tone: 'error', text: reasonText('out', en) });
+          setBlockedNew(true);
+          loadStops([token]);
           return;
         }
         // Escaneó otro ticket con la cámara del teléfono minutos después: se
@@ -322,6 +329,17 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
   }, [route, stops, commit, loadStops, en]);
 
   const openScanner = () => { setScanMsg(null); setScanOpen(true); };
+
+  // Deja el viaje viejo y arranca uno nuevo con el ticket que abrió. Los pedidos
+  // viejos no se cierran (eso lo hace el mostrador): solo salen de la ruta, así
+  // sus clientes no ven "paradas antes de la tuya" de un viaje que ya no existe.
+  const startNewTrip = () => {
+    if (!route) return;
+    const old = route.filter((t) => t !== token && !isDone(stops[t]));
+    setBlockedNew(false);
+    commit([token]);
+    void saveRoute([token], old);
+  };
 
   const remove = (t: string) => {
     if (!route) return;
@@ -458,6 +476,37 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
     </button>
   );
 
+  // Ticket nuevo con un viaje en camino: queda fija hasta que elija.
+  const openOld = r.filter((t) => t !== token && !isDone(stops[t]));
+  const blockedCard = blockedNew && openOld.length > 0 && (
+    <>
+    <div className="fixed inset-0 z-[79] bg-black/45" aria-hidden />
+    <div role="alertdialog" aria-modal="true" aria-labelledby="drv-blocked-title"
+      className="fixed inset-x-3 z-[80] max-w-md mx-auto rounded-2xl bg-white px-4 py-4 grid gap-3 shadow-xl"
+      style={{ top: 'max(0.75rem, env(safe-area-inset-top))', border: `1px solid ${C.line}` }}>
+      <p id="drv-blocked-title" className="flex items-start gap-2 text-[15px] font-bold" style={{ color: C.ink }}>
+        <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: C.orange }} aria-hidden />
+        {en
+          ? `You still have a trip on the way: ${openOld.map((t) => shortNum(stops[t]?.orderNumber)).join(', ')} not delivered.`
+          : `Todavía tienes un viaje en camino: ${openOld.map((t) => shortNum(stops[t]?.orderNumber)).join(', ')} sin entregar.`}
+      </p>
+      <button type="button" onClick={() => setBlockedNew(false)}
+        className="h-12 rounded-2xl text-[15px] font-extrabold" style={{ background: C.ink, color: '#fff' }}>
+        {en ? 'Keep going with this trip' : 'Seguir con este viaje'}
+      </button>
+      <button type="button" onClick={startNewTrip}
+        className="h-12 rounded-2xl text-[15px] font-bold" style={{ border: `1px solid ${C.line}`, color: C.ink }}>
+        {en
+          ? `End that trip and start ${shortNum(stops[token]?.orderNumber)}`
+          : `Terminar ese viaje y empezar ${shortNum(stops[token]?.orderNumber)}`}
+      </button>
+      <p className="text-[12.5px] font-semibold" style={{ color: C.sub }}>
+        {en ? 'Orders you didn’t mark stay open for the counter to close.' : 'Los pedidos que no marcaste quedan abiertos para que los cierre el mostrador.'}
+      </p>
+    </div>
+    </>
+  );
+
   const whoLine = me && (
     <p className="flex items-center justify-center gap-1.5 text-[13px] font-semibold" style={{ color: C.sub }}>
       <UserRound className="w-4 h-4" aria-hidden />
@@ -485,7 +534,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
         <DriverTrackClient key={only} token={only} lang={lang} driver={me}
           startExtra={canAdd ? <div className="grid gap-3 pt-1">{scanButton}{whoLine}</div> : whoLine} />
         {scanner}
-        {toast}
+        {blockedCard || toast}
       </>
     );
   }
@@ -551,7 +600,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
     return (
       <>
         <DriverTrackClient key={current} token={current} lang={lang} route={routeCtx} driver={me} />
-        {toast}
+        {blockedCard || toast}
       </>
     );
   }
