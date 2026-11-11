@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/notifications/email';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { esc } from '@/lib/notifications/customer-email';
 
 export const dynamic = 'force-dynamic';
 
-// Simple in-memory rate limit: one email per address per process lifetime.
-// Resets on cold start — good enough for a landing page demo.
-const sent = new Set<string>();
+// Límites en Redis (antes un Set en memoria que se vaciaba en cada arranque):
+// el endpoint no tiene login, así que sin esto era un relay de emails gratis
+// desde nuestro dominio. Un email por dirección al día y 3 por IP por hora.
+const EMAIL_RE = /^[^\s@<>"]{1,64}@[^\s@<>"]{1,190}\.[a-z]{2,}$/i;
 
 interface DemoItem {
   name: string;
@@ -24,11 +27,11 @@ function buildHtml(items: DemoItem[], total: number): string {
       (item) => `
         <tr>
           <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #374151;">
-            <span style="font-weight: 600; color: #111827;">${item.qty}&times;</span>
-            &nbsp;${item.name}${item.variant ? `<span style="color: #9ca3af;"> (${item.variant})</span>` : ''}
+            <span style="font-weight: 600; color: #111827;">${esc(String(Math.max(1, Math.min(99, Math.trunc(Number(item.qty) || 1)))))}&times;</span>
+            &nbsp;${esc(String(item.name ?? '').slice(0, 80))}${item.variant ? `<span style="color: #9ca3af;"> (${esc(String(item.variant).slice(0, 60))})</span>` : ''}
           </td>
           <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #111827; font-weight: 600; text-align: right; white-space: nowrap;">
-            ${fmtUsd(item.lineTotal)}
+            ${fmtUsd(Number(item.lineTotal) || 0)}
           </td>
         </tr>`
     )
@@ -132,19 +135,19 @@ export async function POST(request: Request) {
     };
 
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-    if (!email || !email.includes('@') || !email.includes('.')) {
+    if (!EMAIL_RE.test(email)) {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
     }
 
-    // Rate limit: skip silently if already sent to this address this session
-    if (sent.has(email)) {
-      return NextResponse.json({ ok: true, skipped: true });
-    }
+    const ipRl = await checkRateLimitAsync(`demo-email:ip:${getClientIP(request)}`, { limit: 3, windowSec: 3600 });
+    if (!ipRl.allowed) return NextResponse.json({ ok: true, skipped: true });
+    const mailRl = await checkRateLimitAsync(`demo-email:to:${email}`, { limit: 1, windowSec: 86400 });
+    if (!mailRl.allowed) return NextResponse.json({ ok: true, skipped: true });
 
     const items: DemoItem[] = Array.isArray(body.items)
       ? (body.items as DemoItem[]).slice(0, 20)
       : [];
-    const total = typeof body.total === 'number' ? body.total : 0;
+    const total = typeof body.total === 'number' && Number.isFinite(body.total) ? Math.max(0, Math.min(body.total, 10_000)) : 0;
 
     const html = buildHtml(items, total);
 
@@ -154,7 +157,6 @@ export async function POST(request: Request) {
       html,
     });
 
-    sent.add(email);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[demo/email]', err);

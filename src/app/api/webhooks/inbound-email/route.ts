@@ -19,8 +19,15 @@ export async function POST(request: NextRequest) {
     // Read raw body for signature verification
     const rawBody = await request.text();
 
+    // Sin secreto no se acepta nada: antes cualquiera podía hacerse reenviar
+    // emails (falla abierto).
+    if (!webhookSecret) {
+      logger.error('RESEND_INBOUND_WEBHOOK_SECRET not configured — rejecting');
+      return NextResponse.json({ error: 'Not configured' }, { status: 503 });
+    }
+
     // Verify Resend webhook signature using svix headers
-    if (webhookSecret) {
+    {
       const svixId = request.headers.get('svix-id');
       const svixTimestamp = request.headers.get('svix-timestamp');
       const svixSignature = request.headers.get('svix-signature');

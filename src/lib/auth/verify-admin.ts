@@ -17,6 +17,9 @@ export async function verifyAdmin(): Promise<{ supabase: SupabaseClient; user: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
+  // Email confirmado: sin esto, una cuenta creada con el email del admin (y
+  // nunca confirmada) pasaba como admin si el proyecto permite entrar sin confirmar.
+  if (!user.email_confirmed_at) return null;
 
   if (!adminEmails.includes(user.email.toLowerCase())) return null;
 

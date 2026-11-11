@@ -74,7 +74,7 @@ export const publicOrderSchema = z.object({
   items: z.array(z.object({
     product_id: z.string().uuid(),
     variant_id: uuidOrNull,
-    qty: z.number().min(1).max(99, 'Cantidad máxima por producto: 99'),
+    qty: z.number().int('La cantidad debe ser un número entero').min(1).max(99, 'Cantidad máxima por producto: 99'),
     // unit_price and line_total are optional — server always recalculates from DB
     unit_price: z.number().optional().default(0),
     line_total: z.number().optional().default(0),

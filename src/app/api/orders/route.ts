@@ -25,6 +25,7 @@ import {
   feeModelFor,
 } from "@/lib/order-pricing";
 import { formatPrice } from "@/lib/utils";
+import { isOpenAt, inTimeZone, validScheduledFor, type OperatingHours } from "@/lib/orders/business-hours";
 import { haversineKm } from "@/lib/utils/eta";
 
 const logger = createLogger("orders");
@@ -275,6 +276,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Método de pago habilitado por el restaurante (antes solo lo filtraba el
+    // checkout: por API se podía pedir "efectivo" en una tienda solo online).
+    // Apple/Google Pay (wallet) es un cobro online.
+    const methodsEnabled = restaurant.payment_methods_enabled?.length ? restaurant.payment_methods_enabled : ["cash"];
+    const methodNeeded = parsed.data.payment_method === "wallet" ? "online" : parsed.data.payment_method;
+    if (!methodsEnabled.includes(methodNeeded)) {
+      return NextResponse.json(
+        {
+          error: en
+            ? "This payment method is not available at this restaurant."
+            : "Este método de pago no está disponible en este restaurante.",
+        },
+        { status: 400 },
+      );
+    }
+
     // Validate required fields per order type
     // Use the already-sanitized variable, not body.delivery_address
     if (parsed.data.order_type === "delivery") {
@@ -345,34 +362,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Business hours check — reject orders outside opening hours
+    // Horario de atención. Un pedido programado se valida a SU hora; uno con
+    // scheduled_for pasado o inválido se trata como inmediato (antes se saltaba
+    // el chequeo y entraba con el local cerrado). Cruza medianoche: isOpenAt.
     const opHours = restaurant.operating_hours;
-    if (opHours && Object.keys(opHours).length > 0 && !body.scheduled_for) {
+    if (opHours && Object.keys(opHours).length > 0) {
       const tz = restaurant.timezone ?? "UTC";
-      const nowInTz = new Date(
-        new Date().toLocaleString("en-US", { timeZone: tz }),
-      );
-      const days = [
-        "sunday",
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-      ];
-      const day = days[nowInTz.getDay()];
-      const dayHours = opHours[day];
-      let isOpen = true;
-      if (!dayHours || dayHours.closed) {
-        isOpen = false;
-      } else if (dayHours.open && dayHours.close) {
-        const [oh, om] = dayHours.open.split(":").map(Number);
-        const [ch, cm] = dayHours.close.split(":").map(Number);
-        const nowMins = nowInTz.getHours() * 60 + nowInTz.getMinutes();
-        isOpen = nowMins >= oh * 60 + om && nowMins < ch * 60 + cm;
-      }
-      if (!isOpen) {
+      const scheduled = validScheduledFor(body.scheduled_for);
+      if (scheduled) {
+        if (!isOpenAt(opHours as OperatingHours, inTimeZone(scheduled, tz))) {
+          return NextResponse.json(
+            {
+              error: en
+                ? "The restaurant is closed at that time. Please pick another time."
+                : "El restaurante está cerrado a esa hora. Elige otro horario.",
+            },
+            { status: 400 },
+          );
+        }
+      } else if (!isOpenAt(opHours as OperatingHours, inTimeZone(new Date(), tz))) {
         return NextResponse.json(
           {
             error: en
@@ -838,13 +846,7 @@ export async function POST(request: NextRequest) {
       });
 
     // scheduled_for: parse ISO string from body, validate, reject if in the past
-    let scheduledFor: string | null = null;
-    if (body.scheduled_for) {
-      const sf = new Date(body.scheduled_for);
-      if (!isNaN(sf.getTime()) && sf.getTime() > Date.now() + 5 * 60_000) {
-        scheduledFor = sf.toISOString();
-      }
-    }
+    const scheduledFor: string | null = validScheduledFor(body.scheduled_for)?.toISOString() ?? null;
 
     // TWO opaque tokens with separate privileges (never mix them):
     //  - driver_tracking_token: ACTION token — the driver PWA can mark statuses,

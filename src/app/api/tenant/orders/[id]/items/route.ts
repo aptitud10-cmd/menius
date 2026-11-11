@@ -11,6 +11,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const { product_id, qty = 1, notes } = await req.json();
 
     if (!product_id) return NextResponse.json({ error: 'product_id required' }, { status: 400 });
+    // Entero 1..99: una cantidad negativa bajaba el total del pedido.
+    if (!Number.isInteger(qty) || qty < 1 || qty > 99) {
+      return NextResponse.json({ error: 'qty must be an integer between 1 and 99' }, { status: 400 });
+    }
 
     // Verify order belongs to this restaurant and is editable
     const { data: order } = await supabase
