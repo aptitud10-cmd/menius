@@ -2356,12 +2356,19 @@ export async function openShift(openingCash: number) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Close any existing open shift for this restaurant first
-  await supabase
+  // Si ya hay un turno abierto (otro dispositivo, u otra pestaña), se usa ese.
+  // Antes se cerraba en silencio —sin conteo ni reporte Z— y el primer
+  // dispositivo seguía mostrando "turno abierto" sobre un turno ya cerrado.
+  const { data: open, error: openErr } = await supabase
     .from("shifts")
-    .update({ closed_at: new Date().toISOString() })
+    .select("id, opening_cash, opened_at")
     .eq("restaurant_id", restaurantId)
-    .is("closed_at", null);
+    .is("closed_at", null)
+    .order("opened_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (openErr) return { error: openErr.message };
+  if (open) return { success: true, shift: open, existing: true };
 
   const { data, error } = await supabase
     .from("shifts")
@@ -2399,7 +2406,9 @@ export async function closeShift(closingCash: number, notes?: string) {
     .limit(1)
     .maybeSingle();
 
-  if (shiftErr || !shift) return { error: "No open shift found" };
+  if (shiftErr) return { error: shiftErr.message };
+  // Ya lo cerró otro dispositivo: el Counter limpia su estado local.
+  if (!shift) return { error: "No open shift found", noOpenShift: true as const };
 
   // Aggregate orders since shift opened
   const { data: orders } = await supabase
@@ -2471,15 +2480,16 @@ export async function closeShift(closingCash: number, notes?: string) {
   };
 }
 
+/** Turno abierto de la tienda: la DB es la fuente de verdad (no el localStorage de cada tablet). */
 export async function getActiveShift() {
   const {
     supabase,
     restaurantId,
     error: authErr,
-  } = await getAuthenticatedRestaurant();
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("shifts")
     .select("id, opening_cash, opened_at")
     .eq("restaurant_id", restaurantId)
@@ -2488,5 +2498,6 @@ export async function getActiveShift() {
     .limit(1)
     .maybeSingle();
 
+  if (error) return { error: error.message };
   return { shift: data ?? null };
 }

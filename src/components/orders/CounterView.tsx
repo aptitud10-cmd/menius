@@ -6,17 +6,17 @@ import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
-  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus, Ban,
+  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus, Ban, BellOff,
 } from 'lucide-react';
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
-  sendOrderNotification, openShift, closeShift,
+  sendOrderNotification, openShift, closeShift, getActiveShift,
   fetchOrderStatusHistory,
 } from '@/lib/actions/restaurant';
 import { PrinterService } from '@/lib/printing/PrinterService';
-import { getCounterAppBridge } from '@/lib/printing/native-bridge';
+import { getCounterAppBridge, isMeniusNativePrintAvailable } from '@/lib/printing/native-bridge';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { PrinterConfig } from '@/lib/printing/PrinterConfig';
 import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
@@ -135,6 +135,9 @@ function getT(locale?: string) {
     offlineBanner: en
       ? 'No connection — new orders will not arrive until internet is restored'
       : 'Sin conexión — los nuevos pedidos no llegarán hasta recuperar internet',
+    soundOffBanner: en
+      ? 'Sound is off — tap here to turn on new-order alerts'
+      : 'Sonido apagado — toca aquí para activar el aviso de pedidos',
     // History
     delivered:   en ? 'Delivered'       : 'Entregada',
     cancelled:   en ? 'Cancelled'       : 'Cancelada',
@@ -399,6 +402,7 @@ export function CounterView({
     });
 
     setAudioUnlocked(true);
+    try { localStorage.setItem('counter-started', '1'); } catch { /* sin storage */ }
   }, []);
 
   // Inside the app there is no gate to tap: unlock silently on mount (a chime every
@@ -408,6 +412,26 @@ export function CounterView({
     setInApp(true);
     unlockAudio(true);
   }, [unlockAudio]);
+
+  // La pantalla "Iniciar Counter" es solo la primera vez en este dispositivo.
+  // Antes salía en cada recarga y TAPABA el tablero: los pedidos seguían
+  // entrando sin sonido y sin que nadie los viera. Ahora, tras recargar, se ve
+  // el tablero; si el navegador no deja sonar sin un toque, una banda lo avisa
+  // y el primer toque en cualquier parte lo activa.
+  const [introSeen, setIntroSeen] = useState(true);
+  useEffect(() => {
+    try { setIntroSeen(localStorage.getItem('counter-started') === '1'); } catch { /* sin storage */ }
+  }, []);
+  useEffect(() => {
+    if (audioUnlocked || inApp) return;
+    // Chrome deja sonar sin toque en sitios de uso frecuente o PWA instalada.
+    const ctx = getAudioCtx();
+    ctx?.resume().then(() => { if (ctx.state === 'running') unlockAudio(true); }).catch(() => {});
+    const onGesture = () => unlockAudio(true);
+    const evs = ['click', 'touchend', 'keydown'] as const;
+    evs.forEach(e => window.addEventListener(e, onGesture, { capture: true }));
+    return () => evs.forEach(e => window.removeEventListener(e, onGesture, { capture: true }));
+  }, [audioUnlocked, inApp, unlockAudio]);
 
   // ── UI state ──
   const [activeTab, setActiveTab] = useState<Tab>('new');
@@ -499,6 +523,27 @@ export function CounterView({
     openedAt: string; closedAt: string;
   }
   const [shiftReport, setShiftReport] = useState<ShiftReport | null>(null);
+  // El turno vive en la DB; el localStorage es solo para pintar rápido. Se
+  // sincroniza al abrir y al volver a la pestaña: así una tablet ve el turno
+  // que abrió o cerró otra (antes cada una creía en su propia copia).
+  useEffect(() => {
+    let alive = true;
+    const sync = () => {
+      getActiveShift().then(r => {
+        if (!alive || !r || ('error' in r && r.error)) return; // sin red: se queda lo que había
+        const shift = (r.shift ?? null) as ActiveShift | null;
+        setActiveShift(shift);
+        try {
+          if (shift) localStorage.setItem(`counter-shift-${restaurantId}`, JSON.stringify(shift));
+          else localStorage.removeItem(`counter-shift-${restaurantId}`);
+        } catch { /* sin storage */ }
+      }).catch(() => {});
+    };
+    sync();
+    const onVisible = () => { if (document.visibilityState === 'visible') sync(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { alive = false; document.removeEventListener('visibilitychange', onVisible); };
+  }, [restaurantId]);
 
   // ── Toasts ──
   const [errorToast, setErrorToast] = useState<string | null>(null);
@@ -567,6 +612,32 @@ export function CounterView({
     setToastAction(action ?? null);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => { setSuccessToast(null); setToastAction(null); }, action ? 4500 : 3000);
+  };
+
+  // Imprime y AVISA si falló. printOrder nunca rechaza (devuelve el trabajo en
+  // 'failed'), así que los `.catch(() => {})` de antes no veían ningún fallo:
+  // la impresora apagada no dejaba rastro y "imprimir al llegar" daba el ticket
+  // por impreso. Devuelve true solo si salió.
+  const printTicket = async (order: Order, etaMin?: number): Promise<boolean> => {
+    let err: string | undefined;
+    try {
+      const job = await PrinterService.printOrder(order, etaMin, restaurantName, currency, locale, taxLabel, taxIncluded);
+      if (job.state !== 'failed') return true;
+      err = job.error;
+    } catch (e) {
+      err = e instanceof Error ? e.message : String(e);
+    }
+    const num = order.order_number?.split('-').pop() ?? '';
+    const noPrinter = (err ?? '').startsWith('NO_PRINTER');
+    showError(noPrinter
+      ? (t.en ? `Ticket #${num} not printed: no printer set up (menu → Printer)` : `No se imprimió el #${num}: no hay impresora configurada (menú → Impresora)`)
+      : (t.en ? `Ticket #${num} not printed: check the printer is on and connected` : `No se imprimió el #${num}: revisa que la impresora esté encendida y conectada`));
+    if (!noPrinter) {
+      import('@sentry/nextjs').then(S => S.captureMessage('Counter print failed', {
+        level: 'warning', extra: { orderId: order.id, error: err },
+      })).catch(() => {});
+    }
+    return false;
   };
   // Los avisos al cliente son automáticos y silenciosos (como en Uber). Antes
   // cada "Casi listo"/"Servir" mostraba "Notificación fallida" aunque nada
@@ -664,9 +735,7 @@ export function CounterView({
       // Print immediately on arrival if enabled
       if (printOnArrivalRef.current && !isFutureScheduled) {
         // Se marca solo si salió: si la impresora falló al llegar, aceptar reimprime.
-        PrinterService.printOrder(order, undefined, restaurantName, currency, locale, taxLabel, taxIncluded)
-          .then(() => { printedOnArrivalRef.current.add(order.id); })
-          .catch(() => {});
+        void printTicket(order).then(ok => { if (ok) printedOnArrivalRef.current.add(order.id); });
       }
     }
     if (isFutureScheduled) {
@@ -891,8 +960,11 @@ export function CounterView({
       }
       playAcceptSound();
       // Si ya salió el ticket al llegar ("imprimir al llegar"), no se imprime otro al aceptar.
-      const shouldPrint = (autoPrint || order.order_type === 'dine_in') && !printedOnArrivalRef.current.has(order.id);
-      if (shouldPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
+      // Mesa imprime sola solo con impresora nativa (app Android); en el
+      // navegador abría el diálogo de impresión en CADA pedido de mesa.
+      const shouldPrint = (autoPrint || (order.order_type === 'dine_in' && isMeniusNativePrintAvailable()))
+        && !printedOnArrivalRef.current.has(order.id);
+      if (shouldPrint) void printTicket(order, eff);
       // Se queda donde estaba: la tarjeta pasa sola a "Preparando".
       setSheetId(prev => (prev === order.id ? null : prev));
       if (learn) {
@@ -1177,9 +1249,14 @@ export function CounterView({
       if (result.error) { showError(result.error); return; }
       const shift = result.shift as ActiveShift;
       setActiveShift(shift);
-      localStorage.setItem(`counter-shift-${restaurantId}`, JSON.stringify(shift));
+      try { localStorage.setItem(`counter-shift-${restaurantId}`, JSON.stringify(shift)); } catch { /* sin storage */ }
       setShiftModal(null);
-      showSuccess(t.en ? 'Shift opened' : 'Turno abierto');
+      if ('existing' in result && result.existing) {
+        const since = new Date(shift.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        showSuccess(t.en ? `A shift was already open (since ${since})` : `Ya había un turno abierto (desde las ${since})`);
+      } else {
+        showSuccess(t.en ? 'Shift opened' : 'Turno abierto');
+      }
     } catch { showError(t.en ? 'Error opening shift' : 'Error al abrir turno'); }
     finally { setShiftSaving(false); }
   }, [shiftOpenCash, restaurantId, t]);
@@ -1188,9 +1265,16 @@ export function CounterView({
     setShiftSaving(true);
     try {
       const result = await closeShift(parseFloat(shiftCloseCash) || 0, shiftNotes || undefined);
+      if ('noOpenShift' in result && result.noOpenShift) {
+        setActiveShift(null);
+        try { localStorage.removeItem(`counter-shift-${restaurantId}`); } catch { /* sin storage */ }
+        setShiftModal(null);
+        showError(t.en ? 'This shift was already closed on another device' : 'Este turno ya se cerró en otro dispositivo');
+        return;
+      }
       if (result.error) { showError(result.error); return; }
       setActiveShift(null);
-      localStorage.removeItem(`counter-shift-${restaurantId}`);
+      try { localStorage.removeItem(`counter-shift-${restaurantId}`); } catch { /* sin storage */ }
       const s = result.summary as any;
       const shift = result.shift as any;
       setShiftReport({
@@ -1261,7 +1345,7 @@ export function CounterView({
   // Audio unlock gate — required by all browsers before playing sound.
   // The Android app allows playback without a gesture (mediaPlaybackRequiresUserGesture
   // = false), so there the gate is skipped: an unattended till must ring on its own.
-  if (!audioUnlocked && !inApp) {
+  if (!audioUnlocked && !inApp && !introSeen) {
     const steps = t.en
       ? [
           { icon: '🔔', label: 'New order arrives', desc: 'Sound alert + splash screen' },
@@ -1348,6 +1432,18 @@ export function CounterView({
         </div>
       )}
 
+      {/* ── Sonido bloqueado por el navegador (tras recargar) ── */}
+      {!audioUnlocked && !inApp && (
+        <button
+          type="button"
+          onClick={() => unlockAudio()}
+          className="flex-none w-full bg-amber-400 text-[#111] text-[15px] font-bold py-2.5 px-4 flex items-center justify-center gap-2 z-20"
+        >
+          <BellOff className="w-4 h-4" />
+          {t.soundOffBanner}
+        </button>
+      )}
+
       {/* ── Turno de caja abierto ── */}
       {activeShift && (
         <div className="flex-none bg-[#F2F4F3] text-[#0E1412] text-[15px] font-semibold py-2 px-4 flex items-center gap-3 z-20 border-b border-[#E1E6E3]">
@@ -1410,9 +1506,7 @@ export function CounterView({
           busy={updatingId === sheetOrder.id}
           acceptMins={defaultMinsFor(sheetOrder)}
           onClose={() => setSheetId(null)}
-          onPrint={() => PrinterService.printOrder(
-            sheetOrder, sheetOrder.estimated_ready_minutes ?? effectiveEta, restaurantName, currency, locale, taxLabel, taxIncluded,
-          ).catch(() => {})}
+          onPrint={() => { void printTicket(sheetOrder, sheetOrder.estimated_ready_minutes ?? effectiveEta); }}
           onAccept={(o, m) => handleAccept(o, m)}
           onPrimary={onPrimary}
           onAdjustEta={(o, m) => { updateOrderLocally(o.id, { estimated_ready_minutes: m }); void handleAdjustEta(o, m); }}
@@ -1794,7 +1888,7 @@ export function CounterView({
                     items: [],
                     created_at: new Date().toISOString(),
                   };
-                  PrinterService.printOrder(dummyOrder, 0, restaurantName, currency, locale).catch(() => {});
+                  void printTicket(dummyOrder, 0).then(ok => { if (ok) showSuccess(t.en ? 'Test ticket sent' : 'Ticket de prueba enviado'); });
                 }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#E8E8E8] text-sm font-semibold text-[#555] hover:bg-[#F5F5F5] transition-colors"
               >
