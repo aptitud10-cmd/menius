@@ -28,6 +28,9 @@ export const ADDRESS_2 = 'East Elmhurst, NY 11369';
 /** `?category=` deep link. Names copied from the live menu (MenuSection names). */
 export const cat = (name: string) => `${MENU_URL}?category=${encodeURIComponent(name)}`;
 
+/** `?item=` deep link: opens that dish's sheet on the menu (product ID from the DB). */
+export const item = (id: string) => `${MENU_URL}?item=${id}`;
+
 // ---------------------------------------------------------------------------
 // PHOTO SLOTS — one place to swap placeholders for real photography.
 // Set a slot's `src` (a path under /public or a full URL) and the placeholder
@@ -147,19 +150,27 @@ export const BREAKFAST_INDEX = [
  * the 22.4 review fixes the final eleven by product ID. Caps: Dinner <= 30 chars,
  * Appetizers <= 40, Bar (three + separators) <= 48.
  */
-export const PIZARRA = {
+export const PIZARRA: Record<'dinner' | 'appetizers' | 'bar', { name: string; id: string }[]> = {
   dinner: [
-    'Twin 5 oz. Rock Lobster Tails',
-    'Jumbo Shrimp (6) Broiled',
-    'Shrimp Scampi (6)',
-    'Deep Sea Scallops',
-    'Filet of Sole Broiled',
+    { name: 'Twin 5 oz. Rock Lobster Tails', id: '8371dba5-9a65-4d51-9665-a876bcbaecaa' },
+    { name: 'Jumbo Shrimp (6) Broiled', id: '7e06171e-4e6a-490f-ac92-e2fcf40b1e5e' },
+    { name: 'Shrimp Scampi (6)', id: '4db25be1-7e4e-48f7-a498-e9136ea57dfe' },
+    { name: 'Deep Sea Scallops', id: '8ad940f3-0f69-4705-ae71-bb2447514c21' },
+    { name: 'Filet of Sole Broiled', id: '2f2c96db-370a-4083-b8ff-f4ecb24d7e05' },
   ],
-  appetizers: ['The Sampler', 'Stuffed Clams (Appetizer)', 'Stuffed Mushrooms'],
-  bar: ['Sea Breeze', 'Bay Breeze', 'Singapore Sling'],
+  appetizers: [
+    { name: 'The Sampler', id: '0ea30aa0-5ace-48a1-bc86-c4268c18d96d' },
+    { name: 'Stuffed Clams (Appetizer)', id: 'd22c5695-877c-4caf-86f5-43d578af1153' },
+    { name: 'Stuffed Mushrooms', id: '1c4952d9-253e-4c5c-9149-d8d540236987' },
+  ],
+  bar: [
+    { name: 'Sea Breeze', id: '993e948f-e7fc-4b91-b28b-479fb74b797a' },
+    { name: 'Bay Breeze', id: '21f75db3-adde-49d1-8d40-67031a2c2bd5' },
+    { name: 'Singapore Sling', id: '7c777810-ea9a-486c-883f-ae346b46ccff' },
+  ],
 };
 
-/** Deep-link targets per group (first subcategory in the live menu). To confirm with the dev. */
+/** Deep-link targets per group (first subcategory in the live menu). */
 export const LINKS = {
   fullMenu: MENU_URL,
   breakfast: cat('Buttermilk Pancakes'),

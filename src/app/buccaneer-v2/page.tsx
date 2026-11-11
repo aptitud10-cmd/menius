@@ -14,6 +14,7 @@ import {
   PHONE_HREF,
   PHONE_TEXT,
   PIZARRA,
+  item,
   STATES,
   STATE_COPY,
   THUMBS,
@@ -284,10 +285,10 @@ export default function BuccaneerV2Page() {
             <div className="b2-dinner">
               <Thumb src={THUMBS.dinner} size="lg" />
               <ul className="b2-dishes">
-                {PIZARRA.dinner.map((n) => (
-                  <li key={n}>
-                    <a className="b2-d3" href={LINKS.dinner}>
-                      {n}
+                {PIZARRA.dinner.map((d) => (
+                  <li key={d.id}>
+                    <a className="b2-d3" href={item(d.id)}>
+                      {d.name}
                     </a>
                   </li>
                 ))}
@@ -305,10 +306,10 @@ export default function BuccaneerV2Page() {
               <div className="b2-app__body">
                 <span className="b2-row b2-gname">Appetizers</span>
                 <ul className="b2-plain">
-                  {PIZARRA.appetizers.map((n) => (
-                    <li key={n}>
-                      <a className="b2-index" href={LINKS.appetizers}>
-                        {n}
+                  {PIZARRA.appetizers.map((d) => (
+                    <li key={d.id}>
+                      <a className="b2-index" href={item(d.id)}>
+                        {d.name}
                       </a>
                     </li>
                   ))}
@@ -321,10 +322,10 @@ export default function BuccaneerV2Page() {
             <div className="b2-barg">
               <span className="b2-row b2-gname">Bar</span>
               <p className="b2-run">
-                {PIZARRA.bar.map((n, i) => (
-                  <Fragment key={n}>
+                {PIZARRA.bar.map((d, i) => (
+                  <Fragment key={d.id}>
                     {i > 0 ? <i aria-hidden="true">·</i> : null}
-                    <a href={LINKS.bar}>{n}</a>
+                    <a href={item(d.id)}>{d.name}</a>
                   </Fragment>
                 ))}
               </p>

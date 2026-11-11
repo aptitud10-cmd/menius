@@ -59,6 +59,7 @@ import {
   resolveActivePill,
   isGroupId,
   groupNameFromId,
+  GROUP_PREFIX,
 } from "@/lib/category-groups";
 import { CartPanel } from "./CartPanel";
 import dynamic from "next/dynamic";
@@ -1358,8 +1359,80 @@ export function MenuShell({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     skipMenuRestoreRef.current =
-      params.get("reorder") === "1" || window.location.hash.length > 1;
+      params.get("reorder") === "1" ||
+      window.location.hash.length > 1 ||
+      params.has("item") ||
+      params.has("category");
   }, []);
+
+  // ── Deep links: ?item=<product id> opens that dish; ?category=<id or name>
+  // lands on that section. For links shared outside the menu (the restaurant's
+  // site, Instagram, WhatsApp). Runs once; the params are stripped afterwards
+  // so a later reload or back-navigation behaves like a normal visit.
+  const deepLinkDoneRef = useRef(false);
+  const [deepLinkSection, setDeepLinkSection] = useState<string | null>(null);
+  useEffect(() => {
+    if (!mainMounted || deepLinkDoneRef.current) return;
+    deepLinkDoneRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const itemId = params.get("item");
+    const catParam = params.get("category")?.trim().toLowerCase() ?? "";
+    if (!itemId && !catParam) return;
+
+    const product = itemId
+      ? products.find((p) => p.id === itemId && p.is_active !== false)
+      : undefined;
+    const category = product
+      ? categories.find((c) => c.id === product.category_id)
+      : catParam
+        ? categories.find(
+            (c) => c.id === catParam || c.name.trim().toLowerCase() === catParam,
+          )
+        : undefined;
+
+    if (category) {
+      if (isLargeCatalog) {
+        const filterId =
+          groupsActive && category.group_name
+            ? `${GROUP_PREFIX}${category.group_name}`
+            : category.id;
+        setActiveCatFilter(filterId);
+        setActiveCategory(filterId);
+      } else {
+        setActiveCategory(category.id);
+      }
+      setDeepLinkSection(category.id);
+    }
+    if (product) handleProductSelect(product);
+
+    params.delete("item");
+    params.delete("category");
+    const qs = params.toString();
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mainMounted]);
+
+  // Scroll once the deep-linked category is committed (it may belong to a
+  // group that was not on screen until the filter above applied).
+  useEffect(() => {
+    if (!deepLinkSection) return;
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        scrollToSection(deepLinkSection);
+        menuPosReadyRef.current = true;
+        setDeepLinkSection(null);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [deepLinkSection, scrollToSection]);
 
   const [restoreScrollTop, setRestoreScrollTop] = useState<number | null>(
     null,
