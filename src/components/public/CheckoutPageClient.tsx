@@ -376,6 +376,21 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   const belowDeliveryMin = orderType === 'delivery' && deliveryMinOrder > 0 && cartTotal < deliveryMinOrder;
 
+  // W7 — con radio de entrega configurado, una dirección escrita a mano (sin
+  // elegir sugerencia) llega sin coordenadas y el servidor no puede comprobar
+  // la zona: se aceptaban deliveries fuera del área. Si el autocompletado de
+  // Google cargó, se exige elegir de la lista. Si NO cargó (sin key / bloqueado)
+  // se deja pasar como antes, para no dejar a nadie sin poder pedir delivery.
+  const addressNeedsPick = (): boolean =>
+    orderType === 'delivery' &&
+    !deliveryCoords &&
+    deliveryAddress.trim().length > 0 &&
+    (Number(restaurant.delivery_radius_km) || 0) > 0 &&
+    restaurant.latitude != null &&
+    restaurant.longitude != null &&
+    typeof window !== 'undefined' &&
+    !!window.google?.maps?.places;
+
   // Reactive form validation — drives CTA disabled state
   const isFormReady = Boolean(
     customerName.trim().length >= 2 &&
@@ -560,6 +575,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // returning ids so WalletButton can charge the PaymentIntent. The standard flow
   // (handleSubmitOrder) is untouched and still used by the main CTA / cash / redirect.
   const createOrderForWallet = useCallback(async (): Promise<{ orderId: string; orderNumber: string } | { error: string }> => {
+    if (addressNeedsPick()) return { error: t.deliveryPickFromList };
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -704,6 +720,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
       setOrderError(t.validationDeliveryAddressRequired);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'delivery_address', order_type: orderType });
+      setCtaShake(true);
+      clearTimeout(ctaShakeTimer.current);
+      ctaShakeTimer.current = setTimeout(() => setCtaShake(false), 600);
+      return;
+    }
+    if (addressNeedsPick()) {
+      setOrderError(t.deliveryPickFromList);
+      trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'delivery_address_unverified', order_type: orderType });
       setCtaShake(true);
       clearTimeout(ctaShakeTimer.current);
       ctaShakeTimer.current = setTimeout(() => setCtaShake(false), 600);

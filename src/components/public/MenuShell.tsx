@@ -113,6 +113,8 @@ interface CustomizationTarget {
 }
 
 const POPULAR_ID = "__popular__";
+/** Prefijo de stockOutAlert: el texto se muestra tal cual, sin la plantilla "«X» ya no está disponible". */
+const RAW_ALERT = "\u0001";
 // A remembered menu position older than this is a different visit, not a
 // "back from checkout" — land on the default view instead.
 const MENU_POS_TTL_MS = 30 * 60 * 1000;
@@ -553,11 +555,21 @@ export function MenuShell({
     if (!products || products.length === 0) return;
     const freshProductMap = new Map(products.map((p) => [p.id, p]));
     const store = useCartStore.getState();
+    // Solo contra el menú de la MISMA tienda (si no, todo parecería "borrado").
+    if (store.restaurantId && store.restaurantId !== restaurant.id) return;
     const idxToRemove: number[] = [];
+    const goneNames: string[] = [];
 
     store.items.forEach((item, idx) => {
       const fresh = freshProductMap.get(item.product.id);
-      if (!fresh) return;
+      // W4 — el plato ya no está en el menú (borrado/desactivado) o se agotó:
+      // antes quedaba en el carrito guardado y el error recién saltaba al
+      // confirmar ("Un producto de tu carrito ya no está en el menú").
+      if (!fresh || fresh.in_stock === false) {
+        idxToRemove.push(idx);
+        goneNames.push(item.product.name);
+        return;
+      }
       const freshGroups = fresh.modifier_groups ?? [];
       // If products are slimmed (modifier_groups=[]), use has_modifiers as a proxy.
       // We skip the detailed validation when we can't inspect individual groups —
@@ -582,7 +594,9 @@ export function MenuShell({
     if (idxToRemove.length > 0) {
       // Remove in reverse order to preserve indices
       [...idxToRemove].reverse().forEach((idx) => store.removeItem(idx));
-      setStockOutAlert(t.itemsUpdatedAlert);
+      // Con nombres → "«X» ya no está disponible". Sin nombres (faltaban
+      // opciones obligatorias) → su propio mensaje, sin esa plantilla.
+      setStockOutAlert(goneNames.length > 0 ? goneNames.join(", ") : RAW_ALERT + t.itemsUpdatedAlert);
       stockAlertTimer.current = setTimeout(() => setStockOutAlert(null), 8000);
     }
     // Run once when products stabilize (restaurant load)
@@ -3977,7 +3991,9 @@ export function MenuShell({
                 aria-hidden="true"
               />
               <span className="flex-1">
-                {locale === "es"
+                {stockOutAlert.startsWith(RAW_ALERT)
+                  ? stockOutAlert.slice(RAW_ALERT.length)
+                  : locale === "es"
                   ? `"${stockOutAlert}" ya no está disponible y fue removido de tu carrito.`
                   : `"${stockOutAlert}" is no longer available and was removed from your cart.`}
               </span>

@@ -279,6 +279,7 @@ export interface Translations {
   validationNamePhoneRequired: string;
   validationEmailRequiredOrder: string;
   validationDeliveryAddressRequired: string;
+  deliveryPickFromList: string;
   validationDineInOnlyItems: string;
   dineInOnlyBadge: string;
   // CheckoutPageClient — network errors
@@ -648,6 +649,7 @@ const es: Translations = {
   validationNamePhoneRequired: 'Nombre y teléfono son requeridos',
   validationEmailRequiredOrder: 'Email requerido para recibir tu confirmación de pedido',
   validationDeliveryAddressRequired: 'Dirección de entrega requerida',
+  deliveryPickFromList: 'Elegí tu dirección de la lista de sugerencias para confirmar que estás en la zona de entrega.',
   validationDineInOnlyItems: 'Algunos productos solo están disponibles para consumo en el local y no se pueden pedir para llevar ni a domicilio. Quítalos o cambia a "En mesa" para continuar.',
   dineInOnlyBadge: 'Solo en el local',
   // CheckoutPageClient — network errors
@@ -1015,6 +1017,7 @@ const en: Translations = {
   validationNamePhoneRequired: 'Name and phone required',
   validationEmailRequiredOrder: 'Email required to receive your order confirmation',
   validationDeliveryAddressRequired: 'Delivery address required',
+  deliveryPickFromList: 'Pick your address from the suggestions so we can confirm it is in the delivery area.',
   validationDineInOnlyItems: 'Some items are only available for dine-in and cannot be ordered for pickup or delivery. Remove them or switch to "Dine-in" to continue.',
   dineInOnlyBadge: 'Dine-in only',
   // CheckoutPageClient — network errors

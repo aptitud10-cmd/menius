@@ -437,7 +437,7 @@ export async function POST(request: NextRequest) {
     ] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, price, in_stock, dine_in_only")
+        .select("id, name, price, in_stock, dine_in_only, track_inventory, stock_qty")
         .in("id", productIds)
         .eq("restaurant_id", restaurant_id),
       supabase
@@ -496,6 +496,38 @@ export async function POST(request: NextRequest) {
     const groupsWithOptions = new Set(
       (dbModOptions ?? []).map((o) => o.group_id),
     );
+
+    // W5 — inventario: el trigger de la base descontaba con GREATEST(stock - qty, 0),
+    // así que con 2 en stock aceptaba un pedido de 5. Se suma la cantidad por
+    // producto (el mismo plato puede venir en varias líneas con distintas
+    // opciones) y se rechaza antes de crear nada. El trigger queda de respaldo
+    // para la carrera entre dos pedidos simultáneos.
+    {
+      const qtyByProduct = new Map<string, number>();
+      for (const it of parsed.data.items) {
+        qtyByProduct.set(it.product_id, (qtyByProduct.get(it.product_id) ?? 0) + it.qty);
+      }
+      for (const [pid, wanted] of Array.from(qtyByProduct)) {
+        const p = productMap.get(pid) as
+          | { name: string; track_inventory?: boolean | null; stock_qty?: number | null }
+          | undefined;
+        if (!p || p.track_inventory !== true || p.stock_qty == null) continue;
+        if (wanted > p.stock_qty) {
+          const left = Math.max(0, p.stock_qty);
+          return NextResponse.json(
+            {
+              error: en
+                ? `Only ${left} "${p.name}" left. Lower the quantity and try again.`
+                : `Quedan solo ${left} de "${p.name}". Bajá la cantidad e intentá de nuevo.`,
+              code: "STOCK_LIMIT",
+              product_id: pid,
+              available: left,
+            },
+            { status: 409 },
+          );
+        }
+      }
+    }
 
     for (const item of parsed.data.items) {
       const dbProduct = productMap.get(item.product_id);
