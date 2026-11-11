@@ -50,8 +50,9 @@ describe('stopsAhead', () => {
     { id: '2', batch_seq: 2, status: 'delivered' },
     { id: '3', batch_seq: 3, status: 'out_for_delivery', delivery_failed_at: '2026-11-10T00:00:00Z' },
     { id: '5', batch_seq: 5, status: 'out_for_delivery' },
+    { id: '0', batch_seq: 0, status: 'ready' }, // viaje abandonado: sigue en el local
   ];
-  it('cuenta solo paradas anteriores sin terminar', () => {
+  it('cuenta solo paradas anteriores que van en camino', () => {
     expect(stopsAhead(4, mates)).toBe(1);
     expect(stopsAhead(1, mates)).toBe(0);
     expect(stopsAhead(null, mates)).toBe(0);

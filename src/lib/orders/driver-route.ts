@@ -80,8 +80,10 @@ export type BatchMate = { id: string; batch_seq: number | null; status: string; 
  */
 export function stopsAhead(mySeq: number | null, mates: BatchMate[]): number {
   if (mySeq == null) return 0;
+  // Solo los que van en camino con el repartidor: un compañero de un viaje
+  // abandonado que sigue en el local no es una parada antes de la tuya.
   return mates.filter((m) =>
-    m.batch_seq != null && m.batch_seq < mySeq && !CLOSED.has(m.status) && !m.delivery_failed_at,
+    m.batch_seq != null && m.batch_seq < mySeq && m.status === 'out_for_delivery' && !m.delivery_failed_at,
   ).length;
 }
 

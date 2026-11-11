@@ -165,9 +165,12 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
     return list;
   }, []);
 
+  // false si esta pestaña quedó suelta (no se pudo sumar al viaje guardado):
+  // lo que haga acá no pisa el viaje del teléfono.
+  const persistRef = useRef(true);
   const commit = useCallback((tokens: string[]) => {
     setRoute(tokens);
-    writeRoute(tokens);
+    if (persistRef.current) writeRoute(tokens);
   }, []);
 
   // ── Arranque ──
@@ -201,6 +204,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
             setJoinedNote({ tone: 'ok', text: en ? `${shortNum(mine?.orderNumber)} was added to your trip` : `${shortNum(mine?.orderNumber)} se sumó a tu viaje` });
           } else {
             // Sin pisar el viaje guardado: este ticket queda solo en esta pestaña.
+            persistRef.current = false;
             setRoute([token]);
             setJoinedNote({ tone: 'error', text: `${shortNum(mine?.orderNumber)}: ${reasonText(r.reason, en)}` });
           }
@@ -209,8 +213,23 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
       }
       commit([token]);
       loadStops([token]);
+      // Viaje nuevo de un solo ticket: si venía de una ruta abandonada, la suelta
+      // (si no, su cliente vería paradas que nunca salieron).
+      void saveRoute([token]);
     })();
   }, [token, loadStops, commit, en]);
+
+  // Un ticket que no cargó por falta de señal se reintenta (si no, "Salir"
+  // quedaba girando hasta recargar la página).
+  useEffect(() => {
+    if (!route) return;
+    const missing = route.filter((t) => !stops[t]);
+    if (missing.length === 0) return;
+    const retry = () => { void loadStops(missing); };
+    const id = setInterval(retry, 5000);
+    window.addEventListener('online', retry);
+    return () => { clearInterval(id); window.removeEventListener('online', retry); };
+  }, [route, stops, loadStops]);
 
   useEffect(() => {
     if (!joinedNote) return;
