@@ -8,6 +8,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { formatPrice } from '@/lib/utils';
 import { travelMinutes, haversineKm } from '@/lib/orders/eta';
+import { MINUTES_PER_STOP_AHEAD } from '@/lib/orders/driver-route';
 import { isAwaitingOnlinePayment } from '@/lib/order-state';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import ShareReceiptButton from './ShareReceiptButton';
@@ -560,6 +561,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const dLat = Number(o.delivery_lat), dLng = Number(o.delivery_lng);
   const km = restaurantLat != null && restaurantLng != null && o.delivery_lat != null && Number.isFinite(dLat) && Number.isFinite(dLng)
     ? haversineKm(restaurantLat, restaurantLng, dLat, dLng) : 2;
+  // Ruta: el repartidor entrega N pedidos antes del tuyo (solo el número llega).
+  const stopsAhead = onTheWay && !atDoor ? Math.max(0, Number(o.stops_ahead) || 0) : 0;
   let arrivalMs: number | null = null;
   if (isDelivery && isActive && !atDoor) {
     if (onTheWay) {
@@ -568,6 +571,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         const left = Date.parse(o.driver_picked_up_at ?? o.updated_at);
         arrivalMs = Math.max((Number.isFinite(left) ? left : now) + travelMinutes(km) * 60_000, now + 60_000);
       }
+      // El ETA del mapa va directo a tu casa: se suman las paradas de antes.
+      arrivalMs += stopsAhead * MINUTES_PER_STOP_AHEAD * 60_000;
     } else if (readyMs != null && o.status !== 'pending') {
       const leave = o.status === 'ready' ? now : Math.max(readyMs, now);
       arrivalMs = leave + travelMinutes(km) * 60_000;
@@ -576,6 +581,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Ventana de 10 min antes de salir (estudio Booth 2025: una ventana estrecha
   // deja más conforme que una hora puntual); en camino, minutos y hora.
   const windowStart = arrivalMs != null ? Math.floor((arrivalMs - 4 * 60_000) / 300_000) * 300_000 : null;
+  const stopsAheadText = en
+    ? `Delivering ${stopsAhead} order${stopsAhead === 1 ? '' : 's'} before yours`
+    : `Entrega ${stopsAhead} pedido${stopsAhead === 1 ? '' : 's'} antes del tuyo`;
 
   // Hora del cierre (entregado / recogido / servido).
   const closedMs = Date.parse(o.driver_delivered_at ?? o.updated_at);
@@ -606,6 +614,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     }
     if (atDoor) return o.notes ? String(o.notes) : (en ? 'Please head to the door' : 'Acércate a la puerta');
     if (o.status === 'pending') return scheduledLabel ? t.scheduledFor(scheduledLabel) : (en ? "We'll let you know as soon as they accept it." : 'Te avisamos apenas lo acepte.');
+    if (isDelivery && onTheWay && stopsAhead > 0 && windowStart != null) {
+      return `${stopsAheadText} · ${en ? 'arrives' : 'llega entre'} ${compactRange(fmtClock(windowStart), fmtClock(windowStart + 600_000))}`;
+    }
     if (isDelivery && onTheWay && arrivalMs != null) {
       const mins = Math.max(1, Math.round((arrivalMs - now) / 60_000));
       return en ? `Arrives in ~${mins} min · ${fmtClock(arrivalMs)}` : `Llega en ~${mins} min · ${fmtClock(arrivalMs)}`;
@@ -696,6 +707,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         sub: [en ? 'Show this number at the counter' : 'Muestra este número en el mostrador',
           cashDue ? (en ? `pay ${amount} at pickup` : `pagas ${amount} al recoger`) : null].filter(Boolean).join(' · '),
       };
+    }
+    // Con paradas antes de la tuya la hora es menos segura: ventana, no minutos.
+    if (isDelivery && onTheWay && stopsAhead > 0 && windowStart != null) {
+      return { tone: 'green', label: headline, big: compactRange(fmtClock(windowStart), fmtClock(windowStart + 600_000)), sub: stopsAheadText };
     }
     if (isDelivery && onTheWay && arrivalMs != null) {
       const mins = Math.max(1, Math.round((arrivalMs - now) / 60_000));

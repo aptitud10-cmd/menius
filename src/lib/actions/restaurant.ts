@@ -2230,6 +2230,9 @@ export async function assignDriver(
       driver_picked_up_at: null,
       driver_at_door_at: null,
       driver_delivered_at: null,
+      // Repartidor nuevo = el pedido sale de la ruta del anterior.
+      batch_id: null,
+      batch_seq: null,
       // El status retrocede junto con los timestamps (si no, fila imposible:
       // out_for_delivery sin driver_picked_up_at para el repartidor nuevo).
       ...(current?.status === "out_for_delivery" ? { status: "ready" } : {}),

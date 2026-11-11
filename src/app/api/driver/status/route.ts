@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
     .select(
-      "id, status, order_type, customer_phone, customer_name, customer_email, customer_locale, customer_token, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, restaurants(name, locale, slug, currency, notifications_enabled)",
+      "id, status, order_type, customer_phone, customer_name, customer_email, customer_locale, customer_token, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, batch_id, restaurants(name, locale, slug, currency, notifications_enabled)",
     )
     .eq("driver_tracking_token", token)
     .maybeSingle();
@@ -202,6 +202,21 @@ export async function POST(req: NextRequest) {
 
     // Evict Redis token cache — driver can no longer send location pings
     evictTokenCache(token.slice(0, 16)).catch(() => {});
+
+    // Ruta: los clientes de las paradas siguientes tienen una parada menos
+    // antes de la suya. Solo se les avisa que refresquen (sin datos de este).
+    const batchId = (order as { batch_id?: string | null }).batch_id;
+    if (batchId) {
+      afterResponse(async () => {
+        const { data: mates } = await supabase
+          .from("orders")
+          .select("id, status")
+          .eq("batch_id", batchId)
+          .neq("id", order.id)
+          .not("status", "in", '("delivered","completed","cancelled")');
+        for (const m of mates ?? []) await broadcastOrderUpdate(m.id as string, m.status as string).catch(() => {});
+      });
+    }
 
     // Full notification stack (email + push + log) — después de responder: el
     // repartidor no espera a que salga el email.

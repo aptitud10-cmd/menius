@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { liveLocationTopic } from '@/lib/realtime/live-topic';
+import { fetchStopsAhead } from '@/lib/orders/driver-route';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -78,7 +79,9 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         const custToken = (orderData as any).customer_token as string | null;
         const drvToken = (orderData as any).driver_tracking_token as string | null;
         const authorized = !!token && ((!!custToken && token === custToken) || (!!drvToken && token === drvToken));
-        const { driver_tracking_token: _omit, customer_token: _omit2, ...safeOrder } = orderData as any;
+        // La ruta (batch) nunca sale: solo cuántas paradas hay antes de la suya.
+        const { driver_tracking_token: _omit, customer_token: _omit2, batch_id: _b, batch_seq: _s, ...safeOrder } = orderData as any;
+        const stopsAheadN = authorized ? await fetchStopsAhead(adminDb, orderData as any) : 0;
         // select('*') trae también coordenadas de la casa del cliente, GPS del
         // repartidor, foto de la puerta, notas e ids internos: sin token, fuera.
         if (!authorized) {
@@ -92,6 +95,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         }
         initialOrder = {
           ...safeOrder,
+          stops_ahead: stopsAheadN,
           customer_name: authorized ? safeOrder.customer_name : null,
           customer_phone: authorized ? safeOrder.customer_phone : null,
           customer_email: authorized ? safeOrder.customer_email : null,

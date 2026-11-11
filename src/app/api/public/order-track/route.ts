@@ -4,6 +4,7 @@ import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { UUID_RE } from '@/lib/constants';
 import { log } from '@/lib/logger';
 import { liveLocationTopic } from '@/lib/realtime/live-topic';
+import { fetchStopsAhead } from '@/lib/orders/driver-route';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
         estimated_ready_minutes, prepared_at, delivery_lat, delivery_lng,
         driver_name, driver_phone, driver_assigned_at,
         driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at, driver_updated_at,
-        delivery_photo_url, driver_tracking_token, customer_token, cancellation_reason,
+        delivery_photo_url, driver_tracking_token, customer_token, cancellation_reason, batch_id, batch_seq,
         table:table_id(name),
         order_items(
           id, qty, unit_price, line_total, notes, product_id, variant_id,
@@ -89,9 +90,12 @@ export async function GET(req: NextRequest) {
     // Strip both tokens from the payload regardless — they must never reach the client.
     // El motivo de cancelación es texto libre del restaurante: no se devuelve.
     // Solo se expone si el sistema cerró el pedido solo (para el título).
-    const { driver_tracking_token: _omit, customer_token: _omit2, cancellation_reason: reason, ...safeOrder } = order as any;
+    // La ruta (batch) nunca sale: solo el número de paradas antes de la suya.
+    const { driver_tracking_token: _omit, customer_token: _omit2, cancellation_reason: reason, batch_id: _b, batch_seq: _s, ...safeOrder } = order as any;
+    const stops_ahead = authorized ? await fetchStopsAhead(db, order) : 0;
 
     const shaped = {
+      stops_ahead,
       ...safeOrder,
       // PII is returned only to a caller holding the token. Otherwise null it out —
       // status, items, totals and ETA stay visible so the tracker still works.
