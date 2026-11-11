@@ -8,7 +8,7 @@
  * se cumple cuando close < open).
  */
 
-export type DayHours = { open?: string | null; close?: string | null; closed?: boolean | null } | null | undefined;
+export type DayHours = { open?: string | null; close?: string | null; closed?: boolean | null; fullDay?: boolean | null } | null | undefined;
 export type OperatingHours = Record<string, DayHours>;
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -32,6 +32,7 @@ export function isOpenAt(hours: OperatingHours, local: Date): boolean {
   }
 
   if (!today || today.closed) return false;
+  if (today.fullDay) return true; // "todo el día" (el panel guarda 00:00–23:59)
   if (!today.open || !today.close) return true; // día abierto sin horas cargadas
   const o = mins(today.open), c = mins(today.close);
   if (o == null || c == null) return true;

@@ -16,6 +16,11 @@ describe('isOpenAt', () => {
     expect(isOpenAt({ friday: { closed: true } }, at(13, 12))).toBe(false);
     expect(isOpenAt({ saturday: { open: '08:00', close: '22:00' } }, at(13, 12))).toBe(false);
   });
+  it('todo el día (fullDay) no cierra a las 23:59', () => {
+    const all = { friday: { open: '00:00', close: '23:59', fullDay: true } };
+    expect(isOpenAt(all, at(13, 23, 59))).toBe(true);
+    expect(isOpenAt(all, at(13, 0, 0))).toBe(true);
+  });
   it('cruza la medianoche (18:00–02:00)', () => {
     const late = { friday: { open: '18:00', close: '02:00' }, saturday: { closed: true } };
     expect(isOpenAt(late, at(13, 17, 59))).toBe(false);
