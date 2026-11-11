@@ -1,7 +1,7 @@
 -- MENIUS - schema real de produccion (menius-prod)
 -- Generado desde information_schema via MCP de Supabase.
 -- FUENTE DE VERDAD del schema. NO editar a mano: regenerar desde prod.
--- Tablas: 49  -  Columnas: 523
+-- Tablas: 55  -  Columnas: 612  (actualizado 2026-11-11: + order_number_counters)
 --
 -- ESTE ARCHIVO SOLO TIENE COLUMNAS. No sirve para auditar seguridad: no
 -- contiene ni una linea de RLS, POLICY o GRANT. Para eso esta
@@ -390,6 +390,12 @@ CREATE TABLE public.order_notification_log (
   success boolean NOT NULL,
   error_code text,
   created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.order_number_counters (
+  restaurant_id uuid NOT NULL,
+  day date NOT NULL,
+  last_value integer NOT NULL
 );
 
 CREATE TABLE public.order_status_history (
