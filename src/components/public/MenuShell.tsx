@@ -1138,10 +1138,15 @@ export function MenuShell({
     if (!mainProduct) return [];
 
     const productMap = new Map(products.map((p) => [p.id, p]));
+    // The "Pair it with" carousel is a row of photo cards: a product without a
+    // visible photo renders as an empty grey square. Buccaneer has ~90 drinks
+    // without photos and drinks rank first for mains, so the row was mostly
+    // empty boxes. Only suggest products that actually show a photo.
     const isEligible = (p: Product) =>
       p.id !== mainProduct.id &&
       p.in_stock !== false &&
-      !cartProductIds.has(p.id);
+      !cartProductIds.has(p.id) &&
+      !showsAsRow(p);
 
     // Time-of-day context: filter alcohol before noon
     const hour = new Date().getHours();
