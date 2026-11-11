@@ -109,7 +109,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
 
         {showImage ? (
           <>
-            {!imgLoaded && <div className="absolute inset-0 skeleton" />}
+            {/* Priority (above-the-fold) images paint as soon as the browser has
+                them: hiding them until React's onLoad ties the LCP to hydration. */}
+            {!imgLoaded && !priority && <div className="absolute inset-0 skeleton" />}
             <Image
               src={product.image_url}
               alt={imgAlt}
@@ -120,7 +122,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               loader={!skipTransform && product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
-              className={cn('object-cover transition-opacity duration-150', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
+              className={cn('object-cover transition-opacity duration-150', imgLoaded || priority ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
               onLoad={() => setImgLoaded(true)}
               onError={() => (skipTransform ? setImgError(true) : setSkipTransform(true))}
             />

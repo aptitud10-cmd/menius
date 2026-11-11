@@ -45,6 +45,10 @@ import { supabaseLoader } from "@/lib/image-loader";
 import { StoreConfigProvider } from "@/lib/store-config-context";
 import { getStoreOverrides } from "@/lib/store-overrides";
 import { useNaturalSearch } from "@/lib/hooks/useNaturalSearch";
+import {
+  useBackToClose,
+  unwindOverlayHistory,
+} from "@/hooks/use-back-to-close";
 import { MenuHeader, HEADER_HEIGHT } from "./MenuHeader";
 import { CategorySidebar } from "./CategorySidebar";
 import { ProductCard } from "./ProductCard";
@@ -109,6 +113,9 @@ interface CustomizationTarget {
 }
 
 const POPULAR_ID = "__popular__";
+// A remembered menu position older than this is a different visit, not a
+// "back from checkout" — land on the default view instead.
+const MENU_POS_TTL_MS = 30 * 60 * 1000;
 
 export function MenuShell({
   restaurant,
@@ -331,6 +338,12 @@ export function MenuShell({
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] =
     useState<CustomizationTarget | null>(null);
+  const customizationRef = useRef(customization);
+  customizationRef.current = customization;
+  // True while a product opened from search results is on screen: the search
+  // overlay (z-70) stays mounted underneath — closing the product returns to
+  // the results — so it must drop below the product sheet (z-50) meanwhile.
+  const [searchBehindSheet, setSearchBehindSheet] = useState(false);
   // Ordered list of product IDs from data-driven suggestions (pairings + co-occurrence)
   const [dataBasedSuggestionIds, setDataBasedSuggestionIds] = useState<
     string[]
@@ -391,14 +404,29 @@ export function MenuShell({
   const [isDesktopView, setIsDesktopView] = useState(
     () => typeof window !== "undefined" && window.innerWidth >= 1024,
   );
+  // xl (≥1280) shows the cart as a persistent column and hides the cart sheet
+  // (xl:hidden). Tracked so back-to-close never pushes a history entry for an
+  // overlay that isn't on screen — back would then "close" something invisible.
+  const [isXlView, setIsXlView] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= 1280,
+  );
   useEffect(() => {
-    const check = () => setIsDesktopView(window.innerWidth >= 1024);
+    const check = () => {
+      setIsDesktopView(window.innerWidth >= 1024);
+      setIsXlView(window.innerWidth >= 1280);
+    };
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  /** Skip per-card Framer Motion on mobile for large catalogs — only after mount so SSR/hydration match. */
-  const lightMobileProductGrid = hasMounted && isLargeCatalog && !isDesktopView;
+  /**
+   * Skip per-card Framer Motion on mobile for large catalogs.
+   * Not gated on hasMounted: SSR renders isDesktopView=false, so server and a
+   * mobile client agree on the plain <div> from the first paint. Gating on
+   * mount swapped <motion.div> for <div> after hydration, which unmounted and
+   * remounted every card — images reset to opacity-0 and flashed back in.
+   */
+  const lightMobileProductGrid = isLargeCatalog && !isDesktopView;
 
   // NOTE: useBodyScrollLock is intentionally NOT used here.
   // Menius scrolls via mainRef (a custom div), not document.body — window.scrollY is always 0.
@@ -690,6 +718,119 @@ export function MenuShell({
       }
   }, []);
 
+  // Large catalog: the keyed list of the active category, and the mobile sticky
+  // bars that cover the top of the scroller. Used to land a category change at
+  // the start of its list instead of wherever the previous one was scrolled to.
+  const catListRef = useRef<HTMLDivElement>(null);
+  const mobilePillsBarRef = useRef<HTMLDivElement>(null);
+  const mobileDietBarRef = useRef<HTMLDivElement>(null);
+  // Bumped on every category pick (even re-picking the same one), so the
+  // effect below runs after React has committed the new list.
+  const [catScrollRequest, setCatScrollRequest] = useState(0);
+
+  useEffect(() => {
+    if (catScrollRequest === 0) return;
+    const main = mainRef.current;
+    const list = catListRef.current;
+    if (!main || !list) return;
+    // Bottom edge of a sticky bar once pinned, relative to the scroller. A
+    // hidden bar (lg:hidden on desktop, lg-only on mobile) has offsetHeight 0.
+    const pinnedBottom = (el: HTMLElement | null) => {
+      if (!el || el.offsetHeight === 0) return 0;
+      const top = parseFloat(window.getComputedStyle(el).top) || 0;
+      return top + el.offsetHeight;
+    };
+    const covered = Math.max(
+      pinnedBottom(mobilePillsBarRef.current),
+      pinnedBottom(mobileDietBarRef.current),
+      pinnedBottom(desktopPillsRef.current),
+    );
+    // The list mounts with the menu-cat-fade animation (translateY 10px → 0);
+    // getBoundingClientRect includes that transform, so remove it to measure
+    // the resting position.
+    let animOffset = 0;
+    const transform = window.getComputedStyle(list).transform;
+    if (transform && transform !== "none") {
+      try {
+        animOffset = new DOMMatrixReadOnly(transform).m42;
+      } catch {
+        animOffset = 0;
+      }
+    }
+    const target =
+      main.scrollTop +
+      list.getBoundingClientRect().top -
+      animOffset -
+      main.getBoundingClientRect().top -
+      covered -
+      12;
+    // Only move when the user is deeper than the list start. Above it (banner
+    // or restaurant info still on screen) the new list already starts in view,
+    // so jumping would just hide the hero for nothing. Before this, a change
+    // made with the banner scrolled away kept the old scrollTop and dropped
+    // the customer in the middle of the new category.
+    if (main.scrollTop > target) {
+      main.scrollTo({ top: Math.max(0, target), behavior: "auto" });
+    }
+  }, [catScrollRequest]);
+
+  // ── Menu position memory (category + scroll) ──
+  // Going to checkout unmounts the menu; coming back remounted it on "Popular"
+  // at the top, so a customer adding one more drink had to find the category
+  // again. Saved per restaurant in sessionStorage (this tab only) and restored
+  // on mount — see the restore effects further down.
+  const menuPosKey = `menius:menu-pos:${restaurant.slug}`;
+  const activeCatFilterRef = useRef(activeCatFilter);
+  activeCatFilterRef.current = activeCatFilter;
+  // Saving is off until the restore has run: the first scroll event (at 0) and
+  // the initial null filter would otherwise overwrite the snapshot being restored.
+  const menuPosReadyRef = useRef(false);
+  const saveMenuPosition = useCallback((scroller?: HTMLElement) => {
+    if (!menuPosReadyRef.current) return;
+    // `scroller` lets an unmount cleanup save: by then the ref is already null.
+    const main = scroller ?? mainRef.current;
+    if (!main) return;
+    try {
+      sessionStorage.setItem(
+        menuPosKey,
+        JSON.stringify({
+          cat: activeCatFilterRef.current,
+          top: Math.round(main.scrollTop),
+          ts: Date.now(),
+        }),
+      );
+    } catch {
+      // Private mode / storage full: losing the position is harmless.
+    }
+  }, [menuPosKey]);
+
+  useEffect(() => {
+    saveMenuPosition();
+  }, [activeCatFilter, saveMenuPosition]);
+
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    // Trailing throttle: one write per 300 ms of scrolling, not per frame.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      if (timer !== undefined) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        saveMenuPosition();
+      }, 300);
+    };
+    main.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      main.removeEventListener("scroll", onScroll);
+      if (timer !== undefined) {
+        // Flush the pending write — the last scroll before leaving matters most.
+        clearTimeout(timer);
+        saveMenuPosition(main);
+      }
+    };
+  }, [mainMounted, saveMenuPosition]);
+
   const handleCategorySelect = useCallback(
     (catId: string | null) => {
       setSearchQuery("");
@@ -711,9 +852,9 @@ export function MenuShell({
         setActiveCatFilter(catId);
         // Close the jump sheet: its list belongs to the group being left.
         setShowSubcatSheet(false);
-        if (bannerVisibleRef.current) {
-          mainRef.current?.scrollTo({ top: 0, behavior: "auto" });
-        }
+        // The scroll happens after the new category renders (effect on
+        // catScrollRequest) — the list it measures doesn't exist yet here.
+        setCatScrollRequest((n) => n + 1);
         return;
       }
 
@@ -734,6 +875,22 @@ export function MenuShell({
       setCustomization({ product, editIndex: null });
     },
     [restaurant.id],
+  );
+
+  // Search result tap: open the product OVER the search overlay instead of
+  // closing search and wiping the query — closing the product (X, swipe or
+  // system back) returns to the same results, like any native app. Search is
+  // only cleared when the customer closes it explicitly.
+  const openProductFromSearch = useCallback(
+    (product: Product) => {
+      // The input still has focus: without this the iOS keyboard stays up over
+      // the product sheet (before, unmounting the overlay dismissed it).
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) active.blur();
+      setSearchBehindSheet(true);
+      handleProductSelect(product);
+    },
+    [handleProductSelect],
   );
 
   const showToast = useCallback((name: string) => {
@@ -806,9 +963,16 @@ export function MenuShell({
     [products],
   );
 
+  // Editing is entered from the cart sheet (which closes to make room), so
+  // finishing the edit returns there — saved or cancelled — like popping a
+  // screen in a native nav stack. Before, the customer was dropped on the menu
+  // and had to reopen the cart to check the change. xl shows the cart as a
+  // column, so there's nothing to reopen.
   const handleCloseCustomization = useCallback(() => {
+    const wasEditing = customization !== null && customization.editIndex !== null;
     setCustomization(null);
-  }, []);
+    if (wasEditing && !isXlView) setOpen(true);
+  }, [customization, isXlView, setOpen]);
 
   const handleViewCartFromCustomization = useCallback(() => {
     setCustomization(null);
@@ -822,15 +986,26 @@ export function MenuShell({
       total: rawCartTotal,
     });
 
+    // So "back" from checkout lands on the same category and scroll position.
+    saveMenuPosition();
+
+    // Pop the overlay history entries (cart sheet) BEFORE pushing /checkout:
+    // pushed on top of them, back from checkout would land on a dead overlay
+    // entry and need a second tap. Must run before setOpen(false) so closing
+    // the sheet doesn't issue its own history.back().
+    const historySettled = unwindOverlayHistory();
+
     setOpen(false);
 
-    requestAnimationFrame(() => {
-      const table = useCartStore.getState().tableName;
-      const checkoutUrl = table
-        ? `/${restaurant.slug}/checkout?table=${encodeURIComponent(table)}`
-        : `/${restaurant.slug}/checkout`;
-      router.push(checkoutUrl);
-    });
+    void historySettled.then(() =>
+      requestAnimationFrame(() => {
+        const table = useCartStore.getState().tableName;
+        const checkoutUrl = table
+          ? `/${restaurant.slug}/checkout?table=${encodeURIComponent(table)}`
+          : `/${restaurant.slug}/checkout`;
+        router.push(checkoutUrl);
+      }),
+    );
   }, [
     router,
     restaurant.slug,
@@ -838,7 +1013,24 @@ export function MenuShell({
     rawCartCount,
     rawCartTotal,
     setOpen,
+    saveMenuPosition,
   ]);
+
+  // ── System back closes overlays (see useBackToClose) ──
+  // Each gate matches where the overlay is actually visible: the cart sheet and
+  // the subcategory sheet are xl:hidden, search and the category sheet lg:hidden.
+  const closeCart = useCallback(() => setOpen(false), [setOpen]);
+  const closeSearch = useCallback(() => {
+    setShowSearch(false);
+    setSearchQuery("");
+  }, []);
+  const closeCatSheet = useCallback(() => setShowCatSheet(false), []);
+  const closeSubcatSheet = useCallback(() => setShowSubcatSheet(false), []);
+  useBackToClose(isOpen && !isXlView, closeCart);
+  useBackToClose(showSearch && !isDesktopView, closeSearch);
+  useBackToClose(showCatSheet && !isDesktopView, closeCatSheet);
+  useBackToClose(showSubcatSheet && !isXlView, closeSubcatSheet);
+  useBackToClose(customization !== null, handleCloseCustomization);
 
   const filteredProducts = useMemo(() => {
     const base = !activeDiet
@@ -1149,6 +1341,89 @@ export function MenuShell({
     return popular ? [popular] : itemsByCategory;
   }, [isLargeCatalog, activeCatFilter, itemsByCategory]);
 
+  // ── Menu position restore (pairs with saveMenuPosition above) ──
+  // Deep links that position the menu themselves win over the memory. Read on
+  // the very first commit: the ?reorder handler strips the param from the URL
+  // one render later, before the restore effect below gets to look.
+  const skipMenuRestoreRef = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    skipMenuRestoreRef.current =
+      params.get("reorder") === "1" || window.location.hash.length > 1;
+  }, []);
+
+  const [restoreScrollTop, setRestoreScrollTop] = useState<number | null>(
+    null,
+  );
+  const menuRestoreCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!mainMounted || menuRestoreCheckedRef.current) return;
+    menuRestoreCheckedRef.current = true;
+    if (skipMenuRestoreRef.current) {
+      menuPosReadyRef.current = true;
+      return;
+    }
+    let snap: { cat: string | null; top: number } | null = null;
+    try {
+      const raw = sessionStorage.getItem(menuPosKey);
+      const parsed: unknown = raw ? JSON.parse(raw) : null;
+      if (parsed && typeof parsed === "object") {
+        const p = parsed as { cat?: unknown; top?: unknown; ts?: unknown };
+        if (
+          typeof p.top === "number" &&
+          typeof p.ts === "number" &&
+          Date.now() - p.ts < MENU_POS_TTL_MS
+        ) {
+          snap = {
+            cat: typeof p.cat === "string" ? p.cat : null,
+            top: p.top,
+          };
+        }
+      }
+    } catch {
+      snap = null;
+    }
+    if (!snap) {
+      menuPosReadyRef.current = true;
+      return;
+    }
+    // The saved category may have been deleted, emptied or hidden by a
+    // schedule since — only restore it if the menu still renders it.
+    const cat = snap.cat;
+    if (isLargeCatalog && cat) {
+      const exists = isGroupId(cat)
+        ? itemsByCategory.some(
+            (g) => g.category.group_name === groupNameFromId(cat),
+          )
+        : itemsByCategory.some((g) => g.category.id === cat);
+      if (exists) {
+        setActiveCatFilter(cat);
+        setActiveCategory(cat);
+      }
+    }
+    // Batched with the filter above: the scroll effect runs once that
+    // category's list is committed.
+    setRestoreScrollTop(snap.top);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mainMounted]);
+
+  useEffect(() => {
+    if (restoreScrollTop === null) return;
+    // Two frames: the first lets layout settle after the category swap, the
+    // second applies the scroll against the final scrollHeight.
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (mainRef.current) mainRef.current.scrollTop = restoreScrollTop;
+        menuPosReadyRef.current = true;
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [restoreScrollTop]);
+
   // Search results — see src/lib/menu-search.ts. Matches category names too, so
   // "wine" finds everything in "Wine Selection" even though no product is named that.
   const searchResults = useMemo(
@@ -1241,14 +1516,16 @@ export function MenuShell({
   }, [itemsByCategory, mainMounted]);
 
   // Track scroll for collapsing header + optional “back to top” pill (large-catalog stores).
-  const [mainScrollTop, setMainScrollTop] = useState(0);
+  // Booleans, not the raw scrollTop: React bails out when a boolean doesn't
+  // change, so the 4000-line shell no longer re-renders ~60×/s while scrolling.
+  const [pastScrollTopPill, setPastScrollTopPill] = useState(false);
   useEffect(() => {
     const main = mainRef.current;
     if (!main) return;
     const threshold = hasCover ? 100 : 40;
     const onScroll = () => {
       const top = main.scrollTop;
-      setMainScrollTop(top);
+      setPastScrollTopPill(top > 180);
       setHeaderScrolled(top > threshold);
     };
     main.addEventListener("scroll", onScroll, { passive: true });
@@ -1268,12 +1545,15 @@ export function MenuShell({
         target.isContentEditable;
 
       if (e.key === "Escape") {
-        if (showSearch) {
+        // Topmost first: the product sheet can now open over the search
+        // overlay (search keeps its results), so it must close before search.
+        if (customization) handleCloseCustomization();
+        else if (showCatSheet) setShowCatSheet(false);
+        else if (showSubcatSheet) setShowSubcatSheet(false);
+        else if (showSearch) {
           setShowSearch(false);
           setSearchQuery("");
-        } else if (customization) setCustomization(null);
-        else if (showSubcatSheet) setShowSubcatSheet(false);
-        else if (isOpen) setOpen(false);
+        } else if (isOpen) setOpen(false);
         return;
       }
 
@@ -1286,7 +1566,15 @@ export function MenuShell({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showSearch, customization, isOpen, setOpen, showSubcatSheet]);
+  }, [
+    showSearch,
+    customization,
+    isOpen,
+    setOpen,
+    showSubcatSheet,
+    showCatSheet,
+    handleCloseCustomization,
+  ]);
 
   // Auto-scroll pill bar + sidebar to show active category.
   // Pill bar: skipped when the change came from a user click (categoryClickedRef) to avoid
@@ -1579,6 +1867,7 @@ export function MenuShell({
 
   const mobileCategoryPills = (
     <div
+      ref={mobilePillsBarRef}
       className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100"
       style={{
         // Con cover, el header es absolute/top-0 y se superpone al scroll →
@@ -1669,7 +1958,7 @@ export function MenuShell({
           )}
           {filterDivider}
           {mobileFavPill}
-          {showScrollTopPill && mainScrollTop > 180 && (
+          {showScrollTopPill && pastScrollTopPill && (
             <button
               type="button"
               onClick={() =>
@@ -1938,6 +2227,7 @@ export function MenuShell({
           {/* Dietary filter pills — mobile, below category pills */}
           {availableDietTags.length > 0 && (
             <div
+              ref={mobileDietBarRef}
               className="lg:hidden sticky z-30 bg-[#f5f5f3] border-b border-gray-100"
               style={{
                 // Con cover suma header+category pills+notch; sin cover solo las
@@ -2515,6 +2805,7 @@ export function MenuShell({
                     <MenuErrorBoundary section="products" locale={locale}>
                       <div
                         key={activeCatFilter ?? "all"}
+                        ref={catListRef}
                         className="space-y-8 menu-cat-fade"
                       >
                         {/* Sprint 3.2 — "Para ti" recommendations for returning customers */}
@@ -3429,7 +3720,9 @@ export function MenuShell({
                     loyaltyData={loyaltyData}
                   />
                 </div>
-                <div className="pb-[env(safe-area-inset-bottom)] flex-shrink-0" />
+                {/* No safe-area spacer here: CartPanel's footer already pads
+                    with max(.75rem, env(safe-area-inset-bottom)). A second one
+                    left ~34px of dead white under the checkout button on iPhone. */}
               </motion.div>
             </div>
           )}
@@ -3437,9 +3730,20 @@ export function MenuShell({
 
         {/* ── Customization Sheet ── */}
         <MenuErrorBoundary section="customization" inline locale={locale}>
-          <AnimatePresence>
+          <AnimatePresence
+            onExitComplete={() => {
+              // Search drops behind the product sheet while one is open over
+              // it; restore its normal layer only once the sheet has fully
+              // animated out (and no other sheet replaced it).
+              if (!customizationRef.current) setSearchBehindSheet(false);
+            }}
+          >
             {customization && (
               <CustomizationSheet
+                // Keyed per product/edit: opening a suggestion from inside an
+                // open sheet otherwise reuses the instance, and product B
+                // inherits A's selections/added state (couldn't be added).
+                key={`${customization.product.id}-${customization.editIndex ?? "new"}`}
                 product={customization.product}
                 editIndex={customization.editIndex}
                 onClose={handleCloseCustomization}
@@ -3480,7 +3784,15 @@ export function MenuShell({
         <AnimatePresence>
           {showSearch && (
             <motion.div
-              className="fixed inset-0 z-[70] bg-white flex flex-col lg:hidden"
+              className={cn(
+                "fixed inset-0 bg-white flex flex-col lg:hidden",
+                // z-45: under the product sheet and the cart sheet (z-50, e.g.
+                // "View cart" from a product opened here) but still over the
+                // header/pills (z-40) and cart bar (z-30).
+                customization || searchBehindSheet || isOpen
+                  ? "z-[45]"
+                  : "z-[70]",
+              )}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -3563,11 +3875,7 @@ export function MenuShell({
                     {searchResults.map((product) => (
                       <button
                         key={product.id}
-                        onClick={() => {
-                          setShowSearch(false);
-                          setSearchQuery("");
-                          handleProductSelect(product);
-                        }}
+                        onClick={() => openProductFromSearch(product)}
                         className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
                       >
                         {!showsAsRow(product) && product.image_url && (
@@ -3631,11 +3939,7 @@ export function MenuShell({
                     {naturalSearch.results.slice(0, 20).map((product) => (
                       <button
                         key={product.id}
-                        onClick={() => {
-                          setShowSearch(false);
-                          setSearchQuery("");
-                          handleProductSelect(product);
-                        }}
+                        onClick={() => openProductFromSearch(product)}
                         className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
                       >
                         {!showsAsRow(product) && product.image_url && (
@@ -3886,6 +4190,9 @@ export function MenuShell({
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 30, stiffness: 320 }}
+                role="dialog"
+                aria-modal="true"
+                aria-label={t.browseCategoriesAriaLabel}
               >
                 {/* Drag indicator pill */}
                 <div className="flex justify-center pt-3 pb-1 flex-shrink-0">

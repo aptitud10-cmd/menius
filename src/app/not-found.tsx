@@ -1,9 +1,17 @@
-import Link from 'next/link';
-import { cookies } from 'next/headers';
+'use client';
+
+import { useEffect, useState } from 'react';
 import { getTranslations } from '@/lib/translations';
 
-export default async function NotFound() {
-  const locale = (await cookies()).get('menius_locale')?.value ?? 'es';
+// Client component on purpose: the root not-found is part of every route's
+// tree, and reading cookies() on the server here made every route dynamic
+// (killing the menu's ISR). Plain <a> instead of next/link so the 404 does not
+// pull the dashboard chunk group into the public menu bundle.
+export default function NotFound() {
+  const [locale, setLocale] = useState('es');
+  useEffect(() => {
+    if (/(?:^|; )menius_locale=en(?:;|$)/.test(document.cookie)) setLocale('en');
+  }, []);
   const t = getTranslations(locale);
 
   return (
@@ -12,9 +20,9 @@ export default async function NotFound() {
       <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.07] rounded-full blur-[120px] pointer-events-none" />
 
       <div className="relative z-10 text-center max-w-md">
-        <Link href="/" className="font-display text-2xl font-bold tracking-[-0.04em] text-white inline-block mb-10">
+        <a href="/" className="font-display text-2xl font-bold tracking-[-0.04em] text-white inline-block mb-10">
           MENIUS
-        </Link>
+        </a>
 
         <div className="text-[8rem] font-extrabold leading-none tracking-tighter text-white/[0.06] select-none mb-0 font-display">
           404
@@ -28,18 +36,18 @@ export default async function NotFound() {
         </p>
 
         <div className="flex gap-3 justify-center">
-          <Link
+          <a
             href="/"
             className="px-5 py-2.5 bg-white text-black rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors"
           >
             {t.notFoundGoHome}
-          </Link>
-          <Link
+          </a>
+          <a
             href="/demo"
             className="px-5 py-2.5 border border-white/[0.1] bg-white/[0.04] text-gray-300 rounded-xl text-sm font-medium hover:bg-white/[0.08] hover:text-white transition-colors"
           >
             {t.notFoundViewDemo}
-          </Link>
+          </a>
         </div>
       </div>
     </div>

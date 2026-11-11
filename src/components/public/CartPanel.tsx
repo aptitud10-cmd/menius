@@ -9,7 +9,15 @@ import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import { showsAsRow } from '@/lib/product-display';
 import type { Translations } from '@/lib/translations';
-import type { Product } from '@/types';
+import type { Product, CartItem } from '@/types';
+
+// How long the "Removed · Undo" toast stays actionable.
+const UNDO_WINDOW_MS = 5000;
+
+interface PendingUndo {
+  item: CartItem;
+  index: number;
+}
 
 interface LastOrderSummaryItem {
   qty: number;
@@ -105,14 +113,83 @@ export function CartPanel({
   // 2-step clear cart: first tap shows icon red, second tap clears
   const [clearStep, setClearStep] = useState(0);
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Last removed line (swipe / trash), kept for UNDO_WINDOW_MS so an accidental
+  // swipe on a crowded phone screen doesn't cost the customer a fully
+  // customized dish (modifiers, notes, qty) they'd have to rebuild by hand.
+  const [pendingUndo, setPendingUndo] = useState<PendingUndo | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear pending timers on unmount to avoid setState on unmounted component
   useEffect(() => {
     return () => {
       if (confirmTimer.current) clearTimeout(confirmTimer.current);
       if (clearTimer.current) clearTimeout(clearTimer.current);
+      if (undoTimer.current) clearTimeout(undoTimer.current);
     };
   }, []);
+
+  const removeWithUndo = useCallback((idx: number) => {
+    const removed = useCartStore.getState().items[idx];
+    if (!removed) return;
+    removeItem(idx);
+    // Indices shift after a removal — a pending "tap − again" confirmation
+    // would otherwise point at a different dish.
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    setConfirmRemoveIdx(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setPendingUndo({ item: removed, index: idx });
+    undoTimer.current = setTimeout(() => setPendingUndo(null), UNDO_WINDOW_MS);
+  }, [removeItem]);
+
+  const handleUndo = useCallback(() => {
+    if (!pendingUndo) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    const { item, index } = pendingUndo;
+    // The store has no "insert at index" action and addItem() appends with a
+    // new uid. zustand's public setState puts back the exact same object (same
+    // uid, modifiers, notes, qty and store-computed lineTotal) at its original
+    // position without touching cartStore.ts.
+    useCartStore.setState((s) => {
+      if (item.uid && s.items.some((i) => i.uid === item.uid)) return {};
+      const next = [...s.items];
+      next.splice(Math.min(index, next.length), 0, item);
+      return { items: next };
+    });
+    setPendingUndo(null);
+  }, [pendingUndo]);
+
+  // Rendered inside the panel (never fixed to the viewport) so it can't cover
+  // the checkout CTA; `bottom` is passed per layout so the empty state can
+  // clear the iOS home indicator.
+  const renderUndoToast = (bottom: string) => (
+    <AnimatePresence>
+      {pendingUndo && (
+        <motion.div
+          key="cart-undo-toast"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          transition={{ duration: 0.18 }}
+          role="status"
+          aria-live="polite"
+          className="absolute left-4 right-4 z-20 flex items-center gap-2 pl-4 pr-1 py-1 rounded-xl bg-gray-900 text-white shadow-lg"
+          style={{ bottom }}
+        >
+          <p className="flex-1 min-w-0 text-[13px] truncate">
+            <span className="font-semibold">{t.cartItemRemoved}</span>
+            <span className="text-gray-300"> · {pendingUndo.item.product.name}</span>
+          </p>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="flex-shrink-0 min-h-[44px] px-3 rounded-lg text-sm font-bold text-[#05c8a7] active:bg-white/10 transition-colors"
+          >
+            {t.cartUndo}
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   const handleMinusTap = useCallback((idx: number, qty: number) => {
     if (qty > 1) {
@@ -154,7 +231,9 @@ export function CartPanel({
   if (items.length === 0) {
     const emptySuggestions = suggestions?.filter((p) => p.in_stock !== false).slice(0, 3) ?? [];
     return (
-      <div className="flex flex-col h-full px-4 py-8">
+      <div className="relative flex flex-col h-full px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
+        {/* Removing the last line lands here — keep Undo reachable. */}
+        {renderUndoToast('max(0.75rem, env(safe-area-inset-bottom))')}
         <div className="flex flex-col items-center mb-6">
           <div className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-4">
             <ShoppingCart className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
@@ -280,8 +359,18 @@ export function CartPanel({
         </AnimatePresence>
       </div>
 
-      {/* ── Scrollable items only ── */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-3 min-h-0" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+      {/* ── Scrollable items only ── (relative wrapper anchors the undo toast
+          above the footer, so it never overlaps the checkout button) */}
+      <div className="relative flex-1 min-h-0 flex flex-col">
+      {renderUndoToast('0.5rem')}
+      <div
+        className={cn(
+          'flex-1 overflow-y-auto overscroll-contain px-4 min-h-0',
+          // Extra room while the toast is up so the last line can scroll clear of it.
+          pendingUndo ? 'pb-16' : 'pb-3'
+        )}
+        style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+      >
         <AnimatePresence initial={false}>
         {items.map((item, idx) => {
           const imgKey = `${item.product.id}-${idx}`;
@@ -303,7 +392,7 @@ export function CartPanel({
                 }}
                 className="overflow-hidden mb-2"
               >
-                <SwipeableItem onRemove={() => removeItem(idx)}>
+                <SwipeableItem onRemove={() => removeWithUndo(idx)}>
                   <div
                     className="flex gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer active:bg-gray-50 transition-colors"
                     onClick={() => onEdit(idx)}
@@ -394,7 +483,7 @@ export function CartPanel({
                             {fmtPrice(item.lineTotal)}
                           </span>
                           <button
-                            onClick={(e) => { e.stopPropagation(); removeItem(idx); }}
+                            onClick={(e) => { e.stopPropagation(); removeWithUndo(idx); }}
                             className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                             aria-label={`${t.removeItem} ${item.product.name}`}
                           >
@@ -417,6 +506,7 @@ export function CartPanel({
         })}
         </AnimatePresence>
       </div>
+      </div>
 
 
       {/* ── Loyalty progress banner ── */}
@@ -435,7 +525,7 @@ export function CartPanel({
                 />
               </div>
               <p className="text-[11px] text-amber-700 font-medium">
-                {points} pts · {ptsLeft} más para canjear
+                {t.loyaltyCartProgress(points, ptsLeft)}
               </p>
             </div>
           </div>
@@ -443,7 +533,7 @@ export function CartPanel({
           <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-2 flex-shrink-0">
             <span className="text-base leading-none">🎁</span>
             <p className="text-[11px] text-amber-700 font-semibold">
-              Tienes {points} pts disponibles para canjear en el checkout
+              {t.loyaltyCartAvailable(points)}
             </p>
           </div>
         );

@@ -5,6 +5,7 @@ import { X, Download, Share } from 'lucide-react';
 import Image from 'next/image';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 import { getTranslations } from '@/lib/translations';
+import { useCartStore } from '@/store/cartStore';
 
 interface InstallBannerProps {
   restaurantName: string;
@@ -35,6 +36,11 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
   const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
   const [iosHint, setIosHint] = useState(false);
   const [installing, setInstalling] = useState(false);
+  // The banner is fixed to the bottom edge (z-80) and sits right on top of the
+  // floating cart bar. Once the customer is ordering, the cart wins: hide it
+  // while the cart has items (reactive, so it also disappears the moment the
+  // first item is added). Not persisted as a dismissal — it can come back later.
+  const cartHasItems = useCartStore((s) => s.items.length > 0);
 
   const DISMISS_KEY = `install-dismissed-${slug}`;
 
@@ -66,6 +72,8 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
     if (ok) setDismissed(true);
     setInstalling(false);
   };
+
+  if (cartHasItems) return null;
 
   // Android/Chrome: native install prompt available
   if (!dismissed && canInstall) {

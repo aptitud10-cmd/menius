@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
-import { cookies } from "next/headers";
 import CookieConsent from "@/components/CookieConsent";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import { validateEnv } from "@/lib/env";
@@ -126,8 +125,12 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const locale = cookieStore.get("menius_locale")?.value === "en" ? "en" : "es";
+  // No cookies() here: reading a request header in the ROOT layout opts every
+  // route into dynamic rendering, which silently disabled the menu's ISR
+  // (revalidate=300) — each visit re-rendered 400 products, ~1 s TTFB. The
+  // <html lang> is corrected from the menius_locale cookie by the inline
+  // script below, before first paint.
+  const locale = "es";
 
   const orgSchema = {
     "@context": "https://schema.org",
@@ -142,9 +145,7 @@ export default async function RootLayout({
       process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK,
     ].filter(Boolean),
     description:
-      locale === "en"
-        ? "QR digital menu and online ordering for independent restaurants."
-        : "Menú digital con QR y pedidos online para restaurantes independientes.",
+      "Menú digital con QR y pedidos online para restaurantes independientes.",
   };
 
   return (
@@ -163,6 +164,11 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/apple-icon" />
       </head>
       <body className="bg-white text-gray-900 antialiased font-sans">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(/(?:^|; )menius_locale=en(?:;|$)/.test(document.cookie))document.documentElement.lang='en'}catch(e){}`,
+          }}
+        />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-white focus:text-black focus:text-sm focus:font-semibold focus:shadow-lg"

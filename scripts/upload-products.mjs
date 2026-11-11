@@ -95,6 +95,10 @@ async function uploadObject(objectPath, buf) {
       headers: {
         Authorization: `Bearer ${service}`,
         'Content-Type': 'image/jpeg',
+        // Names carry a timestamp, so each object is immutable: let browsers and
+        // Supabase's CDN keep it for a year. Without this header Storage stores
+        // no-cache and every visit re-downloads every photo.
+        'cache-control': 'max-age=31536000',
         'x-upsert': 'false',
       },
       body: buf,

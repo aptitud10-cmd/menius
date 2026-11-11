@@ -326,7 +326,9 @@ export async function POST(request: NextRequest) {
                   .from('product-images')
                   .upload(fileName, buffer, {
                     contentType: 'image/webp',
-                    cacheControl: '3600',
+                    // The name carries Date.now(), so each object is immutable:
+                    // cache for a year (an hour made every visit revalidate).
+                    cacheControl: '31536000',
                     upsert: true,
                   });
 

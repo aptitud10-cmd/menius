@@ -138,13 +138,15 @@ export interface Translations {
   // Product sheet
   maxReached: string;
   included: string;
-  change: string;
-  done: string;
   itemNotesLabel: string;
   itemNotesPlaceholder: string;
   added: string;
   updateItem: string;
   editItem: string;
+  /** CTA label while required groups are still missing picks ("Choose 2 more"). */
+  chooseMore: (n: number) => string;
+  /** Badge on a required group once it is satisfied. */
+  groupDone: string;
   // Product card
   soldOut: string;
   unavailable: string;
@@ -226,6 +228,7 @@ export interface Translations {
   orderHistoryDesc: string;
   orderInvalidEmail: string;
   orderConnectionError: string;
+  orderHistoryNeedsToken: string;
   orderNotFound: string;
   orderNotFoundDesc: string;
   orderMakeOrder: string;
@@ -361,6 +364,11 @@ export interface Translations {
   closeCart: string;
   confirmRemove: string;
   removeItem: string;
+  // CartPanel — undo toast + loyalty banner (mobile UX pass)
+  cartItemRemoved: string;
+  cartUndo: string;
+  loyaltyCartProgress: (points: number, left: number) => string;
+  loyaltyCartAvailable: (points: number) => string;
   // DeliveryMap
   mapDeliveryAddress: string;
   mapRemaining: string;
@@ -423,7 +431,7 @@ const es: Translations = {
   discount: 'Descuento',
   sendOrder: 'Enviar pedido',
   checkout: 'Completar pedido',
-  placeOrder: 'Ordenar',
+  placeOrder: 'Ir a pagar',
   yourName: 'Tu nombre',
   yourNamePlaceholder: '¿Cómo te llamas?',
   orderNotes: 'Notas',
@@ -510,13 +518,13 @@ const es: Translations = {
   deliveryMinimumMissing: 'Te falta agregar',
   maxReached: 'Máximo alcanzado',
   included: 'Incluido',
-  change: 'Cambiar',
-  done: 'Listo',
   itemNotesLabel: 'Alguna indicación',
   itemNotesPlaceholder: 'Ej: sin pepinillos, salsa aparte…',
   added: '✓ Agregado',
   updateItem: 'Actualizar',
   editItem: 'Editar producto',
+  chooseMore: (n) => `Elige ${n} más`,
+  groupDone: 'Listo',
   soldOut: 'Agotado',
   unavailable: 'No disponible',
   addedShort: 'Listo',
@@ -584,6 +592,7 @@ const es: Translations = {
   orderHistoryDesc: 'Ingresa el email que usaste al hacer tu pedido y veremos tus órdenes anteriores.',
   orderInvalidEmail: 'Ingresa un email válido',
   orderConnectionError: 'Error de conexión. Intenta de nuevo.',
+  orderHistoryNeedsToken: 'Por seguridad, abre "Mis pedidos" desde el enlace de tu último pedido, en el mismo teléfono donde lo hiciste.',
   orderNotFound: 'Sin pedidos encontrados',
   orderNotFoundDesc: 'No encontramos pedidos con ese email en',
   orderMakeOrder: 'Hacer un pedido',
@@ -720,6 +729,11 @@ const es: Translations = {
   closeCart: 'Cerrar carrito',
   confirmRemove: 'Confirmar eliminar',
   removeItem: 'Eliminar',
+  // CartPanel — undo toast + loyalty banner (mobile UX pass)
+  cartItemRemoved: 'Eliminado',
+  cartUndo: 'Deshacer',
+  loyaltyCartProgress: (points, left) => `${points} pts · ${left} más para canjear`,
+  loyaltyCartAvailable: (points) => `Tienes ${points} pts disponibles para canjear en el checkout`,
   // DeliveryMap
   mapDeliveryAddress: 'Dirección de entrega',
   mapRemaining: 'restantes',
@@ -779,7 +793,7 @@ const en: Translations = {
   discount: 'Discount',
   sendOrder: 'Place order',
   checkout: 'Complete order',
-  placeOrder: 'Place order',
+  placeOrder: 'Checkout',
   yourName: 'Your name',
   yourNamePlaceholder: 'What\'s your name?',
   orderNotes: 'Notes',
@@ -866,13 +880,13 @@ const en: Translations = {
   deliveryMinimumMissing: 'Add',
   maxReached: 'Max reached',
   included: 'Included',
-  change: 'Change',
-  done: 'Done',
   itemNotesLabel: 'Special instructions',
   itemNotesPlaceholder: 'e.g. no pickles, gravy on the side…',
   added: '✓ Added',
   updateItem: 'Update',
   editItem: 'Edit item',
+  chooseMore: (n) => `Choose ${n} more`,
+  groupDone: 'Done',
   soldOut: 'Sold out',
   unavailable: 'Unavailable',
   addedShort: 'Added',
@@ -940,6 +954,7 @@ const en: Translations = {
   orderHistoryDesc: 'Enter the email you used when placing your order and we will show your previous orders.',
   orderInvalidEmail: 'Please enter a valid email',
   orderConnectionError: 'Connection error. Please try again.',
+  orderHistoryNeedsToken: 'For your privacy, open "My orders" from the link of your latest order, on the same phone you ordered from.',
   orderNotFound: 'No orders found',
   orderNotFoundDesc: 'We could not find orders with that email at',
   orderMakeOrder: 'Place an order',
@@ -1076,6 +1091,11 @@ const en: Translations = {
   closeCart: 'Close cart',
   confirmRemove: 'Confirm remove',
   removeItem: 'Remove',
+  // CartPanel — undo toast + loyalty banner (mobile UX pass)
+  cartItemRemoved: 'Removed',
+  cartUndo: 'Undo',
+  loyaltyCartProgress: (points, left) => `${points} pts · ${left} more to redeem`,
+  loyaltyCartAvailable: (points) => `You have ${points} pts available to redeem at checkout`,
   // DeliveryMap
   mapDeliveryAddress: 'Delivery address',
   mapRemaining: 'away',

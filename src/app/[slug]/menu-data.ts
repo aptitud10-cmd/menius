@@ -6,6 +6,36 @@ import type { Restaurant, Category, Product } from '@/types';
 const logger = createLogger('menu-data');
 
 /**
+ * `.in('product_id', ids)` for a whole catalog, in chunks.
+ *
+ * PostgREST takes the id list in the URL. Buccaneer's 408 UUIDs made a
+ * 16,012-byte URL — a few bytes under Node's 16 KB request-header limit, and
+ * over it in some runtimes (UND_ERR_HEADERS_OVERFLOW). When it overflows the
+ * query fails, `data` is null, and every product silently gets
+ * has_modifiers=false: the menu still renders, but no burger can be made
+ * Deluxe. Chunks of 100 keep each URL around 4 KB however big the menu grows.
+ * A chunk that errors is logged and treated as empty, same as before.
+ */
+async function probeProductIds(
+  db: ReturnType<typeof createAdminClient>,
+  table: 'modifier_groups' | 'product_variants' | 'product_extras',
+  productIds: string[],
+): Promise<{ data: { product_id: string }[] }> {
+  const CHUNK = 100;
+  const chunks: string[][] = [];
+  for (let i = 0; i < productIds.length; i += CHUNK) chunks.push(productIds.slice(i, i + CHUNK));
+  const results = await Promise.all(
+    chunks.map((ids) => db.from(table).select('product_id').in('product_id', ids)),
+  );
+  const data: { product_id: string }[] = [];
+  for (const r of results) {
+    if (r.error) logger.error(`probe ${table} failed`, { error: r.error.message });
+    else data.push(...((r.data ?? []) as { product_id: string }[]));
+  }
+  return { data };
+}
+
+/**
  * Fetch all active restaurant slugs for generateStaticParams.
  * Called once at build time — no caching needed.
  */
@@ -167,9 +197,9 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       { data: extraRows },
     ] = productIds.length > 0
       ? await Promise.all([
-          db.from('modifier_groups').select('product_id').in('product_id', productIds),
-          db.from('product_variants').select('product_id').in('product_id', productIds),
-          db.from('product_extras').select('product_id').in('product_id', productIds),
+          probeProductIds(db, 'modifier_groups', productIds),
+          probeProductIds(db, 'product_variants', productIds),
+          probeProductIds(db, 'product_extras', productIds),
         ])
       : [
           { data: [] as { product_id: string }[] },

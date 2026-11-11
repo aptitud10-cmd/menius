@@ -281,6 +281,20 @@ export function CustomizationSheet({
   const [added, setAdded] = useState(false);
   const dragControls = useDragControls();
 
+  // Scrollable body + one wrapper per modifier group, so a tap on an
+  // incomplete Add button can bring the first unanswered group into view.
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+  const groupRefs = useRef(new Map<string, HTMLDivElement>());
+  const highlightRefs = useRef(new Map<string, HTMLDivElement>());
+  const [highlightGroupId, setHighlightGroupId] = useState<string | null>(null);
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    },
+    [],
+  );
+
   /**
    * Free-text note for this line ("no pickles", "gravy on the side").
    *
@@ -294,20 +308,6 @@ export function CustomizationSheet({
    * wide, and a note nobody can read on the line is worse than no note.
    */
   const [notes, setNotes] = useState(editItem?.notes ?? "");
-
-  // Groups the diner has explicitly reopened. Absence means collapsed, so a
-  // group that arrives already answered starts folded without extra
-  // bookkeeping — and one the diner has just opened stays open even after they
-  // pick, instead of snapping shut under their finger.
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const toggleGroupExpanded = useCallback((groupId: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
-    });
-  }, []);
 
   // Focus trap: save previously focused element, restore on unmount
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -386,17 +386,21 @@ export function CustomizationSheet({
     el.scrollBy({ left: dir === "left" ? -360 : 360, behavior: "smooth" });
   }, []);
 
-  // Validation — use Set to ensure each group name appears at most once
-  const validationErrorSet = new Set<string>();
+  // Validation — walks activeGroups in render order, so the first incomplete
+  // group found is also the first one the diner sees on screen.
+  const minRequiredFor = (g: ModifierGroup) =>
+    Math.max(g.is_required ? 1 : 0, g.min_select);
+  let missingCount = 0;
+  let firstIncompleteGroupId: string | null = null;
   for (const g of activeGroups) {
     const selected = selections[g.id] ?? [];
-    const minRequired = Math.max(g.is_required ? 1 : 0, g.min_select);
+    const minRequired = minRequiredFor(g);
     if (minRequired > 0 && selected.length < minRequired) {
-      validationErrorSet.add(g.name);
+      missingCount += minRequired - selected.length;
+      firstIncompleteGroupId ??= g.id;
     }
   }
-  const validationErrors = Array.from(validationErrorSet);
-  const isValid = validationErrors.length === 0;
+  const isValid = firstIncompleteGroupId === null;
 
   // Price calculation — from effectiveSelections, so options of a group the
   // customer can no longer see are not charged.
@@ -413,7 +417,7 @@ export function CustomizationSheet({
 
   const handleDragEnd = useCallback(
     (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      // Higher threshold — requires an intentional drag from the handle to close.
+      // Higher threshold — requires an intentional drag from the handle/header to close.
       if (info.offset.y > 160 || info.velocity.y > 700) {
         onClose();
       }
@@ -421,7 +425,27 @@ export function CustomizationSheet({
     [onClose],
   );
 
+  // The handle bar alone was a ~16px target; the header (title + close) is the
+  // natural place a thumb grabs a sheet. Pointer-downs on a button are left
+  // alone so the close X keeps working as a plain tap. The scrollable body never
+  // starts a drag — that gesture belongs to scrolling the options.
+  const startSheetDrag = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if ((e.target as HTMLElement).closest("button")) return;
+      dragControls.start(e);
+    },
+    [dragControls],
+  );
+
+  // Once the line is in the cart, any further change means the diner is
+  // building a different one: flip the CTA back to "Add · $X" so it can be
+  // added again instead of being stuck on "View cart".
+  const resetAdded = () => {
+    if (added) setAdded(false);
+  };
+
   const toggleOption = (group: ModifierGroup, option: ModifierOption) => {
+    resetAdded();
     setSelections((prev) => {
       const current = prev[group.id] ?? [];
       if (group.selection_type === "single") {
@@ -448,7 +472,64 @@ export function CustomizationSheet({
     });
   };
 
+  /**
+   * An incomplete CTA used to be disabled with "Choose: Style, Cheese, Side"
+   * — a list that overflowed the 52px button and, on a long sheet, named
+   * groups the diner could not see. A disabled button also gives no feedback
+   * when tapped. Now the tap itself is the guide: scroll to the first
+   * unanswered group, flash it, buzz (Android; iOS has no vibrate API).
+   */
+  const revealFirstIncompleteGroup = () => {
+    const id = firstIncompleteGroupId;
+    if (!id) return;
+    const container = bodyScrollRef.current;
+    const target = groupRefs.current.get(id);
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (container && target) {
+      // Offset relative to the sheet's own scroller — scrollIntoView would
+      // also scroll the page behind the sheet on iOS.
+      const delta =
+        target.getBoundingClientRect().top -
+        container.getBoundingClientRect().top;
+      container.scrollTo({
+        top: Math.max(0, container.scrollTop + delta - 8),
+        behavior: reduceMotion ? "auto" : "smooth",
+      });
+    }
+
+    navigator.vibrate?.(30);
+
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    setHighlightGroupId(id);
+    highlightTimer.current = setTimeout(() => setHighlightGroupId(null), 1500);
+
+    // Web Animations instead of a CSS class: it re-runs on every tap, even
+    // while the ring from the previous tap is still showing.
+    const shakeEl = highlightRefs.current.get(id);
+    if (shakeEl && !reduceMotion && typeof shakeEl.animate === "function") {
+      shakeEl.animate(
+        [
+          { transform: "translateX(0)" },
+          { transform: "translateX(-6px)" },
+          { transform: "translateX(6px)" },
+          { transform: "translateX(-4px)" },
+          { transform: "translateX(4px)" },
+          { transform: "translateX(0)" },
+        ],
+        // Delay lets the smooth scroll land first so the shake is seen.
+        { duration: 400, delay: 250, easing: "ease-in-out" },
+      );
+    }
+  };
+
   const handleSubmit = () => {
+    if (!isValid) {
+      revealFirstIncompleteGroup();
+      return;
+    }
     const modifierSelections: ModifierSelection[] = activeGroups
       .filter((g) => (effectiveSelections[g.id] ?? []).length > 0)
       .map((g) => ({ group: g, selectedOptions: effectiveSelections[g.id] }));
@@ -531,6 +612,7 @@ export function CustomizationSheet({
 
   const sheetBody = (
     <div
+      ref={bodyScrollRef}
       className="flex-1 overflow-y-auto overscroll-contain"
       style={
         {
@@ -703,99 +785,77 @@ export function CustomizationSheet({
           hasPricedOption &&
           !isUpgradeToggle;
 
-        /**
-         * A settled single-choice group folds down to one summary row.
-         *
-         * A Buccaneer burger carries up to six groups, and a diner scrolling
-         * past nine sides and six cheeses to reach the button is the real cost
-         * of a menu this configurable. Every group that already has its answer
-         * — because it came pre-selected, or because the diner just picked one
-         * — collapses to `Cheese: Pepperjack ✓ · Cambiar`, and reopens on tap.
-         *
-         * Groups the diner still has to answer never collapse: the point is to
-         * shorten what is done, not to hide what is pending.
-         */
-        const isSettled =
-          group.selection_type === "single" && selected.length === 1;
-        const isCollapsed = isSettled && !expandedGroups.has(group.id);
-
-        if (isCollapsed) {
-          const chosen = selected[0];
-          const delta = Number(chosen.price_delta);
-          return (
-            <div key={group.id} className="px-5 pt-5">
-              <button
-                onClick={() => toggleGroupExpanded(group.id)}
-                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50/60 text-left transition-colors hover:border-gray-300 active:border-gray-400"
-                aria-expanded="false"
-              >
-                <span className="flex items-baseline gap-2 min-w-0">
-                  <span className="text-[13px] font-bold text-gray-500 flex-shrink-0">
-                    {tName(group, locale, defaultLocale)}
-                  </span>
-                  <span className="text-[15px] font-medium text-gray-900 truncate">
-                    {tName(chosen, locale, defaultLocale)}
-                  </span>
-                  {delta === 0 && showsIncluded && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 flex-shrink-0">
-                      {t.included}
-                    </span>
-                  )}
-                  {delta !== 0 && (
-                    <span className="text-[13px] font-semibold text-gray-500 flex-shrink-0">
-                      {delta > 0 ? "+" : ""}
-                      {fmtPrice(delta)}
-                    </span>
-                  )}
-                </span>
-                <span className="text-[13px] font-semibold text-[#047a65] flex-shrink-0">
-                  {t.change}
-                </span>
-              </button>
-            </div>
-          );
-        }
+        // Every group stays open, always (Pedro 2026-11-11). Folding an answered
+        // group into a "Cheese: Pepperjack · Change" row hid the live choices
+        // behind an extra tap; the diner wants to see and switch options in place.
+        // A required group the diner has already answered turns its red
+        // "Choose 1" into a green tick: on a six-group burger the badges become
+        // a checklist of what is still missing instead of six identical alarms.
+        const minRequired = minRequiredFor(group);
+        const isSatisfied = minRequired > 0 && selected.length >= minRequired;
+        const isHighlighted = highlightGroupId === group.id;
+        const headingId = `cs-group-${group.id}`;
 
         return (
-          <div key={group.id} className="px-5 pt-5">
+          <div
+            key={group.id}
+            ref={(el) => {
+              if (el) groupRefs.current.set(group.id, el);
+              else groupRefs.current.delete(group.id);
+            }}
+            className="px-5 pt-5"
+          >
+            <div
+              ref={(el) => {
+                if (el) highlightRefs.current.set(group.id, el);
+                else highlightRefs.current.delete(group.id);
+              }}
+              className={cn(
+                "rounded-2xl transition-shadow duration-300",
+                isHighlighted && "ring-2 ring-red-400 ring-offset-4",
+              )}
+            >
             <div className="flex items-center gap-2 mb-3">
-              <h4 className="text-sm font-bold text-gray-900">
+              <h4 id={headingId} className="text-sm font-bold text-gray-900">
                 {tName(group, locale, defaultLocale)}
               </h4>
-              <span
-                className={cn(
-                  "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                  group.is_required
-                    ? "text-red-500 bg-red-50"
-                    : "text-gray-400 bg-gray-100",
-                )}
-              >
-                {getRuleLabel(group)}
-              </span>
+              {isSatisfied ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider text-[#047a65] bg-[#d0f7f1]">
+                  <Check className="w-3 h-3" strokeWidth={3} aria-hidden="true" />
+                  {t.groupDone}
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                    minRequired > 0
+                      ? "text-red-500 bg-red-50"
+                      : "text-gray-400 bg-gray-100",
+                  )}
+                >
+                  {getRuleLabel(group)}
+                </span>
+              )}
               {atMax && (
                 <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
                   {t.maxReached}
                 </span>
               )}
-              {/* Only offered once the group has an answer to fold down to. */}
-              {isSettled && (
-                <button
-                  onClick={() => toggleGroupExpanded(group.id)}
-                  className="ml-auto text-[12px] font-semibold text-gray-400 hover:text-gray-600 transition-colors"
-                  aria-expanded="true"
-                >
-                  {t.done}
-                </button>
-              )}
             </div>
             {group.display_type === "grid" ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div
+                role="group"
+                aria-labelledby={headingId}
+                className="grid grid-cols-2 gap-2"
+              >
                 {group.options.map((opt) => {
                   const isSelected = selected.some((o) => o.id === opt.id);
                   const isDisabled = !isSelected && atMax;
                   return (
                     <button
                       key={opt.id}
+                      type="button"
+                      aria-pressed={isSelected}
                       onClick={() => !isDisabled && toggleOption(group, opt)}
                       disabled={isDisabled}
                       className={cn(
@@ -818,11 +878,15 @@ export function CustomizationSheet({
                         )}
                         {tName(opt, locale, defaultLocale)}
                       </span>
+                      {/* Secondary text on the selected teal (#05c8a7) uses the
+                          dark ink at 80% (~5.1:1). The old #d0f7f1 / gray-300
+                          sat at ~1.4:1 — the price vanished exactly when the
+                          diner had just picked it. */}
                       {Number(opt.price_delta) !== 0 ? (
                         <span
                           className={cn(
                             "text-[11px] font-medium",
-                            isSelected ? "text-[#d0f7f1]" : "text-gray-400",
+                            isSelected ? "text-[#04241E]/80" : "text-gray-400",
                           )}
                         >
                           {Number(opt.price_delta) > 0 ? "+" : ""}
@@ -833,7 +897,7 @@ export function CustomizationSheet({
                           <span
                             className={cn(
                               "text-[10px] font-semibold uppercase tracking-wide",
-                              isSelected ? "text-[#d0f7f1]" : "text-gray-400",
+                              isSelected ? "text-[#04241E]/80" : "text-gray-400",
                             )}
                           >
                             {t.included}
@@ -845,13 +909,19 @@ export function CustomizationSheet({
                 })}
               </div>
             ) : (
-              <div className="space-y-2">
+              <div
+                role="group"
+                aria-labelledby={headingId}
+                className="space-y-2"
+              >
                 {group.options.map((opt) => {
                   const isSelected = selected.some((o) => o.id === opt.id);
                   const isDisabled = !isSelected && atMax;
                   return (
                     <button
                       key={opt.id}
+                      type="button"
+                      aria-pressed={isSelected}
                       onClick={() => !isDisabled && toggleOption(group, opt)}
                       disabled={isDisabled}
                       className={cn(
@@ -899,7 +969,7 @@ export function CustomizationSheet({
                         <span
                           className={cn(
                             "text-sm font-semibold",
-                            isSelected ? "text-gray-300" : "text-gray-500",
+                            isSelected ? "text-[#04241E]/80" : "text-gray-500",
                           )}
                         >
                           {Number(opt.price_delta) > 0 ? "+" : ""}
@@ -910,7 +980,7 @@ export function CustomizationSheet({
                           <span
                             className={cn(
                               "text-[11px] font-semibold uppercase tracking-wide",
-                              isSelected ? "text-[#d0f7f1]" : "text-gray-400",
+                              isSelected ? "text-[#04241E]/80" : "text-gray-400",
                             )}
                           >
                             {t.included}
@@ -922,6 +992,7 @@ export function CustomizationSheet({
                 })}
               </div>
             )}
+            </div>
           </div>
         );
       })}
@@ -942,7 +1013,10 @@ export function CustomizationSheet({
         <textarea
           id="item-notes"
           value={notes}
-          onChange={(e) => setNotes(e.target.value.slice(0, 200))}
+          onChange={(e) => {
+            resetAdded();
+            setNotes(e.target.value.slice(0, 200));
+          }}
           maxLength={200}
           rows={2}
           placeholder={t.itemNotesPlaceholder}
@@ -1075,7 +1149,10 @@ export function CustomizationSheet({
         <div className="flex items-center gap-3">
           <div className="flex items-center bg-gray-100 rounded-xl">
             <button
-              onClick={() => setQty(Math.max(1, qty - 1))}
+              onClick={() => {
+                resetAdded();
+                setQty(Math.max(1, qty - 1));
+              }}
               className="w-11 h-11 flex items-center justify-center rounded-l-xl active:bg-gray-200 transition-colors"
             >
               <Minus className="w-4 h-4 text-gray-600" />
@@ -1084,7 +1161,10 @@ export function CustomizationSheet({
               {qty}
             </span>
             <button
-              onClick={() => setQty(qty + 1)}
+              onClick={() => {
+                resetAdded();
+                setQty(qty + 1);
+              }}
               className="w-11 h-11 flex items-center justify-center rounded-r-xl active:bg-gray-200 transition-colors"
             >
               <Plus className="w-4 h-4 text-gray-600" />
@@ -1107,23 +1187,30 @@ export function CustomizationSheet({
               </button>
             </div>
           ) : (
+            // Never disabled: an incomplete tap scrolls to and flashes the
+            // first unanswered group (see revealFirstIncompleteGroup). The
+            // label stays one line — the missing-count truncates, the live
+            // price never does.
             <button
+              type="button"
               onClick={handleSubmit}
-              disabled={!isValid}
+              // ~195px wide on a 375px phone next to the stepper: 14px keeps
+              // "Choose 2 more · $12.50" whole; 16px would cut the count.
               className={cn(
-                "flex-1 h-[52px] rounded-2xl font-extrabold text-[16px] transition-all duration-200",
-                !isValid
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-[#05c8a7] text-[#04241E] active:scale-[0.98] shadow-sm hover:bg-[#04b096]",
+                "flex-1 min-w-0 h-[52px] px-3 flex items-center justify-center gap-1.5 rounded-2xl font-extrabold whitespace-nowrap bg-[#05c8a7] text-[#04241E] transition-all duration-200 active:scale-[0.98] shadow-sm hover:bg-[#04b096]",
+                isValid ? "text-[16px]" : "text-[14px]",
               )}
             >
-              {!isValid
-                ? locale === "es"
-                  ? `Selecciona: ${validationErrors.join(", ")}`
-                  : `Choose: ${validationErrors.join(", ")}`
-                : isEditing
-                  ? `${t.updateItem} · ${fmtPrice(unitPrice * qty)}`
-                  : `${t.add} · ${fmtPrice(unitPrice * qty)}`}
+              <span className="truncate">
+                {!isValid
+                  ? t.chooseMore(missingCount)
+                  : isEditing
+                    ? t.updateItem
+                    : t.add}
+              </span>
+              <span className="flex-shrink-0 tabular-nums">
+                · {fmtPrice(unitPrice * qty)}
+              </span>
             </button>
           )}
         </div>
@@ -1187,7 +1274,7 @@ export function CustomizationSheet({
             </div>
             <button
               onClick={onClose}
-              aria-label="Cerrar"
+              aria-label={t.close}
               className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1"
             >
               <X className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
@@ -1221,7 +1308,7 @@ export function CustomizationSheet({
           {/* Drag handle */}
           <div
             className="flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing flex-shrink-0"
-            onPointerDown={(e) => dragControls.start(e)}
+            onPointerDown={startSheetDrag}
             style={{ touchAction: "none" }}
           >
             <div className="w-10 h-1 rounded-full bg-gray-300" />
@@ -1229,8 +1316,13 @@ export function CustomizationSheet({
 
           {/* Header — large X, no back arrow. Altura fija 48px (h-12) para igualar
             el header del restaurante; nombre en sans extrabold tracking apretado
-            (Opción C) para mantener consistencia visual entre ambos headers. */}
-          <div className="flex items-center justify-between h-12 px-5 border-b border-gray-100 flex-shrink-0 bg-white z-10">
+            (Opción C) para mantener consistencia visual entre ambos headers.
+            Also a drag zone (startSheetDrag skips the close button). */}
+          <div
+            className="flex items-center justify-between h-12 px-5 border-b border-gray-100 flex-shrink-0 bg-white z-10 select-none"
+            onPointerDown={startSheetDrag}
+            style={{ touchAction: "none" }}
+          >
             <div className="min-w-0 flex-1">
               {isPreview && previewBadge}
               <h2
@@ -1242,7 +1334,7 @@ export function CustomizationSheet({
             </div>
             <button
               onClick={onClose}
-              aria-label="Cerrar"
+              aria-label={t.close}
               className="p-2 -mr-1 ml-3 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1"
             >
               <X className="w-6 h-6 text-gray-700" />

@@ -247,6 +247,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // True while the Apple/Google Pay sheet is open + charging, so the normal CTA
   // is disabled and the user can't submit a second order in parallel.
   const [walletPaying, setWalletPaying] = useState(false);
+  // UI-only: set right before handing off to the hosted payment page. The
+  // submit `finally` re-enables the CTA synchronously while the browser is still
+  // navigating away, so without this the button flashed back to "Confirm" and
+  // invited a second tap. Reset on bfcache restore (customer hit back).
+  const [redirectingToPay, setRedirectingToPay] = useState(false);
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => { if (e.persisted) setRedirectingToPay(false); };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
   // Double-tap confirm before removing last qty of an item
   const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
   const confirmRemoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -351,7 +361,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     if (paymentMethod === 'online') return;
     const tokenQs = trackingToken ? `?t=${encodeURIComponent(trackingToken)}` : '';
     trackRedirectTimer.current = setTimeout(() => {
-      router.push(`/${slug}/orden/${orderNumber}${tokenQs}`);
+      // replace, not push: the cart is already cleared, so "back" from the
+      // tracker must not land on an empty /checkout — it goes to the menu.
+      router.replace(`/${slug}/orden/${orderNumber}${tokenQs}`);
     }, 1000);
     return () => {
       if (trackRedirectTimer.current) {
@@ -398,7 +410,46 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount + (taxIncluded ? 0 : taxAmount));
   const displayTotal = serverQuote?.total ?? finalTotal;
 
-  const goBack = useCallback(() => router.push(`/${slug}`), [router, slug]);
+  // Did the customer reach /checkout by a client-side navigation from the menu
+  // (MenuShell's cart is the only in-app entry point)? Then the previous history
+  // entry IS the menu and "back" must pop it instead of pushing a duplicate —
+  // pushing left menu → checkout → menu, so the phone's back gesture bounced
+  // the customer into checkout again. Signals, checked once on mount:
+  //  - soft navigation: the document was first loaded on another path
+  //    (Next client navigations don't create a new navigation entry);
+  //  - or a full load whose same-origin referrer is the menu path.
+  // Anything else (deep link, refresh, return from a payment page) falls back
+  // to replace(), which never leaves a stale checkout entry behind.
+  const cameFromMenuRef = useRef(false);
+  useEffect(() => {
+    try {
+      const here = window.location.pathname;
+      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+      const softNav = !!nav && new URL(nav.name).pathname !== here;
+      let referrerIsMenu = false;
+      if (document.referrer) {
+        const ref = new URL(document.referrer);
+        referrerIsMenu =
+          ref.origin === window.location.origin &&
+          ref.pathname.replace(/\/$/, '') === here.replace(/\/checkout\/?$/, '');
+      }
+      cameFromMenuRef.current = (softNav || referrerIsMenu) && window.history.length > 1;
+    } catch {
+      cameFromMenuRef.current = false;
+    }
+  }, []);
+
+  const goBack = useCallback(() => {
+    if (cameFromMenuRef.current && window.history.length > 1) {
+      // The menu entry already carries its own ?table=.
+      router.back();
+      return;
+    }
+    // Keep the table context (QR dine-in) when rebuilding the menu URL — the
+    // same param MenuShell uses to send the customer here.
+    const table = new URLSearchParams(window.location.search).get('table') ?? useCartStore.getState().tableName;
+    router.replace(table ? `/${slug}?table=${encodeURIComponent(table)}` : `/${slug}`);
+  }, [router, slug]);
 
   const validateField = useCallback((name: string, value: string) => {
     let error = '';
@@ -737,6 +788,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       }
       // Online payment: redirect immediately — no need for order id in local state
       if (data.stripe_url) {
+        setRedirectingToPay(true);
         window.location.href = data.stripe_url;
         return;
       }
@@ -1412,11 +1464,17 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             {!restaurant.id.startsWith('demo') && orderNumber && (
               <a
                 href={`/${slug}/orden/${orderNumber}${trackingToken ? `?t=${encodeURIComponent(trackingToken)}` : ''}`}
-                onClick={() => {
+                onClick={(e) => {
                   if (trackRedirectTimer.current) {
                     clearTimeout(trackRedirectTimer.current);
                     trackRedirectTimer.current = null;
                   }
+                  // Same reason as the auto-redirect: replace the emptied
+                  // checkout entry. Stays a hard navigation (the fallback for
+                  // flaky connections), just without adding a history entry.
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  window.location.replace(e.currentTarget.href);
                 }}
                 className={cn(
                   'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation no-underline',
@@ -2117,21 +2175,26 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           )}
           <motion.button
             onClick={handleSubmitOrder}
-            disabled={submitting || networkRetrying || walletPaying || items.length === 0}
+            disabled={submitting || networkRetrying || walletPaying || redirectingToPay || items.length === 0}
             aria-label={t.placeOrderAriaLabel}
+            aria-busy={submitting || networkRetrying || redirectingToPay}
             animate={ctaShake ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : { x: 0 }}
             transition={{ duration: 0.5 }}
             className={cn(
               'w-full py-5 rounded-2xl text-[#04241E] font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 shadow-[0_4px_20px_rgba(5,200,167,0.35)]',
-              submitting || networkRetrying || items.length === 0 ? 'opacity-40 cursor-not-allowed bg-[#05c8a7]' : 'bg-[#05c8a7]',
+              // walletPaying included: the button was disabled during Apple/Google
+              // Pay but still looked tappable.
+              submitting || networkRetrying || walletPaying || redirectingToPay || items.length === 0 ? 'opacity-40 cursor-not-allowed bg-[#05c8a7]' : 'bg-[#05c8a7]',
             )}
           >
-            {submitting || networkRetrying ? (
+            {submitting || networkRetrying || redirectingToPay ? (
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                 {networkRetrying
                   ? t.retryingLabel
-                  : t.sending}
+                  : redirectingToPay
+                    ? t.redirecting
+                    : t.sending}
               </span>
             ) : (
               `${t.confirmOrder} · ${fmtPrice(displayTotal)}`
