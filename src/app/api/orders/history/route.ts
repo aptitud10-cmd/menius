@@ -76,7 +76,8 @@ export async function GET(request: NextRequest) {
     .limit(20);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Never echo the DB message to a public caller (it leaks schema details).
+    return NextResponse.json({ error: 'Could not load orders' }, { status: 500 });
   }
 
   // Authorized only if the caller presents a token of the MOST RECENT order
@@ -87,6 +88,17 @@ export async function GET(request: NextRequest) {
   const authorized = !!token && !!mostRecent
     && ((!!mostRecent.customer_token && token === mostRecent.customer_token)
       || (!!mostRecent.driver_tracking_token && token === mostRecent.driver_tracking_token));
+
+  // No token, no history (Pedro 2026-11-11). The degraded list still told anyone
+  // who knew an email what that person ordered, when, and for how much. The
+  // response is identical whether or not the email has orders, so it can't be
+  // used to probe which emails are customers.
+  if (!authorized) {
+    return NextResponse.json(
+      { error: 'Open "My orders" from the link of your latest order.', code: 'NEEDS_TOKEN' },
+      { status: 403 },
+    );
+  }
 
   const normalized = (orders ?? []).map((o: any) => {
     const items = (o.order_items ?? []).map((item: any) => ({

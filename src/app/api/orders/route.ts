@@ -500,16 +500,28 @@ export async function POST(request: NextRequest) {
     for (const item of parsed.data.items) {
       const dbProduct = productMap.get(item.product_id);
       if (!dbProduct) {
+        // Name the item and return its id so the client can drop it from a stale
+        // cart instead of leaving the customer stuck on a generic error.
         return NextResponse.json(
           {
-            error: "Producto no encontrado o no pertenece a este restaurante.",
+            error: en
+              ? "An item in your cart is no longer on the menu. Remove it and try again."
+              : "Un producto de tu carrito ya no está en el menú. Quitalo e intentá de nuevo.",
+            code: "PRODUCT_UNAVAILABLE",
+            product_id: item.product_id,
           },
           { status: 400 },
         );
       }
       if (dbProduct.in_stock === false) {
         return NextResponse.json(
-          { error: "Uno de los productos está agotado." },
+          {
+            error: en
+              ? `"${dbProduct.name}" is sold out. Remove it and try again.`
+              : `"${dbProduct.name}" está agotado. Quitalo e intentá de nuevo.`,
+            code: "PRODUCT_SOLD_OUT",
+            product_id: item.product_id,
+          },
           { status: 400 },
         );
       }
@@ -556,6 +568,20 @@ export async function POST(request: NextRequest) {
             product: item.product_id,
             dropped,
           });
+          // Refuse instead of silently dropping: a removed option may be a paid
+          // extra the customer expects ("Extra cheese +$0.75") — billing less and
+          // sending the kitchen a different dish than the one ordered is worse
+          // than asking them to re-pick it.
+          return NextResponse.json(
+            {
+              error: en
+                ? `The options for "${dbProduct.name}" changed. Remove it and add it again.`
+                : `Cambiaron las opciones de "${dbProduct.name}". Quitalo y agregalo de nuevo.`,
+              code: "MODIFIERS_CHANGED",
+              product_id: item.product_id,
+            },
+            { status: 409 },
+          );
         }
         (item as Record<string, unknown>).modifiers = canonical;
       }

@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
   if (!restaurantId || !UUID_RE.test(restaurantId)) {
     return NextResponse.json({ error: 'Invalid restaurant_id' }, { status: 400 });
   }
-  if (!phone || phone.length < 7) {
+  // 10+ digits and an ENDS-WITH match (phones are stored E.164, digits only
+  // after '+'). The old 7-digit substring match let anyone pull another
+  // customer's last order and notes by guessing part of a number.
+  if (!phone || phone.length < 10) {
     return NextResponse.json({ error: 'Phone number required' }, { status: 400 });
   }
 
@@ -47,7 +50,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('restaurant_id', restaurantId)
-      .ilike('customer_phone', `%${phone.slice(-10)}%`)
+      .like('customer_phone', `%${phone.slice(-10)}`)
       .in('status', ['delivered', 'ready', 'confirmed', 'preparing'])
       .order('created_at', { ascending: false })
       .limit(1)

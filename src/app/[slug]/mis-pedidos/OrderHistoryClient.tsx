@@ -76,6 +76,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
         `/api/orders/history?restaurant_id=${encodeURIComponent(restaurantId)}&email=${encodeURIComponent(trimmed)}${token ? `&t=${encodeURIComponent(token)}` : ''}`
       );
       const data = await res.json();
+      if (res.status === 403 && data.code === 'NEEDS_TOKEN') { setError(t.orderHistoryNeedsToken); return; }
       if (!res.ok) { setError(data.error ?? t.orderConnectionError); return; }
       setOrders(data.orders);
     } catch {
