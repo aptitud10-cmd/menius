@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { C, money } from '@/components/orders/counter/ui';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { haversineKm } from '@/lib/orders/eta';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 
 type GpsStatus = 'idle' | 'sharing' | 'error' | 'unsupported';
@@ -153,7 +154,9 @@ export type RouteCtx = {
   total: number;
   /** Tokens que siguen recibiendo GPS (paradas sin entregar). */
   gpsTokens: string[];
-  upcoming: { shortNum: string; address: string | null }[];
+  upcoming: { token: string; shortNum: string; address: string | null; lat: number | null; lng: number | null }[];
+  /** El repartidor va a otra parada primero: pasa a ser la actual. */
+  onGoTo: (token: string) => void;
   /** La parada terminó (entregada, cancelada o cerrada por el mostrador). */
   onStopDone: () => void;
   /** Mandarla al final de la ruta. */
@@ -189,6 +192,10 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderCancelled, setOrderCancelled] = useState(false);
   const [info, setInfo] = useState<DriverOrderInfo | null>(null);
+  /** Dónde queda esta entrega (si el cliente eligió la dirección sugerida). */
+  const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null);
+  /** "Llegué" lejos de esta parada pero al lado de otra del viaje. */
+  const [wrongStop, setWrongStop] = useState<RouteCtx['upcoming'][number] | null>(null);
   // Prueba de entrega ANTES de cerrar: foto (lo dejó en la puerta) o "en la mano".
   const [handedInPerson, setHandedInPerson] = useState(false);
   const [problemOpen, setProblemOpen] = useState(false);
@@ -231,6 +238,8 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
           restaurantPhone: data.restaurantPhone ?? null,
         });
         if (data.deliveryPhotoUrl) setPhotoUrl(data.deliveryPhotoUrl);
+        const dLat = Number(data.deliveryLat), dLng = Number(data.deliveryLng);
+        if (data.deliveryLat != null && Number.isFinite(dLat) && Number.isFinite(dLng)) setDestCoords({ lat: dLat, lng: dLng });
         const cancelled = data.orderStatus === 'cancelled';
         if (cancelled) setOrderCancelled(true);
 
@@ -518,7 +527,15 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
     }
   };
 
-  const handleAtDoor = async () => {
+  const handleAtDoor = async (confirmed = false) => {
+    // Ruta: si el GPS dice que está en OTRA parada del viaje (y lejos de esta),
+    // se pregunta antes de avisarle "en tu puerta" al cliente equivocado.
+    const here = lastSendRef.current;
+    if (!confirmed && route && here) {
+      const distM = (p: { lat: number; lng: number }) => haversineKm(here.lat, here.lng, p.lat, p.lng) * 1000;
+      const other = route.upcoming.find((u) => u.lat != null && u.lng != null && distM({ lat: u.lat, lng: u.lng }) < 150);
+      if (other && (!destCoords || distM(destCoords) > 300)) { setWrongStop(other); return; }
+    }
     const ok = await callDriverStatus('at_door');
     if (ok) setDeliveryStep('at_door');
   };
@@ -746,20 +763,26 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
               <a href={`https://waze.com/ul?q=${encodeURIComponent(deliveryAddress)}&navigate=yes`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Waze</a>
             </p>
             <p className="text-center text-[12px]" style={{ color: C.faint }}>{t.mapsHint}</p>
+            {/* Lo que sigue. Si va a otra primero (la más cercana, la que conoce),
+                la toca y pasa a ser la actual: así "Llegué" avisa al cliente correcto. */}
             {route && route.upcoming.length > 0 && (
-              <section className="rounded-[18px] p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>{t.en ? 'Then' : 'Después'}</p>
-                <ol className="grid gap-1.5">
-                  {route.upcoming.map((u, i) => (
-                    <li key={i} className="flex gap-2 text-[14px] min-w-0">
-                      <b className="tabular-nums flex-shrink-0">{u.shortNum}</b>
-                      <span className="truncate" style={{ color: C.sub }}>{u.address}</span>
+              <section className="rounded-[18px] bg-white overflow-hidden" style={{ border: `1px solid ${C.line}` }}>
+                <p className="px-4 pt-3 pb-1 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>
+                  {t.en ? 'Then · going to another first? Tap it' : 'Después · ¿vas a otra primero? Tócala'}
+                </p>
+                <ol>
+                  {route.upcoming.map((u) => (
+                    <li key={u.token}>
+                      <button type="button" onClick={() => route.onGoTo(u.token)}
+                        className="w-full min-h-[52px] px-4 py-2 flex items-center gap-2 text-left text-[14px] border-t active:bg-black/5"
+                        style={{ borderColor: C.line }}>
+                        <b className="tabular-nums flex-shrink-0">{u.shortNum}</b>
+                        <span className="truncate flex-1" style={{ color: C.sub }}>{u.address}</span>
+                        <span className="flex-shrink-0 text-[13px] font-bold" style={{ color: C.ink }}>{t.en ? 'Go first' : 'Ir primero'} ›</span>
+                      </button>
                     </li>
                   ))}
                 </ol>
-                <button type="button" onClick={route.onSkip} className="justify-self-start text-[13px] font-semibold underline underline-offset-4 py-1" style={{ color: C.sub }}>
-                  {t.en ? 'Skip this stop — deliver it last' : 'Saltar esta parada: la entrego al final'}
-                </button>
               </section>
             )}
           </>
@@ -833,12 +856,36 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
               <PrimaryButton loading={actionLoading} onClick={handlePickedUp} tone="green">{t.pickedUpBtn}</PrimaryButton>
             )}
             {deliveryStep === 'picked_up' && (
-              <PrimaryButton loading={actionLoading} onClick={handleAtDoor} tone="black">{t.atDoorBtn}</PrimaryButton>
+              <PrimaryButton loading={actionLoading} onClick={() => handleAtDoor()} tone="black">{t.atDoorBtn}</PrimaryButton>
             )}
             {deliveryStep === 'at_door' && (
               <SwipeToConfirm loading={actionLoading} disabled={!proofReady} onConfirm={handleDelivered}
                 label={proofReady ? t.slideDone : t.slideLocked} />
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Ruta: "Llegué" con el GPS al lado de otra parada */}
+      {wrongStop && route && (
+        <div className="fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label={t.en ? 'Which stop are you at?' : '¿En qué parada estás?'}>
+          <button type="button" aria-label={t.close} className="absolute inset-0 w-full h-full" style={{ background: 'rgba(14,20,18,0.45)' }} onClick={() => setWrongStop(null)} />
+          <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-3xl px-4 pt-3 grid gap-2 max-w-md mx-auto" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
+            <span className="w-10 h-1 rounded-full mx-auto mb-1" style={{ background: C.line }} />
+            <h2 className="font-display text-[22px] font-extrabold leading-tight">
+              {t.en ? `Are you at ${wrongStop.shortNum}?` : `¿Estás en ${wrongStop.shortNum}?`}
+            </h2>
+            <p className="text-[14px] mb-1" style={{ color: C.sub }}>
+              {t.en ? `Your location is next to ${wrongStop.address}, not this stop.` : `Tu ubicación está al lado de ${wrongStop.address}, no de esta parada.`}
+            </p>
+            <button type="button" onClick={() => { const s = wrongStop; setWrongStop(null); route.onGoTo(s.token); }}
+              className="h-14 rounded-2xl text-white text-[16px] font-extrabold" style={{ background: C.black }}>
+              {t.en ? `Yes, I'm at ${wrongStop.shortNum}` : `Sí, estoy en ${wrongStop.shortNum}`}
+            </button>
+            <button type="button" onClick={() => { setWrongStop(null); void handleAtDoor(true); }}
+              className="h-14 rounded-2xl text-[16px] font-bold" style={{ border: `1px solid ${C.line}` }}>
+              {t.en ? `No, I'm at ${shortNum}` : `No, estoy en ${shortNum}`}
+            </button>
           </div>
         </div>
       )}

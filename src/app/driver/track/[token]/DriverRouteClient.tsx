@@ -46,6 +46,8 @@ type Stop = {
   cancelled: boolean;
   /** Su QR ya no sirve (reasignado a otro repartidor, vencido): sale del viaje. */
   gone?: boolean;
+  lat: number | null;
+  lng: number | null;
   restaurantName: string | null;
 };
 
@@ -70,7 +72,9 @@ const writeRoute = (tokens: string[]) => writeJSON(STORE_KEY, { tokens, at: Date
 const goneStop = (token: string): Stop => ({
   token, restaurantId: null, orderNumber: null, customerName: null, address: null, total: 0, currency: 'USD',
   collectCash: false, status: 'gone', pickedUp: false, delivered: false, cancelled: false, gone: true, restaurantName: null,
+  lat: null, lng: null,
 });
+const num = (v: unknown) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
 
 /** null = sin red (se reintenta); gone = el QR ya no sirve. */
 async function fetchStop(token: string): Promise<Stop | null> {
@@ -94,6 +98,8 @@ async function fetchStop(token: string): Promise<Stop | null> {
       delivered: !!d.driverDeliveredAt || closed,
       cancelled: d.orderStatus === 'cancelled',
       restaurantName: d.restaurantName ?? null,
+      lat: num(d.deliveryLat),
+      lng: num(d.deliveryLng),
     };
   } catch { return null; }
 }
@@ -386,6 +392,17 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
     void saveRoute([...pending, current]);
   }, [route, current, stops, commit]);
 
+  // Va a otra parada primero (la más cercana, o la que él decide): pasa a ser
+  // la actual y los clientes ven bien cuántas entregas van antes de la suya.
+  const onGoTo = useCallback((t: string) => {
+    if (!route || !current || t === current) return;
+    const done = route.filter((x) => isDone(stops[x]));
+    const pending = route.filter((x) => !isDone(stops[x]) && x !== t);
+    commit([...done, t, ...pending]);
+    void saveRoute([t, ...pending]);
+    if (navigator.vibrate) navigator.vibrate(40);
+  }, [route, current, stops, commit]);
+
   const routeCtx: RouteCtx | undefined = useMemo(() => {
     if (!route || route.length < 2 || !current) return undefined;
     const pendingAfter = route.slice(currentIndex + 1).filter((t) => !isDone(stops[t]));
@@ -393,11 +410,15 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
       index: currentIndex,
       total: route.length,
       gpsTokens: route.filter((t) => !isDone(stops[t])),
-      upcoming: pendingAfter.map((t) => ({ shortNum: shortNum(stops[t]?.orderNumber), address: stops[t]?.address ?? null })),
+      upcoming: pendingAfter.map((t) => ({
+        token: t, shortNum: shortNum(stops[t]?.orderNumber), address: stops[t]?.address ?? null,
+        lat: stops[t]?.lat ?? null, lng: stops[t]?.lng ?? null,
+      })),
       onStopDone,
       onSkip,
+      onGoTo,
     };
-  }, [route, current, currentIndex, stops, onStopDone, onSkip]);
+  }, [route, current, currentIndex, stops, onStopDone, onSkip, onGoTo]);
 
   // ───────────────────────── Render ─────────────────────────
 
