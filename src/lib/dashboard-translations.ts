@@ -1393,7 +1393,7 @@ const es: DashboardTranslations = {
     "Toca Instalar. Es gratis.",
   counter_hub_installStep3: "Una vez instalada, abre la app MENIUS Counter.",
   counter_hub_installStep4:
-    "Inicia sesión con tu cuenta de MENIUS. La app se conecta automáticamente a tus órdenes.",
+    "La tablet muestra un código. Escanéalo con tu celular (o toca \"Conectar una tablet\" aquí) y apruébalo. Desde ahí abre el Counter sola, sin pedir login.",
   counter_hub_hardwareTitle: "Hardware recomendado",
   counter_hub_tabletLabel: "Tablet",
   counter_hub_printerLabel: "Impresora térmica",
@@ -2778,7 +2778,7 @@ const en: DashboardTranslations = {
     "Tap Install. It's free.",
   counter_hub_installStep3: "Once installed, open the MENIUS Counter app.",
   counter_hub_installStep4:
-    "Sign in with your MENIUS account. The app connects automatically to your orders.",
+    "The tablet shows a code. Scan it with your phone (or tap \"Connect a tablet\" here) and approve it. From then on it opens the Counter by itself, no sign-in needed.",
   counter_hub_hardwareTitle: "Recommended hardware",
   counter_hub_tabletLabel: "Tablet",
   counter_hub_printerLabel: "Thermal printer",

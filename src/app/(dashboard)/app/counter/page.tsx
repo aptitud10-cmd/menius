@@ -8,13 +8,12 @@ import { renderStyledQR } from '@/lib/styled-qr';
 import { ConnectedTablets } from '@/components/device/ConnectedTablets';
 
 /**
- * Link de la app en Google Play. null = todavía no publicada: la tarjeta muestra
- * "Próximamente" y la opción recomendada pasa a ser el Counter en el navegador.
- * (El APK que había acá vivía en Expo y daba 400 — un cliente nuevo tocaba
- * "Descargar" y veía un error.) Al publicar, pegar acá
- * 'https://play.google.com/store/apps/details?id=com.menius.counter'.
+ * Link de la app en Google Play (aprobada en producción 2026-11-11).
+ * null = no publicada: la tarjeta muestra "Próximamente" y la opción
+ * recomendada pasa a ser el Counter en el navegador.
  */
-const PLAY_STORE_URL: string | null = null;
+const PLAY_STORE_URL: string | null =
+  'https://play.google.com/store/apps/details?id=com.menius.counter';
 
 export default function CounterHubPage() {
   const { t } = useDashboardLocale();
@@ -108,7 +107,7 @@ export default function CounterHubPage() {
                 <p className="text-[11px] text-gray-400 text-center leading-relaxed">{t.counter_hub_scanQrDesc}</p>
               </div>
 
-              <div className="mt-auto">
+              <div className="mt-auto flex flex-col gap-2">
                 <a
                   href={PLAY_STORE_URL}
                   target="_blank"
@@ -118,6 +117,14 @@ export default function CounterHubPage() {
                   <Download className="w-4 h-4" />
                   {t.counter_hub_downloadApk}
                 </a>
+                {/* La app abre en /connect con un código: se aprueba acá */}
+                <Link
+                  href="/link"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  <Tablet className="w-4 h-4" />
+                  {t.counter_hub_linkTablet}
+                </Link>
               </div>
             </>
           ) : (
