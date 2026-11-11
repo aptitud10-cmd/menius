@@ -62,7 +62,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
     return (
       <section className="mt-8 mb-6">
         <div className="bg-[#e6faf7] border border-[#b3efe6] rounded-2xl p-6 text-center">
-          <CheckCircle className="w-10 h-10 text-[#05c8a7] mx-auto mb-3" />
+          <CheckCircle className="w-10 h-10 text-[#047a65] mx-auto mb-3" />
           <h3 className="text-base font-bold text-[#047a65]">
             {t.reservationSubmitted}
           </h3>
@@ -77,7 +77,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
   return (
     <section className="mt-8 mb-6">
       <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-        <CalendarDays className="w-4 h-4 text-[#05c8a7]" />
+        <CalendarDays className="w-4 h-4 text-[#047a65]" />
         {t.reserveTable}
       </h3>
 

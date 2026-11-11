@@ -170,7 +170,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
               {itemCount}
             </motion.span>
             {itemCount > 0 && (
-              <span className="text-sm font-bold text-[#05c8a7] tabular-nums">{fmtPrice(itemTotal)}</span>
+              <span className="text-sm font-bold text-[#047a65] tabular-nums">{fmtPrice(itemTotal)}</span>
             )}
           </div>
         </div>

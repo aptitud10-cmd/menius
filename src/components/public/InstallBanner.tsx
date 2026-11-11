@@ -107,7 +107,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
             <button
               onClick={handleInstall}
               disabled={installing}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#05c8a7] hover:bg-[#04b096] active:scale-[0.98] text-white text-sm font-semibold transition-all disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#05c8a7] hover:bg-[#04b096] active:scale-[0.98] text-[#04241E] text-sm font-semibold transition-all disabled:opacity-60"
             >
               <Download className="w-4 h-4" />
               {installing ? t.installInstalling : t.installAdd}

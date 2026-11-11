@@ -1442,7 +1442,7 @@ export function MenuShell({
             ? "bg-amber-500 text-white shadow-sm"
             : "bg-white border border-gray-200 text-gray-600 active:bg-gray-50"
           : isActive
-            ? "bg-[#05c8a7] text-white shadow-sm"
+            ? "bg-[#05c8a7] text-[#04241E] shadow-sm"
             : "bg-white border border-gray-200 text-gray-600 active:bg-gray-50",
       )}
     >
@@ -1722,7 +1722,7 @@ export function MenuShell({
             className={cn(
               "flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap border transition-colors",
               isActive
-                ? "bg-[#05c8a7] border-[#05c8a7] text-white"
+                ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E]"
                 : "bg-white border-gray-200 text-gray-600 active:bg-gray-100",
             )}
           >
@@ -1885,7 +1885,7 @@ export function MenuShell({
                     <div className="flex items-center gap-4 mt-2 text-sm text-white/70">
                       {restaurant.address && (
                         <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[#05c8a7]" />
+                          <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[#047a65]" />
                           <span className="truncate max-w-[240px]">
                             {restaurant.address}
                           </span>
@@ -1908,7 +1908,7 @@ export function MenuShell({
                           const is24h =
                             dh.open === "00:00" && dh.close === "23:59";
                           return (
-                            <span className="inline-flex items-center gap-1.5 text-[#05c8a7] font-medium">
+                            <span className="inline-flex items-center gap-1.5 text-[#047a65] font-medium">
                               <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                               {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
                             </span>
@@ -2056,7 +2056,7 @@ export function MenuShell({
                   <div className="mx-4 lg:mx-8 mt-3 lg:mt-5 flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6]">
                     <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
                       <RotateCcw
-                        className="w-4 h-4 text-[#05c8a7]"
+                        className="w-4 h-4 text-[#047a65]"
                         strokeWidth={2.5}
                       />
                     </div>
@@ -2064,7 +2064,7 @@ export function MenuShell({
                       <p className="text-sm font-semibold text-[#047a65]">
                         {t.reorderLastOrder}
                       </p>
-                      <p className="text-xs text-[#05c8a7] truncate mt-0.5">
+                      <p className="text-xs text-[#047a65] truncate mt-0.5">
                         {lastOrder!.items
                           .map((i) => `${i.qty}× ${i.productName}`)
                           .join(" · ")}
@@ -2072,13 +2072,13 @@ export function MenuShell({
                     </div>
                     <button
                       onClick={handleReorder}
-                      className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-[#05c8a7] text-white text-xs font-bold active:scale-95 transition-transform"
+                      className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-[#05c8a7] text-[#04241E] text-xs font-bold active:scale-95 transition-transform"
                     >
                       {t.addToCart}
                     </button>
                     <button
                       onClick={() => setReorderDismissed(true)}
-                      className="flex-shrink-0 p-1.5 text-[#05c8a7] hover:text-[#047a65] transition-colors"
+                      className="flex-shrink-0 p-1.5 text-[#047a65] hover:text-[#047a65] transition-colors"
                       aria-label={t.cancel}
                     >
                       <X className="w-4 h-4" />
@@ -2165,7 +2165,7 @@ export function MenuShell({
                                 dh.open === "00:00" && dh.close === "23:59";
                               return (
                                 <span
-                                  className={`inline-flex items-center gap-1.5 ${is24h ? "text-[#05c8a7] font-medium" : ""}`}
+                                  className={`inline-flex items-center gap-1.5 ${is24h ? "text-[#047a65] font-medium" : ""}`}
                                 >
                                   <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                                   {is24h
@@ -2461,7 +2461,7 @@ export function MenuShell({
                       <p className="font-medium">{t.noDietMatch}</p>
                       <button
                         onClick={() => setActiveDiet(null)}
-                        className="mt-1 text-sm text-[#05c8a7] font-semibold hover:text-[#047a65] transition-colors"
+                        className="mt-1 text-sm text-[#047a65] font-semibold hover:text-[#047a65] transition-colors"
                       >
                         {t.viewFullMenu}
                       </button>
@@ -2485,7 +2485,7 @@ export function MenuShell({
                         </span>
                         <button
                           onClick={() => setActiveDiet(null)}
-                          className="ml-auto text-sm text-[#05c8a7] font-semibold hover:text-[#047a65] transition-colors"
+                          className="ml-auto text-sm text-[#047a65] font-semibold hover:text-[#047a65] transition-colors"
                         >
                           {t.viewFullMenu}
                         </button>
@@ -2579,7 +2579,7 @@ export function MenuShell({
                                           <span className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight">
                                             {item.name}
                                           </span>
-                                          <span className="text-[11px] font-bold text-[#05c8a7] tabular-nums">
+                                          <span className="text-[11px] font-bold text-[#047a65] tabular-nums">
                                             {fmtPrice(item.price)}
                                           </span>
                                         </button>
@@ -2640,7 +2640,7 @@ export function MenuShell({
                                               <span className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight">
                                                 {item.name}
                                               </span>
-                                              <span className="text-[11px] font-bold text-[#05c8a7] tabular-nums">
+                                              <span className="text-[11px] font-bold text-[#047a65] tabular-nums">
                                                 {fmtPrice(item.price)}
                                               </span>
                                             </button>
@@ -3000,7 +3000,7 @@ export function MenuShell({
                         {restaurant.address && (
                           <div className="flex items-start gap-3">
                             <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
-                              <MapPin className="w-4 h-4 text-[#05c8a7]" />
+                              <MapPin className="w-4 h-4 text-[#047a65]" />
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-gray-900">
@@ -3017,7 +3017,7 @@ export function MenuShell({
                                 }
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#05c8a7] hover:text-[#047a65] mt-1.5 transition-colors"
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#047a65] hover:text-[#047a65] mt-1.5 transition-colors"
                               >
                                 {t.getDirections}
                                 <svg
@@ -3076,7 +3076,7 @@ export function MenuShell({
                             return (
                               <div className="flex items-start gap-3">
                                 <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
-                                  <Clock className="w-4 h-4 text-[#05c8a7]" />
+                                  <Clock className="w-4 h-4 text-[#047a65]" />
                                 </div>
                                 <div>
                                   <p className="text-sm font-semibold text-gray-900">
@@ -3089,7 +3089,7 @@ export function MenuShell({
                                     {todayHours && !todayHours.closed ? (
                                       todayHours.open === "00:00" &&
                                       todayHours.close === "23:59" ? (
-                                        <span className="text-[#05c8a7] font-medium">
+                                        <span className="text-[#047a65] font-medium">
                                           {t.open24h}
                                         </span>
                                       ) : (
@@ -3108,7 +3108,7 @@ export function MenuShell({
                           <div className="flex items-start gap-3">
                             <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
                               <svg
-                                className="w-4 h-4 text-[#05c8a7]"
+                                className="w-4 h-4 text-[#047a65]"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -3127,7 +3127,7 @@ export function MenuShell({
                               </p>
                               <a
                                 href={`tel:${restaurant.phone}`}
-                                className="text-sm text-[#05c8a7] font-medium hover:text-[#047a65] transition-colors mt-0.5 block"
+                                className="text-sm text-[#047a65] font-medium hover:text-[#047a65] transition-colors mt-0.5 block"
                               >
                                 {restaurant.phone}
                               </a>
@@ -3313,7 +3313,7 @@ export function MenuShell({
                 <div className="max-w-lg mx-auto pointer-events-auto">
                   <button
                     onClick={() => setOpen(true)}
-                    className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-[#05c8a7] text-white shadow-[0_8px_30px_rgba(5,200,167,0.4)] active:scale-[0.98] transition-transform"
+                    className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-[#05c8a7] text-[#04241E] shadow-[0_8px_30px_rgba(5,200,167,0.4)] active:scale-[0.98] transition-transform"
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative">
@@ -3327,7 +3327,7 @@ export function MenuShell({
                             stiffness: 400,
                             damping: 20,
                           }}
-                          className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-[#05c8a7] text-[10px] font-extrabold px-1"
+                          className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-[#04241E] text-white text-[10px] font-extrabold px-1"
                         >
                           {cartCount}
                         </motion.span>
@@ -3765,7 +3765,7 @@ export function MenuShell({
         {cartResumeShown && !toastName && (
           <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none">
             <button
-              className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#05c8a7] text-white text-sm font-semibold shadow-lg active:scale-95 transition-transform"
+              className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#05c8a7] text-[#04241E] text-sm font-semibold shadow-lg active:scale-95 transition-transform"
               onClick={() => {
                 setCartResumeShown(false);
                 setOpen(true);

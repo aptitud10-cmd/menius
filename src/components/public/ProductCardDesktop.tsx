@@ -160,7 +160,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-[#05c8a7] text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
+              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-[#05c8a7] text-[#04241E] text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
             >
               {cartQty}
             </motion.span>
@@ -202,7 +202,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-[#05c8a7] text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
+              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-[#05c8a7] text-[#04241E] text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
             >
               {cartQty}
             </motion.span>
@@ -260,7 +260,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
                 <Ban className="w-3 h-3" /> {labelSoldOut}
               </span>
             ) : hasModifiers ? (
-              <span className="inline-flex items-center gap-0.5 text-xs text-[#05c8a7] font-medium">
+              <span className="inline-flex items-center gap-0.5 text-xs text-[#047a65] font-medium">
                 {customizeLabel}
                 <ChevronRight className="w-3 h-3" />
               </span>
@@ -279,7 +279,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
                 'relative z-10 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]',
                 justAdded
                   ? 'bg-[#04b096] text-white shadow-lg shadow-[#05c8a7]/25 scale-105'
-                  : 'bg-[#05c8a7] text-white hover:bg-[#04b096] hover:shadow-md'
+                  : 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096] hover:shadow-md'
               )}
             >
               {justAdded ? (

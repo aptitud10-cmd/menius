@@ -113,7 +113,7 @@ export const ProductRow = memo(function ProductRow({
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="mt-px min-w-[20px] h-5 px-1.5 rounded-full bg-[#05c8a7] text-white text-[11px] font-extrabold flex items-center justify-center tabular-nums leading-none flex-shrink-0"
+              className="mt-px min-w-[20px] h-5 px-1.5 rounded-full bg-[#05c8a7] text-[#04241E] text-[11px] font-extrabold flex items-center justify-center tabular-nums leading-none flex-shrink-0"
             >
               {cartQty}
             </motion.span>
@@ -201,7 +201,7 @@ export const ProductRow = memo(function ProductRow({
             whileTap={{ scale: 0.88 }}
             className={cn(
               'w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 pointer-events-none',
-              justAdded ? 'bg-[#05c8a7] text-white' : 'bg-[#e6faf7] text-[#047a65] hover:bg-[#d0f7f1]'
+              justAdded ? 'bg-[#05c8a7] text-[#04241E]' : 'bg-[#e6faf7] text-[#047a65] hover:bg-[#d0f7f1]'
             )}
           >
             {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}

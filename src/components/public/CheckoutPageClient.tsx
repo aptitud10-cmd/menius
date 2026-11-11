@@ -1040,7 +1040,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
           <h2 className="text-lg font-bold text-gray-900 mb-1">{t.cartEmpty}</h2>
           <p className="text-sm text-gray-500 text-center mb-6">{t.cartEmptyDesc}</p>
-          <button onClick={goBack} className="px-6 py-3 rounded-xl bg-[#05c8a7] text-white font-semibold text-sm active:scale-[0.98] transition-all">
+          <button onClick={goBack} className="px-6 py-3 rounded-xl bg-[#05c8a7] text-[#04241E] font-semibold text-sm active:scale-[0.98] transition-all">
             {t.backToMenu}
           </button>
         </div>
@@ -1300,7 +1300,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       <div className="h-[100dvh] bg-white flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex justify-between items-center">
           <span className="text-sm font-semibold text-gray-900">{restaurant.name}</span>
-          <button onClick={goBack} className="text-sm text-[#05c8a7] font-medium">{t.backToMenu}</button>
+          <button onClick={goBack} className="text-sm text-[#047a65] font-medium">{t.backToMenu}</button>
         </header>
         <motion.div
           ref={confirmRef}
@@ -1310,7 +1310,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         >
           <div className="w-20 h-20 rounded-full bg-[#e6faf7] flex items-center justify-center mb-6">
-            <CheckCircle className="w-10 h-10 text-[#05c8a7]" />
+            <CheckCircle className="w-10 h-10 text-[#047a65]" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-1">{t.orderSent}</h2>
           <p className="text-sm text-gray-500 mb-3">{t.orderSentDesc}</p>
@@ -1371,7 +1371,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   'w-full py-3.5 rounded-xl font-semibold text-sm disabled:opacity-50 transition-colors flex items-center justify-center gap-2',
                   isColombianRestaurant
                     ? 'bg-[#FDDA24] text-[#002C76] hover:bg-[#f5d01e]'
-                    : 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
+                    : 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096]'
                 )}
               >
                 {payLoading ? (
@@ -1421,7 +1421,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 className={cn(
                   'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation no-underline',
                   paymentMethod === 'cash'
-                    ? 'bg-[#05c8a7] text-white hover:bg-[#04b096] active:bg-[#04b096]'
+                    ? 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096] active:bg-[#04b096]'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-200'
                 )}
               >
@@ -1455,7 +1455,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     window.open(`https://wa.me/?text=${msg}`, '_blank');
                   }, 1500);
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-[#05c8a7] hover:text-[#05c8a7] transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-[#05c8a7] hover:text-[#047a65] transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -1567,7 +1567,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       className="w-11 h-11 flex items-center justify-center flex-shrink-0"
                       aria-label={t.increaseQuantity}
                     >
-                      <span className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-[#e6faf7] hover:border-[#b3efe6] hover:text-[#05c8a7] transition-colors text-lg leading-none pointer-events-none">
+                      <span className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-[#e6faf7] hover:border-[#b3efe6] hover:text-[#047a65] transition-colors text-lg leading-none pointer-events-none">
                         +
                       </span>
                     </button>
@@ -1576,13 +1576,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </div>
             ))}
             {promoDiscount > 0 && (
-              <div className="flex justify-between text-[15px] text-[#05c8a7] pt-1">
+              <div className="flex justify-between text-[15px] text-[#047a65] pt-1">
                 <span>{t.discount}</span>
                 <span className="font-semibold">-{fmtPrice(promoDiscount)}</span>
               </div>
             )}
             {loyaltyDiscount > 0 && (
-              <div className="flex justify-between text-[15px] text-[#05c8a7] pt-1">
+              <div className="flex justify-between text-[15px] text-[#047a65] pt-1">
                 <span>⭐ {t.pointsLabel}</span>
                 <span className="font-semibold">-{fmtPrice(loyaltyDiscount)}</span>
               </div>
@@ -1594,7 +1594,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </div>
             )}
             {orderType === 'delivery' && deliveryFee === 0 && restaurant.order_types_enabled?.includes('delivery') && (
-              <div className="flex justify-between text-[15px] text-[#05c8a7]">
+              <div className="flex justify-between text-[15px] text-[#047a65]">
                 <span>{t.deliveryLabel}</span>
                 <span className="font-semibold">{t.freeLabel}</span>
               </div>
@@ -1966,7 +1966,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   className={cn(
                     'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
                     loyaltyApplied
-                      ? 'bg-[#05c8a7] text-white shadow-sm'
+                      ? 'bg-[#05c8a7] text-[#04241E] shadow-sm'
                       : 'bg-white text-[#047a65] border border-[#b3efe6] hover:bg-[#e6faf7]'
                   )}
                 >
@@ -1989,7 +1989,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
                 {promoResult?.valid
-                  ? <span className="text-[#05c8a7]">✓ {t.promoCode}: -{fmtPrice(promoResult.discount)}</span>
+                  ? <span className="text-[#047a65]">✓ {t.promoCode}: -{fmtPrice(promoResult.discount)}</span>
                   : t.havePromoCode}
               </span>
               <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${promoOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -2006,7 +2006,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </div>
                 {promoError && <p className="text-sm text-red-500">{promoError}</p>}
                 {promoResult?.valid && (
-                  <p className="text-sm text-[#05c8a7] font-medium">{t.discount}: -{fmtPrice(promoResult.discount)}{promoResult.description && ` — ${promoResult.description}`}</p>
+                  <p className="text-sm text-[#047a65] font-medium">{t.discount}: -{fmtPrice(promoResult.discount)}{promoResult.description && ` — ${promoResult.description}`}</p>
                 )}
               </div>
             )}
@@ -2030,7 +2030,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     )}
                   >
                     <span className={cn('text-sm font-bold', isActive ? 'text-[#047a65]' : 'text-gray-700')}>{pct}%</span>
-                    <span className={cn('text-[11px] tabular-nums', isActive ? 'text-[#05c8a7]' : 'text-gray-400')}>{fmtPrice(amt)}</span>
+                    <span className={cn('text-[11px] tabular-nums', isActive ? 'text-[#047a65]' : 'text-gray-400')}>{fmtPrice(amt)}</span>
                   </button>
                 );
               })}
@@ -2122,7 +2122,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             animate={ctaShake ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : { x: 0 }}
             transition={{ duration: 0.5 }}
             className={cn(
-              'w-full py-5 rounded-2xl text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 shadow-[0_4px_20px_rgba(5,200,167,0.35)]',
+              'w-full py-5 rounded-2xl text-[#04241E] font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 shadow-[0_4px_20px_rgba(5,200,167,0.35)]',
               submitting || networkRetrying || items.length === 0 ? 'opacity-40 cursor-not-allowed bg-[#05c8a7]' : 'bg-[#05c8a7]',
             )}
           >

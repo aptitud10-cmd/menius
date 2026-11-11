@@ -478,7 +478,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
           <div className="max-w-sm w-full">
             <div className="w-20 h-20 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
-              <CheckCircle2 className="w-10 h-10 text-[#05c8a7]" />
+              <CheckCircle2 className="w-10 h-10 text-[#047a65]" />
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900 mb-2">{t.paymentReceived}</h1>
             <p className="text-sm text-gray-500 mb-6">{t.paymentReceivedDesc}</p>
@@ -1607,7 +1607,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
             {result?.success ? (
               <div className="p-5 text-center space-y-4">
                 <div className="w-12 h-12 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-6 h-6 text-[#05c8a7]" />
+                  <CheckCircle2 className="w-6 h-6 text-[#047a65]" />
                 </div>
                 <p className="text-sm font-semibold text-gray-800">{result.message ?? t.cfdiSuccess}</p>
                 {result.xmlUrl && (
@@ -1618,7 +1618,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                 )}
                 {result.pdfUrl && (
                   <a href={result.pdfUrl} target="_blank" rel="noopener noreferrer"
-                    className="block w-full py-2.5 rounded-xl bg-[#05c8a7] text-white text-sm font-semibold hover:bg-[#04b096] transition-colors">
+                    className="block w-full py-2.5 rounded-xl bg-[#05c8a7] text-[#04241E] text-sm font-semibold hover:bg-[#04b096] transition-colors">
                     📋 {t.cfdiIssuedPdf}
                   </a>
                 )}
@@ -1692,7 +1692,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                 <button
                   type="submit"
                   disabled={submitting || !form.rfc || !form.razonSocial}
-                  className="w-full py-3 rounded-xl bg-[#05c8a7] text-white font-semibold text-sm hover:bg-[#04b096] transition-colors disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-[#05c8a7] text-[#04241E] font-semibold text-sm hover:bg-[#04b096] transition-colors disabled:opacity-50"
                 >
                   {submitting ? t.cfdiSubmitting : t.cfdiSubmit}
                 </button>

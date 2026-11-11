@@ -159,7 +159,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             key={cartQty}
             initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="absolute bottom-2 left-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-[#05c8a7] text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
+            className="absolute bottom-2 left-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-[#05c8a7] text-[#04241E] text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
           >
             {cartQty}
           </motion.span>
@@ -232,7 +232,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
                 whileTap={{ scale: 0.88 }}
                 className={cn(
                   'w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-300 shadow-md pointer-events-none',
-                  justAdded ? 'bg-[#05c8a7] text-white scale-110' : 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
+                  justAdded ? 'bg-[#05c8a7] text-[#04241E] scale-110' : 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096]'
                 )}
               >
                 {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}

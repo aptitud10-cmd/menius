@@ -107,7 +107,7 @@ export const CategorySidebar = memo(function CategorySidebar({
               <span className={cn(
                 'text-xs tabular-nums flex-shrink-0 mt-0.5 relative z-10',
                 available
-                  ? isActive ? 'text-[#05c8a7]' : 'text-ink-300'
+                  ? isActive ? 'text-[#047a65]' : 'text-ink-300'
                   : 'text-ink-200'
               )}>
                 {count}

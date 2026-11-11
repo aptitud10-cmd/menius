@@ -168,12 +168,12 @@ export function CartPanel({
               onClick={onReorder}
               className="mt-6 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6] active:bg-[#d0f7f1] transition-colors"
             >
-              <RotateCcw className="w-4 h-4 text-[#05c8a7] flex-shrink-0" />
+              <RotateCcw className="w-4 h-4 text-[#047a65] flex-shrink-0" />
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-xs font-semibold text-[#047a65]">
                   {t.reorderLastOrder}
                 </p>
-                <p className="text-[10px] text-[#05c8a7] truncate mt-0.5">
+                <p className="text-[10px] text-[#047a65] truncate mt-0.5">
                   {lastOrder.items.slice(0, 3).map((i) => `${i.qty}× ${i.productName}`).join(' · ')}
                 </p>
               </div>
@@ -201,10 +201,10 @@ export function CartPanel({
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-semibold text-gray-800 line-clamp-1">{p.name}</p>
-                    <p className="text-[11px] font-bold text-[#05c8a7] tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
+                    <p className="text-[11px] font-bold text-[#047a65] tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
                   </div>
                   <div className="w-7 h-7 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
-                    <Plus className="w-4 h-4 text-white" />
+                    <Plus className="w-4 h-4 text-[#04241E]" />
                   </div>
                 </button>
               ))}
@@ -476,7 +476,7 @@ export function CartPanel({
             {deliveryFee === 0 && (
               <div className="flex justify-between items-baseline mb-1">
                 <span className="text-xs text-gray-500">{t.delivery}</span>
-                <span className="text-xs font-semibold text-[#05c8a7]">{t.freeDelivery}</span>
+                <span className="text-xs font-semibold text-[#047a65]">{t.freeDelivery}</span>
               </div>
             )}
             <div className="flex justify-between items-baseline">
@@ -521,7 +521,7 @@ export function CartPanel({
           onClick={onCheckout}
           whileHover={{ scale: 1.015 }}
           whileTap={{ scale: 0.97 }}
-          className="w-full py-4 rounded-2xl bg-[#05c8a7] text-white font-extrabold text-sm hover:bg-[#04b096] transition-colors duration-150 shadow-[0_4px_16px_rgba(5,200,167,0.35)] flex items-center justify-between px-5"
+          className="w-full py-4 rounded-2xl bg-[#05c8a7] text-[#04241E] font-extrabold text-sm hover:bg-[#04b096] transition-colors duration-150 shadow-[0_4px_16px_rgba(5,200,167,0.35)] flex items-center justify-between px-5"
         >
           <span>{t.placeOrder}</span>
           <AnimatePresence mode="wait">

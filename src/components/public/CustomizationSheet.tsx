@@ -748,7 +748,7 @@ export function CustomizationSheet({
                     </span>
                   )}
                 </span>
-                <span className="text-[13px] font-semibold text-[#05c8a7] flex-shrink-0">
+                <span className="text-[13px] font-semibold text-[#047a65] flex-shrink-0">
                   {t.change}
                 </span>
               </button>
@@ -801,7 +801,7 @@ export function CustomizationSheet({
                       className={cn(
                         "flex flex-col items-center justify-center px-3 py-3.5 rounded-2xl transition-colors duration-150 text-center border gap-0.5",
                         isSelected
-                          ? "bg-[#05c8a7] text-white border-[#05c8a7] shadow-sm"
+                          ? "bg-[#05c8a7] text-[#04241E] border-[#05c8a7] shadow-sm"
                           : isDisabled
                             ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
                             : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
@@ -857,7 +857,7 @@ export function CustomizationSheet({
                       className={cn(
                         "w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border",
                         isSelected
-                          ? "bg-[#05c8a7] text-white border-[#05c8a7] shadow-sm"
+                          ? "bg-[#05c8a7] text-[#04241E] border-[#05c8a7] shadow-sm"
                           : isDisabled
                             ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
                             : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
@@ -887,7 +887,7 @@ export function CustomizationSheet({
                             )}
                           >
                             {isSelected && (
-                              <Check className="w-3.5 h-3.5 text-[#05c8a7]" />
+                              <Check className="w-3.5 h-3.5 text-[#047a65]" />
                             )}
                           </div>
                         )}
@@ -1015,7 +1015,7 @@ export function CustomizationSheet({
                     {/* Outline quick-add "+" — white fill, brand border, sits over
                         the image corner. Deliberately lighter weight than the CTA. */}
                     <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white border-[1.5px] border-[#05c8a7] flex items-center justify-center shadow-sm group-hover/card:bg-[#05c8a7] transition-colors">
-                      <Plus className="w-4 h-4 text-[#05c8a7] group-hover/card:text-white transition-colors" />
+                      <Plus className="w-4 h-4 text-[#047a65] group-hover/card:text-white transition-colors" />
                     </span>
                   </div>
                   <div className="p-2.5">
@@ -1095,7 +1095,7 @@ export function CustomizationSheet({
             <div className="flex flex-1 gap-2">
               <button
                 onClick={onViewCart ?? onClose}
-                className="flex-1 h-[52px] rounded-2xl font-extrabold text-[15px] bg-[#05c8a7] text-white transition-all duration-200 active:scale-[0.98]"
+                className="flex-1 h-[52px] rounded-2xl font-extrabold text-[15px] bg-[#05c8a7] text-[#04241E] transition-all duration-200 active:scale-[0.98]"
               >
                 ✓ {locale === "es" ? "Ver carrito" : "View cart"}
               </button>
@@ -1114,7 +1114,7 @@ export function CustomizationSheet({
                 "flex-1 h-[52px] rounded-2xl font-extrabold text-[16px] transition-all duration-200",
                 !isValid
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-[#05c8a7] text-white active:scale-[0.98] shadow-sm hover:bg-[#04b096]",
+                  : "bg-[#05c8a7] text-[#04241E] active:scale-[0.98] shadow-sm hover:bg-[#04b096]",
               )}
             >
               {!isValid
