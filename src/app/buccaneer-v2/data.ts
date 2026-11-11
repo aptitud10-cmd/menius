@@ -18,6 +18,8 @@ export function stateForHour(h: number): DayState {
 }
 
 export const MENU_URL = 'https://menius.app/buccaneer';
+/** Where this page lives. Change to the restaurant's own domain when it moves there. */
+export const SITE_URL = 'https://menius.app/buccaneer-v2';
 export const PHONE_TEXT = '(718) 429-5188';
 export const PHONE_HREF = 'tel:+17184295188';
 export const DIRECTIONS_URL =
@@ -74,9 +76,11 @@ export const THUMBS = {
 };
 
 // ---------------------------------------------------------------------------
-// Counts — AD section 0, read from the live menu on 2026-11-10.
-// TODO(dev): compute from the DB at render time (AD: "no se tipea a mano").
+// Counts — computed from the live menu at render time by counts.ts. These are
+// only the fallback if that query fails (read from the menu on 2026-11-11).
 // ---------------------------------------------------------------------------
+export const MENU_SLUG = 'buccaneer';
+
 export const COUNTS = {
   total: 408,
   breakfast: 81,
@@ -92,6 +96,25 @@ export const COUNTS = {
   smoothies: 10,
   beverage: 22,
   bar: 47,
+};
+
+export type Counts = typeof COUNTS;
+
+/** Each count key -> the menu group it counts (categories.group_name, or the category name). */
+export const COUNT_GROUPS: Record<Exclude<keyof Counts, 'total'>, string> = {
+  breakfast: 'Breakfast',
+  burgers: 'Burgers',
+  lunch: 'Lunch',
+  salads: 'Salads & Soups',
+  appetizers: 'Appetizers',
+  sides: 'Sides',
+  dinner: 'Dinner',
+  desserts: 'Desserts',
+  bakeShop: 'The Bake Shop',
+  fountain: 'From the Fountain',
+  smoothies: 'Smoothies & Shakes',
+  beverage: 'Beverage',
+  bar: 'Bar',
 };
 
 // ---------------------------------------------------------------------------

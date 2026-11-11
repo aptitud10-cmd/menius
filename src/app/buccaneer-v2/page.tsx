@@ -1,16 +1,17 @@
 import { Fragment } from 'react';
 import Behavior from './Behavior';
 import Photo from './Photo';
+import { getCounts } from './counts';
 import { MapPin, PhoneIcon, WordmarkA, WordmarkB } from './Wordmark';
 import {
   ADDRESS_1,
   ADDRESS_2,
   BREAKFAST_INDEX,
-  COUNTS,
   DIRECTIONS_URL,
   DISCLOSURE,
   LINKS,
   MENU_URL,
+  SITE_URL,
   PHONE_HREF,
   PHONE_TEXT,
   PIZARRA,
@@ -137,12 +138,53 @@ function Fig({ slot, cls, sizes, note }: { slot: SlotId; cls: string; sizes?: st
   );
 }
 
-export default function BuccaneerV2Page() {
+/**
+ * Restaurant structured data (schema.org) for Google and AI answers. Only facts
+ * from AD section 0. Add `image` when S01 is in, and `sameAs` (Google, Yelp,
+ * Tripadvisor, Facebook) once the owner confirms which profiles are his.
+ */
+const RESTAURANT_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'Restaurant',
+  name: 'Buccaneer Diner',
+  url: SITE_URL,
+  telephone: '+1-718-429-5188',
+  servesCuisine: ['American', 'Diner', 'Breakfast'],
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: ADDRESS_1,
+    addressLocality: 'East Elmhurst',
+    addressRegion: 'NY',
+    postalCode: '11369',
+    addressCountry: 'US',
+  },
+  openingHoursSpecification: [
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      opens: '00:00',
+      closes: '23:59',
+    },
+  ],
+  hasMenu: MENU_URL,
+  acceptsReservations: false,
+  potentialAction: {
+    '@type': 'OrderAction',
+    target: MENU_URL,
+  },
+};
+
+export default async function BuccaneerV2Page() {
   const state = stateForHour(Number(NY_HOUR.format(new Date())) % 24);
+  const COUNTS = await getCounts();
 
   return (
     <div className="b2-root b2-scroll" data-bd-state={state} suppressHydrationWarning>
       <script dangerouslySetInnerHTML={{ __html: STATE_SCRIPT }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(RESTAURANT_LD).replace(/</g, '\\u003c') }}
+      />
       <Behavior />
 
       {/* ------------------------------------------------------------ header */}
