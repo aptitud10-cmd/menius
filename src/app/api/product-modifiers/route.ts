@@ -89,8 +89,11 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          // Cache for 5 min on CDN; stale up to 10 min while revalidating
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          // 30 s en CDN + 60 s stale. Antes 300 + 600: si el dueño recreaba una
+          // opción, la hoja seguía ofreciendo el id viejo hasta 15 min, el
+          // pedido daba 409 MODIFIERS_CHANGED y "quitar y volver a agregar"
+          // repetía el error. revalidatePath no purga esta respuesta.
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
         },
       }
     );

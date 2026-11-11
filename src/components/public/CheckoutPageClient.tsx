@@ -1555,7 +1555,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <ShoppingCart className="w-4 h-4 text-gray-500" />
               <p className="text-sm font-semibold text-gray-900">{t.myOrder}</p>
               <span className="ml-auto text-xs font-medium text-gray-400">
-                {items.reduce((s, i) => s + i.qty, 0)} {t.items}
+                {(() => { const n = items.reduce((s, i) => s + i.qty, 0); return `${n} ${n === 1 ? t.itemSingular : t.items}`; })()}
               </span>
             </div>
             {items.map((item, idx) => (

@@ -318,7 +318,7 @@ export function CartPanel({
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold inline-block"
                 >
-                  {totalQty} {t.items}
+                  {totalQty} {totalQty === 1 ? t.itemSingular : t.items}
                 </motion.span>
               );
             })()}

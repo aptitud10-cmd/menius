@@ -663,7 +663,14 @@ export async function POST(request: NextRequest) {
         // checked, so an optional "pick up to 2" group accepted any number.
         if (grp.max_select > 0 && selected > grp.max_select) {
           return NextResponse.json(
-            { error: `Máximo ${grp.max_select} opción(es) en "${grp.name}".` },
+            {
+              // Bilingüe y con el plato: el checkout muestra este texto tal cual.
+              error: en
+                ? `"${dbProduct.name}": choose at most ${grp.max_select} in "${grp.name}".`
+                : `"${dbProduct.name}": elegí como máximo ${grp.max_select} en "${grp.name}".`,
+              code: "MODIFIER_MAX",
+              product_id: item.product_id,
+            },
             { status: 400 },
           );
         }
@@ -674,7 +681,11 @@ export async function POST(request: NextRequest) {
         if (selected < grp.min_select) {
           return NextResponse.json(
             {
-              error: `Selecciona al menos ${grp.min_select} opción(es) en "${grp.name}".`,
+              error: en
+                ? `"${dbProduct.name}": choose ${grp.min_select} in "${grp.name}". Tap the item in your cart to edit it.`
+                : `"${dbProduct.name}": elegí ${grp.min_select} en "${grp.name}". Tocá el plato en el carrito para editarlo.`,
+              code: "MODIFIER_REQUIRED",
+              product_id: item.product_id,
             },
             { status: 400 },
           );

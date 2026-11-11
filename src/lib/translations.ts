@@ -63,6 +63,7 @@ export interface Translations {
   // Bottom bar
   viewCart: string;
   items: string;
+  itemSingular: string;
   // Info modal
   schedule: string;
   closedDay: string;
@@ -460,6 +461,7 @@ const es: Translations = {
   addedToCart: 'Agregado al carrito',
   viewCart: 'Ver carrito',
   items: 'artículos',
+  itemSingular: 'artículo',
   schedule: 'Horario',
   closedDay: 'Cerrado',
   noInfoAvailable: 'No hay información adicional disponible',
@@ -823,6 +825,7 @@ const en: Translations = {
   addedToCart: 'Added to cart',
   viewCart: 'View cart',
   items: 'items',
+  itemSingular: 'item',
   schedule: 'Hours',
   closedDay: 'Closed',
   noInfoAvailable: 'No additional information available',
