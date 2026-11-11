@@ -307,13 +307,8 @@ export function MenuShell({
     fetch(`/api/public/recommendations?${params}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (
-          data &&
-          (data.last_order ||
-            (Array.isArray(data.suggested) && data.suggested.length > 0))
-        ) {
-          setRecommendations(data);
-        }
+        // Solo se muestra "Pedir de nuevo"; las sugerencias ya no se pintan.
+        if (data?.last_order) setRecommendations(data);
       })
       .catch(() => {});
   }, [hasMounted, restaurant.id, savedCustomer, isReturningCustomer]);
@@ -2808,141 +2803,66 @@ export function MenuShell({
                         ref={catListRef}
                         className="space-y-8 menu-cat-fade"
                       >
-                        {/* Sprint 3.2 — "Para ti" recommendations for returning customers */}
-                        {recommendations &&
-                          (recommendations.last_order ||
-                            recommendations.suggested.length > 0) && (
+                        {/* "Pedir de nuevo" (Pedro 2026-11-11): solo el último plato
+                            pedido, solo en la portada (Popular). Antes salía en TODAS
+                            las categorías —incluso dentro de Burgers— con sugerencias
+                            al azar sacadas de pedidos de prueba y un ícono gris en los
+                            productos sin foto. Si el banner "Repetir último pedido"
+                            está visible, ya cubre esto: no se duplica. */}
+                        {(() => {
+                          const item = recommendations?.last_order;
+                          if (!item || showReorderBanner) return null;
+                          if (activeCatFilter && activeCatFilter !== POPULAR_ID) return null;
+                          const product = products.find((p) => p.id === item.product_id);
+                          if (!product) return null;
+                          const handleClick = () => {
+                            if (
+                              item.has_modifiers ||
+                              (product.variants?.length ?? 0) > 0 ||
+                              (product.extras?.length ?? 0) > 0
+                            ) {
+                              setCustomization({ product, editIndex: null });
+                            } else {
+                              handleQuickAdd(product);
+                            }
+                          };
+                          const src = item.image_url;
+                          return (
                             <section className="mb-2">
-                              <h2 className="text-base font-bold text-gray-900 mb-3">
-                                {t.forYouTitle}
-                              </h2>
-                              <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
-                                {recommendations.last_order &&
-                                  (() => {
-                                    const item = recommendations.last_order!;
-                                    const product = products.find(
-                                      (p) => p.id === item.product_id,
-                                    );
-                                    const handleClick = () => {
-                                      if (!product) return;
-                                      if (
-                                        item.has_modifiers ||
-                                        (product.variants?.length ?? 0) > 0 ||
-                                        (product.extras?.length ?? 0) > 0
-                                      ) {
-                                        setCustomization({
-                                          product,
-                                          editIndex: null,
-                                        });
-                                      } else {
-                                        handleQuickAdd(product);
-                                      }
-                                    };
-                                    return (
-                                      <div
-                                        key={item.product_id}
-                                        className="flex-shrink-0 flex flex-col gap-1.5"
-                                      >
-                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                                          {t.forYouLastOrder}
-                                        </p>
-                                        <button
-                                          onClick={handleClick}
-                                          className="w-[108px] flex flex-col gap-1.5 rounded-2xl border border-gray-100 bg-white shadow-sm p-2.5 active:scale-95 transition-transform text-left"
-                                        >
-                                          {item.image_url ? (
-                                            <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-gray-100">
-                                              <Image
-                                                src={item.image_url}
-                                                alt={item.name}
-                                                fill
-                                                sizes="108px"
-                                                className="object-cover"
-                                              />
-                                            </div>
-                                          ) : (
-                                            <div className="w-full aspect-square rounded-xl bg-gray-100 flex items-center justify-center">
-                                              <span className="text-2xl">
-                                                🍽️
-                                              </span>
-                                            </div>
-                                          )}
-                                          <span className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight">
-                                            {item.name}
-                                          </span>
-                                          <span className="text-[11px] font-bold text-[#047a65] tabular-nums">
-                                            {fmtPrice(item.price)}
-                                          </span>
-                                        </button>
-                                      </div>
-                                    );
-                                  })()}
-                                {recommendations.suggested.length > 0 && (
-                                  <div className="flex flex-col gap-1.5">
-                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
-                                      {t.forYouSuggested}
-                                    </p>
-                                    <div className="flex gap-2.5">
-                                      {recommendations.suggested
-                                        .slice(0, 4)
-                                        .map((item) => {
-                                          const product = products.find(
-                                            (p) => p.id === item.product_id,
-                                          );
-                                          const handleClick = () => {
-                                            if (!product) return;
-                                            if (
-                                              item.has_modifiers ||
-                                              (product.variants?.length ?? 0) >
-                                                0 ||
-                                              (product.extras?.length ?? 0) > 0
-                                            ) {
-                                              setCustomization({
-                                                product,
-                                                editIndex: null,
-                                              });
-                                            } else {
-                                              handleQuickAdd(product);
-                                            }
-                                          };
-                                          return (
-                                            <button
-                                              key={item.product_id}
-                                              onClick={handleClick}
-                                              className="flex-shrink-0 w-[108px] flex flex-col gap-1.5 rounded-2xl border border-gray-100 bg-white shadow-sm p-2.5 active:scale-95 transition-transform text-left"
-                                            >
-                                              {item.image_url ? (
-                                                <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-gray-100">
-                                                  <Image
-                                                    src={item.image_url}
-                                                    alt={item.name}
-                                                    fill
-                                                    sizes="108px"
-                                                    className="object-cover"
-                                                  />
-                                                </div>
-                                              ) : (
-                                                <div className="w-full aspect-square rounded-xl bg-gray-100 flex items-center justify-center">
-                                                  <span className="text-2xl">
-                                                    🍽️
-                                                  </span>
-                                                </div>
-                                              )}
-                                              <span className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight">
-                                                {item.name}
-                                              </span>
-                                              <span className="text-[11px] font-bold text-[#047a65] tabular-nums">
-                                                {fmtPrice(item.price)}
-                                              </span>
-                                            </button>
-                                          );
-                                        })}
-                                    </div>
+                              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                {t.forYouLastOrder}
+                              </p>
+                              <button
+                                onClick={handleClick}
+                                className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 bg-white shadow-sm p-2.5 active:scale-[0.98] transition-transform text-left"
+                              >
+                                {src && (
+                                  <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                                    <Image
+                                      src={src}
+                                      alt={item.name}
+                                      fill
+                                      sizes="56px"
+                                      loader={src.includes(".supabase.co/storage/") ? supabaseLoader : undefined}
+                                      className="object-cover"
+                                    />
                                   </div>
                                 )}
-                              </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="block text-sm font-semibold text-gray-900 truncate">
+                                    {item.name}
+                                  </span>
+                                  <span className="text-sm font-bold text-[#047a65] tabular-nums">
+                                    {fmtPrice(item.price)}
+                                  </span>
+                                </div>
+                                <span className="flex-shrink-0 rounded-full bg-[#05c8a7]/10 px-3 py-1.5 text-xs font-bold text-[#047a65]">
+                                  {t.orderReorder}
+                                </span>
+                              </button>
                             </section>
-                          )}
+                          );
+                        })()}
                         {(() => {
                           let globalProductIdx = 0;
                           return displayedGroups.map(
