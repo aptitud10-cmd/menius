@@ -3443,7 +3443,7 @@ export function MenuShell({
                   estimatedMinutes={
                     restaurant.estimated_delivery_minutes ?? undefined
                   }
-                  etaRestaurant={restaurant}
+                  etaRestaurant={restaurant} taxPending={(restaurant.tax_rate ?? 0) > 0 && !restaurant.tax_included}
                   deliveryFee={restaurant.order_types_enabled?.includes('delivery') ? (restaurant.delivery_fee ?? undefined) : undefined}
                   lastOrder={
                     lastOrder?.restaurantId === restaurant.id ? lastOrder : null
@@ -3624,7 +3624,7 @@ export function MenuShell({
                     estimatedMinutes={
                       restaurant.estimated_delivery_minutes ?? undefined
                     }
-                    etaRestaurant={restaurant}
+                    etaRestaurant={restaurant} taxPending={(restaurant.tax_rate ?? 0) > 0 && !restaurant.tax_included}
                     deliveryFee={restaurant.order_types_enabled?.includes('delivery') ? (restaurant.delivery_fee ?? undefined) : undefined}
                     lastOrder={
                       lastOrder?.restaurantId === restaurant.id

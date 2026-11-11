@@ -55,8 +55,12 @@ export function PhoneField({
           {required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
+      {/* Sin `international`: con defaultCountry la librería acepta un número
+          local (se asume del país del restaurante) o uno con "+" (cualquier
+          país). Con `international` forzado, el autocompletado del iPhone
+          "(718) 555-0123" se leía como +7 185550123 (Rusia) — medido
+          2026-11-11. El valor que se guarda sigue siendo E.164 (+17185550123). */}
       <PhoneInput
-        international
         defaultCountry={defaultCountry}
         flags={flags}
         value={value}

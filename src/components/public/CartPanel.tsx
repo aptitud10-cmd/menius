@@ -34,6 +34,10 @@ interface CartPanelProps {
   /** Datos para calcular el tiempo del carrito (plato más lento + viaje). */
   etaRestaurant?: EtaRestaurant;
   deliveryFee?: number;
+  /** El impuesto se suma recién en el checkout (tax_rate > 0 y no incluido):
+   *  el carrito dice "Subtotal" + "+ tax at checkout" en vez de un "Total"
+   *  que después sube (Buccaneer: $19.95 en el carrito → $21.72 al pagar). */
+  taxPending?: boolean;
   lastOrder?: { items: LastOrderSummaryItem[] } | null;
   onReorder?: () => void;
   suggestions?: Product[];
@@ -84,6 +88,7 @@ export function CartPanel({
   estimatedMinutes,
   etaRestaurant,
   deliveryFee,
+  taxPending = false,
   lastOrder,
   onReorder,
   suggestions,
@@ -570,7 +575,7 @@ export function CartPanel({
               </div>
             )}
             <div className="flex justify-between items-baseline">
-              <span className="text-sm font-bold text-gray-900">{t.total}</span>
+              <span className="text-sm font-bold text-gray-900">{taxPending ? t.subtotal : t.total}</span>
               <AnimatePresence mode="wait">
                 <motion.span
                   key={cartTotal}
@@ -592,7 +597,7 @@ export function CartPanel({
           </div>
         ) : (
           <div className="flex justify-between items-baseline mb-3">
-            <span className="text-sm font-bold text-gray-900">{t.total}</span>
+            <span className="text-sm font-bold text-gray-900">{taxPending ? t.subtotal : t.total}</span>
             <AnimatePresence mode="wait">
               <motion.span
                 key={cartTotal}
@@ -606,6 +611,9 @@ export function CartPanel({
               </motion.span>
             </AnimatePresence>
           </div>
+        )}
+        {taxPending && (
+          <p className="-mt-2 mb-3 text-[11px] text-gray-400 text-right">{t.taxAtCheckout}</p>
         )}
         <motion.button
           onClick={onCheckout}

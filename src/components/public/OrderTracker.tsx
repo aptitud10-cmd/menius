@@ -945,7 +945,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     <span className="min-w-0">
                       <b className="tabular-nums">{item.qty}×</b> {item.product_name ?? t.productFallback}
                       {item.variant_name && <span style={{ color: K.faint }}> · {item.variant_name}</span>}
-                      {item.notes && <span className="block text-[12.5px]" style={{ color: K.sub }}>{item.notes}</span>}
+                      {Array.isArray(item.modifiers) && item.modifiers.length > 0 && (
+                        <span className="block text-[12.5px] leading-snug" style={{ color: K.sub }}>
+                          {(item.modifiers as { name: string }[]).map((m) => m.name).join(', ')}
+                        </span>
+                      )}
+                      {item.notes &&<span className="block text-[12.5px]" style={{ color: K.sub }}>{item.notes}</span>}
                     </span>
                     <span className="tabular-nums flex-shrink-0" style={{ color: K.sub }}>{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
                   </li>

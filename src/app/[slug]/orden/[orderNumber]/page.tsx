@@ -63,7 +63,8 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
           order_items(
             id, qty, unit_price, line_total, notes, product_id, variant_id,
             product:product_id(name),
-            variant:variant_id(name, price_delta)
+            variant:variant_id(name, price_delta),
+            order_item_modifiers(group_name, option_name, price_delta)
           )
         `)
         .eq('order_number', params.orderNumber)
@@ -118,6 +119,9 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         product_id: item.product_id ?? null,
         variant_id: item.variant_id ?? null,
         variant_price_delta: item.variant?.price_delta ?? null,
+        // Lo que eligió (Deluxe, side, "No Onion"…): el cliente tiene que poder
+        // confirmar su pedido. No es dato privado.
+        modifiers: ((item.order_item_modifiers ?? []) as any[]).map((m: any) => ({ name: m.option_name as string, price_delta: Number(m.price_delta) || 0 })),
           })),
         };
       }

@@ -129,6 +129,8 @@ export function CustomizationSheet({
 
   const groups =
     lazyModifiers?.modifier_groups ?? product.modifier_groups ?? [];
+  /** Producto con opciones cuya carga perezosa todavía no terminó (o falló). */
+  const optionsPending = needsLazyLoad && !lazyModifiers;
   const hasModifierGroups = groups.length > 0;
 
   // Legacy variants/extras are merged with modifier_groups instead of being discarded.
@@ -526,6 +528,13 @@ export function CustomizationSheet({
   };
 
   const handleSubmit = () => {
+    // Opciones todavía sin llegar (4G lento) o con error: los grupos están
+    // vacíos e isValid da true, así que se agregaba el plato pelado — y al
+    // EDITAR se borraban Deluxe, side y los "No …". Esperar o reintentar.
+    if (optionsPending) {
+      if (modifiersError && !modifiersLoading) loadModifiers();
+      return;
+    }
     if (!isValid) {
       revealFirstIncompleteGroup();
       return;
@@ -1194,15 +1203,21 @@ export function CustomizationSheet({
             <button
               type="button"
               onClick={handleSubmit}
+              aria-busy={optionsPending && modifiersLoading}
               // ~195px wide on a 375px phone next to the stepper: 14px keeps
               // "Choose 2 more · $12.50" whole; 16px would cut the count.
               className={cn(
                 "flex-1 min-w-0 h-[52px] px-3 flex items-center justify-center gap-1.5 rounded-2xl font-extrabold whitespace-nowrap bg-[#05c8a7] text-[#04241E] transition-all duration-200 active:scale-[0.98] shadow-sm hover:bg-[#04b096]",
-                isValid ? "text-[16px]" : "text-[14px]",
+                isValid && !optionsPending ? "text-[16px]" : "text-[14px]",
+                optionsPending && modifiersLoading && "opacity-70",
               )}
             >
               <span className="truncate">
-                {!isValid
+                {optionsPending
+                  ? modifiersError && !modifiersLoading
+                    ? locale === "es" ? "Reintentar" : "Retry"
+                    : locale === "es" ? "Cargando…" : "Loading…"
+                  : !isValid
                   ? t.chooseMore(missingCount)
                   : isEditing
                     ? t.updateItem

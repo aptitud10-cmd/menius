@@ -134,17 +134,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         currency: restaurant.currency,
       });
     }
-    // Auto-focus first empty required field after data is pre-filled
-    setTimeout(() => {
-      const stored = useCheckoutStore.getState();
-      const hasName = stored.isReturningCustomer() && stored.customer?.name;
-      const hasEmail = stored.isReturningCustomer() && stored.customer?.email;
-      if (!hasName) {
-        document.getElementById('checkout-name')?.focus();
-      } else if (!hasEmail) {
-        document.getElementById('checkout-email')?.focus();
-      }
-    }, 350);
+    // Sin foco automático (Pedro 2026-11-11): enfocar "Your name" al entrar
+    // bajaba la página ~360px, el cliente no veía su pedido ni el tipo de
+    // pedido (Pickup viene marcado) y, al salir del campo, ya aparecía en rojo
+    // "Name is required". Si falta algo al confirmar, scrollToFirstInvalidField
+    // lleva al campo.
     return () => { clearTimeout(confettiTimer.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1588,7 +1582,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     <span className="font-semibold text-gray-900 flex-shrink-0 tabular-nums text-[15px]">{fmtPrice(item.lineTotal)}</span>
                   </div>
                   {(item.modifierSelections ?? []).length > 0 && (
-                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                    /* Sin truncate: con Deluxe + side + "No Onion, No Tomato" la línea
+                       se cortaba justo antes de las exclusiones, que son lo que el
+                       cliente más necesita confirmar. */
+                    <p className="text-xs text-gray-500 leading-snug break-words mt-0.5">
                       {(item.modifierSelections ?? []).flatMap(ms => ms.selectedOptions.map(o => o.name)).join(', ')}
                     </p>
                   )}
