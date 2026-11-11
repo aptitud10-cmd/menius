@@ -19,8 +19,8 @@ android {
         applicationId = "com.menius.counter"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
     }
 
     // Only declared when keystore.properties is present. That file is gitignored,

@@ -66,6 +66,23 @@ class EscPosEncoder(private val codePage: EscPosCodePage = EscPosCodePage.CP858)
         return newline()
     }
 
+    /**
+     * QR nativo (GS ( k, modelo 2): Epson y la mayoría de clones, y Star en modo
+     * ESC/POS. Es el QR que escanea el repartidor: sin él, la ruta no arranca.
+     * Datos en ASCII (es una URL).
+     */
+    fun qr(data: String, moduleSize: Int = 6): EscPosEncoder {
+        val bytes = data.toByteArray(Charsets.US_ASCII)
+        val len = bytes.size + 3
+        write(0x1d, 0x28, 0x6b, 4, 0, 0x31, 0x41, 0x32, 0)                 // modelo 2
+        write(0x1d, 0x28, 0x6b, 3, 0, 0x31, 0x43, moduleSize.coerceIn(1, 16)) // tamaño del módulo
+        write(0x1d, 0x28, 0x6b, 3, 0, 0x31, 0x45, 0x31)                     // corrección M
+        write(0x1d, 0x28, 0x6b, len and 0xff, (len shr 8) and 0xff, 0x31, 0x50, 0x30)
+        out.write(bytes)
+        write(0x1d, 0x28, 0x6b, 3, 0, 0x31, 0x51, 0x30)                     // imprimir
+        return newline()
+    }
+
     fun cutPartial(): EscPosEncoder {
         feed(3)
         write(0x1d, 0x56, 0x01)
