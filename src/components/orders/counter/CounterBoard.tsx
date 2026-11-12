@@ -122,7 +122,9 @@ export function OrderCard({
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
       className={cn(
-        'relative rounded-2xl pl-5 pr-4 pt-3.5 pb-3.5 flex flex-col gap-2.5 text-left cursor-pointer transition-colors outline-none',
+        // shrink-0: en la columna con scroll, el WebView de la tablet (Tab A11) encogía
+        // las tarjetas a ~28 px y el botón quedaba encima de la siguiente.
+        'relative shrink-0 rounded-2xl pl-5 pr-4 pt-3.5 pb-3.5 flex flex-col gap-2.5 text-left cursor-pointer transition-colors outline-none',
         'focus-visible:ring-4 focus-visible:ring-black/20',
       )}
       style={{
