@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX, UserPlus, Bike, Phone, ToggleLeft, ToggleRight, Smartphone, X } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX, UserPlus, Bike, Phone, ToggleLeft, ToggleRight, Smartphone, X, Check } from 'lucide-react';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { DashboardTranslations } from '@/lib/dashboard-translations';
-import { generateQRDataUrl } from '@/lib/styled-qr';
+import { PAIRING_ALPHABET, PAIRING_CODE_LENGTH } from '@/lib/device-pairing-alphabet';
 
 interface Driver {
   id: string;
@@ -13,36 +13,48 @@ interface Driver {
   is_active: boolean;
 }
 
-/** QR con el que el repartidor entra a la app nativa (sin SMS). */
+/** Vincula la app nativa del repartidor con el código que muestra la app (mismo gesto que la tablet del Counter). */
 function DriverLinkModal({ driver, t, onClose }: { driver: Driver; t: DashboardTranslations; onClose: () => void }) {
-  const [qr, setQr] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [code, setCode] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "error" | "done">("idle");
+  const [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const complete = code.length === PAIRING_CODE_LENGTH;
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const res = await fetch('/api/tenant/drivers/link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: driver.id }),
-        });
-        const data = (await res.json().catch(() => ({}))) as { link?: string };
-        if (!res.ok || !data.link) throw new Error(String(res.status));
-        const url = await generateQRDataUrl(data.link, 480);
-        if (!url) throw new Error('qr');
-        if (alive) setQr(url);
-      } catch {
-        if (alive) setFailed(true);
-      }
-    })();
-    return () => { alive = false; };
-  }, [driver.id]);
+  const clean = (raw: string) => {
+    let out = "";
+    for (const ch of raw.toUpperCase()) {
+      if (PAIRING_ALPHABET.includes(ch)) out += ch;
+      if (out.length === PAIRING_CODE_LENGTH) break;
+    }
+    return out;
+  };
+
+  async function submit(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!complete || state === "sending") return;
+    setState("sending");
+    setError("");
+    try {
+      const res = await fetch("/api/tenant/drivers/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: driver.id, code }),
+      });
+      if (res.ok) { setState("done"); return; }
+      const d = (await res.json().catch(() => ({}))) as { error?: string };
+      setError(d.error === "code_not_found" || d.error === "invalid_code" ? t.drivers_linkCodeNotFound : t.drivers_linkError);
+      setState("error");
+    } catch {
+      setError(t.drivers_linkError);
+      setState("error");
+    }
+  }
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-      style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      style={{ paddingTop: "max(1rem, env(safe-area-inset-top))", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -58,27 +70,64 @@ function DriverLinkModal({ driver, t, onClose }: { driver: Driver; t: DashboardT
           </button>
         </div>
 
-        {/* Margen blanco alrededor del QR (quiet zone): sin él algunas cámaras no lo leen. */}
-        <div className="flex items-center justify-center w-[260px] h-[260px] mx-auto rounded-xl bg-white border border-gray-200 p-4">
-          {qr ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={qr} alt="" width={226} height={226} />
-          ) : failed ? (
-            <p className="text-sm text-red-500 text-center px-6">{t.drivers_linkError}</p>
-          ) : (
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-          )}
-        </div>
+        {state === "done" ? (
+          <div className="text-center py-4" role="status">
+            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
+              <Check className="w-6 h-6 text-emerald-600" strokeWidth={3} />
+            </div>
+            <p className="mt-3 text-sm text-gray-700"><span className="font-semibold text-gray-900">{driver.name}</span> {t.drivers_linkSuccess}</p>
+            <button onClick={onClose} className="mt-5 w-full py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition text-sm">
+              {t.drivers_linkDone}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={submit}>
+            <ol className="space-y-1.5 text-sm text-gray-700 list-decimal pl-5">
+              <li>{t.drivers_linkStep1}</li>
+              <li>{t.drivers_linkStep2}</li>
+            </ol>
 
-        <ol className="mt-4 space-y-1.5 text-sm text-gray-700 list-decimal pl-5">
-          <li>{t.drivers_linkStep1}</li>
-          <li>{t.drivers_linkStep2}</li>
-        </ol>
-        <p className="mt-3 text-xs text-gray-500">{t.drivers_linkOnce}</p>
+            {/* Un input real (teclado, pegar, autocompletar) debajo de seis casillas pintadas. */}
+            <label className="relative mt-4 flex justify-center gap-2" onClick={() => inputRef.current?.focus()}>
+              <input
+                ref={inputRef}
+                className="absolute inset-0 opacity-0 text-base"
+                value={code}
+                onChange={e => { setCode(clean(e.target.value)); if (state === "error") setState("idle"); }}
+                inputMode="text"
+                autoCapitalize="characters"
+                autoComplete="one-time-code"
+                autoCorrect="off"
+                spellCheck={false}
+                autoFocus
+                aria-label={t.drivers_linkCodeLabel}
+                maxLength={12}
+              />
+              {Array.from({ length: PAIRING_CODE_LENGTH }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`w-10 h-12 rounded-xl border-2 flex items-center justify-center text-2xl font-bold text-gray-900 font-display ${
+                    state === "error" ? "border-red-300 bg-red-50" : i === code.length ? "border-emerald-500 bg-white" : "border-gray-200 bg-gray-50"
+                  } ${i === 2 ? "mr-2" : ""}`}
+                >
+                  {code[i] ?? ""}
+                </span>
+              ))}
+            </label>
 
-        <button onClick={onClose} className="mt-4 w-full py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition text-sm">
-          {t.drivers_linkDone}
-        </button>
+            {error && <p className="mt-3 text-sm text-red-600" role="alert">{error}</p>}
+            <p className="mt-3 text-xs text-gray-500">{t.drivers_linkHint}</p>
+
+            <button
+              type="submit"
+              disabled={!complete || state === "sending"}
+              className="mt-4 w-full py-3 flex items-center justify-center gap-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition text-sm disabled:opacity-40"
+            >
+              {state === "sending" && <Loader2 className="w-4 h-4 animate-spin" />}
+              {t.drivers_linkSubmit}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

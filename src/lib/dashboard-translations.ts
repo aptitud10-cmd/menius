@@ -1270,8 +1270,12 @@ export interface DashboardTranslations {
   drivers_linkTitle: string;
   drivers_linkStep1: string;
   drivers_linkStep2: string;
-  drivers_linkOnce: string;
+  drivers_linkHint: string;
+  drivers_linkCodeLabel: string;
+  drivers_linkSubmit: string;
+  drivers_linkCodeNotFound: string;
   drivers_linkError: string;
+  drivers_linkSuccess: string;
   drivers_linkDone: string;
 
   // Settings page extras
@@ -2659,9 +2663,13 @@ const es: DashboardTranslations = {
   drivers_linkApp: "Vincular app",
   drivers_linkTitle: "Vincular la app de",
   drivers_linkStep1: "En el teléfono del repartidor, abre la app MENIUS Repartidor.",
-  drivers_linkStep2: "Toca «Vincular con QR» y escanea este código.",
-  drivers_linkOnce: "El código sirve una sola vez y vence en un rato. Si vence, genera otro.",
-  drivers_linkError: "No se pudo generar el código. Intenta de nuevo.",
+  drivers_linkStep2: "Escribe aquí el código de 6 caracteres que aparece en la app.",
+  drivers_linkHint: "Puede mandarte el código por WhatsApp: no hace falta estar juntos.",
+  drivers_linkCodeLabel: "Código de la app",
+  drivers_linkSubmit: "Vincular",
+  drivers_linkCodeNotFound: "Ese código no existe o ya venció. La app muestra uno nuevo cada 5 minutos.",
+  drivers_linkError: "No se pudo vincular. Intenta de nuevo.",
+  drivers_linkSuccess: "ya puede repartir con la app.",
   drivers_linkDone: "Listo",
 
   // Settings page extras
@@ -4042,9 +4050,13 @@ const en: DashboardTranslations = {
   drivers_linkApp: "Link app",
   drivers_linkTitle: "Link the app for",
   drivers_linkStep1: "On the driver’s phone, open the MENIUS Driver app.",
-  drivers_linkStep2: "Tap “Link with QR” and scan this code.",
-  drivers_linkOnce: "The code works once and expires soon. If it expires, generate a new one.",
-  drivers_linkError: "Could not generate the code. Please try again.",
+  drivers_linkStep2: "Type the 6-character code shown in the app.",
+  drivers_linkHint: "They can text you the code — you don’t need to be together.",
+  drivers_linkCodeLabel: "App code",
+  drivers_linkSubmit: "Link",
+  drivers_linkCodeNotFound: "That code doesn’t exist or has expired. The app shows a new one every 5 minutes.",
+  drivers_linkError: "Could not link. Please try again.",
+  drivers_linkSuccess: "can now deliver with the app.",
   drivers_linkDone: "Done",
 
   // Settings page extras
