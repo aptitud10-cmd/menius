@@ -211,6 +211,30 @@ export function MenuShell({
         lastOrder.restaurantId === restaurant.id &&
         lastOrder.items.length > 0));
 
+  // Cerrar el banner tiene que durar (Pedro 2026-11-12): antes la X solo
+  // escondía el banner hasta recargar, y en su lugar aparecía la tarjeta
+  // "Volver a pedir" — sin X —, así que parecía imposible sacarlo. El "no" se
+  // guarda atado a la fecha de ESE pedido: con un pedido nuevo vuelve a ofrecerse.
+  const reorderDismissKey = `menius_reorder_dismissed_${restaurant.id}`;
+  useEffect(() => {
+    if (!hasMounted || !lastOrder) return;
+    try {
+      if (localStorage.getItem(reorderDismissKey) === lastOrder.date) {
+        setReorderDismissed(true);
+      }
+    } catch {
+      // Modo privado: el banner se puede cerrar igual, solo que no se recuerda.
+    }
+  }, [hasMounted, lastOrder, reorderDismissKey]);
+  const dismissReorder = useCallback(() => {
+    setReorderDismissed(true);
+    try {
+      if (lastOrder) localStorage.setItem(reorderDismissKey, lastOrder.date);
+    } catch {
+      // idem
+    }
+  }, [lastOrder, reorderDismissKey]);
+
   const handleReorder = useCallback(() => {
     const added = reorder(products);
     if (added > 0) {
@@ -2454,8 +2478,8 @@ export function MenuShell({
                       {t.addToCart}
                     </button>
                     <button
-                      onClick={() => setReorderDismissed(true)}
-                      className="flex-shrink-0 p-1.5 text-[#047a65] hover:text-[#047a65] transition-colors"
+                      onClick={dismissReorder}
+                      className="flex-shrink-0 -mr-2 w-10 h-10 flex items-center justify-center rounded-full text-[#047a65] hover:bg-[#d0f7f1] transition-colors"
                       aria-label={t.cancel}
                     >
                       <X className="w-4 h-4" />
@@ -2903,7 +2927,9 @@ export function MenuShell({
                             está visible, ya cubre esto: no se duplica. */}
                         {(() => {
                           const item = recommendations?.last_order;
-                          if (!item || showReorderBanner) return null;
+                          // Cerró el banner = no quiere lo de la vez anterior: no
+                          // se lo ofrecemos de nuevo con otra forma.
+                          if (!item || showReorderBanner || reorderDismissed) return null;
                           if (activeCatFilter && activeCatFilter !== POPULAR_ID) return null;
                           const product = products.find((p) => p.id === item.product_id);
                           if (!product) return null;
@@ -3538,7 +3564,7 @@ export function MenuShell({
                   etaRestaurant={restaurant} taxPending={(restaurant.tax_rate ?? 0) > 0 && !restaurant.tax_included}
                   deliveryFee={restaurant.order_types_enabled?.includes('delivery') ? (restaurant.delivery_fee ?? undefined) : undefined}
                   lastOrder={
-                    lastOrder?.restaurantId === restaurant.id ? lastOrder : null
+                    lastOrder?.restaurantId === restaurant.id && !reorderDismissed ? lastOrder : null
                   }
                   onReorder={handleReorder}
                   suggestions={cartBasedSuggestions}
@@ -3719,7 +3745,7 @@ export function MenuShell({
                     etaRestaurant={restaurant} taxPending={(restaurant.tax_rate ?? 0) > 0 && !restaurant.tax_included}
                     deliveryFee={restaurant.order_types_enabled?.includes('delivery') ? (restaurant.delivery_fee ?? undefined) : undefined}
                     lastOrder={
-                      lastOrder?.restaurantId === restaurant.id
+                      lastOrder?.restaurantId === restaurant.id && !reorderDismissed
                         ? lastOrder
                         : null
                     }
@@ -3790,6 +3816,7 @@ export function MenuShell({
         <RepeatOrderButton
           restaurantId={restaurant.id}
           locale={locale as "es" | "en"}
+          suppressed={showReorderBanner || reorderDismissed}
         />
 
         {/* ── Mobile Full-screen Search Overlay ── */}

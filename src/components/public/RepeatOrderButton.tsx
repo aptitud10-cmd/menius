@@ -34,9 +34,12 @@ interface RepeatOrderData {
 interface Props {
   restaurantId: string;
   locale: 'es' | 'en';
+  /** The menu's own "reorder" banner is showing, or was just dismissed: don't
+   *  offer the same thing a second time as a floating pill. */
+  suppressed?: boolean;
 }
 
-export default function RepeatOrderButton({ restaurantId, locale }: Props) {
+export default function RepeatOrderButton({ restaurantId, locale, suppressed = false }: Props) {
   const [data, setData] = useState<RepeatOrderData | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
@@ -140,7 +143,7 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
     setDismissed(true);
   };
 
-  if (dismissed || cartCount > 0 || !data || data.items.length === 0) return null;
+  if (suppressed || dismissed || cartCount > 0 || !data || data.items.length === 0) return null;
 
   return (
     <>
