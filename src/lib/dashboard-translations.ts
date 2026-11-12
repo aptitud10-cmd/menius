@@ -1266,6 +1266,13 @@ export interface DashboardTranslations {
   drivers_deleteConfirm: string;
   drivers_active: string;
   drivers_inactive: string;
+  drivers_linkApp: string;
+  drivers_linkTitle: string;
+  drivers_linkStep1: string;
+  drivers_linkStep2: string;
+  drivers_linkOnce: string;
+  drivers_linkError: string;
+  drivers_linkDone: string;
 
   // Settings page extras
   settings_kds: string;
@@ -2649,6 +2656,13 @@ const es: DashboardTranslations = {
   drivers_deleteConfirm: "¿Eliminar este repartidor?",
   drivers_active: "Activo",
   drivers_inactive: "Inactivo",
+  drivers_linkApp: "Vincular app",
+  drivers_linkTitle: "Vincular la app de",
+  drivers_linkStep1: "En el teléfono del repartidor, abre la app MENIUS Repartidor.",
+  drivers_linkStep2: "Toca «Vincular con QR» y escanea este código.",
+  drivers_linkOnce: "El código sirve una sola vez y vence en un rato. Si vence, genera otro.",
+  drivers_linkError: "No se pudo generar el código. Intenta de nuevo.",
+  drivers_linkDone: "Listo",
 
   // Settings page extras
   settings_kds: "Display de Cocina",
@@ -4025,6 +4039,13 @@ const en: DashboardTranslations = {
   drivers_deleteConfirm: "Delete this driver?",
   drivers_active: "Active",
   drivers_inactive: "Inactive",
+  drivers_linkApp: "Link app",
+  drivers_linkTitle: "Link the app for",
+  drivers_linkStep1: "On the driver’s phone, open the MENIUS Driver app.",
+  drivers_linkStep2: "Tap “Link with QR” and scan this code.",
+  drivers_linkOnce: "The code works once and expires soon. If it expires, generate a new one.",
+  drivers_linkError: "Could not generate the code. Please try again.",
+  drivers_linkDone: "Done",
 
   // Settings page extras
   settings_kds: "Kitchen Display",

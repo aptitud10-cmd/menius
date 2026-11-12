@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX, UserPlus, Bike, Phone, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX, UserPlus, Bike, Phone, ToggleLeft, ToggleRight, Smartphone, X } from 'lucide-react';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { DashboardTranslations } from '@/lib/dashboard-translations';
+import { generateQRDataUrl } from '@/lib/styled-qr';
 
 interface Driver {
   id: string;
@@ -12,7 +13,79 @@ interface Driver {
   is_active: boolean;
 }
 
+/** QR con el que el repartidor entra a la app nativa (sin SMS). */
+function DriverLinkModal({ driver, t, onClose }: { driver: Driver; t: DashboardTranslations; onClose: () => void }) {
+  const [qr, setQr] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/tenant/drivers/link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: driver.id }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { link?: string };
+        if (!res.ok || !data.link) throw new Error(String(res.status));
+        const url = await generateQRDataUrl(data.link, 480);
+        if (!url) throw new Error('qr');
+        if (alive) setQr(url);
+      } catch {
+        if (alive) setFailed(true);
+      }
+    })();
+    return () => { alive = false; };
+  }, [driver.id]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="driver-link-title"
+    >
+      <div className="w-full max-w-sm bg-white rounded-2xl p-5 shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <h3 id="driver-link-title" className="text-base font-bold text-gray-900">
+            {t.drivers_linkTitle} {driver.name}
+          </h3>
+          <button onClick={onClose} aria-label={t.drivers_linkDone} className="p-2 -m-2 text-gray-400 hover:text-gray-600 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Margen blanco alrededor del QR (quiet zone): sin él algunas cámaras no lo leen. */}
+        <div className="flex items-center justify-center w-[260px] h-[260px] mx-auto rounded-xl bg-white border border-gray-200 p-4">
+          {qr ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={qr} alt="" width={226} height={226} />
+          ) : failed ? (
+            <p className="text-sm text-red-500 text-center px-6">{t.drivers_linkError}</p>
+          ) : (
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          )}
+        </div>
+
+        <ol className="mt-4 space-y-1.5 text-sm text-gray-700 list-decimal pl-5">
+          <li>{t.drivers_linkStep1}</li>
+          <li>{t.drivers_linkStep2}</li>
+        </ol>
+        <p className="mt-3 text-xs text-gray-500">{t.drivers_linkOnce}</p>
+
+        <button onClick={onClose} className="mt-4 w-full py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition text-sm">
+          {t.drivers_linkDone}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DriversSection({ t }: { t: DashboardTranslations }) {
+  const [linking, setLinking] = useState<Driver | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -108,7 +181,7 @@ function DriversSection({ t }: { t: DashboardTranslations }) {
       ) : (
         <div className="space-y-2">
           {drivers.map(d => (
-            <div key={d.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-3">
+            <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 bg-white border border-gray-200 rounded-xl p-3">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-700 font-bold text-sm">
                   {d.name.charAt(0).toUpperCase()}
@@ -123,6 +196,15 @@ function DriversSection({ t }: { t: DashboardTranslations }) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {d.is_active && (
+                  <button
+                    onClick={() => setLinking(d)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    {t.drivers_linkApp}
+                  </button>
+                )}
                 <span className={`text-xs font-medium ${d.is_active ? 'text-emerald-600' : 'text-gray-400'}`}>
                   {d.is_active ? t.drivers_active : t.drivers_inactive}
                 </span>
@@ -137,6 +219,8 @@ function DriversSection({ t }: { t: DashboardTranslations }) {
           ))}
         </div>
       )}
+
+      {linking && <DriverLinkModal driver={linking} t={t} onClose={() => setLinking(null)} />}
     </div>
   );
 }
