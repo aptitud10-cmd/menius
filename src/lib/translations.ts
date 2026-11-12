@@ -150,6 +150,8 @@ export interface Translations {
   editItem: string;
   /** CTA label while required groups are still missing picks ("Choose 2 more"). */
   chooseMore: (n: number) => string;
+  /** Hint under a single-choice group that arrives preselected ("Standard: Home Fries"). */
+  standardChoice: (name: string) => string;
   /** Badge on a required group once it is satisfied. */
   groupDone: string;
   // Product card
@@ -535,6 +537,7 @@ const es: Translations = {
   updateItem: 'Actualizar',
   editItem: 'Editar producto',
   chooseMore: (n) => `Elige ${n} más`,
+  standardChoice: (name) => `Por defecto: ${name} · toca otra para cambiar`,
   groupDone: 'Listo',
   soldOut: 'Agotado',
   unavailable: 'No disponible',
@@ -903,6 +906,7 @@ const en: Translations = {
   updateItem: 'Update',
   editItem: 'Edit item',
   chooseMore: (n) => `Choose ${n} more`,
+  standardChoice: (name) => `Standard: ${name} · tap another to swap`,
   groupDone: 'Done',
   soldOut: 'Sold out',
   unavailable: 'Unavailable',

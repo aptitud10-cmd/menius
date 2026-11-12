@@ -804,6 +804,19 @@ export function CustomizationSheet({
         const isSatisfied = minRequired > 0 && selected.length >= minRequired;
         const isHighlighted = highlightGroupId === group.id;
         const headingId = `cs-group-${group.id}`;
+        // A single choice that arrives preselected reads as "already decided"
+        // unless it says so: diners didn't realise eggs come with home fries
+        // and that fries are one tap away (Pedro 2026-11-12). Worded "Standard"
+        // rather than "Comes with" because the same shape covers cooking
+        // temperature, size and burger style, where "comes with Medium Rare"
+        // would be nonsense.
+        const defaults = group.options.filter((o) => o.is_default);
+        const standardHint =
+          group.selection_type === "single" &&
+          group.options.length > 1 &&
+          defaults.length === 1
+            ? t.standardChoice(tName(defaults[0], locale, defaultLocale))
+            : null;
 
         return (
           <div
@@ -824,7 +837,7 @@ export function CustomizationSheet({
                 isHighlighted && "ring-2 ring-red-400 ring-offset-4",
               )}
             >
-            <div className="flex items-center gap-2 mb-3">
+            <div className={cn("flex items-center gap-2", standardHint ? "mb-1" : "mb-3")}>
               <h4 id={headingId} className="text-sm font-bold text-gray-900">
                 {tName(group, locale, defaultLocale)}
               </h4>
@@ -851,6 +864,9 @@ export function CustomizationSheet({
                 </span>
               )}
             </div>
+            {standardHint && (
+              <p className="mb-3 text-xs text-gray-500">{standardHint}</p>
+            )}
             {group.display_type === "grid" ? (
               <div
                 role="group"
