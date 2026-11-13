@@ -437,10 +437,11 @@ export async function POST(request: NextRequest) {
       { data: dbVariants },
       { data: dbExtras },
       { data: dbModGroups },
+      { data: dbCategoryHours },
     ] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, price, in_stock, dine_in_only, track_inventory, stock_qty, available_from, available_until")
+        .select("id, name, price, in_stock, dine_in_only, track_inventory, stock_qty, available_from, available_until, category_id")
         .in("id", productIds)
         .eq("restaurant_id", restaurant_id),
       supabase
@@ -459,7 +460,20 @@ export async function POST(request: NextRequest) {
           "id, product_id, name, is_required, min_select, max_select, depends_on_option_id, depends_on_option_ids, sort_order, ticket_label, ticket_layout",
         )
         .in("product_id", productIds),
+      // Categorías con horario (Breakfast 6–11): el menú las bloquea, pero eso
+      // es solo pantalla — un carrito viejo o la API las saltaba.
+      supabase
+        .from("categories")
+        .select("id, available_from, available_to")
+        .eq("restaurant_id", restaurant_id)
+        .or("available_from.not.is.null,available_to.not.is.null"),
     ]);
+    const categoryHours = new Map(
+      (dbCategoryHours ?? []).map((c) => [
+        c.id,
+        { available_from: c.available_from, available_until: c.available_to },
+      ]),
+    );
 
     const modGroupIds = (dbModGroups ?? []).map((g) => g.id);
     const { data: dbModOptions } =
@@ -585,9 +599,18 @@ export async function POST(request: NextRequest) {
           { status: 400 },
         );
       }
-      // Horario del plato (Oatmeal 5:30–11 AM), a la hora del pedido o la programada.
-      if (!isOptionAvailableAt(dbProduct, orderLocal, 10)) {
-        const hours = optionHoursLabel(dbProduct, en ? "en" : "es");
+      // Horario del plato (Oatmeal 5:30–11 AM) y de su categoría, a la hora del
+      // pedido o la programada.
+      const catHours = dbProduct.category_id
+        ? categoryHours.get(dbProduct.category_id)
+        : undefined;
+      const closedHours = !isOptionAvailableAt(dbProduct, orderLocal, 10)
+        ? dbProduct
+        : catHours && !isOptionAvailableAt(catHours, orderLocal, 10)
+          ? catHours
+          : null;
+      if (closedHours) {
+        const hours = optionHoursLabel(closedHours, en ? "en" : "es");
         return NextResponse.json(
           {
             error: en

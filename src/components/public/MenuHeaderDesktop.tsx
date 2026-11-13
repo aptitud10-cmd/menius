@@ -42,7 +42,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
 }: MenuHeaderProps) {
   const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
   const itemTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
-  const open = isRestaurantOpen(restaurant.operating_hours);
+  const open = isRestaurantOpen(restaurant.operating_hours, restaurant.timezone);
 
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {

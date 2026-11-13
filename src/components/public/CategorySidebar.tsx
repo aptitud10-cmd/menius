@@ -27,15 +27,10 @@ interface CategorySidebarProps {
   /** Scrolls to a subsection. Distinct from `onSelect`, which switches the
    *  active group filter and would collapse the very list being clicked. */
   onSelectSubcategory?: (catId: string) => void;
-}
-
-function isCategoryAvailableNow(cat: Category): boolean {
-  if (!cat.available_from || !cat.available_to) return true;
-  const now = new Date();
-  const [fromH, fromM] = cat.available_from.split(':').map(Number);
-  const [toH, toM] = cat.available_to.split(':').map(Number);
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-  return nowMins >= fromH * 60 + fromM && nowMins <= toH * 60 + toM;
+  /** Open right now, in the restaurant's zone (MenuShell owns the clock). */
+  isAvailable?: (cat: Category) => boolean;
+  /** "6–11 AM" for a category with hours, null otherwise. */
+  hoursLabel?: (cat: Category) => string | null;
 }
 
 export const CategorySidebar = memo(function CategorySidebar({
@@ -48,6 +43,8 @@ export const CategorySidebar = memo(function CategorySidebar({
   countFor,
   subcategories,
   onSelectSubcategory,
+  isAvailable,
+  hoursLabel,
 }: CategorySidebarProps) {
   return (
     <nav className="py-5 pr-3 font-sidebar">
@@ -58,8 +55,9 @@ export const CategorySidebar = memo(function CategorySidebar({
             : products.filter((p) => p.category_id === cat.id).length;
           if (count === 0) return null;
           const isActive = activeCategory === cat.id;
-          const available = isCategoryAvailableNow(cat);
-          const hasSchedule = !!(cat.available_from && cat.available_to);
+          const available = isAvailable ? isAvailable(cat) : true;
+          const hours = hoursLabel ? hoursLabel(cat) : null;
+          const hasSchedule = !!hours;
 
           const nested =
             isActive && available && subcategories && subcategories.length > 0
@@ -100,7 +98,7 @@ export const CategorySidebar = memo(function CategorySidebar({
                 {hasSchedule && !available && (
                   <span className="flex items-center gap-1 text-[10px] text-ink-400 mt-0.5">
                     <Clock className="w-2.5 h-2.5" />
-                    {cat.available_from} – {cat.available_to}
+                    {hours}
                   </span>
                 )}
               </div>

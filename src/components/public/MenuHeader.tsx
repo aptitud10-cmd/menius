@@ -7,6 +7,7 @@
  */
 
 import { memo } from 'react';
+import { inTimeZone, isOpenAt, type OperatingHours } from '@/lib/orders/business-hours';
 import type { Restaurant } from '@/types';
 import { MenuHeaderMobile } from './MenuHeaderMobile';
 import { MenuHeaderDesktop } from './MenuHeaderDesktop';
@@ -36,15 +37,18 @@ export interface MenuHeaderProps {
 }
 
 /** Utility shared by both mobile and desktop sub-components */
-export function isRestaurantOpen(hours?: Restaurant['operating_hours']): boolean {
+/**
+ * Open right now, in the restaurant's zone — not the diner's phone, and not the
+ * server's UTC clock (which put tomorrow's hours on screen every evening in New
+ * York). Same rule as checkout (isOpenAt), so a late-night schedule that crosses
+ * midnight reads as open at 1 AM too.
+ */
+export function isRestaurantOpen(
+  hours?: Restaurant['operating_hours'],
+  timeZone?: string | null,
+): boolean {
   if (!hours || Object.keys(hours).length === 0) return true;
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const now = new Date();
-  const day = days[now.getDay()];
-  const dayHours = hours[day];
-  if (!dayHours || dayHours.closed) return false;
-  const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  return t >= dayHours.open && t <= dayHours.close;
+  return isOpenAt(hours as OperatingHours, inTimeZone(new Date(), timeZone || 'UTC'));
 }
 
 export const MenuHeader = memo(function MenuHeader(props: MenuHeaderProps) {

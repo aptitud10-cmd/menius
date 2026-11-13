@@ -103,6 +103,7 @@ export function CartPanel({
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const orderType = useCartStore((s) => s.selectedOrderType);
   const reorderSkipped = useCartStore((s) => s.reorderSkipped);
+  const reorderUnavailable = useCartStore((s) => s.reorderUnavailable);
   // Mismo cálculo que el checkout: con tiempos por plato, el del plato más
   // lento (+ viaje si eligió delivery); si no, el número general de antes.
   const etaMinutes = estimateMinutes({
@@ -559,6 +560,14 @@ export function CartPanel({
           <p className="text-[12px] text-amber-800 font-semibold leading-snug">
             {t.reorderChooseOptions}
             {reorderSkipped.join(', ')}
+          </p>
+        </div>
+      )}
+      {reorderUnavailable.length > 0 && (
+        <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 flex-shrink-0" role="status">
+          <p className="text-[12px] text-gray-700 font-semibold leading-snug">
+            {t.reorderUnavailable}
+            {reorderUnavailable.join(', ')}
           </p>
         </div>
       )}

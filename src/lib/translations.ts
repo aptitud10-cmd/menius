@@ -132,6 +132,8 @@ export interface Translations {
   // Cart — dynamic strings
   reorderLastOrder: string;
   reorderChooseOptions: string;
+  /** Prefix before the dishes of the last order that can't be ordered right now. */
+  reorderUnavailable: string;
   tapToRemove: string;
   youMayAlsoLike: string;
   peopleAlsoOrder: string;
@@ -525,6 +527,7 @@ const es: Translations = {
   deliveryDesc: 'Recibe en tu dirección',
   reorderLastOrder: 'Repetir último pedido',
   reorderChooseOptions: 'Elige de nuevo las opciones de: ',
+  reorderUnavailable: 'No disponible ahora: ',
   tapToRemove: 'Toca − de nuevo para eliminar',
   youMayAlsoLike: 'También te puede gustar',
   peopleAlsoOrder: 'También piden con esto',
@@ -896,6 +899,7 @@ const en: Translations = {
   deliveryDesc: 'Get it delivered to you',
   reorderLastOrder: 'Reorder last order',
   reorderChooseOptions: 'Choose the options again for: ',
+  reorderUnavailable: 'Not available right now: ',
   tapToRemove: 'Tap − again to remove',
   youMayAlsoLike: 'You may also like',
   peopleAlsoOrder: 'People also order',

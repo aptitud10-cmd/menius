@@ -237,28 +237,6 @@ export function MenuShell({
     }
   }, [lastOrder, reorderDismissKey]);
 
-  const handleReorder = useCallback(() => {
-    const added = reorder(products);
-    if (added > 0) {
-      setReorderDismissed(true);
-      setOpen(true);
-    }
-  }, [reorder, products, setOpen]);
-
-  // "Pedir lo mismo" desde el seguimiento: llega con ?reorder=1 y el pedido ya
-  // guardado como último pedido → se pone en el carrito una sola vez.
-  const reorderParamDone = useRef(false);
-  useEffect(() => {
-    if (!hasMounted || reorderParamDone.current) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('reorder') !== '1') return;
-    reorderParamDone.current = true;
-    if (lastOrder?.restaurantId === restaurant.id && lastOrder.items.length > 0) handleReorder();
-    params.delete('reorder');
-    const qs = params.toString();
-    window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
-  }, [hasMounted, lastOrder, restaurant.id, handleReorder]);
-
   const enabledOrderTypes: OrderType[] = restaurant.order_types_enabled?.length
     ? restaurant.order_types_enabled
     : ["dine_in", "pickup", "delivery"];
@@ -1072,7 +1050,20 @@ export function MenuShell({
   // Applied after mount only: the page is ISR-cached, so the server's clock is
   // not "now" and marking them during SSR would mismatch on hydration. A
   // one-minute clock re-evaluates them while the menu stays open.
-  const anyProductHours = useMemo(() => products.some(hasHours), [products]);
+  // Category hours (Breakfast 6–11) share the clock: read in the restaurant's
+  // zone, never the phone's, and only after mount for the same ISR reason.
+  const categoryHoursById = useMemo(() => {
+    const m = new Map<string, { available_from: string | null; available_until: string | null }>();
+    for (const c of categories) {
+      const h = { available_from: c.available_from ?? null, available_until: c.available_to ?? null };
+      if (hasHours(h)) m.set(c.id, h);
+    }
+    return m;
+  }, [categories]);
+  const anyProductHours = useMemo(
+    () => categoryHoursById.size > 0 || products.some(hasHours),
+    [products, categoryHoursById],
+  );
   const [hoursClock, setHoursClock] = useState(0);
   useEffect(() => {
     if (!anyProductHours) return;
@@ -1094,16 +1085,53 @@ export function MenuShell({
       let q = override !== undefined ? { ...p, in_stock: override } : p;
       // Out of hours reads like sold out everywhere a card checks in_stock
       // (no add, no sheet, off Popular), but labelled with when it's served.
-      if (local && q.in_stock !== false && hasHours(q) && !isOptionAvailableAt(q, local)) {
-        q = {
-          ...q,
-          in_stock: false,
-          unavailable_note: t.servedHours(optionHoursLabel(q, locale) ?? ""),
-        };
+      if (local && q.in_stock !== false) {
+        // The dish's own hours first, then its category's.
+        const catHours = q.category_id ? categoryHoursById.get(q.category_id) : undefined;
+        const closed =
+          hasHours(q) && !isOptionAvailableAt(q, local)
+            ? q
+            : catHours && !isOptionAvailableAt(catHours, local)
+              ? catHours
+              : null;
+        if (closed) {
+          q = {
+            ...q,
+            in_stock: false,
+            unavailable_note: t.servedHours(optionHoursLabel(closed, locale) ?? ""),
+          };
+        }
       }
       return q;
     });
-  }, [products, stockOverrides, hoursClock, restaurant.timezone, t, locale]);
+  }, [products, stockOverrides, hoursClock, restaurant.timezone, t, locale, categoryHoursById]);
+
+  const handleReorder = useCallback(() => {
+    // liveProducts, not products: a dish sold out or outside its hours stays
+    // out of the cart and is listed as unavailable instead.
+    const added = reorder(liveProducts);
+    if (added > 0) {
+      setReorderDismissed(true);
+      setOpen(true);
+    }
+  }, [reorder, liveProducts, setOpen]);
+
+  // "Pedir lo mismo" desde el seguimiento: llega con ?reorder=1 y el pedido ya
+  // guardado como último pedido → se pone en el carrito una sola vez.
+  const reorderParamDone = useRef(false);
+  useEffect(() => {
+    // Wait for the hours clock: before it ticks, liveProducts doesn't know
+    // yet which dishes are out of hours.
+    if (!hasMounted || reorderParamDone.current) return;
+    if (anyProductHours && hoursClock === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reorder') !== '1') return;
+    reorderParamDone.current = true;
+    if (lastOrder?.restaurantId === restaurant.id && lastOrder.items.length > 0) handleReorder();
+    params.delete('reorder');
+    const qs = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
+  }, [hasMounted, lastOrder, restaurant.id, handleReorder, anyProductHours, hoursClock]);
 
   const filteredProducts = useMemo(
     () =>
@@ -1121,17 +1149,24 @@ export function MenuShell({
     return DIETARY_TAGS.filter((t) => seen.has(t.id as DietaryTag));
   }, [products]);
 
-  // Returns true if category has no schedule restriction or current time is within window
+  // Category open right now, in the restaurant's zone (it used to read the
+  // diner's phone clock: a visitor in another zone, or with the clock off, saw
+  // Breakfast open at dinner). Open until mounted, so SSR and hydration agree;
+  // the server re-checks at checkout either way.
   const isCategoryAvailableNow = useCallback(
-    (cat: { available_from?: string | null; available_to?: string | null }) => {
-      if (!cat.available_from || !cat.available_to) return true;
-      const now = new Date();
-      const [fromH, fromM] = cat.available_from.split(":").map(Number);
-      const [toH, toM] = cat.available_to.split(":").map(Number);
-      const nowMins = now.getHours() * 60 + now.getMinutes();
-      return nowMins >= fromH * 60 + fromM && nowMins <= toH * 60 + toM;
+    (cat: { id: string }) => {
+      const h = categoryHoursById.get(cat.id);
+      if (!h || hoursClock === 0) return true;
+      return isOptionAvailableAt(h, inTimeZone(new Date(hoursClock), restaurant.timezone || "UTC"));
     },
-    [],
+    [categoryHoursById, hoursClock, restaurant.timezone],
+  );
+  const categoryHoursLabel = useCallback(
+    (cat: { id: string }) => {
+      const h = categoryHoursById.get(cat.id);
+      return h ? optionHoursLabel(h, locale) : null;
+    },
+    [categoryHoursById, locale],
   );
 
   const popularProducts = useMemo(() => {
@@ -1209,7 +1244,7 @@ export function MenuShell({
       !showsAsRow(p);
 
     // Time-of-day context: filter alcohol before noon
-    const hour = new Date().getHours();
+    const hour = inTimeZone(new Date(), restaurant.timezone || "UTC").getHours();
     const isBreakfastHour = hour >= 5 && hour < 11;
     const alcoholRegex =
       /cerveza|beer|vino|wine|margarita|coctel|cocktail|mojito|sangria|michelada|alcohol/i;
@@ -1270,6 +1305,7 @@ export function MenuShell({
     return [...dataProducts, ...fallback];
   }, [
     customization?.product,
+    restaurant.timezone,
     liveProducts,
     categories,
     cartProductIds,
@@ -1287,7 +1323,7 @@ export function MenuShell({
     const anchor = liveProducts.find((p) => p.id === firstCartProductId);
     if (!anchor) return [];
 
-    const hour = new Date().getHours();
+    const hour = inTimeZone(new Date(), restaurant.timezone || "UTC").getHours();
     const isBreakfastHour = hour >= 5 && hour < 11;
     const alcoholRegex =
       /cerveza|beer|vino|wine|margarita|coctel|cocktail|mojito|sangria|michelada|alcohol/i;
@@ -1326,6 +1362,7 @@ export function MenuShell({
       .map(({ product }) => product);
   }, [
     firstCartProductId,
+    restaurant.timezone,
     liveProducts,
     categories,
     cartProductIds,
@@ -1438,6 +1475,8 @@ export function MenuShell({
   const [deepLinkSection, setDeepLinkSection] = useState<string | null>(null);
   useEffect(() => {
     if (!mainMounted || deepLinkDoneRef.current) return;
+    // Wait for the hours clock so an out-of-hours dish is known as such.
+    if (anyProductHours && hoursClock === 0) return;
     deepLinkDoneRef.current = true;
     const params = new URLSearchParams(window.location.search);
     const itemId = params.get("item");
@@ -1445,7 +1484,7 @@ export function MenuShell({
     if (!itemId && !catParam) return;
 
     const product = itemId
-      ? products.find((p) => p.id === itemId && p.is_active !== false)
+      ? liveProducts.find((p) => p.id === itemId && p.is_active !== false)
       : undefined;
     const category = product
       ? categories.find((c) => c.id === product.category_id)
@@ -1468,7 +1507,10 @@ export function MenuShell({
       }
       setDeepLinkSection(category.id);
     }
-    if (product) handleProductSelect(product);
+    // Sold out or outside its hours (Oatmeal at 3 PM): land on its section,
+    // where the card says when it's served, instead of opening a sheet the
+    // checkout would reject.
+    if (product && product.in_stock !== false) handleProductSelect(product);
 
     params.delete("item");
     params.delete("category");
@@ -1479,7 +1521,7 @@ export function MenuShell({
       `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mainMounted]);
+  }, [mainMounted, hoursClock]);
 
   // Scroll once the deep-linked category is committed (it may belong to a
   // group that was not on screen until the filter above applied).
@@ -2338,7 +2380,7 @@ export function MenuShell({
                             "friday",
                             "saturday",
                           ];
-                          const dayKey = days[new Date().getDay()];
+                          const dayKey = days[inTimeZone(new Date(), restaurant.timezone || "UTC").getDay()];
                           const dh = restaurant.operating_hours?.[dayKey];
                           if (!dh || dh.closed) return null;
                           const is24h =
@@ -2408,6 +2450,8 @@ export function MenuShell({
                 locale={locale}
                 defaultLocale={defaultLocale}
                 countFor={groupsActive ? countForSidebar : undefined}
+                isAvailable={isCategoryAvailableNow}
+                hoursLabel={categoryHoursLabel}
                 subcategories={subcatsOfActiveGroup}
                 onSelectSubcategory={scrollToSection}
               />
@@ -2595,7 +2639,7 @@ export function MenuShell({
                                 "friday",
                                 "saturday",
                               ];
-                              const dayKey = days[new Date().getDay()];
+                              const dayKey = days[inTimeZone(new Date(), restaurant.timezone || "UTC").getDay()];
                               const dh = restaurant.operating_hours?.[dayKey];
                               if (!dh || dh.closed) return null;
                               const is24h =
@@ -3061,11 +3105,10 @@ export function MenuShell({
                                             defaultLocale,
                                           )}
                                     </h2>
-                                    {isLocked && category.available_from && (
+                                    {isLocked && categoryHoursLabel(category) && (
                                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">
                                         <Clock className="w-3 h-3" />
-                                        {category.available_from} –{" "}
-                                        {category.available_to}
+                                        {categoryHoursLabel(category)}
                                       </span>
                                     )}
                                     {!isLocked && (
@@ -3093,9 +3136,7 @@ export function MenuShell({
                                             aria-hidden="true"
                                           />
                                           <span className="text-sm font-semibold text-gray-500">
-                                            {locale === "en"
-                                              ? `Available ${category.available_from} – ${category.available_to}`
-                                              : `Disponible ${category.available_from} – ${category.available_to}`}
+                                            {t.servedHours(categoryHoursLabel(category) ?? "")}
                                           </span>
                                         </div>
                                       </div>
@@ -3435,7 +3476,7 @@ export function MenuShell({
                               "friday",
                               "saturday",
                             ];
-                            const todayIdx = new Date().getDay();
+                            const todayIdx = inTimeZone(new Date(), restaurant.timezone || "UTC").getDay();
                             const todayKey = dayKeys[todayIdx];
                             const todayHours =
                               restaurant.operating_hours?.[todayKey];

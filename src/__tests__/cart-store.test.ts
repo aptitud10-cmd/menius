@@ -342,6 +342,25 @@ describe('Cart Store — saveLastOrder & reorder', () => {
     expect(added).toBe(0);
   });
 
+  it('reorder leaves out dishes not available now and lists them', () => {
+    const store = useCartStore.getState();
+    store.setRestaurantId('rest-1');
+    store.addItem(makeProduct({ id: 'p1', name: 'Oatmeal' }), null, [], 1, '');
+    store.addItem(makeProduct({ id: 'p2', name: 'Burger' }), null, [], 1, '');
+    useCartStore.getState().saveLastOrder();
+    useCartStore.getState().clearCart();
+
+    const products = [
+      makeProduct({ id: 'p1', name: 'Oatmeal', in_stock: false, unavailable_note: 'Served 5:30–11 AM' }),
+      makeProduct({ id: 'p2', name: 'Burger' }),
+    ];
+    const added = useCartStore.getState().reorder(products);
+
+    expect(added).toBe(2);
+    expect(useCartStore.getState().items.map((i) => i.product.id)).toEqual(['p2']);
+    expect(useCartStore.getState().reorderUnavailable).toEqual(['Oatmeal (Served 5:30–11 AM)']);
+  });
+
   it('does not save if no restaurantId', () => {
     const store = useCartStore.getState();
     store.addItem(makeProduct(), null, [], 1, '');

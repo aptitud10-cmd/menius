@@ -29,6 +29,8 @@ interface CartState {
   lastOrder: LastOrder | null;
   /** Platos del último "repetir" que necesitan elegir opciones de nuevo (no se persiste). */
   reorderSkipped: string[];
+  /** Dishes from the last order that can't be served right now (sold out, out of hours). */
+  reorderUnavailable: string[];
   addItem: (product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
   replaceItem: (index: number, product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
   removeItem: (index: number) => void;
@@ -67,6 +69,7 @@ export const useCartStore = create<CartState>()(
       selectedOrderType: null,
       lastOrder: null,
       reorderSkipped: [],
+      reorderUnavailable: [],
 
       setRestaurantId: (id) => {
         const current = get().restaurantId;
@@ -154,9 +157,17 @@ export const useCartStore = create<CartState>()(
         const productMap = new Map(products.map((p) => [p.id, p]));
         const newItems = [];
         const skipped: string[] = [];
+        const unavailable: string[] = [];
         for (const saved of lastOrder.items) {
           const product = productMap.get(saved.productId);
           if (!product || !product.is_active) continue;
+          // Agotado o fuera de horario (Oatmeal después de las 11): antes entraba
+          // al carrito y el checkout lo rechazaba recién al pagar.
+          if (product.in_stock === false) {
+            const name = saved.productName || product.name;
+            unavailable.push(product.unavailable_note ? `${name} (${product.unavailable_note})` : name);
+            continue;
+          }
           // Con opciones (acompañante obligatorio, salsas…) no se puede repetir
           // a ciegas: el checkout lo rechaza. Se avisa para elegirlas de nuevo.
           if (product.has_modifiers) { skipped.push(saved.productName || product.name); continue; }
@@ -176,8 +187,8 @@ export const useCartStore = create<CartState>()(
           newItems.push({ uid, product, variant, extras: [], modifierSelections: [], qty: saved.qty, notes: '', lineTotal });
         }
         // Se suma a lo que ya haya en el carrito (antes lo reemplazaba sin avisar).
-        set({ items: [...get().items, ...newItems], reorderSkipped: skipped });
-        return newItems.length + skipped.length;
+        set({ items: [...get().items, ...newItems], reorderSkipped: skipped, reorderUnavailable: unavailable });
+        return newItems.length + skipped.length + unavailable.length;
       },
 
       clearCart: () => set({ items: [] }),
