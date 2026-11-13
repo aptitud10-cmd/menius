@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical, Languages, X, Camera, ImageIcon, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical, Languages, X, Camera, ImageIcon, Clock, ChefHat, Store } from 'lucide-react';
 import Image from 'next/image';
 import {
   DndContext,
@@ -38,6 +38,7 @@ function SortableCategoryRow({
   cat,
   hasMultiLang,
   onToggle,
+  onToggleKitchen,
   onEdit,
   onDelete,
   onTranslate,
@@ -46,12 +47,13 @@ function SortableCategoryRow({
   cat: Category;
   hasMultiLang: boolean;
   onToggle: () => void;
+  onToggleKitchen: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onTranslate: () => void;
   onImageUpload: (file: File) => void;
 }) {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
   const imgRef = useRef<HTMLInputElement>(null);
   const {
     attributes,
@@ -113,6 +115,24 @@ function SortableCategoryRow({
         {!cat.is_active && (
           <span className="dash-badge dash-badge-inactive text-[10px]">{t.categories_hidden}</span>
         )}
+        {/* Va a la pantalla y al ticket de cocina, o se arma en el mostrador (bebidas,
+            postres). Siempre visible: en tablet no hay hover. */}
+        <button
+          onClick={onToggleKitchen}
+          className={cn(
+            'ml-1 inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-semibold border transition-colors flex-shrink-0',
+            cat.send_to_kitchen === false
+              ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+              : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100',
+          )}
+          title={locale === 'en'
+            ? (cat.send_to_kitchen === false ? 'Made at the counter — not shown in the kitchen. Tap to send to the kitchen.' : 'Shown in the kitchen display and ticket. Tap if it’s made at the counter.')
+            : (cat.send_to_kitchen === false ? 'Se arma en el mostrador: no sale en cocina. Tocá para mandarla a cocina.' : 'Sale en la pantalla y el ticket de cocina. Tocá si se arma en el mostrador.')}
+        >
+          {cat.send_to_kitchen === false
+            ? <><Store className="w-3 h-3" />{locale === 'en' ? 'Counter' : 'Mostrador'}</>
+            : <><ChefHat className="w-3 h-3" />{locale === 'en' ? 'Kitchen' : 'Cocina'}</>}
+        </button>
       </div>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         {hasMultiLang && (
@@ -214,6 +234,15 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
     startTransition(async () => {
       await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: !cat.is_active });
       setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: !c.is_active } : c));
+    });
+  };
+
+  const handleToggleKitchen = (cat: Category) => {
+    const next = cat.send_to_kitchen === false;
+    setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, send_to_kitchen: next } : c));
+    startTransition(async () => {
+      const res = await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, send_to_kitchen: next });
+      if (res?.error) setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, send_to_kitchen: !next } : c));
     });
   };
 
@@ -342,6 +371,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
                   cat={cat}
                   hasMultiLang={hasMultiLang}
                   onToggle={() => handleToggle(cat)}
+                  onToggleKitchen={() => handleToggleKitchen(cat)}
                   onEdit={() => handleEdit(cat)}
                   onDelete={() => handleDelete(cat.id)}
                   onTranslate={() => setTranslatingCat(cat)}

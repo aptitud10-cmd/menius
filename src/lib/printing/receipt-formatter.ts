@@ -493,7 +493,10 @@ export function buildKitchenHTML(data: ReceiptData): string {
   const htmlLang = isEn(locale) ? 'en' : 'es';
   const typeLabel = formatOrderType(orderType, locale);
 
-  const itemsHTML = items.map(item => {
+  // Solo lo que se cocina; lo del mostrador va nombrado al pie (lib/kitchen).
+  const cook = items.filter(item => item.kitchen !== false);
+  const atCounter = items.filter(item => item.kitchen === false).map(item => `${item.qty} ${item.name}`).join(' · ');
+  const itemsHTML = cook.map(item => {
     const rawName = item.name.length > 30 ? item.name.slice(0, 27) + '...' : item.name;
     const name = esc(rawName);
     return `
@@ -540,6 +543,7 @@ export function buildKitchenHTML(data: ReceiptData): string {
   ${tableName ? `<div class="table-name">🍽 ${esc(tableName).toUpperCase()}</div>` : typeLabel ? `<div class="tag">${esc(typeLabel).toUpperCase()}</div>` : ''}
   <div class="divider"></div>
   ${itemsHTML}
+  ${atCounter ? `<div class="mod" style="padding:4px 0 0">+ ${esc(atCounter)} ${isEn(locale) ? 'at the counter' : 'en mostrador'}</div>` : ''}
   <div class="divider"></div>
   ${notes ? `<div class="notes-box">⚠️ ${esc(notes)}</div>` : ''}
   ${etaMinutes ? `<div class="eta">⏱ ${etaMinutes} min</div>` : ''}

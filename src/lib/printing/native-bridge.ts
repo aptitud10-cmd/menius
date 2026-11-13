@@ -52,6 +52,8 @@ export function nativePrintReceipt(data: ReceiptData, ticketType: NativeTicketTy
       // App >= 1.0.3: precio base arriba + "Item total" (las anteriores lo ignoran).
       basePrice: i.basePrice ?? null,
       notes: i.notes ?? null,
+      // App >= 1.0.3: el ticket de cocina lista solo lo que va a cocina.
+      kitchen: i.kitchen !== false,
     })),
     subtotal: data.subtotal,
     // Desglose + mesa + QR del repartidor (app >= 1.0.3; las anteriores los ignoran).

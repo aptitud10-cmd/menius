@@ -101,6 +101,8 @@ export interface Category {
   created_at: string;
   available_from?: string | null; // "HH:MM" 24h, null = always available
   available_to?: string | null;   // "HH:MM" 24h
+  /** false = sus productos no van a la pantalla ni al ticket de cocina (bebidas, postres). */
+  send_to_kitchen?: boolean;
   /** Parent group for menu navigation on large catalogs (e.g. "Breakfast").
    *  null = ungrouped; the menu falls back to the flat category list. */
   group_name?: string | null;

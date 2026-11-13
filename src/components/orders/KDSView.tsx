@@ -3,77 +3,89 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
-  Printer, CheckCircle, Package, Clock, Check,
-  ArrowRight, XCircle, X, Search, Wifi, WifiOff, Volume2, VolumeX,
-  Pause, Utensils, ShoppingBag, Truck,
-  CreditCard, Banknote, Phone, ChevronDown, ChevronUp,
-  Undo2, AlertTriangle, User, MapPin, History, LogOut,
-  Hash, MessageSquare, PhoneCall,
+  Printer, Volume2, VolumeX, MoreVertical, X, History, Pause, Flame, LogOut, Check, Undo2, AlertTriangle, WifiOff,
 } from 'lucide-react';
-import { updateOrderStatus, undoOrderStatus, updateOrderETA, setPauseOrders } from '@/lib/actions/restaurant';
-import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
+import { updateOrderStatus, undoOrderStatus, setPauseOrders } from '@/lib/actions/restaurant';
+import { cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import { isAllergyText, stripNoteLabel } from './counter/ui';
+import {
+  kitchenItems, counterItems, kitchenTiming, shortOrderNumber, shortCustomerName,
+  type KitchenItem, type KitchenRawItem,
+} from '@/lib/kitchen';
 import { OrderReceipt } from './OrderReceipt';
 import type { Order, OrderStatus } from '@/types';
 
-/* ── Status flow ── KDS starts from confirmed (pending is handled by Counter) */
-const NEXT: Record<string, OrderStatus> = { confirmed: 'preparing', preparing: 'ready', ready: 'delivered' };
-// Una mesa lista pasa a 'served' (igual que en el Counter, que luego la cierra
-// como 'completed'); antes el KDS la cerraba como 'delivered'.
-const nextStatus = (o: Order): OrderStatus | undefined =>
-  o.status === 'ready' && o.order_type === 'dine_in' ? 'served' : NEXT[o.status];
+/*
+ * Pantalla de cocina (rediseño 2026-11-13, investigación Toast/Square/Fresh/Oracle):
+ * - La cocina ve SOLO lo que cocina (categories.send_to_kitchen); lo del mostrador queda
+ *   como una línea al pie del ticket.
+ * - Nada de caja: sin precios, pago ni teléfono.
+ * - Un toque: LISTO. El Counter ya deja el pedido en preparación al aceptarlo.
+ * - Color solo cuando hay que actuar: ámbar al 75% del tiempo prometido, rojo al pasarse.
+ * - Alergias arriba de todo, en rojo. Opciones siempre visibles, con el formato del ticket.
+ * - "All Day": cuántos de cada plato hay pendientes.
+ */
 
-const TYPE_META: Record<string, { icon: typeof Utensils }> = {
-  dine_in:  { icon: Utensils },
-  pickup:   { icon: ShoppingBag },
-  delivery: { icon: Truck },
-};
-
-const PAY_META: Record<string, { icon: typeof Banknote }> = {
-  cash:   { icon: Banknote },
-  online: { icon: CreditCard },
-};
-
+/** Estados que están en la cocina. 'pending' lo acepta el Counter; 'ready' ya salió. */
+const KITCHEN_STATUSES = new Set(['confirmed', 'preparing', 'almost_ready']);
 const AUTO_ARCHIVE_MIN = 120;
+const DEFAULT_ETA_MIN = 15;
+const CANCELLED_SHOW_MS = 120_000;
 
-const DIET_BADGE: Record<string, { label: string; cls: string }> = {
-  vegetarian: { label: '🥬 VEG', cls: 'bg-green-500/20 text-green-300 border-green-500/30' },
-  vegan: { label: '🌱 VEGAN', cls: 'bg-green-600/20 text-green-300 border-green-600/30' },
-  gluten_free: { label: '🚫 GLUTEN', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-  spicy: { label: '🌶️ PICANTE', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
-  dairy_free: { label: '🥛 LÁCTEOS', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+const C = {
+  bg: '#0c0d0f', card: '#17191d', line: '#262a30', ink: '#f4f5f7', sub: '#a3a9b3', mute: '#6b717c',
+  ok: '#22c55e', warn: '#f5a524', late: '#ef4444', no: '#ff6b6b', note: '#fbbf24',
 };
 
-/* ── Urgency: returns header color based on elapsed minutes.
-   busyExtra shifts thresholds forward so tickets stay green longer when busy. ── */
-function urgency(createdAt: string, busyExtra = 0) {
-  const sec = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000));
-  const m = Math.floor(sec / 60), s = sec % 60;
-  const timer = m >= 60
-    ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-    : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+const TXT = {
+  es: {
+    kitchen: 'Cocina', inKitchen: 'en cocina', late: (n: number): string => (n === 1 ? 'atrasado' : 'atrasados'),
+    waitingCounter: (n: number) => `${n} esperando en Counter`, online: 'En línea',
+    offline: 'Sin conexión', queued: (n: number) => `${n} cambio${n === 1 ? '' : 's'} se envía${n === 1 ? '' : 'n'} al volver la conexión`,
+    upcoming: (n: number): string => (n === 1 ? 'programado' : 'programados'), ready: 'LISTO', readyAt: 'listo', lateBy: (m: number) => `+${m} min tarde`, scheduled: 'programado',
+    atCounter: 'en mostrador', table: 'MESA', allergy: 'ALERGIA', note: 'Nota', allDay: 'ALL DAY',
+    recall: 'Recuperar', empty: 'Cocina al día', emptyDesc: 'Los pedidos aparecen acá cuando el Counter los acepta.',
+    undone: 'Deshacer', markedReady: 'listo', cancelled: 'CANCELADO', ok: 'OK', history: 'Historial',
+    historyDesc: 'Pedidos que salieron de la cocina en las últimas 6 horas.', noHistory: 'Todavía no salió ningún pedido.',
+    autoPrint: 'Imprimir al entrar a cocina', sound: 'Sonido', pause: 'Pausar pedidos online', busy: 'Modo ocupado',
+    busyDesc: 'Suma minutos al tiempo prometido para que los tickets no se pongan rojos en un pico.',
+    stations: 'Estación', all: 'Todas', exit: 'Salir de la cocina', paused: 'Pausado', resume: 'Reanudar',
+    oosTitle: (n: string) => `¿Marcar "${n}" como agotado?`, oosDesc: 'Se oculta del menú online hasta que lo vuelvas a activar.',
+    oosOk: 'Agotado (86)', cancel: 'Cancelar', oosDone: 'Marcado como agotado', oosErr: 'No se pudo marcar como agotado',
+    pauseFor: 'Pausar por', p30: '30 min', p60: '1 hora', p120: '2 horas', pToday: 'Hasta mañana',
+    pauseFailed: 'No se pudo cambiar la pausa. Revisá la conexión.',
+    paidRefund: 'Este pedido está pagado: cancelalo desde el Counter para devolverle el dinero al cliente',
+    status: { ready: 'Listo', served: 'Servido', out_for_delivery: 'En camino', delivered: 'Entregado', completed: 'Cerrado', cancelled: 'Cancelado' } as Record<string, string>,
+    reprint: 'Reimprimir', longPressHint: 'Mantené apretado un plato para marcarlo agotado (86).',
+  },
+  en: {
+    kitchen: 'Kitchen', inKitchen: 'in kitchen', late: () => 'late',
+    waitingCounter: (n: number) => `${n} waiting at Counter`, online: 'Online',
+    offline: 'Offline', queued: (n: number) => `${n} change${n === 1 ? '' : 's'} will sync when back online`,
+    upcoming: (): string => 'scheduled', ready: 'READY', readyAt: 'due', lateBy: (m: number) => `+${m} min late`, scheduled: 'scheduled',
+    atCounter: 'at the counter', table: 'TABLE', allergy: 'ALLERGY', note: 'Note', allDay: 'ALL DAY',
+    recall: 'Recall', empty: 'All caught up', emptyDesc: 'Orders show up here once the Counter accepts them.',
+    undone: 'Undo', markedReady: 'ready', cancelled: 'CANCELLED', ok: 'OK', history: 'History',
+    historyDesc: 'Orders that left the kitchen in the last 6 hours.', noHistory: 'No orders have left the kitchen yet.',
+    autoPrint: 'Print when it reaches the kitchen', sound: 'Sound', pause: 'Pause online orders', busy: 'Busy mode',
+    busyDesc: 'Adds minutes to the promised time so tickets don’t turn red during a rush.',
+    stations: 'Station', all: 'All', exit: 'Leave kitchen', paused: 'Paused', resume: 'Resume',
+    oosTitle: (n: string) => `Mark "${n}" as sold out?`, oosDesc: 'It’s hidden from the online menu until you turn it back on.',
+    oosOk: 'Sold out (86)', cancel: 'Cancel', oosDone: 'Marked as sold out', oosErr: 'Couldn’t mark it as sold out',
+    pauseFor: 'Pause for', p30: '30 min', p60: '1 hour', p120: '2 hours', pToday: 'Until tomorrow',
+    pauseFailed: 'Couldn’t change the pause. Check the connection.',
+    paidRefund: 'This order is paid — cancel it from the Counter to refund the customer',
+    status: { ready: 'Ready', served: 'Served', out_for_delivery: 'On the way', delivered: 'Delivered', completed: 'Closed', cancelled: 'Cancelled' } as Record<string, string>,
+    reprint: 'Reprint', longPressHint: 'Press and hold a dish to mark it sold out (86).',
+  },
+};
+type T = typeof TXT.es;
 
-  const greenThreshold = 7 + busyExtra;
-  const amberThreshold = 15 + busyExtra;
-
-  if (m < greenThreshold)  return { timer, header: '#06c167', late: false };
-  if (m < amberThreshold) return { timer, header: '#f59e0b', late: false };
-  return { timer, header: '#dc2626', late: true };
-}
-
-/* ── Types ── */
-type Tab = 'active' | 'history';
-type Filter = 'all' | 'dine_in' | 'pickup' | 'delivery';
-
-interface KDSStation {
-  id: string;
-  name: string;
-  color: string;
-  position: number;
-}
+interface KDSStation { id: string; name: string; color: string; position: number }
 
 interface Props {
   initialOrders: Order[];
@@ -90,50 +102,69 @@ interface Props {
   initialPausedUntil?: string | null;
 }
 
-interface Undo { orderId: string; num: string; prev: OrderStatus; next: OrderStatus; ts: number }
+interface Bumped { orderId: string; num: string; prev: OrderStatus; ts: number }
 
-/* ══════════════════════════════════════════════════════════════════════
-   KDSView — Toast / Fresh KDS style
-   ══════════════════════════════════════════════════════════════════════ */
-export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, restaurantSlug, taxLabel, taxIncluded, kdsStations = [], initialPausedUntil = null }: Props) {
-  const { t, locale } = useDashboardLocale();
+interface View {
+  order: Order;
+  items: KitchenItem[];
+  counter: { qty: number; name: string }[];
+  allergies: string[];
+  timing: ReturnType<typeof kitchenTiming>;
+  eta: number;
+}
+
+const etaOf = (o: Order, busyExtra: number) => (Number(o.estimated_ready_minutes) || DEFAULT_ETA_MIN) + busyExtra;
+/** Programado: entra a cocina a la hora de retiro menos el tiempo de preparación. */
+const fireAtOf = (o: Order, eta: number) => (o.scheduled_for ? new Date(o.scheduled_for).getTime() - eta * 60_000 : null);
+/** Desde cuándo corre el timer: la hora de disparo (programados) o cuando el Counter lo aceptó. */
+const startOf = (o: Order, eta: number) => {
+  const fire = fireAtOf(o, eta);
+  if (fire !== null && Number.isFinite(fire)) return new Date(fire).toISOString();
+  return ((o as unknown as { prepared_at?: string | null }).prepared_at) || o.created_at;
+};
+
+export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, taxLabel, taxIncluded, kdsStations = [], initialPausedUntil = null }: Props) {
+  const { locale } = useDashboardLocale();
   const isEn = locale === 'en';
-  const [tab, setTab] = useState<Tab>('active');
-  const [search, setSearch] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
-  const [filter, setFilter] = useState<Filter>('all');
+  const T: T = isEn ? TXT.en : TXT.es;
+
   const [stationFilter, setStationFilter] = useState<string>('all');
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
-  const [undo, setUndo] = useState<Undo | null>(null);
-  const undoRef = useRef<NodeJS.Timeout | null>(null);
+  const [struck, setStruck] = useState<Record<string, number[]>>({});
+  const [bumps, setBumps] = useState<Bumped[]>([]);
+  const [undoFor, setUndoFor] = useState<Bumped | null>(null);
+  const undoTimer = useRef<NodeJS.Timeout | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [showOverlay, setShowOverlay] = useState(false);
-  const [overlayCount, setOverlayCount] = useState(0);
+  const [kbUsed, setKbUsed] = useState(false);
   const [busyExtra, setBusyExtra] = useState(0);
-  const [showBusy, setShowBusy] = useState(false);
-  const [groupByItem, setGroupByItem] = useState(false);
+  const [sheet, setSheet] = useState<null | 'menu' | 'history' | 'pause' | 'busy'>(null);
+  const [oos, setOos] = useState<{ productId: string; name: string } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const toastTimer = useRef<NodeJS.Timeout | null>(null);
+  const showToast = useCallback((msg: string, ok: boolean, ms = 4000) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ msg, ok });
+    toastTimer.current = setTimeout(() => setToast(null), ms);
+  }, []);
 
-  /* Persisted settings */
-  const ls = (k: string, def: boolean) => typeof window !== 'undefined' ? localStorage.getItem(k) !== (def ? 'false' : 'true') : def;
   const [autoPrint, setAutoPrint] = useState(() => typeof window !== 'undefined' && localStorage.getItem('menius-auto-print') === 'true');
-  // Antes la pausa del KDS solo se guardaba en este navegador: la tienda seguía
-  // recibiendo pedidos. Ahora es la misma pausa que el Counter (restaurants.orders_paused_until).
+  // La pausa es la misma del Counter (restaurants.orders_paused_until).
   const [pausedUntil, setPausedUntil] = useState<number | null>(() => {
     const ms = initialPausedUntil ? new Date(initialPausedUntil).getTime() : NaN;
     return Number.isFinite(ms) && ms > Date.now() ? ms : null;
   });
-  const [showPause, setShowPause] = useState(false);
-  const [pauseOpt, setPauseOpt] = useState(30);
 
-  /* Clock tick every second */
-  const [clock, setClock] = useState(new Date());
-  const [, tick] = useState(0);
-  useEffect(() => { const t = setInterval(() => { setClock(new Date()); tick(p => p + 1); }, 1000); return () => clearInterval(t); }, []);
+  /* Reloj: un tick por segundo mueve timers y colores. */
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  useEffect(() => { if (pausedUntil && now >= pausedUntil) setPausedUntil(null); }, [now, pausedUntil]);
 
-  /* Online status */
+  /* Conexión */
   const [online, setOnline] = useState(true);
+  const offlineQueue = useRef<{ id: string; status: OrderStatus; prev: OrderStatus; num: string }[]>([]);
+  const [queuedCount, setQueuedCount] = useState(0);
+  const flushRef = useRef<() => Promise<void>>(async () => {});
   useEffect(() => {
     const off = () => setOnline(false);
     const on = () => { setOnline(true); void flushRef.current(); };
@@ -141,148 +172,136 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
-  /* Wake Lock */
-  const wl = useRef<any>(null);
-  // Cambios hechos sin red: se reenvían EN ORDEN al volver (un pedido puede
-  // pasar preparando→listo sin red; en paralelo llegaban desordenados).
-  const offlineQueue = useRef<{ id: string; status: OrderStatus; prev: OrderStatus; num: string }[]>([]);
-  const [queuedCount, setQueuedCount] = useState(0);
-  const flushRef = useRef<() => Promise<void>>(async () => {});
+  /* La pantalla no se apaga */
   useEffect(() => {
-    let ok = true;
-    const acq = async () => { try { if ('wakeLock' in navigator && ok) wl.current = await (navigator as any).wakeLock.request('screen'); } catch {} };
-    acq(); const vis = () => { if (document.visibilityState === 'visible') acq(); };
+    let alive = true;
+    let lock: { release: () => Promise<void> } | null = null;
+    const acq = async () => {
+      try {
+        const wl = (navigator as unknown as { wakeLock?: { request: (t: string) => Promise<{ release: () => Promise<void> }> } }).wakeLock;
+        if (wl && alive) lock = await wl.request('screen');
+      } catch { /* sin wake lock */ }
+    };
+    void acq();
+    const vis = () => { if (document.visibilityState === 'visible') void acq(); };
     document.addEventListener('visibilitychange', vis);
-    return () => { ok = false; document.removeEventListener('visibilitychange', vis); wl.current?.release().catch(() => {}); };
+    return () => { alive = false; document.removeEventListener('visibilitychange', vis); lock?.release().catch(() => {}); };
   }, []);
 
-  /* Pause timer */
-  const [pauseLeft, setPauseLeft] = useState('');
-  useEffect(() => {
-    if (!pausedUntil) { setPauseLeft(''); return; }
-    const t = setInterval(() => {
-      const d = pausedUntil - Date.now();
-      if (d <= 0) { setPausedUntil(null); setPauseLeft(''); return; }
-      const h = Math.floor(d / 3600000), m = Math.floor((d % 3600000) / 60000), s = Math.floor((d % 60000) / 1000);
-      setPauseLeft(h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`);
-    }, 1000);
-    return () => clearInterval(t);
-  }, [pausedUntil]);
-
-  /* Notifications & realtime */
-  const { soundEnabled, setSoundEnabled, notifyNewOrder, updateTabTitle, playSound } = useNotifications({ defaultTitle: 'KDS — MENIUS' });
-  // Only the leader tab notifies/prints; visual highlights stay per-tab.
+  /* Tiempo real. El aviso no es al entrar el pedido (todavía 'pending', es del Counter)
+     sino cuando llega a la cocina — ver más abajo. */
+  const { soundEnabled, setSoundEnabled, updateTabTitle, playSound } = useNotifications({ defaultTitle: 'KDS — MENIUS' });
   const isLeader = useLeaderTab(`menius-kds-leader:${restaurantId}`);
-  const isLeaderRef = useRef(isLeader);
-  isLeaderRef.current = isLeader;
-  const localRef = useRef<(id: string, u: Partial<Order>) => void>(() => {});
-  const { orders, updateOrderLocally } = useRealtimeOrders({
-    restaurantId, initialOrders,
-    onNewOrder: useCallback((o: Order) => {
+  const { orders, updateOrderLocally } = useRealtimeOrders({ restaurantId, initialOrders });
+
+  /* Lo que está en la cocina, el más urgente primero (orden estable: la hora prometida no cambia). */
+  const kitchenAll = useMemo(() => orders.filter((o) =>
+    KITCHEN_STATUSES.has(o.status) && kitchenItems(o.items as unknown as KitchenRawItem[]).length > 0,
+  ), [orders]);
+  const kitchen = useMemo(() => kitchenAll.filter((o) => {
+    const age = (now - new Date(startOf(o, etaOf(o, busyExtra))).getTime()) / 60000;
+    return age >= 0 && age <= AUTO_ARCHIVE_MIN;
+  }), [kitchenAll, now, busyExtra]);
+  /** Programados que todavía no entran a cocina. */
+  const upcoming = kitchenAll.filter((o) => new Date(startOf(o, etaOf(o, busyExtra))).getTime() > now).length;
+
+  const views: View[] = useMemo(() => kitchen
+    .map((o) => {
+      const raw = o.items as unknown as KitchenRawItem[];
+      const items = kitchenItems(raw, stationFilter);
+      const eta = etaOf(o, busyExtra);
+      const allergies: string[] = [];
+      if (isAllergyText(o.notes)) allergies.push(stripNoteLabel(o.notes));
+      for (const it of items) if (it.note && isAllergyText(it.note)) allergies.push(`${stripNoteLabel(it.note)} — ${it.name}`);
+      return { order: o, items, counter: counterItems(raw), allergies, eta, timing: kitchenTiming(startOf(o, eta), eta, now) };
+    })
+    .filter((v) => v.items.length > 0)
+    .sort((a, b) => a.timing.dueAt - b.timing.dueAt), [kitchen, stationFilter, busyExtra, now]);
+
+  /* Pedidos que llegan a la cocina: brillo + sonido (+ impresión si está activada).
+     Pedidos cancelados mientras estaban en pantalla: se marcan, no desaparecen de golpe. */
+  const seen = useRef<Map<string, Order> | null>(null);
+  const recalled = useRef<Set<string>>(new Set());
+  const [cancelledShown, setCancelledShown] = useState<{ order: Order; ts: number }[]>([]);
+  const isLeaderRef = useRef(isLeader); isLeaderRef.current = isLeader;
+  const printCfg = useRef({ autoPrint, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale });
+  printCfg.current = { autoPrint, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale };
+  useEffect(() => {
+    const current = new Map(kitchen.map((o) => [o.id, o]));
+    if (seen.current === null) { seen.current = current; return; }
+    const fresh = kitchen.filter((o) => !seen.current!.has(o.id) && !recalled.current.has(o.id));
+    for (const o of kitchen) recalled.current.delete(o.id);
+    if (fresh.length > 0) {
+      setNewIds((p) => { const n = new Set(p); fresh.forEach((o) => n.add(o.id)); return n; });
+      setTimeout(() => setNewIds((p) => { const n = new Set(p); fresh.forEach((o) => n.delete(o.id)); return n; }), 10_000);
       if (isLeaderRef.current) {
-        notifyNewOrder(o.order_number, formatPrice(Number(o.total), currency), o.order_type ?? undefined);
-        if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale));
-      }
-      setNewIds(p => { const n = new Set(p); n.add(o.id); return n; });
-      setTimeout(() => setNewIds(p => { const n = new Set(p); n.delete(o.id); return n; }), 8000);
-      setOverlayCount(c => c + 1);
-      setShowOverlay(true);
-    }, [autoPrint, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress, taxLabel, taxIncluded, locale]),
-  });
-  localRef.current = updateOrderLocally;
-
-  /* Derived lists */
-  const active = useMemo(() => {
-    // KDS only shows confirmed+ orders; pending orders must be accepted by Counter first
-    // served/completed: la mesa ya tiene su comida — fuera de la cocina.
-    let r = orders.filter(o => !['pending', 'delivered', 'cancelled', 'served', 'completed'].includes(o.status) && (Date.now() - new Date(o.created_at).getTime()) / 60000 <= AUTO_ARCHIVE_MIN);
-    if (filter !== 'all') r = r.filter(o => o.order_type === filter);
-    if (stationFilter !== 'all') {
-      r = r.filter(o => (o.items ?? []).some((item: any) => item.product?.station_id === stationFilter));
-    }
-    if (search.trim()) { const q = search.toLowerCase(); r = r.filter(o => o.order_number?.toLowerCase().includes(q) || o.customer_name?.toLowerCase().includes(q) || o.customer_phone?.includes(q)); }
-    return r;
-  }, [orders, search, filter, stationFilter]);
-
-  const history = useMemo(() => {
-    let r = orders.filter(o => ['delivered', 'cancelled'].includes(o.status) || (Date.now() - new Date(o.created_at).getTime()) / 60000 > AUTO_ARCHIVE_MIN);
-    if (search.trim()) { const q = search.toLowerCase(); r = r.filter(o => o.order_number?.toLowerCase().includes(q) || o.customer_name?.toLowerCase().includes(q)); }
-    return r;
-  }, [orders, search]);
-
-  // ── Item-grouped view ──
-  interface GroupedItem {
-    productName: string;
-    totalQty: number;
-    entries: Array<{ orderNumber: string; qty: number; notes: string | null; modifiers: string[] }>;
-  }
-  const groupedItems = useMemo((): GroupedItem[] => {
-    if (!groupByItem) return [];
-    const map = new Map<string, GroupedItem>();
-    for (const order of active) {
-      for (const item of (order.items ?? []) as any[]) {
-        const name: string = item.product?.name ?? 'Producto';
-        const existing = map.get(name) ?? { productName: name, totalQty: 0, entries: [] };
-        const mods: string[] = [];
-        if (item.variant?.name) mods.push(item.variant.name);
-        for (const ex of item.extras ?? item.order_item_extras ?? []) {
-          const n = ex.extra?.name ?? ex.product_extras?.name;
-          if (n) mods.push(n);
+        playSound(fresh.some((o) => o.order_type === 'delivery') ? 'urgent' : 'normal');
+        const c = printCfg.current;
+        if (c.autoPrint) {
+          void import('./OrderReceipt').then(({ quickPrintOrder }) => {
+            for (const o of fresh) quickPrintOrder(o, c.restaurantName, c.restaurantPhone, c.restaurantAddress, c.currency, c.taxLabel, c.taxIncluded, c.locale);
+          });
         }
-        for (const m of item.order_item_modifiers ?? []) {
-          if (m.option_name) mods.push(m.option_name);
-        }
-        existing.totalQty += item.qty;
-        existing.entries.push({ orderNumber: order.order_number, qty: item.qty, notes: item.notes ?? null, modifiers: mods });
-        map.set(name, existing);
       }
     }
-    return Array.from(map.values()).sort((a, b) => b.totalQty - a.totalQty);
-  }, [active, groupByItem]);
+    const gone: Order[] = [];
+    seen.current.forEach((prev, id) => {
+      if (current.has(id)) return;
+      const nowOrder = orders.find((o) => o.id === id);
+      if (nowOrder?.status === 'cancelled') gone.push(nowOrder ?? prev);
+    });
+    if (gone.length > 0) {
+      setCancelledShown((p) => [...p.filter((c) => !gone.some((g) => g.id === c.order.id)), ...gone.map((order) => ({ order, ts: Date.now() }))]);
+      if (isLeaderRef.current) playSound('urgent');
+    }
+    seen.current = current;
+  }, [kitchen, orders, playSound]);
+  useEffect(() => {
+    if (cancelledShown.some((c) => now - c.ts > CANCELLED_SHOW_MS)) setCancelledShown((p) => p.filter((c) => now - c.ts <= CANCELLED_SHOW_MS));
+  }, [now, cancelledShown]);
 
-  const pendingInCounter = orders.filter(o => o.status === 'pending').length;
-  const today = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString() && o.status !== 'cancelled');
-  const todayTotal = today.reduce((s, o) => s + Number(o.total), 0);
-  const avgTime = useMemo(() => {
-    const done = today.filter(o => o.status === 'delivered');
-    if (!done.length) return null;
-    const avg = done.reduce((s, o) => s + (new Date(o.updated_at ?? o.created_at).getTime() - new Date(o.created_at).getTime()), 0) / done.length / 60000;
-    return Math.round(avg);
-  }, [today]);
-  useEffect(() => { updateTabTitle(active.length); }, [active.length, updateTabTitle]);
+  useEffect(() => { updateTabTitle(views.length); }, [views.length, updateTabTitle]);
+  useEffect(() => { setSelectedIdx((i) => Math.min(i, Math.max(0, views.length - 1))); }, [views.length]);
 
-  /* Actions */
-  // updateOrderStatus returns internal sentinels (e.g. PAID_ORDER_NEEDS_REFUND);
-  // never show them raw to the operator.
-  const friendlyStatusError = useCallback((e: string) => e === 'PAID_ORDER_NEEDS_REFUND'
-    ? (isEn ? 'This order is paid — cancel it from Counter to refund the customer' : 'Esta orden está pagada — cancelala desde Counter para reembolsar al cliente')
-    : e, [isEn]);
+  /* All Day: cuántos de cada plato faltan (los tachados ya salieron). */
+  const allDay = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const v of views) {
+      const done = new Set(struck[v.order.id] ?? []);
+      for (const it of v.items) if (!done.has(it.index)) m.set(it.name, (m.get(it.name) ?? 0) + it.qty);
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [views, struck]);
+
+  const lateCount = views.filter((v) => v.timing.state === 'late').length;
+  const pendingInCounter = orders.filter((o) => o.status === 'pending').length;
+
+  /* ── Acciones ── */
+  const friendlyError = useCallback((e: string) => (e === 'PAID_ORDER_NEEDS_REFUND' ? T.paidRefund : e), [T]);
   // 'network' = no llegó al servidor (se encola); {error} = el servidor lo rechazó.
   const sendStatus = useCallback(async (id: string, next: OrderStatus): Promise<{ error?: string } | 'network'> => {
     try { return (await updateOrderStatus(id, next)) ?? {}; } catch { return 'network'; }
   }, []);
   const flushing = useRef(false);
   const flushQueue = useCallback(async () => {
-    // Un solo reenvío a la vez ('online' + el reintento de 15 s podían mandar
-    // el mismo cambio dos veces y el rechazo del segundo revertía el ticket).
+    // Un solo reenvío a la vez, en el orden en que se hicieron los cambios.
     if (!navigator.onLine || flushing.current) return;
     flushing.current = true;
     try {
-    while (offlineQueue.current.length) {
-      const item = offlineQueue.current[0];
-      const r = await sendStatus(item.id, item.status);
-      if (r === 'network') break; // sigue sin llegar: se reintenta más tarde
-      const at = offlineQueue.current.indexOf(item);
-      if (at !== -1) offlineQueue.current.splice(at, 1);
-      if (r.error) {
-        updateOrderLocally(item.id, { status: item.prev });
-        setOosToast({ msg: `#${item.num}: ${friendlyStatusError(r.error)}`, ok: false });
-        setTimeout(() => setOosToast(null), 5000);
+      while (offlineQueue.current.length) {
+        const item = offlineQueue.current[0];
+        const r = await sendStatus(item.id, item.status);
+        if (r === 'network') break;
+        const at = offlineQueue.current.indexOf(item);
+        if (at !== -1) offlineQueue.current.splice(at, 1);
+        if (r.error) {
+          updateOrderLocally(item.id, { status: item.prev });
+          showToast(`#${shortOrderNumber(item.num)}: ${friendlyError(r.error)}`, false, 5000);
+        }
       }
-    }
     } finally { flushing.current = false; }
     setQueuedCount(offlineQueue.current.length);
-  }, [sendStatus, updateOrderLocally, friendlyStatusError]);
+  }, [sendStatus, updateOrderLocally, friendlyError, showToast]);
   flushRef.current = flushQueue;
   // El evento 'online' no garantiza que el servidor responda: reintento cada 15 s.
   useEffect(() => {
@@ -291,780 +310,557 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     return () => clearInterval(iv);
   }, [queuedCount]);
 
-  const bump = useCallback(async (id: string, next: OrderStatus) => {
-    const o = orders.find(x => x.id === id); if (!o) return;
-    updateOrderLocally(id, { status: next });
+  const bump = useCallback(async (o: Order) => {
+    const prev = o.status as OrderStatus;
+    const next: OrderStatus = 'ready';
+    updateOrderLocally(o.id, { status: next });
     const enqueue = () => {
-      offlineQueue.current.push({ id, status: next, prev: o.status as OrderStatus, num: o.order_number });
+      offlineQueue.current.push({ id: o.id, status: next, prev, num: o.order_number });
       setQueuedCount(offlineQueue.current.length);
     };
-    // Con cambios en cola, este va detrás (mismo orden en que se hicieron).
     if (navigator.onLine && offlineQueue.current.length === 0) {
-      const result = await sendStatus(id, next);
-      if (result === 'network') {
-        enqueue();
-      } else if (result.error) {
-        updateOrderLocally(id, { status: o.status });
-        setOosToast({ msg: friendlyStatusError(result.error), ok: false });
-        setTimeout(() => setOosToast(null), 4000);
+      const result = await sendStatus(o.id, next);
+      if (result === 'network') enqueue();
+      else if (result.error) {
+        updateOrderLocally(o.id, { status: prev });
+        showToast(friendlyError(result.error), false);
         return;
       }
-    } else {
-      enqueue();
-    }
-    if (next === 'ready') playSound('success');
-    if (undoRef.current) clearTimeout(undoRef.current);
-    setUndo({ orderId: id, num: o.order_number, prev: o.status, next, ts: Date.now() });
-    undoRef.current = setTimeout(() => setUndo(null), 5000);
-  }, [orders, updateOrderLocally, playSound, friendlyStatusError, sendStatus]);
+    } else enqueue();
+    playSound('success');
+    const b: Bumped = { orderId: o.id, num: o.order_number, prev, ts: Date.now() };
+    setBumps((p) => [b, ...p.filter((x) => x.orderId !== o.id)].slice(0, 20));
+    setStruck((p) => { const n = { ...p }; delete n[o.id]; return n; });
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoFor(b);
+    undoTimer.current = setTimeout(() => setUndoFor(null), 6000);
+  }, [updateOrderLocally, sendStatus, friendlyError, showToast, playSound]);
 
-  const doUndo = useCallback(async () => {
-    if (!undo) return;
-    const { orderId, prev, next } = undo;
+  /** Vuelve un pedido a la cocina (deshacer o recuperar). */
+  const recall = useCallback(async (orderId: string, prev: OrderStatus = 'preparing') => {
+    const o = orders.find((x) => x.id === orderId);
+    if (!o) return;
+    const cur = o.status as OrderStatus;
+    setUndoFor(null); if (undoTimer.current) clearTimeout(undoTimer.current);
+    recalled.current.add(orderId);
     updateOrderLocally(orderId, { status: prev });
-    setUndo(null); if (undoRef.current) clearTimeout(undoRef.current);
-    // Si el cambio aún no salió (en cola), basta con sacarlo de la cola.
-    const qi = offlineQueue.current.findIndex(q => q.id === orderId && q.status === next);
-    // (Si ya se está enviando —el primero mientras se vacía la cola— va por el camino normal.)
-    if (qi !== -1 && !(qi === 0 && flushing.current) && !offlineQueue.current.slice(qi + 1).some(q => q.id === orderId)) {
+    setBumps((p) => p.filter((x) => x.orderId !== orderId));
+    // Si el cambio todavía no salió (en cola), alcanza con sacarlo de la cola.
+    const qi = offlineQueue.current.findIndex((q) => q.id === orderId && q.status === cur);
+    if (qi !== -1 && !(qi === 0 && flushing.current) && !offlineQueue.current.slice(qi + 1).some((q) => q.id === orderId)) {
       offlineQueue.current.splice(qi, 1);
       setQueuedCount(offlineQueue.current.length);
       return;
     }
-    // undoOrderStatus, NOT updateOrderStatus: the state machine has no
-    // backward edges, so the regular action rejected every undo.
-    const result = await undoOrderStatus(orderId, prev);
+    // undoOrderStatus, no updateOrderStatus: la máquina de estados no tiene vuelta atrás.
+    const result = await undoOrderStatus(orderId, prev).catch(() => ({ error: T.offline }));
     if (result?.error) {
-      updateOrderLocally(orderId, { status: next });
-      setOosToast({ msg: friendlyStatusError(result.error), ok: false });
-      setTimeout(() => setOosToast(null), 4000);
+      recalled.current.delete(orderId);
+      updateOrderLocally(orderId, { status: cur });
+      showToast(friendlyError(result.error), false);
     }
-  }, [undo, updateOrderLocally, friendlyStatusError]);
+  }, [orders, updateOrderLocally, friendlyError, showToast, T]);
 
-  const pauseFailedMsg = isEn ? "Couldn't change the pause. Check the connection." : 'No se pudo cambiar la pausa. Revisa la conexión.';
-  const doPause = async () => {
-    let ms = pauseOpt * 60000;
-    if (pauseOpt === 9999) { const n = new Date(); ms = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime(); }
+  const lastRecallable = bumps.find((b) => orders.find((o) => o.id === b.orderId)?.status === 'ready') ?? null;
+
+  const toggleItem = (orderId: string, index: number) => setStruck((p) => {
+    const cur = new Set(p[orderId] ?? []);
+    if (cur.has(index)) cur.delete(index); else cur.add(index);
+    return { ...p, [orderId]: Array.from(cur) };
+  });
+
+  const markOOS = async () => {
+    if (!oos) return;
+    const { productId } = oos;
+    setOos(null);
+    try {
+      const res = await fetch('/api/products/stock', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, in_stock: false }),
+      });
+      showToast(res.ok ? T.oosDone : T.oosErr, res.ok, 3000);
+    } catch { showToast(T.oosErr, false, 3000); }
+  };
+
+  const doPause = async (min: number) => {
+    let ms = min * 60000;
+    if (min === 9999) { const n = new Date(); ms = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime(); }
     const prev = pausedUntil;
-    const u = Date.now() + ms; setPausedUntil(u); setShowPause(false);
+    const u = Date.now() + ms; setPausedUntil(u); setSheet(null);
     const res = await setPauseOrders(new Date(u).toISOString()).catch(() => ({ error: 'network' }));
-    if (res?.error) { setPausedUntil(prev); setOosToast({ msg: pauseFailedMsg, ok: false }); setTimeout(() => setOosToast(null), 4000); }
+    if (res?.error) { setPausedUntil(prev); showToast(T.pauseFailed, false); }
   };
   const doUnpause = async () => {
     const prev = pausedUntil;
     setPausedUntil(null);
     const res = await setPauseOrders(null).catch(() => ({ error: 'network' }));
-    if (res?.error) { setPausedUntil(prev); setOosToast({ msg: pauseFailedMsg, ok: false }); setTimeout(() => setOosToast(null), 4000); }
+    if (res?.error) { setPausedUntil(prev); showToast(T.pauseFailed, false); }
   };
 
-  const tog = (k: string, set: (v: boolean) => void, v: boolean) => { set(v); localStorage.setItem(k, String(v)); };
-
-  const recall = useCallback(async (id: string) => {
-    updateOrderLocally(id, { status: 'ready' });
-    const result = await updateOrderStatus(id, 'ready');
-    if (result?.error) {
-      updateOrderLocally(id, { status: 'delivered' });
-      setOosToast({ msg: friendlyStatusError(result.error), ok: false });
-      setTimeout(() => setOosToast(null), 4000);
-    }
-  }, [updateOrderLocally, friendlyStatusError]);
-
-  /* Keyboard shortcuts */
+  /* Teclado / bump bar: Espacio o Enter = LISTO, flechas = elegir, R = recuperar el último. */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'Escape') { setSheet(null); setOos(null); return; }
+      if (sheet || oos) return;
       switch (e.key) {
-        case ' ':
-        case 'Enter': {
-          e.preventDefault();
-          const o = active[selectedIdx];
-          if (o) { const n = nextStatus(o); if (n) bump(o.id, n); }
+        case ' ': case 'Enter': {
+          e.preventDefault(); setKbUsed(true);
+          const v = views[selectedIdx]; if (v) void bump(v.order);
           break;
         }
-        case 'ArrowRight':
-        case 'ArrowDown':
-          e.preventDefault();
-          setSelectedIdx(i => Math.min(i + 1, active.length - 1));
-          break;
-        case 'ArrowLeft':
-        case 'ArrowUp':
-          e.preventDefault();
-          setSelectedIdx(i => Math.max(i - 1, 0));
-          break;
-        case 'f':
-        case 'F':
-          if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setShowSearch(s => { if (s) setSearch(''); return !s; }); }
-          break;
-        case 'p':
-        case 'P':
-          if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setShowPause(true); }
-          break;
-        case 'r':
-        case 'R':
-          if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault();
-            const lastDone = orders.find(o => o.status === 'delivered');
-            if (lastDone) recall(lastDone.id);
-          }
-          break;
-        case 'Escape':
-          setShowSearch(false); setShowPause(false); setSearch('');
+        case 'ArrowRight': case 'ArrowDown': e.preventDefault(); setKbUsed(true); setSelectedIdx((i) => Math.min(i + 1, views.length - 1)); break;
+        case 'ArrowLeft': case 'ArrowUp': e.preventDefault(); setKbUsed(true); setSelectedIdx((i) => Math.max(i - 1, 0)); break;
+        case 'r': case 'R':
+          if (!e.ctrlKey && !e.metaKey && lastRecallable) { e.preventDefault(); void recall(lastRecallable.orderId, lastRecallable.prev); }
           break;
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [active, selectedIdx, bump, orders, recall]);
+  }, [views, selectedIdx, bump, recall, lastRecallable, sheet, oos]);
 
-  const [oosToast, setOosToast] = useState<{ msg: string; ok: boolean } | null>(null);
-  const markOOS = async (pid: string) => {
-    try {
-      const res = await fetch('/api/products/stock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: pid, in_stock: false }),
-      });
-      const ok = res.ok;
-      setOosToast({ msg: ok ? (isEn ? 'Product marked out of stock' : 'Producto marcado sin stock') : (isEn ? 'Error updating stock' : 'Error al actualizar stock'), ok });
-      setTimeout(() => setOosToast(null), 3000);
-    } catch {
-      setOosToast({ msg: isEn ? 'Connection error updating stock' : 'Error de conexión al actualizar stock', ok: false });
-      setTimeout(() => setOosToast(null), 3000);
-    }
-  };
+  // Todo depende de la hora: hasta montar en el navegador no se pinta nada (si no, la hora
+  // del servidor y la del cliente no coinciden y React descarta el HTML).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  const toggleExp = (id: string) => setExpanded(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const pauseLeft = pausedUntil ? Math.max(0, Math.ceil((pausedUntil - now) / 60000)) : 0;
+  const clock = new Date(now).toLocaleTimeString(isEn ? 'en-US' : 'es-MX', { hour: 'numeric', minute: '2-digit' });
+
+  if (!mounted) return <div className="flex-1" style={{ background: C.bg }} />;
 
   return (
-    <>
-      {/* ════ NEW ORDER OVERLAY ════ */}
-      {showOverlay && (
-        <NewOrderOverlay
-          count={overlayCount}
-          onDismiss={() => { setShowOverlay(false); setOverlayCount(0); }}
-        />
-      )}
-
-      {/* ════ TOP BAR ════ */}
-      <header className="flex items-center gap-2 px-3 h-14 bg-gray-900 border-b border-gray-800 flex-shrink-0">
-        <div className="w-7 h-7 rounded-md bg-emerald-600 flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-xs font-black">M</span>
+    <div className="flex-1 min-h-0 flex flex-col select-none" style={{ background: C.bg, color: C.ink }}>
+      {/* ── Barra superior ── */}
+      <header className="flex items-center gap-[clamp(10px,1.4vw,22px)] px-[clamp(12px,1.5vw,24px)] h-[clamp(56px,4.6vw,72px)] border-b flex-shrink-0" style={{ borderColor: C.line }}>
+        <div className="leading-tight min-w-0">
+          <p className="text-[clamp(17px,1.4vw,24px)] font-extrabold tracking-tight">{T.kitchen}</p>
+          <p className="text-[12px] font-semibold truncate max-w-[180px]" style={{ color: C.mute }}>{restaurantName}</p>
         </div>
-        <span className="text-xs font-bold text-white truncate max-w-[120px] hidden sm:block">{restaurantName}</span>
-        {online ? <Wifi className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" /> : <WifiOff className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />}
-
-        <div className="flex-1" />
-
-        <span className="text-base font-black text-white tabular-nums font-mono tracking-wider">
-          {clock.toLocaleTimeString(isEn ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-        </span>
-
+        <Stat n={views.length} label={T.inKitchen} />
+        {lateCount > 0 && <Stat n={lateCount} label={T.late(lateCount)} color={C.late} />}
+        {upcoming > 0 && <Stat n={upcoming} label={T.upcoming(upcoming)} color={C.sub} />}
         {pendingInCounter > 0 && (
-          <a
-            href="/counter"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse hover:bg-red-700 transition-colors"
-            title={isEn ? 'New orders waiting in Counter' : 'Hay órdenes nuevas esperando en Counter'}
-          >
-            🔔 {pendingInCounter} en Counter
-          </a>
-        )}
-        {busyExtra > 0 && (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-xs font-bold" style={{ backgroundColor: '#06c167' }}>
-            +{busyExtra}min
-          </span>
+          <Link href="/counter" className="hidden md:inline-flex items-center h-9 px-3 rounded-full text-[13px] font-bold" style={{ background: '#1d2a22', color: C.ok }}>
+            {T.waitingCounter(pendingInCounter)}
+          </Link>
         )}
         {pausedUntil && (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse">
-            <Pause className="w-3 h-3" /> {pauseLeft}
-            <button onClick={doUnpause} className="underline ml-0.5 text-[10px]">X</button>
-          </span>
-        )}
-
-        <div className="flex-1" />
-
-        {/* Controls */}
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={() => setGroupByItem(v => !v)}
-            title={groupByItem ? 'Vista por ítem (activa) — click para ver por orden' : 'Ver agrupado por ítem'}
-            className={cn('p-2.5 rounded-lg transition-colors touch-manipulation text-xs font-black flex items-center gap-1', groupByItem ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800')}
-          >
-            <Hash className="w-4 h-4" />
+          <button onClick={doUnpause} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[13px] font-bold" style={{ background: '#3a0d0d', color: '#ffb4b4' }}>
+            <Pause className="w-3.5 h-3.5" /> {T.paused} · {pauseLeft} min · <span className="underline">{T.resume}</span>
           </button>
-          <Ctrl on={autoPrint} onClick={() => tog('menius-auto-print', setAutoPrint, !autoPrint)} icon={Printer} title={t.kds_autoPrint} />
-          <Ctrl on={soundEnabled} onClick={() => setSoundEnabled(!soundEnabled)} icon={soundEnabled ? Volume2 : VolumeX} title={t.kds_sound} />
-          <Ctrl on={!!pausedUntil} onClick={() => setShowPause(true)} icon={Pause} title={t.kds_pause} danger />
-          <button onClick={() => setShowBusy(true)} className={cn('p-2.5 rounded-lg transition-colors touch-manipulation text-xs font-black', busyExtra > 0 ? 'text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800')} style={busyExtra > 0 ? { backgroundColor: '#06c167' } : undefined} title="Busy Mode">🔥</button>
-          <button onClick={() => { setShowSearch(s => !s); if (showSearch) setSearch(''); }} className="p-2.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 touch-manipulation"><Search className="w-5 h-5" /></button>
-          <Link href="/app/orders" className="p-2.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 touch-manipulation"><LogOut className="w-5 h-5" /></Link>
-        </div>
-      </header>
-
-      {/* Search */}
-      {showSearch && (
-        <div className="px-3 py-1.5 bg-gray-900 border-b border-gray-800 flex-shrink-0">
-          <div className="relative max-w-md mx-auto">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t.kds_searchPlaceholder}
-              className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50" autoFocus />
-          </div>
-        </div>
-      )}
-
-      {/* ════ TABS + FILTER ════ */}
-      <div className="flex items-center h-12 border-b border-gray-800 flex-shrink-0 px-3 bg-gray-900/50">
-        <button onClick={() => setTab('active')} className={cn('px-4 h-full text-sm font-bold relative touch-manipulation', tab === 'active' ? 'text-white' : 'text-gray-500')}>
-          {t.kds_activeTab} ({active.length}){tab === 'active' && <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-500" />}
-        </button>
-        <button onClick={() => setTab('history')} className={cn('px-4 h-full text-sm font-bold relative flex items-center gap-1.5 touch-manipulation', tab === 'history' ? 'text-white' : 'text-gray-500')}>
-          <History className="w-4 h-4" /> {t.kds_history} ({history.length}){tab === 'history' && <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-500" />}
-        </button>
-        {tab === 'active' && (
-          <div className="ml-auto flex items-center gap-1 overflow-x-auto">
-            {(['all', 'dine_in', 'pickup', 'delivery'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)} className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation flex-shrink-0', filter === f ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300')}>
-                {f === 'all' ? t.kds_all : f === 'dine_in' ? t.kds_table : f === 'pickup' ? t.kds_pickup : t.kds_delivery}
+        )}
+        {busyExtra > 0 && (
+          <button onClick={() => setSheet('busy')} className="inline-flex items-center gap-1 h-9 px-3 rounded-full text-[13px] font-bold" style={{ background: '#3a2a0a', color: C.warn }}>
+            <Flame className="w-3.5 h-3.5" /> +{busyExtra} min
+          </button>
+        )}
+        <div className="flex-1" />
+        {kdsStations.length > 0 && (
+          <div className="hidden lg:flex items-center gap-1">
+            {[{ id: 'all', name: T.all, color: C.ink }, ...kdsStations].map((s) => (
+              <button key={s.id} onClick={() => setStationFilter(s.id)}
+                className="h-9 px-3 rounded-full text-[13px] font-bold border"
+                style={stationFilter === s.id ? { background: s.color, color: '#0c0d0f', borderColor: s.color } : { borderColor: C.line, color: C.sub }}>
+                {s.name}
               </button>
             ))}
           </div>
         )}
-      </div>
-
-      {/* ════ STATION TABS ════ */}
-      {kdsStations.length > 0 && tab === 'active' && (
-        <div className="flex items-center gap-1 px-3 py-2 bg-gray-950 border-b border-gray-800 flex-shrink-0 overflow-x-auto">
-          <button
-            onClick={() => setStationFilter('all')}
-            className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation flex-shrink-0 transition-colors', stationFilter === 'all' ? 'bg-white text-gray-900' : 'text-gray-400 hover:text-white hover:bg-gray-800')}
-          >
-            {isEn ? 'All stations' : 'Todas'}
-          </button>
-          {kdsStations.map(s => (
-            <button
-              key={s.id}
-              onClick={() => setStationFilter(stationFilter === s.id ? 'all' : s.id)}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation flex-shrink-0 transition-colors border', stationFilter === s.id ? 'text-gray-900 border-transparent' : 'text-gray-400 border-gray-700 hover:text-white hover:bg-gray-800')}
-              style={stationFilter === s.id ? { backgroundColor: s.color, borderColor: s.color } : {}}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ════ GRID ════ */}
-      <div className="flex-1 overflow-y-auto p-3 scrollbar-hide bg-gray-100">
-        {tab === 'active' ? (
-          active.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-600">
-              <Package className="w-14 h-14 mb-2 text-gray-700" />
-              <p className="text-base font-semibold text-gray-500">{t.kds_empty}</p>
-              <p className="text-xs mt-1">{t.kds_emptyDesc}</p>
-            </div>
-          ) : groupByItem ? (
-            /* ── Item-grouped view ── */
-            <div className="grid gap-3 max-w-5xl mx-auto" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-              {groupedItems.map(group => (
-                <div key={group.productName} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-gray-900">
-                    <span className="text-white font-black text-base truncate">{group.productName}</span>
-                    <span className="flex-shrink-0 ml-2 w-9 h-9 rounded-full bg-emerald-500 text-white font-black text-lg flex items-center justify-center">
-                      {group.totalQty}
-                    </span>
-                  </div>
-                  <div className="divide-y divide-gray-100">
-                    {group.entries.map((e, i) => (
-                      <div key={i} className="flex items-start gap-3 px-4 py-2.5">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 text-gray-700 text-xs font-black flex items-center justify-center mt-0.5">
-                          {e.qty}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-xs font-bold text-gray-700">#{e.orderNumber}</span>
-                          {e.modifiers.length > 0 && (
-                            <p className="text-[11px] text-gray-400 truncate">{e.modifiers.join(', ')}</p>
-                          )}
-                          {e.notes && (
-                            <p className="text-[11px] text-amber-600 font-medium italic truncate">★ {e.notes}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-              {active.map((o, idx) => (
-                <div key={o.id} style={{ gridColumn: (o.items?.reduce((s: number, i: any) => s + i.qty, 0) ?? 0) >= 8 ? 'span 2' : undefined }}
-                  onClick={() => setSelectedIdx(idx)}>
-                  <Ticket order={o} currency={currency} busyExtra={busyExtra} isNew={newIds.has(o.id)} isExpanded={expanded.has(o.id)} isSelected={idx === selectedIdx}
-                    onBump={() => { const n = nextStatus(o); if (n) bump(o.id, n); }}
-                    onCancel={() => bump(o.id, 'cancelled')} onPrint={() => setPrintOrder(o)}
-                    onExpand={() => toggleExp(o.id)} onOOS={markOOS}
-                    />
-                </div>
-              ))}
-            </div>
-          )
-        ) : (
-          history.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-600">
-              <History className="w-14 h-14 mb-2 text-gray-700" /><p className="text-base font-semibold text-gray-500">{t.kds_noHistory}</p>
-            </div>
-          ) : (
-            <div className="space-y-1.5 max-w-6xl mx-auto">
-              {history.map(o => (
-                <HRow key={o.id} order={o} currency={currency} open={expanded.has(o.id)}
-                  onToggle={() => toggleExp(o.id)} onPrint={() => setPrintOrder(o)} onRecall={() => recall(o.id)} />
-              ))}
-            </div>
-          )
-        )}
-      </div>
-
-      {/* ════ BOTTOM STATS BAR ════ */}
-      <div className="h-10 flex items-center justify-center gap-6 px-3 bg-gray-900 border-t border-gray-800 flex-shrink-0 text-xs text-gray-500">
-        <span>{t.kds_today}: <span className="font-bold text-white">{formatPrice(todayTotal, currency)}</span></span>
-        <span>{today.length} {today.length !== 1 ? t.kds_orderPlural : t.kds_orderSingular}</span>
-        {avgTime !== null && <span>{t.kds_avgTime}: <span className="font-bold text-white">{avgTime} min</span></span>}
-        <span className="hidden sm:inline">{clock.toLocaleDateString(isEn ? 'en-US' : 'es-MX', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-        <span className="hidden lg:flex items-center gap-2 text-gray-600">
-          <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">Space</kbd>BUMP
-          <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">←→</kbd>Nav
-          <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">F</kbd>{t.kds_searchKey}
-          <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">R</kbd>Recall
+        <span className="hidden sm:inline-flex items-center gap-2 text-[13px] font-bold" style={{ color: online ? C.sub : C.late }}>
+          <i className="w-2.5 h-2.5 rounded-full" style={{ background: online ? C.ok : C.late, boxShadow: `0 0 0 4px ${online ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.2)'}` }} />
+          {online ? T.online : T.offline}
         </span>
-        {queuedCount > 0 && (
-          <span className="text-red-400 font-bold">📴 {queuedCount} {t.kds_queued}</span>
-        )}
+        <span className="text-[clamp(20px,1.7vw,30px)] font-extrabold tabular-nums tracking-tight">{clock}</span>
+        <IconBtn onClick={() => setSoundEnabled(!soundEnabled)} label={T.sound} active={!soundEnabled} danger>
+          {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+        </IconBtn>
+        <IconBtn onClick={() => setSheet('menu')} label="Menu"><MoreVertical className="w-5 h-5" /></IconBtn>
+      </header>
+
+      {(!online || queuedCount > 0) && (
+        <div className="flex items-center justify-center gap-2 py-2 text-[15px] font-bold flex-shrink-0" style={{ background: C.late, color: '#fff' }}>
+          <WifiOff className="w-4 h-4" /> {!online ? T.offline : ''}{!online && queuedCount > 0 ? ' — ' : ''}{queuedCount > 0 ? T.queued(queuedCount) : ''}
+        </div>
+      )}
+
+      <div className="flex-1 min-h-0 flex">
+        {/* ── Tickets ── */}
+        <main className="flex-1 min-w-0 overflow-y-auto p-[clamp(10px,1.1vw,18px)]">
+          {views.length === 0 && cancelledShown.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center gap-2">
+              <Check className="w-14 h-14" style={{ color: C.ok }} />
+              <p className="text-[clamp(22px,2vw,34px)] font-extrabold">{T.empty}</p>
+              <p className="text-[16px] font-medium" style={{ color: C.mute }}>{T.emptyDesc}</p>
+            </div>
+          ) : (
+            <div className="grid items-start gap-[clamp(10px,1.1vw,18px)]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(280px, 19vw, 420px), 1fr))' }}>
+              {cancelledShown.map(({ order }) => (
+                <CancelledTicket key={`x-${order.id}`} order={order} T={T}
+                  onDismiss={() => setCancelledShown((p) => p.filter((c) => c.order.id !== order.id))} />
+              ))}
+              {views.map((v, idx) => (
+                <Ticket key={v.order.id} v={v} T={T} isEn={isEn}
+                  isNew={newIds.has(v.order.id)}
+                  isSelected={kbUsed && idx === selectedIdx}
+                  struck={struck[v.order.id] ?? []}
+                  onToggleItem={(i) => toggleItem(v.order.id, i)}
+                  onLongPress={(it) => it.productId && setOos({ productId: it.productId, name: it.name })}
+                  onBump={() => { setSelectedIdx(idx); void bump(v.order); }} />
+              ))}
+            </div>
+          )}
+        </main>
+
+        {/* ── All Day ── */}
+        <aside className="hidden md:flex flex-col w-[clamp(210px,17vw,320px)] flex-shrink-0 border-l px-[clamp(12px,1.2vw,20px)] py-4" style={{ borderColor: C.line }}>
+          <p className="text-[12px] font-extrabold tracking-[0.14em] mb-2" style={{ color: C.mute }}>{T.allDay}</p>
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {allDay.map(([name, qty]) => (
+              <div key={name} className="flex items-baseline gap-3 py-2.5 border-b" style={{ borderColor: C.line }}>
+                <b className="text-[clamp(20px,1.7vw,30px)] font-black tabular-nums min-w-[1.6em]" style={{ color: qty > 1 ? C.warn : C.ink }}>{qty}</b>
+                <span className="text-[clamp(15px,1.2vw,20px)] font-semibold leading-snug">{name}</span>
+              </div>
+            ))}
+          </div>
+          {lastRecallable && (
+            <button onClick={() => void recall(lastRecallable.orderId, lastRecallable.prev)}
+              className="mt-3 h-12 rounded-xl border flex items-center justify-center gap-2 text-[15px] font-bold active:scale-[0.98]"
+              style={{ borderColor: C.line, color: C.sub }}>
+              <Undo2 className="w-4 h-4" /> {T.recall} #{shortOrderNumber(lastRecallable.num)}
+            </button>
+          )}
+        </aside>
       </div>
 
-      {/* OOS toast */}
-      {oosToast && (
-        <div className={cn('fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-xs font-bold shadow-2xl animate-in slide-in-from-bottom', oosToast.ok ? 'bg-emerald-600' : 'bg-red-600')}>
-          {oosToast.ok ? '✅' : '⚠️'} {oosToast.msg}
+      {/* Deshacer */}
+      {undoFor && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 pl-5 pr-2 py-2 rounded-2xl shadow-2xl" style={{ background: '#23262b', border: `1px solid ${C.line}` }}>
+          <span className="text-[16px] font-bold">#{shortOrderNumber(undoFor.num)} {T.markedReady}</span>
+          <button onClick={() => void recall(undoFor.orderId, undoFor.prev)} className="h-11 px-4 rounded-xl text-[15px] font-extrabold flex items-center gap-1.5" style={{ background: C.ink, color: C.bg }}>
+            <Undo2 className="w-4 h-4" /> {T.undone}
+          </button>
         </div>
       )}
 
-      {/* Undo */}
-      {undo && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gray-800/95 backdrop-blur border border-gray-700 text-white shadow-2xl animate-in slide-in-from-bottom">
-          <span className="text-xs">#{undo.num} &rarr; {ORDER_STATUS_CONFIG[undo.next]?.label ?? undo.next}</span>
-          <button onClick={doUndo} className="flex items-center gap-1 px-2.5 py-1 rounded bg-amber-500 text-black text-[11px] font-bold"><Undo2 className="w-3 h-3" /> {t.kds_undo}</button>
-          <div className="w-12 h-1 rounded-full bg-gray-700 overflow-hidden"><div className="h-full bg-amber-500 animate-[shrink_5s_linear_forwards]" /></div>
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl text-[15px] font-bold shadow-2xl max-w-[90vw] text-center" style={{ background: toast.ok ? '#14532d' : '#7f1d1d', color: '#fff' }}>
+          {toast.msg}
         </div>
       )}
 
-      {/* Busy Mode modal */}
-      {showBusy && (
-        <>
-          <div className="fixed inset-0 bg-black/70 z-50" onClick={() => setShowBusy(false)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-gray-900 border border-gray-700 rounded-2xl z-50 p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-white">🔥 {t.kds_busyMode}</h2>
-              <button onClick={() => setShowBusy(false)} className="p-1 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+      {/* ── Menú ── */}
+      {sheet === 'menu' && (
+        <Sheet onClose={() => setSheet(null)}>
+          <MenuRow icon={<History className="w-5 h-5" />} label={T.history} onClick={() => setSheet('history')} />
+          <MenuRow icon={<Printer className="w-5 h-5" />} label={T.autoPrint} toggle={autoPrint}
+            onClick={() => { const v = !autoPrint; setAutoPrint(v); localStorage.setItem('menius-auto-print', String(v)); }} />
+          <MenuRow icon={<Flame className="w-5 h-5" />} label={T.busy} value={busyExtra ? `+${busyExtra} min` : undefined} onClick={() => setSheet('busy')} />
+          <MenuRow icon={<Pause className="w-5 h-5" />} label={T.pause} value={pausedUntil ? `${pauseLeft} min` : undefined} onClick={() => (pausedUntil ? void doUnpause() : setSheet('pause'))} />
+          {kdsStations.length > 0 && (
+            <div className="py-3 border-b lg:hidden" style={{ borderColor: C.line }}>
+              <p className="text-[13px] font-bold mb-2" style={{ color: C.mute }}>{T.stations}</p>
+              <div className="flex flex-wrap gap-2">
+                {[{ id: 'all', name: T.all, color: C.ink }, ...kdsStations].map((s) => (
+                  <button key={s.id} onClick={() => { setStationFilter(s.id); setSheet(null); }} className="h-10 px-4 rounded-full text-[14px] font-bold border"
+                    style={stationFilter === s.id ? { background: s.color, color: '#0c0d0f', borderColor: s.color } : { borderColor: C.line, color: C.sub }}>{s.name}</button>
+                ))}
+              </div>
             </div>
-            <p className="text-xs text-gray-400 mb-4">{t.kds_busyModeDesc}</p>
-            <div className="space-y-1.5 mb-4">
-              {[{ v: 0, l: t.kds_busyNormal }, { v: 10, l: '+10 min extra' }, { v: 20, l: '+20 min extra' }, { v: 30, l: '+30 min extra' }].map(o => (
-                <label key={o.v} className={cn('flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer', busyExtra === o.v ? 'border-[#06c167] bg-[#06c167]/10' : 'border-gray-700')}>
-                  <input type="radio" name="busy" checked={busyExtra === o.v} onChange={() => setBusyExtra(o.v)} style={{ accentColor: '#06c167' }} />
-                  <span className="text-sm text-white">{o.l}</span>
-                </label>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setShowBusy(false)} className="flex-1 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800">{t.general_cancel}</button>
-              <button onClick={() => setShowBusy(false)} className="flex-1 py-2.5 rounded-lg text-white text-sm font-bold" style={{ backgroundColor: '#06c167' }}>✓</button>
-            </div>
-          </div>
-        </>
+          )}
+          <p className="text-[13px] font-medium py-3" style={{ color: C.mute }}>{T.longPressHint}</p>
+          <Link href="/app/orders" className="flex items-center gap-3 h-14 text-[16px] font-bold" style={{ color: C.late }}>
+            <LogOut className="w-5 h-5" /> {T.exit}
+          </Link>
+        </Sheet>
       )}
 
-      {/* Pause modal */}
-      {showPause && (
-        <>
-          <div className="fixed inset-0 bg-black/70 z-50" onClick={() => setShowPause(false)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-gray-900 border border-gray-700 rounded-2xl z-50 p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold">{t.kds_pauseOrders}</h2>
-              <button onClick={() => setShowPause(false)} className="p-1 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="space-y-1.5 mb-4">
-              {[{ v: 30, l: t.kds_30min }, { v: 60, l: t.kds_1hour }, { v: 120, l: t.kds_2hours }, { v: 9999, l: t.kds_today }].map(o => (
-                <label key={o.v} className={cn('flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer', pauseOpt === o.v ? 'border-red-500 bg-red-500/10' : 'border-gray-700')}>
-                  <input type="radio" name="p" checked={pauseOpt === o.v} onChange={() => setPauseOpt(o.v)} className="accent-red-500" />
-                  <span className="text-sm text-white">{o.l}</span>
-                </label>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setShowPause(false)} className="flex-1 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800">{t.general_cancel}</button>
-              <button onClick={doPause} className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-bold">{t.kds_pause}</button>
-            </div>
+      {sheet === 'busy' && (
+        <Sheet onClose={() => setSheet(null)} title={T.busy}>
+          <p className="text-[14px] mb-4" style={{ color: C.sub }}>{T.busyDesc}</p>
+          <div className="grid grid-cols-4 gap-2">
+            {[0, 10, 20, 30].map((v) => (
+              <button key={v} onClick={() => { setBusyExtra(v); setSheet(null); }} className="h-16 rounded-2xl text-[20px] font-extrabold"
+                style={busyExtra === v ? { background: C.ink, color: C.bg } : { background: '#23262b', color: C.ink }}>
+                {v === 0 ? '—' : `+${v}`}
+              </button>
+            ))}
           </div>
-        </>
+        </Sheet>
+      )}
+
+      {sheet === 'pause' && (
+        <Sheet onClose={() => setSheet(null)} title={T.pause}>
+          <p className="text-[14px] mb-4" style={{ color: C.sub }}>{T.pauseFor}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ v: 30, l: T.p30 }, { v: 60, l: T.p60 }, { v: 120, l: T.p120 }, { v: 9999, l: T.pToday }].map((o) => (
+              <button key={o.v} onClick={() => void doPause(o.v)} className="h-16 rounded-2xl text-[18px] font-extrabold" style={{ background: '#23262b', color: C.ink }}>{o.l}</button>
+            ))}
+          </div>
+        </Sheet>
+      )}
+
+      {sheet === 'history' && (
+        <HistorySheet orders={orders} now={now} T={T} isEn={isEn} onClose={() => setSheet(null)}
+          onRecall={(id) => { setSheet(null); void recall(id, 'preparing'); }}
+          onPrint={(o) => setPrintOrder(o)} />
+      )}
+
+      {oos && (
+        <Sheet onClose={() => setOos(null)} title={T.oosTitle(oos.name)}>
+          <p className="text-[15px] mb-5" style={{ color: C.sub }}>{T.oosDesc}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setOos(null)} className="h-14 rounded-2xl text-[17px] font-bold" style={{ background: '#23262b' }}>{T.cancel}</button>
+            <button onClick={() => void markOOS()} className="h-14 rounded-2xl text-[17px] font-extrabold" style={{ background: C.late, color: '#fff' }}>{T.oosOk}</button>
+          </div>
+        </Sheet>
       )}
 
       {printOrder && <OrderReceipt order={printOrder} restaurantName={restaurantName} restaurantPhone={restaurantPhone} restaurantAddress={restaurantAddress} currency={currency} taxLabel={taxLabel} taxIncluded={taxIncluded} onClose={() => setPrintOrder(null)} />}
+    </div>
+  );
+}
 
+/* ══════════════════════════════════════════════════════════════════════
+   Ticket
+   ══════════════════════════════════════════════════════════════════════ */
+function Ticket({ v, T, isEn, isNew, isSelected, struck, onToggleItem, onLongPress, onBump }: {
+  v: View; T: T; isEn: boolean; isNew: boolean; isSelected: boolean; struck: number[];
+  onToggleItem: (index: number) => void; onLongPress: (it: KitchenItem) => void; onBump: () => void;
+}) {
+  const { order, items, counter, allergies, timing } = v;
+  const done = new Set(struck);
+  const headStyle = timing.state === 'late'
+    ? { background: C.late, color: '#fff' }
+    : timing.state === 'warn' ? { background: C.warn, color: '#1a1200' } : undefined;
+  const chipBg = timing.state === 'ok' ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.18)';
+  const table = (order as unknown as { table?: { name?: string } | null; table_name?: string | null }).table?.name
+    ?? (order as unknown as { table_name?: string | null }).table_name ?? null;
+  // "Mesa 4" ya dice mesa: no repetir "MESA Mesa 4".
+  const tableLabel = table ? (/^(mesa|table)\b/i.test(table.trim()) ? table.trim() : `${T.table} ${table}`) : T.table;
+  const channel = order.order_type === 'dine_in' ? tableLabel.toUpperCase() : order.order_type === 'delivery' ? 'DELIVERY' : 'PICKUP';
+  const who = shortCustomerName(order.customer_name);
+  const scheduled = !!order.scheduled_for;
+  const timeFmt = (ms: number) => new Date(ms).toLocaleTimeString(isEn ? 'en-US' : 'es-MX', { hour: 'numeric', minute: '2-digit' });
+  const orderNote = order.notes?.trim() && !isAllergyText(order.notes) ? stripNoteLabel(order.notes.trim()) : null;
+
+  return (
+    <article
+      className={cn('rounded-2xl overflow-hidden flex flex-col border transition-shadow', isNew && 'kds-card-enter')}
+      style={{
+        background: C.card, borderColor: isSelected ? C.ink : C.line,
+        boxShadow: isNew ? `0 0 0 2px ${C.ok}, 0 0 32px rgba(34,197,94,.28)` : isSelected ? `0 0 0 2px ${C.ink}` : undefined,
+      }}
+    >
+      <header className="flex justify-between items-start gap-3 px-4 pt-3 pb-3" style={headStyle}>
+        <div className="min-w-0">
+          <p className="text-[clamp(26px,2.3vw,40px)] font-black tracking-tight leading-none tabular-nums">#{shortOrderNumber(order.order_number)}</p>
+          <p className="mt-1.5 flex items-center gap-2 text-[clamp(13px,1vw,16px)] font-bold min-w-0">
+            <span className="text-[11px] font-extrabold tracking-[0.06em] px-1.5 py-0.5 rounded-md flex-shrink-0" style={{ background: chipBg }}>{channel}</span>
+            {who && <span className="truncate opacity-90">{who}</span>}
+          </p>
+        </div>
+        <div className="text-right leading-none flex-shrink-0">
+          <p className="text-[clamp(26px,2.3vw,40px)] font-black tabular-nums tracking-tight" style={timing.state === 'ok' ? { color: C.ok } : undefined}>{timing.timer}</p>
+          <p className="mt-1.5 text-[13px] font-bold opacity-85">
+            {timing.state === 'late' ? T.lateBy(timing.lateMin)
+              : scheduled ? `${T.scheduled} ${timeFmt(new Date(order.scheduled_for!).getTime())}`
+              : `${T.readyAt} ${timeFmt(timing.dueAt)}`}
+          </p>
+        </div>
+      </header>
+
+      {allergies.length > 0 && (
+        <div className="flex gap-2 items-start px-4 py-2.5 text-[clamp(15px,1.15vw,19px)] font-extrabold leading-snug border-y" style={{ background: '#3a0d0d', color: '#ffb4b4', borderColor: '#5c1414' }}>
+          <span className="text-[11px] font-black tracking-[0.06em] px-1.5 py-1 rounded-md flex-shrink-0 mt-0.5 flex items-center gap-1" style={{ background: C.late, color: '#fff' }}>
+            <AlertTriangle className="w-3 h-3" /> {T.allergy}
+          </span>
+          <span className="min-w-0">{allergies.join(' · ')}</span>
+        </div>
+      )}
+
+      <div className="px-4 py-1">
+        {items.map((it) => (
+          <ItemRow key={it.index} it={it} done={done.has(it.index)} T={T}
+            onTap={() => onToggleItem(it.index)} onLong={() => onLongPress(it)} />
+        ))}
+      </div>
+
+      {orderNote && (
+        <p className="mx-4 mb-2 pl-2.5 border-l-[3px] text-[clamp(15px,1.15vw,19px)] font-bold" style={{ color: C.note, borderColor: C.note }}>
+          {T.note}: {orderNote}
+        </p>
+      )}
+
+      <footer className="mt-auto px-4 pb-4 pt-2 flex flex-col gap-2.5">
+        {counter.length > 0 && (
+          <p className="text-[clamp(13px,1vw,17px)] font-semibold leading-snug" style={{ color: C.mute }}>
+            + <b style={{ color: C.sub }}>{counter.map((c) => `${c.qty} ${c.name}`).join(' · ')}</b> {T.atCounter}
+          </p>
+        )}
+        <button onClick={onBump}
+          className="h-[clamp(56px,4.4vw,72px)] rounded-[14px] text-[clamp(18px,1.5vw,24px)] font-black tracking-[0.05em] flex items-center justify-center gap-2.5 active:scale-[0.98] transition-transform touch-manipulation"
+          style={{ background: C.ink, color: C.bg }}>
+          {T.ready} <Check className="w-6 h-6" strokeWidth={3} />
+        </button>
+      </footer>
+    </article>
+  );
+}
+
+/** Tocar = tachar (ya salió). Mantener apretado = agotado (86). */
+function ItemRow({ it, done, T, onTap, onLong }: { it: KitchenItem; done: boolean; T: T; onTap: () => void; onLong: () => void }) {
+  const timer = useRef<NodeJS.Timeout | null>(null);
+  const longFired = useRef(false);
+  const start = () => { longFired.current = false; timer.current = setTimeout(() => { longFired.current = true; onLong(); }, 650); };
+  const cancel = () => { if (timer.current) clearTimeout(timer.current); timer.current = null; };
+  const note = it.note ? stripNoteLabel(it.note) : null;
+  const allergy = isAllergyText(it.note);
+  return (
+    <div
+      role="button" tabIndex={-1}
+      onPointerDown={start} onPointerUp={cancel} onPointerLeave={cancel} onPointerCancel={cancel}
+      onContextMenu={(e) => e.preventDefault()}
+      onClick={() => { if (!longFired.current) onTap(); }}
+      className="py-2.5 border-b last:border-b-0 cursor-pointer touch-manipulation"
+      style={{ borderColor: C.line, opacity: done ? 0.35 : 1 }}
+    >
+      <div className="flex gap-3 items-baseline">
+        <span className="text-[clamp(20px,1.7vw,30px)] font-black tabular-nums min-w-[1.4em]" style={{ color: it.qty > 1 ? C.warn : C.ink }}>{it.qty}</span>
+        <span className={cn('text-[clamp(20px,1.7vw,30px)] font-bold tracking-tight leading-tight', done && 'line-through')}>{it.name}</span>
+      </div>
+      {it.lines.map((l, k) => (
+        <p key={k}
+          className={cn('leading-[1.45] text-[clamp(16px,1.3vw,22px)]', done && 'line-through', l.kind === 'no' ? 'font-extrabold tracking-[0.02em] uppercase' : 'font-medium')}
+          style={{
+            marginLeft: l.indent ? 'calc(1.4em + 30px)' : 'calc(1.4em + 12px)',
+            color: l.kind === 'no' ? C.no : l.kind === 'side' || l.indent ? C.sub : '#d4d8de',
+          }}>
+          {l.indent && <span style={{ color: C.mute }}>↳ </span>}{l.text}
+        </p>
+      ))}
+      {note && (
+        <p className="mt-1 pl-2.5 border-l-[3px] text-[clamp(15px,1.2vw,20px)] font-bold" style={{ marginLeft: 'calc(1.4em + 12px)', color: allergy ? C.no : C.note, borderColor: allergy ? C.no : C.note }}>
+          {allergy ? `${T.allergy}: ` : ''}“{note}”
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CancelledTicket({ order, T, onDismiss }: { order: Order; T: T; onDismiss: () => void }) {
+  const items = kitchenItems(order.items as unknown as KitchenRawItem[]);
+  return (
+    <article className="rounded-2xl overflow-hidden border-2 flex flex-col" style={{ background: '#1f1012', borderColor: C.late }}>
+      <header className="flex justify-between items-center px-4 py-3" style={{ background: C.late, color: '#fff' }}>
+        <p className="text-[clamp(26px,2.3vw,40px)] font-black tabular-nums leading-none">#{shortOrderNumber(order.order_number)}</p>
+        <p className="text-[clamp(18px,1.5vw,24px)] font-black tracking-[0.08em]">{T.cancelled}</p>
+      </header>
+      <div className="px-4 py-2">
+        {items.map((it) => (
+          <p key={it.index} className="py-1.5 text-[clamp(18px,1.5vw,26px)] font-bold line-through" style={{ color: C.sub }}>{it.qty} {it.name}</p>
+        ))}
+      </div>
+      <div className="px-4 pb-4 pt-1 mt-auto">
+        <button onClick={onDismiss} className="w-full h-14 rounded-[14px] text-[18px] font-black" style={{ background: C.ink, color: C.bg }}>{T.ok}</button>
+      </div>
+    </article>
+  );
+}
+
+function HistorySheet({ orders, now, T, isEn, onClose, onRecall, onPrint }: {
+  orders: Order[]; now: number; T: T; isEn: boolean; onClose: () => void; onRecall: (id: string) => void; onPrint: (o: Order) => void;
+}) {
+  const rows = orders
+    .filter((o) => !['pending', 'confirmed', 'preparing', 'almost_ready'].includes(o.status)
+      && now - new Date(o.updated_at ?? o.created_at).getTime() < 6 * 3600_000
+      && kitchenItems(o.items as unknown as KitchenRawItem[]).length > 0)
+    .sort((a, b) => new Date(b.updated_at ?? b.created_at).getTime() - new Date(a.updated_at ?? a.created_at).getTime());
+  return (
+    <Sheet onClose={onClose} title={T.history} wide>
+      <p className="text-[14px] mb-3" style={{ color: C.sub }}>{T.historyDesc}</p>
+      {rows.length === 0 ? (
+        <p className="py-10 text-center text-[16px] font-semibold" style={{ color: C.mute }}>{T.noHistory}</p>
+      ) : (
+        <div className="max-h-[60vh] overflow-y-auto -mx-1 px-1">
+          {rows.map((o) => {
+            const items = kitchenItems(o.items as unknown as KitchenRawItem[]);
+            const at = new Date(o.updated_at ?? o.created_at).toLocaleTimeString(isEn ? 'en-US' : 'es-MX', { hour: 'numeric', minute: '2-digit' });
+            const cancelled = o.status === 'cancelled';
+            return (
+              <div key={o.id} className="flex items-center gap-3 py-3 border-b" style={{ borderColor: C.line }}>
+                <span className="text-[20px] font-black tabular-nums w-16 flex-shrink-0" style={{ color: cancelled ? C.late : C.ink }}>#{shortOrderNumber(o.order_number)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-bold truncate">{items.map((i) => `${i.qty} ${i.name}`).join(' · ')}</p>
+                  <p className="text-[13px] font-semibold" style={{ color: C.mute }}>
+                    {shortCustomerName(o.customer_name) ?? ''} · {T.status[o.status] ?? o.status} · {at}
+                  </p>
+                </div>
+                <button onClick={() => onPrint(o)} aria-label={T.reprint} className="w-11 h-11 rounded-xl grid place-items-center flex-shrink-0" style={{ background: '#23262b', color: C.sub }}>
+                  <Printer className="w-5 h-5" />
+                </button>
+                {o.status === 'ready' && (
+                  <button onClick={() => onRecall(o.id)} className="h-11 px-4 rounded-xl text-[14px] font-extrabold flex items-center gap-1.5 flex-shrink-0" style={{ background: C.ink, color: C.bg }}>
+                    <Undo2 className="w-4 h-4" /> {T.recall}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
+/* ── Piezas chicas ── */
+function Stat({ n, label, color }: { n: number; label: string; color?: string }) {
+  return (
+    <span className="hidden sm:inline-flex items-baseline gap-1.5 text-[14px] font-semibold" style={{ color: C.sub }}>
+      <b className="text-[clamp(20px,1.6vw,28px)] font-extrabold tabular-nums" style={{ color: color ?? C.ink }}>{n}</b>{label}
+    </span>
+  );
+}
+
+function IconBtn({ children, onClick, label, active, danger }: { children: React.ReactNode; onClick: () => void; label: string; active?: boolean; danger?: boolean }) {
+  return (
+    <button onClick={onClick} aria-label={label} title={label}
+      className="w-11 h-11 rounded-xl grid place-items-center border flex-shrink-0 touch-manipulation"
+      style={{ background: active && danger ? '#3a0d0d' : '#15171a', borderColor: C.line, color: active && danger ? '#ffb4b4' : C.sub }}>
+      {children}
+    </button>
+  );
+}
+
+function Sheet({ children, onClose, title, wide }: { children: React.ReactNode; onClose: () => void; title?: string; wide?: boolean }) {
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/70" onClick={onClose} />
+      <div className={cn('fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-32px)] rounded-3xl p-5 shadow-2xl border', wide ? 'max-w-2xl' : 'max-w-md')}
+        style={{ background: '#17191d', borderColor: C.line, color: C.ink }}>
+        <div className="flex items-start justify-between gap-3 mb-2">
+          {title ? <h2 className="text-[20px] font-extrabold leading-snug">{title}</h2> : <span />}
+          <button onClick={onClose} className="w-10 h-10 -mt-1 -mr-1 rounded-xl grid place-items-center flex-shrink-0" style={{ color: C.sub }} aria-label="Close"><X className="w-5 h-5" /></button>
+        </div>
+        {children}
+      </div>
     </>
   );
 }
 
-/* ── Toolbar control ── */
-function Ctrl({ on, onClick, icon: I, title, danger }: { on: boolean; onClick: () => void; icon: any; title: string; danger?: boolean }) {
-  return <button onClick={onClick} title={title} className={cn('p-2.5 rounded-lg transition-colors touch-manipulation', on ? danger ? 'text-red-400 bg-red-500/15' : 'text-white' : 'text-gray-600 hover:text-gray-400 hover:bg-gray-800')} style={on && !danger ? { backgroundColor: '#06c167' } : undefined}><I className="w-5 h-5" /></button>;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   NEW ORDER OVERLAY — Uber Eats style full-screen green flash
-   ══════════════════════════════════════════════════════════════════════ */
-function NewOrderOverlay({ count, onDismiss }: { count: number; onDismiss: () => void }) {
-  const { t } = useDashboardLocale();
-  useEffect(() => {
-    const timer = setTimeout(onDismiss, 3000);
-    return () => clearTimeout(timer);
-  }, [onDismiss]);
-
+function MenuRow({ icon, label, value, toggle, onClick }: { icon: React.ReactNode; label: string; value?: string; toggle?: boolean; onClick: () => void }) {
   return (
-    <div
-      onClick={onDismiss}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center kds-overlay-flash cursor-pointer select-none"
-      style={{ backgroundColor: '#06c167' }}
-    >
-      <span className="text-white font-black tabular-nums" style={{ fontSize: '6rem', lineHeight: 1 }}>{count}</span>
-      <span className="text-white font-black text-3xl mt-3 tracking-widest uppercase">
-        {count === 1 ? t.kds_newOrderTitle : t.kds_newOrdersTitle}
-      </span>
-      <span className="text-white/70 text-sm mt-5">{t.kds_tapToView}</span>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   TICKET — Toast/Fresh KDS style card
-   Full-color header (green → yellow → red) + items-focused body + bump
-   ══════════════════════════════════════════════════════════════════════ */
-function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected, onBump, onCancel, onPrint, onExpand, onOOS }: {
-  order: Order; currency: string; busyExtra?: number; isNew: boolean; isExpanded: boolean; isSelected: boolean;
-  onBump: () => void; onCancel: () => void; onPrint: () => void; onExpand: () => void;
-  onOOS: (pid: string) => void;
-}) {
-  const { t, locale } = useDashboardLocale();
-  const isEn = locale === 'en';
-  const [bumped, setBumped] = useState<Set<string>>(new Set());
-  const bumpLabel: Record<string, string> = { confirmed: t.kds_prepare, preparing: t.kds_markReady, ready: t.kds_deliver };
-  const typeLabel: Record<string, string> = { dine_in: t.kds_table, pickup: t.kds_pickup, delivery: t.kds_delivery };
-  const payLabel: Record<string, string> = { cash: t.kds_cash, online: t.kds_online };
-  const dietLabel: Record<string, string> = { spicy: `🌶️ ${t.kds_spicy}`, dairy_free: `🥛 ${t.kds_dairyFree}` };
-  const u = urgency(order.created_at, busyExtra);
-  const nxt = nextStatus(order);
-  const tm = TYPE_META[order.order_type ?? ''];
-  const pm = PAY_META[order.payment_method ?? ''];
-  const table = (order as any).table?.name ?? (order as any).table_name ?? null;
-  const items = order.items ?? [];
-  const count = items.reduce((s, i: any) => s + i.qty, 0);
-  const created = new Date(order.created_at).toLocaleTimeString(isEn ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit' });
-  const hasDetails = items.some((i: any) => i.variant || (i.order_item_extras?.length ?? 0) > 0 || (i.order_item_modifiers?.length ?? 0) > 0 || i.notes);
-  const isPreparing = order.status === 'preparing';
-  const allBumped = isPreparing && items.length > 0 && items.every((_, idx) => bumped.has(String(idx)));
-  const toggleItemBump = (idx: number) => setBumped(prev => {
-    const next = new Set(prev);
-    next.has(String(idx)) ? next.delete(String(idx)) : next.add(String(idx));
-    return next;
-  });
-
-  return (
-    <div className={cn(
-      'rounded-xl overflow-hidden bg-white border flex flex-col transition-all shadow-sm',
-      isSelected ? 'ring-2' : 'border-gray-200',
-      isNew && 'kds-card-enter',
-      u.late && !isNew && 'kds-late',
-    )}
-      style={isSelected ? { borderColor: '#06c167', boxShadow: '0 0 0 2px #06c16720' } : undefined}
-    >
-      {/* ── HEADER — full-color bar ── */}
-      <div className="px-3 py-2.5 flex items-center justify-between" style={{ backgroundColor: u.header }}>
-        <div className="flex items-center gap-2 min-w-0">
-          {tm && <tm.icon className="w-4 h-4 text-white/80 flex-shrink-0" />}
-          <span className="text-lg font-black text-white font-mono tracking-wide truncate">{order.order_number}</span>
-          {table && <span className="text-xs font-bold text-white/90 bg-white/20 px-1.5 py-0.5 rounded"><Hash className="w-2.5 h-2.5 inline" /> {table}</span>}
-          {isNew && <span className="text-[10px] font-bold text-white bg-white/20 px-1.5 py-0.5 rounded uppercase">{t.kds_new}</span>}
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Clock className="w-3.5 h-3.5 text-white/70" />
-          <span className="text-lg font-black text-white tabular-nums font-mono">{u.timer}</span>
-        </div>
-      </div>
-
-      {/* ── Meta row ── */}
-      <div className="px-3 py-1.5 flex items-center gap-2 text-[11px] text-gray-500 border-b border-gray-100">
-        {typeLabel[order.order_type ?? ''] && <span>{typeLabel[order.order_type ?? '']}</span>}
-        {payLabel[order.payment_method ?? ''] && <><span className="text-gray-300">·</span><span>{payLabel[order.payment_method ?? '']}</span></>}
-        <span className="text-gray-300">·</span>
-        <span>{count} item{count !== 1 ? 's' : ''}</span>
-        <span className="text-gray-300">·</span>
-        <span>{created}</span>
-        <span className="ml-auto font-bold text-gray-900 text-sm tabular-nums">{formatPrice(Number(order.total), currency)}</span>
-      </div>
-
-      {/* ── Customer ── */}
-      {(order.customer_name || order.customer_phone) && (
-        <div className="px-3 py-2 flex items-center gap-2 border-b border-gray-100">
-          <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <span className="text-sm font-semibold text-gray-900 truncate">{order.customer_name || order.customer_phone}</span>
-          {order.customer_phone && (
-            <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
-              <a href={`tel:${order.customer_phone}`} className="p-2 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100 touch-manipulation"><PhoneCall className="w-4 h-4" /></a>
-              <a href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 touch-manipulation"><MessageSquare className="w-4 h-4" /></a>
-            </div>
-          )}
-        </div>
+    <button onClick={onClick} className="w-full flex items-center gap-3 h-14 border-b text-left" style={{ borderColor: C.line }}>
+      <span style={{ color: C.sub }}>{icon}</span>
+      <span className="flex-1 text-[16px] font-bold">{label}</span>
+      {value && <span className="text-[14px] font-bold" style={{ color: C.warn }}>{value}</span>}
+      {toggle !== undefined && (
+        <span className="w-12 h-7 rounded-full p-1 transition-colors" style={{ background: toggle ? C.ok : '#3a3f46' }}>
+          <span className="block w-5 h-5 rounded-full bg-white transition-transform" style={{ transform: toggle ? 'translateX(20px)' : 'none' }} />
+        </span>
       )}
-
-      {/* Delivery address */}
-      {order.delivery_address && (
-        <div className="px-3 py-1.5 flex items-start gap-2 border-b border-gray-100">
-          <MapPin className="w-3.5 h-3.5 text-violet-500 flex-shrink-0 mt-0.5" />
-          <span className="text-xs text-violet-600">{order.delivery_address}</span>
-        </div>
-      )}
-
-      {/* ── ITEMS — the main focus ── */}
-      <div className="flex-1 px-3 py-2 space-y-0.5">
-        {items.map((item: any, idx: number) => {
-          const name = item.product?.name ?? t.kds_product;
-          const variant = item.variant?.name;
-          const extras: any[] = item.order_item_extras ?? [];
-          const mods: any[] = item.order_item_modifiers ?? [];
-          const showSub = (isExpanded || isNew) && (variant || extras.length > 0 || mods.length > 0 || item.notes);
-          const isItemBumped = bumped.has(String(idx));
-          return (
-            <div key={idx} className={cn('py-0.5 transition-opacity', isItemBumped && 'opacity-40')}>
-              <div className="flex items-center gap-1.5">
-                {/* Per-item bump checkbox — visible during preparing */}
-                {isPreparing && (
-                  <button
-                    onClick={() => toggleItemBump(idx)}
-                    className={cn(
-                      'flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all touch-manipulation',
-                      isItemBumped ? 'border-green-500 bg-green-500' : 'border-gray-300 bg-white'
-                    )}
-                    title={isEn ? 'Mark item done' : 'Marcar ítem listo'}
-                  >
-                    {isItemBumped && <Check className="w-3 h-3 text-white" />}
-                  </button>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between">
-                    <span className={cn('text-sm text-gray-900', isItemBumped && 'line-through')}>
-                      <span className="font-black mr-1" style={{ color: '#06c167' }}>{item.qty}x</span>
-                      <span className="font-semibold">{name}</span>
-                      {variant && <span className="text-gray-400 font-normal ml-1">· {variant}</span>}
-                    </span>
-                    <span className="text-xs text-gray-400 tabular-nums ml-2 flex-shrink-0">{formatPrice(Number(item.line_total), currency)}</span>
-                  </div>
-                  {item.product?.dietary_tags?.length > 0 && (
-                    <div className="flex gap-0.5 mt-0.5">
-                      {(item.product.dietary_tags as string[]).map((tag: string) => {
-                        const d = DIET_BADGE[tag];
-                        return d ? <span key={tag} className={cn('text-[8px] font-bold px-1 py-0.5 rounded border', d.cls)}>{dietLabel[tag] ?? d.label}</span> : null;
-                      })}
-                    </div>
-                  )}
-                </div>
-                {/* 86 button — explicit, always visible */}
-                {item.product?.id && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onOOS(item.product.id); }}
-                    className="flex-shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all touch-manipulation"
-                    title={isEn ? 'Mark out of stock (86)' : 'Marcar sin stock (86)'}
-                  >
-                    86
-                  </button>
-                )}
-              </div>
-              {showSub && (
-                <div className={cn('mt-0.5 space-y-0.5', isPreparing ? 'ml-7' : 'ml-6')}>
-                  {extras.map((e: any, i: number) => <p key={i} className="text-[11px] text-cyan-600">+ {e.product_extras?.name ?? 'Extra'}</p>)}
-                  {mods.map((m: any, i: number) => <p key={i} className="text-[11px] text-gray-400">{m.group_name}: <span className="text-gray-600">{m.option_name}</span></p>)}
-                  {item.notes && <p className="text-[11px] text-amber-700 font-medium bg-amber-50 rounded px-1.5 py-0.5 inline-block">&quot;{item.notes}&quot;</p>}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {hasDetails && !isNew && (
-          <button onClick={onExpand} className="flex items-center gap-0.5 text-[10px] text-gray-400 hover:text-gray-600 pt-0.5">
-            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} {isExpanded ? t.kds_less : t.kds_details}
-          </button>
-        )}
-      </div>
-
-      {/* Notes */}
-      {order.notes && (
-        <div className="mx-3 mb-2 flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <span className="text-xs font-semibold text-amber-700 italic">{order.notes}</span>
-        </div>
-      )}
-
-      {/* ── BUMP BUTTON ── */}
-      <div className="px-3 pb-3 pt-1 flex items-center gap-2">
-        <button onClick={onPrint} className="p-3 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 touch-manipulation"><Printer className="w-5 h-5" /></button>
-        {order.status !== 'cancelled' && order.status !== 'delivered' && (
-          <button onClick={onCancel} className="p-3 rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 touch-manipulation"><XCircle className="w-5 h-5" /></button>
-        )}
-        {nxt && bumpLabel[order.status] && (
-          <button
-            onClick={onBump}
-            className={cn(
-              'flex-1 py-5 rounded-xl text-white font-black text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.97] touch-manipulation tracking-wide',
-              isPreparing && items.length > 0 && !allBumped ? 'opacity-50' : ''
-            )}
-            style={{ backgroundColor: allBumped ? '#06c167' : order.status === 'confirmed' ? '#3b82f6' : order.status === 'preparing' ? '#7c3aed' : '#06c167' }}
-            title={isPreparing && !allBumped ? (isEn ? 'Check off all items first' : 'Marca todos los ítems primero') : undefined}
-          >
-            {bumpLabel[order.status]} <ArrowRight className="w-5 h-5" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ── History row — expands to full card on click ── */
-function HRow({ order, currency, open, onToggle, onPrint, onRecall }: {
-  order: Order; currency: string; open: boolean; onToggle: () => void; onPrint: () => void; onRecall: () => void;
-}) {
-  const { t, locale } = useDashboardLocale();
-  const isEn = locale === 'en';
-  const typeLabel: Record<string, string> = { dine_in: t.kds_table, pickup: t.kds_pickup, delivery: t.kds_delivery };
-  const payLabel: Record<string, string> = { cash: t.kds_cash, online: t.kds_online };
-  const tm = TYPE_META[order.order_type ?? ''];
-  const pm = PAY_META[order.payment_method ?? ''];
-  const ok = order.status === 'delivered';
-  const items = order.items ?? [];
-  const count = items.reduce((s, i: any) => s + i.qty, 0);
-  const created = new Date(order.created_at);
-  const elapsed = order.updated_at
-    ? Math.round((new Date(order.updated_at).getTime() - created.getTime()) / 60000)
-    : null;
-
-  if (!open) {
-    return (
-      <div className="bg-gray-800/50 rounded-lg border border-gray-700/30 overflow-hidden cursor-pointer hover:bg-gray-800/80 touch-manipulation transition-all" onClick={onToggle}>
-        <div className="flex items-center gap-2 px-3 py-2.5">
-          <span className={cn('w-2 h-2 rounded-full flex-shrink-0', ok ? 'bg-emerald-500' : 'bg-red-500')} />
-          <span className="text-xs font-bold text-white font-mono w-28 flex-shrink-0">{order.order_number}</span>
-          <span className="text-xs text-gray-300 truncate flex-1">{order.customer_name || '—'}</span>
-          {tm && <span className="hidden md:inline text-[10px] text-gray-500">{typeLabel[order.order_type ?? '']}</span>}
-          <span className="text-xs font-bold text-white tabular-nums w-20 text-right flex-shrink-0">{formatPrice(Number(order.total), currency)}</span>
-          <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-bold', ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400')}>{ok ? 'OK' : 'X'}</span>
-          <span className="text-[10px] text-gray-600 w-16 text-right hidden sm:block">{timeAgo(order.created_at)}</span>
-          <ChevronDown className="w-3.5 h-3.5 text-gray-600" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-xl overflow-hidden bg-white border border-gray-200 transition-all shadow-sm">
-      {/* Color header like active tickets */}
-      <div className="px-3 py-2.5 flex items-center justify-between" style={{ backgroundColor: ok ? '#06c167' : '#dc2626' }}>
-        <div className="flex items-center gap-2 min-w-0">
-          {tm && <tm.icon className="w-4 h-4 text-white/80 flex-shrink-0" />}
-          <span className="text-lg font-black text-white font-mono tracking-wide">{order.order_number}</span>
-          <span className={cn('text-[10px] font-bold text-white bg-white/20 px-1.5 py-0.5 rounded uppercase')}>{ok ? t.kds_delivered : t.kds_cancelled}</span>
-        </div>
-        <button onClick={onToggle} className="p-1 rounded hover:bg-white/20 touch-manipulation">
-          <ChevronUp className="w-4 h-4 text-white" />
-        </button>
-      </div>
-
-      {/* Meta row */}
-      <div className="px-3 py-1.5 flex items-center gap-2 text-[11px] text-gray-500 border-b border-gray-100">
-        {tm && <span>{typeLabel[order.order_type ?? '']}</span>}
-        {pm && <><span className="text-gray-300">·</span><span>{payLabel[order.payment_method ?? '']}</span></>}
-        <span className="text-gray-300">·</span>
-        <span>{count} item{count !== 1 ? 's' : ''}</span>
-        <span className="text-gray-300">·</span>
-        <span>{created.toLocaleTimeString(isEn ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
-        {elapsed !== null && <><span className="text-gray-300">·</span><span>{elapsed} min</span></>}
-        <span className="ml-auto font-bold text-gray-900 text-sm tabular-nums">{formatPrice(Number(order.total), currency)}</span>
-      </div>
-
-      {/* Customer */}
-      {(order.customer_name || order.customer_phone) && (
-        <div className="px-3 py-2 flex items-center gap-2 border-b border-gray-100">
-          <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <span className="text-sm font-semibold text-gray-900 truncate">{order.customer_name || order.customer_phone}</span>
-          {order.customer_phone && (
-            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-              <a href={`tel:${order.customer_phone}`} className="p-1.5 rounded bg-blue-50 text-blue-500 hover:bg-blue-100 touch-manipulation"><PhoneCall className="w-3.5 h-3.5" /></a>
-              <a href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                className="p-1.5 rounded bg-green-50 text-green-600 hover:bg-green-100 touch-manipulation"><MessageSquare className="w-3.5 h-3.5" /></a>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Delivery address */}
-      {order.delivery_address && (
-        <div className="px-3 py-1.5 flex items-start gap-2 border-b border-gray-100">
-          <MapPin className="w-3.5 h-3.5 text-violet-500 flex-shrink-0 mt-0.5" />
-          <span className="text-xs text-violet-600">{order.delivery_address}</span>
-        </div>
-      )}
-
-      {/* Items */}
-      <div className="px-3 py-2 space-y-0.5">
-        {items.map((i: any, idx: number) => {
-          const extras: any[] = i.order_item_extras ?? [];
-          const mods: any[] = i.order_item_modifiers ?? [];
-          return (
-            <div key={idx} className="py-0.5">
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-gray-900">
-                  <span className="font-black mr-1" style={{ color: '#06c167' }}>{i.qty}x</span>
-                  <span className="font-semibold">{i.product?.name ?? t.kds_product}</span>
-                  {i.variant?.name && <span className="text-gray-400 font-normal ml-1">· {i.variant.name}</span>}
-                </span>
-                <span className="text-xs text-gray-400 tabular-nums ml-2">{formatPrice(Number(i.line_total), currency)}</span>
-              </div>
-              {(extras.length > 0 || mods.length > 0 || i.notes) && (
-                <div className="ml-6 mt-0.5 space-y-0.5">
-                  {extras.map((e: any, j: number) => <p key={j} className="text-[11px] text-cyan-600">+ {e.product_extras?.name ?? 'Extra'}</p>)}
-                  {mods.map((m: any, j: number) => <p key={j} className="text-[11px] text-gray-400">{m.group_name}: <span className="text-gray-600">{m.option_name}</span></p>)}
-                  {i.notes && <p className="text-[11px] text-amber-700 font-medium bg-amber-50 rounded px-1.5 py-0.5 inline-block">&quot;{i.notes}&quot;</p>}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Notes */}
-      {order.notes && (
-        <div className="mx-3 mb-2 flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <span className="text-xs font-semibold text-amber-700 italic">{order.notes}</span>
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="px-3 pb-3 pt-1 flex items-center gap-2 border-t border-gray-100">
-        <button onClick={onPrint} className="p-3 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 touch-manipulation" title={t.kds_reprint}><Printer className="w-5 h-5" /></button>
-        <button onClick={onRecall} className="flex-1 py-3.5 rounded-xl text-white font-bold text-base flex items-center justify-center gap-2 touch-manipulation active:scale-[0.97] transition-all" style={{ backgroundColor: '#3b82f6' }}>
-          <Undo2 className="w-5 h-5" /> {t.kds_recover}
-        </button>
-        <button onClick={onToggle} className="p-3 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 touch-manipulation" title={t.kds_collapse}><ChevronUp className="w-5 h-5" /></button>
-      </div>
-    </div>
+    </button>
   );
 }

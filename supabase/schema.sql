@@ -84,7 +84,8 @@ CREATE TABLE public.categories (
   available_from time without time zone,
   available_to time without time zone,
   group_name text,
-  group_sort_order integer
+  group_sort_order integer,
+  send_to_kitchen boolean NOT NULL DEFAULT true
 );
 
 CREATE TABLE public.cfdi_requests (

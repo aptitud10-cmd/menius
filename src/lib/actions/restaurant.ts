@@ -391,6 +391,8 @@ export async function updateCategory(id: string, data: CategoryInput) {
     payload.available_from = data.available_from || null;
   if (data.available_to !== undefined)
     payload.available_to = data.available_to || null;
+  if (data.send_to_kitchen !== undefined)
+    payload.send_to_kitchen = data.send_to_kitchen;
 
   const { error } = await supabase
     .from("categories")

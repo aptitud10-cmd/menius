@@ -218,10 +218,13 @@ object ReceiptEscPosBuilder {
         e.line('=', w)
         e.alignLeft()
 
+        // Solo lo que se cocina; bebidas y postres van nombrados al pie (web lib/kitchen).
+        val atCounter = mutableListOf<String>()
         for (i in 0 until items.length()) {
             val it = items.getJSONObject(i)
             val qty = it.optInt("qty", 1)
             val name = it.optString("name", "Item")
+            if (!it.optBoolean("kitchen", true)) { atCounter.add("$qty $name"); continue }
             val mods = it.optJSONArray("modifiers") ?: JSONArray()
             val itemNotes = it.optString("notes", "")
             e.bold(true)
@@ -231,6 +234,9 @@ object ReceiptEscPosBuilder {
                 modLine(e, mods.getString(m), w, withPrice = false)
             }
             if (itemNotes.isNotEmpty()) e.text("   * $itemNotes").newline()
+        }
+        if (atCounter.isNotEmpty()) {
+            e.text("+ ${atCounter.joinToString(" / ")} ${if (en) "at the counter" else "en mostrador"}").newline()
         }
 
         e.line('-', w)

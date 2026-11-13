@@ -35,6 +35,7 @@ export const categorySchema = z.object({
   translations: z.record(z.string(), contentTranslationSchema).nullable().optional(),
   available_from: z.string().nullable().optional(), // "HH:MM" 24h
   available_to: z.string().nullable().optional(),   // "HH:MM" 24h
+  send_to_kitchen: z.boolean().optional(),          // false = no va a la pantalla/ticket de cocina
 });
 
 export const productSchema = z.object({

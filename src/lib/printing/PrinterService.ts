@@ -20,6 +20,7 @@ import { buildReceiptHTML, buildKitchenHTML, formatCurrency } from './receipt-fo
 import { PrinterConfig } from './PrinterConfig';
 import { isMeniusNativePrintAvailable, nativePrintReceipt } from './native-bridge';
 import { orderItemModLines, linesTotal, ticketModifierStrings, withTitle } from '@/lib/modifier-lines';
+import { isKitchenItem } from '@/lib/kitchen';
 
 const MAX_ATTEMPTS = 3;
 const PRINT_TIMEOUT_MS = 25_000;
@@ -61,6 +62,7 @@ function mapOrderToReceipt(
       basePrice: lines.length > 0 ? Math.round((Number(item.unit_price) - linesTotal(lines)) * 100) / 100 : undefined,
       modifiers,
       notes: item.notes ?? undefined,
+      kitchen: isKitchenItem(raw),
     };
   });
 
