@@ -128,12 +128,19 @@ function AlertBody({
         <ul className="min-h-0 overflow-y-auto rounded-2xl px-5 py-3 flex flex-col divide-y" style={{ background: 'rgba(255,255,255,.62)', borderColor: 'rgba(4,36,30,.12)' }}>
           {items.map((it, i) => (
             <li key={i} className="py-2.5 first:pt-1 last:pb-1" style={{ borderColor: 'rgba(4,36,30,.12)' }}>
-              <p className="text-[20px] min-[880px]:text-[26px] font-bold leading-snug"><span className="tabular-nums font-extrabold">{it.qty}×</span> {it.name}{it.variant ? ` · ${it.variant}` : ''}</p>
-              {(it.mods.length > 0 || it.extras.length > 0) && (
-                <p className="text-[17px] min-[880px]:text-[20px] font-medium leading-snug pl-8 min-[880px]:pl-10" style={{ color: '#1B4A41' }}>
-                  {[...it.mods.map((m) => m.option), ...it.extras.map((e) => e.name)].join(' · ')}
+              <p className="flex justify-between gap-4 text-[20px] min-[880px]:text-[26px] font-bold leading-snug">
+                <span className="min-w-0"><span className="tabular-nums font-extrabold">{it.qty}×</span> {it.name}{it.variant ? ` · ${it.variant}` : ''}</span>
+                <span className="tabular-nums font-semibold text-[17px] min-[880px]:text-[20px] pt-1 shrink-0" style={{ color: '#1B4A41' }}>
+                  {money(it.lines.length + it.extras.length > 0 ? it.basePrice : it.lineTotal, currency)}
+                </span>
+              </p>
+              {/* Una línea por cosa, como se dice en la cocina, con su precio (lib/modifier-lines). */}
+              {[...it.lines, ...it.extras.map((e) => ({ text: `+ ${e.name}`, price: e.price, indent: false }))].map((line, k) => (
+                <p key={k} className={`flex justify-between gap-4 text-[17px] min-[880px]:text-[20px] font-medium leading-snug ${line.indent ? 'pl-14 min-[880px]:pl-16' : 'pl-8 min-[880px]:pl-10'}`} style={{ color: '#1B4A41' }}>
+                  <span className="min-w-0">{line.text}</span>
+                  {line.price > 0 && <span className="tabular-nums shrink-0">{money(line.price, currency)}</span>}
                 </p>
-              )}
+              ))}
               {it.notes && (
                 <p className="text-[17px] min-[880px]:text-[20px] font-extrabold pl-8 min-[880px]:pl-10" style={{ color: isAllergyText(it.notes) ? C.red : C.greenInk }}>
                   {isAllergyText(it.notes) ? `${T.allergy}: ` : `${T.note}: `}{stripNoteLabel(it.notes)}

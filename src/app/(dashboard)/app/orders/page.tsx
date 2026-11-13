@@ -19,7 +19,7 @@ export default async function OrdersPage() {
         *,
         table:tables ( name ),
         order_items (
-          id, qty, unit_price, line_total, notes,
+          id, qty, unit_price, line_total, notes, modifier_lines,
           product:products ( name, image_url ),
           variant:product_variants ( name ),
           order_item_extras ( price, product_extras ( name ) ),

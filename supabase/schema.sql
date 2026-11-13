@@ -329,7 +329,9 @@ CREATE TABLE public.modifier_groups (
   display_type text NOT NULL DEFAULT 'list'::text,
   depends_on_option_id uuid,
   translations jsonb,
-  shared_origin_id uuid
+  shared_origin_id uuid,
+  ticket_label text,
+  ticket_layout text NOT NULL DEFAULT 'line'::text
 );
 
 CREATE TABLE public.modifier_options (
@@ -383,7 +385,8 @@ CREATE TABLE public.order_items (
   line_total numeric NOT NULL DEFAULT 0,
   notes text DEFAULT ''::text,
   product_name text DEFAULT ''::text,
-  variant_name text DEFAULT ''::text
+  variant_name text DEFAULT ''::text,
+  modifier_lines jsonb
 );
 
 CREATE TABLE public.order_location_latest (

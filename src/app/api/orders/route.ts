@@ -24,6 +24,7 @@ import {
   computeApplicationFeeCents,
   feeModelFor,
 } from "@/lib/order-pricing";
+import { buildModLines, type LineGroup, type LineSelection } from "@/lib/modifier-lines";
 import { formatPrice } from "@/lib/utils";
 import { isOpenAt, inTimeZone, validScheduledFor, type OperatingHours } from "@/lib/orders/business-hours";
 import { haversineKm } from "@/lib/utils/eta";
@@ -452,7 +453,8 @@ export async function POST(request: NextRequest) {
       supabase
         .from("modifier_groups")
         .select(
-          "id, product_id, name, is_required, min_select, max_select, depends_on_option_id",
+          // sort_order + ticket_*: arman las líneas del ticket (lib/modifier-lines).
+          "id, product_id, name, is_required, min_select, max_select, depends_on_option_id, sort_order, ticket_label, ticket_layout",
         )
         .in("product_id", productIds),
     ]);
@@ -471,6 +473,23 @@ export async function POST(request: NextRequest) {
     const extraMap = new Map((dbExtras ?? []).map((e) => [e.id, e]));
     const modOptionMap = new Map((dbModOptions ?? []).map((o) => [o.id, o]));
     const modGroupIdSet = new Set((dbModGroups ?? []).map((g) => g.id));
+    const modGroupById = new Map((dbModGroups ?? []).map((g) => [g.id, g]));
+    /** Modificadores canónicos de un ítem → líneas del ticket (null si no tiene). */
+    const ticketLinesFor = (
+      mods: ReadonlyArray<{ group_id?: string | null; option_id?: string | null; option_name?: string; price_delta?: number }>,
+    ) => {
+      const byGroup = new Map<string, LineSelection>();
+      for (const m of mods) {
+        const g = m.group_id ? modGroupById.get(m.group_id) : undefined;
+        const o = m.option_id ? modOptionMap.get(m.option_id) : undefined;
+        if (!g || !o) continue;
+        const sel: LineSelection = byGroup.get(g.id) ?? { group: g as LineGroup, options: [] };
+        sel.options.push({ id: o.id, name: o.name, price_delta: o.price_delta });
+        byGroup.set(g.id, sel);
+      }
+      const lines = buildModLines(Array.from(byGroup.values()));
+      return lines.length > 0 ? lines : null;
+    };
     const productsRequiringVariant = new Set(
       (dbVariants ?? []).map((v) => v.product_id),
     );
@@ -1082,6 +1101,8 @@ export async function POST(request: NextRequest) {
             // Snapshot current names so historical orders are not affected by future menu edits
             product_name: dbProd?.name ?? "",
             variant_name: dbVar?.name ?? "",
+            // Líneas del ticket/Counter ("with Swiss cheese  $1.50"), también foto.
+            modifier_lines: ticketLinesFor(item.modifiers ?? []),
           };
         }),
       )

@@ -49,6 +49,8 @@ export function nativePrintReceipt(data: ReceiptData, ticketType: NativeTicketTy
       name: i.name,
       lineTotal: i.lineTotal,
       modifiers: i.modifiers ?? [],
+      // App >= 1.0.3: precio base arriba + "Item total" (las anteriores lo ignoran).
+      basePrice: i.basePrice ?? null,
       notes: i.notes ?? null,
     })),
     subtotal: data.subtotal,

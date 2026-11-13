@@ -22,6 +22,14 @@ object ReceiptEscPosBuilder {
 
     private fun isEn(locale: String) = locale.startsWith("en")
 
+    /** "with Swiss cheese	$1.50": el texto a la izquierda y el precio alineado a la derecha. */
+    private fun modLine(e: EscPosEncoder, raw: String, w: Int, withPrice: Boolean) {
+        val tab = raw.indexOf('	')
+        val text = if (tab >= 0) raw.substring(0, tab) else raw
+        val price = if (tab >= 0) raw.substring(tab + 1) else ""
+        if (withPrice && price.isNotEmpty()) e.row("   $text", price, w) else e.text("   $text").newline()
+    }
+
     private fun fmtMoney(amount: Double, currency: String, locale: String): String {
         val loc = if (isEn(locale)) Locale.US else Locale.forLanguageTag("es-MX")
         return try {
@@ -117,13 +125,18 @@ object ReceiptEscPosBuilder {
             val mods = it.optJSONArray("modifiers") ?: JSONArray()
             val itemNotes = it.optString("notes", "")
 
+            // Con opciones (web >= 2026-11-13): precio base arriba, cada opción con su
+            // precio a la derecha ("texto	precio") y el total del plato al final.
+            val basePrice = if (it.has("basePrice") && !it.isNull("basePrice")) it.optDouble("basePrice") else null
+            val withBase = basePrice != null && mods.length() > 0
             val left = "${qty}x ${name.take((w - 10).coerceAtLeast(8))}"
             e.bold(true)
-            e.row(left, fmtMoney(lineTotal, currency, locale), w)
+            e.row(left, fmtMoney(basePrice ?: lineTotal, currency, locale), w)
             e.bold(false)
             for (m in 0 until mods.length()) {
-                e.text("   - ${mods.getString(m)}").newline()
+                modLine(e, mods.getString(m), w, withPrice = true)
             }
+            if (withBase) e.row(if (isEn(locale)) "   Item total" else "   Total del plato", fmtMoney(lineTotal, currency, locale), w)
             if (itemNotes.isNotEmpty()) e.text("   * $itemNotes").newline()
         }
 
@@ -215,7 +228,7 @@ object ReceiptEscPosBuilder {
             e.text("${qty}x $name").newline()
             e.bold(false)
             for (m in 0 until mods.length()) {
-                e.text("   - ${mods.getString(m)}").newline()
+                modLine(e, mods.getString(m), w, withPrice = false)
             }
             if (itemNotes.isNotEmpty()) e.text("   * $itemNotes").newline()
         }

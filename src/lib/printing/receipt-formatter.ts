@@ -51,7 +51,7 @@ function getLabels(locale?: string) {
   };
 }
 
-function formatCurrency(amount: number, currency: string, locale?: string): string {
+export function formatCurrency(amount: number, currency: string, locale?: string): string {
   const intlLocale = isEn(locale) ? 'en-US' : 'es-MX';
   try {
     return new Intl.NumberFormat(intlLocale, {
@@ -96,13 +96,24 @@ function formatPayment(method?: string, locale?: string): string {
   return en ? 'Online' : 'En línea';
 }
 
+/** "with Swiss cheese	$1.50" → ["with Swiss cheese", "$1.50"] (ver lib/modifier-lines). */
+function splitMod(mod: string): [string, string] {
+  const i = mod.indexOf('	');
+  return i < 0 ? [mod, ''] : [mod.slice(0, i), mod.slice(i + 1)];
+}
+
 function renderItem(item: ReceiptLineItem, currency: string, locale?: string): string {
-  const price = formatCurrency(item.lineTotal, currency, locale);
+  const withBase = item.basePrice !== undefined && item.modifiers.length > 0;
+  const price = formatCurrency(withBase ? item.basePrice! : item.lineTotal, currency, locale);
   const nameTruncated = item.name.length > 28 ? item.name.slice(0, 25) + '...' : item.name;
   const lines: string[] = [pad(`${item.qty}x ${nameTruncated}`, price)];
 
   for (const mod of item.modifiers) {
-    lines.push(`   - ${mod}`);
+    const [text, modPrice] = splitMod(mod);
+    lines.push(modPrice ? pad(`   ${text}`, modPrice) : `   ${text}`);
+  }
+  if (withBase) {
+    lines.push(pad(isEn(locale) ? '   Item total' : '   Total del plato', formatCurrency(item.lineTotal, currency, locale)));
   }
   if (item.notes) {
     lines.push(`   * ${item.notes}`);
@@ -174,7 +185,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
           <td class="item-name">
             <span>${name}</span>
             ${unitPriceLine}
-            ${item.modifiers.map((m) => `<div class="mod">— ${esc(m)}</div>`).join('')}
+            ${item.modifiers.map((m) => { const [t, pr] = splitMod(m); return `<div class="mod" style="display:flex;justify-content:space-between;gap:6px;padding-left:${t.startsWith('  ') ? 10 : 0}px"><span>${esc(t.trim())}</span><span>${esc(pr)}</span></div>`; }).join('')}
             ${item.notes ? `<div class="item-note">★ ${esc(item.notes)}</div>` : ''}
           </td>
           <td class="item-price">${linePriceStr}</td>
@@ -490,7 +501,7 @@ export function buildKitchenHTML(data: ReceiptData): string {
         <span class="qty">${esc(String(item.qty))}x</span>
         <div class="name">
           <strong>${name}</strong>
-          ${item.modifiers.map(m => `<div class="mod">— ${esc(m)}</div>`).join('')}
+          ${item.modifiers.map(m => `<div class="mod">${esc(splitMod(m)[0])}</div>`).join('')}
           ${item.notes ? `<div class="note">★ ${esc(item.notes)}</div>` : ''}
         </div>
       </div>`;

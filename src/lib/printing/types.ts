@@ -25,7 +25,10 @@ export interface ReceiptLineItem {
   qty: number;
   name: string;
   lineTotal: number;
+  /** Una línea por opción. "texto	precio": el precio va a la derecha (lib/modifier-lines). */
   modifiers: string[];
+  /** Precio del plato sin opciones. Si viene, el encabezado lo muestra y al final va "Item total". */
+  basePrice?: number;
   notes?: string;
 }
 

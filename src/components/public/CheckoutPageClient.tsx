@@ -23,6 +23,7 @@ import {
 } from '@/lib/checkout-errors';
 import { supabaseLoader } from '@/lib/image-loader';
 import { showsAsRow } from '@/lib/product-display';
+import { cartModLines, withTitle } from '@/lib/modifier-lines';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl skeleton" />;
 
@@ -1282,7 +1283,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <div id="order-summary-content" className="border-t border-gray-100 px-4 py-3 space-y-2">
                   {items.map((item, idx) => (
                     <div key={idx} className="flex justify-between text-sm text-gray-600">
-                      <span className="flex-1 truncate pr-2">{item.qty > 1 ? `${item.qty}× ` : ''}{item.product.name}{item.variant ? ` · ${item.variant.name}` : ''}</span>
+                      <span className="flex-1 truncate pr-2">{item.qty > 1 ? `${item.qty}× ` : ''}{withTitle(item.product.name, cartModLines(item.modifierSelections)).name}{item.variant ? ` · ${item.variant.name}` : ''}</span>
                       <span className="tabular-nums font-medium text-gray-800 shrink-0">{fmtPrice(item.lineTotal)}</span>
                     </div>
                   ))}
@@ -1647,7 +1648,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 {(() => { const n = items.reduce((s, i) => s + i.qty, 0); return `${n} ${n === 1 ? t.itemSingular : t.items}`; })()}
               </span>
             </div>
-            {items.map((item, idx) => (
+            {items.map((item, idx) => {
+              // "Cheeseburger" + Deluxe → "Cheeseburger Deluxe", como en el carrito y el ticket.
+              const { name: itemName, lines: modLines } = withTitle(item.product.name, cartModLines(item.modifierSelections));
+              return (
               <div key={`${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`} className="flex gap-3 items-start">
                 {!showsAsRow(item.product) && item.product.image_url && (
                   <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
@@ -1665,18 +1669,23 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between gap-2">
                     <span className="text-[15px] text-gray-800 font-medium truncate">
-                      {item.product.name}
+                      {itemName}
                       {item.variant ? ` (${item.variant.name})` : ''}
                     </span>
                     <span className="font-semibold text-gray-900 flex-shrink-0 tabular-nums text-[15px]">{fmtPrice(item.lineTotal)}</span>
                   </div>
-                  {(item.modifierSelections ?? []).length > 0 && (
+                  {modLines.length > 0 && (
                     /* Sin truncate: con Deluxe + side + "No Onion, No Tomato" la línea
                        se cortaba justo antes de las exclusiones, que son lo que el
                        cliente más necesita confirmar. */
-                    <p className="text-xs text-gray-500 leading-snug break-words mt-0.5">
-                      {(item.modifierSelections ?? []).flatMap(ms => ms.selectedOptions.map(o => o.name)).join(', ')}
-                    </p>
+                    <div className="mt-0.5 space-y-0.5">
+                      {modLines.map((line, k) => (
+                        <p key={k} className={`flex justify-between gap-2 text-xs text-gray-600 leading-snug break-words ${line.indent ? 'pl-3' : ''}`}>
+                          <span className="min-w-0">{line.indent && <span className="text-gray-300">↳ </span>}{line.text}</span>
+                          {line.price > 0 && <span className="flex-shrink-0 text-gray-400 tabular-nums">+{fmtPrice(line.price)}</span>}
+                        </p>
+                      ))}
+                    </div>
                   )}
                   <div className="flex items-center gap-0 mt-2">
                     {/* 44px touch target wrapping the visible 28px circle */}
@@ -1718,7 +1727,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
             {promoDiscount > 0 && (
               <div className="flex justify-between text-[15px] text-[#047a65] pt-1">
                 <span>{t.discount}</span>

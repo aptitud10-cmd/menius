@@ -14,6 +14,8 @@ function ago(min: number) {
 
 function item(id: string, qty: number, name: string, price: number, opts: {
   mods?: [string, string, number?][];
+  /** Foto de líneas como la guarda /api/orders: [texto, precio, sangría]. */
+  lines?: [string, number?, boolean?, boolean?][];
   notes?: string;
   variant?: string;
 } = {}) {
@@ -24,6 +26,7 @@ function item(id: string, qty: number, name: string, price: number, opts: {
     variant: opts.variant ? { name: opts.variant } : null,
     order_item_extras: [],
     order_item_modifiers: (opts.mods ?? []).map(([g, o, d]) => ({ group_name: g, option_name: o, price_delta: d ?? 0 })),
+    modifier_lines: opts.lines ? opts.lines.map(([text, p, indent, title]) => ({ text, price: p ?? 0, indent: !!indent, ...(title ? { title: true } : {}) })) : null,
   };
 }
 
@@ -42,8 +45,18 @@ const ORDERS: Order[] = [
     customer_phone: '+1 718 555 0142', order_type: 'delivery', delivery_address: '32-15 94th St, East Elmhurst, NY',
     payment_method: 'cash', total: 38.4, created_at: ago(1),
     items: [
-      item('p1', 2, 'Deluxe Cheeseburger 7oz', 14.5, { mods: [['Style', 'Deluxe'], ['Side', 'French Fries'], ['Sauces on the Side', 'Ranch'], ['Extra Sauce', 'BBQ', 0.75]] }),
-      item('p2', 1, 'Coke', 2.5, { notes: 'No ice please' }),
+      // Platos reales de Buccaneer con el formato del ticket (Pedro 2026-11-13).
+      item('p1', 2, 'Cheeseburger', 17.7, { lines: [
+        ['Deluxe', 4, false, true], ['French Fries'], ['No Lettuce'], ['Medium'], ['Cheese: American'],
+        ['Ranch on the side'], ['Extra BBQ on the side', 0.75],
+      ] }),
+      item('p2', 1, 'Assorted Sodas & Diet Sodas', 3.55, { lines: [['Pepsi']], notes: 'No ice please' }),
+      // Desayuno con muchos grupos: una línea por cosa con su precio (Pedro 2026-11-13).
+      item('p8', 1, 'Two Eggs, Any Style', 34.8, { lines: [
+        ['Eggs: Over Hard'], ['with Swiss cheese', 1.5, true], ['Add 2 Eggs', 2.5],
+        ['Sweet Potato Fries', 1.5], ['with Mozzarella cheese', 1.5, true], ['English Muffin', 1],
+        ['Side Bacon / Crispy', 7.95], ['Side Sausage / Split', 7.95], ['Egg Whites', 1.25],
+      ] }),
     ],
   }),
   order({

@@ -22,7 +22,7 @@ export default async function CounterTabletPage() {
         *,
         table:tables ( name ),
         order_items (
-          id, qty, unit_price, line_total, notes,
+          id, qty, unit_price, line_total, notes, modifier_lines,
           product:products ( id, name, image_url, dietary_tags, prep_time_minutes ),
           variant:product_variants ( name ),
           order_item_extras ( price, product_extras ( name ) ),
@@ -40,7 +40,7 @@ export default async function CounterTabletPage() {
         *,
         table:tables ( name ),
         order_items (
-          id, qty, unit_price, line_total, notes,
+          id, qty, unit_price, line_total, notes, modifier_lines,
           product:products ( id, name, image_url, dietary_tags, prep_time_minutes ),
           variant:product_variants ( name ),
           order_item_extras ( price, product_extras ( name ) ),

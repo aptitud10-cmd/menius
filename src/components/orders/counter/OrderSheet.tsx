@@ -117,28 +117,42 @@ export function OrderSheet({
               )}
               <ul className="flex flex-col">
                 {items.map((it, i) => (
-                  <li key={i} className="grid grid-cols-[44px_1fr_auto] gap-3 py-3.5 border-b" style={{ borderColor: C.line }}>
+                  <li key={i} className="grid grid-cols-[44px_1fr] gap-3 py-3.5 border-b" style={{ borderColor: C.line }}>
                     <span className="w-11 h-11 rounded-xl inline-flex items-center justify-center font-extrabold text-[20px] tabular-nums" style={{ background: C.surface }}>{it.qty}</span>
                     <div className="min-w-0">
-                      <p className="text-[20px] font-bold leading-snug">{it.name}{it.variant ? ` · ${it.variant}` : ''}</p>
+                      {/* Con opciones: precio base arriba, cada cosa con su precio y el total del plato
+                          abajo (Pedro 2026-11-13). Sin opciones: el total al lado del nombre. */}
+                      <p className="flex justify-between gap-4 text-[20px] font-bold leading-snug">
+                        <span className="min-w-0">{it.name}{it.variant ? ` · ${it.variant}` : ''}</span>
+                        <span className="text-[17px] font-semibold tabular-nums pt-0.5 shrink-0" style={{ color: C.sub }}>
+                          {money(it.lines.length + it.extras.length > 0 ? it.basePrice : it.lineTotal, currency)}
+                        </span>
+                      </p>
                       {it.notes && (
                         <p className="mt-1.5 text-[17px] font-extrabold rounded-lg px-2.5 py-1.5 leading-snug"
                           style={isAllergyText(it.notes) ? { background: C.redSoft, color: C.red } : { background: C.amberSoft, color: C.amber }}>
                           {isAllergyText(it.notes) ? `${T.allergy}: ` : `${T.note}: `}{stripNoteLabel(it.notes)}
                         </p>
                       )}
-                      {it.mods.map((m, k) => (
-                        <p key={`m${k}`} className="text-[17px] leading-snug mt-0.5" style={{ color: C.sub }}>
-                          {m.option}{m.delta > 0 ? <span className="tabular-nums"> · +{money(m.delta, currency)}</span> : null}
+                      {it.lines.map((line, k) => (
+                        <p key={`m${k}`} className={`flex justify-between gap-4 text-[17px] leading-snug mt-1 ${line.indent ? 'pl-6' : ''}`} style={{ color: C.ink }}>
+                          <span className="min-w-0">{line.text}</span>
+                          {line.price > 0 && <span className="tabular-nums shrink-0" style={{ color: C.sub }}>{money(line.price, currency)}</span>}
                         </p>
                       ))}
                       {it.extras.map((e, k) => (
-                        <p key={`e${k}`} className="text-[17px] leading-snug mt-0.5" style={{ color: C.sub }}>
-                          + {e.name}{e.price > 0 ? <span className="tabular-nums"> · +{money(e.price, currency)}</span> : null}
+                        <p key={`e${k}`} className="flex justify-between gap-4 text-[17px] leading-snug mt-1" style={{ color: C.ink }}>
+                          <span className="min-w-0">+ {e.name}</span>
+                          {e.price > 0 && <span className="tabular-nums shrink-0" style={{ color: C.sub }}>{money(e.price, currency)}</span>}
                         </p>
                       ))}
+                      {it.lines.length + it.extras.length > 0 && (
+                        <p className="flex justify-between gap-4 text-[17px] font-bold mt-2 pt-2 border-t" style={{ borderColor: C.line }}>
+                          <span>{it.qty > 1 ? `${it.qty} × ${money(it.lineTotal / it.qty, currency)}` : T.itemTotal}</span>
+                          <span className="tabular-nums">{money(it.lineTotal, currency)}</span>
+                        </p>
+                      )}
                     </div>
-                    <span className="text-[16px] tabular-nums pt-0.5" style={{ color: C.sub }}>{money(it.lineTotal, currency)}</span>
                   </li>
                 ))}
               </ul>

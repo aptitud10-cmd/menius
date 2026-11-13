@@ -169,6 +169,11 @@ export interface ModifierGroup {
    *  "Deluxe" option: a Regular burger comes with no side, so asking for one
    *  charged the customer for food they'd never receive. NULL = always visible. */
   depends_on_option_id?: string | null;
+  /** How the chosen option is written on the ticket/Counter/cart, with {option}
+   *  ("with {option} cheese"). NULL = the option name as is. See lib/modifier-lines. */
+  ticket_label?: string | null;
+  /** 'line' | 'indent' | 'inline' — see lib/modifier-lines. */
+  ticket_layout?: 'line' | 'indent' | 'inline' | null;
   /** When set, this group mirrors the content of that origin group: edits fan
    *  out to every sibling that shares the origin. Each product still owns its
    *  own row (product_id stays set), so ordering queries are unaffected.
@@ -280,6 +285,9 @@ export interface OrderItem {
   unit_price: number;
   line_total: number;
   notes: string;
+  /** Snapshot of the modifier lines at order time ({text, price, indent}[]).
+   *  NULL on orders placed before 2026-11-13 — use orderItemModLines(). */
+  modifier_lines?: unknown;
   // joined
   product?: Product;
   variant?: ProductVariant;

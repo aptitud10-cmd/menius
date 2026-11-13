@@ -16,9 +16,10 @@
 
 import type { Order, OrderItem } from '@/types';
 import type { PrintJob, PrintState, ReceiptData, ReceiptLineItem } from './types';
-import { buildReceiptHTML, buildKitchenHTML } from './receipt-formatter';
+import { buildReceiptHTML, buildKitchenHTML, formatCurrency } from './receipt-formatter';
 import { PrinterConfig } from './PrinterConfig';
 import { isMeniusNativePrintAvailable, nativePrintReceipt } from './native-bridge';
+import { orderItemModLines, linesTotal, ticketModifierStrings, withTitle } from '@/lib/modifier-lines';
 
 const MAX_ATTEMPTS = 3;
 const PRINT_TIMEOUT_MS = 25_000;
@@ -47,16 +48,17 @@ function mapOrderToReceipt(
       if (name) modifiers.push(name);
     }
 
-    // modifier groups (raw join from Supabase)
-    const mods: any[] = raw.order_item_modifiers ?? [];
-    for (const mod of mods) {
-      if (mod.option_name) modifiers.push(mod.option_name);
-    }
+    // Opciones: una línea por cosa, como se dice en la cocina, con su precio
+    // ("with Swiss cheese	$1.50"). Sueltas ("- Swiss", "- Split") nadie sabía dónde iba cada cosa.
+    // "Cheeseburger" + Deluxe → "Cheeseburger Deluxe" (su recargo entra en el precio base).
+    const { name, lines } = withTitle(item.product?.name ?? 'Producto', orderItemModLines(raw));
+    modifiers.push(...ticketModifierStrings(lines, (n) => formatCurrency(n, currency, locale)));
 
     return {
       qty: item.qty,
-      name: item.product?.name ?? 'Producto',
+      name,
       lineTotal: item.line_total ?? item.unit_price * item.qty,
+      basePrice: lines.length > 0 ? Math.round((Number(item.unit_price) - linesTotal(lines)) * 100) / 100 : undefined,
       modifiers,
       notes: item.notes ?? undefined,
     };

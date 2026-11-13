@@ -1,6 +1,7 @@
 // Sistema visual y textos del Counter (rediseño 2026-11). Referencia: Uber Eats
 // Orders — fondo blanco, tarjetas grises sin borde, botones negros, verde solo
 // para "nuevo" y "recibiendo pedidos". Los colores de estado nunca decoran.
+import { orderItemModLines, linesTotal, withTitle, type ModLine } from '@/lib/modifier-lines';
 import type { Order, OrderItem } from '@/types';
 import { PREP_CHOICES, nearestChoice, kitchenMinutes } from '@/lib/orders/eta';
 
@@ -92,6 +93,7 @@ const ES = {
   notesChangedToast: (num: string) => `El cliente cambió las instrucciones del #${num}`,
   deliveryPhoto: 'Foto de la entrega',
   total: 'Total',
+  itemTotal: 'Total del plato',
   subtotal: 'Subtotal',
   tax: 'Impuestos',
   deliveryFee: 'Envío',
@@ -202,6 +204,7 @@ const EN: Dict = {
   notesChangedToast: (num: string) => `Customer updated the instructions for #${num}`,
   deliveryPhoto: 'Delivery photo',
   total: 'Total',
+  itemTotal: 'Item total',
   subtotal: 'Subtotal',
   tax: 'Tax',
   deliveryFee: 'Delivery fee',
@@ -310,7 +313,10 @@ export interface ParsedItem {
   qty: number;
   name: string;
   variant: string | null;
-  mods: { group: string; option: string; delta: number }[];
+  /** Una línea por cosa, como se dice en la cocina, con su precio (lib/modifier-lines). */
+  lines: ModLine[];
+  /** Precio del plato sin recargos (unitario − líneas − extras). */
+  basePrice: number;
   extras: { name: string; price: number }[];
   notes: string | null;
   lineTotal: number;
@@ -318,13 +324,13 @@ export interface ParsedItem {
 
 export function parseItem(item: OrderItem): ParsedItem {
   const raw = item as unknown as {
+    modifier_lines?: unknown;
     order_item_modifiers?: { group_name?: string; option_name?: string; price_delta?: number }[];
     order_item_extras?: { price?: number; product_extras?: { name?: string } | null }[];
     extras?: { price?: number; extra?: { name?: string }; product_extras?: { name?: string } }[];
   };
-  const mods = (raw.order_item_modifiers ?? [])
-    .filter((m) => m.option_name)
-    .map((m) => ({ group: m.group_name ?? '', option: m.option_name as string, delta: Number(m.price_delta ?? 0) }));
+  // "Cheeseburger" + Deluxe → "Cheeseburger Deluxe" (su recargo entra en el precio del plato).
+  const { name, lines } = withTitle(item.product?.name ?? '—', orderItemModLines(raw));
   const extrasSrc = raw.extras ?? raw.order_item_extras ?? [];
   const extras = extrasSrc
     .map((e) => ({
@@ -334,9 +340,10 @@ export function parseItem(item: OrderItem): ParsedItem {
     .filter((e) => e.name);
   return {
     qty: item.qty,
-    name: item.product?.name ?? '—',
+    name,
     variant: item.variant?.name ?? null,
-    mods,
+    lines,
+    basePrice: Math.round((Number(item.unit_price) - linesTotal(lines) - extras.reduce((s, e) => s + e.price, 0)) * 100) / 100,
     extras,
     notes: item.notes?.trim() ? item.notes.trim() : null,
     lineTotal: Number(item.line_total ?? item.unit_price * item.qty),
