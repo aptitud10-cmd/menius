@@ -361,6 +361,38 @@ describe('Cart Store — saveLastOrder & reorder', () => {
     expect(useCartStore.getState().reorderUnavailable).toEqual(['Oatmeal (Served 5:30–11 AM)']);
   });
 
+  it('reorder repeats a dish with options when they are resolved, and lists it otherwise', () => {
+    const group = { id: 'g-eggs', name: 'Eggs', options: [] } as never;
+    const option = { id: 'o-crispy', name: 'Crispy', price_delta: 1.5 } as never;
+    const store = useCartStore.getState();
+    store.setRestaurantId('rest-1');
+    store.addItem(makeProduct({ id: 'p1', name: 'Two Eggs', price: 10, has_modifiers: true }), null, [], 1, 'well done', [
+      { group, selectedOptions: [option] },
+    ]);
+    store.addItem(makeProduct({ id: 'p2', name: 'Omelette', price: 12, has_modifiers: true }), null, [], 1, '');
+    useCartStore.getState().saveLastOrder();
+    expect(useCartStore.getState().lastOrder!.items[0].modifiers).toEqual([
+      { groupId: 'g-eggs', optionIds: ['o-crispy'] },
+    ]);
+    useCartStore.getState().clearCart();
+
+    const products = [
+      makeProduct({ id: 'p1', name: 'Two Eggs', price: 10, has_modifiers: true }),
+      makeProduct({ id: 'p2', name: 'Omelette', price: 12, has_modifiers: true }),
+    ];
+    useCartStore.getState().reorder(products, { 0: [{ group, selectedOptions: [option] }] });
+
+    const items = useCartStore.getState().items;
+    expect(items).toHaveLength(1);
+    expect(items[0].lineTotal).toBe(11.5);
+    expect(items[0].notes).toBe('well done');
+    expect(useCartStore.getState().reorderSkipped).toEqual([{ productId: 'p2', name: 'Omelette' }]);
+
+    // Choosing the omelette's options again clears it from the notice.
+    useCartStore.getState().addItem(products[1], null, [], 1, '');
+    expect(useCartStore.getState().reorderSkipped).toEqual([]);
+  });
+
   it('does not save if no restaurantId', () => {
     const store = useCartStore.getState();
     store.addItem(makeProduct(), null, [], 1, '');

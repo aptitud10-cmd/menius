@@ -41,6 +41,10 @@ interface CartPanelProps {
   taxPending?: boolean;
   lastOrder?: { items: LastOrderSummaryItem[] } | null;
   onReorder?: () => void;
+  /** The reorder is rebuilding dishes with their options (fetching today's menu). */
+  reorderLoading?: boolean;
+  /** Opens a dish's sheet: a reordered dish whose options need choosing again. */
+  onOpenProduct?: (productId: string) => void;
   suggestions?: Product[];
   onSuggestionAdd?: (product: Product) => void;
   loyaltyData?: { points: number; config: { min_redeem_points: number; peso_per_point: number } | null } | null;
@@ -92,6 +96,8 @@ export function CartPanel({
   taxPending = false,
   lastOrder,
   onReorder,
+  reorderLoading = false,
+  onOpenProduct,
   suggestions,
   onSuggestionAdd,
   loyaltyData,
@@ -235,6 +241,45 @@ export function CartPanel({
   }, []);
 
   // ── Empty state ────────────────────────────────────────────────────────────
+  // What "Reorder last order" could not put back as it was. Shown with an empty
+  // cart too: when nothing could be repeated, an empty cart with no word of why
+  // read as "the button is broken" (Pedro 2026-11-13).
+  const reorderNotices = (reorderSkipped.length > 0 || reorderUnavailable.length > 0) && (
+    <div className="mx-4 mb-2 space-y-2 flex-shrink-0">
+      {reorderSkipped.length > 0 && (
+        <div className="px-3 py-2 rounded-xl bg-amber-50 border border-amber-100" role="status">
+          <p className="text-[12px] text-amber-800 font-semibold leading-snug">
+            {t.reorderChooseOptions}
+            {reorderSkipped.map((s, i) => (
+              <span key={`${s.productId}-${i}`}>
+                {i > 0 && ', '}
+                {onOpenProduct ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenProduct(s.productId)}
+                    className="underline underline-offset-2 decoration-amber-400 hover:decoration-amber-700"
+                  >
+                    {s.name}
+                  </button>
+                ) : (
+                  s.name
+                )}
+              </span>
+            ))}
+          </p>
+        </div>
+      )}
+      {reorderUnavailable.length > 0 && (
+        <div className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200" role="status">
+          <p className="text-[12px] text-gray-700 font-semibold leading-snug">
+            {t.reorderUnavailable}
+            {reorderUnavailable.join(', ')}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
   if (items.length === 0) {
     const emptySuggestions = suggestions?.filter((p) => p.in_stock !== false).slice(0, 3) ?? [];
     return (
@@ -252,7 +297,9 @@ export function CartPanel({
           {lastOrder && lastOrder.items.length > 0 && onReorder && (
             <button
               onClick={onReorder}
-              className="mt-6 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6] active:bg-[#d0f7f1] transition-colors"
+              disabled={reorderLoading}
+              aria-busy={reorderLoading || undefined}
+              className="mt-6 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6] active:bg-[#d0f7f1] transition-colors disabled:opacity-60"
             >
               <RotateCcw className="w-4 h-4 text-[#047a65] flex-shrink-0" />
               <div className="flex-1 min-w-0 text-left">
@@ -266,6 +313,8 @@ export function CartPanel({
             </button>
           )}
         </div>
+
+        {reorderNotices && <div className="-mx-4 mb-4">{reorderNotices}</div>}
 
         {/* Popular suggestions in empty cart */}
         {emptySuggestions.length > 0 && onSuggestionAdd && (
@@ -555,22 +604,7 @@ export function CartPanel({
         );
       })()}
 
-      {reorderSkipped.length > 0 && (
-        <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100 flex-shrink-0" role="status">
-          <p className="text-[12px] text-amber-800 font-semibold leading-snug">
-            {t.reorderChooseOptions}
-            {reorderSkipped.join(', ')}
-          </p>
-        </div>
-      )}
-      {reorderUnavailable.length > 0 && (
-        <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 flex-shrink-0" role="status">
-          <p className="text-[12px] text-gray-700 font-semibold leading-snug">
-            {t.reorderUnavailable}
-            {reorderUnavailable.join(', ')}
-          </p>
-        </div>
-      )}
+      {reorderNotices}
 
       {/* ── Footer: breakdown + checkout ── */}
       <div className="border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">

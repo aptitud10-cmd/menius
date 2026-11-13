@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Product, ProductVariant, ProductExtra, CartItem, ModifierSelection, ModifierOption, OrderType } from '@/types';
+import { toSavedModifiers, type SavedModifier } from '@/lib/reorder';
 
 interface SavedOrderItem {
   productId: string;
@@ -12,6 +13,9 @@ interface SavedOrderItem {
    *  reordered line silently drops it (e.g. a $20 wine bottle re-added at base price). */
   variantPriceDelta?: number | null;
   qty: number;
+  /** What the diner chose (eggs, potatoes…) — re-checked against today's menu on reorder. */
+  modifiers?: SavedModifier[];
+  notes?: string;
 }
 
 interface LastOrder {
@@ -28,7 +32,7 @@ interface CartState {
   selectedOrderType: OrderType | null;
   lastOrder: LastOrder | null;
   /** Platos del último "repetir" que necesitan elegir opciones de nuevo (no se persiste). */
-  reorderSkipped: string[];
+  reorderSkipped: { productId: string; name: string }[];
   /** Dishes from the last order that can't be served right now (sold out, out of hours). */
   reorderUnavailable: string[];
   addItem: (product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
@@ -42,7 +46,12 @@ interface CartState {
   setTableName: (name: string | null) => void;
   setSelectedOrderType: (type: OrderType | null) => void;
   saveLastOrder: () => void;
-  reorder: (products: Product[]) => number;
+  /**
+   * Puts the last order back in the cart. `resolved` holds today's selections
+   * for lines with options, by line index (see lib/reorder rebuildSelections);
+   * a line with options and no entry there goes to reorderSkipped.
+   */
+  reorder: (products: Product[], resolved?: Record<number, ModifierSelection[]>) => number;
   totalItems: () => number;
   totalPrice: () => number;
 }
@@ -88,6 +97,8 @@ export const useCartStore = create<CartState>()(
         const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         set((state) => ({
           items: [...state.items, { uid, product, variant, extras, modifierSelections, qty, notes, lineTotal }],
+          // A reordered dish whose options were chosen again is no longer pending.
+          reorderSkipped: state.reorderSkipped.filter((s) => s.productId !== product.id),
         }));
       },
 
@@ -145,20 +156,23 @@ export const useCartStore = create<CartState>()(
               variantName: i.variant?.name ?? null,
               variantPriceDelta: i.variant?.price_delta ?? null,
               qty: i.qty,
+              modifiers: toSavedModifiers(i.modifierSelections ?? []),
+              notes: i.notes || undefined,
             })),
             date: new Date().toISOString(),
           },
         });
       },
 
-      reorder: (products: Product[]) => {
+      reorder: (products: Product[], resolved: Record<number, ModifierSelection[]> = {}) => {
         const { lastOrder } = get();
         if (!lastOrder) return 0;
         const productMap = new Map(products.map((p) => [p.id, p]));
         const newItems = [];
-        const skipped: string[] = [];
+        const skipped: { productId: string; name: string }[] = [];
         const unavailable: string[] = [];
-        for (const saved of lastOrder.items) {
+        for (let idx = 0; idx < lastOrder.items.length; idx++) {
+          const saved = lastOrder.items[idx];
           const product = productMap.get(saved.productId);
           if (!product || !product.is_active) continue;
           // Agotado o fuera de horario (Oatmeal después de las 11): antes entraba
@@ -168,9 +182,14 @@ export const useCartStore = create<CartState>()(
             unavailable.push(product.unavailable_note ? `${name} (${product.unavailable_note})` : name);
             continue;
           }
-          // Con opciones (acompañante obligatorio, salsas…) no se puede repetir
-          // a ciegas: el checkout lo rechaza. Se avisa para elegirlas de nuevo.
-          if (product.has_modifiers) { skipped.push(saved.productName || product.name); continue; }
+          // Con opciones: se repite con lo que eligió la vez anterior si sigue
+          // valiendo hoy (resolved). Si no (opción borrada, fuera de horario,
+          // pregunta obligatoria nueva), se avisa para elegirlas de nuevo.
+          const modifierSelections = resolved[idx];
+          if (product.has_modifiers && !modifierSelections) {
+            skipped.push({ productId: product.id, name: saved.productName || product.name });
+            continue;
+          }
           // product.variants is empty under the slim pattern, so fall back to the
           // snapshot saved with the order — otherwise the surcharge is lost.
           const variant: ProductVariant | null = saved.variantId
@@ -182,9 +201,10 @@ export const useCartStore = create<CartState>()(
                 sort_order: 0,
               })
             : null;
-          const lineTotal = calcLineTotal(product, variant, [], saved.qty);
-          const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-          newItems.push({ uid, product, variant, extras: [], modifierSelections: [], qty: saved.qty, notes: '', lineTotal });
+          const mods = modifierSelections ?? [];
+          const lineTotal = calcLineTotal(product, variant, [], saved.qty, mods);
+          const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${idx}`;
+          newItems.push({ uid, product, variant, extras: [], modifierSelections: mods, qty: saved.qty, notes: saved.notes ?? '', lineTotal });
         }
         // Se suma a lo que ya haya en el carrito (antes lo reemplazaba sin avisar).
         set({ items: [...get().items, ...newItems], reorderSkipped: skipped, reorderUnavailable: unavailable });

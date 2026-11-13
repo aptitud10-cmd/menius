@@ -32,7 +32,11 @@ import type {
   Product,
   OrderType,
   DietaryTag,
+  ModifierGroup,
+  ModifierOption,
+  ModifierSelection,
 } from "@/types";
+import { rebuildSelections } from "@/lib/reorder";
 import { DIETARY_TAGS, getTagConfig } from "@/lib/dietary-tags";
 import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from "@/lib/i18n";
 import { searchMenu, suggestedCategories } from "@/lib/menu-search";
@@ -1106,15 +1110,67 @@ export function MenuShell({
     });
   }, [products, stockOverrides, hoursClock, restaurant.timezone, t, locale, categoryHoursById]);
 
-  const handleReorder = useCallback(() => {
-    // liveProducts, not products: a dish sold out or outside its hours stays
-    // out of the cart and is listed as unavailable instead.
-    const added = reorder(liveProducts);
-    if (added > 0) {
-      setReorderDismissed(true);
-      setOpen(true);
+  // Reorder with the diner's choices: each dish with options is rebuilt from
+  // today's menu (prices, option hours, new required questions) before it goes
+  // back in the cart. Whatever can't be repeated as-is is listed in the cart.
+  const reorderBusy = useRef(false);
+  const [reorderLoading, setReorderLoading] = useState(false);
+  const handleReorder = useCallback(async () => {
+    if (!lastOrder || reorderBusy.current) return;
+    reorderBusy.current = true;
+    setReorderLoading(true);
+    try {
+      const local = inTimeZone(new Date(), restaurant.timezone || "UTC");
+      const isAvailable = (o: ModifierOption) => !hasHours(o) || isOptionAvailableAt(o, local);
+      const byId = new Map(liveProducts.map((p) => [p.id, p]));
+      const groupsCache = new Map<string, Promise<ModifierGroup[] | null>>();
+      const groupsFor = (productId: string) => {
+        let pending = groupsCache.get(productId);
+        if (!pending) {
+          pending = fetch(`/api/product-modifiers?productId=${productId}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => (d?.modifier_groups as ModifierGroup[] | undefined) ?? null)
+            .catch(() => null);
+          groupsCache.set(productId, pending);
+        }
+        return pending;
+      };
+      const resolved: Record<number, ModifierSelection[]> = {};
+      await Promise.all(
+        lastOrder.items.map(async (saved, idx) => {
+          const product = byId.get(saved.productId);
+          // Orders saved before options were kept have no `modifiers`: those
+          // dishes still ask for their options again.
+          if (!product?.has_modifiers || product.in_stock === false || !saved.modifiers) return;
+          const groups = await groupsFor(product.id);
+          if (!groups) return;
+          const sel = rebuildSelections(groups, saved.modifiers, isAvailable);
+          if (sel) resolved[idx] = sel;
+        }),
+      );
+      // liveProducts, not products: a dish sold out or outside its hours stays
+      // out of the cart and is listed as unavailable instead.
+      const added = reorder(liveProducts, resolved);
+      // Acting on the banner answers it: it must not come back on the next
+      // visit (it used to, because only the X saved the choice).
+      dismissReorder();
+      if (added > 0) setOpen(true);
+    } finally {
+      reorderBusy.current = false;
+      setReorderLoading(false);
     }
-  }, [reorder, liveProducts, setOpen]);
+  }, [lastOrder, reorder, liveProducts, setOpen, restaurant.timezone, dismissReorder]);
+
+  // Skipped dish tapped in the cart ("Choose the options again for: …").
+  const openProductById = useCallback(
+    (productId: string) => {
+      const product = liveProducts.find((p) => p.id === productId);
+      if (!product || product.in_stock === false) return;
+      setOpen(false);
+      setCustomization({ product, editIndex: null });
+    },
+    [liveProducts, setOpen],
+  );
 
   // "Pedir lo mismo" desde el seguimiento: llega con ?reorder=1 y el pedido ya
   // guardado como último pedido → se pone en el carrito una sola vez.
@@ -2553,7 +2609,9 @@ export function MenuShell({
                     </div>
                     <button
                       onClick={handleReorder}
-                      className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-[#05c8a7] text-[#04241E] text-xs font-bold active:scale-95 transition-transform"
+                      disabled={reorderLoading}
+                      aria-busy={reorderLoading || undefined}
+                      className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-[#05c8a7] text-[#04241E] text-xs font-bold active:scale-95 transition-transform disabled:opacity-60"
                     >
                       {t.addToCart}
                     </button>
@@ -3645,6 +3703,8 @@ export function MenuShell({
                     lastOrder?.restaurantId === restaurant.id && !reorderDismissed ? lastOrder : null
                   }
                   onReorder={handleReorder}
+                  reorderLoading={reorderLoading}
+                  onOpenProduct={openProductById}
                   suggestions={cartBasedSuggestions}
                   onSuggestionAdd={handleCartSuggestionAdd}
                   loyaltyData={loyaltyData}
@@ -3827,10 +3887,9 @@ export function MenuShell({
                         ? lastOrder
                         : null
                     }
-                    onReorder={() => {
-                      handleReorder();
-                      setOpen(false);
-                    }}
+                    onReorder={handleReorder}
+                    reorderLoading={reorderLoading}
+                    onOpenProduct={openProductById}
                     suggestions={cartBasedSuggestions}
                     onSuggestionAdd={handleCartSuggestionAdd}
                     loyaltyData={loyaltyData}
