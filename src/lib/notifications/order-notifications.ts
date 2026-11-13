@@ -8,6 +8,7 @@ import {
 import { loadCustomerEmailOrder, sendCustomerEmail } from './customer-email-data';
 import { formatPrice } from '@/lib/utils';
 import { createLogger } from '@/lib/logger';
+import { orderItemModLines, withTitle } from '@/lib/modifier-lines';
 
 const logger = createLogger('order-notifications');
 
@@ -55,6 +56,7 @@ interface OrderItemRow {
   product_variants: { name: string } | null;
   order_item_extras: { price: number; product_extras: { name: string } | null }[];
   order_item_modifiers: { group_name: string; option_name: string; price_delta: number }[];
+  modifier_lines: unknown;
 }
 
 /** Fetch rich order items (with variants, modifiers, extras) from the DB. */
@@ -64,7 +66,7 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
     const { data: rows } = await adminDb
       .from('order_items')
       .select(`
-        qty, unit_price, line_total, notes,
+        qty, unit_price, line_total, notes, modifier_lines,
         products ( name ),
         product_variants ( name ),
         order_item_extras ( price, product_extras ( name ) ),
@@ -75,8 +77,10 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
     if (!rows) return [];
 
     return (rows as unknown as OrderItemRow[]).map((row) => {
-      const modifiers: string[] = (row.order_item_modifiers ?? []).map(
-        (m) => `${m.group_name}: ${m.option_name}`
+      // Una línea por cosa con su precio, como el ticket (lib/modifier-lines).
+      const { name, lines } = withTitle(row.products?.name ?? 'Item', orderItemModLines(row));
+      const modifiers: string[] = lines.map((l) =>
+        `${l.indent ? '↳ ' : ''}${l.text}${l.price > 0 ? ` (+${formatPrice(l.price, currency)})` : ''}`,
       );
       const extras: string[] = (row.order_item_extras ?? [])
         .filter((e) => e.product_extras?.name)
@@ -88,7 +92,7 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
         });
 
       return {
-        name: row.products?.name ?? 'Item',
+        name,
         qty: row.qty,
         price: formatPrice(Number(row.line_total), currency),
         variant: row.product_variants?.name ?? undefined,

@@ -5,6 +5,7 @@ import { UUID_RE } from '@/lib/constants';
 import { log } from '@/lib/logger';
 import { liveLocationTopic } from '@/lib/realtime/live-topic';
 import { fetchStopsAhead } from '@/lib/orders/driver-route';
+import { customerItemLines } from '@/lib/modifier-lines';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest) {
         delivery_photo_url, driver_tracking_token, customer_token, cancellation_reason, batch_id, batch_seq,
         table:table_id(name),
         order_items(
-          id, qty, unit_price, line_total, notes, product_id, variant_id,
+          id, qty, unit_price, line_total, notes, modifier_lines, product_id, variant_id,
           product:product_id(name),
           variant:variant_id(name, price_delta),
           order_item_modifiers(group_name, option_name, price_delta)
@@ -134,6 +135,8 @@ export async function GET(req: NextRequest) {
         // Lo que eligió (Deluxe, side, "No Onion"…): el cliente tiene que poder
         // confirmar su pedido. No es dato privado.
         modifiers: ((item.order_item_modifiers ?? []) as any[]).map((m: any) => ({ name: m.option_name as string, price_delta: Number(m.price_delta) || 0 })),
+        // Con el formato del carrito y el ticket ("Cheeseburger Deluxe", una línea por cosa).
+        ...customerItemLines(item),
       })),
     };
 

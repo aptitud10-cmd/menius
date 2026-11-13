@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildModLines, renderTicketLabel, orderItemModLines, linesTotal, ticketModifierStrings, withTitle,
+  buildModLines, renderTicketLabel, orderItemModLines, linesTotal, ticketModifierStrings, withTitle, customerItemLines,
   type LineSelection,
 } from '@/lib/modifier-lines';
 
@@ -113,5 +113,14 @@ describe('ticketModifierStrings', () => {
       [{ text: 'Eggs: Over Hard', price: 0, indent: false }, { text: 'with Swiss cheese', price: 1.5, indent: true }],
       (n) => `$${n.toFixed(2)}`,
     )).toEqual(['Eggs: Over Hard', '  with Swiss cheese\t$1.50']);
+  });
+});
+
+describe('customerItemLines (seguimiento del cliente)', () => {
+  it('nombre con el estilo y líneas sin la marca de título', () => {
+    expect(customerItemLines({
+      product: { name: 'Cheeseburger' },
+      modifier_lines: [{ text: 'Deluxe', price: 4, indent: false, title: true }, { text: 'Waffle Fries', price: 1.5, indent: false }],
+    })).toEqual({ display_name: 'Cheeseburger Deluxe', lines: [{ text: 'Waffle Fries', price: 1.5, indent: false }] });
   });
 });

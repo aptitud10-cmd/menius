@@ -8,6 +8,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
 import { OrderTracker } from '@/components/public/OrderTracker';
+import { customerItemLines } from '@/lib/modifier-lines';
 
 interface PageProps {
   params: { slug: string; orderNumber: string };
@@ -61,7 +62,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
           *,
           table:table_id(name),
           order_items(
-            id, qty, unit_price, line_total, notes, product_id, variant_id,
+            id, qty, unit_price, line_total, notes, modifier_lines, product_id, variant_id,
             product:product_id(name),
             variant:variant_id(name, price_delta),
             order_item_modifiers(group_name, option_name, price_delta)
@@ -122,6 +123,8 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         // Lo que eligió (Deluxe, side, "No Onion"…): el cliente tiene que poder
         // confirmar su pedido. No es dato privado.
         modifiers: ((item.order_item_modifiers ?? []) as any[]).map((m: any) => ({ name: m.option_name as string, price_delta: Number(m.price_delta) || 0 })),
+        // Con el formato del carrito y el ticket ("Cheeseburger Deluxe", una línea por cosa).
+        ...customerItemLines(item),
           })),
         };
       }

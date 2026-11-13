@@ -24,7 +24,7 @@ import {
   computeApplicationFeeCents,
   feeModelFor,
 } from "@/lib/order-pricing";
-import { buildModLines, type LineGroup, type LineSelection } from "@/lib/modifier-lines";
+import { buildModLines, withTitle, type LineGroup, type LineSelection } from "@/lib/modifier-lines";
 import { formatPrice } from "@/lib/utils";
 import { isOpenAt, inTimeZone, validScheduledFor, type OperatingHours } from "@/lib/orders/business-hours";
 import { haversineKm } from "@/lib/utils/eta";
@@ -1540,14 +1540,17 @@ export async function POST(request: NextRequest) {
         const variantName = i.variant_id
           ? variantMap.get(i.variant_id)?.name
           : undefined;
-        const modifierLabels = (i.modifiers ?? [])
-          .map((m) => `${m.group_name}: ${m.option_name}`)
-          .filter(Boolean);
+        // Como el ticket: "Cheeseburger Deluxe" y una línea por cosa (lib/modifier-lines).
+        const titled = withTitle(
+          productMap.get(i.product_id)?.name ?? "Producto",
+          ticketLinesFor(i.modifiers ?? []) ?? [],
+        );
+        const modifierLabels = titled.lines.map((l) => `${l.indent ? "↳ " : ""}${l.text}`);
         const extraLabels = (i.extras ?? [])
           .map((e) => extraNameMap.get(e.extra_id) ?? "")
           .filter(Boolean);
         return {
-          name: productMap.get(i.product_id)?.name ?? "Producto",
+          name: titled.name,
           qty: i.qty,
           price: i.line_total,
           variant: variantName,

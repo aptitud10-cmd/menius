@@ -8,6 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { sendEmail } from './email';
 import { cleanSenderName, type CustomerEmailCtx, type CustomerEmailItem, type BuiltEmail } from './customer-email';
+import { orderItemModLines, withTitle } from '@/lib/modifier-lines';
 
 const logger = createLogger('customer-email');
 
@@ -47,24 +48,27 @@ interface ItemRow {
   product_variants: { name: string } | null;
   order_item_extras: { price: number; product_extras: { name: string } | null }[];
   order_item_modifiers: { option_name: string }[];
+  modifier_lines: unknown;
 }
 
 async function loadItems(orderId: string): Promise<CustomerEmailItem[]> {
   const { data, error } = await createAdminClient()
     .from('order_items')
-    .select('qty, line_total, notes, products ( name ), product_variants ( name ), order_item_extras ( price, product_extras ( name ) ), order_item_modifiers ( option_name )')
+    .select('qty, line_total, notes, modifier_lines, products ( name ), product_variants ( name ), order_item_extras ( price, product_extras ( name ) ), order_item_modifiers ( option_name )')
     .eq('order_id', orderId);
   if (error) logger.error('order items load failed', { orderId, code: error.code });
   return ((data ?? []) as unknown as ItemRow[]).map((r) => {
+    // "Cheeseburger Deluxe" + "French Fries · No Lettuce", como el carrito (lib/modifier-lines).
+    const { name, lines } = withTitle(r.products?.name ?? 'Item', orderItemModLines(r));
     const parts = [
       r.product_variants?.name,
-      ...(r.order_item_modifiers ?? []).map((m) => m.option_name),
+      ...lines.map((l) => l.text),
       ...(r.order_item_extras ?? []).map((e) => e.product_extras?.name).filter(Boolean),
       r.notes ? `"${r.notes}"` : null,
     ].filter(Boolean) as string[];
     return {
       qty: Number(r.qty) || 1,
-      name: r.products?.name ?? 'Item',
+      name,
       detail: parts.length ? parts.join(' · ') : undefined,
       lineTotal: Number(r.line_total) || 0,
     };

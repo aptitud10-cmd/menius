@@ -15,6 +15,7 @@ import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
 import { OrderReceipt } from './OrderReceipt';
+import { orderItemModLines, withTitle } from '@/lib/modifier-lines';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { DashboardTranslations } from '@/lib/dashboard-translations';
 import type { Order, OrderStatus } from '@/types';
@@ -660,11 +661,11 @@ function OrderCard({
       {order.items && order.items.length > 0 && (
         <div className="space-y-1 mb-2" onClick={(e) => e.stopPropagation()}>
           {order.items.map((item: any, idx: number) => {
-            const prodName = item.product?.name ?? t.orders_product;
+            // Mismo formato que el carrito, el Counter y el ticket (lib/modifier-lines).
+            const { name: prodName, lines: modLines } = withTitle(item.product?.name ?? t.orders_product, orderItemModLines(item));
             const variantName = item.variant?.name;
             const extras: any[] = item.order_item_extras ?? [];
-            const modifiers: any[] = item.order_item_modifiers ?? [];
-            const hasDetails = variantName || extras.length > 0 || modifiers.length > 0 || item.notes;
+            const hasDetails = variantName || extras.length > 0 || modLines.length > 0 || item.notes;
             return (
               <div key={idx} className="rounded-lg bg-gray-50 px-2 py-1">
                 <div className="flex items-center justify-between">
@@ -679,8 +680,11 @@ function OrderCard({
                     {extras.map((ex: any, i: number) => (
                       <p key={i} className="text-[10px] text-gray-400 pl-3">+ {ex.product_extras?.name ?? 'Extra'}</p>
                     ))}
-                    {modifiers.map((mod: any, i: number) => (
-                      <p key={i} className="text-[10px] text-gray-400 pl-3">{mod.group_name}: {mod.option_name}</p>
+                    {modLines.map((line, i) => (
+                      <p key={i} className={cn('text-[10px] text-gray-500 flex justify-between gap-2', line.indent ? 'pl-6' : 'pl-3')}>
+                        <span>{line.indent && <span className="text-gray-300">↳ </span>}{line.text}</span>
+                        {line.price > 0 && <span className="text-gray-400 tabular-nums">+{formatPrice(line.price, currency)}</span>}
+                      </p>
                     ))}
                     {item.notes && <p className="text-[10px] text-amber-600 pl-3 italic">&quot;{item.notes}&quot;</p>}
                   </div>
@@ -877,10 +881,9 @@ function OrderDetailModal({
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t.orders_products}</h3>
             <div className="space-y-2">
               {(order.items ?? []).map((item: any, idx: number) => {
-                const prodName = item.product?.name ?? t.orders_product;
+                const { name: prodName, lines: modLines } = withTitle(item.product?.name ?? t.orders_product, orderItemModLines(item));
                 const variantName = item.variant?.name;
                 const extras: any[] = item.order_item_extras ?? [];
-                const modifiers: any[] = item.order_item_modifiers ?? [];
                 return (
                   <div key={idx} className="bg-gray-50 rounded-xl p-3">
                     <div className="flex items-start justify-between">
@@ -894,10 +897,10 @@ function OrderDetailModal({
                             + {ex.product_extras?.name ?? 'Extra'} <span className="text-gray-400">({formatPrice(ex.price, currency)})</span>
                           </p>
                         ))}
-                        {modifiers.map((mod: any, i: number) => (
-                          <p key={i} className="text-xs text-gray-500 mt-0.5">
-                            {mod.group_name}: <span className="font-medium">{mod.option_name}</span>
-                            {mod.price_delta > 0 && <span className="text-gray-400"> (+{formatPrice(mod.price_delta, currency)})</span>}
+                        {modLines.map((line, i) => (
+                          <p key={i} className={cn('text-xs text-gray-600 mt-0.5 flex justify-between gap-3', line.indent && 'pl-4')}>
+                            <span>{line.indent && <span className="text-gray-300">↳ </span>}{line.text}</span>
+                            {line.price > 0 && <span className="text-gray-400 tabular-nums">+{formatPrice(line.price, currency)}</span>}
                           </p>
                         ))}
                         {item.notes && (

@@ -174,6 +174,15 @@ export function withTitle(name: string, lines: ModLine[]): { name: string; lines
   };
 }
 
+/**
+ * Para la página de seguimiento del cliente: "Cheeseburger Deluxe" y sus líneas con
+ * precio, igual que el carrito. Va en la respuesta pública (no hay datos privados).
+ */
+export function customerItemLines(item: Parameters<typeof orderItemModLines>[0] & { product?: { name?: string | null } | null }) {
+  const { name, lines } = withTitle(item.product?.name ?? '', orderItemModLines(item));
+  return { display_name: name || null, lines: lines.map(({ text, price, indent }) => ({ text, price, indent })) };
+}
+
 /** Suma de los recargos (para mostrar el precio base del plato = unitario − esto). */
 export function linesTotal(lines: ModLine[]): number {
   return round2(lines.reduce((s, l) => s + l.price, 0));

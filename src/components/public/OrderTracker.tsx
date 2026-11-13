@@ -955,10 +955,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <ul className="grid gap-2 pt-3">
                 {(o.order_items as any[]).map((item) => (
                   <li key={item.id} className="flex items-baseline justify-between gap-3 text-[14px]">
-                    <span className="min-w-0">
-                      <b className="tabular-nums">{item.qty}×</b> {item.product_name ?? t.productFallback}
+                    <span className="min-w-0 flex-1">
+                      <b className="tabular-nums">{item.qty}×</b> {item.display_name ?? item.product_name ?? t.productFallback}
                       {item.variant_name && <span style={{ color: K.faint }}> · {item.variant_name}</span>}
-                      {Array.isArray(item.modifiers) && item.modifiers.length > 0 && (
+                      {/* Una línea por cosa, como en el carrito (lib/modifier-lines). Respuestas
+                          viejas sin "lines": los nombres sueltos. */}
+                      {Array.isArray(item.lines) ? (item.lines as { text: string; price: number; indent: boolean }[]).map((l, k) => (
+                        <span key={k} className="flex justify-between gap-3 text-[12.5px] leading-snug" style={{ color: K.sub, paddingLeft: l.indent ? 12 : 0 }}>
+                          <span>{l.indent && <span style={{ color: K.faint }}>↳ </span>}{l.text}</span>
+                          {l.price > 0 && <span className="tabular-nums flex-shrink-0" style={{ color: K.faint }}>+{formatPrice(l.price, currency)}</span>}
+                        </span>
+                      )) : Array.isArray(item.modifiers) && item.modifiers.length > 0 && (
                         <span className="block text-[12.5px] leading-snug" style={{ color: K.sub }}>
                           {(item.modifiers as { name: string }[]).map((m) => m.name).join(', ')}
                         </span>
