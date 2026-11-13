@@ -8,7 +8,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 
 export async function GET() {
   try {
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }

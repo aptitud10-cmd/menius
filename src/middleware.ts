@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { safeNextPath, isCounterAppUserAgent } from '@/lib/safe-next';
-import { isDeviceSession } from '@/lib/auth/device-session';
+import { getDeviceSession } from '@/lib/auth/device-session';
 
 const logger = createLogger('middleware');
 
@@ -114,10 +114,19 @@ export async function middleware(request: NextRequest) {
   // A tablet paired with a code gets the Counter and nothing else: dashboard,
   // billing, admin, onboarding and the login pages all send it back there.
   // (Checked before the admin gate — an admin's paired tablet is still a tablet.)
-  if (path !== '/counter' && await isDeviceSession(supabase)) {
+  // Exception: the owner unlocked the panel on the tablet with their PIN (10 min,
+  // server-side) — then /app works; the sensitive bits still refuse a tablet.
+  const device = path !== '/counter' ? await getDeviceSession(supabase) : null;
+  if (device?.isDevice) {
     const toCounter = NextResponse.redirect(new URL('/counter', request.url));
     response.cookies.getAll().forEach((c) => toCounter.cookies.set(c));
     return toCounter;
+  }
+  // The MENIUS admin is never reachable from a tablet, PIN or not.
+  if (device?.isTablet && (isAdmin || isOnboarding || isAuthPage)) {
+    const toPanel = NextResponse.redirect(new URL('/app', request.url));
+    response.cookies.getAll().forEach((c) => toPanel.cookies.set(c));
+    return toPanel;
   }
 
   // Admin routes: require auth + must be a recognised admin email

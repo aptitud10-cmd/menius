@@ -16,7 +16,7 @@ const logger = createLogger('api:wompi-keys');
  */
 
 export async function GET() {
-  const tenant = await getTenant();
+  const tenant = await getTenant({ ownerOnly: true });
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const adminDb = createAdminClient();
@@ -36,7 +36,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const body = await req.json().catch(() => null);
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE() {
-  const tenant = await getTenant();
+  const tenant = await getTenant({ ownerOnly: true });
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const adminDb = createAdminClient();

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     const stripe = getStripe();
     const supabase = await createClient();
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
     const body = await request.json();

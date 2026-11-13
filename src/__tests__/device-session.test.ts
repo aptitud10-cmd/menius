@@ -30,10 +30,14 @@ beforeEach(() => {
 // rpc por nombre: current_device_restaurant_id (tienda de la tablet o null) y
 // current_session_is_device (respaldo mientras la migración no esté aplicada).
 type RpcResult = { data: unknown; error: { message: string; code?: string } | null };
-function rpcs(device: RpcResult, isDevice: RpcResult = { data: false, error: null }) {
-  rpc.mockImplementation(async (fn: string) => (fn === 'current_device_restaurant_id' ? device : isDevice));
-}
 const MISSING = { data: null, error: { message: 'not found', code: 'PGRST202' } };
+// current_device_session (migración 20261113f) falta por defecto: así estos casos
+// prueban el camino anterior; los del panel por PIN la pasan explícita.
+function rpcs(device: RpcResult, isDevice: RpcResult = { data: false, error: null }, current: RpcResult = MISSING) {
+  rpc.mockImplementation(async (fn: string) =>
+    fn === 'current_device_session' ? current : fn === 'current_device_restaurant_id' ? device : isDevice);
+}
+const tabletRow = (panel_unlocked: boolean) => ({ data: [{ session_id: 's1', restaurant_id: 'r1', panel_unlocked }], error: null });
 
 describe('getTenant — tablet sessions only get the Counter', () => {
   it('owner on their own phone/computer: full tenant', async () => {
@@ -74,6 +78,44 @@ describe('getTenant — tablet sessions only get the Counter', () => {
     expect(await getTenant()).toBeNull();
   });
 });
+
+describe('panel del dueño desde la tablet (PIN)', () => {
+  it('tablet sin panel abierto: igual que antes, solo Counter', async () => {
+    owner();
+    rpcs(MISSING, MISSING, tabletRow(false));
+    expect(await getTenant()).toBeNull();
+    expect(await getTenantAgain({ allowDevice: true })).toMatchObject({ restaurantId: 'r1', isDevice: true });
+  });
+
+  it('tablet con el panel abierto: pasa como el dueño, pegada a su tienda', async () => {
+    owner();
+    rpcs(MISSING, MISSING, tabletRow(true));
+    expect(await getTenant()).toMatchObject({ restaurantId: 'r1', isDevice: false });
+  });
+
+  it('lo delicado (ownerOnly) sigue cerrado para la tablet aunque tenga el panel abierto', async () => {
+    owner();
+    rpcs(MISSING, MISSING, tabletRow(true));
+    expect(await getTenant({ ownerOnly: true })).toBeNull();
+  });
+
+  it('el dueño en su celular pasa ownerOnly', async () => {
+    owner();
+    rpcs(MISSING, MISSING, { data: [], error: null });
+    expect(await getTenant({ ownerOnly: true })).toMatchObject({ restaurantId: 'r1', isDevice: false });
+  });
+
+  it('si current_device_session falla (no por faltar), cae al camino anterior: falla cerrado', async () => {
+    owner();
+    rpcs({ data: null, error: { message: 'down' } }, { data: null, error: { message: 'down' } }, { data: null, error: { message: 'down' } });
+    expect(await getTenant()).toBeNull();
+  });
+});
+
+async function getTenantAgain(opts: Parameters<typeof getTenant>[0]) {
+  reads.push({ data: { default_restaurant_id: 'r1' } }, { data: { id: 'r1' } });
+  return getTenant(opts);
+}
 
 describe('isDeviceSession', () => {
   it('only an explicit true counts as "not a tablet = false"', async () => {

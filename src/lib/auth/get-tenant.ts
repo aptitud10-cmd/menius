@@ -15,6 +15,13 @@ export interface GetTenantOptions {
    * tablet recibe null (401): cobros, reembolsos, llaves, menú, configuración.
    */
   allowDevice?: boolean;
+  /**
+   * Lo delicado: cobros, Stripe, llaves, reembolsos, cuenta, staff y tablets.
+   * Ninguna tablet pasa, ni siquiera con el panel abierto por PIN (quien vio al
+   * dueño poner el PIN en la tablet compartida no toca la plata). Para eso el
+   * dueño usa su celular o su computadora.
+   */
+  ownerOnly?: boolean;
 }
 
 /**
@@ -48,6 +55,7 @@ export async function getTenant(opts: GetTenantOptions = {}): Promise<TenantInfo
   const isDevice = device.isDevice;
 
   if (isDevice && !opts.allowDevice) return null;
+  if (opts.ownerOnly && device.isTablet) return null;
   // La tablet sigue a la tienda a la que se vinculó, no a la elegida en el panel.
   const restaurantId = device.restaurantId ?? profile?.default_restaurant_id;
   if (!restaurantId) return null;

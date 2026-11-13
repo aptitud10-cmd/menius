@@ -28,6 +28,7 @@ import { counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD
 import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
 import { NewOrdersAlert } from './counter/NewOrdersAlert';
 import { OrderSheet } from './counter/OrderSheet';
+import { OwnerPanelButton } from './counter/OwnerPanelButton';
 import {
   CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast,
   type CounterViewMode, type StoreState,
@@ -357,6 +358,8 @@ interface CounterViewProps {
   isDevice?: boolean;
   /** restaurants.orders_paused_until al cargar — la pausa vive en la DB, no en el aparato. */
   initialPausedUntil?: string | null;
+  /** Counter a pantalla completa (/counter): muestra "Panel del dueño" al final del menú. */
+  ownerPanel?: boolean;
   /** Solo para la vista previa de desarrollo: pedidos que arrancan en la alerta. */
   previewAlertIds?: string[];
   /** Solo para la vista previa de desarrollo: arranca mostrando este reporte Z. */
@@ -378,7 +381,7 @@ export interface ShiftReport {
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
   restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false, isDevice = false,
-  initialPausedUntil = null, previewAlertIds, previewShiftReport,
+  initialPausedUntil = null, ownerPanel = false, previewAlertIds, previewShiftReport,
 }: CounterViewProps) {
   const t = getT(locale);
 
@@ -1786,6 +1789,11 @@ export function CounterView({
                   </button>
                 )}
               </SidebarSection>
+
+              {/* Panel del dueño: escondido al final del menú; en la tablet pide PIN. */}
+              {(ownerPanel || tabletMode) && (
+                <OwnerPanelButton needsPin={isDevice} en={t.en} />
+              )}
 
               {/* This tablet — only inside the Android app */}
               {inApp && (

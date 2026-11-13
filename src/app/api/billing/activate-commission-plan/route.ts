@@ -17,7 +17,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
  * needs a gate.
  */
 export async function POST(req: NextRequest) {
-  const tenant = await getTenant();
+  const tenant = await getTenant({ ownerOnly: true });
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await req.json().catch(() => ({})) as { deactivate?: boolean };
