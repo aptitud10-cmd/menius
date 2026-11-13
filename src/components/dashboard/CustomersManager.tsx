@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Search, Phone, Mail, MapPin, Tag, ChevronDown, Users, TrendingUp, Clock, FileDown, QrCode } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import { clearCustomerIncidents } from '@/lib/actions/restaurant';
+import { customerFlagLabel, type OrderIncident } from '@/lib/customer-incidents';
 
 interface Customer {
   id: string;
@@ -18,6 +20,10 @@ interface Customer {
   notes: string;
   tags: string[];
   created_at: string;
+  /** customer-incidents: pedidos que no recibió o no pagó (0 = sin marca). */
+  incident_count?: number;
+  last_incident?: OrderIncident | null;
+  last_incident_at?: string | null;
 }
 
 interface Props {
@@ -28,7 +34,9 @@ interface Props {
 type SortKey = 'last_order_at' | 'total_spent' | 'total_orders' | 'name';
 
 export function CustomersManager({ currency }: Props) {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
+  const en = locale === 'en';
+  const [clearing, setClearing] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -103,6 +111,16 @@ export function CustomersManager({ currency }: Props) {
       fetchCustomers();
     } catch { /* ignore */ } finally {
       setSaving(false);
+    }
+  };
+
+  const unflag = async (id: string) => {
+    setClearing(true);
+    try {
+      const res = await clearCustomerIncidents(id);
+      if (!('error' in res)) fetchCustomers();
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -267,7 +285,14 @@ export function CustomersManager({ currency }: Props) {
                     className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors ${selectedId === c.id ? 'bg-emerald-50' : ''}`}
                   >
                     <td className="px-4 py-3">
-                      <p className="text-gray-900 font-medium truncate max-w-[200px]">{c.name || t.customers_noName}</p>
+                      <p className="text-gray-900 font-medium truncate max-w-[200px]">
+                        {(c.incident_count ?? 0) > 0 && (
+                          <span className="mr-1.5 inline-block px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-50 text-red-600 border border-red-200 align-middle">
+                            ⚠ {c.incident_count}
+                          </span>
+                        )}
+                        {c.name || t.customers_noName}
+                      </p>
                       {c.address && <p className="text-gray-600 text-xs truncate max-w-[200px]">{c.address}</p>}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
@@ -343,6 +368,33 @@ export function CustomersManager({ currency }: Props) {
               {t.customers_close}
             </button>
           </div>
+
+          {(selected.incident_count ?? 0) > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+              <p className="flex-1 min-w-[200px] text-sm font-semibold text-red-700">
+                ⚠ {customerFlagLabel(
+                  {
+                    incident_count: selected.incident_count ?? 0,
+                    last_incident: selected.last_incident ?? null,
+                    last_incident_at: selected.last_incident_at ?? null,
+                  },
+                  en,
+                )}
+                <span className="block text-xs font-normal text-red-600 mt-0.5">
+                  {en
+                    ? 'Their next orders show an alert in the Counter. With card payments on, they must pay online.'
+                    : 'Sus próximos pedidos llegan al Counter con una alerta. Si cobras con tarjeta, tiene que pagar online.'}
+                </span>
+              </p>
+              <button
+                onClick={() => unflag(selected.id)}
+                disabled={clearing}
+                className="px-3 py-2 rounded-lg text-sm font-semibold bg-white border border-red-200 text-red-700 hover:bg-red-100 disabled:opacity-50"
+              >
+                {en ? 'Remove flag' : 'Quitar marca'}
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>

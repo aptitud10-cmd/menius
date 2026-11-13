@@ -137,7 +137,10 @@ CREATE TABLE public.customers (
   notes text DEFAULT ''::text,
   tags ARRAY DEFAULT '{}'::text[],
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now()
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  incident_count integer NOT NULL DEFAULT 0,
+  last_incident text CHECK (last_incident = ANY (ARRAY['not_received'::text, 'not_paid'::text])),
+  last_incident_at timestamp with time zone
 );
 
 CREATE TABLE public.dashboard_notifications (
@@ -488,7 +491,8 @@ CREATE TABLE public.orders (
   delivery_failed_at timestamp with time zone,
   delivery_failure_reason text,
   batch_id uuid,
-  batch_seq smallint
+  batch_seq smallint,
+  incident text CHECK (incident = ANY (ARRAY['not_received'::text, 'not_paid'::text]))
 );
 
 CREATE TABLE public.device_pairings (

@@ -834,6 +834,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         stripe_url?: string;
         tracking_token?: string;
         idempotent?: boolean;
+        code?: string;
       }>(text);
       if (!parsed.ok) {
         setOrderError(formatOrderSubmitError(res.status, undefined, locale));
@@ -842,6 +843,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       }
       const data = parsed.data;
       if (!res.ok) {
+        // Cliente marcado (customer-incidents): este pedido se paga online.
+        // Se deja la tarjeta elegida para que reintente con un toque.
+        if (data.code === 'PREPAY_REQUIRED' && enabledPaymentMethods.includes('online')) {
+          setPaymentMethod('online');
+        }
         setOrderError(formatOrderSubmitError(res.status, data.error, locale));
         trackEvent('checkout_error', { restaurant_id: restaurant.id, reason: data.error ?? 'server_error', status: res.status, order_type: orderType, payment_method: paymentMethod });
         return;

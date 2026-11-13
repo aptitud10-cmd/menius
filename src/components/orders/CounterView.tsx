@@ -13,8 +13,9 @@ import { useLeaderTab } from '@/hooks/use-leader-tab';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
   sendOrderNotification, openShift, closeShift, getActiveShift, getTodaySummary,
-  fetchOrderStatusHistory,
+  fetchOrderStatusHistory, getFlaggedCustomers,
 } from '@/lib/actions/restaurant';
+import { isOrderIncident, type CustomerFlag } from '@/lib/customer-incidents';
 import { PrinterService } from '@/lib/printing/PrinterService';
 import { getCounterAppBridge, isMeniusNativePrintAvailable } from '@/lib/printing/native-bridge';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -106,6 +107,11 @@ function getT(locale?: string) {
       ? ['Out of stock', 'Restaurant closed', 'Too busy', 'Address out of zone', 'Other']
       : ['Sin stock', 'Restaurante cerrado', 'Demasiada demanda', 'Dirección fuera de zona', 'Otro'],
     rejectReason: en ? 'Select a reason' : 'Elige el motivo',
+    // Clientes problema (customer-incidents): marcan al cliente para su próximo pedido.
+    incidentTitle: en ? 'Customer problem (flags the customer)' : 'Problema con el cliente (lo marca)',
+    incidentNotHome: en ? "Customer wasn't there / didn't take it" : 'No estaba / no lo recibió',
+    incidentNoShow: en ? 'Customer never picked it up' : 'Nunca vino a buscarlo',
+    incidentNotPaid: en ? "Customer didn't pay" : 'No pagó',
     // Sidebar
     online_status: en ? 'Online'         : 'En línea',
     paused_status: en ? 'Paused'         : 'Pausado',
@@ -760,13 +766,31 @@ export function CounterView({
 
   const { orders, updateOrderLocally, rtStatus, lastSyncAt, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
-  // Pedidos con los cambios "en espera de deshacer" aplicados.
-  const ordersView = useMemo(
-    () => (Object.keys(pendingStatus).length === 0
-      ? orders
-      : orders.map(o => (pendingStatus[o.id] ? { ...o, status: pendingStatus[o.id] } : o))),
-    [orders, pendingStatus],
-  );
+  // Clientes marcados (customer-incidents): una consulta chica aparte, cruzada
+  // por customer_id, en vez de sumar un join a las 6 consultas de pedidos.
+  const [customerFlags, setCustomerFlags] = useState<Map<string, CustomerFlag>>(() => new Map());
+  const loadCustomerFlags = useCallback(async () => {
+    try {
+      const res = await getFlaggedCustomers();
+      if ('customers' in res) setCustomerFlags(new Map(res.customers.map((c) => [c.id, c])));
+    } catch { /* sin alerta antes que romper el tablero */ }
+  }, []);
+  useEffect(() => {
+    void loadCustomerFlags();
+    const id = window.setInterval(() => { void loadCustomerFlags(); }, 120_000);
+    return () => window.clearInterval(id);
+  }, [loadCustomerFlags]);
+
+  // Pedidos con los cambios "en espera de deshacer" aplicados, y la marca del cliente.
+  const ordersView = useMemo(() => {
+    if (Object.keys(pendingStatus).length === 0 && customerFlags.size === 0) return orders;
+    return orders.map((o) => {
+      const pend = pendingStatus[o.id];
+      const flag = o.customer_id ? customerFlags.get(o.customer_id) : undefined;
+      if (!pend && !flag) return o;
+      return { ...o, ...(pend ? { status: pend } : {}), ...(flag ? { customer_flag: flag } : {}) };
+    });
+  }, [orders, pendingStatus, customerFlags]);
 
   // Pickup: el cliente tocó "Ya llegué" en su seguimiento → suena y avisa.
   // La primera pasada solo registra (al abrir la tablet no suenan los viejos).
@@ -1164,7 +1188,13 @@ export function CounterView({
     if (!cancelModal) return;
     setUpdatingId(cancelModal.orderId);
     try {
-      const res = await updateOrderStatus(cancelModal.orderId, 'cancelled', cancelReason || undefined);
+      const incident = cancelReason.startsWith('incident:') ? cancelReason.slice(9) : null;
+      const res = await updateOrderStatus(
+        cancelModal.orderId,
+        'cancelled',
+        cancelReason || undefined,
+        isOrderIncident(incident) ? { incident } : undefined,
+      );
       if (res?.error === 'PAID_ORDER_NEEDS_REFUND') {
         // Server refuses to cancel a paid order without refunding — switch the
         // modal to the refund-and-cancel flow instead of a dead-end error.
@@ -1174,11 +1204,12 @@ export function CounterView({
       if (res?.error) { showError(res.error); return; }
       setCancelModal(null);
       setCancelReason('');
+      if (incident) void loadCustomerFlags();
       if (res.notification) showNotif(res.notification, cancelModal.orderId);
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [cancelModal, cancelReason, t, showNotif]);
+  }, [cancelModal, cancelReason, t, showNotif, loadCustomerFlags]);
 
   const handleRefundAndCancel = useCallback(async () => {
     if (!cancelModal) return;
@@ -2013,7 +2044,7 @@ export function CounterView({
       {cancelModal && (
         <>
           <div className="fixed inset-0 bg-black/40 z-50" onClick={() => { setCancelModal(null); setRefundRequired(false); }} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl">
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl max-h-[92dvh] overflow-y-auto">
             <p className="text-base font-bold text-[#111] mb-1">
               {cancelModal.type === 'reject' ? t.rejectOrder : t.cancelOrder}
             </p>
@@ -2042,6 +2073,35 @@ export function CounterView({
                 </label>
               ))}
             </div>
+            {(() => {
+              // Solo para llevar / delivery, y solo si no se pagó online (lo
+              // pagado se reembolsa por el otro camino).
+              const o = orders.find((x) => x.id === cancelModal.orderId);
+              // Solo cuando ya salió o estaba esperando que lo buscaran: rechazar
+              // un pedido nuevo nunca es culpa del cliente.
+              if (!o || refundRequired || !['delivery', 'pickup'].includes(o.order_type ?? '')) return null;
+              if (!['ready', 'out_for_delivery'].includes(o.status)) return null;
+              const opts: [string, string][] = [
+                ['incident:not_received', o.order_type === 'delivery' ? t.incidentNotHome : t.incidentNoShow],
+                ['incident:not_paid', t.incidentNotPaid],
+              ];
+              return (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-[#888] mb-2">{t.incidentTitle}</p>
+                  <div className="space-y-2">
+                    {opts.map(([value, label]) => (
+                      <label key={value} className={cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer text-sm transition-colors',
+                        cancelReason === value ? 'border-red-500 bg-red-50 text-red-800 font-semibold' : 'border-[#EEE] text-[#555] hover:border-[#CCC]'
+                      )}>
+                        <input type="radio" name="cancel-reason" checked={cancelReason === value} onChange={() => setCancelReason(value)} className="accent-red-600" />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             <div className="flex gap-2">
               <button onClick={() => { setCancelModal(null); setRefundRequired(false); }} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
                 {t.no}

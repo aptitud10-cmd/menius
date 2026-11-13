@@ -30,7 +30,7 @@ function item(id: string, qty: number, name: string, price: number, opts: {
   };
 }
 
-function order(o: Omit<Partial<Order>, 'items'> & { id: string; order_number: string; items: unknown[] }): Order {
+function order(o: Omit<Partial<Order>, 'items'> & { id: string; order_number: string; items: unknown[]; customer_flag?: unknown }): Order {
   return {
     restaurant_id: RID, table_id: null, status: 'pending', customer_name: 'Cliente',
     notes: '', total: 0, order_type: 'pickup', payment_method: 'cash', created_at: ago(2),
@@ -41,6 +41,8 @@ function order(o: Omit<Partial<Order>, 'items'> & { id: string; order_number: st
 
 const ORDERS: Order[] = [
   order({
+    // Cliente marcado: un delivery anterior no lo recibió (customer-incidents).
+    customer_flag: { incident_count: 1, last_incident: 'not_received', last_incident_at: ago(60 * 24 * 3) },
     id: 'o1', order_number: 'ORD-261110-014', status: 'pending', customer_name: 'Maria Gonzalez',
     customer_phone: '+1 718 555 0142', order_type: 'delivery', delivery_address: '32-15 94th St, East Elmhurst, NY',
     payment_method: 'cash', total: 38.4, created_at: ago(1),

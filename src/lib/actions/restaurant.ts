@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDeviceSession, isDeviceSession } from "@/lib/auth/device-session";
 import { sanitizeText, sanitizeMultiline } from "@/lib/sanitize";
 import { normalizeHour } from "@/lib/option-hours";
+import { ORDER_INCIDENTS, type OrderIncident, type CustomerFlag } from "@/lib/customer-incidents";
 import { captureError } from "@/lib/error-reporting";
 import { createLogger } from "@/lib/logger";
 import type {
@@ -1915,7 +1916,12 @@ export async function updateOrderStatus(
   cancellationReason?: string,
   /** Aceptar: el tiempo de preparación va en la MISMA escritura que 'preparing'
    *  (antes eran dos server actions en serie y la tarjeta rebotaba a Nuevos). */
-  opts?: { etaMinutes?: number },
+  opts?: {
+    etaMinutes?: number;
+    /** Cancelado por culpa del cliente: no lo recibió / no vino, o no pagó.
+     *  Marca al cliente (customers.incident_count) para su próximo pedido. */
+    incident?: OrderIncident;
+  },
 ) {
   const {
     supabase,
@@ -1926,17 +1932,28 @@ export async function updateOrderStatus(
 
   if (!ALL_STATUSES.includes(status as never))
     return { error: "Estado inválido" };
+  const incident = opts?.incident;
+  if (incident && (status !== "cancelled" || !ORDER_INCIDENTS.includes(incident)))
+    return { error: "Incidente inválido" };
 
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, status, payment_status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, estimated_ready_minutes, driver_tracking_token, restaurants ( slug, name )",
+      "id, status, payment_status, order_number, restaurant_id, customer_id, customer_name, customer_email, customer_phone, order_type, delivery_address, estimated_ready_minutes, driver_tracking_token, restaurants ( slug, name )",
     )
     .eq("id", orderId)
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
 
   if (!order) return { error: "Orden no encontrada" };
+  // Solo un pedido para llevar o delivery puede quedar sin recibir o sin pagar
+  // por el cliente; en el salón la mesa está ahí.
+  if (
+    incident &&
+    (!["delivery", "pickup"].includes(order.order_type as string) ||
+      !["ready", "out_for_delivery"].includes(order.status as string))
+  )
+    return { error: "Incidente inválido" };
 
   // Enforce valid state transitions via the shared state machine
   const currentStatus = order.status as string;
@@ -1957,7 +1974,15 @@ export async function updateOrderStatus(
   // la mantenga: sin esto quedaba igual a created_at para siempre y el Counter
   // ("esperando N min" en Listos) contaba desde la creación del pedido.
   const updatePayload: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
-  if (status === "cancelled" && cancellationReason) {
+  if (status === "cancelled" && incident) {
+    // Sin texto de motivo: cancellation_reason le llega al cliente en el aviso
+    // de cancelación, y "no pagó" no es algo para mandarle por email.
+    updatePayload.incident = incident;
+    if (order.order_type === "delivery" && incident === "not_received") {
+      updatePayload.delivery_failed_at = new Date().toISOString();
+      updatePayload.delivery_failure_reason = incident;
+    }
+  } else if (status === "cancelled" && cancellationReason) {
     updatePayload.cancellation_reason = cancellationReason;
   }
   // Record when the order entered 'preparing' so cron/auto-complete-pickup
@@ -1984,6 +2009,29 @@ export async function updateOrderStatus(
     .eq("restaurant_id", restaurantId);
 
   if (error) return { error: error.message };
+
+  // El cliente queda marcado desde el primer incidente (decisión de Pedro).
+  const customerId = (order as { customer_id?: string | null }).customer_id ?? null;
+  if (incident && customerId) {
+    const { data: cust } = await supabase
+      .from("customers")
+      .select("incident_count")
+      .eq("id", customerId)
+      .eq("restaurant_id", restaurantId)
+      .maybeSingle();
+    if (cust) {
+      const { error: custErr } = await supabase
+        .from("customers")
+        .update({
+          incident_count: (cust.incident_count ?? 0) + 1,
+          last_incident: incident,
+          last_incident_at: new Date().toISOString(),
+        })
+        .eq("id", customerId)
+        .eq("restaurant_id", restaurantId);
+      if (custErr) logger.warn("customer incident update failed", { orderId, error: custErr.message });
+    }
+  }
 
   if (isFinal && driverToken) {
     const { evictTokenCache } = await import("@/lib/tracking/token-cache");
@@ -2639,4 +2687,41 @@ export async function getTodaySummary() {
     .filter((o) => isRevenueStatus(o.status as string))
     .reduce((sum, o) => sum + Number(o.total ?? 0), 0);
   return { orders: rows.length, sales };
+}
+
+/**
+ * Clientes marcados del restaurante (customer-incidents): el Counter los cruza
+ * con orders.customer_id para mostrar la alerta en el pedido.
+ */
+export async function getFlaggedCustomers(): Promise<
+  { customers: ({ id: string } & CustomerFlag)[] } | { error: string }
+> {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant({
+    allowDevice: true,
+  });
+  if (authErr) return { error: authErr };
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, incident_count, last_incident, last_incident_at")
+    .eq("restaurant_id", restaurantId)
+    .gt("incident_count", 0)
+    .limit(500);
+  if (error) return { error: error.message };
+  return { customers: (data ?? []) as ({ id: string } & CustomerFlag)[] };
+}
+
+/** "Fue un malentendido": desmarca al cliente. El historial queda en orders.incident. */
+export async function clearCustomerIncidents(customerId: string) {
+  if (typeof customerId !== "string" || !/^[0-9a-f-]{36}$/i.test(customerId))
+    return { error: "Cliente inválido" };
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+  const { error } = await supabase
+    .from("customers")
+    .update({ incident_count: 0, last_incident: null, last_incident_at: null })
+    .eq("id", customerId)
+    .eq("restaurant_id", restaurantId);
+  if (error) return { error: error.message };
+  revalidatePath("/app/customers");
+  return { ok: true };
 }

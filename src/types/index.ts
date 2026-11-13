@@ -289,6 +289,10 @@ export interface Order {
   driver_delivered_at?: string | null;
   delivery_photo_url?: string | null;
   cancellation_reason?: string | null;
+  /** Cliente del CRM (lo pone el trigger al crear el pedido). */
+  customer_id?: string | null;
+  /** Cancelado por culpa del cliente (customer-incidents). */
+  incident?: 'not_received' | 'not_paid' | null;
   // joined
   items?: OrderItem[];
   table?: Table;

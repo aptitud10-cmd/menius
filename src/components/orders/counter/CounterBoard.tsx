@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { KindTag } from './KindTag';
+import { customerFlagLabel, type CustomerFlag } from '@/lib/customer-incidents';
 import {
   C, type CounterText, orderKind, shortName, minsSince, minsLeft, itemCount,
   orderAllergies, money, stripNoteLabel, scheduledWhen, waitingSince,
@@ -90,6 +91,20 @@ function DriverLine({ order, T, routeStop }: { order: Order; T: CounterText; rou
   );
 }
 
+/**
+ * Cliente marcado (customer-incidents): un pedido anterior no lo recibió o no
+ * lo pagó. El restaurante decide si llamar, aceptar o rechazar.
+ */
+export function CustomerFlagLine({ order, T }: { order: Order; T: CounterText }) {
+  const flag = (order as Order & { customer_flag?: CustomerFlag | null }).customer_flag;
+  if (!flag || flag.incident_count <= 0 || order.status === 'cancelled') return null;
+  return (
+    <p className="text-[15px] font-extrabold rounded-lg px-2.5 py-1.5 leading-snug" style={{ background: C.redSoft, color: C.red }}>
+      ⚠ {customerFlagLabel(flag, T.locale.startsWith('en'))}
+    </p>
+  );
+}
+
 /** Pickup: el cliente tocó "Ya llegué" en su seguimiento. */
 function ArrivedLine({ order, T }: { order: Order; T: CounterText }) {
   if (order.order_type !== 'pickup' || !order.customer_arrived_at) return null;
@@ -151,6 +166,7 @@ export function OrderCard({
         {paidOnline && <span className="text-[13px] font-bold px-2 py-0.5 rounded-md" style={{ background: C.greenSoft, color: C.greenDeep }}>{T.paidOnline}</span>}
       </div>
 
+      <CustomerFlagLine order={order} T={T} />
       <DriverLine order={order} T={T} routeStop={routeStop} />
       <ArrivedLine order={order} T={T} />
 
