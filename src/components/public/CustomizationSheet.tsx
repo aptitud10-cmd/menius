@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
-import { X, Minus, Plus, Check, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Minus, Plus, Check, ArrowLeft, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { motion, useDragControls, type PanInfo } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,9 @@ import { tName, tDesc } from "@/lib/i18n";
 import {
   visibleGroups,
   pruneHiddenSelections,
+  selectedOptionIds,
 } from "@/lib/conditional-modifiers";
+import { filterGroupsByQuery, OPTION_SEARCH_MIN_OPTIONS } from "@/lib/option-search";
 import { supabaseLoader, getBlurUrl } from "@/lib/image-loader";
 import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
 import { inTimeZone } from "@/lib/orders/business-hours";
@@ -300,6 +302,28 @@ export function CustomizationSheet({
     [allGroups, selections],
   );
 
+  // Search over the options, only on dishes long enough to need it (omelettes,
+  // egg plates, burgers): "bacon" or "no onions" instead of scrolling past
+  // fifteen questions. Display-only — validation and price still read
+  // activeGroups, so a filtered-out required group still blocks Add.
+  const [optionQuery, setOptionQuery] = useState("");
+  const showOptionSearch =
+    allGroups.reduce((n, g) => n + g.options.length, 0) >= OPTION_SEARCH_MIN_OPTIONS;
+  const shownGroups = useMemo(
+    () =>
+      filterGroupsByQuery(
+        activeGroups,
+        optionQuery,
+        (g) => tName(g, locale, defaultLocale),
+        (o) => tName(o, locale, defaultLocale),
+        selectedOptionIds(selections),
+      ),
+    [activeGroups, optionQuery, locale, defaultLocale, selections],
+  );
+  // Add tapped while the filter hides the unanswered group: clear the search,
+  // then scroll once the full list is back on screen.
+  const [pendingReveal, setPendingReveal] = useState(false);
+
   // A hidden group's stale selection would still reach the cart: picking
   // Deluxe → Onion Rings (+$1.50) and switching back to Regular kept the
   // surcharge. Pricing and submit read from here.
@@ -527,6 +551,11 @@ export function CustomizationSheet({
   const revealFirstIncompleteGroup = () => {
     const id = firstIncompleteGroupId;
     if (!id) return;
+    if (optionQuery) {
+      setOptionQuery("");
+      setPendingReveal(true);
+      return;
+    }
     const container = bodyScrollRef.current;
     const target = groupRefs.current.get(id);
     const reduceMotion = window.matchMedia(
@@ -569,6 +598,13 @@ export function CustomizationSheet({
       );
     }
   };
+  const revealRef = useRef(revealFirstIncompleteGroup);
+  revealRef.current = revealFirstIncompleteGroup;
+  useEffect(() => {
+    if (!pendingReveal || optionQuery) return;
+    setPendingReveal(false);
+    revealRef.current();
+  }, [pendingReveal, optionQuery]);
 
   const handleSubmit = () => {
     // Opciones todavía sin llegar (4G lento) o con error: los grupos están
@@ -782,7 +818,52 @@ export function CustomizationSheet({
         </div>
       )}
 
-      {activeGroups.map((group) => {
+      {showOptionSearch && (
+        <div className="px-5 pt-5">
+          <div className="relative">
+            <Search
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+              aria-hidden="true"
+            />
+            {/* 16px text: iOS Safari zooms the page on a focused input under 16px. */}
+            <input
+              type="text"
+              inputMode="search"
+              enterKeyHint="search"
+              value={optionQuery}
+              onChange={(e) => setOptionQuery(e.target.value.slice(0, 40))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+              placeholder={t.searchOptionsPlaceholder}
+              aria-label={t.searchOptionsPlaceholder}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              className="w-full h-11 pl-10 pr-10 rounded-2xl border border-gray-200 bg-gray-50 text-base text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:bg-white focus:border-[#05c8a7] focus:ring-1 focus:ring-[#05c8a7]"
+            />
+            {optionQuery && (
+              <button
+                type="button"
+                onClick={() => setOptionQuery("")}
+                aria-label={t.clearSearch}
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          {optionQuery.trim() && shownGroups.length === 0 && (
+            <p className="mt-3 text-[14px] text-gray-500" aria-live="polite">
+              {t.noOptionMatches(optionQuery.trim())}
+            </p>
+          )}
+        </div>
+      )}
+
+      {shownGroups.map((group) => {
+        const fullOptions =
+          activeGroups.find((g) => g.id === group.id)?.options ?? group.options;
         const selected = selections[group.id] ?? [];
         // atMax only blocks when max > 1; for max_select=1 we swap instead of block
         const atMax =
@@ -824,7 +905,7 @@ export function CustomizationSheet({
         // announces that something comes with it, when Regular is precisely the
         // one that comes with less. The tell is that the free option is the
         // baseline the price already names, not one flavour among equals.
-        const options = group.options ?? [];
+        const options = fullOptions;
         const freeCount = options.filter(
           (o) => Number(o.price_delta) === 0,
         ).length;
@@ -854,7 +935,7 @@ export function CustomizationSheet({
         // rather than "Comes with" because the same shape covers cooking
         // temperature, size and burger style, where "comes with Medium Rare"
         // would be nonsense.
-        const defaults = group.options.filter((o) => o.is_default);
+        const defaults = fullOptions.filter((o) => o.is_default);
         const groupTitle = tName(group, locale, defaultLocale);
         const defaultName =
           defaults.length === 1 ? tName(defaults[0], locale, defaultLocale) : "";
@@ -863,7 +944,7 @@ export function CustomizationSheet({
         // the hint underneath.
         const standardHint =
           group.selection_type === "single" &&
-          group.options.length > 1 &&
+          fullOptions.length > 1 &&
           defaults.length === 1 &&
           !groupTitle.toLowerCase().includes(defaultName.toLowerCase())
             ? t.standardChoice(defaultName)
