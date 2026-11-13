@@ -332,7 +332,8 @@ CREATE TABLE public.modifier_groups (
   translations jsonb,
   shared_origin_id uuid,
   ticket_label text,
-  ticket_layout text NOT NULL DEFAULT 'line'::text
+  ticket_layout text NOT NULL DEFAULT 'line'::text,
+  depends_on_option_ids uuid[]
 );
 
 CREATE TABLE public.modifier_options (
@@ -343,7 +344,9 @@ CREATE TABLE public.modifier_options (
   is_default boolean DEFAULT false,
   sort_order integer DEFAULT 0,
   cost_price numeric DEFAULT NULL::numeric,
-  translations jsonb
+  translations jsonb,
+  available_from time without time zone,
+  available_until time without time zone
 );
 
 CREATE TABLE public.notifications (

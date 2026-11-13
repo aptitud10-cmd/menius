@@ -124,3 +124,30 @@ describe('customerItemLines (seguimiento del cliente)', () => {
     })).toEqual({ display_name: 'Cheeseburger Deluxe', lines: [{ text: 'Waffle Fries', price: 1.5, indent: false }] });
   });
 });
+
+describe('buildModLines — dependencia "cualquiera de estas"', () => {
+  it('Cheese on Potatoes va debajo de la papa elegida, aunque no sea la primera de la lista', () => {
+    const lines = buildModLines([
+      { group: g('Potatoes or Side', 3), options: [o('French Fries')] },
+      {
+        group: g('Cheese on Potatoes', 4, {
+          depends_on_option_id: 'Home Fries',
+          depends_on_option_ids: ['Home Fries', 'French Fries'],
+          ticket_label: 'with {option} cheese',
+          ticket_layout: 'indent',
+        }),
+        options: [o('Swiss', 1.5)],
+      },
+      { group: g('Side of Meat', 80, { ticket_label: 'Side {option}' }), options: [o('Canadian Bacon', 8.45)] },
+      {
+        group: g('Side Canadian Bacon Style', 83, { depends_on_option_id: 'Canadian Bacon', ticket_layout: 'inline' }),
+        options: [o('Crispy')],
+      },
+    ]);
+    expect(lines).toEqual([
+      { text: 'French Fries', price: 0, indent: false },
+      { text: 'with Swiss cheese', price: 1.5, indent: true },
+      { text: 'Side Canadian Bacon / Crispy', price: 8.45, indent: false },
+    ]);
+  });
+});

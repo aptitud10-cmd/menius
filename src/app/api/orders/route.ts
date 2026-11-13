@@ -25,6 +25,8 @@ import {
   feeModelFor,
 } from "@/lib/order-pricing";
 import { buildModLines, withTitle, type LineGroup, type LineSelection } from "@/lib/modifier-lines";
+import { dependencyIds } from "@/lib/conditional-modifiers";
+import { isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
 import { formatPrice } from "@/lib/utils";
 import { isOpenAt, inTimeZone, validScheduledFor, type OperatingHours } from "@/lib/orders/business-hours";
 import { haversineKm } from "@/lib/utils/eta";
@@ -454,7 +456,7 @@ export async function POST(request: NextRequest) {
         .from("modifier_groups")
         .select(
           // sort_order + ticket_*: arman las líneas del ticket (lib/modifier-lines).
-          "id, product_id, name, is_required, min_select, max_select, depends_on_option_id, sort_order, ticket_label, ticket_layout",
+          "id, product_id, name, is_required, min_select, max_select, depends_on_option_id, depends_on_option_ids, sort_order, ticket_label, ticket_layout",
         )
         .in("product_id", productIds),
     ]);
@@ -464,7 +466,7 @@ export async function POST(request: NextRequest) {
       modGroupIds.length > 0
         ? await supabase
             .from("modifier_options")
-            .select("id, group_id, name, price_delta")
+            .select("id, group_id, name, price_delta, available_from, available_until")
             .in("group_id", modGroupIds)
         : { data: [] };
 
@@ -547,6 +549,13 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    // Hora local a la que se va a preparar el pedido (la programada, o ahora):
+    // contra ella se valida el horario de cada opción (Grits 5:30–11 AM).
+    const orderLocal = inTimeZone(
+      validScheduledFor(body.scheduled_for) ?? new Date(),
+      restaurant.timezone ?? "UTC",
+    );
 
     for (const item of parsed.data.items) {
       const dbProduct = productMap.get(item.product_id);
@@ -643,33 +652,55 @@ export async function POST(request: NextRequest) {
       // Style never included — the client hides the group, the server refuses to
       // charge for it.
       const conditionalGroups = itemGroups.filter(
-        (g) => g.depends_on_option_id,
+        (g) => dependencyIds(g).length > 0,
       );
       if (conditionalGroups.length > 0 && (item.modifiers ?? []).length > 0) {
-        const chosen = new Set(
-          (item.modifiers ?? [])
-            .map((m) => m.option_id)
-            .filter((id): id is string => !!id),
-        );
-        const hiddenGroupIds = new Set(
-          conditionalGroups
-            .filter((g) => !chosen.has(g.depends_on_option_id as string))
-            .map((g) => g.id),
-        );
-        if (hiddenGroupIds.size > 0) {
-          const kept = (item.modifiers ?? []).filter((m) => {
-            const gid =
-              m.group_id ??
-              (m.option_id ? modOptionMap.get(m.option_id)?.group_id : null);
+        const groupOf = (m: { group_id?: string | null; option_id?: string | null }) =>
+          m.group_id ?? (m.option_id ? modOptionMap.get(m.option_id)?.group_id : null);
+        let kept = item.modifiers ?? [];
+        // Repeated until stable: dropping a parent's selection can close a group
+        // that hung off it ("any of" Home Fries/French Fries → Cheese on Potatoes).
+        for (let pass = 0; pass <= conditionalGroups.length; pass++) {
+          const chosen = new Set(
+            kept.map((m) => m.option_id).filter((id): id is string => !!id),
+          );
+          const hiddenGroupIds = new Set(
+            conditionalGroups
+              .filter((g) => !dependencyIds(g).some((d) => chosen.has(d)))
+              .map((g) => g.id),
+          );
+          const next = kept.filter((m) => {
+            const gid = groupOf(m);
             return !gid || !hiddenGroupIds.has(gid);
           });
-          if (kept.length !== (item.modifiers ?? []).length) {
-            logger.warn("dropped modifiers of a hidden conditional group", {
-              restaurant_id,
-              product: item.product_id,
-            });
-          }
-          (item as Record<string, unknown>).modifiers = kept;
+          if (next.length === kept.length) break;
+          kept = next;
+        }
+        if (kept.length !== (item.modifiers ?? []).length) {
+          logger.warn("dropped modifiers of a hidden conditional group", {
+            restaurant_id,
+            product: item.product_id,
+          });
+        }
+        (item as Record<string, unknown>).modifiers = kept;
+      }
+
+      // Horario por opción. 10 min de gracia: quien la eligió a las 10:58 y
+      // terminó de pagar a las 11:03 no debe rebotar.
+      for (const m of item.modifiers ?? []) {
+        const o = m.option_id ? modOptionMap.get(m.option_id) : undefined;
+        if (o && !isOptionAvailableAt(o, orderLocal, 10)) {
+          const hours = optionHoursLabel(o, en ? "en" : "es");
+          return NextResponse.json(
+            {
+              error: en
+                ? `"${o.name}" is only available ${hours}. Tap "${dbProduct.name}" in your cart and pick another option.`
+                : `"${o.name}" solo está disponible ${hours}. Tocá "${dbProduct.name}" en el carrito y elegí otra opción.`,
+              code: "OPTION_UNAVAILABLE",
+              product_id: item.product_id,
+            },
+            { status: 409 },
+          );
         }
       }
 
@@ -700,10 +731,8 @@ export async function POST(request: NextRequest) {
       for (const grp of groups) {
         // A hidden conditional group must not block the order: a Regular burger
         // has no side to choose, so requiring one would reject a valid cart.
-        if (
-          grp.depends_on_option_id &&
-          !chosenAfterPrune.has(grp.depends_on_option_id)
-        ) {
+        const deps = dependencyIds(grp);
+        if (deps.length > 0 && !deps.some((d) => chosenAfterPrune.has(d))) {
           continue;
         }
         // Modifiers are canonical at this point (real group_id from the DB).

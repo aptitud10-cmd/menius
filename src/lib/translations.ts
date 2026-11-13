@@ -152,6 +152,8 @@ export interface Translations {
   chooseMore: (n: number) => string;
   /** Hint under a single-choice group that arrives preselected ("Standard: Home Fries"). */
   standardChoice: (name: string) => string;
+  /** "Grits: 5:30–11 AM only" — tapped an option outside its hours. */
+  optionHoursOnly: (name: string, hours: string) => string;
   /** Badge on a required group once it is satisfied. */
   groupDone: string;
   // Product card
@@ -538,6 +540,7 @@ const es: Translations = {
   editItem: 'Editar producto',
   chooseMore: (n) => `Elige ${n} más`,
   standardChoice: (name) => `Por defecto: ${name} · toca otra para cambiar`,
+  optionHoursOnly: (name, hours) => `${name}: solo ${hours}`,
   groupDone: 'Listo',
   soldOut: 'Agotado',
   unavailable: 'No disponible',
@@ -907,6 +910,7 @@ const en: Translations = {
   editItem: 'Edit item',
   chooseMore: (n) => `Choose ${n} more`,
   standardChoice: (name) => `Standard: ${name} · tap another to swap`,
+  optionHoursOnly: (name, hours) => `${name}: ${hours} only`,
   groupDone: 'Done',
   soldOut: 'Sold out',
   unavailable: 'Unavailable',

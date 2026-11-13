@@ -171,6 +171,11 @@ export interface ModifierGroup {
    *  "Deluxe" option: a Regular burger comes with no side, so asking for one
    *  charged the customer for food they'd never receive. NULL = always visible. */
   depends_on_option_id?: string | null;
+  /** "Any of these": the group shows while ANY listed option is selected
+   *  ("Cheese on Potatoes" with Home Fries, French Fries, Mashed… but not Salad).
+   *  When non-empty it is the source of truth and depends_on_option_id mirrors
+   *  its first element. Read both through dependencyIds(). */
+  depends_on_option_ids?: string[] | null;
   /** How the chosen option is written on the ticket/Counter/cart, with {option}
    *  ("with {option} cheese"). NULL = the option name as is. See lib/modifier-lines. */
   ticket_label?: string | null;
@@ -198,6 +203,10 @@ export interface ModifierOption {
   cost_price?: number | null;
   /** Per-locale overrides, e.g. `{ en: { name: 'Bacon' } }`. */
   translations?: Record<string, ContentTranslation> | null;
+  /** Local restaurant time window ("05:30", "11:00") when this option can be
+   *  ordered — Grits until 11 AM. Both NULL = always. See lib/option-hours. */
+  available_from?: string | null;
+  available_until?: string | null;
 }
 
 export interface ProductVariant {

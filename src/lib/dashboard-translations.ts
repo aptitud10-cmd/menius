@@ -1890,7 +1890,7 @@ const es: DashboardTranslations = {
   // Conditional groups
   modifiers_conditionalLabel: "Mostrar solo si el cliente elige",
   modifiers_conditionalHint:
-    "El grupo aparece únicamente cuando esa opción está seleccionada. Ej: mostrar «Acompañamiento» solo si eligieron «Deluxe».",
+    "Sin nada marcado, el grupo se muestra siempre. Con opciones marcadas, aparece si el cliente elige cualquiera de ellas. Ej: «Queso en las papas» con Home Fries, French Fries y Mashed, pero no con Salad.",
   modifiers_conditionalAlways: "Mostrar siempre",
   modifiers_conditionalBadge: "Condicional",
   // Copy from another product
@@ -3285,7 +3285,7 @@ const en: DashboardTranslations = {
   // Conditional groups
   modifiers_conditionalLabel: "Only show if the customer picks",
   modifiers_conditionalHint:
-    "The group appears only while that option is selected. E.g. show “Choice of Side” only if they picked “Deluxe”.",
+    "Nothing ticked: the group always shows. With options ticked, it appears when the customer picks any of them. E.g. “Cheese on Potatoes” with Home Fries, French Fries and Mashed, but not Salad.",
   modifiers_conditionalAlways: "Always show",
   modifiers_conditionalBadge: "Conditional",
   // Copy from another product

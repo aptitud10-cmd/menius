@@ -19,6 +19,7 @@
  * el resultado en order_items.modifier_lines para el Counter y el ticket.
  */
 import type { ModifierSelection } from '@/types';
+import { dependencyIds } from '@/lib/conditional-modifiers';
 
 export interface ModLine {
   text: string;
@@ -34,6 +35,7 @@ export interface LineGroup {
   name: string;
   sort_order?: number | null;
   depends_on_option_id?: string | null;
+  depends_on_option_ids?: string[] | null;
   ticket_label?: string | null;
   ticket_layout?: string | null;
 }
@@ -102,16 +104,27 @@ export function buildModLines(selections: LineSelection[]): ModLine[] {
     }
   };
 
-  for (const sel of sorted) if (!sel.group.depends_on_option_id) place(sel, null, true);
+  // "Cualquiera de estas" (Cheese on Potatoes cuelga de Home Fries, French Fries…):
+  // va debajo de la que esté elegida.
+  const parentOf = (s: LineSelection) => {
+    for (const d of dependencyIds(s.group)) {
+      const n = nodeByOption.get(d);
+      if (n) return n;
+    }
+    return undefined;
+  };
+  const isConditional = (s: LineSelection) => dependencyIds(s.group).length > 0;
+
+  for (const sel of sorted) if (!isConditional(sel)) place(sel, null, true);
 
   // Condicionales: debajo de la opción que los abre. Puede haber cadenas (un condicional
   // que depende de otro), así que se repite hasta que no se pueda ubicar nada más; lo
   // que quede sin padre (datos raros) va como línea suelta, nunca se pierde.
-  let pending = sorted.filter((s) => s.group.depends_on_option_id);
+  let pending = sorted.filter(isConditional);
   while (pending.length > 0) {
-    const next = pending.filter((s) => !nodeByOption.has(s.group.depends_on_option_id as string));
+    const next = pending.filter((s) => !parentOf(s));
     for (const s of pending) {
-      const parent = nodeByOption.get(s.group.depends_on_option_id as string);
+      const parent = parentOf(s);
       if (parent) place(s, parent);
     }
     if (next.length === pending.length) {

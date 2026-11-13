@@ -3791,6 +3791,7 @@ export function MenuShell({
                 t={t}
                 locale={locale}
                 defaultLocale={defaultLocale}
+                timeZone={restaurant.timezone}
                 suggestedProducts={suggestedProducts}
                 onSuggestAdd={(p) => {
                   // Si el producto tiene variantes, extras o modifier groups,

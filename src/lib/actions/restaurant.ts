@@ -689,6 +689,40 @@ async function optionBelongsToProduct(
   return !!data;
 }
 
+/**
+ * Normalizes a conditional dependency into the two stored columns.
+ *
+ * depends_on_option_ids ("any of these") is the source of truth; the legacy
+ * depends_on_option_id mirrors its first element so a client from before the
+ * list existed still applies the old one-option rule. A caller that only sends
+ * the single id (an older form) gets a one-element list — otherwise a stale
+ * list would silently override the edit.
+ */
+async function resolveDependency(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  productId: string,
+  data: { depends_on_option_id?: string | null; depends_on_option_ids?: string[] | null },
+): Promise<
+  | { ok: true; depends_on_option_id: string | null; depends_on_option_ids: string[] | null }
+  | { ok: false }
+> {
+  const raw =
+    data.depends_on_option_ids !== undefined
+      ? (data.depends_on_option_ids ?? [])
+      : data.depends_on_option_id
+        ? [data.depends_on_option_id]
+        : [];
+  const ids = Array.from(new Set(raw.filter((x): x is string => typeof x === "string" && !!x))).slice(0, 50);
+  for (const id of ids) {
+    if (!(await optionBelongsToProduct(supabase, id, productId))) return { ok: false };
+  }
+  return {
+    ok: true,
+    depends_on_option_id: ids[0] ?? null,
+    depends_on_option_ids: ids.length > 0 ? ids : null,
+  };
+}
+
 type SharedGroupRow = {
   id: string;
   product_id: string;
@@ -784,6 +818,7 @@ export async function createModifierGroup(
     sort_order: number;
     display_type?: "list" | "grid";
     depends_on_option_id?: string | null;
+    depends_on_option_ids?: string[] | null;
     translations?: Record<string, { name?: string }> | null;
   },
 ) {
@@ -803,17 +838,11 @@ export async function createModifierGroup(
     .maybeSingle();
   if (!product) return { error: "No encontrado" };
 
-  // A conditional group may only hang off an option of the SAME product.
+  // A conditional group may only hang off options of the SAME product.
   // Without this check a forged id could point at another restaurant's option,
   // which would leak that the option exists and permanently hide the group.
-  if (data.depends_on_option_id) {
-    const ok = await optionBelongsToProduct(
-      supabase,
-      data.depends_on_option_id,
-      productId,
-    );
-    if (!ok) return { error: "Opción inválida" };
-  }
+  const dep = await resolveDependency(supabase, productId, data);
+  if (!dep.ok) return { error: "Opción inválida" };
 
   const { data: group, error } = await supabase
     .from("modifier_groups")
@@ -826,7 +855,8 @@ export async function createModifierGroup(
       is_required: data.is_required,
       sort_order: data.sort_order,
       display_type: data.display_type ?? "list",
-      depends_on_option_id: data.depends_on_option_id ?? null,
+      depends_on_option_id: dep.depends_on_option_id,
+      depends_on_option_ids: dep.depends_on_option_ids,
       translations: sanitizeTranslations(data.translations),
     })
     .select()
@@ -849,6 +879,7 @@ export async function updateModifierGroup(
     sort_order: number;
     display_type?: "list" | "grid";
     depends_on_option_id?: string | null;
+    depends_on_option_ids?: string[] | null;
     translations?: Record<string, { name?: string }> | null;
   },
 ) {
@@ -868,14 +899,12 @@ export async function updateModifierGroup(
     .maybeSingle();
   if (!owned) return { error: "No encontrado" };
 
-  if (data.depends_on_option_id) {
-    const ok = await optionBelongsToProduct(
-      supabase,
-      data.depends_on_option_id,
-      (owned as { product_id: string }).product_id,
-    );
-    if (!ok) return { error: "Opción inválida" };
-  }
+  const dep = await resolveDependency(
+    supabase,
+    (owned as { product_id: string }).product_id,
+    data,
+  );
+  if (!dep.ok) return { error: "Opción inválida" };
 
   const { error } = await supabase
     .from("modifier_groups")
@@ -887,7 +916,8 @@ export async function updateModifierGroup(
       is_required: data.is_required,
       sort_order: data.sort_order,
       display_type: data.display_type ?? "list",
-      depends_on_option_id: data.depends_on_option_id ?? null,
+      depends_on_option_id: dep.depends_on_option_id,
+      depends_on_option_ids: dep.depends_on_option_ids,
       translations: sanitizeTranslations(data.translations),
     })
     .eq("id", id);
@@ -1405,6 +1435,8 @@ type GroupContent = {
     sort_order: number;
     cost_price: number | null;
     translations: Record<string, { name: string }> | null;
+    available_from: string | null;
+    available_until: string | null;
   }[];
 };
 
@@ -1426,7 +1458,8 @@ async function readGroupContents(
       `id, name, selection_type, min_select, max_select, is_required,
        display_type, sort_order, translations,
        products!inner(restaurant_id),
-       modifier_options ( name, price_delta, is_default, sort_order, cost_price, translations )`,
+       modifier_options ( name, price_delta, is_default, sort_order, cost_price, translations,
+         available_from, available_until )`,
     )
     .in("id", groupIds)
     .eq("products.restaurant_id", restaurantId)
@@ -1454,6 +1487,9 @@ async function readGroupContents(
           string,
           { name: string }
         > | null,
+        // El horario es contenido de la opción (Grits 5:30–11): viaja con la copia.
+        available_from: (o.available_from as string | null) ?? null,
+        available_until: (o.available_until as string | null) ?? null,
       }))
       .sort((a, b) => a.sort_order - b.sort_order),
   }));
@@ -1543,6 +1579,8 @@ export async function attachModifierGroups(
           is_default: o.is_default,
           cost_price: o.cost_price,
           translations: o.translations,
+          available_from: o.available_from,
+          available_until: o.available_until,
           // Renumbered densely: sort_order is what pairs an option with its
           // sibling on another dish, so gaps in the source must not travel.
           sort_order: idx,

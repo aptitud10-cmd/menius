@@ -28,8 +28,9 @@ export async function GET(request: NextRequest) {
         .select(`
           id, product_id, name, selection_type, is_required,
           min_select, max_select, sort_order, display_type, depends_on_option_id,
-          translations, ticket_label, ticket_layout,
-          modifier_options ( id, group_id, name, price_delta, is_default, sort_order, translations )
+          depends_on_option_ids, translations, ticket_label, ticket_layout,
+          modifier_options ( id, group_id, name, price_delta, is_default, sort_order, translations,
+            available_from, available_until )
         `)
         .eq('product_id', productId)
         .order('sort_order', { ascending: true }),
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest) {
       sort_order: g.sort_order,
       display_type: g.display_type,
       depends_on_option_id: g.depends_on_option_id ?? null,
+      depends_on_option_ids: g.depends_on_option_ids ?? null,
       translations: g.translations ?? null,
       ticket_label: g.ticket_label ?? null,
       ticket_layout: g.ticket_layout ?? 'line',

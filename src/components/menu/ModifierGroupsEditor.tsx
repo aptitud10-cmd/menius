@@ -32,6 +32,7 @@ import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { getDashboardTranslations, type DashboardLocale } from '@/lib/dashboard-translations';
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import type { ModifierGroup, ModifierOption } from '@/types';
+import { dependencyIds } from '@/lib/conditional-modifiers';
 
 interface Template {
   icon: React.ElementType;
@@ -71,7 +72,8 @@ type GroupFormState = {
   max_select: string;
   is_required: boolean;
   display_type: 'list' | 'grid';
-  depends_on_option_id: string;
+  /** "Any of these" — empty = always shown. See lib/conditional-modifiers. */
+  depends_on_option_ids: string[];
   translations: Record<string, string>;
 };
 
@@ -82,7 +84,7 @@ const EMPTY_GROUP_FORM: GroupFormState = {
   max_select: '1',
   is_required: false,
   display_type: 'list',
-  depends_on_option_id: '',
+  depends_on_option_ids: [],
   translations: {},
 };
 
@@ -175,7 +177,7 @@ function TranslationFields({
 }
 
 /**
- * Picks the option this group hangs off (`depends_on_option_id`).
+ * Picks the options this group hangs off — "any of these" (`depends_on_option_ids`).
  *
  * The backing column and the ordering rules have existed since
  * 20260805_modifier_groups_conditional.sql — this is the control that finally
@@ -191,36 +193,57 @@ function ConditionalSelect({
   onChange,
   t,
 }: {
-  value: string;
+  value: string[];
   choices: { groupName: string; options: ModifierOption[] }[];
-  onChange: (v: string) => void;
+  onChange: (v: string[]) => void;
   t: ReturnType<typeof getDashboardTranslations>;
 }) {
-  const hasChoices = choices.some(c => c.options.length > 0);
-  if (!hasChoices) return null;
+  const visible = choices.filter(c => c.options.length > 0);
+  if (visible.length === 0) return null;
+  const toggle = (id: string) =>
+    onChange(value.includes(id) ? value.filter(x => x !== id) : [...value, id]);
 
   return (
     <div>
-      <label className="text-[11px] font-medium text-gray-500 mb-1 flex items-center gap-1">
-        <GitBranch className="w-3 h-3" />
-        {t.modifiers_conditionalLabel}
-      </label>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="dash-select text-sm"
-      >
-        <option value="">{t.modifiers_conditionalAlways}</option>
-        {choices
-          .filter(c => c.options.length > 0)
-          .map(c => (
-            <optgroup key={c.groupName} label={c.groupName}>
-              {c.options.map(o => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </optgroup>
-          ))}
-      </select>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-[11px] font-medium text-gray-500 flex items-center gap-1">
+          <GitBranch className="w-3 h-3" />
+          {t.modifiers_conditionalLabel}
+        </label>
+        {value.length > 0 ? (
+          <button type="button" onClick={() => onChange([])} className="text-[11px] font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
+            {t.modifiers_conditionalAlways}
+          </button>
+        ) : (
+          <span className="text-[11px] text-gray-400">{t.modifiers_conditionalAlways}</span>
+        )}
+      </div>
+      <div className="space-y-2 rounded-lg border border-gray-200 p-2">
+        {visible.map(c => (
+          <div key={c.groupName}>
+            <p className="text-[10px] font-semibold text-gray-400 mb-1">{c.groupName}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {c.options.map(o => {
+                const on = value.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggle(o.id)}
+                    className={cn(
+                      'px-2 py-1 rounded-md border text-[11px] font-medium transition-colors',
+                      on ? 'bg-purple-50 border-purple-400 text-purple-700' : 'border-gray-200 text-gray-600 hover:border-gray-300',
+                    )}
+                  >
+                    {o.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
       <p className="text-[10px] text-gray-400 mt-1">{t.modifiers_conditionalHint}</p>
     </div>
   );
@@ -519,9 +542,9 @@ function SortableGroup({
           </div>
 
           <ConditionalSelect
-            value={groupForm.depends_on_option_id}
+            value={groupForm.depends_on_option_ids}
             choices={dependencyChoices}
-            onChange={v => setGroupForm({ ...groupForm, depends_on_option_id: v })}
+            onChange={v => setGroupForm({ ...groupForm, depends_on_option_ids: v })}
             t={t}
           />
 
@@ -564,7 +587,7 @@ function SortableGroup({
             <span className="text-[11px] text-gray-400 flex-shrink-0">{group.options.length} {t.modifiers_options}</span>
           </button>
 
-          {group.depends_on_option_id && (
+          {dependencyIds(group).length > 0 && (
             <span
               className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-purple-50 text-purple-600 items-center gap-1 hidden sm:inline-flex"
               title={t.modifiers_conditionalHint}
@@ -1023,7 +1046,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       is_required: groupForm.is_required,
       sort_order: items.length,
       display_type: groupForm.display_type,
-      depends_on_option_id: groupForm.depends_on_option_id || null,
+      depends_on_option_ids: groupForm.depends_on_option_ids,
       translations: toContentTranslations(groupForm.translations),
     });
     if (result.group) {
@@ -1057,7 +1080,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       is_required: groupForm.is_required,
       sort_order: g.sort_order,
       display_type: groupForm.display_type,
-      depends_on_option_id: groupForm.depends_on_option_id || null,
+      depends_on_option_ids: groupForm.depends_on_option_ids,
       translations: toContentTranslations(groupForm.translations),
     });
     sync(items.map(i => i.id === g.id ? {
@@ -1068,7 +1091,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       max_select: parseInt(groupForm.max_select) || 1,
       is_required: groupForm.is_required,
       display_type: groupForm.display_type,
-      depends_on_option_id: groupForm.depends_on_option_id || null,
+      depends_on_option_id: groupForm.depends_on_option_ids[0] ?? null,
+      depends_on_option_ids: groupForm.depends_on_option_ids.length > 0 ? groupForm.depends_on_option_ids : null,
       translations: toContentTranslations(groupForm.translations),
     } : i));
     setEditGroupId(null);
@@ -1088,7 +1112,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       // Carried through explicitly: updateModifierGroup writes every field, so
       // omitting these would wipe the group's dependency and translations on a
       // simple list/grid toggle.
-      depends_on_option_id: g.depends_on_option_id ?? null,
+      depends_on_option_ids: dependencyIds(g),
       translations: g.translations ?? null,
     });
     sync(items.map(i => i.id === g.id ? { ...i, display_type: next } : i));
@@ -1400,9 +1424,9 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
           </div>
 
           <ConditionalSelect
-            value={groupForm.depends_on_option_id}
+            value={groupForm.depends_on_option_ids}
             choices={items.map(g => ({ groupName: g.name, options: g.options }))}
-            onChange={v => setGroupForm({ ...groupForm, depends_on_option_id: v })}
+            onChange={v => setGroupForm({ ...groupForm, depends_on_option_ids: v })}
             t={t}
           />
 
@@ -1472,7 +1496,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                     max_select: String(group.max_select),
                     is_required: group.is_required,
                     display_type: group.display_type ?? 'list',
-                    depends_on_option_id: group.depends_on_option_id ?? '',
+                    depends_on_option_ids: dependencyIds(group),
                     translations: fromContentTranslations(group.translations),
                   });
                 }}

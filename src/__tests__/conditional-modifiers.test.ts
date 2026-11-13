@@ -3,6 +3,7 @@ import {
   visibleGroups,
   pruneHiddenSelections,
   selectedOptionIds,
+  dependencyIds,
 } from '@/lib/conditional-modifiers';
 import type { ModifierGroup, ModifierOption } from '@/types';
 
@@ -108,5 +109,51 @@ describe('selectedOptionIds', () => {
   it('flattens every selected option across groups', () => {
     const ids = selectedOptionIds({ 'g-style': [DELUXE], 'g-side': [FRIES, ONION] });
     expect(ids).toEqual(new Set(['o-deluxe', 'o-fries', 'o-onion']));
+  });
+});
+
+// "Any of these" — Cheese on Potatoes with Home Fries, French Fries, Mashed…
+// but not Salad, Rice or Grits (Pedro 2026-11-13).
+describe('any-of dependencies (depends_on_option_ids)', () => {
+  const HOME = opt('o-home', 'Home Fries');
+  const FF = opt('o-ff', 'French Fries');
+  const SALAD = opt('o-salad', 'Salad');
+  const POTATOES = group('g-pot', 'Potatoes or Side', [HOME, FF, SALAD], { is_required: false, min_select: 0 });
+  const CHEESE = group('g-cheese', 'Cheese on Potatoes', [opt('o-am', 'American', 1.5)], {
+    is_required: false,
+    min_select: 0,
+    depends_on_option_id: 'o-home',
+    depends_on_option_ids: ['o-home', 'o-ff'],
+  });
+
+  it('shows the group for any listed option', () => {
+    expect(visibleGroups([POTATOES, CHEESE], { 'g-pot': [HOME] }).map((g) => g.id)).toContain('g-cheese');
+    expect(visibleGroups([POTATOES, CHEESE], { 'g-pot': [FF] }).map((g) => g.id)).toContain('g-cheese');
+  });
+
+  it('hides it for an option outside the list, and drops its charge', () => {
+    const sel = { 'g-pot': [SALAD], 'g-cheese': [CHEESE.options[0]] };
+    expect(visibleGroups([POTATOES, CHEESE], sel).map((g) => g.id)).toEqual(['g-pot']);
+    expect(pruneHiddenSelections([POTATOES, CHEESE], sel)['g-cheese']).toBeUndefined();
+  });
+
+  it('the list wins over the legacy single id', () => {
+    // depends_on_option_id mirrors only the first element; French Fries must
+    // still open the group even though it is not that mirror.
+    expect(dependencyIds(CHEESE)).toEqual(['o-home', 'o-ff']);
+    expect(dependencyIds({ depends_on_option_id: 'x', depends_on_option_ids: null })).toEqual(['x']);
+    expect(dependencyIds({ depends_on_option_id: null, depends_on_option_ids: [] })).toEqual([]);
+  });
+
+  it('closes when the owner group itself is hidden (chain)', () => {
+    // Burger: Choice of Side hangs off Deluxe; Cheese on Fries hangs off the fries.
+    const SIDE2 = group('g-side2', 'Choice of Side', [FRIES], { depends_on_option_id: 'o-deluxe' });
+    const CF = group('g-cf', 'Cheese on Fries', [opt('o-cf', 'Cheese on Fries', 1.5)], {
+      is_required: false,
+      min_select: 0,
+      depends_on_option_ids: ['o-fries'],
+    });
+    const sel = { 'g-style': [REGULAR], 'g-side2': [FRIES], 'g-cf': [CF.options[0]] };
+    expect(visibleGroups([STYLE, SIDE2, CF], sel).map((g) => g.id)).toEqual(['g-style']);
   });
 });

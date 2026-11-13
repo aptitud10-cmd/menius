@@ -22,6 +22,8 @@ import {
   pruneHiddenSelections,
 } from "@/lib/conditional-modifiers";
 import { supabaseLoader, getBlurUrl } from "@/lib/image-loader";
+import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
+import { inTimeZone } from "@/lib/orders/business-hours";
 import { showsAsRow } from "@/lib/product-display";
 
 const DIETARY_TAGS_MAP = Object.fromEntries(DIETARY_TAGS.map((t) => [t.id, t]));
@@ -39,6 +41,8 @@ interface CustomizationSheetProps {
   suggestedProducts?: Product[];
   onSuggestAdd?: (product: Product) => void;
   isPreview?: boolean;
+  /** IANA zone of the restaurant: option hours (Grits 5:30–11 AM) are local. */
+  timeZone?: string | null;
 }
 
 export function CustomizationSheet({
@@ -54,6 +58,7 @@ export function CustomizationSheet({
   suggestedProducts,
   onSuggestAdd,
   isPreview = false,
+  timeZone,
 }: CustomizationSheetProps) {
   const displayName = tName(product, locale, defaultLocale);
   const displayDesc = tDesc(product, locale, defaultLocale);
@@ -263,6 +268,30 @@ export function CustomizationSheet({
   const [selections, setSelections] =
     useState<Record<string, ModifierOption[]>>(initSelections);
 
+  // Option hours (Grits 5:30–11 AM) are read in the restaurant's zone, not the
+  // diner's phone. The clock ticks once a minute so a sheet left open across
+  // 11:00 greys the option out without a reload.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const anyOptionHasHours = allGroups.some((g) => g.options.some(hasHours));
+  useEffect(() => {
+    if (!anyOptionHasHours) return;
+    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, [anyOptionHasHours]);
+  const localNow = useMemo(
+    () => inTimeZone(new Date(nowMs), timeZone || "UTC"),
+    [nowMs, timeZone],
+  );
+  const isAvailableNow = (o: ModifierOption) =>
+    !hasHours(o) || isOptionAvailableAt(o, localNow);
+  // "Grits: 5:30–11 AM only", under the group the diner just tapped.
+  const [hoursNotice, setHoursNotice] = useState<{ groupId: string; text: string } | null>(null);
+  useEffect(() => {
+    if (!hoursNotice) return;
+    const id = window.setTimeout(() => setHoursNotice(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [hoursNotice]);
+
   // Groups whose dependency is currently satisfied. Everything downstream —
   // rendering, validation and pricing — works off this, never off allGroups, so
   // a hidden group can neither block the Add button nor charge for its options.
@@ -447,6 +476,20 @@ export function CustomizationSheet({
   };
 
   const toggleOption = (group: ModifierGroup, option: ModifierOption) => {
+    // Out of hours (Grits after 11 AM): say when it is served instead of
+    // silently ignoring the tap. Deselecting stays allowed — an item edited
+    // from the cart may still carry it.
+    const already = (selections[group.id] ?? []).some((o) => o.id === option.id);
+    if (!already && !isAvailableNow(option)) {
+      setHoursNotice({
+        groupId: group.id,
+        text: t.optionHoursOnly(
+          tName(option, locale, defaultLocale),
+          optionHoursLabel(option, locale) ?? "",
+        ),
+      });
+      return;
+    }
     resetAdded();
     setSelections((prev) => {
       const current = prev[group.id] ?? [];
@@ -596,8 +639,8 @@ export function CustomizationSheet({
           ? "Elige 1"
           : "Choose 1"
         : locale === "es"
-          ? "Elige 1 (opcional)"
-          : "Choose 1 (optional)";
+          ? "Opcional"
+          : "Optional";
     }
     if (g.is_required) {
       if (g.min_select === g.max_select)
@@ -608,9 +651,10 @@ export function CustomizationSheet({
         ? `Elige ${g.min_select}-${g.max_select}`
         : `Choose ${g.min_select}-${g.max_select}`;
     }
+    if (g.max_select <= 1) return locale === "es" ? "Opcional" : "Optional";
     return locale === "es"
-      ? `Hasta ${g.max_select} (opcional)`
-      : `Up to ${g.max_select} (optional)`;
+      ? `Opcional · hasta ${g.max_select}`
+      : `Optional · up to ${g.max_select}`;
   };
 
   const springTransition = {
@@ -811,12 +855,20 @@ export function CustomizationSheet({
         // temperature, size and burger style, where "comes with Medium Rare"
         // would be nonsense.
         const defaults = group.options.filter((o) => o.is_default);
+        const groupTitle = tName(group, locale, defaultLocale);
+        const defaultName =
+          defaults.length === 1 ? tName(defaults[0], locale, defaultLocale) : "";
+        // A title written as a question that already names the standard
+        // ("Comes with Home Fries. Want to swap?") would only be repeated by
+        // the hint underneath.
         const standardHint =
           group.selection_type === "single" &&
           group.options.length > 1 &&
-          defaults.length === 1
-            ? t.standardChoice(tName(defaults[0], locale, defaultLocale))
+          defaults.length === 1 &&
+          !groupTitle.toLowerCase().includes(defaultName.toLowerCase())
+            ? t.standardChoice(defaultName)
             : null;
+        const notice = hoursNotice?.groupId === group.id ? hoursNotice.text : null;
 
         return (
           <div
@@ -825,7 +877,7 @@ export function CustomizationSheet({
               if (el) groupRefs.current.set(group.id, el);
               else groupRefs.current.delete(group.id);
             }}
-            className="px-5 pt-5"
+            className="px-5 pt-6"
           >
             <div
               ref={(el) => {
@@ -837,36 +889,42 @@ export function CustomizationSheet({
                 isHighlighted && "ring-2 ring-red-400 ring-offset-4",
               )}
             >
-            <div className={cn("flex items-center gap-2", standardHint ? "mb-1" : "mb-3")}>
-              <h4 id={headingId} className="text-sm font-bold text-gray-900">
-                {tName(group, locale, defaultLocale)}
+            {/* Group titles are the questions the diner answers ("How would you
+                like your eggs?"), so they carry the hierarchy: 17px extrabold,
+                a hairline above each group, and a quiet "Optional" instead of
+                an uppercase pill competing with them. Only what blocks the
+                order (a required group) keeps colour. Size and weight rather
+                than a brand colour: teal already means "selected" here. */}
+            <div className="border-t border-gray-100 pt-5 mb-3">
+              <h4
+                id={headingId}
+                className="text-[17px] font-extrabold leading-snug tracking-[-0.01em] text-gray-900"
+              >
+                {groupTitle}
               </h4>
-              {isSatisfied ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider text-[#047a65] bg-[#d0f7f1]">
-                  <Check className="w-3 h-3" strokeWidth={3} aria-hidden="true" />
-                  {t.groupDone}
-                </span>
-              ) : (
-                <span
-                  className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                    minRequired > 0
-                      ? "text-red-500 bg-red-50"
-                      : "text-gray-400 bg-gray-100",
-                  )}
-                >
-                  {getRuleLabel(group)}
-                </span>
-              )}
-              {atMax && (
-                <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
-                  {t.maxReached}
-                </span>
+              <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                {isSatisfied ? (
+                  <span className="inline-flex items-center gap-1 text-[12px] font-semibold px-2 py-0.5 rounded-full text-[#047a65] bg-[#d0f7f1]">
+                    <Check className="w-3 h-3" strokeWidth={3} aria-hidden="true" />
+                    {t.groupDone}
+                  </span>
+                ) : minRequired > 0 ? (
+                  <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full text-red-600 bg-red-50">
+                    {getRuleLabel(group)}
+                  </span>
+                ) : (
+                  <span className="text-[13px] text-gray-500">{getRuleLabel(group)}</span>
+                )}
+                {atMax && (
+                  <span className="text-[12px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
+                    {t.maxReached}
+                  </span>
+                )}
+              </div>
+              {standardHint && (
+                <p className="mt-1 text-[13px] text-gray-500">{standardHint}</p>
               )}
             </div>
-            {standardHint && (
-              <p className="mb-3 text-xs text-gray-500">{standardHint}</p>
-            )}
             {group.display_type === "grid" ? (
               <div
                 role="group"
@@ -876,11 +934,16 @@ export function CustomizationSheet({
                 {group.options.map((opt) => {
                   const isSelected = selected.some((o) => o.id === opt.id);
                   const isDisabled = !isSelected && atMax;
+                  // Out of hours: greyed, but still tappable so the tap can say
+                  // when it is served (a disabled button swallows the tap).
+                  const isOffHours = !isSelected && !isAvailableNow(opt);
+                  const hours = optionHoursLabel(opt, locale);
                   return (
                     <button
                       key={opt.id}
                       type="button"
                       aria-pressed={isSelected}
+                      aria-disabled={isOffHours || undefined}
                       onClick={() => !isDisabled && toggleOption(group, opt)}
                       disabled={isDisabled}
                       className={cn(
@@ -889,7 +952,9 @@ export function CustomizationSheet({
                           ? "bg-[#05c8a7] text-[#04241E] border-[#05c8a7] shadow-sm"
                           : isDisabled
                             ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
-                            : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
+                            : isOffHours
+                              ? "bg-gray-50 border-dashed border-gray-200 text-gray-400"
+                              : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
                       )}
                     >
                       <span className="flex items-center gap-1 text-[14px] font-semibold leading-tight">
@@ -903,6 +968,16 @@ export function CustomizationSheet({
                         )}
                         {tName(opt, locale, defaultLocale)}
                       </span>
+                      {hours && (
+                        <span
+                          className={cn(
+                            "text-[11px] font-medium",
+                            isSelected ? "text-[#04241E]/80" : "text-gray-400",
+                          )}
+                        >
+                          {hours}
+                        </span>
+                      )}
                       {/* Secondary text on the selected teal (#05c8a7) uses the
                           dark ink at 80% (~5.1:1). The old #d0f7f1 / gray-300
                           sat at ~1.4:1 — the price vanished exactly when the
@@ -942,11 +1017,16 @@ export function CustomizationSheet({
                 {group.options.map((opt) => {
                   const isSelected = selected.some((o) => o.id === opt.id);
                   const isDisabled = !isSelected && atMax;
+                  // Out of hours: greyed, but still tappable so the tap can say
+                  // when it is served (a disabled button swallows the tap).
+                  const isOffHours = !isSelected && !isAvailableNow(opt);
+                  const hours = optionHoursLabel(opt, locale);
                   return (
                     <button
                       key={opt.id}
                       type="button"
                       aria-pressed={isSelected}
+                      aria-disabled={isOffHours || undefined}
                       onClick={() => !isDisabled && toggleOption(group, opt)}
                       disabled={isDisabled}
                       className={cn(
@@ -955,7 +1035,9 @@ export function CustomizationSheet({
                           ? "bg-[#05c8a7] text-[#04241E] border-[#05c8a7] shadow-sm"
                           : isDisabled
                             ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
-                            : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
+                            : isOffHours
+                              ? "bg-gray-50 border-dashed border-gray-200 text-gray-400"
+                              : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
                       )}
                     >
                       <div className="flex items-center gap-3">
@@ -988,6 +1070,16 @@ export function CustomizationSheet({
                         )}
                         <span className="text-[15px] font-medium">
                           {tName(opt, locale, defaultLocale)}
+                          {hours && (
+                            <span
+                              className={cn(
+                                "ml-2 text-[12px] font-medium",
+                                isSelected ? "text-[#04241E]/80" : "text-gray-400",
+                              )}
+                            >
+                              {hours}
+                            </span>
+                          )}
                         </span>
                       </div>
                       {Number(opt.price_delta) !== 0 ? (
@@ -1017,6 +1109,15 @@ export function CustomizationSheet({
                 })}
               </div>
             )}
+            <p
+              aria-live="polite"
+              className={cn(
+                "text-[13px] font-medium text-amber-700",
+                notice ? "mt-2" : "sr-only",
+              )}
+            >
+              {notice}
+            </p>
             </div>
           </div>
         );
@@ -1031,7 +1132,7 @@ export function CustomizationSheet({
       <div className="px-5 pt-5">
         <label
           htmlFor="item-notes"
-          className="block text-sm font-bold text-gray-900 mb-2"
+          className="block text-[17px] font-extrabold leading-snug tracking-[-0.01em] text-gray-900 mb-3 border-t border-gray-100 pt-5"
         >
           {t.itemNotesLabel}
         </label>

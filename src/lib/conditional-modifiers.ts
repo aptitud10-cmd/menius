@@ -13,6 +13,21 @@ import type { ModifierGroup, ModifierOption } from '@/types';
  * the price the customer sees and the price the server charges cannot drift.
  */
 
+/**
+ * Every option that opens this group — "any of these".
+ *
+ * depends_on_option_ids is the full list when present ("Cheese on Potatoes"
+ * hangs off Home Fries, French Fries, Mashed…); otherwise the single legacy
+ * depends_on_option_id. Empty = the group is always there.
+ */
+export function dependencyIds(
+  g: Pick<ModifierGroup, 'depends_on_option_id' | 'depends_on_option_ids'>,
+): string[] {
+  const list = (g.depends_on_option_ids ?? []).filter(Boolean);
+  if (list.length > 0) return list;
+  return g.depends_on_option_id ? [g.depends_on_option_id] : [];
+}
+
 /** Ids of every option currently selected, across all groups. */
 export function selectedOptionIds(
   selections: Record<string, ModifierOption[]>,
@@ -49,12 +64,15 @@ export function visibleGroups(
   for (let pass = 0; pass < groups.length + 1; pass++) {
     const visibleIds = new Set(visible.map((g) => g.id));
     const next = visible.filter((g) => {
-      const dep = g.depends_on_option_id;
-      if (!dep) return true;
-      // The group that owns the dependency must itself still be on screen.
-      const owner = optionOwner.get(dep);
-      if (owner && !visibleIds.has(owner)) return false;
-      return selected.has(dep);
+      const deps = dependencyIds(g);
+      if (deps.length === 0) return true;
+      // Any one selected option opens it — provided the group that owns that
+      // option is itself still on screen.
+      return deps.some((dep) => {
+        const owner = optionOwner.get(dep);
+        if (owner && !visibleIds.has(owner)) return false;
+        return selected.has(dep);
+      });
     });
     if (next.length === visible.length) break;
     visible = next;
