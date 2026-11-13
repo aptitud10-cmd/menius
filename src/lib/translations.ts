@@ -154,10 +154,6 @@ export interface Translations {
   standardChoice: (name: string) => string;
   /** "Grits: 5:30–11 AM only" — tapped an option outside its hours. */
   optionHoursOnly: (name: string, hours: string) => string;
-  /** Search box over a dish's options ("Search: bacon, no onions…"). */
-  searchOptionsPlaceholder: string;
-  /** Nothing in the dish matched what the diner typed. */
-  noOptionMatches: (q: string) => string;
   /** Card label for a dish outside its hours: "Served 5:30–11 AM". */
   servedHours: (hours: string) => string;
   /** Badge on a required group once it is satisfied. */
@@ -547,8 +543,6 @@ const es: Translations = {
   chooseMore: (n) => `Elige ${n} más`,
   standardChoice: (name) => `Por defecto: ${name} · toca otra para cambiar`,
   optionHoursOnly: (name, hours) => `${name}: solo ${hours}`,
-  searchOptionsPlaceholder: 'Buscar: tocino, sin cebolla…',
-  noOptionMatches: (q) => `Nada coincide con “${q}”. Escríbelo en las indicaciones de abajo.`,
   servedHours: (hours) => `Se sirve ${hours}`,
   groupDone: 'Listo',
   soldOut: 'Agotado',
@@ -920,8 +914,6 @@ const en: Translations = {
   chooseMore: (n) => `Choose ${n} more`,
   standardChoice: (name) => `Standard: ${name} · tap another to swap`,
   optionHoursOnly: (name, hours) => `${name}: ${hours} only`,
-  searchOptionsPlaceholder: 'Search: bacon, no onions…',
-  noOptionMatches: (q) => `Nothing matches “${q}”. Add it in the special instructions below.`,
   servedHours: (hours) => `Served ${hours}`,
   groupDone: 'Done',
   soldOut: 'Sold out',

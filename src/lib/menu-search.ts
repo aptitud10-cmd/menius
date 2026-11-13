@@ -77,7 +77,7 @@ function editDistance(a: string, b: string, max: number): number {
  * Tolerates a single typo, but only on tokens long enough that a 1-char edit
  * isn't just a different short word ("rice" vs "rise").
  */
-export function fuzzyMatches(token: string, query: string): boolean {
+function fuzzyMatches(token: string, query: string): boolean {
   if (query.length < 5) return false;
   return editDistance(token, query, 1) <= 1;
 }
