@@ -517,7 +517,24 @@ CREATE TABLE public.device_sessions (
   restaurant_id uuid NOT NULL,
   user_id uuid NOT NULL,
   pairing_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  panel_unlocked_until timestamp with time zone
+);
+
+CREATE TABLE public.panel_access_log (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  restaurant_id uuid NOT NULL,
+  session_id uuid,
+  success boolean NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.restaurant_panel_pins (
+  restaurant_id uuid NOT NULL,
+  pin_hash text NOT NULL,
+  failed_attempts integer NOT NULL DEFAULT 0,
+  locked_until timestamp with time zone,
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
 CREATE TABLE public.processed_webhook_events (
