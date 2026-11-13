@@ -69,6 +69,9 @@ export function ProductEditor({
     dine_in_only: product?.dine_in_only ?? false,
     hide_image: (product as any)?.hide_image ?? false,
     prep_time_minutes: product?.prep_time_minutes ? String(product.prep_time_minutes) : '',
+    // "HH:MM" local; '' = always available (Oatmeal 5:30–11 AM).
+    available_from: (product?.available_from ?? '').slice(0, 5),
+    available_until: (product?.available_until ?? '').slice(0, 5),
     cost_price: (product as any)?.cost_price != null ? String((product as any).cost_price) : '',
     compare_at_price: (product as any)?.compare_at_price != null ? String((product as any).compare_at_price) : '',
     dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
@@ -348,6 +351,8 @@ export function ProductEditor({
             dine_in_only: form.dine_in_only,
             hide_image: form.hide_image,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
+            available_from: form.available_from || null,
+            available_until: form.available_until || null,
             cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
             compare_at_price: compareAtPrice != null && !isNaN(compareAtPrice) && compareAtPrice > 0 ? compareAtPrice : null,
             dietary_tags: form.dietary_tags,
@@ -373,6 +378,8 @@ export function ProductEditor({
             dine_in_only: form.dine_in_only,
             hide_image: form.hide_image,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
+            available_from: form.available_from || null,
+            available_until: form.available_until || null,
             cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
             compare_at_price: compareAtPrice != null && !isNaN(compareAtPrice) && compareAtPrice > 0 ? compareAtPrice : null,
             dietary_tags: form.dietary_tags,
@@ -1132,6 +1139,55 @@ export function ProductEditor({
                   className="dash-input"
                 />
               </div>
+            </div>
+
+            {/* Hours card — a dish served only part of the day (Oatmeal
+                5:30–11 AM). Out of hours the menu greys it out with its hours
+                and /api/orders refuses it. Local restaurant time. */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
+                <span>
+                  <span className="block text-sm font-semibold text-gray-900">
+                    {dashLocale === 'en' ? 'Only at certain hours' : 'Solo en un horario'}
+                  </span>
+                  <span className="block text-xs text-gray-500 mt-1">
+                    {dashLocale === 'en'
+                      ? 'Outside these hours the dish shows greyed out with its hours and cannot be ordered'
+                      : 'Fuera de este horario el plato se ve gris con su horario y no se puede pedir'}
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={!!(form.available_from || form.available_until)}
+                  onChange={e =>
+                    setForm(prev =>
+                      e.target.checked
+                        ? { ...prev, available_from: '05:30', available_until: '11:00' }
+                        : { ...prev, available_from: '', available_until: '' },
+                    )
+                  }
+                  className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 flex-shrink-0"
+                />
+              </label>
+              {(form.available_from || form.available_until) && (
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    type="time"
+                    value={form.available_from}
+                    onChange={e => setForm(prev => ({ ...prev, available_from: e.target.value }))}
+                    aria-label={dashLocale === 'en' ? 'From' : 'Desde'}
+                    className="dash-input"
+                  />
+                  <span className="text-xs text-gray-400">{dashLocale === 'en' ? 'to' : 'a'}</span>
+                  <input
+                    type="time"
+                    value={form.available_until}
+                    onChange={e => setForm(prev => ({ ...prev, available_until: e.target.value }))}
+                    aria-label={dashLocale === 'en' ? 'Until' : 'Hasta'}
+                    className="dash-input"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Category card */}

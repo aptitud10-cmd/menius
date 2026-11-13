@@ -32,7 +32,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   inPopularSection = false,
 }: ProductCardProps) {
   const t = getTranslations(locale);
-  const labelSoldOut = soldOutLabel ?? t.soldOut;
+  // Out of its hours (Oatmeal after 11 AM) the dish says when it's served
+  // instead of "Sold out" — see MenuShell's filteredProducts.
+  const labelSoldOut = product.unavailable_note ?? soldOutLabel ?? t.soldOut;
   const labelUnavailable = unavailableLabel ?? t.unavailable;
   const labelAdded = addedShortLabel ?? t.addedToCart;
 
@@ -256,9 +258,14 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               )}
             </div>
             {outOfStock ? (
-              <span className="inline-flex items-center gap-1 text-xs text-red-500 font-semibold">
-                <Ban className="w-3 h-3" /> {labelSoldOut}
-              </span>
+              // Hours are not a failure: grey and no ban icon, unlike "Sold out".
+              product.unavailable_note ? (
+                <span className="text-xs text-ink-500 font-semibold">{labelSoldOut}</span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs text-red-500 font-semibold">
+                  <Ban className="w-3 h-3" /> {labelSoldOut}
+                </span>
+              )
             ) : hasModifiers ? (
               <span className="inline-flex items-center gap-0.5 text-xs text-[#047a65] font-medium">
                 {customizeLabel}

@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
     ] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, price, in_stock, dine_in_only, track_inventory, stock_qty")
+        .select("id, name, price, in_stock, dine_in_only, track_inventory, stock_qty, available_from, available_until")
         .in("id", productIds)
         .eq("restaurant_id", restaurant_id),
       supabase
@@ -583,6 +583,20 @@ export async function POST(request: NextRequest) {
             product_id: item.product_id,
           },
           { status: 400 },
+        );
+      }
+      // Horario del plato (Oatmeal 5:30–11 AM), a la hora del pedido o la programada.
+      if (!isOptionAvailableAt(dbProduct, orderLocal, 10)) {
+        const hours = optionHoursLabel(dbProduct, en ? "en" : "es");
+        return NextResponse.json(
+          {
+            error: en
+              ? `"${dbProduct.name}" is only served ${hours}. Remove it and try again.`
+              : `"${dbProduct.name}" solo se sirve ${hours}. Quitalo e intentá de nuevo.`,
+            code: "PRODUCT_OUT_OF_HOURS",
+            product_id: item.product_id,
+          },
+          { status: 409 },
         );
       }
       // dine_in_only products (e.g. alcohol) can only be ordered when eating in.

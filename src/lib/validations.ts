@@ -50,6 +50,8 @@ export const productSchema = z.object({
   dine_in_only: z.boolean().optional(),
   hide_image: z.boolean().optional(),
   prep_time_minutes: z.number().int().min(1).max(120).nullable().optional(),
+  available_from: z.string().nullable().optional(),
+  available_until: z.string().nullable().optional(),
   dietary_tags: z.array(z.string()).optional(),
   translations: z.record(z.string(), contentTranslationSchema).nullable().optional(),
   cost_price: z.number().min(0).nullable().optional(),

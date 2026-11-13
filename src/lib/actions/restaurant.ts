@@ -9,6 +9,7 @@ import { revalidatePublicMenu } from "@/lib/revalidate-public-menu";
 import { createClient } from "@/lib/supabase/server";
 import { getDeviceSession, isDeviceSession } from "@/lib/auth/device-session";
 import { sanitizeText, sanitizeMultiline } from "@/lib/sanitize";
+import { normalizeHour } from "@/lib/option-hours";
 import { captureError } from "@/lib/error-reporting";
 import { createLogger } from "@/lib/logger";
 import type {
@@ -517,6 +518,8 @@ export async function createProduct(
         prep_time_minutes: data.prep_time_minutes,
       }),
       ...(data.cost_price != null && { cost_price: data.cost_price }),
+      available_from: normalizeHour(data.available_from),
+      available_until: normalizeHour(data.available_until),
     })
     .select("id")
     .single();
@@ -584,6 +587,9 @@ export async function updateProduct(
 
   const sanitized = { ...data };
   if (sanitized.name) sanitized.name = sanitizeText(sanitized.name, 150);
+  // Horario: solo "HH:MM" o null llegan a la base.
+  if ("available_from" in sanitized) sanitized.available_from = normalizeHour(sanitized.available_from);
+  if ("available_until" in sanitized) sanitized.available_until = normalizeHour(sanitized.available_until);
   if (sanitized.description)
     sanitized.description = sanitizeMultiline(sanitized.description, 500);
   const { error } = await supabase
@@ -996,6 +1002,18 @@ export async function deleteModifierGroup(id: string) {
 }
 
 // ---- Modifier Options ----
+/**
+ * Hours of an option (Grits 5:30–11 AM). Only written when the caller sends
+ * them, so an older form that knows nothing about hours cannot wipe them.
+ * Content of the option: fans out to shared siblings like the price.
+ */
+function optionHoursPatch(data: { available_from?: string | null; available_until?: string | null }) {
+  const out: { available_from?: string | null; available_until?: string | null } = {};
+  if (data.available_from !== undefined) out.available_from = normalizeHour(data.available_from);
+  if (data.available_until !== undefined) out.available_until = normalizeHour(data.available_until);
+  return out;
+}
+
 export async function createModifierOption(
   groupId: string,
   data: {
@@ -1005,6 +1023,9 @@ export async function createModifierOption(
     sort_order: number;
     cost_price?: number | null;
     translations?: Record<string, { name?: string }> | null;
+    /** "HH:MM" local, or null = always. Omitted = leave as is. */
+    available_from?: string | null;
+    available_until?: string | null;
   },
 ) {
   const {
@@ -1045,6 +1066,7 @@ export async function createModifierOption(
     sort_order: nextSort,
     cost_price: normalizeCost(data.cost_price),
     translations: sanitizeTranslations(data.translations),
+    ...optionHoursPatch(data),
   };
 
   const { data: option, error } = await supabase
@@ -1078,6 +1100,9 @@ export async function updateModifierOption(
     sort_order: number;
     cost_price?: number | null;
     translations?: Record<string, { name?: string }> | null;
+    /** "HH:MM" local, or null = always. Omitted = leave as is. */
+    available_from?: string | null;
+    available_until?: string | null;
   },
 ) {
   const {
@@ -1104,6 +1129,7 @@ export async function updateModifierOption(
     is_default: data.is_default,
     cost_price: normalizeCost(data.cost_price),
     translations: sanitizeTranslations(data.translations),
+    ...optionHoursPatch(data),
   };
 
   const { error } = await supabase

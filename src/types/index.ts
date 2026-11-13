@@ -154,6 +154,13 @@ export interface Product {
   orders_last_7d?: number | null;
   /** Original price before discount — shown as strikethrough next to current price. */
   compare_at_price?: number | null;
+  /** Local restaurant time window when the dish can be ordered (Oatmeal
+   *  5:30–11 AM). Both NULL = always. See lib/option-hours. */
+  available_from?: string | null;
+  available_until?: string | null;
+  /** Client-only: set by MenuShell when the dish is outside its hours
+   *  ("Served 5:30–11 AM"); cards show it instead of "Sold out". */
+  unavailable_note?: string | null;
 }
 
 export interface ModifierGroup {

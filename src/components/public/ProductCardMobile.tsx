@@ -29,7 +29,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   inPopularSection = false,
 }: ProductCardProps) {
   const t = getTranslations(locale);
-  const labelSoldOut = soldOutLabel ?? t.soldOut;
+  // Out of its hours (Oatmeal after 11 AM) the dish says when it's served
+  // instead of "Sold out" — see MenuShell's filteredProducts.
+  const labelSoldOut = product.unavailable_note ?? soldOutLabel ?? t.soldOut;
   const labelAdded = addedShortLabel ?? t.addedToCart;
 
   const hasVariants = (product.variants?.length ?? 0) > 0;

@@ -34,7 +34,9 @@ export const ProductRow = memo(function ProductRow({
   defaultLocale = 'es',
 }: ProductCardProps) {
   const t = getTranslations(locale);
-  const labelSoldOut = soldOutLabel ?? t.soldOut;
+  // Out of its hours (Oatmeal after 11 AM) the dish says when it's served
+  // instead of "Sold out" — see MenuShell's filteredProducts.
+  const labelSoldOut = product.unavailable_note ?? soldOutLabel ?? t.soldOut;
 
   const hasVariants = (product.variants?.length ?? 0) > 0;
   const hasExtras = (product.extras?.length ?? 0) > 0;

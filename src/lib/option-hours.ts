@@ -18,6 +18,20 @@ function mins(hhmm: string | null | undefined): number | null {
   return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
 }
 
+/**
+ * Normaliza lo que llega de un formulario a "HH:MM" o null.
+ * Vacío / inválido = null ("sin horario"), nunca un string que Postgres rechace.
+ */
+export function normalizeHour(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(v.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
+}
+
 /** Si la opción tiene horario cargado. */
 export function hasHours(opt: Hours): boolean {
   return mins(opt.available_from) != null || mins(opt.available_until) != null;

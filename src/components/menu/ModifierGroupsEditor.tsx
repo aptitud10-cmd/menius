@@ -33,6 +33,7 @@ import { getDashboardTranslations, type DashboardLocale } from '@/lib/dashboard-
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import type { ModifierGroup, ModifierOption } from '@/types';
 import { dependencyIds } from '@/lib/conditional-modifiers';
+import { hasHours, optionHoursLabel } from '@/lib/option-hours';
 
 interface Template {
   icon: React.ElementType;
@@ -94,6 +95,9 @@ type OptionFormState = {
   is_default: boolean;
   cost_price: string;
   translations: Record<string, string>;
+  /** "HH:MM" local or '' = always available. */
+  available_from: string;
+  available_until: string;
 };
 
 const EMPTY_OPTION_FORM: OptionFormState = {
@@ -102,7 +106,65 @@ const EMPTY_OPTION_FORM: OptionFormState = {
   is_default: false,
   cost_price: '',
   translations: {},
+  available_from: '',
+  available_until: '',
 };
+
+/**
+ * "Only available from … to …" for one option (Grits 5:30–11 AM). Both empty =
+ * always. The menu greys the option out of hours and the order API refuses it.
+ */
+function OptionHoursFields({
+  form,
+  setForm,
+  lang,
+}: {
+  form: OptionFormState;
+  setForm: (f: OptionFormState) => void;
+  lang: 'es' | 'en';
+}) {
+  const on = !!(form.available_from || form.available_until);
+  return (
+    <div>
+      <label className="flex items-center gap-1.5 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={on}
+          onChange={e =>
+            setForm(
+              e.target.checked
+                ? { ...form, available_from: '05:30', available_until: '11:00' }
+                : { ...form, available_from: '', available_until: '' },
+            )
+          }
+          className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
+        />
+        <span className="text-[11px] font-medium text-gray-600">
+          {lang === 'en' ? 'Only available at certain hours' : 'Solo disponible en un horario'}
+        </span>
+      </label>
+      {on && (
+        <div className="mt-1.5 flex items-center gap-2 pl-5">
+          <input
+            type="time"
+            value={form.available_from}
+            onChange={e => setForm({ ...form, available_from: e.target.value })}
+            aria-label={lang === 'en' ? 'From' : 'Desde'}
+            className="text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          />
+          <span className="text-[11px] text-gray-400">{lang === 'en' ? 'to' : 'a'}</span>
+          <input
+            type="time"
+            value={form.available_until}
+            onChange={e => setForm({ ...form, available_until: e.target.value })}
+            aria-label={lang === 'en' ? 'Until' : 'Hasta'}
+            className="text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** `{ en: 'Bacon' }` → `{ en: { name: 'Bacon' } }`, dropping empties. */
 function toContentTranslations(
@@ -349,6 +411,8 @@ function SortableOption({
           label={t.modifiers_translations}
         />
 
+        <OptionHoursFields form={optionForm} setForm={setOptionForm} lang={lang} />
+
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1.5 cursor-pointer select-none" title={t.modifiers_isDefaultHint}>
             <input
@@ -390,6 +454,11 @@ function SortableOption({
         {opt.is_default && (
           <span className="ml-2 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 align-middle">
             {t.modifiers_isDefaultShort}
+          </span>
+        )}
+        {hasHours(opt) && (
+          <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 align-middle">
+            {optionHoursLabel(opt, lang)}
           </span>
         )}
       </span>
@@ -693,6 +762,7 @@ function SortableGroup({
                 placeholder={optionForm.name || t.editor_name}
                 label={t.modifiers_translations}
               />
+              <OptionHoursFields form={optionForm} setForm={setOptionForm} lang={lang} />
               <label className="flex items-start gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -1167,6 +1237,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       sort_order: (group?.options.length ?? 0),
       cost_price: parseCost(optionForm.cost_price),
       translations: toContentTranslations(optionForm.translations),
+      available_from: optionForm.available_from || null,
+      available_until: optionForm.available_until || null,
     });
     if (result.option) {
       const added = result.option as ModifierOption;
@@ -1202,6 +1274,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       sort_order: opt.sort_order,
       cost_price: parseCost(optionForm.cost_price),
       translations: toContentTranslations(optionForm.translations),
+      available_from: optionForm.available_from || null,
+      available_until: optionForm.available_until || null,
     });
     if (nextDefault && group?.selection_type === 'single') {
       await clearOtherDefaults(group, opt.id);
@@ -1221,6 +1295,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                 is_default,
                 cost_price: parseCost(optionForm.cost_price),
                 translations: toContentTranslations(optionForm.translations),
+                available_from: optionForm.available_from || null,
+                available_until: optionForm.available_until || null,
               }
             : { ...o, is_default };
         }) }
@@ -1517,6 +1593,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                     is_default: opt.is_default ?? false,
                     cost_price: opt.cost_price != null ? String(opt.cost_price) : '',
                     translations: fromContentTranslations(opt.translations),
+                    available_from: (opt.available_from ?? '').slice(0, 5),
+                    available_until: (opt.available_until ?? '').slice(0, 5),
                   });
                 }}
                 onCancelEditOption={() => { setEditOptionId(null); setOptionForm(EMPTY_OPTION_FORM); }}

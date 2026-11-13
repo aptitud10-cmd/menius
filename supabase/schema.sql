@@ -574,7 +574,9 @@ CREATE TABLE public.products (
   track_inventory boolean DEFAULT false,
   compare_at_price numeric DEFAULT NULL::numeric,
   hide_image boolean NOT NULL DEFAULT false,
-  dine_in_only boolean NOT NULL DEFAULT false
+  dine_in_only boolean NOT NULL DEFAULT false,
+  available_from time without time zone,
+  available_until time without time zone
 );
 
 CREATE TABLE public.profiles (

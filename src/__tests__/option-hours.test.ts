@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isOptionAvailableAt, optionHoursLabel, hasHours } from '@/lib/option-hours';
+import { isOptionAvailableAt, optionHoursLabel, hasHours, normalizeHour } from '@/lib/option-hours';
 
 // Local clock: only getHours/getMinutes are read (see inTimeZone).
 const at = (h: number, m = 0) => new Date(2026, 10, 13, h, m);
@@ -46,5 +46,20 @@ describe('optionHoursLabel', () => {
   });
   it('null without hours', () => {
     expect(optionHoursLabel({}, 'en')).toBeNull();
+  });
+});
+
+describe('normalizeHour', () => {
+  it('keeps valid HH:MM (and trims seconds from Postgres)', () => {
+    expect(normalizeHour('05:30')).toBe('05:30');
+    expect(normalizeHour('5:30')).toBe('05:30');
+    expect(normalizeHour('11:00:00')).toBe('11:00');
+  });
+  it('anything else is "no hours", never a value Postgres would reject', () => {
+    expect(normalizeHour('')).toBeNull();
+    expect(normalizeHour(null)).toBeNull();
+    expect(normalizeHour('25:00')).toBeNull();
+    expect(normalizeHour('11:75')).toBeNull();
+    expect(normalizeHour("05:30'; drop table x")).toBeNull();
   });
 });

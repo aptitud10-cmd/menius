@@ -76,6 +76,8 @@ import { MenuErrorBoundary } from "./MenuErrorBoundary";
 import { ReservationWidget } from "./ReservationWidget";
 import { MenuUpdateBanner } from "./MenuUpdateBanner";
 import { CartFlyParticles } from "./CartFlyParticles";
+import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
+import { inTimeZone } from "@/lib/orders/business-hours";
 interface ReviewStats {
   average: number;
   total: number;
@@ -1066,16 +1068,50 @@ export function MenuShell({
   useBackToClose(showSubcatSheet && !isXlView, closeSubcatSheet);
   useBackToClose(customization !== null, handleCloseCustomization);
 
-  const filteredProducts = useMemo(() => {
-    const base = !activeDiet
-      ? products
-      : products.filter((p) => p.dietary_tags?.includes(activeDiet));
-    if (stockOverrides.size === 0) return base;
+  // Dishes served only part of the day (Oatmeal 5:30–11 AM, restaurant time).
+  // Applied after mount only: the page is ISR-cached, so the server's clock is
+  // not "now" and marking them during SSR would mismatch on hydration. A
+  // one-minute clock re-evaluates them while the menu stays open.
+  const anyProductHours = useMemo(() => products.some(hasHours), [products]);
+  const [hoursClock, setHoursClock] = useState(0);
+  useEffect(() => {
+    if (!anyProductHours) return;
+    setHoursClock(Date.now());
+    const id = window.setInterval(() => setHoursClock(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, [anyProductHours]);
+
+  // Every product as it stands right now: realtime sold-out overrides and
+  // dishes outside their hours. Search, favourites and suggestions read this so
+  // an out-of-hours dish cannot be added from any corner of the menu.
+  const liveProducts = useMemo(() => {
+    const base = products;
+    const local =
+      hoursClock > 0 ? inTimeZone(new Date(hoursClock), restaurant.timezone || "UTC") : null;
+    if (stockOverrides.size === 0 && !local) return base;
     return base.map((p) => {
       const override = stockOverrides.get(p.id);
-      return override !== undefined ? { ...p, in_stock: override } : p;
+      let q = override !== undefined ? { ...p, in_stock: override } : p;
+      // Out of hours reads like sold out everywhere a card checks in_stock
+      // (no add, no sheet, off Popular), but labelled with when it's served.
+      if (local && q.in_stock !== false && hasHours(q) && !isOptionAvailableAt(q, local)) {
+        q = {
+          ...q,
+          in_stock: false,
+          unavailable_note: t.servedHours(optionHoursLabel(q, locale) ?? ""),
+        };
+      }
+      return q;
     });
-  }, [products, activeDiet, stockOverrides]);
+  }, [products, stockOverrides, hoursClock, restaurant.timezone, t, locale]);
+
+  const filteredProducts = useMemo(
+    () =>
+      !activeDiet
+        ? liveProducts
+        : liveProducts.filter((p) => p.dietary_tags?.includes(activeDiet)),
+    [liveProducts, activeDiet],
+  );
 
   const availableDietTags = useMemo(() => {
     const seen = new Set<DietaryTag>();
@@ -1161,7 +1197,7 @@ export function MenuShell({
     const mainProduct = customization?.product;
     if (!mainProduct) return [];
 
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const productMap = new Map(liveProducts.map((p) => [p.id, p]));
     // The "Pair it with" carousel is a row of photo cards: a product without a
     // visible photo renders as an empty grey square. Buccaneer has ~90 drinks
     // without photos and drinks rank first for mains, so the row was mostly
@@ -1210,7 +1246,7 @@ export function MenuShell({
 
     const remaining = MAX_SUGGESTIONS - dataProducts.length;
 
-    const fallback = products
+    const fallback = liveProducts
       .filter(
         (p) =>
           isEligible(p) &&
@@ -1234,7 +1270,7 @@ export function MenuShell({
     return [...dataProducts, ...fallback];
   }, [
     customization?.product,
-    products,
+    liveProducts,
     categories,
     cartProductIds,
     dataBasedSuggestionIds,
@@ -1248,7 +1284,7 @@ export function MenuShell({
   );
   const cartBasedSuggestions = useMemo(() => {
     if (!firstCartProductId) return [];
-    const anchor = products.find((p) => p.id === firstCartProductId);
+    const anchor = liveProducts.find((p) => p.id === firstCartProductId);
     if (!anchor) return [];
 
     const hour = new Date().getHours();
@@ -1269,7 +1305,7 @@ export function MenuShell({
       return ["main", "side", "dessert"];
     })();
 
-    return products
+    return liveProducts
       .filter(
         (p) =>
           p.id !== anchor.id &&
@@ -1290,7 +1326,7 @@ export function MenuShell({
       .map(({ product }) => product);
   }, [
     firstCartProductId,
-    products,
+    liveProducts,
     categories,
     cartProductIds,
     classifyProduct,
@@ -1540,13 +1576,13 @@ export function MenuShell({
   const searchResults = useMemo(
     () =>
       searchMenu({
-        products,
+        products: liveProducts,
         categories,
         query: searchQuery,
         locale,
         defaultLocale,
       }),
-    [searchQuery, products, categories, locale, defaultLocale],
+    [searchQuery, liveProducts, categories, locale, defaultLocale],
   );
 
   // ── Búsqueda en lenguaje natural ──
@@ -1557,7 +1593,7 @@ export function MenuShell({
     enabled: Boolean(storeConfig.naturalSearch),
     query: searchQuery,
     restaurantId: restaurant.id,
-    products,
+    products: liveProducts,
     categories,
     locale,
     defaultLocale,
@@ -2752,7 +2788,7 @@ export function MenuShell({
                         (() => {
                           const { cards: favCards, rows: favRows } =
                             splitByDisplay(
-                              products.filter((p) => favIds.includes(p.id)),
+                              liveProducts.filter((p) => favIds.includes(p.id)),
                             );
                           return (
                             <>
@@ -2931,8 +2967,9 @@ export function MenuShell({
                           // se lo ofrecemos de nuevo con otra forma.
                           if (!item || showReorderBanner || reorderDismissed) return null;
                           if (activeCatFilter && activeCatFilter !== POPULAR_ID) return null;
-                          const product = products.find((p) => p.id === item.product_id);
-                          if (!product) return null;
+                          const product = liveProducts.find((p) => p.id === item.product_id);
+                          // Sold out or outside its hours: nothing to offer again right now.
+                          if (!product || product.in_stock === false) return null;
                           const handleClick = () => {
                             if (
                               item.has_modifiers ||
