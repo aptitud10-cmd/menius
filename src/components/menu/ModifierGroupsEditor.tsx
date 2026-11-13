@@ -34,6 +34,7 @@ import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import type { ModifierGroup, ModifierOption } from '@/types';
 import { dependencyIds } from '@/lib/conditional-modifiers';
 import { hasHours, optionHoursLabel } from '@/lib/option-hours';
+import { renderTicketLabel } from '@/lib/modifier-lines';
 
 interface Template {
   icon: React.ElementType;
@@ -76,7 +77,12 @@ type GroupFormState = {
   /** "Any of these" — empty = always shown. See lib/conditional-modifiers. */
   depends_on_option_ids: string[];
   translations: Record<string, string>;
+  /** Cómo sale en el ticket / Counter / carrito (lib/modifier-lines). '' = el nombre tal cual. */
+  ticket_label: string;
+  ticket_layout: TicketLayout;
 };
+
+type TicketLayout = 'line' | 'indent' | 'inline';
 
 const EMPTY_GROUP_FORM: GroupFormState = {
   name: '',
@@ -87,6 +93,8 @@ const EMPTY_GROUP_FORM: GroupFormState = {
   display_type: 'list',
   depends_on_option_ids: [],
   translations: {},
+  ticket_label: '',
+  ticket_layout: 'line',
 };
 
 type OptionFormState = {
@@ -109,6 +117,70 @@ const EMPTY_OPTION_FORM: OptionFormState = {
   available_from: '',
   available_until: '',
 };
+
+/**
+ * Cómo se escribe el grupo en el ticket, el Counter y el carrito: una plantilla con
+ * {option} ("with {option} cheese" → "with Swiss cheese") y dónde va la línea.
+ * Con vista previa usando la primera opción del grupo.
+ */
+function TicketFormatFields({ label, layout, sample, hasParent, lang, onChange }: {
+  label: string;
+  layout: TicketLayout;
+  sample: string;
+  hasParent: boolean;
+  lang: 'es' | 'en';
+  onChange: (next: { ticket_label: string; ticket_layout: TicketLayout }) => void;
+}) {
+  const en = lang === 'en';
+  const preview = renderTicketLabel(label, sample || (en ? 'Option' : 'Opción'));
+  const layouts: { v: TicketLayout; l: string; d: string }[] = [
+    { v: 'line', l: en ? 'Own line' : 'Línea propia', d: en ? 'One line per choice' : 'Una línea por opción' },
+    { v: 'indent', l: en ? 'Indented' : 'Con sangría', d: en ? 'Under the previous line' : 'Debajo de la línea anterior' },
+    {
+      v: 'inline', l: en ? 'Joined' : 'Pegado',
+      d: hasParent
+        ? (en ? 'Joined to the option it depends on: "Side Bacon / Crispy"' : 'Se pega a la opción de la que depende: "Side Bacon / Crispy"')
+        : (en ? 'Joined to the dish name: "Cheeseburger Deluxe"' : 'Se pega al nombre del plato: "Cheeseburger Deluxe"'),
+    },
+  ];
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-3 space-y-2.5">
+      <div>
+        <label className="text-[11px] font-medium text-gray-500 mb-1 block">{en ? 'How it prints on the ticket' : 'Cómo sale en el ticket'}</label>
+        <input
+          value={label}
+          onChange={e => onChange({ ticket_label: e.target.value, ticket_layout: layout })}
+          placeholder={en ? 'e.g. with {option} cheese' : 'ej. with {option} cheese'}
+          className="dash-input text-sm font-mono"
+          maxLength={80}
+        />
+        <p className="text-[11px] text-gray-400 mt-1">
+          {en
+            ? 'Write {option} where the choice goes. Empty = the option name as is.'
+            : 'Escribí {option} donde va la opción elegida. Vacío = el nombre de la opción tal cual.'}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {layouts.map(o => (
+          <button key={o.v} type="button" title={o.d}
+            onClick={() => onChange({ ticket_label: label, ticket_layout: o.v })}
+            className={cn('px-2.5 py-1 rounded-lg border text-xs font-medium transition-all',
+              layout === o.v ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}>
+            {o.l}
+          </button>
+        ))}
+      </div>
+      <p className="text-[11px] text-gray-400">{layouts.find(o => o.v === layout)?.d}</p>
+      <div className="rounded-md bg-gray-50 px-2.5 py-1.5 font-mono text-[12px] text-gray-700">
+        <span className="text-gray-400">Ticket: </span>
+        {layout === 'inline' && !hasParent ? <><span className="text-gray-400">{en ? 'Dish' : 'Plato'} </span>{preview}</>
+          : layout === 'inline' ? <><span className="text-gray-400">… / </span>{preview}</>
+          : layout === 'indent' ? <>{'  ↳ '}{preview}</>
+          : preview}
+      </div>
+    </div>
+  );
+}
 
 /**
  * "Only available from … to …" for one option (Grits 5:30–11 AM). Both empty =
@@ -615,6 +687,15 @@ function SortableGroup({
             choices={dependencyChoices}
             onChange={v => setGroupForm({ ...groupForm, depends_on_option_ids: v })}
             t={t}
+          />
+
+          <TicketFormatFields
+            label={groupForm.ticket_label}
+            layout={groupForm.ticket_layout}
+            sample={group.options?.[0]?.name ?? ''}
+            hasParent={groupForm.depends_on_option_ids.length > 0}
+            lang={lang === 'en' ? 'en' : 'es'}
+            onChange={next => setGroupForm({ ...groupForm, ...next })}
           />
 
           <TranslationFields
@@ -1152,6 +1233,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       display_type: groupForm.display_type,
       depends_on_option_ids: groupForm.depends_on_option_ids,
       translations: toContentTranslations(groupForm.translations),
+      ticket_label: groupForm.ticket_label.trim() || null,
+      ticket_layout: groupForm.ticket_layout,
     });
     sync(items.map(i => i.id === g.id ? {
       ...i,
@@ -1164,6 +1247,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       depends_on_option_id: groupForm.depends_on_option_ids[0] ?? null,
       depends_on_option_ids: groupForm.depends_on_option_ids.length > 0 ? groupForm.depends_on_option_ids : null,
       translations: toContentTranslations(groupForm.translations),
+      ticket_label: groupForm.ticket_label.trim() || null,
+      ticket_layout: groupForm.ticket_layout,
     } : i));
     setEditGroupId(null);
     setLoading(false);
@@ -1574,6 +1659,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                     display_type: group.display_type ?? 'list',
                     depends_on_option_ids: dependencyIds(group),
                     translations: fromContentTranslations(group.translations),
+                    ticket_label: group.ticket_label ?? '',
+                    ticket_layout: (['line', 'indent', 'inline'].includes(group.ticket_layout ?? '') ? group.ticket_layout : 'line') as TicketLayout,
                   });
                 }}
                 onUpdateGroup={handleUpdateGroup}

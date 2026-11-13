@@ -874,6 +874,9 @@ export async function createModifierGroup(
   return { success: true, group: { ...group, options: [] } };
 }
 
+/** modifier_groups.ticket_layout (check en la base). */
+const TICKET_LAYOUTS = ["line", "indent", "inline"];
+
 export async function updateModifierGroup(
   id: string,
   data: {
@@ -887,6 +890,9 @@ export async function updateModifierGroup(
     depends_on_option_id?: string | null;
     depends_on_option_ids?: string[] | null;
     translations?: Record<string, { name?: string }> | null;
+    /** Cómo sale en el ticket (lib/modifier-lines). Sin el campo = no se toca. */
+    ticket_label?: string | null;
+    ticket_layout?: string;
   },
 ) {
   const {
@@ -896,6 +902,14 @@ export async function updateModifierGroup(
     error: authErr,
   } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  if (data.ticket_layout !== undefined && !TICKET_LAYOUTS.includes(data.ticket_layout)) {
+    return { error: "Formato de ticket inválido" };
+  }
+  // Solo si vino en el pedido: los otros guardados del editor (lista/grilla) no lo mandan.
+  const ticket: Record<string, unknown> = {};
+  if (data.ticket_label !== undefined) ticket.ticket_label = data.ticket_label?.trim() ? sanitizeText(data.ticket_label, 80) : null;
+  if (data.ticket_layout !== undefined) ticket.ticket_layout = data.ticket_layout;
 
   const { data: owned } = await supabase
     .from("modifier_groups")
@@ -925,6 +939,7 @@ export async function updateModifierGroup(
       depends_on_option_id: dep.depends_on_option_id,
       depends_on_option_ids: dep.depends_on_option_ids,
       translations: sanitizeTranslations(data.translations),
+      ...ticket,
     })
     .eq("id", id);
 
@@ -944,6 +959,7 @@ export async function updateModifierGroup(
     is_required: data.is_required,
     display_type: data.display_type ?? "list",
     translations: sanitizeTranslations(data.translations),
+    ...ticket,
   });
 
   revalidatePath("/app/menu/products");
