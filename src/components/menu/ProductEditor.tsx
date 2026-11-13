@@ -38,6 +38,8 @@ interface Props {
   allProducts?: Product[];
   restaurantId?: string;
   kdsStations?: KDSStation[];
+  /** Restaurant IANA zone: the preview greys out options by LOCAL hours (Grits 5:30–11 AM). */
+  timeZone?: string | null;
 }
 
 export function ProductEditor({
@@ -50,6 +52,7 @@ export function ProductEditor({
   allProducts = [],
   restaurantId,
   kdsStations = [],
+  timeZone = null,
 }: Props) {
   const router = useRouter();
   const { success: toastSuccess, error: toastError } = useToast();
@@ -1285,6 +1288,7 @@ export function ProductEditor({
           t={previewT}
           locale={previewLocale}
           defaultLocale={defaultLocale}
+          timeZone={timeZone}
           isPreview
         />
       )}

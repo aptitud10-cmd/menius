@@ -6,7 +6,7 @@ export default async function NewProductPage() {
 
   const [{ data: categories }, { data: restaurant }, { data: allProducts }, { data: kdsStations }] = await Promise.all([
     supabase.from('categories').select('*').eq('restaurant_id', rid).eq('is_active', true).order('sort_order'),
-    supabase.from('restaurants').select('id, currency, locale, available_locales, slug').eq('id', rid).maybeSingle(),
+    supabase.from('restaurants').select('id, currency, locale, available_locales, slug, timezone').eq('id', rid).maybeSingle(),
     supabase.from('products').select('id, name, image_url, category_id, price, is_active, in_stock').eq('restaurant_id', rid).eq('is_active', true).order('name'),
     supabase.from('kds_stations').select('id, name, color').eq('restaurant_id', rid).order('position'),
   ]);
@@ -16,6 +16,7 @@ export default async function NewProductPage() {
       product={null}
       categories={categories ?? []}
       currency={restaurant?.currency || 'USD'}
+      timeZone={restaurant?.timezone ?? null}
       defaultLocale={restaurant?.locale || 'es'}
       availableLocales={restaurant?.available_locales || [restaurant?.locale || 'es']}
       slug={restaurant?.slug ?? undefined}
