@@ -15,7 +15,7 @@ import { KindTag } from './KindTag';
  * Nunca acepta solo, salvo que esta tablet tenga activado auto-aceptar.
  */
 export function NewOrdersAlert({
-  queue, T, currency, defaultMins, autoAcceptSecs, soundOn, onAcknowledge, onAccept, onReject, onSeeAll,
+  queue, T, currency, defaultMins, autoAcceptSecs, onAccept, onReject, onSeeAll,
 }: {
   queue: Order[];
   T: CounterText;
@@ -23,8 +23,6 @@ export function NewOrdersAlert({
   defaultMins: (o: Order) => number;
   /** null = auto-aceptar apagado (por defecto). */
   autoAcceptSecs: number | null;
-  soundOn: boolean;
-  onAcknowledge: () => void;
   onAccept: (o: Order, mins: number) => void;
   onReject: (o: Order) => void;
   onSeeAll: () => void;
@@ -37,7 +35,6 @@ export function NewOrdersAlert({
       aria-label={T.newOrders(queue.length)}
       className="fixed inset-0 z-50 flex flex-col"
       style={{ background: C.green, color: C.greenInk }}
-      onPointerDown={onAcknowledge}
     >
       {/* key: cada pedido arranca con su propio tiempo y su propio contador */}
       <AlertBody
@@ -49,7 +46,6 @@ export function NewOrdersAlert({
         currency={currency}
         initialMins={defaultMins(order)}
         autoAcceptSecs={autoAcceptSecs}
-        soundOn={soundOn}
         onAccept={onAccept}
         onReject={onReject}
         onSeeAll={onSeeAll}
@@ -59,10 +55,10 @@ export function NewOrdersAlert({
 }
 
 function AlertBody({
-  order, index, total, T, currency, initialMins, autoAcceptSecs, soundOn, onAccept, onReject, onSeeAll,
+  order, index, total, T, currency, initialMins, autoAcceptSecs, onAccept, onReject, onSeeAll,
 }: {
   order: Order; index: number; total: number; T: CounterText; currency: string;
-  initialMins: number; autoAcceptSecs: number | null; soundOn: boolean;
+  initialMins: number; autoAcceptSecs: number | null;
   onAccept: (o: Order, mins: number) => void; onReject: (o: Order) => void; onSeeAll: () => void;
 }) {
   const [mins, setMins] = useState(initialMins);
@@ -195,7 +191,6 @@ function AlertBody({
             {T.reject}
           </button>
         </div>
-        {soundOn && <p className="text-center text-[14px] font-medium min-[880px]:mt-auto" style={{ color: C.faint }}>{T.tapToSilence}</p>}
       </div>
     </div>
   );

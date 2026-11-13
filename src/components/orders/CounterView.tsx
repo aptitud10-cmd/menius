@@ -574,8 +574,10 @@ export function CounterView({
   const [view, setView] = useState<CounterViewMode>('board');
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
-  // La alerta suena hasta que alguien toca la pantalla (no hasta aceptar).
-  const [alertAck, setAlertAck] = useState(false);
+  // Pedidos que suenan: la alerta NO se calla tocando la pantalla ni cerrándola con
+  // "Ver todos" — suena hasta que cada uno se acepta o se rechaza (como Uber Eats;
+  // Pedro 2026-11-13). Antes un toque la callaba y el pedido podía quedar 5 min mudo.
+  const [ringIds, setRingIds] = useState<string[]>(() => previewAlertIds ?? []);
   // Último tiempo elegido: es el default del próximo pedido.
   const [lastPrep, setLastPrep] = useState(15);
   useEffect(() => {
@@ -752,7 +754,7 @@ export function CounterView({
     }
     promotedRef.current?.add(order.id);
     setSplashQueue(q => (q.some(x => x.id === order.id) ? q : [...q, order]));
-    setAlertAck(false);
+    setRingIds(r => (r.includes(order.id) ? r : [...r, order.id]));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder, t.newScheduledOrder]);
 
@@ -835,7 +837,7 @@ export function CounterView({
     fresh.forEach(o => promotedRef.current!.add(o.id));
     if (isLeaderRef.current) playNewOrderSound();
     setSplashQueue(q => [...q, ...fresh.filter(o => !q.some(x => x.id === o.id))]);
-    setAlertAck(false);
+    setRingIds(r => [...r, ...fresh.map(o => o.id).filter(id => !r.includes(id))]);
   }, [ordersView, isDue]);
 
   const overdueCount = useMemo(() =>
@@ -1342,11 +1344,23 @@ export function CounterView({
       .filter(o => o.status === 'pending'),
     [splashQueue, ordersView],
   );
+  // Suena mientras quede alguno sin aceptar ni rechazar (aunque se haya cerrado la alerta).
+  const ringingCount = useMemo(
+    () => ringIds.filter(id => ordersView.find(x => x.id === id)?.status === 'pending').length,
+    [ringIds, ordersView],
+  );
   useEffect(() => {
-    if (alertQueue.length === 0 || alertAck || !isLeader) return;
+    if (ringingCount === 0 || !isLeader) return;
     const id = setInterval(playNewOrderSound, 4000);
     return () => clearInterval(id);
-  }, [alertQueue.length, alertAck, isLeader]);
+  }, [ringingCount, isLeader]);
+  // Los que ya se resolvieron salen de la lista (que no crezca en un turno largo).
+  useEffect(() => {
+    setRingIds(r => {
+      const next = r.filter(id => ordersView.find(x => x.id === id)?.status === 'pending');
+      return next.length === r.length ? r : next;
+    });
+  }, [ordersView]);
 
   // "Sin conexión" solo si de verdad no llegan pedidos: sin red, o el canal en
   // vivo caído Y el sondeo de 10 s sin responder hace más de 35 s. Antes bastaba
@@ -1443,8 +1457,6 @@ export function CounterView({
           currency={currency}
           defaultMins={defaultMinsFor}
           autoAcceptSecs={autoAcceptOn ? 30 : null}
-          soundOn={!alertAck}
-          onAcknowledge={() => setAlertAck(true)}
           onAccept={(o, m) => handleAccept(o, m)}
           onReject={(o) => {
             setSplashQueue(q => q.filter(x => x.id !== o.id));
