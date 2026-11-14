@@ -11,7 +11,12 @@ const nextConfig = {
     outputFileTracingIncludes: {
       '/api/admin/dev/stream': ['./CLAUDE.md'],
       '/api/admin/dev/chat': ['./CLAUDE.md'],
+      // Fonts del ticket impreso (se leen con fs en runtime, el tracer no los ve solo).
+      '/api/printing/**': ['./src/lib/printing/fonts/*.ttf'],
+      '/api/cloudprnt/**': ['./src/lib/printing/fonts/*.ttf'],
     },
+    // resvg es un binario nativo (.node) y satori carga yoga en wasm: sin bundlear.
+    serverComponentsExternalPackages: ['@resvg/resvg-js', 'satori'],
   },
   images: {
     remotePatterns: [
