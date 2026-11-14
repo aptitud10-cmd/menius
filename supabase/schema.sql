@@ -1,7 +1,7 @@
 -- MENIUS - schema real de produccion (menius-prod)
 -- Generado desde information_schema via MCP de Supabase.
 -- FUENTE DE VERDAD del schema. NO editar a mano: regenerar desde prod.
--- Tablas: 55  -  Columnas: 612  (actualizado 2026-11-11: + order_number_counters)
+-- Tablas: 57  -  Columnas: 641  (actualizado 2026-11-14: + print_jobs, printers)
 --
 -- ESTE ARCHIVO SOLO TIENE COLUMNAS. No sirve para auditar seguridad: no
 -- contiene ni una linea de RLS, POLICY o GRANT. Para eso esta
@@ -534,6 +534,41 @@ CREATE TABLE public.restaurant_panel_pins (
   pin_hash text NOT NULL,
   failed_attempts integer NOT NULL DEFAULT 0,
   locked_until timestamp with time zone,
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.print_jobs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  restaurant_id uuid NOT NULL,
+  printer_id uuid NOT NULL,
+  order_id uuid,
+  kind text NOT NULL CHECK ((kind = ANY (ARRAY['order'::text, 'reprint'::text, 'test'::text]))),
+  status text NOT NULL DEFAULT 'queued'::text CHECK ((status = ANY (ARRAY['queued'::text, 'sent'::text, 'printed'::text, 'failed'::text, 'cancelled'::text]))),
+  not_before timestamp with time zone,
+  attempts smallint NOT NULL DEFAULT 0,
+  copy_index smallint NOT NULL DEFAULT 1,
+  media_type text,
+  error_code text,
+  requested_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  sent_at timestamp with time zone,
+  printed_at timestamp with time zone
+);
+
+CREATE TABLE public.printers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  restaurant_id uuid NOT NULL,
+  name text NOT NULL DEFAULT 'Counter'::text,
+  token_hash text NOT NULL,
+  mac_address text,
+  print_on text NOT NULL DEFAULT 'accepted'::text CHECK ((print_on = ANY (ARRAY['accepted'::text, 'created'::text]))),
+  copies smallint NOT NULL DEFAULT 1 CHECK (((copies >= 1) AND (copies <= 3))),
+  order_types text[] NOT NULL DEFAULT '{delivery,pickup,dine_in}'::text[],
+  is_active boolean NOT NULL DEFAULT true,
+  last_poll_at timestamp with time zone,
+  last_asb_status text,
+  last_client_info jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 

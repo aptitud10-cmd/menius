@@ -54,6 +54,8 @@ ALTER TABLE public.order_location_latest ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_notification_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_status_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.print_jobs ENABLE ROW LEVEL SECURITY;   -- 2026-11-14
+ALTER TABLE public.printers ENABLE ROW LEVEL SECURITY;     -- 2026-11-14
 ALTER TABLE public.processed_webhook_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_extras ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_pairings ENABLE ROW LEVEL SECURITY;
@@ -274,6 +276,15 @@ CREATE POLICY public_insert_orders ON public.orders FOR INSERT TO anon, authenti
 CREATE POLICY public_read_own_order ON public.orders FOR SELECT TO anon
   USING (((id)::text = ((current_setting('request.headers'::text, true))::json ->> 'x-order-id'::text)));
 
+-- ── printers / print_jobs (CloudPRNT, 2026-11-14) ──────────────────────
+-- Solo lectura para el dueño (la tablet vinculada es su usuario). Sin policies
+-- de escritura: todo se escribe con service role desde server actions.
+-- token_hash no está en el grant de columnas (sección 5): ningún cliente lo lee.
+CREATE POLICY print_jobs_owner_select ON public.print_jobs FOR SELECT TO authenticated
+  USING (user_owns_restaurant(restaurant_id));
+CREATE POLICY printers_owner_select ON public.printers FOR SELECT TO authenticated
+  USING (user_owns_restaurant(restaurant_id));
+
 -- ── processed_webhook_events ───────────────────────────────────────────
 -- USING (false) = nadie salvo service_role. Correcto: es la tabla de
 -- idempotencia de los webhooks de Stripe.
@@ -449,6 +460,10 @@ CREATE POLICY "Users can view their own data" ON public.users FOR SELECT TO publ
 --   REVOKE ALL ON public.app_devices FROM anon;        -- B6, 2026-08-07
 --   REVOKE ALL ON public.app_device_tokens FROM anon;  -- B6, 2026-08-07
 --   restaurants: anon no tiene SELECT (solo authenticated).
+--   printers / print_jobs (2026-11-14, migración 20261114_printing_cloudprnt):
+--     REVOKE ALL FROM anon, authenticated; luego authenticated solo SELECT.
+--     printers: SELECT por columnas, SIN token_hash. (Un REVOKE SELECT (col)
+--     no le gana al grant de tabla del default ACL: hay que revocar todo.)
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- 6. Deteccion de drift

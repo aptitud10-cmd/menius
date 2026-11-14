@@ -24,7 +24,7 @@
 - [x] William: aprobar v3.1
 - [ ] William: comprar 1 mC-Print3 + averiguar la marca y modelo de la impresora actual de Buccaneer
 
-## Sprint 1 — Datos [S] — código ✅, falta aplicar en prod
+## Sprint 1 — Datos [S] ✅ (en prod desde 2026-11-14)
 - [x] Migración `supabase/migrations/20261114_printing_cloudprnt.sql`: `printers`, `print_jobs`, índice único `orders (id, restaurant_id)`, FKs compuestas, índices
 - [x] RLS: `revoke all` + `grant select` con columnas explícitas (sin `token_hash`) + test con 2 tenants (CA-7). Ver DATA_MODEL §4 v3.1
 - [x] Trigger + tests SQL (`supabase/tests/printing_cloudprnt.test.sql`, harness PGlite `run-printing-tests.mjs`):
@@ -39,7 +39,7 @@
   - [x] extra: filtros `order_types` / `is_active` / `copies`, FKs entre tenants, trigger que falla no bloquea el pedido, anon sin acceso
 - [x] `pg_cron` (requeue seguro + purga) como funciones testeables, con test de que un pedido cancelado nunca vuelve a la cola (CA-5)
 - [x] Tipos TS (`src/types/index.ts`: `Printer`, `PrintJob`, `PRINTER_CLIENT_COLUMNS`)
-- [ ] **Con OK de William:** aplicar la migración en prod, correr el test SQL ahí (BEGIN … ROLLBACK) y regenerar `schema.sql` / `security.sql`
+- [x] Migración aplicada en prod (SQL Editor, William). Test SQL corrido en prod: **ALL PRINTING TESTS PASSED** (BEGIN … ROLLBACK, 0 filas residuales). `schema.sql` / `security.sql` actualizados. Cron `print-jobs-requeue` corriendo OK
 
 ## Sprint 2 — Número corto + render [M]
 - [ ] **Primero:** prueba mínima de satori + resvg + sharp en runtime nodejs, en un preview de Vercel (incluye `serverComponentsExternalPackages`). Si falla, se para y se revisa con William
