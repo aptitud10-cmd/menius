@@ -42,7 +42,7 @@
 - [x] Tipos TS (`src/types/index.ts`: `Printer`, `PrintJob`, `PRINTER_CLIENT_COLUMNS`)
 - [x] Migración aplicada en prod (SQL Editor, William). Test SQL corrido en prod: **ALL PRINTING TESTS PASSED** (BEGIN … ROLLBACK, 0 filas residuales). `schema.sql` / `security.sql` actualizados. Cron `print-jobs-requeue` corriendo OK
 
-## Sprint 2 — Número corto + render [M] — código ✅, falta OK visual de William
+## Sprint 2 — Número corto + render [M] ✅ (OK visual de William 2026-11-14)
 - [x] **Primero:** prueba de satori 0.63.2 + resvg 2.6.2 + sharp en runtime nodejs en un preview de Vercel → 200 `image/png`, 576 px, 1 bit, 600 ms en frío. La ruta temporal se borró
 - [x] Extraer `lib/orders/short-number.ts`. Lo usan email, seguimiento, `kitchen.ts`, Counter y repartidor (11 copias reemplazadas, sin cambio visual) (CA-12)
 - [x] `ticket-data` (`toTicketData` pura), `ticket-i18n`, `allergy`, `channel`, `render-png`, `render-ticket` según SPEC §6. Fonts: Inter 4.1 Bold/Black (OFL) en `src/lib/printing/fonts`
@@ -50,7 +50,8 @@
 - [x] Tests (`src/__tests__/printing-ticket.test.ts`): datos + render de los 10 casos + ticket de prueba. PNGs con `TICKET_PREVIEW_DIR=...`
   - [x] pickup cash · delivery cash · delivery pagado · online no pagado (VERIFY) · dine-in · programado · reprint · alergia · ñ/tildes · nota larga
 - [x] Propina (decisión de William, 2026-11-14): se imprime la línea "Tip" cuando es > 0, así Subtotal + Tax + Delivery − Discount + Tip = TOTAL (CA-15 actualizado)
-- [ ] OK visual de William
+- [x] OK visual de William
+- Nota: un pedido en efectivo no debería traer propina (el cliente la da en mano). Hoy el checkout la ofrece con cualquier método de pago: arreglo aparte, fuera de este spec
 > Nota de entorno: en Windows, vitest se tiene que correr desde un cwd con la unidad en mayúscula (`C:\…`). Con `c:\` carga dos instancias y dice "No test suite found".
 
 ## Sprint 3 — Endpoint CloudPRNT [M]
