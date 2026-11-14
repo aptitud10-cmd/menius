@@ -7,7 +7,7 @@
 
 ## 1. `app/api/cloudprnt/[token]/route.ts`
 
-`runtime = 'nodejs'`, `dynamic = 'force-dynamic'`. **Excluir `/api/cloudprnt` del matcher del middleware de Supabase.**
+`runtime = 'nodejs'`, `dynamic = 'force-dynamic'`. El matcher del middleware ya excluye todo `api/` (verificado en Sprint 0): no hay que tocarlo.
 
 **Resolución común:**
 1. `sha256(token)` → `printers` activo.
@@ -16,7 +16,11 @@
 4. **No loguear el path completo** (contiene el token).
 
 ### 1.0 GET de configuración del servidor (sin `token` de job)
-Las impresoras con soporte MQTT hacen un GET al arrancar para decidir el protocolo. **Sprint 0 lee la sección "Server setting information request (GET)" de la doc** y define la respuesta correcta para que la impresora quede en modo HTTP. Se prueba en la mC-Print3. Mientras tanto: un GET sin query `token` **no** es un pedido de job.
+Las impresoras con firmware CloudPRNT MQTT hacen un GET a la URL del server al arrancar para decidir el protocolo. Un GET sin query `token` **no** es un pedido de job: se responde `200 application/json` con lo siguiente (sale del ejemplo oficial del SDK, `cloudprnt-setting_http.json`):
+```json
+{"title":"star_cloudprnt_server_setting","version":"1.0.0","serverSupportProtocol":["HTTP"]}
+```
+**Sin confirmar en la doc oficial** (star-m.jp no respondía desde la máquina de dev en el Sprint 0): el nombre exacto del parámetro `token` del GET de job (el ejemplo del SDK no lo usa: lee `mac` y `type`) y los requisitos de TLS. Se cierran en el Sprint 3 leyendo la guía en un navegador, y en el Sprint 5 con la impresora física. Si el GET de job no trae `token`, el job sale del último `jobToken` entregado en el POST de esa impresora.
 
 ### 1.1 POST — poll
 - **`last_poll_at`:** solo se actualiza si pasaron > 30 s desde el último o si cambió `status` (ASB). Evita un UPDATE y un broadcast de Realtime cada 5 s.
@@ -56,9 +60,9 @@ Las impresoras con soporte MQTT hacen un GET al arrancar para decidir el protoco
 | `rotatePrinterToken({printerId})` | dueño | `{serverUrl}` |
 | `updatePrinterSettings({printerId, print_on, copies, order_types, is_active})` | dueño | `printer` |
 | `deletePrinter({printerId})` | dueño | ok |
-| `reprintOrder({orderId, printerId?})` | dueño **o** `device_sessions` del mismo restaurante; pedido e impresora del mismo `restaurant_id` | `job` |
+| `reprintOrder({orderId, printerId?})` | `getAuthenticatedRestaurant({ allowDevice: true })`. La sesión de la tablet es el usuario del dueño, así que el RLS ya la cubre. Con tablet se usa el `restaurantId` de `getDeviceSession()`, no la tienda elegida en el panel. Pedido e impresora del mismo `restaurant_id` | `job` |
 | `printTest({printerId})` | dueño | `job` |
-| `getPrinterStatus({restaurantId})` | dueño o dispositivo | `[{printerId,name,state:'online'\|'offline',lastPollAt,queuedCount,failedCount}]` |
+| `getPrinterStatus({restaurantId})` | dueño o dispositivo (mismo patrón que `reprintOrder`). Se expone también como `GET /api/tenant/printers/status`, que la counter app consulta al montar y cada 2 min (SPEC §1b regla 3) | `[{printerId,name,state:'online'\|'offline',lastPollAt,queuedCount,failedCount}]` + `cloudprntActive: boolean` (alguna impresora activa con poll < 10 min) |
 
 - Token: 32 bytes `crypto.randomBytes` en base64url. Se guarda solo el sha256.
 - `queuedCount` cuenta solo jobs con `not_before` vencido o null.
@@ -68,11 +72,11 @@ Las impresoras con soporte MQTT hacen un GET al arrancar para decidir el protoco
 ```
 lib/orders/short-number.ts   // EXTRAER la lógica actual del email/seguimiento. Única fuente del "#003".
 lib/printing/
-  ticket-data.ts     // buildTicketData(jobId)
+  ticket-data.ts     // toTicketData(order, items, restaurant, opts) PURA (server + cliente) · buildTicketData(jobId) carga y la llama
   ticket-i18n.ts     // en / es
   allergy.ts         // detectAllergy(text) → fragmento | null (palabras de SPEC §6)
   channel.ts         // channelLabel(order) → 'WEBSITE' (v3)
-  render-ticket.tsx  // satori → resvg → umbral 1-bit sobre píxeles (sin sharp)
+  render-ticket.tsx  // satori → resvg → sharp (umbral 1-bit, PNG)
   icons/*.svg        // en lugar de emojis
   fonts/Inter-Bold.ttf, Inter-Black.ttf
 ```

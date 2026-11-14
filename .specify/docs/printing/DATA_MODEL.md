@@ -78,23 +78,36 @@ create index print_jobs_order_idx on print_jobs (order_id);
 create or replace function enqueue_order_print() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
+  -- Pedido online sin cobrar: el Counter no lo muestra (isAwaitingOnlinePayment).
+  awaiting_pay boolean := new.payment_method in ('online','wallet')
+                          and new.payment_status is distinct from 'paid';
   is_accept boolean := tg_op = 'UPDATE'
                        and old.status = 'pending'
                        and new.status not in ('pending','cancelled');
+  -- Online cobrado mientras sigue en pending: recién ahí "existe" para el restaurante.
+  is_paid   boolean := tg_op = 'UPDATE'
+                       and old.payment_status is distinct from 'paid'
+                       and new.payment_status = 'paid'
+                       and new.status = 'pending';
+  is_create boolean := (tg_op = 'INSERT' and not awaiting_pay) or is_paid;
   is_cancel boolean := tg_op = 'UPDATE'
                        and new.status = 'cancelled'
                        and old.status is distinct from 'cancelled';
+  -- Deshacer un rechazo (undoOrderStatus en el KDS).
+  is_reopen boolean := tg_op = 'UPDATE'
+                       and old.status = 'cancelled'
+                       and new.status <> 'cancelled';
 begin
-  if tg_op = 'INSERT' or is_accept then
+  if is_create or is_accept then
     insert into print_jobs (restaurant_id, printer_id, order_id, kind, copy_index, not_before)
     select new.restaurant_id, p.id, new.id, 'order', c.i,
-           case when tg_op = 'INSERT' then now() + interval '5 seconds' end
+           case when is_create then now() + interval '5 seconds' end
     from printers p
     cross join lateral generate_series(1, p.copies) as c(i)
     where p.restaurant_id = new.restaurant_id
       and p.is_active
       and new.order_type = any (p.order_types)
-      and ((p.print_on = 'created'  and tg_op = 'INSERT')
+      and ((p.print_on = 'created'  and is_create)
         or (p.print_on = 'accepted' and is_accept))
     on conflict do nothing;
   end if;
@@ -104,15 +117,23 @@ begin
     where order_id = new.id and status = 'queued';
   end if;
 
+  -- Un job 'cancelled' solo puede venir de 'queued' (nunca se imprimió):
+  -- al reabrir el pedido vuelve a la cola. Si vuelve a 'pending' con una
+  -- impresora 'accepted', no hay job cancelado (nunca se creó) y se imprime al aceptar.
+  if is_reopen then
+    update print_jobs set status = 'queued', not_before = null
+    where order_id = new.id and kind = 'order' and status = 'cancelled';
+  end if;
+
   return new;
 end $$;
 
 create trigger orders_enqueue_print
-  after insert or update of status on orders
+  after insert or update of status, payment_status on orders
   for each row execute function enqueue_order_print();
 ```
 
-> Nota: si un pedido cancelado se reabre y se acepta otra vez, no reimprime solo, porque el índice de idempotencia ya está ocupado. Para ese caso está Reimprimir. Es aceptable.
+> Nota: el índice de idempotencia sigue garantizando un solo job automático por pedido, impresora y copia. La reapertura reactiva el job existente en vez de crear otro.
 
 ## 4. RLS y permisos
 
