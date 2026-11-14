@@ -24,20 +24,22 @@
 - [x] William: aprobar v3.1
 - [ ] William: comprar 1 mC-Print3 + averiguar la marca y modelo de la impresora actual de Buccaneer
 
-## Sprint 1 — Datos [S]
-- [ ] Migración: `printers`, `print_jobs`, índice único `orders (id, restaurant_id)`, FKs compuestas, índices
-- [ ] RLS + `revoke select (token_hash)` + test con 2 tenants (CA-7)
-- [ ] Trigger + tests SQL:
-  - [ ] aceptar → 1 job
-  - [ ] ready/delivered → 0 jobs nuevos
-  - [ ] cancelar con job en cola → `cancelled`
-  - [ ] `print_on='created'` → `not_before` +5 s
-  - [ ] `created` + online sin cobrar → 0 jobs; al pasar a `paid` → 1 job
-  - [ ] aceptar por el panel (`pending → confirmed`) → 1 job
-  - [ ] cancelar con job en cola y deshacer (`cancelled → preparing`) → el job vuelve a `queued`
-  - [ ] job que se mandó (`sent_at` no null) y quedó `cancelled` por el cron → al reabrir el pedido **sigue** `cancelled`
-- [ ] `pg_cron` (requeue seguro + purga), con test de que un pedido cancelado nunca vuelve a la cola (CA-5)
-- [ ] Tipos TS
+## Sprint 1 — Datos [S] — código ✅, falta aplicar en prod
+- [x] Migración `supabase/migrations/20261114_printing_cloudprnt.sql`: `printers`, `print_jobs`, índice único `orders (id, restaurant_id)`, FKs compuestas, índices
+- [x] RLS: `revoke all` + `grant select` con columnas explícitas (sin `token_hash`) + test con 2 tenants (CA-7). Ver DATA_MODEL §4 v3.1
+- [x] Trigger + tests SQL (`supabase/tests/printing_cloudprnt.test.sql`, harness PGlite `run-printing-tests.mjs`):
+  - [x] aceptar → 1 job
+  - [x] ready/delivered → 0 jobs nuevos
+  - [x] cancelar con job en cola → `cancelled`
+  - [x] `print_on='created'` → `not_before` +5 s
+  - [x] `created` + online sin cobrar → 0 jobs; al pasar a `paid` → 1 job
+  - [x] aceptar por el panel (`pending → confirmed`) → 1 job
+  - [x] cancelar con job en cola y deshacer (`cancelled → preparing`) → el job vuelve a `queued`
+  - [x] job que se mandó (`sent_at` no null) y quedó `cancelled` por el cron → al reabrir el pedido **sigue** `cancelled`
+  - [x] extra: filtros `order_types` / `is_active` / `copies`, FKs entre tenants, trigger que falla no bloquea el pedido, anon sin acceso
+- [x] `pg_cron` (requeue seguro + purga) como funciones testeables, con test de que un pedido cancelado nunca vuelve a la cola (CA-5)
+- [x] Tipos TS (`src/types/index.ts`: `Printer`, `PrintJob`, `PRINTER_CLIENT_COLUMNS`)
+- [ ] **Con OK de William:** aplicar la migración en prod, correr el test SQL ahí (BEGIN … ROLLBACK) y regenerar `schema.sql` / `security.sql`
 
 ## Sprint 2 — Número corto + render [M]
 - [ ] **Primero:** prueba mínima de satori + resvg + sharp en runtime nodejs, en un preview de Vercel (incluye `serverComponentsExternalPackages`). Si falla, se para y se revisa con William

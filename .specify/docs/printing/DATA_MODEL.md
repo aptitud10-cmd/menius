@@ -141,26 +141,36 @@ create trigger orders_enqueue_print
 
 ## 4. RLS y permisos
 
+> **v3.1 (Sprint 1):** en prod, `pg_default_acl` les da ALL a `anon` y `authenticated` sobre cada tabla nueva de `public`. Un `revoke select (token_hash)` **no** le gana a un grant de tabla, así que el revoke por columna de la v3 no protegía nada. Además, los clientes no escriben `printers`: todas las escrituras son server actions con service role (API §2). Por eso no se usa `printers_owner_all`. Implementado en `supabase/migrations/20261114_printing_cloudprnt.sql`.
+
 ```sql
 alter table printers enable row level security;
 alter table print_jobs enable row level security;
 
-create policy printers_owner_all on printers for all
-  using (user_owns_restaurant(restaurant_id))
-  with check (user_owns_restaurant(restaurant_id));
+-- Primero se saca TODO lo que dio el default ACL; después se da solo lectura.
+revoke all on printers   from anon, authenticated;
+revoke all on print_jobs from anon, authenticated;
 
--- token_hash: invisible para cualquier cliente
-revoke select (token_hash) on printers from anon, authenticated;
--- (si el grant de tabla lo reintroduce: revoke select on printers + grant select (cols explícitas) to authenticated)
+-- token_hash queda fuera de la lista: ningún cliente lo puede leer.
+grant select (id, restaurant_id, name, mac_address, print_on, copies, order_types,
+              is_active, last_poll_at, last_asb_status, last_client_info,
+              created_at, updated_at) on printers to authenticated;
+grant select on print_jobs to authenticated;
 
-create policy print_jobs_owner_select on print_jobs for select
+create policy printers_owner_select on printers for select to authenticated
   using (user_owns_restaurant(restaurant_id));
--- SIN policy de INSERT/UPDATE/DELETE para clientes:
--- reprint y test se crean solo vía server actions con service role,
--- que validan dueño o sesión de dispositivo + que el pedido y la impresora sean del mismo restaurante.
+create policy print_jobs_owner_select on print_jobs for select to authenticated
+  using (user_owns_restaurant(restaurant_id));
+-- SIN grants ni policies de INSERT/UPDATE/DELETE para clientes:
+-- impresoras, reprint y test se escriben solo vía server actions con service role,
+-- que validan dueño o tablet + que el pedido y la impresora sean del mismo restaurante.
 ```
 
+El trigger (§3) envuelve su cuerpo en `begin … exception when others then raise warning`: si encolar el ticket falla, **el pedido entra igual**. Un error de impresión nunca puede bloquear una venta.
+
 ## 5. `pg_cron` (crear el job; hoy no existe ninguno)
+
+Implementado como dos funciones (`print_jobs_requeue()` y `print_jobs_purge()`) para poder testearlas. El cron solo las llama: `print-jobs-requeue` cada minuto y `print-jobs-purge` a las 09:17 UTC (~5 AM NY).
 
 ```sql
 -- cada minuto
