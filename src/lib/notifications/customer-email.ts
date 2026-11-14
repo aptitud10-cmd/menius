@@ -14,6 +14,7 @@
  */
 import { formatPrice } from '@/lib/utils';
 import { travelMinutes, haversineKm } from '@/lib/orders/eta';
+import { shortOrderNumber } from '@/lib/orders/short-number';
 
 export interface CustomerEmailItem {
   qty: number;
@@ -80,10 +81,8 @@ export function esc(s: string | null | undefined): string {
 
 const isEn = (locale: string) => locale === 'en';
 
-/** "ORD-261110-014" → "014": el número que se dice en el mostrador. */
-export function shortOrderNumber(orderNumber: string): string {
-  return orderNumber.split('-').pop() || orderNumber;
-}
+/** "ORD-261110-014" → "014": el número que se dice en el mostrador (lib/orders/short-number). */
+export { shortOrderNumber };
 
 function firstName(name: string): string {
   return (name || '').trim().split(/\s+/)[0] || '';

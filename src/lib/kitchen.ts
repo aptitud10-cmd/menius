@@ -8,6 +8,7 @@
  * categoría), el ítem va a cocina: es preferible de más que perder un plato.
  */
 import { orderItemModLines, withTitle } from '@/lib/modifier-lines';
+import { shortOrderNumber as baseShortOrderNumber } from '@/lib/orders/short-number';
 
 export interface KitchenRawItem {
   qty: number;
@@ -95,11 +96,9 @@ export function counterItems(items: KitchenRawItem[] | undefined): { qty: number
     .map((item) => ({ qty: item.qty, name: itemName(item).name }));
 }
 
-/** "ORD-261113-021" → "021". */
+/** "ORD-261113-021" → "021" (sin número: "—"). Ver lib/orders/short-number. */
 export function shortOrderNumber(orderNumber: string | null | undefined): string {
-  if (!orderNumber) return '—';
-  const parts = orderNumber.split('-');
-  return parts[parts.length - 1] || orderNumber;
+  return baseShortOrderNumber(orderNumber, '—');
 }
 
 /** "Maria Gonzalez" → "Maria G." */

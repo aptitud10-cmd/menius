@@ -42,22 +42,16 @@
 - [x] Tipos TS (`src/types/index.ts`: `Printer`, `PrintJob`, `PRINTER_CLIENT_COLUMNS`)
 - [x] Migración aplicada en prod (SQL Editor, William). Test SQL corrido en prod: **ALL PRINTING TESTS PASSED** (BEGIN … ROLLBACK, 0 filas residuales). `schema.sql` / `security.sql` actualizados. Cron `print-jobs-requeue` corriendo OK
 
-## Sprint 2 — Número corto + render [M]
-- [ ] **Primero:** prueba mínima de satori + resvg + sharp en runtime nodejs, en un preview de Vercel (incluye `serverComponentsExternalPackages`). Si falla, se para y se revisa con William
-- [ ] Extraer `lib/orders/short-number.ts`. Lo importan email, seguimiento, `kitchen.ts` y las copias inline, sin cambio visual (CA-12)
-- [ ] `ticket-data` (`toTicketData` pura), `i18n`, `allergy`, `channel`, `render-ticket` según SPEC §6 (diseño aprobado por William, sin emojis)
-- [ ] Preview `/api/printing/preview/[orderId]`
-- [ ] Snapshots:
-  - [ ] pickup cash
-  - [ ] delivery cash
-  - [ ] delivery pagado
-  - [ ] online no pagado (VERIFY)
-  - [ ] dine-in
-  - [ ] programado
-  - [ ] reprint
-  - [ ] alergia
-  - [ ] ñ/tildes
-  - [ ] nota larga
+## Sprint 2 — Número corto + render [M] — código ✅, falta OK visual de William
+- [x] **Primero:** prueba de satori 0.63.2 + resvg 2.6.2 + sharp en runtime nodejs en un preview de Vercel → 200 `image/png`, 576 px, 1 bit, 600 ms en frío. La ruta temporal se borró
+- [x] Extraer `lib/orders/short-number.ts`. Lo usan email, seguimiento, `kitchen.ts`, Counter y repartidor (11 copias reemplazadas, sin cambio visual) (CA-12)
+- [x] `ticket-data` (`toTicketData` pura), `ticket-i18n`, `allergy`, `channel`, `render-png`, `render-ticket` según SPEC §6. Fonts: Inter 4.1 Bold/Black (OFL) en `src/lib/printing/fonts`
+- [x] Preview `GET /api/printing/preview/[orderId]` (dueño o tablet, solo su restaurante; `?kind=reprint`)
+- [x] Tests (`src/__tests__/printing-ticket.test.ts`): datos + render de los 10 casos + ticket de prueba. PNGs con `TICKET_PREVIEW_DIR=...`
+  - [x] pickup cash · delivery cash · delivery pagado · online no pagado (VERIFY) · dine-in · programado · reprint · alergia · ñ/tildes · nota larga
+- [ ] **Decisión de William:** `orders.total` incluye la propina, pero la propina no se imprime → con propina, Subtotal + Tax + Delivery ≠ TOTAL
+- [ ] OK visual de William
+> Nota de entorno: en Windows, vitest se tiene que correr desde un cwd con la unidad en mayúscula (`C:\…`). Con `c:\` carga dos instancias y dice "No test suite found".
 
 ## Sprint 3 — Endpoint CloudPRNT [M]
 - [ ] Leer la Protocol Guide en un navegador: nombre del parámetro del job en el GET y TLS (API §1.0)

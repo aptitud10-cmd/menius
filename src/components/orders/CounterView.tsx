@@ -29,6 +29,7 @@ import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
 import { NewOrdersAlert } from './counter/NewOrdersAlert';
 import { OrderSheet } from './counter/OrderSheet';
 import { OwnerPanelButton } from './counter/OwnerPanelButton';
+import { shortOrderNumber } from '@/lib/orders/short-number';
 import {
   CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast,
   type CounterViewMode, type StoreState,
@@ -642,7 +643,7 @@ export function CounterView({
     } catch (e) {
       err = e instanceof Error ? e.message : String(e);
     }
-    const num = order.order_number?.split('-').pop() ?? '';
+    const num = shortOrderNumber(order.order_number);
     const noPrinter = (err ?? '').startsWith('NO_PRINTER');
     showError(noPrinter
       ? (t.en ? `Ticket #${num} not printed: no printer set up (menu → Printer)` : `No se imprimió el #${num}: no hay impresora configurada (menú → Impresora)`)
@@ -805,7 +806,7 @@ export function CounterView({
       if (arrivedSeenRef.current.has(o.id)) continue;
       arrivedSeenRef.current.add(o.id);
       if (isLeaderRef.current) playNewOrderSound();
-      showSuccess(T.customerArrivedToast(o.customer_name?.split(' ')[0] || T.customer, o.order_number?.split('-').pop() ?? ''));
+      showSuccess(T.customerArrivedToast(o.customer_name?.split(' ')[0] || T.customer, shortOrderNumber(o.order_number)));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
@@ -823,7 +824,7 @@ export function CounterView({
       notesSeenRef.current.set(o.id, now);
       if (before === undefined || before === now) continue;
       if (isLeaderRef.current) playNewOrderSound();
-      showSuccess(T.notesChangedToast(o.order_number?.split('-').pop() ?? ''));
+      showSuccess(T.notesChangedToast(shortOrderNumber(o.order_number)));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
@@ -1019,7 +1020,7 @@ export function CounterView({
         setLastPrep(eff);
         try { localStorage.setItem('counter-last-prep', String(eff)); } catch { /* sin storage */ }
       }
-      showSuccess(T.accepted(order.order_number?.split('-').pop() ?? '', eff));
+      showSuccess(T.accepted(shortOrderNumber(order.order_number), eff));
       if (res.notification) showNotif(res.notification, order.id);
     } catch {
       updateOrderLocally(order.id, { status: order.status }); // revert
@@ -1074,7 +1075,7 @@ export function CounterView({
     const timer = setTimeout(run, 5000);
     pendingTimers.current.set(order.id, { timer, run });
 
-    const num = order.order_number?.split('-').pop() ?? '';
+    const num = shortOrderNumber(order.order_number);
     const msg = kind === 'ready' ? T.markedReady(num) : kind === 'serve' ? T.markedServed(num) : kind === 'dispatch' ? T.markedDispatched(num) : T.markedDelivered(num);
     showSuccess(msg, {
       label: T.undo,

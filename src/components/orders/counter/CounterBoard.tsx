@@ -5,6 +5,7 @@ import type { Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { KindTag } from './KindTag';
 import { customerFlagLabel, type CustomerFlag } from '@/lib/customer-incidents';
+import { shortOrderNumber } from '@/lib/orders/short-number';
 import {
   C, type CounterText, orderKind, shortName, minsSince, minsLeft, itemCount,
   orderAllergies, money, stripNoteLabel, scheduledWhen, waitingSince,
@@ -127,7 +128,7 @@ export function OrderCard({
   const isNew = order.status === 'pending';
   const allergies = orderAllergies(order);
   const action = primaryAction(order, T, acceptMins);
-  const shortNum = order.order_number?.split('-').pop() ?? '';
+  const shortNum = shortOrderNumber(order.order_number);
   const paidOnline = (order as { payment_status?: string }).payment_status === 'paid';
 
   return (

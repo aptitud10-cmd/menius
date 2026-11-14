@@ -9,6 +9,7 @@ import {
 import { C, money } from '@/components/orders/counter/ui';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { haversineKm } from '@/lib/orders/eta';
+import { shortOrderNumber } from '@/lib/orders/short-number';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 
 type GpsStatus = 'idle' | 'sharing' | 'error' | 'unsupported';
@@ -576,7 +577,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
   };
 
   const stepIndex = STEPS.indexOf(deliveryStep);
-  const shortNum = info?.orderNumber ? `#${info.orderNumber.split('-').pop()}` : '';
+  const shortNum = info?.orderNumber ? `#${shortOrderNumber(info.orderNumber)}` : '';
   const amount = info ? money(info.total, info.currency) : '';
   const itemCount = info ? info.items.reduce((n, i) => n + i.qty, 0) : 0;
   const proofReady = !!photoUrl || handedInPerson;

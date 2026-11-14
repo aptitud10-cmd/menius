@@ -23,6 +23,7 @@ import { C, money } from '@/components/orders/counter/ui';
 import { MAX_ROUTE_ORDERS } from '@/lib/orders/driver-route';
 import { DriverTrackClient, queueStatusAction, type RouteCtx } from './DriverTrackClient';
 import { QrScanner } from './QrScanner';
+import { shortOrderNumber } from '@/lib/orders/short-number';
 
 const STORE_KEY = 'menius-driver-route-v1';
 const ME_KEY = 'menius-driver-me-v1';
@@ -51,7 +52,7 @@ type Stop = {
   restaurantName: string | null;
 };
 
-const shortNum = (n: string | null | undefined) => (n ? `#${n.split('-').pop()}` : '#—');
+const shortNum = (n: string | null | undefined) => `#${shortOrderNumber(n, '—')}`;
 const isDone = (s: Stop | undefined) => !!s && (s.delivered || s.cancelled || !!s.gone);
 /** Sumar solo si los tickets anteriores se escanearon hace poco (mismo viaje). */
 const MERGE_WINDOW_MS = 30 * 60 * 1000;

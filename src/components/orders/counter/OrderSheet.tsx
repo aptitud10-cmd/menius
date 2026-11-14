@@ -8,6 +8,7 @@ import {
   minsSince, minsLeft, isClosed,
 } from './ui';
 import { KindTag } from './KindTag';
+import { shortOrderNumber } from '@/lib/orders/short-number';
 import { primaryAction, CustomerFlagLine, type PrimaryKind } from './CounterBoard';
 
 export interface SheetMoreActions {
@@ -37,7 +38,7 @@ export function OrderSheet({
   const [mins, setMins] = useState(acceptMins);
   const items = (order.items ?? []).map(parseItem);
   const action = primaryAction(order, T, mins);
-  const shortNum = order.order_number?.split('-').pop() ?? '';
+  const shortNum = shortOrderNumber(order.order_number);
   const paidOnline = (order as { payment_status?: string }).payment_status === 'paid';
   const isPrep = ['confirmed', 'preparing', 'almost_ready'].includes(order.status);
   const left = minsLeft(order);

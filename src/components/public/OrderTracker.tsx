@@ -13,6 +13,7 @@ import { MINUTES_PER_STOP_AHEAD } from '@/lib/orders/driver-route';
 import { isAwaitingOnlinePayment } from '@/lib/order-state';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import ShareReceiptButton from './ShareReceiptButton';
+import { shortOrderNumber } from '@/lib/orders/short-number';
 
 // Paleta del seguimiento = la de los emails al cliente, con modo oscuro
 // automático (prefers-color-scheme). Los valores claros son los del Counter.
@@ -552,7 +553,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const awaitingPayment = isAwaitingOnlinePayment(o);
   const refunded = isCancelled && o.payment_status === 'refunded';
   const autoClosed = Boolean(o.auto_closed);
-  const shortNum = String(o.order_number ?? '').split('-').pop();
+  const shortNum = shortOrderNumber(o.order_number as string | null | undefined);
   const driverName = String(o.driver_name ?? '').trim().split(' ')[0] || null;
   const fmtClock = (ms: number) => new Date(ms).toLocaleTimeString(dateLocale, { hour: 'numeric', minute: '2-digit' });
   const now = Date.now() + etaTick * 0;
