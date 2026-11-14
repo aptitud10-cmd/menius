@@ -50,7 +50,7 @@ Este spec **no reemplaza** esa impresión: le agrega CloudPRNT como camino princ
 3. **Nunca dos impresiones del mismo pedido.** Si el restaurante tiene una impresora CloudPRNT activa (`printers.is_active` con poll < 10 min), la counter app **desactiva y oculta** las 4 impresiones locales: `counter-auto-print`, `counter-print-on-arrival`, la regla de mesa con bridge nativo (`CounterView.tsx:1013`) y `menius-auto-print` (OrdersBoard/KDS). Su botón "Imprimir" crea un job `reprint` en la cola de CloudPRNT. Sin CloudPRNT activo, todo sigue como hoy.
    - La app se entera con `GET /api/tenant/printers/status`, consultado al montar y cada 2 min. No sirve un flag calculado en el server component, porque queda viejo.
 4. **No romper** el flujo actual de restaurantes que ya imprimen por Bluetooth.
-5. **Pendiente de confirmar** (William, en Buccaneer): marca y modelo de la impresora actual y si tiene puerto Ethernet. Si lo tiene, se puede cambiar ya a modo red desde la app como mejora inmediata.
+5. **Buccaneer (confirmado por William, 2026-11-14):** cada impresora que hay hoy en el counter está atada a la tablet de otra plataforma. No se puede reutilizar ninguna. MENIUS necesita su **propia** impresora: la mC-Print3 por CloudPRNT es el camino de Buccaneer, no hay respaldo Bluetooth. Requisito físico: un cable de red del router hasta el counter, porque la MCP31L no tiene WiFi.
 
 ## 2. Objetivos
 

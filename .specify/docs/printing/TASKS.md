@@ -22,7 +22,8 @@
 - [x] satori/resvg: no están instalados; resvg pesa ~4.4 MB en Linux. La prueba en Vercel se hace en el Sprint 2
 - [x] Matcher del middleware: ya excluye `api/`
 - [x] William: aprobar v3.1
-- [ ] William: comprar 1 mC-Print3 + averiguar la marca y modelo de la impresora actual de Buccaneer
+- [x] Impresora actual de Buccaneer: no se puede usar (cada una está atada a la tablet de otra plataforma). MENIUS va con impresora propia
+- [ ] William: confirmar que hay un cable de red cerca del counter y comprar 1 mC-Print3 MCP31L
 
 ## Sprint 1 — Datos [S] ✅ (en prod desde 2026-11-14)
 - [x] Migración `supabase/migrations/20261114_printing_cloudprnt.sql`: `printers`, `print_jobs`, índice único `orders (id, restaurant_id)`, FKs compuestas, índices
