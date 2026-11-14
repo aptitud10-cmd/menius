@@ -363,3 +363,50 @@ export interface CartItem {
   notes: string;
   lineTotal: number;
 }
+
+// ---- Impresión CloudPRNT (migración 20261114_printing_cloudprnt) ----
+export type PrinterPrintOn = 'accepted' | 'created';
+export type PrintJobKind = 'order' | 'reprint' | 'test';
+export type PrintJobStatus = 'queued' | 'sent' | 'printed' | 'failed' | 'cancelled';
+
+/** Fila de `printers` tal como la ve un cliente: `token_hash` está revocado. */
+export interface Printer {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  mac_address: string | null;
+  print_on: PrinterPrintOn;
+  /** 1 a 3. */
+  copies: number;
+  order_types: Array<'delivery' | 'pickup' | 'dine_in'>;
+  is_active: boolean;
+  last_poll_at: string | null;
+  last_asb_status: string | null;
+  last_client_info: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Columnas de `printers` que un cliente puede leer (select explícito, sin token_hash). */
+export const PRINTER_CLIENT_COLUMNS =
+  'id, restaurant_id, name, mac_address, print_on, copies, order_types, is_active, last_poll_at, last_asb_status, last_client_info, created_at, updated_at';
+
+export interface PrintJob {
+  id: string;
+  restaurant_id: string;
+  printer_id: string;
+  /** null en los tickets de prueba. */
+  order_id: string | null;
+  kind: PrintJobKind;
+  status: PrintJobStatus;
+  not_before: string | null;
+  /** Solo sube al reclamar el job (queued → sent). */
+  attempts: number;
+  copy_index: number;
+  media_type: string | null;
+  error_code: string | null;
+  requested_by: string | null;
+  created_at: string;
+  sent_at: string | null;
+  printed_at: string | null;
+}
