@@ -23,6 +23,7 @@ export interface TicketStrings {
   subtotal: string;
   delivery: string;
   discount: string;
+  tip: string;
   total: string;
   paid: string;
   collectCash: (amount: string) => string;
@@ -48,6 +49,7 @@ const en: TicketStrings = {
   subtotal: 'Subtotal',
   delivery: 'Delivery',
   discount: 'Discount',
+  tip: 'Tip',
   total: 'TOTAL',
   paid: 'PAID — DO NOT COLLECT',
   collectCash: (amount) => `COLLECT ${amount} CASH`,
@@ -73,6 +75,7 @@ const es: TicketStrings = {
   subtotal: 'Subtotal',
   delivery: 'Envío',
   discount: 'Descuento',
+  tip: 'Propina',
   total: 'TOTAL',
   paid: 'PAGADO — NO COBRAR',
   collectCash: (amount) => `COBRAR ${amount} EFECTIVO`,

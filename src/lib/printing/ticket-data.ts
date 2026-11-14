@@ -9,7 +9,8 @@
  *  - "pagado" SOLO si payment_status = 'paid'. Nunca se infiere del método.
  *  - Los totales salen de los campos guardados en orders; no se recalculan.
  *    (El subtotal es la suma de line_total, igual que el email al cliente.)
- *  - La propina no se imprime.
+ *  - La propina se imprime como línea "Tip" (orders.total ya la incluye: sin la
+ *    línea la suma no cierra y el COLLECT cobraría una propina invisible).
  */
 import { shortOrderNumber } from '@/lib/orders/short-number';
 import { orderItemModLines, withTitle } from '@/lib/modifier-lines';
@@ -59,7 +60,7 @@ export interface TicketData {
   items: TicketItem[];
   itemCount: number;
   orderNotes?: string;
-  totals: { subtotal: number; tax: number; deliveryFee: number; discount: number; total: number };
+  totals: { subtotal: number; tax: number; deliveryFee: number; discount: number; tip: number; total: number };
   payment: { kind: 'paid' | 'collect_cash' | 'verify'; amount: number };
   delivery?: { address: string; phone?: string; instructions?: string };
   /** Hora en que entró el pedido ("2:43 AM"). */
@@ -78,6 +79,7 @@ export interface TicketOrderRow {
   tax_amount?: number | string | null;
   delivery_fee?: number | string | null;
   discount_amount?: number | string | null;
+  tip_amount?: number | string | null;
   delivery_address?: string | null;
   delivery_instructions?: string | null;
   table_name?: string | null;
@@ -230,6 +232,7 @@ export function toTicketData(input: ToTicketDataInput): TicketData {
       tax: num(o.tax_amount),
       deliveryFee: num(o.delivery_fee),
       discount: num(o.discount_amount),
+      tip: num(o.tip_amount),
       total,
     },
     payment,

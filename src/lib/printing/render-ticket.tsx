@@ -91,6 +91,7 @@ function OrderTicket({ d }: { d: TicketData }) {
     d.totals.tax > 0 ? `${d.restaurant.taxLabel} ${amount(d.totals.tax, c)}` : null,
     d.totals.deliveryFee > 0 ? `${t.delivery} ${amount(d.totals.deliveryFee, c)}` : null,
     d.totals.discount > 0 ? `${t.discount} -${amount(d.totals.discount, c)}` : null,
+    d.totals.tip > 0 ? `${t.tip} ${amount(d.totals.tip, c)}` : null,
   ].filter(Boolean).join(' · ');
 
   const sideOfNumber = d.tableName ? `${t.table} ${d.tableName}` : d.readyAt ? `${t.ready} ${d.readyAt}` : null;

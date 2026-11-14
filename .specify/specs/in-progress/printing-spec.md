@@ -114,7 +114,7 @@ Si el pedido pasa a `cancelled`, sus jobs `queued` pasan a `cancelled` y nunca s
 - `delivery_instructions` en un recuadro con borde.
 - "N items — check bag" (suma de `qty`).
 - Bloque de pago según F9. En delivery en efectivo, "COLLECT" lo hace el repartidor.
-- **Propina: no se imprime** en ningún ticket. TOTAL = `orders.total`.
+- **Propina: se imprime como línea "Tip"** en los totales cuando es > 0 (decisión de William, 2026-11-14). `orders.total` ya la incluye: sin esa línea la suma no cerraba y el COLLECT en efectivo cobraba una propina invisible. TOTAL = `orders.total`.
 
 ## 4. Out of scope (fase 2)
 
@@ -166,7 +166,7 @@ Diseño aprobado por William (2026-11-14). Van **invertidos** (fondo negro): la 
   Note: no onions                         ← notas en recuadro con borde
   3 items — check bag
  ─────────────────────────────────────
-  Subtotal 56.82 · Tax 5.04 · Delivery …  ← sin propina
+  Subtotal 56.82 · Tax 5.04 · Delivery … · Tip …  ← Tip solo si > 0
   TOTAL                          61.86    ← 30 px
  ██ COLLECT $61.86 CASH              ██  ← INVERTIDO (F9)
  ─────────────────────────────────────
@@ -212,7 +212,7 @@ Diseño aprobado por William (2026-11-14). Van **invertidos** (fondo negro): la 
   - `payment_status = 'paid'` → "PAID — DO NOT COLLECT".
   - Efectivo no pagado → "COLLECT $X CASH".
   - Online no pagado → "VERIFY PAYMENT".
-- **CA-15:** Ningún ticket muestra propina. "Utensils" refleja `include_utensils`.
+- **CA-15:** Con propina, el ticket muestra la línea "Tip" y Subtotal + Tax + Delivery − Discount + Tip = TOTAL. Sin propina, no aparece. "Utensils" refleja `include_utensils`.
 - **CA-16:** Una nota con "peanut allergy" produce el banner ALLERGY.
 - **CA-17:** Con CloudPRNT activo, aceptar un pedido con la tablet abierta y `autoPrint` encendido produce **un solo** ticket (el de CloudPRNT).
 - **CA-18:** Un restaurante sin CloudPRNT sigue imprimiendo por Bluetooth como hoy, ahora con el layout de §6.

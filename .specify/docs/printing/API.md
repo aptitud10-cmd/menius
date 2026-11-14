@@ -100,7 +100,7 @@ type TicketData = {
            lines: { text: string; price: number; indent?: boolean; title?: boolean }[]; notes?: string }[];
   itemCount: number;
   orderNotes?: string;
-  totals: { subtotal: number; tax: number; deliveryFee?: number; discount?: number; total: number }; // sin tip
+  totals: { subtotal: number; tax: number; deliveryFee: number; discount: number; tip: number; total: number }; // tip se imprime si > 0 (v3.1)
   payment: { kind: 'paid' | 'collect_cash' | 'verify'; amount: number };   // SPEC F9
   delivery?: { address: string; phone?: string; instructions?: string };
   placedAt: string;

@@ -55,7 +55,7 @@ function input(over: Partial<ToTicketDataInput['order']> = {}, extra: Partial<To
 const CASES: Record<string, ToTicketDataInput> = {
   'pickup-cash': input(),
   'delivery-cash': input({
-    order_type: 'delivery', delivery_fee: 3.99, total: 65.85, customer_phone: '+17185550123',
+    order_type: 'delivery', delivery_fee: 3.99, tip_amount: 5, total: 70.85, customer_phone: '+17185550123',
     delivery_address: '45-12 102nd St, Apt 3B, East Elmhurst, NY 11369', delivery_instructions: 'Ring bell 2, leave at door',
   }),
   'delivery-paid': input({ order_type: 'delivery', payment_method: 'online', payment_status: 'paid', delivery_address: '45-12 102nd St', customer_phone: '7185550123' }),
@@ -101,10 +101,13 @@ describe('toTicketData', () => {
     expect(d.items[0].lines.map((l) => l.text)).toEqual(['Over Easy']);
   });
 
-  it('totales de orders, subtotal = suma de líneas, sin propina (CA-15)', () => {
+  it('totales de orders; con propina la suma cierra (CA-15)', () => {
     const d = toTicketData(CASES['delivery-cash']);
-    expect(d.totals).toEqual({ subtotal: 56.82, tax: 5.04, deliveryFee: 3.99, discount: 0, total: 65.85 });
-    expect(JSON.stringify(d)).not.toMatch(/tip/i);
+    expect(d.totals).toEqual({ subtotal: 56.82, tax: 5.04, deliveryFee: 3.99, discount: 0, tip: 5, total: 70.85 });
+    const { subtotal, tax, deliveryFee, discount, tip, total } = d.totals;
+    expect(Math.round((subtotal + tax + deliveryFee - discount + tip) * 100) / 100).toBe(total);
+    expect(d.payment).toEqual({ kind: 'collect_cash', amount: 70.85 });
+    expect(toTicketData(CASES['pickup-cash']).totals.tip).toBe(0);
     expect(d.includeUtensils).toBe(false);
   });
 

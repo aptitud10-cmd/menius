@@ -49,7 +49,7 @@
 - [x] Preview `GET /api/printing/preview/[orderId]` (dueño o tablet, solo su restaurante; `?kind=reprint`)
 - [x] Tests (`src/__tests__/printing-ticket.test.ts`): datos + render de los 10 casos + ticket de prueba. PNGs con `TICKET_PREVIEW_DIR=...`
   - [x] pickup cash · delivery cash · delivery pagado · online no pagado (VERIFY) · dine-in · programado · reprint · alergia · ñ/tildes · nota larga
-- [ ] **Decisión de William:** `orders.total` incluye la propina, pero la propina no se imprime → con propina, Subtotal + Tax + Delivery ≠ TOTAL
+- [x] Propina (decisión de William, 2026-11-14): se imprime la línea "Tip" cuando es > 0, así Subtotal + Tax + Delivery − Discount + Tip = TOTAL (CA-15 actualizado)
 - [ ] OK visual de William
 > Nota de entorno: en Windows, vitest se tiene que correr desde un cwd con la unidad en mayúscula (`C:\…`). Con `c:\` carga dos instancias y dice "No test suite found".
 

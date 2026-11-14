@@ -18,7 +18,7 @@ const logger = createLogger('printing');
 
 const ORDER_COLUMNS =
   'order_number, customer_name, customer_phone, order_type, payment_method, payment_status, total, ' +
-  'tax_amount, delivery_fee, discount_amount, delivery_address, delivery_instructions, table_name, ' +
+  'tax_amount, delivery_fee, discount_amount, tip_amount, delivery_address, delivery_instructions, table_name, ' +
   'include_utensils, scheduled_for, estimated_ready_minutes, prepared_at, created_at, notes';
 
 const RESTAURANT_COLUMNS = 'name, slug, timezone, currency, locale, tax_label, custom_domain, domain_verified';
