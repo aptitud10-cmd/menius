@@ -1992,18 +1992,18 @@ export function MenuShell({
       onClick={() => handleCategorySelect(id)}
       style={{ touchAction: "manipulation" }}
       className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
+        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
         id === POPULAR_ID
           ? isActive
-            ? "bg-amber-500 text-white"
-            : "bg-white/70 text-gray-500 active:bg-gray-200"
+            ? "bg-amber-500 text-amber-950"
+            : "bg-white/70 text-gray-700 active:bg-gray-200"
           : isActive
             ? "bg-gray-900 text-white"
-            : "bg-white/70 text-gray-500 active:bg-gray-200",
+            : "bg-white/70 text-gray-700 active:bg-gray-200",
       )}
     >
       {id === POPULAR_ID && (
-        <span className="text-[13px] leading-none">🔥</span>
+        <span className="text-[15px] leading-none">🔥</span>
       )}
       {label}
     </button>
@@ -2092,10 +2092,10 @@ export function MenuShell({
       }}
       style={{ touchAction: "manipulation" }}
       className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
+        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
         showFavs
           ? "bg-gray-900 text-white"
-          : "bg-white/70 text-gray-500 active:bg-gray-200",
+          : "bg-white/70 text-gray-700 active:bg-gray-200",
       )}
     >
       <Heart className={cn("w-3.5 h-3.5", showFavs ? "fill-white" : "")} />
@@ -2172,19 +2172,19 @@ export function MenuShell({
               }}
               style={{ touchAction: "manipulation" }}
               className={cn(
-                "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
+                "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
                 !activeCatFilter && !showFavs && !activeDiet
                   ? // Popular keeps its amber treatment (from the premium mobile pass)
                     // so it reads as a distinct section, not one more category.
                     popularProducts.length > 0
-                    ? "bg-amber-500 text-white"
+                    ? "bg-amber-500 text-amber-950"
                     : "bg-gray-900 text-white"
-                  : "bg-white/70 text-gray-500 active:bg-gray-200",
+                  : "bg-white/70 text-gray-700 active:bg-gray-200",
               )}
             >
               {popularProducts.length > 0 ? (
                 <>
-                  <span className="text-[13px] leading-none">🔥</span>
+                  <span className="text-[15px] leading-none">🔥</span>
                   {t.popularItems}
                 </>
               ) : (
@@ -2210,7 +2210,7 @@ export function MenuShell({
                 mainRef.current?.scrollTo({ top: 0, behavior: "smooth" })
               }
               style={{ touchAction: "manipulation" }}
-              className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-[7px] rounded-lg text-[13px] font-semibold whitespace-nowrap bg-brand-500 text-white shadow-sm active:bg-brand-600"
+              className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-[7px] rounded-lg text-[15px] font-semibold whitespace-nowrap bg-brand-500 text-[#04241E] shadow-sm active:bg-brand-600"
               aria-label={t.backToTop}
             >
               <ArrowUp className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -2311,7 +2311,9 @@ export function MenuShell({
         {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
         <div
           ref={mainRefCb}
-          className={`flex-1 overflow-y-auto overscroll-contain max-w-[1440px] w-full mx-auto ${cartCount > 0 ? "pb-[calc(5rem+env(safe-area-inset-bottom))] xl:pb-0" : "pb-[env(safe-area-inset-bottom)]"}`}
+          id="main-content"
+          tabIndex={-1}
+          className={`flex-1 overflow-y-auto overscroll-contain outline-none max-w-[1440px] w-full mx-auto ${cartCount > 0 ? "pb-[calc(5rem+env(safe-area-inset-bottom))] xl:pb-0" : "pb-[env(safe-area-inset-bottom)]"}`}
           style={
             {
               overscrollBehavior: "contain",
@@ -3164,13 +3166,13 @@ export function MenuShell({
                                           )}
                                     </h2>
                                     {isLocked && categoryHoursLabel(category) && (
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">
+                                      <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-600 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
                                         <Clock className="w-3 h-3" />
                                         {categoryHoursLabel(category)}
                                       </span>
                                     )}
                                     {!isLocked && (
-                                      <span className="text-[11px] font-medium text-gray-400 tabular-nums">
+                                      <span className="text-[13px] font-medium text-gray-600 tabular-nums">
                                         {items.length}
                                       </span>
                                     )}
@@ -3432,7 +3434,7 @@ export function MenuShell({
                                         />
                                       ))}
                                     </div>
-                                    <span className="text-[10px] text-gray-400">
+                                    <span className="text-[12px] text-gray-500">
                                       {relativeDate}
                                     </span>
                                   </div>
@@ -3656,10 +3658,10 @@ export function MenuShell({
                       <span className="flex items-center justify-center w-4 h-4 rounded-[4px] bg-gray-400 text-white text-[9px] font-black select-none">
                         M
                       </span>
-                      <span className="text-[11px] text-gray-400 font-normal">
+                      <span className="text-[12px] text-gray-500 font-normal">
                         {t.poweredBy}
                       </span>
-                      <span className="text-[11px] text-gray-500 font-semibold">
+                      <span className="text-[12px] text-gray-600 font-semibold">
                         MENIUS
                       </span>
                     </a>
@@ -3667,7 +3669,7 @@ export function MenuShell({
                       href="https://menius.app?ref=menu-footer-cta"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] text-gray-400 hover:text-gray-500 transition-colors"
+                      className="text-[12px] text-gray-500 hover:text-gray-700 transition-colors"
                     >
                       {t.createYourMenu} →
                     </a>
@@ -4387,7 +4389,7 @@ export function MenuShell({
 
                 {/* Category list — scrollable */}
                 <div className="overflow-y-auto flex-1 pb-4">
-                  <p className="px-6 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="px-6 py-2 text-[12px] font-bold text-gray-500 uppercase tracking-wider">
                     {t.exploreMenu}
                   </p>
                   {visibleCats.map((cat) => {
@@ -4464,7 +4466,7 @@ export function MenuShell({
                 </div>
 
                 <div className="px-6 pt-2 pb-3 flex-shrink-0">
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">
                     {t.jumpToSection}
                   </p>
                   <p className="font-bold text-[17px] text-gray-900 leading-tight mt-0.5">
@@ -4489,7 +4491,7 @@ export function MenuShell({
                       <span className="truncate">
                         {tName(category, locale, defaultLocale)}
                       </span>
-                      <span className="text-[13px] font-medium text-gray-400 tabular-nums flex-shrink-0">
+                      <span className="text-[13px] font-medium text-gray-500 tabular-nums flex-shrink-0">
                         {items.length}
                       </span>
                     </button>

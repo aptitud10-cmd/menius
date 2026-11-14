@@ -718,7 +718,7 @@ export function CustomizationSheet({
               {displayName}
             </h3>
             {displayDesc && (
-              <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+              <p className="text-[15px] text-gray-600 mt-1 leading-relaxed">
                 {displayDesc}
               </p>
             )}
@@ -730,7 +730,7 @@ export function CustomizationSheet({
                   return (
                     <span
                       key={tagId}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-[11px] font-medium text-gray-600"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-[12px] font-medium text-gray-700"
                     >
                       <span>{tag.emoji}</span>
                       {locale?.startsWith("en") ? tag.labelEn : tag.labelEs}
@@ -913,7 +913,7 @@ export function CustomizationSheet({
                     {getRuleLabel(group)}
                   </span>
                 ) : (
-                  <span className="text-[13px] text-gray-500">{getRuleLabel(group)}</span>
+                  <span className="text-[14px] text-gray-600">{getRuleLabel(group)}</span>
                 )}
                 {atMax && (
                   <span className="text-[12px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
@@ -922,7 +922,7 @@ export function CustomizationSheet({
                 )}
               </div>
               {standardHint && (
-                <p className="mt-1 text-[13px] text-gray-500">{standardHint}</p>
+                <p className="mt-1 text-[14px] text-gray-600">{standardHint}</p>
               )}
             </div>
             {group.display_type === "grid" ? (
@@ -953,7 +953,7 @@ export function CustomizationSheet({
                           : isDisabled
                             ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
                             : isOffHours
-                              ? "bg-gray-50 border-dashed border-gray-200 text-gray-400"
+                              ? "bg-gray-50 border-dashed border-gray-200 text-gray-500"
                               : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
                       )}
                     >
@@ -971,8 +971,8 @@ export function CustomizationSheet({
                       {hours && (
                         <span
                           className={cn(
-                            "text-[11px] font-medium",
-                            isSelected ? "text-[#04241E]/80" : "text-gray-400",
+                            "text-[13px] font-medium",
+                            isSelected ? "text-[#04241E]/80" : "text-gray-600",
                           )}
                         >
                           {hours}
@@ -985,8 +985,8 @@ export function CustomizationSheet({
                       {Number(opt.price_delta) !== 0 ? (
                         <span
                           className={cn(
-                            "text-[11px] font-medium",
-                            isSelected ? "text-[#04241E]/80" : "text-gray-400",
+                            "text-[13px] font-medium",
+                            isSelected ? "text-[#04241E]/80" : "text-gray-600",
                           )}
                         >
                           {Number(opt.price_delta) > 0 ? "+" : ""}
@@ -996,8 +996,8 @@ export function CustomizationSheet({
                         showsIncluded && (
                           <span
                             className={cn(
-                              "text-[10px] font-semibold uppercase tracking-wide",
-                              isSelected ? "text-[#04241E]/80" : "text-gray-400",
+                              "text-[11px] font-semibold uppercase tracking-wide",
+                              isSelected ? "text-[#04241E]/80" : "text-gray-500",
                             )}
                           >
                             {t.included}
@@ -1036,7 +1036,7 @@ export function CustomizationSheet({
                           : isDisabled
                             ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
                             : isOffHours
-                              ? "bg-gray-50 border-dashed border-gray-200 text-gray-400"
+                              ? "bg-gray-50 border-dashed border-gray-200 text-gray-500"
                               : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
                       )}
                     >
@@ -1073,8 +1073,8 @@ export function CustomizationSheet({
                           {hours && (
                             <span
                               className={cn(
-                                "ml-2 text-[12px] font-medium",
-                                isSelected ? "text-[#04241E]/80" : "text-gray-400",
+                                "ml-2 text-[13px] font-medium",
+                                isSelected ? "text-[#04241E]/80" : "text-gray-600",
                               )}
                             >
                               {hours}
@@ -1086,7 +1086,7 @@ export function CustomizationSheet({
                         <span
                           className={cn(
                             "text-sm font-semibold",
-                            isSelected ? "text-[#04241E]/80" : "text-gray-500",
+                            isSelected ? "text-[#04241E]/80" : "text-gray-600",
                           )}
                         >
                           {Number(opt.price_delta) > 0 ? "+" : ""}
@@ -1097,7 +1097,7 @@ export function CustomizationSheet({
                           <span
                             className={cn(
                               "text-[11px] font-semibold uppercase tracking-wide",
-                              isSelected ? "text-[#04241E]/80" : "text-gray-400",
+                              isSelected ? "text-[#04241E]/80" : "text-gray-500",
                             )}
                           >
                             {t.included}
@@ -1152,7 +1152,7 @@ export function CustomizationSheet({
           className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 resize-none transition-colors focus:outline-none focus:border-[#05c8a7] focus:ring-1 focus:ring-[#05c8a7]"
         />
         {notes.length > 150 && (
-          <p className="mt-1 text-[11px] text-gray-400 text-right tabular-nums">
+          <p className="mt-1 text-[12px] text-gray-500 text-right tabular-nums">
             {notes.length}/200
           </p>
         )}
@@ -1170,7 +1170,7 @@ export function CustomizationSheet({
             <span className="text-sm" aria-hidden>
               ✨
             </span>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+            <p className="text-[13px] font-bold text-gray-600 uppercase tracking-wider">
               {locale === "es" ? "Combiná tu pedido" : "Pair it with"}
             </p>
           </div>
@@ -1219,10 +1219,10 @@ export function CustomizationSheet({
                     </span>
                   </div>
                   <div className="p-2.5">
-                    <p className="text-[12px] font-medium text-gray-800 line-clamp-2 leading-tight mb-1">
+                    <p className="text-[14px] font-medium text-gray-900 line-clamp-2 leading-tight mb-1">
                       {tName(p, locale, defaultLocale)}
                     </p>
-                    <span className="text-[13px] font-semibold text-gray-700 tabular-nums">
+                    <span className="text-[14px] font-semibold text-gray-800 tabular-nums">
                       {fmtPrice(Number(p.price))}
                     </span>
                   </div>
@@ -1392,7 +1392,7 @@ export function CustomizationSheet({
                 >
                   {isEditing ? t.editItem : displayName}
                 </h2>
-                <p className="text-xs text-gray-400 font-medium tabular-nums">
+                <p className="text-[13px] text-gray-500 font-medium tabular-nums">
                   {fmtPrice(Number(product.price))}
                   {displayDesc && <span className="ml-2 text-gray-300">·</span>}
                   {displayDesc && (

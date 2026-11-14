@@ -121,19 +121,19 @@ export const ProductRow = memo(function ProductRow({
             </motion.span>
           )}
           {outOfStock && (
-            <span className="mt-1 text-[10px] font-bold text-ink-500 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
+            <span className="mt-1 text-[11px] font-bold text-ink-700 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
               {labelSoldOut}
             </span>
           )}
           {!outOfStock && product.is_new && (
-            <span className="mt-1 text-[10px] font-bold text-white bg-blue-500 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
+            <span className="mt-1 text-[11px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
               {t.productNew}
             </span>
           )}
         </div>
 
         {displayDesc && !outOfStock && (
-          <p className="text-xs text-ink-500 truncate mt-0.5 leading-snug">{displayDesc}</p>
+          <p className="text-[14px] text-ink-600 line-clamp-2 mt-0.5 leading-snug">{displayDesc}</p>
         )}
 
         <div className="flex items-center gap-2 mt-0.5">
@@ -147,15 +147,15 @@ export const ProductRow = memo(function ProductRow({
             </span>
           )}
           {!outOfStock && showDineInOnly && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-950 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-full leading-none">
+            <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-amber-950 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-full leading-none">
               <span aria-hidden>🍷</span>
               {t.dineInOnlyBadge}
             </span>
           )}
           {hasModifiers && !outOfStock && (
-            <span className="inline-flex items-center gap-0.5 text-[11px] text-ink-400 font-medium leading-none">
+            <span className="inline-flex items-center gap-0.5 text-[13px] text-ink-600 font-medium leading-none">
               {customizeLabel}
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </span>
           )}
         </div>
@@ -165,7 +165,7 @@ export const ProductRow = memo(function ProductRow({
           metadata line it read as a label for whatever followed it. */}
       <div className="flex flex-col items-end flex-shrink-0 leading-none">
         {hasModifiers && !outOfStock && (
-          <span className="text-[9px] font-semibold text-ink-400 uppercase tracking-wide leading-none mb-0.5">
+          <span className="text-[11px] font-semibold text-ink-600 uppercase tracking-wide leading-none mb-1">
             {t.fromPrice}
           </span>
         )}

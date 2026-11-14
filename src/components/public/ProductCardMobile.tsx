@@ -145,14 +145,14 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         {!outOfStock && (() => {
           const rank = product.popularity_rank;
           const orders7d = product.orders_last_7d ?? 0;
-          if (rank === 1) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-amber-500 to-yellow-400 shadow-sm">⭐ {t.popularityTop1}</span>;
-          if (rank != null && rank <= 3) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-red-500 to-orange-400 shadow-sm">🔥 Top {rank}</span>;
-          if (orders7d >= 10) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-red-500 to-orange-400 shadow-sm">🔥 {t.popularityOrders(orders7d)}</span>;
-          if (product.is_new) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none shadow-sm">{t.productNew}</span>;
+          if (rank === 1) return <span className="absolute top-2 left-2 text-[11px] font-bold text-amber-950 px-2 py-1 rounded-full leading-none bg-amber-300 shadow-sm">⭐ {t.popularityTop1}</span>;
+          if (rank != null && rank <= 3) return <span className="absolute top-2 left-2 text-[11px] font-bold text-white px-2 py-1 rounded-full leading-none bg-red-600 shadow-sm">🔥 Top {rank}</span>;
+          if (orders7d >= 10) return <span className="absolute top-2 left-2 text-[11px] font-bold text-white px-2 py-1 rounded-full leading-none bg-red-600 shadow-sm">🔥 {t.popularityOrders(orders7d)}</span>;
+          if (product.is_new) return <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-blue-600 px-2 py-1 rounded-full leading-none shadow-sm">{t.productNew}</span>;
           return null;
         })()}
         {!outOfStock && showDineInOnly && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-[10px] font-bold text-amber-950 bg-amber-100/95 border border-amber-300 px-2 py-0.5 rounded-full leading-none shadow-sm backdrop-blur-sm">
+          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-[11px] font-bold text-amber-950 bg-amber-100/95 border border-amber-300 px-2 py-0.5 rounded-full leading-none shadow-sm backdrop-blur-sm">
             <span aria-hidden>🍷</span>
             {t.dineInOnlyBadge}
           </span>
@@ -188,14 +188,14 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           {displayName}
         </h3>
         {tDesc(product, locale, defaultLocale) && !outOfStock && (
-          <p className="text-xs text-ink-600 line-clamp-1 mt-0.5 leading-snug">
+          <p className="text-[14px] text-ink-600 line-clamp-2 mt-0.5 leading-snug">
             {tDesc(product, locale, defaultLocale)}
           </p>
         )}
         {hasModifiers && !outOfStock && (
-          <span className="inline-flex items-center gap-0.5 text-xs text-ink-500 font-medium mt-1">
+          <span className="inline-flex items-center gap-0.5 text-[13px] text-ink-600 font-medium mt-1">
             {customizeLabel}
-            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </span>
         )}
         {(product.dietary_tags?.length ?? 0) > 0 && (
@@ -210,13 +210,13 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         <div className="flex items-center justify-between mt-auto pt-2.5">
           <div className="flex flex-col leading-none">
             {hasModifiers && !outOfStock && (
-              <span className="text-[10px] font-semibold text-ink-400 uppercase tracking-wide leading-none mb-0.5">{t.fromPrice}</span>
+              <span className="text-[11px] font-semibold text-ink-600 uppercase tracking-wide leading-none mb-1">{t.fromPrice}</span>
             )}
             <span className={cn('text-[17px] font-black tabular-nums leading-none', outOfStock ? 'text-ink-300 line-through' : 'text-ink-950')}>
               {fmtPrice(Number(product.price))}
             </span>
             {!outOfStock && product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price) && (
-              <span className="text-[11px] text-ink-400 line-through tabular-nums leading-none mt-0.5">
+              <span className="text-[12px] text-ink-600 line-through tabular-nums leading-none mt-1">
                 {fmtPrice(Number(product.compare_at_price))}
               </span>
             )}
