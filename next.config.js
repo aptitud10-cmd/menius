@@ -128,4 +128,9 @@ module.exports = withBundleAnalyzer(withSentryConfig(nextConfig, {
   disableLogger: true,
   tunnelRoute: '/monitoring',
   hideSourceMaps: true,
+  // Strips the SDK's own debug logging from the client bundle. We never set
+  // `debug: true`, so this is pure weight every menu visitor was downloading.
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
 }));

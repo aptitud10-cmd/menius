@@ -8,14 +8,19 @@ import { validateEnv } from "@/lib/env";
 import { SITE_URL, url } from "@/lib/site-url";
 
 validateEnv();
+// `subsets` only decides what is PRELOADED: next/font keeps every @font-face
+// (latin-ext included) and the browser fetches it by unicode-range the first
+// time a character needs it. Spanish and English (á é ñ ü ¿) live in "latin",
+// so preloading latin-ext too made every menu visit download ~2 extra font
+// files up front, competing with the cover photo on a 4G phone.
 const inter = Inter({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
 });
 
 const bricolage = Bricolage_Grotesque({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
   adjustFontFallback: false,
