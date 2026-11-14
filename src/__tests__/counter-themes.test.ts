@@ -64,6 +64,16 @@ describe('apariencias del Counter (Claro / Oscuro)', () => {
     expect(DARK_TOKENS.onCritical).toBe('#FFFFFF');
   });
 
+  for (const theme of SCREEN_THEMES) {
+    it(`${theme.name.es}: interruptor apagado y motivo de rechazo elegido se leen en el modal`, () => {
+      const t = theme.tokens;
+      // Riel apagado del interruptor (forma, no texto) contra el modal.
+      expect(contrast(t.lineStrong, t.raised)).toBeGreaterThanOrEqual(1.5);
+      // Motivo elegido: rojo suave al 12 % sobre el modal, texto tinta.
+      expect(contrast(t.ink, mix(t.raised, t.destructive, 0.12))).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+
   it('Oscuro: los botones grises se distinguen de la tarjeta y del fondo', () => {
     expect(contrast(DARK_TOKENS.fill, DARK_TOKENS.surface)).toBeGreaterThanOrEqual(1.5);
     expect(contrast(DARK_TOKENS.fill, DARK_TOKENS.bg)).toBeGreaterThanOrEqual(1.5);

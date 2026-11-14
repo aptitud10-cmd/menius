@@ -88,6 +88,8 @@ const ORDERS: Order[] = [
     id: 'o6', order_number: 'ORD-261110-010', status: 'out_for_delivery', customer_name: 'Rosa Diaz',
     order_type: 'delivery', delivery_address: '31-20 82nd St', total: 29.4, created_at: ago(35),
     driver_name: 'Carlos Mendez', driver_picked_up_at: ago(4),
+    // Foto de entrega de ejemplo, para ver el visor (PhotoViewer) en la vista previa.
+    delivery_photo_url: '/images/hero-phone-mockup.webp', driver_delivered_at: ago(1),
     items: [item('p10', 2, 'Chicken Wings', 11.0), item('p11', 1, 'Lemonade', 3.5)],
   } as Parameters<typeof order>[0]),
   order({
@@ -103,9 +105,10 @@ const ORDERS: Order[] = [
   }),
 ];
 
-export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; owner?: string; panel?: string } }) {
+export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; owner?: string; panel?: string; modal?: string } }) {
   // ?theme=midnight (oscuro; los ids viejos se mapean) · ?owner=1 (muestra el modo demo y el permiso de tablets)
   // · ?panel=1 (botón "Panel del dueño" al final del menú; sin owner=1 pide el PIN)
+  // · ?modal=deliver (aviso "el repartidor no retiró") · ?modal=history (historial con datos, se abre en Más)
   const theme = normalizeScreenThemeId(searchParams.theme);
   if (process.env.NODE_ENV === 'production') notFound();
   return (
@@ -119,6 +122,7 @@ export default function PreviewCounterPage({ searchParams }: { searchParams: { e
       restaurantLng={null}
       isDevice={!searchParams.owner}
       ownerPanel={!!searchParams.panel}
+      previewModal={searchParams.modal === 'deliver' || searchParams.modal === 'history' ? searchParams.modal : undefined}
       initialSettings={{ ...DEFAULT_COUNTER_SETTINGS, screenTheme: theme }}
       settingsLive={false}
       previewAlertIds={searchParams.alert ? ['o1', 'o2'] : undefined}

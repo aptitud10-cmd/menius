@@ -8,6 +8,7 @@ import {
   minsSince, minsLeft, isClosed,
 } from './ui';
 import { KindTag } from './KindTag';
+import { PhotoViewer } from './PhotoViewer';
 import { primaryAction, CustomerFlagLine, AllergyBlock, type PrimaryKind } from './CounterBoard';
 
 export interface SheetMoreActions {
@@ -34,6 +35,7 @@ export function OrderSheet({
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const [mins, setMins] = useState(acceptMins);
   const items = (order.items ?? []).map(parseItem);
   const action = primaryAction(order, T, mins);
@@ -70,12 +72,12 @@ export function OrderSheet({
               {order.scheduled_for && ` · ${T.scheduledFor(new Date(order.scheduled_for).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }))}`}
             </p>
           </div>
-          <button type="button" onClick={onPrint} className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
+          <button type="button" onClick={onPrint} aria-label={T.print} className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
             <Printer className="w-5 h-5" /> <span className="hidden sm:inline">{T.print}</span>
           </button>
           {moreItems.length > 0 && (
             <div className="relative">
-              <button type="button" aria-expanded={moreOpen} onClick={() => setMoreOpen((v) => !v)}
+              <button type="button" aria-expanded={moreOpen} aria-label={T.more} onClick={() => setMoreOpen((v) => !v)}
                 className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
                 <MoreHorizontal className="w-5 h-5" /> <span className="hidden sm:inline">{T.more}</span>
               </button>
@@ -100,7 +102,7 @@ export function OrderSheet({
               )}
             </div>
           )}
-          <button type="button" onClick={onClose} className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
+          <button type="button" onClick={onClose} aria-label={T.close} className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
             <X className="w-5 h-5" /> <span className="hidden sm:inline">{T.close}</span>
           </button>
         </header>
@@ -206,11 +208,11 @@ export function OrderSheet({
                   )}
                   {/* Prueba de entrega: si el cliente dice "no me llegó", acá está la foto. */}
                   {drv.delivery_photo_url && (
-                    <a href={drv.delivery_photo_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
-                      <span className="text-[13px] font-semibold" style={{ color: C.sub }}>{T.deliveryPhoto}</span>
+                    <button type="button" onClick={() => setPhotoOpen(true)} className="mt-2 block w-full text-left">
+                      <span className="text-[15px] font-semibold" style={{ color: C.sub }}>{T.deliveryPhoto}</span>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={drv.delivery_photo_url} alt={T.deliveryPhoto} className="mt-1 w-full max-h-48 object-cover rounded-lg" />
-                    </a>
+                    </button>
                   )}
                 </Box>
               )}
@@ -264,6 +266,10 @@ export function OrderSheet({
           </footer>
         )}
       </div>
+      {photoOpen && drv.delivery_photo_url && (
+        <PhotoViewer src={drv.delivery_photo_url} T={T} driver={order.driver_name}
+          deliveredAt={drv.driver_delivered_at} address={order.delivery_address} onClose={() => setPhotoOpen(false)} />
+      )}
     </div>
   );
 }

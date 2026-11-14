@@ -1,12 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Lock, Play, Sparkles, X } from 'lucide-react';
+import { Check, Lock, Play, Sparkles, X } from 'lucide-react';
 import { C, type CounterText } from './ui';
 import { previewTheme, previewVolume } from './audio';
-import {
-  SOUND_THEMES, RECOMMENDED_SOUND_THEMES, SOUND_CATEGORY_LABEL, type SoundTheme, type SoundThemeId,
-} from '@/lib/sound-themes';
+import { SOUND_THEMES, type SoundTheme, type SoundThemeId } from '@/lib/sound-themes';
 import { SCREEN_THEMES, type ScreenTheme, type ScreenThemeId } from '@/lib/counter-themes';
 import { URGENT_CHOICES, type CounterSettings, type CounterSettingsPatch } from '@/lib/counter-settings';
 import type { SaveCounterSettingsResult } from '@/lib/actions/counter-settings';
@@ -41,7 +39,6 @@ export function CustomizePanel({
 
   // Sonido
   const [sound, setSound] = useState<SoundThemeId>(settings.soundTheme);
-  const [allSounds, setAllSounds] = useState(false);
   const stopPreview = useRef<(() => void) | null>(null);
 
   // Pantalla: Claro u Oscuro
@@ -126,31 +123,10 @@ export function CustomizePanel({
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 flex flex-col gap-5 [&>*]:shrink-0">
           {tab === 'sound' && (
             <>
-              <SoundCard theme={SOUND_THEMES[0]} T={T} featured selected={sound === SOUND_THEMES[0].id} inUse={settings.soundTheme === SOUND_THEMES[0].id}
-                onPick={() => { setSound(SOUND_THEMES[0].id); void listen(SOUND_THEMES[0].id); }} />
-              <Section title={T.recommended}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {RECOMMENDED_SOUND_THEMES.map((id) => {
-                    const st = SOUND_THEMES.find((x) => x.id === id)!;
-                    return <SoundCard key={id} theme={st} T={T} selected={sound === id} inUse={settings.soundTheme === id}
-                      onPick={() => { setSound(id); void listen(id); }} />;
-                  })}
-                </div>
-              </Section>
-              <button type="button" onClick={() => setAllSounds((v) => !v)}
-                className="h-14 rounded-2xl font-semibold text-[16px] inline-flex items-center justify-center gap-2" style={{ background: C.fill, color: C.ink }}>
-                {allSounds ? T.hideAllSounds : T.seeAllSounds}
-                <ChevronDown className={`w-5 h-5 transition-transform ${allSounds ? 'rotate-180' : ''}`} />
-              </button>
-              {allSounds && (['premium', 'classical', 'cultural', 'famous'] as const).map((cat) => (
-                <Section key={cat} title={SOUND_CATEGORY_LABEL[cat][lang]}>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {SOUND_THEMES.filter((x) => x.category === cat).map((st) => (
-                      <SoundCard key={st.id} theme={st} T={T} selected={sound === st.id} inUse={settings.soundTheme === st.id}
-                        onPick={() => { setSound(st.id); void listen(st.id); }} />
-                    ))}
-                  </div>
-                </Section>
+              {/* Cuatro sonidos, uno por tipo de local; Firma (el oficial) arriba y destacado. */}
+              {SOUND_THEMES.map((st, i) => (
+                <SoundCard key={st.id} theme={st} lang={lang} T={T} featured={i === 0} selected={sound === st.id} inUse={settings.soundTheme === st.id}
+                  onPick={() => { setSound(st.id); void listen(st.id); }} />
               ))}
             </>
           )}
@@ -255,8 +231,8 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: 'accent' |
   );
 }
 
-function SoundCard({ theme, T, selected, inUse, featured = false, onPick }: {
-  theme: SoundTheme; T: CounterText; selected: boolean; inUse: boolean; featured?: boolean; onPick: () => void;
+function SoundCard({ theme, lang, T, selected, inUse, featured = false, onPick }: {
+  theme: SoundTheme; lang: 'es' | 'en'; T: CounterText; selected: boolean; inUse: boolean; featured?: boolean; onPick: () => void;
 }) {
   return (
     <button type="button" onClick={onPick} aria-pressed={selected}
@@ -269,13 +245,12 @@ function SoundCard({ theme, T, selected, inUse, featured = false, onPick }: {
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-2 flex-wrap">
           <span className={`font-semibold ${featured ? 'text-[19px]' : 'text-[16px]'}`}>
-            {/* El badge ya dice "Oficial": sin el "(oficial)" del catálogo. */}
-            {featured ? theme.name.replace(/\s*\(oficial\)\s*$/i, '') : theme.name}
+            {theme.name[lang]}
           </span>
           {featured && <Badge tone="dark">{T.official}</Badge>}
           {inUse && <Badge tone="accent"><Check className="w-3.5 h-3.5" strokeWidth={2.6} />{T.inUse}</Badge>}
         </span>
-        <span className="block text-[14px] leading-snug mt-0.5" style={{ color: C.sub }}>{theme.description}</span>
+        <span className="block text-[14px] leading-snug mt-0.5" style={{ color: C.sub }}>{theme.description[lang]}</span>
       </span>
     </button>
   );

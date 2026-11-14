@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync } from 'fs';
 import path from 'path';
 import { loopIntervalMs, ringKind, pickAcceptedIndex, RING_EVERY_MS } from '@/components/orders/counter/audio';
-import { SOUND_THEMES, SOUND_THEME_IDS, soundUrls, FALLBACK_SOUNDS, RECOMMENDED_SOUND_THEMES } from '@/lib/sound-themes';
+import { SOUND_THEMES, SOUND_THEME_IDS, soundUrls, FALLBACK_SOUNDS } from '@/lib/sound-themes';
 import { rowToSettings, counterSettingsPatchSchema, patchToRow, DEFAULT_COUNTER_SETTINGS } from '@/lib/counter-settings';
 import { demoScript, isDemoId } from '@/components/orders/counter/demo';
 
@@ -45,10 +45,15 @@ describe('motor de audio del Counter', () => {
     expect(existsSync(path.join(pub, FALLBACK_SOUNDS.accepted))).toBe(true);
   });
 
-  it('firma es el default y los recomendados existen', () => {
+  it('quedan 4 sonidos, firma es el default y va primero', () => {
+    expect(SOUND_THEME_IDS).toEqual(['firma', 'aurora', 'diner', 'cristal']);
     expect(SOUND_THEMES[0].id).toBe('firma');
     expect(DEFAULT_COUNTER_SETTINGS.soundTheme).toBe('firma');
-    for (const id of RECOMMENDED_SOUND_THEMES) expect(SOUND_THEME_IDS).toContain(id);
+  });
+
+  it('un sonido borrado guardado en la base vuelve a firma, y ya no se puede guardar', () => {
+    expect(rowToSettings({ sound_theme: 'cucaracha' }).soundTheme).toBe('firma');
+    expect(counterSettingsPatchSchema.safeParse({ soundTheme: 'mozart' }).success).toBe(false);
   });
 });
 

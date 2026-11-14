@@ -58,7 +58,7 @@ export function CounterTopBar({
   return (
     <header className="flex-none flex items-center gap-2 sm:gap-3 px-3 sm:px-5 min-h-[72px]" style={{ background: C.bg, paddingTop: 'env(safe-area-inset-top)' }}>
       {view !== 'board' ? (
-        <button type="button" onClick={() => onView('board')} className={btn} style={idle}>
+        <button type="button" onClick={() => onView('board')} className={btn} style={idle} aria-label={T.backToBoard}>
           <ArrowLeft className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden md:inline">{T.backToBoard}</span>
         </button>
       ) : (
@@ -67,14 +67,14 @@ export function CounterTopBar({
       <StatusPill state={state} T={T} onClick={onStatus} />
       <span className="flex-1 min-w-0" />
       {(scheduledCount > 0 || view === 'scheduled') && (
-        <button type="button" onClick={() => onView('scheduled')} className={btn}
+        <button type="button" onClick={() => onView('scheduled')} className={btn} aria-label={`${T.scheduled} ${scheduledCount}`}
           style={view === 'scheduled' ? active : idle}>
           <CalendarClock className="w-5 h-5" strokeWidth={2.2} />
           <span className="hidden lg:inline">{T.scheduled}</span>
           <span className="tabular-nums">{scheduledCount}</span>
         </button>
       )}
-      <button type="button" onClick={() => onView('history')} className={btn}
+      <button type="button" onClick={() => onView('history')} className={btn} aria-label={T.history}
         style={view === 'history' ? active : idle}>
         <History className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.history}</span>
       </button>
@@ -83,7 +83,7 @@ export function CounterTopBar({
           <Palette className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.customize}</span>
         </button>
       )}
-      <button type="button" onClick={onMenu} className={btn} style={idle}>
+      <button type="button" onClick={onMenu} className={btn} style={idle} aria-label={T.menu}>
         <MenuIcon className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.menu}</span>
       </button>
     </header>
