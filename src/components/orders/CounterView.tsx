@@ -5,7 +5,7 @@ import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
-  Wifi, WifiOff, ChevronRight, ChevronDown, User, Settings2, Calendar, Plus, Ban, BellOff, Palette,
+  Wifi, WifiOff, ChevronRight, ChevronDown, User, Settings2, Calendar, Plus, Ban, BellOff, Palette, Wallet,
 } from 'lucide-react';
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
@@ -1703,38 +1703,35 @@ export function CounterView({
             style={{ background: C.raised, color: C.ink, boxShadow: `1px 0 0 ${C.raisedEdge}, 24px 0 48px rgba(0,0,0,.28)`, paddingTop: 'env(safe-area-inset-top)' }}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--kds-line)]">
               <div>
-                <p className="text-base font-bold text-[color:var(--kds-ink)]">{restaurantName}</p>
+                <p className="text-[19px] font-bold tracking-[-0.01em] text-[color:var(--kds-ink)]">{restaurantName}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className={cn('w-2 h-2 rounded-full', !isPaused && 'animate-pulse')} style={{ background: isPaused ? C.warnBar : C.status }} />
-                  <span className="text-xs font-semibold text-[color:var(--kds-sub)]">
+                  <span className="text-[15px] font-medium text-[color:var(--kds-sub)]">
                     {isPaused ? `${t.paused_status} (${pauseLeftMins} min)` : t.online_status}
                   </span>
                 </div>
               </div>
-              <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg text-[color:var(--kds-sub)] hover:text-[color:var(--kds-ink)] hover:bg-[var(--kds-fill)]">
+              <button onClick={() => setSidebarOpen(false)} aria-label={T.close} className="w-11 h-11 -mr-1.5 rounded-full inline-flex items-center justify-center" style={{ background: C.fill, color: C.ink }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
 
               {/* Pedidos de esta tablet */}
               <SidebarSection title={t.en ? 'Orders on this tablet' : 'Pedidos en esta tablet'} icon={<Bell className="w-4 h-4" />}>
-                <label className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] cursor-pointer">
-                  <div className="min-w-0">
-                    <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Auto-accept orders' : 'Aceptar pedidos solos'}</span>
-                    <p className="text-[13px] text-[color:var(--kds-sub)] mt-0.5">{t.en ? 'After 30 s, with the default time. Turn on in one tablet only.' : 'A los 30 s, con el tiempo por defecto. Actívalo en una sola tablet.'}</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={autoAcceptOn}
-                    onChange={e => {
-                      setAutoAcceptOn(e.target.checked);
-                      try { localStorage.setItem('counter-auto-accept', String(e.target.checked)); } catch { /* sin storage */ }
+                <div className="px-3 rounded-xl border border-[color:var(--kds-line)]">
+                  <ToggleRow
+                    label={t.en ? 'Auto-accept orders' : 'Aceptar pedidos solos'}
+                    desc={t.en ? 'After 30 s, with the default time. Turn on in one tablet only.' : 'A los 30 s, con el tiempo por defecto. Actívalo en una sola tablet.'}
+                    on={autoAcceptOn}
+                    onChange={() => {
+                      const v = !autoAcceptOn;
+                      setAutoAcceptOn(v);
+                      try { localStorage.setItem('counter-auto-accept', String(v)); } catch { /* sin storage */ }
                     }}
-                    style={{ accentColor: C.accent, width: 22, height: 22 }}
                   />
-                </label>
+                </div>
                 <button
                   onClick={() => {
                     const bridge = getCounterAppBridge();
@@ -1742,59 +1739,51 @@ export function CounterView({
                     else setPrinterModalOpen(true);
                     setSidebarOpen(false);
                   }}
-                  className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+                  className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
                 >
-                  <Printer className="w-4 h-4 text-[color:var(--kds-sub)]" />
-                  <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
+                  <Printer className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                  <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
                 </button>
                 {/* Sonido y colores: se usa poco, vive en el menú y no en la barra de arriba (Pedro 2026-11-14). */}
                 <button
                   onClick={() => { setSidebarOpen(false); setCustomizeOpen(true); }}
-                  className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+                  className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
                 >
-                  <Palette className="w-4 h-4 text-[color:var(--kds-sub)]" />
-                  <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{T.customize}</span>
+                  <Palette className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                  <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{T.customize}</span>
                 </button>
                 {!tabletMode && !isDevice && (
-                  <a href="/app/counter/tablet" className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left">
-                    <Settings2 className="w-4 h-4 text-[color:var(--kds-sub)]" />
-                    <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Full-screen tablet mode' : 'Modo tablet a pantalla completa'}</span>
+                  <a href="/app/counter/tablet" className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left">
+                    <Settings2 className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                    <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Full-screen tablet mode' : 'Modo tablet a pantalla completa'}</span>
                   </a>
                 )}
               </SidebarSection>
 
               {/* Auto-print */}
               <SidebarSection title={t.autoPrint} icon={<Printer className="w-4 h-4" />}>
-                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[color:var(--kds-line)] cursor-pointer">
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium text-[color:var(--kds-ink)]">{t.autoPrint}</span>
-                    <p className="text-[10px] text-[color:var(--kds-sub)] mt-0.5">{t.en ? 'Print when accepting' : 'Imprimir al aceptar'}</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={autoPrint}
-                    onChange={e => {
-                      setAutoPrint(e.target.checked);
-                      localStorage.setItem('counter-auto-print', String(e.target.checked));
+                <div className="px-3 rounded-xl border border-[color:var(--kds-line)]">
+                  <ToggleRow
+                    label={t.autoPrint}
+                    desc={t.en ? 'Print when accepting' : 'Imprimir al aceptar'}
+                    on={autoPrint}
+                    onChange={() => {
+                      const v = !autoPrint;
+                      setAutoPrint(v);
+                      try { localStorage.setItem('counter-auto-print', String(v)); } catch { /* sin storage */ }
                     }}
-                    style={{ accentColor: C.accent, width: 18, height: 18 }}
                   />
-                </label>
-                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[color:var(--kds-line)] cursor-pointer mt-1">
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium text-[color:var(--kds-ink)]">{t.en ? 'Print on arrival' : 'Imprimir al recibir'}</span>
-                    <p className="text-[10px] text-[color:var(--kds-sub)] mt-0.5">{t.en ? 'Instant print when order arrives' : 'Ticket inmediato al llegar la orden'}</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={printOnArrival}
-                    onChange={e => {
-                      setPrintOnArrival(e.target.checked);
-                      localStorage.setItem('counter-print-on-arrival', String(e.target.checked));
+                  <ToggleRow
+                    label={t.en ? 'Print on arrival' : 'Imprimir al recibir'}
+                    desc={t.en ? 'Instant print when order arrives' : 'Ticket inmediato al llegar la orden'}
+                    on={printOnArrival}
+                    onChange={() => {
+                      const v = !printOnArrival;
+                      setPrintOnArrival(v);
+                      try { localStorage.setItem('counter-print-on-arrival', String(v)); } catch { /* sin storage */ }
                     }}
-                    style={{ accentColor: C.accent, width: 18, height: 18 }}
                   />
-                </label>
+                </div>
               </SidebarSection>
 
               {/* 86 / Stock */}
@@ -1804,23 +1793,23 @@ export function CounterView({
                     <span className="w-4 h-4 border-2 border-[color:var(--kds-line)] border-t-[color:var(--kds-accent)] rounded-full animate-spin" />
                   </div>
                 ) : stockProducts.length === 0 ? (
-                  <p className="text-xs text-[color:var(--kds-sub)] text-center py-2">{t.en ? 'No products found' : 'Sin productos'}</p>
+                  <p className="text-[15px] text-[color:var(--kds-sub)] text-center py-2">{t.en ? 'No products found' : 'Sin productos'}</p>
                 ) : (
-                  <div className="space-y-1 max-h-56 overflow-y-auto">
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
                     {stockProducts.map(p => (
                       <button
                         key={p.id}
                         onClick={() => toggleStock(p.id, p.in_stock)}
                         disabled={stockUpdating === p.id}
                         className={cn(
-                          'w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-colors text-left',
+                          'w-full flex items-center justify-between px-3 min-h-[48px] rounded-xl border transition-colors text-left',
                           p.in_stock
                             ? 'border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)]'
                             : 'border-[color:var(--kds-line)] bg-[var(--kds-fill)]'
                         )}
                       >
-                        <span className={cn('text-sm font-medium truncate', p.in_stock ? 'text-[color:var(--kds-ink)]' : 'line-through')} style={p.in_stock ? undefined : { color: C.destructive }}>{p.name}</span>
-                        <span className="flex-shrink-0 ml-2 text-[12px] font-bold px-1.5 py-0.5 rounded"
+                        <span className={cn('text-[16px] font-medium truncate', p.in_stock ? 'text-[color:var(--kds-ink)]' : 'line-through')} style={p.in_stock ? undefined : { color: C.destructive }}>{p.name}</span>
+                        <span className="flex-shrink-0 ml-2 text-[15px] font-bold tabular-nums"
                           style={{ color: p.in_stock ? C.accentText : C.destructive }}>
                           {stockUpdating === p.id ? '…' : p.in_stock ? (t.en ? 'OK' : 'OK') : '86'}
                         </span>
@@ -1833,11 +1822,11 @@ export function CounterView({
               {/* Today summary */}
               <SidebarSection title={t.todaySummary} icon={<History className="w-4 h-4" />}>
                 <div className="px-3 py-3 rounded-xl bg-[var(--kds-fill)] space-y-1">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-[16px]">
                     <span className="text-[color:var(--kds-sub)]">{t.todayOrders}</span>
                     <span className="font-bold text-[color:var(--kds-ink)]">{todayOrdersCount}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-[16px]">
                     <span className="text-[color:var(--kds-sub)]">{t.en ? 'Sales' : 'Ventas'}</span>
                     <span className="font-bold text-[color:var(--kds-ink)]">{fmt(todayRevenue, currency)}</span>
                   </div>
@@ -1845,16 +1834,16 @@ export function CounterView({
               </SidebarSection>
 
               {/* Cash Register / Shift */}
-              <SidebarSection title={t.shiftTitle} icon={<span className="text-base">💰</span>}>
+              <SidebarSection title={t.shiftTitle} icon={<Wallet className="w-4 h-4" />}>
                 {activeShift ? (
                   <div className="space-y-2">
                     <div className="px-3 py-3 rounded-xl bg-[var(--kds-fill)] space-y-1">
-                      <p className="text-xs font-semibold flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: C.status }} />{t.shiftOpened} · {shiftDuration}</p>
-                      <p className="text-xs text-[color:var(--kds-sub)]">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</p>
+                      <p className="text-[16px] font-semibold flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ background: C.status }} />{t.shiftOpened} · {shiftDuration}</p>
+                      <p className="text-[15px] text-[color:var(--kds-sub)]">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</p>
                     </div>
                     <button
                       onClick={() => { setShiftCloseCash(''); setShiftNotes(''); setShiftModal('close'); }}
-                      className="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                      className="w-full h-[52px] rounded-xl text-[17px] font-semibold transition-colors"
                       style={{ background: C.fill, color: C.destructive }}
                     >
                       {t.shiftClose}
@@ -1863,7 +1852,7 @@ export function CounterView({
                 ) : (
                   <button
                     onClick={() => { setShiftOpenCash('0'); setShiftModal('open'); }}
-                    className="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                    className="w-full h-[52px] rounded-xl text-[17px] font-semibold transition-colors"
                     style={{ background: C.accent, color: C.onAccent }}
                   >
                     {t.shiftOpen}
@@ -1881,10 +1870,10 @@ export function CounterView({
                 <SidebarSection title={t.en ? 'This tablet' : 'Esta tablet'} icon={<Settings2 className="w-4 h-4" />}>
                   <button
                     onClick={() => getCounterAppBridge()?.openPrinterSettings?.()}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
                   >
-                    <Printer className="w-4 h-4 text-[color:var(--kds-sub)]" />
-                    <span className="text-sm font-medium text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
+                    <Printer className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                    <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
                   </button>
                   {/* Two taps instead of confirm(): JS dialogs need a WebChromeClient the
                       app doesn't install, and a stray tap must not unpair the till. */}
@@ -1902,7 +1891,7 @@ export function CounterView({
                         .catch(() => { /* offline: the local wipe still happens */ })
                         .finally(() => getCounterAppBridge()?.disconnectDevice?.());
                     }}
-                    className="w-full mt-1 py-3 rounded-xl text-sm font-semibold transition-colors"
+                    className="w-full mt-2 h-[52px] rounded-xl text-[17px] font-semibold transition-colors"
                     style={confirmDisconnect ? { background: C.critical, color: C.onCritical } : { background: C.fill, color: C.destructive }}
                   >
                     {confirmDisconnect
@@ -2487,7 +2476,7 @@ function SidebarSection({
     <div>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[color:var(--kds-sub)]">{icon}</span>
-        <p className="text-xs font-bold text-[color:var(--kds-sub)]">{title}</p>
+        <p className="text-[15px] font-semibold text-[color:var(--kds-sub)]">{title}</p>
       </div>
       {children}
     </div>

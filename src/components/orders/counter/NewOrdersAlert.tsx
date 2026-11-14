@@ -6,7 +6,7 @@ import {
   C, type CounterText, PREP_CHOICES, money, scheduledWhen, parseItem, isAllergyText, stripNoteLabel,
 } from './ui';
 import { KindTag } from './KindTag';
-import { AllergyBlock } from './CounterBoard';
+import { AllergyBlock, CustomerFlagLine } from './CounterBoard';
 
 /**
  * Una sola alerta para todos los pedidos que llegan (estilo Uber, pero con el
@@ -148,6 +148,9 @@ function AlertBody({
         {order.delivery_address && (
           <p className="-mt-1 text-[18px] min-[880px]:text-[20px] font-medium leading-snug" style={onBg(C.sub)}>{order.delivery_address}</p>
         )}
+
+        {/* "Ojo: su último pedido no lo recibió": se decide aceptar acá, no en la tarjeta. */}
+        <CustomerFlagLine order={order} T={T} size="lg" />
 
         {order.notes?.trim() && (isAllergyText(order.notes)
           ? <AllergyBlock T={T} text={order.notes} size="lg" />

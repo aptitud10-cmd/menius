@@ -98,13 +98,16 @@ function DriverLine({ order, T, routeStop }: { order: Order; T: CounterText; rou
  * Cliente marcado (customer-incidents): un pedido anterior no lo recibió o no
  * lo pagó. El restaurante decide si llamar, aceptar o rechazar.
  */
-export function CustomerFlagLine({ order, T }: { order: Order; T: CounterText }) {
+export function CustomerFlagLine({ order, T, size = 'md' }: { order: Order; T: CounterText; size?: 'md' | 'lg' }) {
   const flag = (order as Order & { customer_flag?: CustomerFlag | null }).customer_flag;
   if (!flag || flag.incident_count <= 0 || order.status === 'cancelled') return null;
+  const lg = size === 'lg';
   return (
-    <p className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[16px] font-semibold leading-snug"
-      style={{ background: C.warnBg, color: C.warnText, boxShadow: `inset 3px 0 0 ${C.warnBar}` }}>
-      <AlertTriangle className="w-[18px] h-[18px] flex-none" strokeWidth={2.4} aria-hidden />
+    <p className={lg
+      ? 'flex items-center gap-2.5 rounded-[14px] px-4 py-3 text-[18px] min-[880px]:text-[19px] font-semibold leading-snug'
+      : 'flex items-center gap-2 rounded-xl px-3 py-2.5 text-[16px] font-semibold leading-snug'}
+      style={{ background: C.warnBg, color: C.warnText, boxShadow: `inset ${lg ? 4 : 3}px 0 0 ${C.warnBar}` }}>
+      <AlertTriangle className={lg ? 'w-[22px] h-[22px] flex-none' : 'w-[18px] h-[18px] flex-none'} strokeWidth={2.4} aria-hidden />
       <span className="min-w-0">{customerFlagLabel(flag, T.locale.startsWith('en'))}</span>
     </p>
   );

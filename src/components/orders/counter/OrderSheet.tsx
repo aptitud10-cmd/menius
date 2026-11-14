@@ -61,10 +61,11 @@ export function OrderSheet({
 
       <div className="relative h-full w-full min-[880px]:w-[min(820px,90vw)] flex flex-col" style={{ background: C.bg, color: C.ink, boxShadow: `-1px 0 0 ${C.raisedEdge}, -24px 0 48px rgba(0,0,0,.28)` }}>
         {/* Encabezado */}
-        <header className="flex-none flex items-center gap-3 px-5 min-h-[80px]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <header className="flex-none flex items-center gap-2 sm:gap-3 px-4 sm:px-5 pb-2 sm:pb-0 min-h-[80px]" style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h2 className="font-bold text-[26px] leading-tight tracking-[-0.02em] truncate">{order.customer_name || '—'}</h2>
+              {/* En el celular el nombre baja a dos líneas en vez de cortarse ("Maria Gon…"). */}
+              <h2 className="font-bold text-[22px] sm:text-[26px] leading-tight tracking-[-0.02em] line-clamp-2 sm:line-clamp-1 break-words">{order.customer_name || '—'}</h2>
               <KindTag order={order} T={T} />
             </div>
             <p className="text-[16px] font-medium tabular-nums" style={{ color: C.sub }}>
@@ -72,13 +73,13 @@ export function OrderSheet({
               {order.scheduled_for && ` · ${T.scheduledFor(new Date(order.scheduled_for).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }))}`}
             </p>
           </div>
-          <button type="button" onClick={onPrint} aria-label={T.print} className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
+          <button type="button" onClick={onPrint} aria-label={T.print} className="h-12 w-12 sm:w-auto sm:px-4 flex-none rounded-full inline-flex items-center justify-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
             <Printer className="w-5 h-5" /> <span className="hidden sm:inline">{T.print}</span>
           </button>
           {moreItems.length > 0 && (
             <div className="relative">
               <button type="button" aria-expanded={moreOpen} aria-label={T.more} onClick={() => setMoreOpen((v) => !v)}
-                className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
+                className="h-12 w-12 sm:w-auto sm:px-4 flex-none rounded-full inline-flex items-center justify-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
                 <MoreHorizontal className="w-5 h-5" /> <span className="hidden sm:inline">{T.more}</span>
               </button>
               {moreOpen && (
@@ -102,7 +103,7 @@ export function OrderSheet({
               )}
             </div>
           )}
-          <button type="button" onClick={onClose} aria-label={T.close} className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
+          <button type="button" onClick={onClose} aria-label={T.close} className="h-12 w-12 sm:w-auto sm:px-4 flex-none rounded-full inline-flex items-center justify-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
             <X className="w-5 h-5" /> <span className="hidden sm:inline">{T.close}</span>
           </button>
         </header>
