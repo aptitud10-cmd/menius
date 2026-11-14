@@ -1,46 +1,82 @@
-// Sistema visual y textos del Counter (rediseño 2026-11). Referencia: Uber Eats
-// Orders — fondo blanco, tarjetas grises sin borde, botones negros, verde solo
-// para "nuevo" y "recibiendo pedidos". Los colores de estado nunca decoran.
+// Sistema visual y textos del Counter (rediseño 2026-11-14, dirección "Apple"
+// aprobada por Pedro). La jerarquía se arma con tipografía y superficies: fondo
+// gris, tarjetas que se elevan, tres grises para el texto. El color queda para
+// cuatro cosas: nuevo (accent: Aceptar y el contador de Nuevos), tipo de pedido
+// (ícono + palabra), tiempo (amber/red) y peligro (critical: la alergia, el único
+// relleno rojo). Pesos 500/600/700, nunca 800.
 import { orderItemModLines, linesTotal, withTitle, type ModLine } from '@/lib/modifier-lines';
 import type { Order, OrderItem } from '@/types';
 import { PREP_CHOICES, nearestChoice, kitchenMinutes } from '@/lib/orders/eta';
-import { MENIUS_TOKENS, cssVarName, type ThemeToken } from '@/lib/counter-themes';
+import { LIGHT_TOKENS, cssVarName, type ThemeToken } from '@/lib/counter-themes';
 
-// Cada color es una variable CSS del tema del Counter (lib/counter-themes.ts) con
-// el valor de siempre como respaldo: sin tema (páginas del repartidor) se ve igual
-// que antes. Los valores de respaldo son MENIUS_TOKENS:
-//   bg #FFFFFF · surface #F2F4F3 (tarjetas) · surface2 #E8ECEA (hover) · line #E1E6E3
-//   ink #0E1412 · sub #55605C (7:1 sobre blanco) · faint #7A8580
-//   black #111816 (botón principal) + onBlack #FFFFFF (su texto)
-//   green #05C8A7 (acento — solo fondos, texto greenInk #04241E encima)
-//   greenDeep #047A67 (acento como texto, ≥4.5:1) · greenSoft #DFF7F1
-const v = (k: ThemeToken) => `var(${cssVarName(k)}, ${MENIUS_TOKENS[k]})`;
+// Cada color es una variable CSS de la apariencia (lib/counter-themes.ts), con el
+// valor de Claro como respaldo.
+const v = (k: ThemeToken) => `var(${cssVarName(k)}, ${LIGHT_TOKENS[k]})`;
 
 export const C = {
   bg: v('bg'),
   surface: v('surface'),
-  surface2: v('surface2'),
+  fill: v('fill'),
+  thumb: v('thumb'),
+  thumbShadow: v('thumbShadow'),
   line: v('line'),
+  lineStrong: v('lineStrong'),
   ink: v('ink'),
   sub: v('sub'),
   faint: v('faint'),
-  black: v('black'),
-  onBlack: v('onBlack'),
-  green: v('green'),
-  greenInk: v('greenInk'),
-  greenDeep: v('greenDeep'),
-  greenSoft: v('greenSoft'),
-  blue: v('blue'), blueSoft: v('blueSoft'),
-  violet: v('violet'), violetSoft: v('violetSoft'),
-  orange: v('orange'), orangeSoft: v('orangeSoft'),
-  amber: v('amber'), amberSoft: v('amberSoft'),
-  red: v('red'), redSoft: v('redSoft'),
-  alert: v('alert'),
-  onStatus: v('onStatus'),
-  onGreenInk: v('onGreenInk'),
-  alertPanel: v('alertPanel'),
-  alertPanelText: v('alertPanelText'),
-  alertPanelInk: v('alertPanelInk'),
+  accent: v('accent'),
+  onAccent: v('onAccent'),
+  accentText: v('accentText'),
+  status: v('status'),
+  blue: v('blue'),
+  violet: v('violet'),
+  amber: v('amber'),
+  red: v('red'),
+  destructive: v('destructive'),
+  critical: v('critical'),
+  onCritical: v('onCritical'),
+  warnBg: v('warnBg'),
+  warnText: v('warnText'),
+  warnBar: v('warnBar'),
+  inverse: v('inverse'),
+  onInverse: v('onInverse'),
+  raised: v('raised'),
+  raisedEdge: v('raisedEdge'),
+  scrim: v('scrim'),
+} as const;
+
+/** Estilo de un modal u hoja: superficie elevada + borde (solo se ve en Oscuro) + sombra. */
+export const RAISED = {
+  background: C.raised,
+  color: C.ink,
+  boxShadow: `0 0 0 1px ${C.raisedEdge}, 0 24px 48px rgba(0,0,0,.28)`,
+} as const;
+
+/**
+ * Paleta de las páginas del repartidor (driver/track/[token]). No tienen
+ * apariencia: son EXACTAMENTE los colores que el Counter usaba antes del
+ * rediseño (los respaldos de las variables --kds-* de entonces). No cambiar sin
+ * revisar esas dos páginas.
+ */
+export const DRIVER_C = {
+  bg: '#FFFFFF',
+  surface: '#F2F4F3',
+  surface2: '#E8ECEA',
+  line: '#E1E6E3',
+  ink: '#0E1412',
+  sub: '#55605C',
+  faint: '#7A8580',
+  black: '#111816',
+  onBlack: '#FFFFFF',
+  green: '#05C8A7',
+  greenInk: '#04241E',
+  greenDeep: '#047A67',
+  greenSoft: '#DFF7F1',
+  blue: '#1D4ED8', blueSoft: '#E8EFFF',
+  violet: '#6D28D9', violetSoft: '#F1E8FF',
+  orange: '#B54708', orangeSoft: '#FFF1E0',
+  amber: '#B45309', amberSoft: '#FEF3C7',
+  red: '#C81E1E', redSoft: '#FDE8E8',
 } as const;
 
 export type Lang = 'es' | 'en';
@@ -79,10 +115,10 @@ const ES = {
   waiting: (m: number) => `esperando ${m} min`,
   paidOnline: 'Pagado online',
   cash: 'Efectivo',
-  delivery: 'DELIVERY',
-  pickup: 'RECOGER',
-  dineIn: 'MESA',
-  allergy: 'ALERGIA',
+  delivery: 'Delivery',
+  pickup: 'Recoger',
+  dineIn: 'Mesa',
+  allergy: 'Alergia',
   note: 'Nota',
   orderNote: 'Nota del pedido',
   utensilsYes: 'Con cubiertos',
@@ -151,24 +187,15 @@ const ES = {
   // Personalización (sonido, colores, volumen) y modo demo
   customize: 'Sonido y colores',
   tabSound: 'Sonido',
-  tabColors: 'Colores',
+  tabColors: 'Pantalla',
   tabVolume: 'Volumen',
   official: 'Oficial',
   recommended: 'Recomendados',
   seeAllSounds: 'Ver todos los sonidos',
   hideAllSounds: 'Ocultar sonidos',
-  seeAllColors: 'Ver todos los colores',
-  hideAllColors: 'Ocultar colores',
-  darkThemes: 'Oscuros',
-  lightThemes: 'Claros',
   useThis: 'Usar este',
   inUse: 'En uso',
   listen: 'Escuchar',
-  customAccent: 'Color de acento propio',
-  customAccentHelp: 'Cambia el color de "nuevo pedido" y "recibiendo pedidos".',
-  removeAccent: 'Quitar acento',
-  accentBlocked: 'Ese color casi no se ve sobre el fondo de este tema.',
-  useSuggested: 'Usar el sugerido',
   volume: 'Volumen de las alertas',
   urgentAfter: 'Pasar a sonido urgente después de',
   seconds: (n: number) => `${n} s`,
@@ -179,7 +206,7 @@ const ES = {
   demoMode: 'Modo demo',
   demoModeHelp: 'Pedidos de prueba solo en esta pantalla, para mostrar el Counter. No se guarda nada.',
   startDemo: 'Iniciar demo',
-  demoBanner: 'MODO DEMO · pedidos de prueba',
+  demoBanner: 'Modo demo · pedidos de prueba',
   demoExit: 'Salir',
   demoSummary: (n: number, total: string) => `${n} órdenes · ${total}`,
   demoReady: 'Lista para tu restaurante',
@@ -225,10 +252,10 @@ const EN: Dict = {
   waiting: (m) => `waiting ${m} min`,
   paidOnline: 'Paid online',
   cash: 'Cash',
-  delivery: 'DELIVERY',
-  pickup: 'PICKUP',
-  dineIn: 'TABLE',
-  allergy: 'ALLERGY',
+  delivery: 'Delivery',
+  pickup: 'Pickup',
+  dineIn: 'Table',
+  allergy: 'Allergy',
   note: 'Note',
   orderNote: 'Order note',
   utensilsYes: 'Utensils requested',
@@ -292,24 +319,15 @@ const EN: Dict = {
   backToBoard: 'Back to orders',
   customize: 'Sound & colors',
   tabSound: 'Sound',
-  tabColors: 'Colors',
+  tabColors: 'Display',
   tabVolume: 'Volume',
   official: 'Official',
   recommended: 'Recommended',
   seeAllSounds: 'See all sounds',
   hideAllSounds: 'Hide sounds',
-  seeAllColors: 'See all colors',
-  hideAllColors: 'Hide colors',
-  darkThemes: 'Dark',
-  lightThemes: 'Light',
   useThis: 'Use this',
   inUse: 'In use',
   listen: 'Listen',
-  customAccent: 'Custom accent color',
-  customAccentHelp: 'Changes the "new order" and "receiving orders" color.',
-  removeAccent: 'Remove accent',
-  accentBlocked: "That color barely shows on this theme's background.",
-  useSuggested: 'Use suggested',
   volume: 'Alert volume',
   urgentAfter: 'Switch to urgent sound after',
   seconds: (n: number) => `${n} s`,
@@ -320,7 +338,7 @@ const EN: Dict = {
   demoMode: 'Demo mode',
   demoModeHelp: 'Test orders on this screen only, to show the Counter. Nothing is saved.',
   startDemo: 'Start demo',
-  demoBanner: 'DEMO MODE · test orders',
+  demoBanner: 'Demo mode · test orders',
   demoExit: 'Exit',
   demoSummary: (n: number, total: string) => `${n} orders · ${total}`,
   demoReady: 'Ready for your restaurant',
@@ -362,10 +380,10 @@ export function shortName(name: string | null | undefined, fallback: string) {
 
 export function orderKind(order: Order) {
   const t = order.order_type ?? 'dine_in';
-  // fg: el texto que se lee sobre ese relleno en cualquier tema.
-  if (t === 'delivery') return { key: 'delivery' as const, color: C.blue, fg: C.onStatus };
-  if (t === 'pickup') return { key: 'pickup' as const, color: C.violet, fg: C.onStatus };
-  return { key: 'dine_in' as const, color: C.black, fg: C.onBlack };
+  // color: el del ícono y la palabra (sin relleno).
+  if (t === 'delivery') return { key: 'delivery' as const, color: C.blue };
+  if (t === 'pickup') return { key: 'pickup' as const, color: C.violet };
+  return { key: 'dine_in' as const, color: C.ink };
 }
 
 export function kindLabel(order: Order, T: CounterText) {

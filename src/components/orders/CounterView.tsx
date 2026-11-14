@@ -24,7 +24,7 @@ import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { isRevenueStatus } from '@/lib/order-state';
-import { C, counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
+import { C, RAISED, counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
 import {
   getAudioCtx, unlockWithGesture, loadTheme, setSoundTheme, setVolume as setAudioVolume, resumeAudio,
   playRing, stopRing, playAccepted, ringKind, loopIntervalMs, msUntilNextRing,
@@ -33,7 +33,7 @@ import { CustomizePanel, type AppearancePreview } from './counter/CustomizePanel
 import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS } from './counter/demo';
 import { useCounterSettings } from '@/hooks/use-counter-settings';
 import { DEFAULT_COUNTER_SETTINGS, type CounterSettings } from '@/lib/counter-settings';
-import { resolveThemeTokens, themeCssVars } from '@/lib/counter-themes';
+import { getScreenTheme, resolveThemeTokens, themeCssVars } from '@/lib/counter-themes';
 import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
 import { NewOrdersAlert } from './counter/NewOrdersAlert';
 import { OrderSheet } from './counter/OrderSheet';
@@ -192,7 +192,6 @@ function getT(locale?: string) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const GREEN = '#06C167';
 const SLA_WARN_MINS = 5;
 type Tab = 'new' | 'prep' | 'ready' | 'scheduled' | 'history';
 type Locale = 'es' | 'en';
@@ -316,8 +315,11 @@ export function CounterView({
   // Vista previa de colores mientras el panel está abierto (no guardada).
   const [appearancePreview, setAppearancePreview] = useState<AppearancePreview | null>(null);
   const themeId = appearancePreview?.screenTheme ?? settings.screenTheme;
-  const accent = appearancePreview ? appearancePreview.customAccent : settings.customAccent;
-  const themeVars = useMemo(() => themeCssVars(resolveThemeTokens(themeId, accent)), [themeId, accent]);
+  // color-scheme: checkboxes, radios, inputs y scrollbars nativos siguen a la apariencia.
+  const themeVars = useMemo(
+    () => ({ ...themeCssVars(resolveThemeTokens(themeId)), colorScheme: getScreenTheme(themeId).mode }),
+    [themeId],
+  );
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
   // ── Audio unlock gate ──
@@ -1432,28 +1434,29 @@ export function CounterView({
     return (
       <div
         className="h-screen w-full flex flex-col items-center justify-center cursor-pointer px-6"
-        style={{ background: '#111' }}
+        data-theme={themeId}
+        style={{ ...themeVars, background: C.bg, color: C.ink } as React.CSSProperties}
         onClick={() => unlockAudio()}
       >
-        <div className="w-16 h-16 rounded-2xl bg-[#06C167]/20 flex items-center justify-center mb-6 border border-[#06C167]/30">
-          <Bell className="w-8 h-8 text-[#06C167]" />
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: C.accent, color: C.onAccent }}>
+          <Bell className="w-8 h-8" />
         </div>
 
-        <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">
+        <p className="text-[16px] font-medium mb-1" style={{ color: C.sub }}>
           {restaurantName}
         </p>
-        <h1 className="text-white text-2xl font-black mb-8">Counter</h1>
+        <h1 className="text-[34px] font-bold tracking-[-0.02em] mb-8">Counter</h1>
 
         {/* Flow steps */}
         <div className="w-full max-w-sm space-y-3 mb-10">
           {steps.map((s, i) => (
-            <div key={i} className="flex items-center gap-4 bg-white/5 rounded-2xl px-4 py-3 border border-white/10">
+            <div key={i} className="flex items-center gap-4 rounded-[22px] px-4 py-3.5" style={{ background: C.surface }}>
               <span className="text-2xl">{s.icon}</span>
               <div>
-                <p className="text-white text-sm font-bold">{s.label}</p>
-                <p className="text-white/40 text-xs">{s.desc}</p>
+                <p className="text-[16px] font-semibold">{s.label}</p>
+                <p className="text-[14px]" style={{ color: C.sub }}>{s.desc}</p>
               </div>
-              <div className="ml-auto w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center text-white/30 text-xs font-black flex-shrink-0">
+              <div className="ml-auto w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-semibold tabular-nums flex-shrink-0" style={{ background: C.fill, color: C.sub }}>
                 {i + 1}
               </div>
             </div>
@@ -1462,11 +1465,12 @@ export function CounterView({
 
         <button
           onClick={() => unlockAudio()}
-          className="w-full max-w-sm h-16 rounded-2xl text-black text-lg font-black bg-[#06C167] shadow-xl active:scale-[0.97] transition-transform"
+          className="w-full max-w-sm h-16 rounded-[20px] text-[20px] font-semibold active:scale-[0.97] transition-transform"
+          style={{ background: C.accent, color: C.onAccent }}
         >
           {t.en ? 'Start Counter →' : 'Iniciar Counter →'}
         </button>
-        <p className="text-white/20 text-xs mt-4">
+        <p className="text-[14px] mt-4" style={{ color: C.sub }}>
           {t.en ? 'Tap anywhere to activate sound' : 'Toca para activar las notificaciones de sonido'}
         </p>
       </div>
@@ -1487,20 +1491,20 @@ export function CounterView({
       {/* ── Modo demo: banda fija + resumen al terminar ── */}
       {demo.active && <DemoBanner T={T} onExit={exitDemo} />}
       {demo.finished && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center p-6" style={{ background: 'rgba(14,20,18,.55)' }}>
-          <div role="dialog" aria-modal="true" className="w-full max-w-[460px] rounded-3xl p-7 flex flex-col items-center gap-2 text-center shadow-2xl" style={{ background: C.bg, color: C.ink }}>
-            <span className="w-16 h-16 rounded-2xl inline-flex items-center justify-center mb-2" style={{ background: C.green, color: C.greenInk }}>
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-6" style={{ background: C.scrim }}>
+          <div role="dialog" aria-modal="true" className="w-full max-w-[460px] rounded-[28px] p-7 flex flex-col items-center gap-2 text-center" style={RAISED}>
+            <span className="w-16 h-16 rounded-2xl inline-flex items-center justify-center mb-2" style={{ background: C.accent, color: C.onAccent }}>
               <CheckCircle className="w-9 h-9" />
             </span>
-            <p className="text-[30px] font-extrabold leading-tight tabular-nums">
+            <p className="text-[30px] font-bold tracking-[-0.02em] leading-tight tabular-nums">
               {T.demoSummary(demo.orders.length, fmt(demo.orders.reduce((sum, o) => sum + Number(o.total), 0), currency))}
             </p>
-            <p className="text-[20px] font-bold" style={{ color: C.greenDeep }}>{T.demoReady}</p>
+            <p className="text-[20px] font-semibold" style={{ color: C.accentText }}>{T.demoReady}</p>
             <div className="w-full grid grid-cols-2 gap-3 mt-5">
-              <button type="button" onClick={() => { exitDemo(); demo.start(); }} className="h-14 rounded-xl font-bold text-[17px]" style={{ background: C.surface, color: C.ink }}>
+              <button type="button" onClick={() => { exitDemo(); demo.start(); }} className="h-14 rounded-2xl font-semibold text-[17px]" style={{ background: C.fill, color: C.ink }}>
                 {T.demoAgain}
               </button>
-              <button type="button" onClick={exitDemo} className="h-14 rounded-xl font-extrabold text-[17px]" style={{ background: C.black, color: C.onBlack }}>
+              <button type="button" onClick={exitDemo} className="h-14 rounded-2xl font-semibold text-[17px]" style={{ background: C.fill, color: C.ink }}>
                 {T.demoExit}
               </button>
             </div>
@@ -1529,7 +1533,7 @@ export function CounterView({
 
       {/* ── Sin conexión: banda fija, lo más importante que puede pasar ── */}
       {offline && (
-        <div role="alert" className="flex-none bg-red-600 text-white text-[15px] font-bold py-2.5 px-4 flex items-center justify-center gap-2 z-20">
+        <div role="alert" className="flex-none text-[16px] font-semibold py-2.5 px-4 flex items-center justify-center gap-2 z-20" style={{ background: C.critical, color: C.onCritical }}>
           <WifiOff className="w-4 h-4" />
           {t.offlineBanner}
         </div>
@@ -1540,7 +1544,8 @@ export function CounterView({
         <button
           type="button"
           onClick={() => unlockAudio()}
-          className="flex-none w-full bg-amber-400 text-[#111] text-[15px] font-bold py-2.5 px-4 flex items-center justify-center gap-2 z-20"
+          className="flex-none w-full text-[16px] font-semibold py-2.5 px-4 flex items-center justify-center gap-2 z-20"
+          style={{ background: C.warnBg, color: C.warnText, boxShadow: `inset 0 -1px 0 ${C.warnBar}` }}
         >
           <BellOff className="w-4 h-4" />
           {t.soundOffBanner}
@@ -1549,12 +1554,13 @@ export function CounterView({
 
       {/* ── Turno de caja abierto ── */}
       {activeShift && (
-        <div className="flex-none bg-[#F2F4F3] text-[#0E1412] text-[15px] font-semibold py-2 px-4 flex items-center gap-3 z-20 border-b border-[#E1E6E3]">
+        <div className="flex-none text-[15px] font-semibold py-2 px-4 flex items-center gap-3 z-20" style={{ background: C.surface, color: C.ink, boxShadow: `inset 0 -1px 0 ${C.line}` }}>
           <span>{t.shiftOpened} · {shiftDuration}</span>
-          <span className="text-[#55605C]">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</span>
+          <span className="font-medium" style={{ color: C.sub }}>{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</span>
           <button
             onClick={() => { setShiftCloseCash(''); setShiftNotes(''); setShiftModal('close'); }}
-            className="ml-auto h-10 px-4 rounded-lg bg-white border border-[#E1E6E3] font-bold"
+            className="ml-auto h-10 px-4 rounded-full font-semibold"
+            style={{ background: C.fill, color: C.ink }}
           >
             {t.shiftClose}
           </button>
@@ -1687,19 +1693,20 @@ export function CounterView({
       {/* ══ SIDEBAR ══ */}
       {sidebarOpen && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setSidebarOpen(false)} />
-          <aside className="fixed left-0 top-0 bottom-0 w-[340px] max-w-[90vw] bg-white z-50 flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0]">
+          <div className="fixed inset-0 z-40" style={{ background: C.scrim }} onClick={() => setSidebarOpen(false)} />
+          <aside className="fixed left-0 top-0 bottom-0 w-[340px] max-w-[90vw] z-50 flex flex-col"
+            style={{ background: C.raised, color: C.ink, boxShadow: `1px 0 0 ${C.raisedEdge}, 24px 0 48px rgba(0,0,0,.28)`, paddingTop: 'env(safe-area-inset-top)' }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--kds-line)]">
               <div>
-                <p className="text-base font-black text-[#111]">{restaurantName}</p>
+                <p className="text-base font-bold text-[color:var(--kds-ink)]">{restaurantName}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className={cn('w-2 h-2 rounded-full', isPaused ? 'bg-amber-400' : 'bg-[#06C167] animate-pulse')} />
-                  <span className="text-xs font-semibold text-[#888]">
+                  <div className={cn('w-2 h-2 rounded-full', !isPaused && 'animate-pulse')} style={{ background: isPaused ? C.warnBar : C.status }} />
+                  <span className="text-xs font-semibold text-[color:var(--kds-sub)]">
                     {isPaused ? `${t.paused_status} (${pauseLeftMins} min)` : t.online_status}
                   </span>
                 </div>
               </div>
-              <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg text-[#AAAAAA] hover:text-[#111] hover:bg-[#F5F5F5]">
+              <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg text-[color:var(--kds-sub)] hover:text-[color:var(--kds-ink)] hover:bg-[var(--kds-fill)]">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1708,10 +1715,10 @@ export function CounterView({
 
               {/* Pedidos de esta tablet */}
               <SidebarSection title={t.en ? 'Orders on this tablet' : 'Pedidos en esta tablet'} icon={<Bell className="w-4 h-4" />}>
-                <label className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] cursor-pointer">
+                <label className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] cursor-pointer">
                   <div className="min-w-0">
-                    <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Auto-accept orders' : 'Aceptar pedidos solos'}</span>
-                    <p className="text-[13px] text-[#55605C] mt-0.5">{t.en ? 'After 30 s, with the default time. Turn on in one tablet only.' : 'A los 30 s, con el tiempo por defecto. Actívalo en una sola tablet.'}</p>
+                    <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Auto-accept orders' : 'Aceptar pedidos solos'}</span>
+                    <p className="text-[13px] text-[color:var(--kds-sub)] mt-0.5">{t.en ? 'After 30 s, with the default time. Turn on in one tablet only.' : 'A los 30 s, con el tiempo por defecto. Actívalo en una sola tablet.'}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -1720,7 +1727,7 @@ export function CounterView({
                       setAutoAcceptOn(e.target.checked);
                       try { localStorage.setItem('counter-auto-accept', String(e.target.checked)); } catch { /* sin storage */ }
                     }}
-                    style={{ accentColor: '#047A67', width: 22, height: 22 }}
+                    style={{ accentColor: C.accent, width: 22, height: 22 }}
                   />
                 </label>
                 <button
@@ -1730,33 +1737,33 @@ export function CounterView({
                     else setPrinterModalOpen(true);
                     setSidebarOpen(false);
                   }}
-                  className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left"
+                  className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
                 >
-                  <Printer className="w-4 h-4 text-[#555]" />
-                  <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Printer' : 'Impresora'}</span>
+                  <Printer className="w-4 h-4 text-[color:var(--kds-sub)]" />
+                  <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
                 </button>
                 {/* Sonido y colores: se usa poco, vive en el menú y no en la barra de arriba (Pedro 2026-11-14). */}
                 <button
                   onClick={() => { setSidebarOpen(false); setCustomizeOpen(true); }}
-                  className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left"
+                  className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
                 >
-                  <Palette className="w-4 h-4 text-[#555]" />
-                  <span className="text-[15px] font-semibold text-[#111]">{T.customize}</span>
+                  <Palette className="w-4 h-4 text-[color:var(--kds-sub)]" />
+                  <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{T.customize}</span>
                 </button>
                 {!tabletMode && !isDevice && (
-                  <a href="/app/counter/tablet" className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left">
-                    <Settings2 className="w-4 h-4 text-[#555]" />
-                    <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Full-screen tablet mode' : 'Modo tablet a pantalla completa'}</span>
+                  <a href="/app/counter/tablet" className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left">
+                    <Settings2 className="w-4 h-4 text-[color:var(--kds-sub)]" />
+                    <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Full-screen tablet mode' : 'Modo tablet a pantalla completa'}</span>
                   </a>
                 )}
               </SidebarSection>
 
               {/* Auto-print */}
               <SidebarSection title={t.autoPrint} icon={<Printer className="w-4 h-4" />}>
-                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#EEEEEE] cursor-pointer">
+                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[color:var(--kds-line)] cursor-pointer">
                   <div className="min-w-0">
-                    <span className="text-sm font-medium text-[#111]">{t.autoPrint}</span>
-                    <p className="text-[10px] text-[#888] mt-0.5">{t.en ? 'Print when accepting' : 'Imprimir al aceptar'}</p>
+                    <span className="text-sm font-medium text-[color:var(--kds-ink)]">{t.autoPrint}</span>
+                    <p className="text-[10px] text-[color:var(--kds-sub)] mt-0.5">{t.en ? 'Print when accepting' : 'Imprimir al aceptar'}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -1765,13 +1772,13 @@ export function CounterView({
                       setAutoPrint(e.target.checked);
                       localStorage.setItem('counter-auto-print', String(e.target.checked));
                     }}
-                    style={{ accentColor: GREEN, width: 18, height: 18 }}
+                    style={{ accentColor: C.accent, width: 18, height: 18 }}
                   />
                 </label>
-                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#EEEEEE] cursor-pointer mt-1">
+                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[color:var(--kds-line)] cursor-pointer mt-1">
                   <div className="min-w-0">
-                    <span className="text-sm font-medium text-[#111]">{t.en ? 'Print on arrival' : 'Imprimir al recibir'}</span>
-                    <p className="text-[10px] text-[#888] mt-0.5">{t.en ? 'Instant print when order arrives' : 'Ticket inmediato al llegar la orden'}</p>
+                    <span className="text-sm font-medium text-[color:var(--kds-ink)]">{t.en ? 'Print on arrival' : 'Imprimir al recibir'}</span>
+                    <p className="text-[10px] text-[color:var(--kds-sub)] mt-0.5">{t.en ? 'Instant print when order arrives' : 'Ticket inmediato al llegar la orden'}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -1780,7 +1787,7 @@ export function CounterView({
                       setPrintOnArrival(e.target.checked);
                       localStorage.setItem('counter-print-on-arrival', String(e.target.checked));
                     }}
-                    style={{ accentColor: GREEN, width: 18, height: 18 }}
+                    style={{ accentColor: C.accent, width: 18, height: 18 }}
                   />
                 </label>
               </SidebarSection>
@@ -1789,10 +1796,10 @@ export function CounterView({
               <SidebarSection title={t.en ? 'Out of stock' : 'Agotados'} icon={<Ban className="w-4 h-4" />}>
                 {stockLoading ? (
                   <div className="flex items-center justify-center py-4">
-                    <span className="w-4 h-4 border-2 border-[#DDD] border-t-[#06C167] rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-[color:var(--kds-line)] border-t-[color:var(--kds-accent)] rounded-full animate-spin" />
                   </div>
                 ) : stockProducts.length === 0 ? (
-                  <p className="text-xs text-[#AAAAAA] text-center py-2">{t.en ? 'No products found' : 'Sin productos'}</p>
+                  <p className="text-xs text-[color:var(--kds-sub)] text-center py-2">{t.en ? 'No products found' : 'Sin productos'}</p>
                 ) : (
                   <div className="space-y-1 max-h-56 overflow-y-auto">
                     {stockProducts.map(p => (
@@ -1803,15 +1810,13 @@ export function CounterView({
                         className={cn(
                           'w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-colors text-left',
                           p.in_stock
-                            ? 'border-[#EEEEEE] hover:border-[#CCCCCC]'
-                            : 'border-red-200 bg-red-50'
+                            ? 'border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)]'
+                            : 'border-[color:var(--kds-line)] bg-[var(--kds-fill)]'
                         )}
                       >
-                        <span className={cn('text-sm font-medium truncate', p.in_stock ? 'text-[#111]' : 'text-red-600 line-through')}>{p.name}</span>
-                        <span className={cn(
-                          'flex-shrink-0 ml-2 text-[10px] font-black px-1.5 py-0.5 rounded',
-                          p.in_stock ? 'bg-[#06C167]/10 text-[#06C167]' : 'bg-red-500 text-white'
-                        )}>
+                        <span className={cn('text-sm font-medium truncate', p.in_stock ? 'text-[color:var(--kds-ink)]' : 'line-through')} style={p.in_stock ? undefined : { color: C.destructive }}>{p.name}</span>
+                        <span className="flex-shrink-0 ml-2 text-[12px] font-bold px-1.5 py-0.5 rounded"
+                          style={{ color: p.in_stock ? C.accentText : C.destructive }}>
                           {stockUpdating === p.id ? '…' : p.in_stock ? (t.en ? 'OK' : 'OK') : '86'}
                         </span>
                       </button>
@@ -1822,14 +1827,14 @@ export function CounterView({
 
               {/* Today summary */}
               <SidebarSection title={t.todaySummary} icon={<History className="w-4 h-4" />}>
-                <div className="px-3 py-3 rounded-xl bg-[#F5F5F5] space-y-1">
+                <div className="px-3 py-3 rounded-xl bg-[var(--kds-fill)] space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#888]">{t.todayOrders}</span>
-                    <span className="font-bold text-[#111]">{todayOrdersCount}</span>
+                    <span className="text-[color:var(--kds-sub)]">{t.todayOrders}</span>
+                    <span className="font-bold text-[color:var(--kds-ink)]">{todayOrdersCount}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#888]">{t.en ? 'Sales' : 'Ventas'}</span>
-                    <span className="font-bold text-[#111]">{fmt(todayRevenue, currency)}</span>
+                    <span className="text-[color:var(--kds-sub)]">{t.en ? 'Sales' : 'Ventas'}</span>
+                    <span className="font-bold text-[color:var(--kds-ink)]">{fmt(todayRevenue, currency)}</span>
                   </div>
                 </div>
               </SidebarSection>
@@ -1838,13 +1843,14 @@ export function CounterView({
               <SidebarSection title={t.shiftTitle} icon={<span className="text-base">💰</span>}>
                 {activeShift ? (
                   <div className="space-y-2">
-                    <div className="px-3 py-3 rounded-xl bg-green-50 border border-green-200 space-y-1">
-                      <p className="text-xs font-bold text-green-700">{t.shiftOpened} · {shiftDuration}</p>
-                      <p className="text-xs text-green-600">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</p>
+                    <div className="px-3 py-3 rounded-xl bg-[var(--kds-fill)] space-y-1">
+                      <p className="text-xs font-semibold flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: C.status }} />{t.shiftOpened} · {shiftDuration}</p>
+                      <p className="text-xs text-[color:var(--kds-sub)]">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</p>
                     </div>
                     <button
                       onClick={() => { setShiftCloseCash(''); setShiftNotes(''); setShiftModal('close'); }}
-                      className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                      className="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                      style={{ background: C.fill, color: C.destructive }}
                     >
                       {t.shiftClose}
                     </button>
@@ -1852,7 +1858,8 @@ export function CounterView({
                 ) : (
                   <button
                     onClick={() => { setShiftOpenCash('0'); setShiftModal('open'); }}
-                    className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-[#06C167] hover:bg-[#05a857] transition-colors"
+                    className="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                    style={{ background: C.accent, color: C.onAccent }}
                   >
                     {t.shiftOpen}
                   </button>
@@ -1869,10 +1876,10 @@ export function CounterView({
                 <SidebarSection title={t.en ? 'This tablet' : 'Esta tablet'} icon={<Settings2 className="w-4 h-4" />}>
                   <button
                     onClick={() => getCounterAppBridge()?.openPrinterSettings?.()}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
                   >
-                    <Printer className="w-4 h-4 text-[#555]" />
-                    <span className="text-sm font-medium text-[#111]">{t.en ? 'Printer' : 'Impresora'}</span>
+                    <Printer className="w-4 h-4 text-[color:var(--kds-sub)]" />
+                    <span className="text-sm font-medium text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
                   </button>
                   {/* Two taps instead of confirm(): JS dialogs need a WebChromeClient the
                       app doesn't install, and a stray tap must not unpair the till. */}
@@ -1890,10 +1897,8 @@ export function CounterView({
                         .catch(() => { /* offline: the local wipe still happens */ })
                         .finally(() => getCounterAppBridge()?.disconnectDevice?.());
                     }}
-                    className={cn(
-                      'w-full mt-1 py-3 rounded-xl text-sm font-bold transition-colors border',
-                      confirmDisconnect ? 'bg-red-500 text-white border-red-500' : 'text-red-600 border-red-200 hover:bg-red-50'
-                    )}
+                    className="w-full mt-1 py-3 rounded-xl text-sm font-semibold transition-colors"
+                    style={confirmDisconnect ? { background: C.critical, color: C.onCritical } : { background: C.fill, color: C.destructive }}
                   >
                     {confirmDisconnect
                       ? (t.en ? 'Tap again to disconnect' : 'Toca otra vez para desconectar')
@@ -1909,25 +1914,25 @@ export function CounterView({
       {/* ══ PRINTER MODAL ══ */}
       {printerModalOpen && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setPrinterModalOpen(false)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
+          <div className="fixed inset-0 bg-[var(--kds-scrim)] z-50" onClick={() => setPrinterModalOpen(false)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-[var(--kds-raised)] text-[color:var(--kds-ink)] rounded-2xl z-50 shadow-[0_0_0_1px_var(--kds-raised-edge),0_24px_48px_rgba(0,0,0,0.28)] overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--kds-line)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
-                  <Printer className="w-4 h-4 text-[#555]" />
+                <div className="w-8 h-8 rounded-lg bg-[var(--kds-fill)] flex items-center justify-center">
+                  <Printer className="w-4 h-4 text-[color:var(--kds-sub)]" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-[#111]">
+                  <p className="text-sm font-bold text-[color:var(--kds-ink)]">
                     {t.en ? 'Printer Settings' : 'Configuración de impresora'}
                   </p>
-                  <p className="text-[11px] text-[#888]">
+                  <p className="text-[11px] text-[color:var(--kds-sub)]">
                     {t.en ? 'Settings saved on this device' : 'Configuración guardada en este dispositivo'}
                   </p>
                 </div>
               </div>
-              <button onClick={() => setPrinterModalOpen(false)} className="p-1.5 rounded-lg hover:bg-[#F5F5F5]">
-                <X className="w-4 h-4 text-[#555]" />
+              <button onClick={() => setPrinterModalOpen(false)} className="p-1.5 rounded-lg hover:bg-[var(--kds-fill)]">
+                <X className="w-4 h-4 text-[color:var(--kds-sub)]" />
               </button>
             </div>
 
@@ -1936,10 +1941,10 @@ export function CounterView({
               {/* Receipt toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-[#111]">
+                  <p className="text-sm font-semibold text-[color:var(--kds-ink)]">
                     {t.en ? 'Customer receipt' : 'Recibo del cliente'}
                   </p>
-                  <p className="text-xs text-[#888] mt-0.5">
+                  <p className="text-xs text-[color:var(--kds-sub)] mt-0.5">
                     {t.en ? 'Full ticket with prices' : 'Ticket completo con precios'}
                   </p>
                 </div>
@@ -1951,7 +1956,7 @@ export function CounterView({
                   }}
                   className={cn(
                     'relative w-12 h-6 rounded-full transition-colors',
-                    printerConfig.receiptEnabled ? 'bg-[#06C167]' : 'bg-[#DDD]'
+                    printerConfig.receiptEnabled ? 'bg-[var(--kds-accent)]' : 'bg-[var(--kds-line-strong)]'
                   )}
                 >
                   <span className={cn(
@@ -1964,10 +1969,10 @@ export function CounterView({
               {/* Kitchen toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-[#111]">
+                  <p className="text-sm font-semibold text-[color:var(--kds-ink)]">
                     {t.en ? 'Kitchen ticket' : 'Ticket de cocina'}
                   </p>
-                  <p className="text-xs text-[#888] mt-0.5">
+                  <p className="text-xs text-[color:var(--kds-sub)] mt-0.5">
                     {t.en ? 'Items only, no prices' : 'Solo artículos, sin precios'}
                   </p>
                 </div>
@@ -1979,7 +1984,7 @@ export function CounterView({
                   }}
                   className={cn(
                     'relative w-12 h-6 rounded-full transition-colors',
-                    printerConfig.kitchenEnabled ? 'bg-[#06C167]' : 'bg-[#DDD]'
+                    printerConfig.kitchenEnabled ? 'bg-[var(--kds-accent)]' : 'bg-[var(--kds-line-strong)]'
                   )}
                 >
                   <span className={cn(
@@ -1991,13 +1996,13 @@ export function CounterView({
             </div>
 
             {/* Auto-print */}
-            <div className="px-5 pb-4 border-t border-[#F5F5F5] pt-4">
+            <div className="px-5 pb-4 border-t border-[color:var(--kds-line)] pt-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-[#111]">
+                  <p className="text-sm font-semibold text-[color:var(--kds-ink)]">
                     {t.en ? 'Auto-print on accept' : 'Imprimir al aceptar'}
                   </p>
-                  <p className="text-xs text-[#888] mt-0.5">
+                  <p className="text-xs text-[color:var(--kds-sub)] mt-0.5">
                     {t.en ? 'Automatically prints when you confirm an order' : 'Imprime automáticamente al confirmar una orden'}
                   </p>
                 </div>
@@ -2009,7 +2014,7 @@ export function CounterView({
                   }}
                   className={cn(
                     'relative w-12 h-6 rounded-full transition-colors',
-                    autoPrint ? 'bg-[#06C167]' : 'bg-[#DDD]'
+                    autoPrint ? 'bg-[var(--kds-accent)]' : 'bg-[var(--kds-line-strong)]'
                   )}
                 >
                   <span className={cn(
@@ -2041,7 +2046,7 @@ export function CounterView({
                   };
                   void printTicket(dummyOrder, 0).then(ok => { if (ok) showSuccess(t.en ? 'Test ticket sent' : 'Ticket de prueba enviado'); });
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#E8E8E8] text-sm font-semibold text-[#555] hover:bg-[#F5F5F5] transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[color:var(--kds-line)] text-sm font-semibold text-[color:var(--kds-sub)] hover:bg-[var(--kds-fill)] transition-colors"
               >
                 <Printer className="w-4 h-4" />
                 {t.en ? 'Print test ticket' : 'Imprimir ticket de prueba'}
@@ -2054,61 +2059,62 @@ export function CounterView({
       {/* ══ EDIT ORDER ITEMS MODAL ══ */}
       {editItemsModal && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setEditItemsModal(null)} />
-          <div className="fixed inset-x-3 top-[5%] bottom-[5%] max-w-md mx-auto bg-white rounded-2xl z-50 shadow-2xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0] flex-shrink-0">
-              <p className="text-base font-bold text-[#111]">{t.en ? 'Add items to order' : 'Agregar productos a la orden'}</p>
-              <button onClick={() => setEditItemsModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#888] hover:bg-[#F5F5F5]">
+          <div className="fixed inset-0 bg-[var(--kds-scrim)] z-50" onClick={() => setEditItemsModal(null)} />
+          <div className="fixed inset-x-3 top-[5%] bottom-[5%] max-w-md mx-auto bg-[var(--kds-raised)] text-[color:var(--kds-ink)] rounded-2xl z-50 shadow-[0_0_0_1px_var(--kds-raised-edge),0_24px_48px_rgba(0,0,0,0.28)] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--kds-line)] flex-shrink-0">
+              <p className="text-base font-bold text-[color:var(--kds-ink)]">{t.en ? 'Add items to order' : 'Agregar productos a la orden'}</p>
+              <button onClick={() => setEditItemsModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[color:var(--kds-sub)] hover:bg-[var(--kds-fill)]">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="px-4 py-3 border-b border-[#F5F5F5] flex-shrink-0">
+            <div className="px-4 py-3 border-b border-[color:var(--kds-line)] flex-shrink-0">
               <input
                 type="search"
                 value={editSearch}
                 onChange={e => setEditSearch(e.target.value)}
                 placeholder={t.en ? 'Search products…' : 'Buscar productos…'}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-[#E8E8E8] bg-[#F8F8F8] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/30"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-[color:var(--kds-line)] bg-[var(--kds-surface)] text-[color:var(--kds-ink)] focus:outline-none focus:ring-2 focus:ring-[color:var(--kds-accent)]"
                 autoFocus
               />
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-3">
               {editLoading ? (
-                <div className="flex items-center justify-center h-32 text-[#AAAAAA] text-sm">{t.en ? 'Loading…' : 'Cargando…'}</div>
+                <div className="flex items-center justify-center h-32 text-[color:var(--kds-sub)] text-sm">{t.en ? 'Loading…' : 'Cargando…'}</div>
               ) : (
                 <div className="space-y-2">
                   {editProducts
                     .filter(p => editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase()))
                     .map(p => (
-                      <div key={p.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-white ${p.in_stock === false ? 'border-[#F5F5F5] opacity-60' : 'border-[#F0F0F0]'}`}>
+                      <div key={p.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${p.in_stock === false ? 'border-[color:var(--kds-line)] opacity-60' : 'border-[color:var(--kds-line)]'}`}>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-semibold text-[#111] truncate">{p.name}</p>
+                            <p className="text-sm font-semibold text-[color:var(--kds-ink)] truncate">{p.name}</p>
                             {p.in_stock === false && (
-                              <span className="flex-shrink-0 text-[9px] font-bold uppercase tracking-wide bg-red-100 text-red-500 px-1.5 py-0.5 rounded">86</span>
+                              <span className="flex-shrink-0 text-[12px] font-bold px-1.5 py-0.5 rounded" style={{ color: C.destructive }}>86</span>
                             )}
                           </div>
-                          <p className="text-xs text-[#888]">{fmt(Number(p.price), currency)}</p>
+                          <p className="text-xs text-[color:var(--kds-sub)]">{fmt(Number(p.price), currency)}</p>
                         </div>
                         <button
                           onClick={() => handleAddItem(editItemsModal.orderId, p.id)}
                           disabled={editSaving}
-                          className="w-8 h-8 rounded-full bg-[#05c8a7] text-white flex items-center justify-center hover:bg-[#04b096] transition-colors disabled:opacity-40 flex-shrink-0"
+                          className="w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 flex-shrink-0"
+                          style={{ background: C.accent, color: C.onAccent }}
                         >
                           <Plus className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
                   {editProducts.filter(p => editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase())).length === 0 && (
-                    <p className="text-center text-sm text-[#AAAAAA] py-8">{t.en ? 'No products found' : 'Sin resultados'}</p>
+                    <p className="text-center text-sm text-[color:var(--kds-sub)] py-8">{t.en ? 'No products found' : 'Sin resultados'}</p>
                   )}
                 </div>
               )}
             </div>
-            <div className="px-4 py-3 border-t border-[#F0F0F0] flex-shrink-0">
+            <div className="px-4 py-3 border-t border-[color:var(--kds-line)] flex-shrink-0">
               <button
                 onClick={() => setEditItemsModal(null)}
-                className="w-full py-3 rounded-xl text-sm font-semibold text-[#555] border border-[#E8E8E8] hover:bg-[#F5F5F5] transition-colors"
+                className="w-full py-3 rounded-xl text-sm font-semibold text-[color:var(--kds-sub)] border border-[color:var(--kds-line)] hover:bg-[var(--kds-fill)] transition-colors"
               >
                 {t.en ? 'Done' : 'Listo'}
               </button>
@@ -2120,14 +2126,14 @@ export function CounterView({
       {/* ══ CANCEL MODAL ══ */}
       {cancelModal && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => { setCancelModal(null); setRefundRequired(false); }} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl max-h-[92dvh] overflow-y-auto">
-            <p className="text-base font-bold text-[#111] mb-1">
+          <div className="fixed inset-0 bg-[var(--kds-scrim)] z-50" onClick={() => { setCancelModal(null); setRefundRequired(false); }} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-[var(--kds-raised)] text-[color:var(--kds-ink)] rounded-2xl z-50 p-5 shadow-[0_0_0_1px_var(--kds-raised-edge),0_24px_48px_rgba(0,0,0,0.28)] max-h-[92dvh] overflow-y-auto">
+            <p className="text-base font-bold text-[color:var(--kds-ink)] mb-1">
               {cancelModal.type === 'reject' ? t.rejectOrder : t.cancelOrder}
             </p>
             {refundRequired && (
-              <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
-                <p className="text-xs font-semibold text-amber-900">
+              <div className="mb-3 rounded-xl p-3" style={{ background: C.warnBg, color: C.warnText, boxShadow: `inset 3px 0 0 ${C.warnBar}` }}>
+                <p className="text-xs font-semibold">
                   {isDevice
                     ? (t.en
                       ? 'This order was paid online. Refunds are only made from MENIUS on your phone or computer (Orders).'
@@ -2138,14 +2144,14 @@ export function CounterView({
                 </p>
               </div>
             )}
-            <p className="text-xs text-[#888] mb-4">{t.rejectReason}</p>
+            <p className="text-xs text-[color:var(--kds-sub)] mb-4">{t.rejectReason}</p>
             <div className="space-y-2 mb-4">
               {t.reasons.map(r => (
                 <label key={r} className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer text-sm transition-colors',
-                  cancelReason === r ? 'border-red-400 bg-red-50 text-red-700' : 'border-[#EEE] text-[#555] hover:border-[#CCC]'
+                  cancelReason === r ? 'border-[color:var(--kds-destructive)] bg-[var(--kds-fill)] text-[color:var(--kds-ink)] font-semibold' : 'border-[color:var(--kds-line)] text-[color:var(--kds-sub)] hover:border-[color:var(--kds-line-strong)]'
                 )}>
-                  <input type="radio" name="cancel-reason" checked={cancelReason === r} onChange={() => setCancelReason(r)} className="accent-red-500" />
+                  <input type="radio" name="cancel-reason" checked={cancelReason === r} onChange={() => setCancelReason(r)} className="accent-[var(--kds-destructive)]" />
                   {r}
                 </label>
               ))}
@@ -2164,14 +2170,14 @@ export function CounterView({
               ];
               return (
                 <div className="mb-4">
-                  <p className="text-xs font-semibold text-[#888] mb-2">{t.incidentTitle}</p>
+                  <p className="text-xs font-semibold text-[color:var(--kds-sub)] mb-2">{t.incidentTitle}</p>
                   <div className="space-y-2">
                     {opts.map(([value, label]) => (
                       <label key={value} className={cn(
                         'flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer text-sm transition-colors',
-                        cancelReason === value ? 'border-red-500 bg-red-50 text-red-800 font-semibold' : 'border-[#EEE] text-[#555] hover:border-[#CCC]'
+                        cancelReason === value ? 'border-[color:var(--kds-destructive)] bg-[var(--kds-fill)] text-[color:var(--kds-ink)] font-semibold' : 'border-[color:var(--kds-line)] text-[color:var(--kds-sub)] hover:border-[color:var(--kds-line-strong)]'
                       )}>
-                        <input type="radio" name="cancel-reason" checked={cancelReason === value} onChange={() => setCancelReason(value)} className="accent-red-600" />
+                        <input type="radio" name="cancel-reason" checked={cancelReason === value} onChange={() => setCancelReason(value)} className="accent-[var(--kds-destructive)]" />
                         {label}
                       </label>
                     ))}
@@ -2180,14 +2186,15 @@ export function CounterView({
               );
             })()}
             <div className="flex gap-2">
-              <button onClick={() => { setCancelModal(null); setRefundRequired(false); }} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
+              <button onClick={() => { setCancelModal(null); setRefundRequired(false); }} className="flex-1 py-3 rounded-xl text-sm font-semibold bg-[var(--kds-fill)] text-[color:var(--kds-ink)]">
                 {t.no}
               </button>
               {refundRequired && isDevice ? null : refundRequired ? (
                 <button
                   onClick={handleRefundAndCancel}
                   disabled={updatingId === cancelModal.orderId}
-                  className="flex-1 py-3 rounded-xl bg-amber-500 text-white text-sm font-bold disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+                  style={{ background: C.fill, color: C.destructive }}
                 >
                   {t.en ? '💸 Refund & cancel' : '💸 Reembolsar y cancelar'}
                 </button>
@@ -2195,7 +2202,8 @@ export function CounterView({
                 <button
                   onClick={handleCancel}
                   disabled={!cancelReason || updatingId === cancelModal.orderId}
-                  className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+                  style={{ background: C.fill, color: C.destructive }}
                 >
                   {t.confirmCancel}
                 </button>
@@ -2208,16 +2216,16 @@ export function CounterView({
       {/* ══ DELIVERY GUARD MODAL ══ */}
       {deliveryGuardModal && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setDeliveryGuardModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#F0F0F0]">
-              <p className="text-base font-black text-[#111]">⚠️ {t.deliveryGuardTitle}</p>
-              <p className="text-xs text-[#888] mt-0.5 leading-relaxed">{t.deliveryGuardBody}</p>
+          <div className="fixed inset-0 bg-[var(--kds-scrim)] z-50" onClick={() => setDeliveryGuardModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-[var(--kds-raised)] text-[color:var(--kds-ink)] rounded-2xl z-50 shadow-[0_0_0_1px_var(--kds-raised-edge),0_24px_48px_rgba(0,0,0,0.28)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[color:var(--kds-line)]">
+              <p className="text-base font-bold text-[color:var(--kds-ink)]">⚠️ {t.deliveryGuardTitle}</p>
+              <p className="text-xs text-[color:var(--kds-sub)] mt-0.5 leading-relaxed">{t.deliveryGuardBody}</p>
             </div>
             <div className="px-5 py-4 flex gap-2">
               <button
                 onClick={() => setDeliveryGuardModal(null)}
-                className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]"
+                className="flex-1 py-3 rounded-xl text-sm font-semibold bg-[var(--kds-fill)] text-[color:var(--kds-ink)]"
               >
                 {t.no}
               </button>
@@ -2227,7 +2235,8 @@ export function CounterView({
                   setDeliveryGuardModal(null);
                   commitStatus(order, 'deliver', true);
                 }}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-black bg-amber-500 hover:bg-amber-600 transition-colors"
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-colors"
+                style={{ background: C.accent, color: C.onAccent }}
               >
                 {t.deliveryGuardConfirm}
               </button>
@@ -2239,32 +2248,33 @@ export function CounterView({
       {/* ══ SHIFT MODALS ══ */}
       {shiftModal === 'open' && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShiftModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#F0F0F0]">
-              <p className="text-base font-black text-[#111]">💰 {t.shiftOpen}</p>
-              <p className="text-xs text-[#888] mt-0.5">{t.en ? 'Enter opening cash in the register' : 'Ingresa el efectivo inicial en caja'}</p>
+          <div className="fixed inset-0 bg-[var(--kds-scrim)] z-50" onClick={() => setShiftModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-[var(--kds-raised)] text-[color:var(--kds-ink)] rounded-2xl z-50 shadow-[0_0_0_1px_var(--kds-raised-edge),0_24px_48px_rgba(0,0,0,0.28)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[color:var(--kds-line)]">
+              <p className="text-base font-bold text-[color:var(--kds-ink)]">💰 {t.shiftOpen}</p>
+              <p className="text-xs text-[color:var(--kds-sub)] mt-0.5">{t.en ? 'Enter opening cash in the register' : 'Ingresa el efectivo inicial en caja'}</p>
             </div>
             <div className="px-5 py-4 space-y-3">
               <div>
-                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1 block">{t.shiftOpeningCash}</label>
+                <label className="text-xs font-bold text-[color:var(--kds-sub)] mb-1 block">{t.shiftOpeningCash}</label>
                 <input
                   type="number" min="0" step="0.01"
                   value={shiftOpenCash}
                   onChange={e => setShiftOpenCash(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[color:var(--kds-line)] text-sm text-[color:var(--kds-ink)] focus:outline-none focus:border-[color:var(--kds-accent)] bg-[var(--kds-surface)]"
                   autoFocus
                 />
               </div>
             </div>
             <div className="px-5 pb-5 flex gap-2">
-              <button onClick={() => setShiftModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">{t.no}</button>
+              <button onClick={() => setShiftModal(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold bg-[var(--kds-fill)] text-[color:var(--kds-ink)]">{t.no}</button>
               <button
                 onClick={handleOpenShift}
                 disabled={shiftSaving}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50 bg-[#06C167]"
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+                style={{ background: C.accent, color: C.onAccent }}
               >
-                {shiftSaving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> : t.shiftOpen}
+                {shiftSaving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : t.shiftOpen}
               </button>
             </div>
           </div>
@@ -2273,42 +2283,43 @@ export function CounterView({
 
       {shiftModal === 'close' && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShiftModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#F0F0F0]">
-              <p className="text-base font-black text-[#111]">🔒 {t.shiftClose}</p>
-              <p className="text-xs text-[#888] mt-0.5">{t.en ? 'Count the cash in the register' : 'Cuenta el efectivo en la caja'}</p>
+          <div className="fixed inset-0 bg-[var(--kds-scrim)] z-50" onClick={() => setShiftModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-[var(--kds-raised)] text-[color:var(--kds-ink)] rounded-2xl z-50 shadow-[0_0_0_1px_var(--kds-raised-edge),0_24px_48px_rgba(0,0,0,0.28)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[color:var(--kds-line)]">
+              <p className="text-base font-bold text-[color:var(--kds-ink)]">🔒 {t.shiftClose}</p>
+              <p className="text-xs text-[color:var(--kds-sub)] mt-0.5">{t.en ? 'Count the cash in the register' : 'Cuenta el efectivo en la caja'}</p>
             </div>
             <div className="px-5 py-4 space-y-3">
               <div>
-                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1 block">💵 {t.shiftClosingCash}</label>
+                <label className="text-xs font-bold text-[color:var(--kds-sub)] mb-1 block">💵 {t.shiftClosingCash}</label>
                 <input
                   type="number" min="0" step="0.01"
                   value={shiftCloseCash}
                   onChange={e => setShiftCloseCash(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[color:var(--kds-line)] text-sm text-[color:var(--kds-ink)] focus:outline-none focus:border-[color:var(--kds-accent)] bg-[var(--kds-surface)]"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1 block">{t.shiftNotes}</label>
+                <label className="text-xs font-bold text-[color:var(--kds-sub)] mb-1 block">{t.shiftNotes}</label>
                 <textarea
                   value={shiftNotes}
                   onChange={e => setShiftNotes(e.target.value)}
                   rows={2}
-                  className="w-full px-3 py-2 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white resize-none"
+                  className="w-full px-3 py-2 rounded-xl border border-[color:var(--kds-line)] text-sm text-[color:var(--kds-ink)] focus:outline-none focus:border-[color:var(--kds-accent)] bg-[var(--kds-surface)] resize-none"
                 />
               </div>
             </div>
             <div className="px-5 pb-5 flex gap-2">
-              <button onClick={() => setShiftModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">{t.no}</button>
+              <button onClick={() => setShiftModal(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold bg-[var(--kds-fill)] text-[color:var(--kds-ink)]">{t.no}</button>
               <button
                 onClick={handleCloseShift}
                 disabled={shiftSaving}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50 bg-red-500"
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+                style={{ background: C.fill, color: C.destructive }}
               >
-                {shiftSaving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> : t.shiftClose}
+                {shiftSaving ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : t.shiftClose}
               </button>
             </div>
           </div>
@@ -2317,16 +2328,16 @@ export function CounterView({
 
       {shiftModal === 'report' && shiftReport && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShiftModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
-            <div className="px-5 py-4 border-b border-[#F0F0F0] flex items-center justify-between flex-shrink-0">
+          <div className="fixed inset-0 bg-[var(--kds-scrim)] z-50" onClick={() => setShiftModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-[var(--kds-raised)] text-[color:var(--kds-ink)] rounded-2xl z-50 shadow-[0_0_0_1px_var(--kds-raised-edge),0_24px_48px_rgba(0,0,0,0.28)] overflow-hidden max-h-[85vh] flex flex-col">
+            <div className="px-5 py-4 border-b border-[color:var(--kds-line)] flex items-center justify-between flex-shrink-0">
               <div>
-                <p className="text-base font-black text-[#111]">📋 {t.shiftReportZ}</p>
-                <p className="text-xs text-[#888] mt-0.5">
+                <p className="text-base font-bold text-[color:var(--kds-ink)]">📋 {t.shiftReportZ}</p>
+                <p className="text-xs text-[color:var(--kds-sub)] mt-0.5">
                   {new Date(shiftReport.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} → {new Date(shiftReport.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
-              <button onClick={() => setShiftModal(null)} className="p-1.5 rounded-lg hover:bg-[#F5F5F5]"><X className="w-5 h-5 text-[#AAAAAA]" /></button>
+              <button onClick={() => setShiftModal(null)} className="p-1.5 rounded-lg hover:bg-[var(--kds-fill)]"><X className="w-5 h-5 text-[color:var(--kds-sub)]" /></button>
             </div>
             <div className="px-5 py-4 space-y-2 overflow-y-auto flex-1">
               {[
@@ -2338,29 +2349,28 @@ export function CounterView({
                 { label: t.shiftExpected, value: fmt(shiftReport.expectedCash, currency) },
                 { label: t.shiftClosingCash, value: fmt(shiftReport.closingCash, currency) },
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between items-center py-2 border-b border-[#F0F0F0]">
-                  <span className="text-sm text-[#888]">{label}</span>
-                  <span className="text-sm font-bold text-[#111]">{value}</span>
+                <div key={label} className="flex justify-between items-center py-2 border-b border-[color:var(--kds-line)]">
+                  <span className="text-sm text-[color:var(--kds-sub)]">{label}</span>
+                  <span className="text-sm font-bold text-[color:var(--kds-ink)]">{value}</span>
                 </div>
               ))}
-              <div className={cn('flex justify-between items-center py-2.5 px-3 rounded-xl font-bold',
-                Math.abs(shiftReport.cashDifference) < 0.01 ? 'bg-green-50 text-green-700' : shiftReport.cashDifference < 0 ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
-              )}>
+              <div className="flex justify-between items-center py-2.5 px-3 rounded-xl font-semibold"
+                style={{ background: C.fill, color: Math.abs(shiftReport.cashDifference) < 0.01 ? C.accentText : shiftReport.cashDifference < 0 ? C.destructive : C.blue }}>
                 <span className="text-sm">{t.shiftDiff}</span>
                 <span className="text-sm">{shiftReport.cashDifference >= 0 ? '+' : ''}{fmt(shiftReport.cashDifference, currency)}</span>
               </div>
               {shiftReport.cashByDriver.length > 0 && (
                 <div className="pt-3">
-                  <p className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1">
+                  <p className="text-xs font-bold text-[color:var(--kds-sub)] mb-1">
                     {t.en ? 'Delivery cash by driver' : 'Efectivo de delivery por repartidor'}
                   </p>
                   {shiftReport.cashByDriver.map((d) => (
-                    <div key={d.name ?? '—'} className="flex justify-between items-center py-2 border-b border-[#F0F0F0]">
-                      <span className="text-sm text-[#555]">
+                    <div key={d.name ?? '—'} className="flex justify-between items-center py-2 border-b border-[color:var(--kds-line)]">
+                      <span className="text-sm text-[color:var(--kds-sub)]">
                         {d.name ?? (t.en ? 'No driver name' : 'Sin repartidor')}
-                        <span className="text-[#AAAAAA]"> · {d.orders} {d.orders === 1 ? (t.en ? 'order' : 'pedido') : (t.en ? 'orders' : 'pedidos')}</span>
+                        <span className="text-[color:var(--kds-sub)]"> · {d.orders} {d.orders === 1 ? (t.en ? 'order' : 'pedido') : (t.en ? 'orders' : 'pedidos')}</span>
                       </span>
-                      <span className="text-sm font-bold text-[#111] tabular-nums">{fmt(d.cash, currency)}</span>
+                      <span className="text-sm font-bold text-[color:var(--kds-ink)] tabular-nums">{fmt(d.cash, currency)}</span>
                     </div>
                   ))}
                 </div>
@@ -2369,7 +2379,8 @@ export function CounterView({
             <div className="px-5 pb-5 flex-shrink-0">
               <button
                 onClick={() => { window.print(); }}
-                className="w-full py-3 rounded-xl text-sm font-bold text-white bg-[#111]"
+                className="w-full py-3 rounded-xl text-sm font-semibold"
+                style={{ background: C.fill, color: C.ink }}
               >
                 🖨️ {t.shiftPrint}
               </button>
@@ -2381,16 +2392,16 @@ export function CounterView({
       {/* ══ DRIVER MODAL ══ */}
       {driverModal && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setDriverModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl">
+          <div className="fixed inset-0 bg-[var(--kds-scrim)] z-50" onClick={() => setDriverModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto bg-[var(--kds-raised)] text-[color:var(--kds-ink)] rounded-2xl z-50 p-5 shadow-[0_0_0_1px_var(--kds-raised-edge),0_24px_48px_rgba(0,0,0,0.28)]">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-[#111]">🛵 {t.assignDriver}</h2>
-              <button onClick={() => setDriverModal(null)} className="p-1 text-[#AAAAAA] hover:text-[#111]"><X className="w-5 h-5" /></button>
+              <h2 className="text-base font-bold text-[color:var(--kds-ink)]">🛵 {t.assignDriver}</h2>
+              <button onClick={() => setDriverModal(null)} className="p-1 text-[color:var(--kds-sub)] hover:text-[color:var(--kds-ink)]"><X className="w-5 h-5" /></button>
             </div>
             {/* Driver pool quick-select */}
             {driverPool.length > 0 && (
               <div className="mb-3">
-                <p className="text-xs text-[#888] mb-2">{t.en ? 'Select from your team:' : 'Elige de tu equipo:'}</p>
+                <p className="text-xs text-[color:var(--kds-sub)] mb-2">{t.en ? 'Select from your team:' : 'Elige de tu equipo:'}</p>
                 <div className="flex flex-wrap gap-2">
                   {driverPool.map(d => (
                     <button key={d.id}
@@ -2398,8 +2409,8 @@ export function CounterView({
                       className={cn(
                         'px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors',
                         driverName === d.name
-                          ? 'border-[#06C167] bg-[#06C167]/10 text-[#06C167]'
-                          : 'border-[#E8E8E8] text-[#555] hover:border-[#06C167]'
+                          ? 'border-[color:var(--kds-accent)] bg-[var(--kds-fill)] text-[color:var(--kds-ink)]'
+                          : 'border-[color:var(--kds-line)] text-[color:var(--kds-sub)] hover:border-[color:var(--kds-accent)]'
                       )}
                     >
                       {d.name}
@@ -2413,25 +2424,25 @@ export function CounterView({
                 value={driverName}
                 onChange={e => { setDriverName(e.target.value); setSelectedDriverId(null); }}
                 placeholder={t.en ? 'Driver name' : 'Nombre del repartidor'}
-                className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#06C167]"
+                className="w-full px-4 py-3 rounded-xl border border-[color:var(--kds-line)] text-sm bg-[var(--kds-surface)] text-[color:var(--kds-ink)] focus:outline-none focus:border-[color:var(--kds-accent)]"
               />
               <input
                 value={driverPhone}
                 onChange={e => setDriverPhone(e.target.value)}
                 placeholder={t.en ? 'Phone' : 'Teléfono'}
                 type="tel"
-                className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#06C167]"
+                className="w-full px-4 py-3 rounded-xl border border-[color:var(--kds-line)] text-sm bg-[var(--kds-surface)] text-[color:var(--kds-ink)] focus:outline-none focus:border-[color:var(--kds-accent)]"
               />
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setDriverModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
+              <button onClick={() => setDriverModal(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold bg-[var(--kds-fill)] text-[color:var(--kds-ink)]">
                 {t.no}
               </button>
               <button
                 onClick={handleAssignDriver}
                 disabled={assigningDriver || !driverName.trim()}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-50"
-                style={{ background: GREEN }}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: C.accent, color: C.onAccent }}
               >
                 {assigningDriver ? '…' : t.assignDriver}
               </button>
@@ -2467,7 +2478,8 @@ export function CounterView({
                   const w = window.open('', '_blank', 'width=320,height=480');
                   if (w) { w.document.write(html); w.document.close(); }
                 }}
-                className="mt-2 w-full py-2.5 rounded-xl text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 flex items-center justify-center gap-1.5"
+                className="mt-2 w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5"
+                style={{ background: C.fill, color: C.ink }}
               >
                 🖨️ {t.en ? 'Print driver sheet (QR)' : 'Imprimir ficha del driver (QR)'}
               </button>
@@ -2553,10 +2565,10 @@ function StatusHistory({ orderId, t }: { orderId: string; t: ReturnType<typeof g
   };
 
   return (
-    <div className="flex-none border-t border-[#F0F0F0]">
+    <div className="flex-none border-t border-[color:var(--kds-line)]">
       <button
         onClick={load}
-        className="w-full flex items-center justify-between px-5 py-3 text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest hover:bg-[#FAFAFA] transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3 text-[11px] font-bold text-[color:var(--kds-sub)]st hover:bg-[var(--kds-fill)] transition-colors"
       >
         <span className="flex items-center gap-1.5">
           <History className="w-3.5 h-3.5" />
@@ -2568,10 +2580,10 @@ function StatusHistory({ orderId, t }: { orderId: string; t: ReturnType<typeof g
         <div className="px-5 pb-3">
           {loading ? (
             <div className="flex justify-center py-3">
-              <span className="w-4 h-4 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin" />
+              <span className="w-4 h-4 border-2 border-[color:var(--kds-line)] border-t-[color:var(--kds-accent)] rounded-full animate-spin" />
             </div>
           ) : history.length === 0 ? (
-            <p className="text-xs text-[#CCCCCC] text-center py-2">{t.en ? 'No history yet' : 'Sin historial aún'}</p>
+            <p className="text-xs text-[color:var(--kds-sub)] text-center py-2">{t.en ? 'No history yet' : 'Sin historial aún'}</p>
           ) : (
             <ol className="space-y-2">
               {history.map((row, i) => {
@@ -2582,13 +2594,13 @@ function StatusHistory({ orderId, t }: { orderId: string; t: ReturnType<typeof g
                 return (
                   <li key={row.id} className="flex items-start gap-2.5">
                     <div className="flex flex-col items-center flex-shrink-0 mt-0.5">
-                      <div className={cn('w-2 h-2 rounded-full', i === history.length - 1 ? 'bg-[#06C167]' : 'bg-gray-300')} />
-                      {i < history.length - 1 && <div className="w-px h-4 bg-gray-200 mt-1" />}
+                      <div className="w-2 h-2 rounded-full" style={{ background: i === history.length - 1 ? C.accent : C.lineStrong }} />
+                      {i < history.length - 1 && <div className="w-px h-4 mt-1" style={{ background: C.line }} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-xs font-bold text-[#333]">{label}</span>
-                      {row.note && <span className="text-xs text-[#888] ml-1.5 italic">· {row.note}</span>}
-                      <span className="block text-[10px] text-[#BBBBBB]">{ts}</span>
+                      <span className="text-xs font-bold text-[color:var(--kds-ink)]">{label}</span>
+                      {row.note && <span className="text-xs text-[color:var(--kds-sub)] ml-1.5 italic">· {row.note}</span>}
+                      <span className="block text-[10px] text-[color:var(--kds-sub)]">{ts}</span>
                     </div>
                   </li>
                 );
@@ -2619,8 +2631,8 @@ function SidebarSection({
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[#888]">{icon}</span>
-        <p className="text-xs font-bold text-[#888] uppercase tracking-wide">{title}</p>
+        <span className="text-[color:var(--kds-sub)]">{icon}</span>
+        <p className="text-xs font-bold text-[color:var(--kds-sub)]">{title}</p>
       </div>
       {children}
     </div>

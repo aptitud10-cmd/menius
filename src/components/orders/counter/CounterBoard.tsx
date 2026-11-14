@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { AlertOctagon, AlertTriangle, CheckCircle2, MapPin, Navigation } from 'lucide-react';
 import type { Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { KindTag } from './KindTag';
 import { customerFlagLabel, type CustomerFlag } from '@/lib/customer-incidents';
 import {
-  C, type CounterText, orderKind, shortName, minsSince, minsLeft, itemCount,
+  C, type CounterText, shortName, minsSince, minsLeft, itemCount,
   orderAllergies, money, stripNoteLabel, scheduledWhen, waitingSince,
 } from './ui';
 
@@ -40,30 +41,30 @@ export function primaryAction(order: Order, T: CounterText, acceptMins: number):
 function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
   if (order.status === 'pending' && order.scheduled_for) {
     // Programado: lo que importa es la hora pactada, no cuándo se hizo el pedido.
-    return <span className="tabular-nums font-extrabold text-[16px]" style={{ color: C.ink }}>{T.scheduledFor(scheduledWhen(order.scheduled_for, T.locale))}</span>;
+    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.ink }}>{T.scheduledFor(scheduledWhen(order.scheduled_for, T.locale))}</span>;
   }
   if (order.status === 'pending') {
     const m = Math.max(0, Math.floor((Date.now() - waitingSince(order as Order & { updated_at?: string | null })) / 60_000));
-    return <span className="tabular-nums font-bold text-[16px]" style={{ color: m >= 5 ? C.amber : C.sub }}>{T.minAgo(m)}</span>;
+    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: m >= 5 ? C.amber : C.sub }}>{T.minAgo(m)}</span>;
   }
   const pickedUpEarly = (order as Order & { driver_picked_up_at?: string | null }).driver_picked_up_at;
   if (pickedUpEarly && !['delivered', 'completed', 'cancelled'].includes(order.status)) {
-    return <span className="tabular-nums font-bold text-[16px]" style={{ color: C.sub }}>{T.minAgo(minsSince(pickedUpEarly))}</span>;
+    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.sub }}>{T.minAgo(minsSince(pickedUpEarly))}</span>;
   }
   if (['confirmed', 'preparing', 'almost_ready'].includes(order.status)) {
     const left = minsLeft(order);
-    if (left == null) return <span className="tabular-nums font-bold text-[16px]" style={{ color: C.sub }}>{T.minAgo(minsSince(order.created_at))}</span>;
-    if (left < 0) return <span className="tabular-nums font-extrabold text-[16px]" style={{ color: C.red }}>{T.late(-left)}</span>;
-    return <span className="tabular-nums font-bold text-[16px]" style={{ color: left <= 3 ? C.amber : C.sub }}>{T.readyIn(left)}</span>;
+    if (left == null) return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.sub }}>{T.minAgo(minsSince(order.created_at))}</span>;
+    if (left < 0) return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.red }}>{T.late(-left)}</span>;
+    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: left <= 3 ? C.amber : C.sub }}>{T.readyIn(left)}</span>;
   }
   // En camino: no "espera" en el local — cuánto hace que salió, sin alarma.
   const pickedUp = (order as Order & { driver_picked_up_at?: string | null }).driver_picked_up_at;
   if (order.status === 'out_for_delivery' || pickedUp) {
     const m = minsSince(pickedUp ?? (order.updated_at as string | undefined) ?? order.created_at);
-    return <span className="tabular-nums font-bold text-[16px]" style={{ color: C.sub }}>{T.minAgo(m)}</span>;
+    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.sub }}>{T.minAgo(m)}</span>;
   }
   const since = minsSince((order.updated_at as string | undefined) ?? order.created_at);
-  return <span className="tabular-nums font-bold text-[16px]" style={{ color: since >= 10 ? C.amber : C.sub }}>{T.waiting(since)}</span>;
+  return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: since >= 10 ? C.amber : C.sub }}>{T.waiting(since)}</span>;
 }
 
 /**
@@ -84,9 +85,11 @@ function DriverLine({ order, T, routeStop }: { order: Order; T: CounterText; rou
     : T.driverWaiting(name);
   const text = routeStop ? `${base} · ${T.routeStop(routeStop.stop, routeStop.of)}` : base;
   const moving = !!(o.driver_at_door_at || o.driver_picked_up_at || order.status === 'out_for_delivery');
+  // Sin relleno: en camino / en la puerta en azul con ícono; esperando, en gris.
   return (
-    <p className="text-[15px] font-bold rounded-lg px-2.5 py-1.5" style={moving ? { background: C.blue, color: C.onStatus } : { background: C.surface2, color: C.ink }}>
-      {text}
+    <p className="flex items-center gap-2 text-[16px] font-semibold leading-snug" style={{ color: moving ? C.blue : C.sub }}>
+      {moving && <Navigation className="w-4 h-4 flex-none" fill="currentColor" aria-hidden />}
+      <span className="min-w-0">{text}</span>
     </p>
   );
 }
@@ -99,8 +102,10 @@ export function CustomerFlagLine({ order, T }: { order: Order; T: CounterText })
   const flag = (order as Order & { customer_flag?: CustomerFlag | null }).customer_flag;
   if (!flag || flag.incident_count <= 0 || order.status === 'cancelled') return null;
   return (
-    <p className="text-[15px] font-extrabold rounded-lg px-2.5 py-1.5 leading-snug" style={{ background: C.redSoft, color: C.red }}>
-      ⚠ {customerFlagLabel(flag, T.locale.startsWith('en'))}
+    <p className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[16px] font-semibold leading-snug"
+      style={{ background: C.warnBg, color: C.warnText, boxShadow: `inset 3px 0 0 ${C.warnBar}` }}>
+      <AlertTriangle className="w-[18px] h-[18px] flex-none" strokeWidth={2.4} aria-hidden />
+      <span className="min-w-0">{customerFlagLabel(flag, T.locale.startsWith('en'))}</span>
     </p>
   );
 }
@@ -110,8 +115,26 @@ function ArrivedLine({ order, T }: { order: Order; T: CounterText }) {
   if (order.order_type !== 'pickup' || !order.customer_arrived_at) return null;
   if (['delivered', 'completed', 'cancelled'].includes(order.status)) return null;
   return (
-    <p className="text-[15px] font-bold rounded-lg px-2.5 py-1.5" style={{ background: C.violet, color: C.onStatus }}>
+    // Pide acción: lleva fondo, pero no sólido.
+    <p className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[16px] font-semibold"
+      style={{ background: `color-mix(in srgb, ${C.violet} 12%, ${C.surface})`, color: C.violet }}>
+      <MapPin className="w-[18px] h-[18px] flex-none" strokeWidth={2.4} aria-hidden />
       {T.customerArrived}
+    </p>
+  );
+}
+
+/**
+ * Alergia: el ÚNICO bloque rojo sólido de la pantalla, igual en Claro y Oscuro.
+ * Tiene que verse a dos metros.
+ */
+export function AllergyBlock({ T, text, size = 'md' }: { T: CounterText; text: string; size?: 'md' | 'lg' }) {
+  const lg = size === 'lg';
+  return (
+    <p className={cn('flex items-start gap-2 rounded-xl font-semibold leading-snug', lg ? 'px-4 py-3 text-[19px]' : 'px-3 py-2.5 text-[17px]')}
+      style={{ background: C.critical, color: C.onCritical }}>
+      <AlertOctagon className={cn('flex-none mt-px', lg ? 'w-[22px] h-[22px]' : 'w-[19px] h-[19px]')} strokeWidth={2.4} aria-hidden />
+      <span className="min-w-0"><b className="font-bold">{T.allergy}:</b> {stripNoteLabel(text)}</span>
     </p>
   );
 }
@@ -123,7 +146,6 @@ export function OrderCard({
   onOpen: () => void; onPrimary: (kind: PrimaryKind) => void;
   routeStop?: { stop: number; of: number };
 }) {
-  const kind = orderKind(order);
   const isNew = order.status === 'pending';
   const allergies = orderAllergies(order);
   const action = primaryAction(order, T, acceptMins);
@@ -139,52 +161,54 @@ export function OrderCard({
       className={cn(
         // shrink-0: en la columna con scroll, el WebView de la tablet (Tab A11) encogía
         // las tarjetas a ~28 px y el botón quedaba encima de la siguiente.
-        'relative shrink-0 rounded-2xl pl-5 pr-4 pt-3.5 pb-3.5 flex flex-col gap-2.5 text-left cursor-pointer transition-colors outline-none',
+        'relative shrink-0 rounded-[22px] px-5 pt-[18px] pb-5 flex flex-col gap-3 text-left cursor-pointer outline-none',
         'focus-visible:ring-4 focus-visible:ring-black/20',
       )}
-      style={{
-        background: isNew ? C.greenSoft : C.surface,
-        boxShadow: isNew ? `inset 0 0 0 2px ${C.green}` : undefined,
-      }}
+      // Siempre la misma superficie: lo "nuevo" lo dicen el botón Aceptar y el contador de la columna.
+      style={{ background: C.surface }}
     >
-      {/* Borde del tipo de pedido: se reconoce sin leer */}
-      <span aria-hidden className="absolute left-0 top-3 bottom-3 w-1.5 rounded-r-full" style={{ background: kind.color }} />
-
       <div className="flex items-baseline justify-between gap-3">
-        <span className="font-extrabold text-[22px] leading-tight tracking-tight truncate" style={{ color: C.ink }}>
+        <span className="font-bold text-[22px] leading-tight tracking-[-0.015em] truncate" style={{ color: C.ink }}>
           {shortName(order.customer_name, '—')}
         </span>
         <TimeBadge order={order} T={T} />
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap text-[15px]" style={{ color: C.sub }}>
-        <KindTag order={order} T={T} />
-        <span className="tabular-nums">#{shortNum}</span>
-        <span aria-hidden>·</span>
-        <span>{T.items(itemCount(order))}</span>
-        {isNew && <><span aria-hidden>·</span><span className="tabular-nums font-semibold" style={{ color: C.ink }}>{money(Number(order.total), currency)}</span></>}
-        {paidOnline && <span className="text-[13px] font-bold px-2 py-0.5 rounded-md" style={{ background: C.greenSoft, color: C.greenDeep }}>{T.paidOnline}</span>}
+      {/* El total va fijo a la derecha (sin "·"): así la fila no se parte por un total
+          largo en el celular, y si algo baja de línea nunca empieza con un punto suelto. */}
+      <div className="flex items-start justify-between gap-3 text-[16px] max-[479px]:text-[15px] font-medium" style={{ color: C.sub }}>
+        {/* En el celular la fila puede partirse: sin "·" (separa el espacio), para que
+            ninguna línea empiece con un punto suelto. */}
+        <div className="min-w-0 flex items-center gap-x-2 max-[479px]:gap-x-2.5 gap-y-0.5 flex-wrap">
+          <KindTag order={order} T={T} />
+          <span className="tabular-nums">#{shortNum}</span>
+          <span className="inline-flex items-center gap-2 whitespace-nowrap"><span aria-hidden className="max-[479px]:hidden" style={{ color: C.faint }}>·</span>{T.items(itemCount(order))}</span>
+          {paidOnline && (
+            <span className="inline-flex items-center gap-1 whitespace-nowrap">
+              <CheckCircle2 className="w-4 h-4 flex-none" strokeWidth={2.4} aria-hidden />{T.paidOnline}
+            </span>
+          )}
+        </div>
+        {isNew && (
+          <span className="shrink-0 tabular-nums font-semibold whitespace-nowrap" style={{ color: C.ink }}>{money(Number(order.total), currency)}</span>
+        )}
       </div>
 
       <CustomerFlagLine order={order} T={T} />
       <DriverLine order={order} T={T} routeStop={routeStop} />
       <ArrivedLine order={order} T={T} />
 
-      {allergies.length > 0 && (
-        <p className="text-[15px] font-extrabold rounded-lg px-2.5 py-1.5 leading-snug" style={{ background: C.redSoft, color: C.red }}>
-          {T.allergy}: {stripNoteLabel(allergies[0])}
-        </p>
-      )}
+      {allergies.length > 0 && <AllergyBlock T={T} text={allergies[0]} />}
 
       {action && (
         <button
           type="button"
           disabled={busy}
           onClick={(e) => { e.stopPropagation(); onPrimary(action.kind); }}
-          className="h-14 rounded-xl font-extrabold text-[18px] transition-transform active:scale-[.98] disabled:opacity-50"
+          className="mt-0.5 h-[52px] rounded-[14px] font-semibold text-[18px] transition-transform active:scale-[.98] disabled:opacity-50"
           style={action.kind === 'accept'
-            ? { background: C.green, color: C.greenInk }
-            : { background: C.black, color: C.onBlack }}
+            ? { background: C.accent, color: C.onAccent }
+            : { background: C.fill, color: C.ink }}
         >
           {action.label}
         </button>
@@ -216,44 +240,55 @@ export function CounterBoard({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col" style={{ background: C.bg }}>
-      {/* Selector de columna (solo angosto) */}
-      <div className="min-[880px]:hidden flex gap-2 px-4 pt-3">
-        {cols.map((c) => (
-          <button
-            key={c.key}
-            type="button"
-            onClick={() => setMobileCol(c.key)}
-            className="flex-auto min-w-0 h-12 px-2 max-[379px]:px-1.5 rounded-xl font-bold text-[15px] max-[379px]:text-[14px] min-[400px]:text-[16px] flex items-center justify-center gap-1.5 max-[379px]:gap-1"
-            style={mobileCol === c.key ? { background: C.black, color: C.onBlack } : { background: C.surface, color: C.ink }}
-          >
-            <span className="truncate">{c.title}</span>
-            <span
-              className="flex-none tabular-nums min-w-[26px] h-[26px] max-[379px]:min-w-[22px] max-[379px]:h-[22px] px-1.5 rounded-full text-[14px] max-[379px]:text-[13px] font-extrabold inline-flex items-center justify-center"
-              style={c.key === 'new' && c.orders.length > 0
-                ? { background: C.green, color: C.greenInk }
-                : { background: mobileCol === c.key ? 'color-mix(in srgb, currentColor 20%, transparent)' : C.surface2 }}
-            >
-              {c.orders.length}
-            </span>
-          </button>
-        ))}
+      {/* Selector de columna (solo angosto): control segmentado */}
+      <div className="min-[880px]:hidden px-4 pt-2">
+        <div role="tablist" className="flex gap-0.5 p-1 rounded-2xl" style={{ background: C.fill }}>
+          {cols.map((c) => {
+            const on = mobileCol === c.key;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setMobileCol(c.key)}
+                className="flex-auto min-w-0 h-11 px-2 max-[379px]:px-1 rounded-xl text-[16px] max-[379px]:text-[15px] flex items-center justify-center gap-1.5 max-[379px]:gap-1"
+                style={on
+                  ? { background: C.thumb, color: C.ink, boxShadow: C.thumbShadow, fontWeight: 700 }
+                  : { color: C.ink, fontWeight: 500 }}
+              >
+                <span className="truncate">{c.title}</span>
+                {c.key === 'new' && c.orders.length > 0 ? (
+                  <span className="flex-none tabular-nums min-w-[24px] h-[24px] px-1.5 rounded-full text-[14px] font-semibold inline-flex items-center justify-center"
+                    style={{ background: C.accent, color: C.onAccent }}>
+                    {c.orders.length}
+                  </span>
+                ) : (
+                  <span className="flex-none tabular-nums font-medium" style={{ color: C.sub }}>{c.orders.length}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 min-[880px]:grid-cols-3 gap-4 px-4 pt-3 min-[880px]:pt-4">
+      <div className="flex-1 min-h-0 grid grid-cols-1 min-[880px]:grid-cols-3 gap-5 px-4 min-[880px]:px-5 pt-3 min-[880px]:pt-2">
         {cols.map((c) => (
           <section key={c.key} aria-label={c.title} className={cn('min-h-0 flex-col', mobileCol === c.key ? 'flex' : 'hidden min-[880px]:flex')}>
-            <header className="hidden min-[880px]:flex items-center gap-2.5 px-1 pb-3">
-              <h2 className="text-[18px] font-extrabold" style={{ color: C.ink }}>{c.title}</h2>
-              <span
-                className="tabular-nums min-w-[28px] h-7 px-2 rounded-full text-[15px] font-extrabold inline-flex items-center justify-center"
-                style={c.key === 'new' && c.orders.length > 0 ? { background: C.green, color: C.greenInk } : { background: C.surface2, color: C.ink }}
-              >
-                {c.orders.length}
-              </span>
+            <header className="hidden min-[880px]:flex items-baseline gap-2.5 px-1 pb-3.5">
+              <h2 className="text-[24px] font-bold tracking-[-0.02em]" style={{ color: C.ink }}>{c.title}</h2>
+              {c.key === 'new' && c.orders.length > 0 ? (
+                <span className="self-center tabular-nums min-w-[26px] h-[26px] px-2 rounded-full text-[16px] font-semibold inline-flex items-center justify-center"
+                  style={{ background: C.accent, color: C.onAccent }}>
+                  {c.orders.length}
+                </span>
+              ) : (
+                <span className="tabular-nums text-[24px] font-medium tracking-[-0.02em]" style={{ color: C.sub }}>{c.orders.length}</span>
+              )}
             </header>
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-3 pb-4">
               {c.orders.length === 0 ? (
-                <p className="rounded-2xl border-2 border-dashed px-4 py-8 text-center text-[16px] font-semibold" style={{ borderColor: C.line, color: C.faint }}>
+                <p className="px-4 py-10 text-center text-[17px] font-medium" style={{ color: C.sub }}>
                   {c.empty}
                 </p>
               ) : (

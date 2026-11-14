@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { CounterView } from '@/components/orders/CounterView';
 import { DEFAULT_COUNTER_SETTINGS } from '@/lib/counter-settings';
-import { SCREEN_THEME_IDS, type ScreenThemeId } from '@/lib/counter-themes';
+import { normalizeScreenThemeId } from '@/lib/counter-themes';
 import type { Order } from '@/types';
 
 // Vista previa SOLO para desarrollo: el Counter con pedidos de ejemplo, sin
@@ -103,10 +103,10 @@ const ORDERS: Order[] = [
   }),
 ];
 
-export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; accent?: string; owner?: string } }) {
-  // ?theme=midnight · ?accent=E11D48 · ?owner=1 (muestra el modo demo y el permiso de tablets)
-  const theme = SCREEN_THEME_IDS.includes(searchParams.theme as ScreenThemeId) ? (searchParams.theme as ScreenThemeId) : 'menius';
-  const accent = searchParams.accent && /^[0-9A-Fa-f]{6}$/.test(searchParams.accent) ? `#${searchParams.accent.toUpperCase()}` : null;
+export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; owner?: string; panel?: string } }) {
+  // ?theme=midnight (oscuro; los ids viejos se mapean) · ?owner=1 (muestra el modo demo y el permiso de tablets)
+  // · ?panel=1 (botón "Panel del dueño" al final del menú; sin owner=1 pide el PIN)
+  const theme = normalizeScreenThemeId(searchParams.theme);
   if (process.env.NODE_ENV === 'production') notFound();
   return (
     <CounterView
@@ -118,7 +118,8 @@ export default function PreviewCounterPage({ searchParams }: { searchParams: { e
       restaurantLat={null}
       restaurantLng={null}
       isDevice={!searchParams.owner}
-      initialSettings={{ ...DEFAULT_COUNTER_SETTINGS, screenTheme: theme, customAccent: accent }}
+      ownerPanel={!!searchParams.panel}
+      initialSettings={{ ...DEFAULT_COUNTER_SETTINGS, screenTheme: theme }}
       settingsLive={false}
       previewAlertIds={searchParams.alert ? ['o1', 'o2'] : undefined}
       previewShiftReport={searchParams.z ? {

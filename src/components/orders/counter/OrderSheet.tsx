@@ -4,11 +4,11 @@ import { useState, type ReactNode } from 'react';
 import { Printer, MoreHorizontal, X, Phone, Send, Pencil, Bike, History, Ban, MapPin } from 'lucide-react';
 import type { Order } from '@/types';
 import {
-  C, type CounterText, PREP_CHOICES, money, parseItem, isAllergyText, stripNoteLabel,
+  C, RAISED, type CounterText, PREP_CHOICES, money, parseItem, isAllergyText, stripNoteLabel,
   minsSince, minsLeft, isClosed,
 } from './ui';
 import { KindTag } from './KindTag';
-import { primaryAction, CustomerFlagLine, type PrimaryKind } from './CounterBoard';
+import { primaryAction, CustomerFlagLine, AllergyBlock, type PrimaryKind } from './CounterBoard';
 
 export interface SheetMoreActions {
   onResendNotice?: () => void;
@@ -55,37 +55,37 @@ export function OrderSheet({
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true" aria-label={order.customer_name || T.customer}>
-      <button type="button" aria-label={T.close} className="absolute inset-0 cursor-default" style={{ background: 'rgba(14,20,18,.45)' }} onClick={onClose} />
+      <button type="button" aria-label={T.close} className="absolute inset-0 cursor-default" style={{ background: C.scrim }} onClick={onClose} />
 
-      <div className="relative h-full w-full min-[880px]:w-[min(820px,90vw)] flex flex-col shadow-2xl" style={{ background: C.bg, color: C.ink }}>
+      <div className="relative h-full w-full min-[880px]:w-[min(820px,90vw)] flex flex-col" style={{ background: C.bg, color: C.ink, boxShadow: `-1px 0 0 ${C.raisedEdge}, -24px 0 48px rgba(0,0,0,.28)` }}>
         {/* Encabezado */}
-        <header className="flex-none flex items-center gap-3 px-5 min-h-[80px] border-b" style={{ borderColor: C.line, paddingTop: 'env(safe-area-inset-top)' }}>
+        <header className="flex-none flex items-center gap-3 px-5 min-h-[80px]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h2 className="font-extrabold text-[26px] leading-tight truncate">{order.customer_name || '—'}</h2>
+              <h2 className="font-bold text-[26px] leading-tight tracking-[-0.02em] truncate">{order.customer_name || '—'}</h2>
               <KindTag order={order} T={T} />
             </div>
-            <p className="text-[15px] tabular-nums" style={{ color: C.sub }}>
+            <p className="text-[16px] font-medium tabular-nums" style={{ color: C.sub }}>
               #{shortNum} · {T.minAgo(minsSince(order.created_at))}
               {order.scheduled_for && ` · ${T.scheduledFor(new Date(order.scheduled_for).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }))}`}
             </p>
           </div>
-          <button type="button" onClick={onPrint} className="h-14 px-4 rounded-xl inline-flex items-center gap-2 font-bold text-[16px]" style={{ background: C.surface }}>
+          <button type="button" onClick={onPrint} className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
             <Printer className="w-5 h-5" /> <span className="hidden sm:inline">{T.print}</span>
           </button>
           {moreItems.length > 0 && (
             <div className="relative">
               <button type="button" aria-expanded={moreOpen} onClick={() => setMoreOpen((v) => !v)}
-                className="h-14 px-4 rounded-xl inline-flex items-center gap-2 font-bold text-[16px]" style={{ background: C.surface }}>
+                className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
                 <MoreHorizontal className="w-5 h-5" /> <span className="hidden sm:inline">{T.more}</span>
               </button>
               {moreOpen && (
                 <>
                   <button type="button" aria-label={T.close} className="fixed inset-0 z-10 cursor-default" onClick={() => setMoreOpen(false)} />
-                  <div className="absolute right-0 top-[64px] z-20 w-[300px] rounded-2xl p-2 shadow-xl border" style={{ background: C.bg, borderColor: C.line }}>
+                  <div className="absolute right-0 top-[60px] z-20 w-[300px] rounded-2xl p-2" style={RAISED}>
                     {moreItems.map((m, i) => {
                       const cls = 'w-full h-14 px-3 rounded-xl flex items-center gap-3 text-[17px] font-semibold text-left';
-                      const style = { color: m.danger ? C.red : C.ink };
+                      const style = { color: m.danger ? C.destructive : C.ink };
                       return m.href ? (
                         <a key={i} href={m.href} className={cls} style={style} onClick={() => setMoreOpen(false)}>{m.icon}{m.label}</a>
                       ) : (
@@ -100,7 +100,7 @@ export function OrderSheet({
               )}
             </div>
           )}
-          <button type="button" onClick={onClose} className="h-14 px-4 rounded-xl inline-flex items-center gap-2 font-bold text-[16px]" style={{ background: C.surface }}>
+          <button type="button" onClick={onClose} className="h-12 px-4 rounded-full inline-flex items-center gap-2 font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
             <X className="w-5 h-5" /> <span className="hidden sm:inline">{T.close}</span>
           </button>
         </header>
@@ -110,31 +110,33 @@ export function OrderSheet({
           <div className="grid grid-cols-1 min-[880px]:grid-cols-[1fr_280px] gap-5 p-5">
             <div className="min-w-0 flex flex-col gap-3">
               <CustomerFlagLine order={order} T={T} />
-              {order.notes?.trim() && (
-                <p className="text-[18px] font-extrabold rounded-xl px-4 py-3 leading-snug"
-                  style={isAllergyText(order.notes) ? { background: C.redSoft, color: C.red } : { background: C.amberSoft, color: C.amber }}>
-                  {isAllergyText(order.notes) ? `${T.allergy}: ` : `${T.orderNote}: `}{stripNoteLabel(order.notes)}
-                </p>
-              )}
-              <ul className="flex flex-col">
+              {order.notes?.trim() && (isAllergyText(order.notes)
+                ? <AllergyBlock T={T} text={order.notes} size="lg" />
+                : (
+                  <p className="text-[18px] font-semibold rounded-xl px-4 py-3 leading-snug" style={{ background: C.surface, color: C.ink }}>
+                    <span className="font-medium" style={{ color: C.sub }}>{T.orderNote}:</span> {stripNoteLabel(order.notes)}
+                  </p>
+                ))}
+              <ul className="flex flex-col rounded-[22px] px-4" style={{ background: C.surface }}>
                 {items.map((it, i) => (
-                  <li key={i} className="grid grid-cols-[44px_1fr] gap-3 py-3.5 border-b" style={{ borderColor: C.line }}>
-                    <span className="w-11 h-11 rounded-xl inline-flex items-center justify-center font-extrabold text-[20px] tabular-nums" style={{ background: C.surface }}>{it.qty}</span>
+                  <li key={i} className={`grid grid-cols-[44px_1fr] gap-3 py-3.5 ${i > 0 ? 'border-t' : ''}`} style={{ borderColor: C.line }}>
+                    <span className="w-11 h-11 rounded-xl inline-flex items-center justify-center font-bold text-[20px] tabular-nums" style={{ background: C.fill, color: C.ink }}>{it.qty}</span>
                     <div className="min-w-0">
                       {/* Con opciones: precio base arriba, cada cosa con su precio y el total del plato
                           abajo (Pedro 2026-11-13). Sin opciones: el total al lado del nombre. */}
-                      <p className="flex justify-between gap-4 text-[20px] font-bold leading-snug">
+                      <p className="flex justify-between gap-4 text-[20px] font-semibold tracking-[-0.01em] leading-snug">
                         <span className="min-w-0">{it.name}{it.variant ? ` · ${it.variant}` : ''}</span>
-                        <span className="text-[17px] font-semibold tabular-nums pt-0.5 shrink-0" style={{ color: C.sub }}>
+                        <span className="text-[17px] font-medium tracking-normal tabular-nums pt-0.5 shrink-0" style={{ color: C.sub }}>
                           {money(it.lines.length + it.extras.length > 0 ? it.basePrice : it.lineTotal, currency)}
                         </span>
                       </p>
-                      {it.notes && (
-                        <p className="mt-1.5 text-[17px] font-extrabold rounded-lg px-2.5 py-1.5 leading-snug"
-                          style={isAllergyText(it.notes) ? { background: C.redSoft, color: C.red } : { background: C.amberSoft, color: C.amber }}>
-                          {isAllergyText(it.notes) ? `${T.allergy}: ` : `${T.note}: `}{stripNoteLabel(it.notes)}
+                      {it.notes && (isAllergyText(it.notes) ? (
+                        <div className="mt-1.5"><AllergyBlock T={T} text={it.notes} /></div>
+                      ) : (
+                        <p className="mt-1.5 text-[17px] font-semibold leading-snug" style={{ color: C.ink }}>
+                          <span className="font-medium" style={{ color: C.sub }}>{T.note}:</span> {stripNoteLabel(it.notes)}
                         </p>
-                      )}
+                      ))}
                       {it.lines.map((line, k) => (
                         <p key={`m${k}`} className={`flex justify-between gap-4 text-[17px] leading-snug mt-1 ${line.indent ? 'pl-6' : ''}`} style={{ color: C.ink }}>
                           <span className="min-w-0">{line.text}</span>
@@ -148,7 +150,7 @@ export function OrderSheet({
                         </p>
                       ))}
                       {it.lines.length + it.extras.length > 0 && (
-                        <p className="flex justify-between gap-4 text-[17px] font-bold mt-2 pt-2 border-t" style={{ borderColor: C.line }}>
+                        <p className="flex justify-between gap-4 text-[17px] font-semibold mt-2 pt-2 border-t" style={{ borderColor: C.line }}>
                           <span>{it.qty > 1 ? `${it.qty} × ${money(it.lineTotal / it.qty, currency)}` : T.itemTotal}</span>
                           <span className="tabular-nums">{money(it.lineTotal, currency)}</span>
                         </p>
@@ -157,14 +159,14 @@ export function OrderSheet({
                   </li>
                 ))}
               </ul>
-              {order.include_utensils && <p className="text-[16px] font-semibold" style={{ color: C.sub }}>{T.utensilsYes}</p>}
+              {order.include_utensils && <p className="text-[16px] font-medium" style={{ color: C.sub }}>{T.utensilsYes}</p>}
               {showHistory && historySlot}
             </div>
 
             <aside className="flex flex-col gap-3">
               {isPrep && left != null && (
                 <Box k={T.time}>
-                  <p className="text-[22px] font-extrabold tabular-nums" style={{ color: left < 0 ? C.red : C.ink }}>
+                  <p className="text-[22px] font-bold tabular-nums" style={{ color: left < 0 ? C.red : C.ink }}>
                     {left < 0 ? T.late(-left) : T.readyIn(left)}
                   </p>
                   <div className="grid grid-cols-4 gap-1.5 mt-1.5">
@@ -174,7 +176,7 @@ export function OrderSheet({
                         // transcurrido + lo que faltaba (0 si ya estaba atrasado) + lo agregado.
                         // Antes sumaba también la espera en Nuevos (created_at).
                         onClick={() => onAdjustEta(order, (Number(order.estimated_ready_minutes ?? 0) - left) + Math.max(0, left) + add)}
-                        className="h-12 rounded-lg font-bold text-[16px] tabular-nums disabled:opacity-50" style={{ background: C.bg, color: C.ink }}>
+                        className="h-12 rounded-xl font-semibold text-[16px] tabular-nums disabled:opacity-50" style={{ background: C.fill, color: C.ink }}>
                         +{add}
                       </button>
                     ))}
@@ -183,7 +185,7 @@ export function OrderSheet({
               )}
 
               <Box k={T.customer}>
-                <p className="text-[18px] font-bold">{order.customer_name || '—'}</p>
+                <p className="text-[18px] font-semibold">{order.customer_name || '—'}</p>
                 {phone && <p className="text-[16px] tabular-nums select-text" style={{ color: C.sub }}>{phone}</p>}
               </Box>
 
@@ -191,7 +193,7 @@ export function OrderSheet({
                 <Box k={T.address}>
                   <p className="text-[16px] leading-snug select-text">{order.delivery_address}</p>
                   <a href={mapsUrl(order)} target="_blank" rel="noopener noreferrer"
-                    className="mt-1.5 h-11 rounded-lg inline-flex items-center justify-center gap-2 font-bold text-[15px]" style={{ background: C.bg, color: C.ink }}>
+                    className="mt-1.5 h-11 rounded-xl inline-flex items-center justify-center gap-2 font-semibold text-[15px]" style={{ background: C.fill, color: C.ink }}>
                     <MapPin className="w-4 h-4" /> {T.openMap}
                   </a>
                   {(order.driver_name || order.driver_picked_up_at || drv.driver_delivered_at) && (
@@ -205,7 +207,7 @@ export function OrderSheet({
                   {/* Prueba de entrega: si el cliente dice "no me llegó", acá está la foto. */}
                   {drv.delivery_photo_url && (
                     <a href={drv.delivery_photo_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
-                      <span className="text-[13px] font-bold uppercase tracking-wide" style={{ color: C.sub }}>{T.deliveryPhoto}</span>
+                      <span className="text-[13px] font-semibold" style={{ color: C.sub }}>{T.deliveryPhoto}</span>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={drv.delivery_photo_url} alt={T.deliveryPhoto} className="mt-1 w-full max-h-48 object-cover rounded-lg" />
                     </a>
@@ -214,7 +216,7 @@ export function OrderSheet({
               )}
 
               <Box k={T.payment}>
-                <p className="text-[17px] font-bold">{paidOnline ? T.paidOnline : T.cash}</p>
+                <p className="text-[17px] font-semibold">{paidOnline ? T.paidOnline : T.cash}</p>
                 <dl className="mt-1 text-[15px] flex flex-col gap-0.5" style={{ color: C.sub }}>
                   {Math.abs(subtotal - Number(order.total)) > 0.009 && <Row k={T.subtotal} v={money(subtotal, currency)} />}
                   {(order.tax_amount ?? 0) > 0 && <Row k={taxLabel || T.tax} v={money(order.tax_amount!, currency)} />}
@@ -223,8 +225,8 @@ export function OrderSheet({
                   {(order.tip_amount ?? 0) > 0 && <Row k={T.tip} v={money(order.tip_amount!, currency)} />}
                 </dl>
                 <div className="flex items-baseline justify-between mt-1.5 pt-1.5 border-t" style={{ borderColor: C.line }}>
-                  <span className="text-[15px] font-bold">{T.total}</span>
-                  <span className="text-[26px] font-extrabold tabular-nums">{money(Number(order.total), currency)}</span>
+                  <span className="text-[15px] font-semibold">{T.total}</span>
+                  <span className="text-[26px] font-bold tracking-[-0.02em] tabular-nums">{money(Number(order.total), currency)}</span>
                 </div>
               </Box>
             </aside>
@@ -233,24 +235,29 @@ export function OrderSheet({
 
         {/* Acción principal: siempre abajo, siempre del mismo tamaño */}
         {!isClosed(order) && action && (
-          <footer className="flex-none border-t px-5 pt-4 flex flex-col gap-3" style={{ borderColor: C.line, paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <footer className="flex-none px-5 pt-4 flex flex-col gap-3" style={{ background: C.surface, boxShadow: `0 -1px 0 ${C.line}`, paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
             {order.status === 'pending' && (
-              <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label={T.readyQuestion}>
-                {PREP_CHOICES.map((c) => (
-                  <button key={c} type="button" role="radio" aria-checked={mins === c} onClick={() => setMins(c)}
-                    className="h-14 rounded-xl font-extrabold text-[19px] tabular-nums"
-                    style={mins === c ? { background: C.black, color: C.onBlack } : { background: C.surface, color: C.ink }}>
-                    {c} <span className="text-[13px] font-semibold opacity-70">min</span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-5 gap-0.5 p-1 rounded-2xl" role="radiogroup" aria-label={T.readyQuestion} style={{ background: C.fill }}>
+                {PREP_CHOICES.map((c) => {
+                  const on = mins === c;
+                  return (
+                    <button key={c} type="button" role="radio" aria-checked={on} onClick={() => setMins(c)}
+                      className="h-12 rounded-xl text-[19px] tabular-nums"
+                      style={on
+                        ? { background: C.thumb, color: C.ink, boxShadow: C.thumbShadow, fontWeight: 700 }
+                        : { color: C.ink, fontWeight: 500 }}>
+                      {c} <span className="text-[13px] font-medium" style={{ color: on ? C.ink : C.sub }}>min</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
             <button
               type="button"
               disabled={busy}
               onClick={() => (action.kind === 'accept' ? onAccept(order, mins) : onPrimary(order, action.kind))}
-              className="h-[76px] rounded-2xl font-extrabold text-[24px] transition-transform active:scale-[.99] disabled:opacity-50"
-              style={action.kind === 'accept' ? { background: C.green, color: C.greenInk } : { background: C.black, color: C.onBlack }}
+              className="h-[76px] rounded-[20px] font-semibold text-[24px] tracking-[-0.015em] transition-transform active:scale-[.99] disabled:opacity-50"
+              style={action.kind === 'accept' ? { background: C.accent, color: C.onAccent } : { background: C.fill, color: C.ink }}
             >
               {action.label}
             </button>
@@ -263,8 +270,8 @@ export function OrderSheet({
 
 function Box({ k, children }: { k: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl p-4 flex flex-col" style={{ background: C.surface }}>
-      <h3 className="text-[13px] font-bold uppercase tracking-wider mb-1" style={{ color: C.sub }}>{k}</h3>
+    <section className="rounded-[22px] p-4 flex flex-col" style={{ background: C.surface }}>
+      <h3 className="text-[14px] font-semibold mb-1" style={{ color: C.sub }}>{k}</h3>
       {children}
     </section>
   );

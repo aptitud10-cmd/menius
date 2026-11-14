@@ -6,7 +6,7 @@ import {
   CheckCircle, Check, Camera, Loader2, MapPin, AlertTriangle, Navigation,
   Phone, MessageSquare, Banknote, ArrowRight, ArrowDown,
 } from 'lucide-react';
-import { C, money } from '@/components/orders/counter/ui';
+import { DRIVER_C as C, money } from '@/components/orders/counter/ui';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { haversineKm } from '@/lib/orders/eta';
 import { usePWAInstall } from '@/hooks/use-pwa-install';

@@ -1,113 +1,116 @@
 import { describe, it, expect } from 'vitest';
-import { contrast } from '@/lib/color-contrast';
+import { contrast, mix } from '@/lib/color-contrast';
 import {
-  SCREEN_THEMES, SCREEN_THEME_IDS, MENIUS_TOKENS, deriveAccent, resolveThemeTokens, themeCssVars,
-  getScreenTheme, ACCENT_MIN_FILL_CONTRAST, type ThemeTokens,
+  SCREEN_THEMES, SCREEN_THEME_IDS, LIGHT_TOKENS, DARK_TOKENS, resolveThemeTokens, themeCssVars,
+  getScreenTheme, normalizeScreenThemeId, type ThemeTokens,
 } from '@/lib/counter-themes';
-import { C } from '@/components/orders/counter/ui';
+import { rowToSettings, counterSettingsPatchSchema } from '@/lib/counter-settings';
+import { C, DRIVER_C } from '@/components/orders/counter/ui';
 
-// Lo que el Counter dibuja de verdad con cada par de tokens. Si un tema nuevo no
-// cumple, este test falla: no se puede agregar un tema ilegible.
+// Cada par texto/fondo que el Counter dibuja de verdad. Si un valor nuevo no
+// cumple, este test falla: no se puede dejar una apariencia ilegible.
 function checks(t: ThemeTokens): [string, number, number][] {
-  const states = ['blue', 'violet', 'orange', 'amber', 'red'] as const;
   return [
-    ['ink/bg', contrast(t.ink, t.bg), 7],
-    ['ink/surface', contrast(t.ink, t.surface), 7],
-    ['ink/surface2', contrast(t.ink, t.surface2), 7],
-    ['sub/bg', contrast(t.sub, t.bg), 4.5],
-    ['sub/surface', contrast(t.sub, t.surface), 4.5],
-    ['faint/bg', contrast(t.faint, t.bg), 3],
-    ['onBlack/black', contrast(t.onBlack, t.black), 4.5],
-    ['greenInk/green', contrast(t.greenInk, t.green), 4.5],
-    ['greenDeep/bg', contrast(t.greenDeep, t.bg), 4.5],
-    ['greenDeep/surface', contrast(t.greenDeep, t.surface), 4.5],
-    ['greenDeep/greenSoft', contrast(t.greenDeep, t.greenSoft), 4.5],
-    ['onGreenInk/greenInk', contrast(t.onGreenInk, t.greenInk), 4.5],
-    ['alertPanelInk/alertPanel', contrast(t.alertPanelInk, t.alertPanel), 4.5],
-    ['alertPanelText/alertPanel', contrast(t.alertPanelText, t.alertPanel), 4.5],
-    ['red/bg (alergia en la alerta)', contrast(t.red, t.bg), 4.5],
-    ...states.flatMap((s): [string, number, number][] => [
-      [`${s}/${s}Soft`, contrast(t[s], t[`${s}Soft`]), 4.5],
-      [`${s}/surface`, contrast(t[s], t.surface), 3],
+    // Texto principal y secundario sobre todas las superficies.
+    ...(['bg', 'surface', 'fill', 'thumb'] as const).map((s): [string, number, number] => [`ink/${s}`, contrast(t.ink, t[s]), 4.5]),
+    ...(['bg', 'surface', 'fill', 'raised'] as const).map((s): [string, number, number] => [`sub/${s}`, contrast(t.sub, t[s]), 4.5]),
+    // Modales y hojas.
+    ['ink/raised', contrast(t.ink, t.raised), 4.5],
+    ['destructive/raised', contrast(t.destructive, t.raised), 4.5],
+    ['accentText/raised', contrast(t.accentText, t.raised), 4.5],
+    ['warnText/raised', contrast(t.warnText, t.raised), 4.5],
+    ['blue/raised', contrast(t.blue, t.raised), 4.5],
+    // "Nuevo": Aceptar, contador de Nuevos, cápsula "N pedidos nuevos".
+    ['onAccent/accent', contrast(t.onAccent, t.accent), 4.5],
+    ['accentText/surface', contrast(t.accentText, t.surface), 4.5],
+    ['accentText/bg', contrast(t.accentText, t.bg), 4.5],
+    // Tipo de pedido (tarjeta = surface, alerta = bg) y tiempos.
+    ...(['blue', 'violet', 'amber', 'red'] as const).flatMap((k): [string, number, number][] => [
+      [`${k}/surface`, contrast(t[k], t.surface), 4.5],
+      [`${k}/bg`, contrast(t[k], t.bg), 4.5],
     ]),
-    // Rellenos sólidos con texto encima: tag de tipo, chip "moviendo", toast de error.
-    ...(['blue', 'violet', 'red'] as const).map((s): [string, number, number] => [`onStatus/${s}`, contrast(t.onStatus, t[s]), 4.5]),
+    // "El cliente ya llegó": índigo sobre su fondo al 12 %.
+    ['violet/violet12', contrast(t.violet, mix(t.surface, t.violet, 0.12)), 4.5],
+    // Rechazar / Cancelar / PIN incorrecto.
+    ['destructive/fill', contrast(t.destructive, t.fill), 4.5],
+    ['destructive/surface', contrast(t.destructive, t.surface), 4.5],
+    // Alergia y "Sin conexión": el único relleno rojo.
+    ['onCritical/critical', contrast(t.onCritical, t.critical), 4.5],
+    // "Ojo: su último pedido…", pausado, ocupado.
+    ['warnText/warnBg', contrast(t.warnText, t.warnBg), 4.5],
+    // Toast, banner demo, vista activa.
+    ['onInverse/inverse', contrast(t.onInverse, t.inverse), 4.5],
   ];
 }
 
-describe('temas de pantalla del Counter', () => {
-  it('hay un tema por cada id del CHECK de la base, sin repetidos', () => {
-    expect(SCREEN_THEMES.map((t) => t.id).sort()).toEqual([...SCREEN_THEME_IDS].sort());
+describe('apariencias del Counter (Claro / Oscuro)', () => {
+  it('solo dos apariencias, con los ids del CHECK de la base', () => {
+    expect(SCREEN_THEMES.map((t) => t.id)).toEqual(['menius', 'midnight']);
+    expect([...SCREEN_THEME_IDS]).toEqual(['menius', 'midnight']);
+    expect(getScreenTheme('menius')).toMatchObject({ mode: 'light', name: { es: 'Claro', en: 'Light' } });
+    expect(getScreenTheme('midnight')).toMatchObject({ mode: 'dark', name: { es: 'Oscuro', en: 'Dark' } });
   });
 
-  it('menius es exactamente la paleta que el Counter usaba antes', () => {
-    expect(MENIUS_TOKENS).toMatchObject({
-      bg: '#FFFFFF', surface: '#F2F4F3', surface2: '#E8ECEA', line: '#E1E6E3', ink: '#0E1412',
-      sub: '#55605C', faint: '#7A8580', black: '#111816', onBlack: '#FFFFFF', green: '#05C8A7',
-      greenInk: '#04241E', greenDeep: '#047A67', greenSoft: '#DFF7F1', blue: '#1D4ED8', blueSoft: '#E8EFFF',
-      violet: '#6D28D9', violetSoft: '#F1E8FF', orange: '#B54708', orangeSoft: '#FFF1E0', amber: '#B45309',
-      amberSoft: '#FEF3C7', red: '#C81E1E', redSoft: '#FDE8E8',
-      // Los fijos de antes: texto blanco sobre estados/botón, panel de la alerta.
-      onStatus: '#FFFFFF', onGreenInk: '#FFFFFF', alertPanel: '#A0EADE', alertPanelInk: '#1B4A41',
-      alertPanelText: '#04241E',
-    });
-  });
-
-  it('C usa variables del tema con el valor de menius como respaldo', () => {
-    expect(C.bg).toBe('var(--kds-bg, #FFFFFF)');
-    expect(C.surface2).toBe('var(--kds-surface-2, #E8ECEA)');
-    expect(C.greenDeep).toBe('var(--kds-green-deep, #047A67)');
-    expect(themeCssVars(MENIUS_TOKENS)['--kds-surface-2']).toBe('#E8ECEA');
-  });
-
-  for (const theme of SCREEN_THEMES.filter((t) => t.id !== 'menius')) {
-    it(`${theme.id}: todo el texto cumple su mínimo de contraste`, () => {
+  for (const theme of SCREEN_THEMES) {
+    it(`${theme.name.es}: todo el texto cumple AA`, () => {
       const fails = checks(theme.tokens).filter(([, r, min]) => r < min).map(([k, r, min]) => `${k} ${r.toFixed(2)} < ${min}`);
       expect(fails).toEqual([]);
     });
   }
 
-  it('el tema desconocido cae a menius', () => {
-    expect(getScreenTheme('nope').id).toBe('menius');
+  it('la alergia es el mismo rojo sólido con texto blanco en los dos modos', () => {
+    expect(LIGHT_TOKENS.critical).toBe(DARK_TOKENS.critical);
+    expect(LIGHT_TOKENS.onCritical).toBe('#FFFFFF');
+    expect(DARK_TOKENS.onCritical).toBe('#FFFFFF');
+  });
+
+  it('Oscuro: los botones grises se distinguen de la tarjeta y del fondo', () => {
+    expect(contrast(DARK_TOKENS.fill, DARK_TOKENS.surface)).toBeGreaterThanOrEqual(1.5);
+    expect(contrast(DARK_TOKENS.fill, DARK_TOKENS.bg)).toBeGreaterThanOrEqual(1.5);
+    // Los modales se despegan de las tarjetas: superficie más clara y borde visible.
+    expect(contrast(DARK_TOKENS.raised, DARK_TOKENS.surface)).toBeGreaterThan(1.05);
+    expect(contrast(DARK_TOKENS.raisedEdge, DARK_TOKENS.raised)).toBeGreaterThanOrEqual(1.5);
+    // El segmento elegido se despega de la pista.
+    expect(contrast(DARK_TOKENS.thumb, DARK_TOKENS.fill)).toBeGreaterThanOrEqual(1.5);
+  });
+
+  it('los temas viejos se leen como Claro u Oscuro según su modo', () => {
+    for (const id of ['forest', 'ocean', 'sunset', 'royal', 'espresso', 'neon']) expect(normalizeScreenThemeId(id)).toBe('midnight');
+    for (const id of ['daylight', 'diner', 'blush', 'mint']) expect(normalizeScreenThemeId(id)).toBe('menius');
+    expect(normalizeScreenThemeId('nope')).toBe('menius');
+    expect(normalizeScreenThemeId(null)).toBe('menius');
+    expect(getScreenTheme('neon').id).toBe('midnight');
+    expect(rowToSettings({ screen_theme: 'forest' }).screenTheme).toBe('midnight');
+    expect(rowToSettings({ screen_theme: 'diner' }).screenTheme).toBe('menius');
+  });
+
+  it('solo se pueden guardar los dos ids nuevos', () => {
+    expect(counterSettingsPatchSchema.safeParse({ screenTheme: 'midnight' }).success).toBe(true);
+    expect(counterSettingsPatchSchema.safeParse({ screenTheme: 'forest' }).success).toBe(false);
+  });
+
+  it('el acento propio guardado ya no cambia la pantalla', () => {
+    expect(resolveThemeTokens('menius')).toBe(LIGHT_TOKENS);
+    expect(resolveThemeTokens('midnight')).toBe(DARK_TOKENS);
+  });
+
+  it('C usa variables de la apariencia con Claro como respaldo', () => {
+    expect(C.bg).toBe('var(--kds-bg, #F2F2F7)');
+    expect(C.accent).toBe('var(--kds-accent, #007A6B)');
+    expect(C.onCritical).toBe('var(--kds-on-critical, #FFFFFF)');
+    expect(themeCssVars(DARK_TOKENS)['--kds-on-accent']).toBe('#04211B');
+    expect(themeCssVars(DARK_TOKENS)['--kds-thumb-shadow']).toBe(DARK_TOKENS.thumbShadow);
   });
 });
 
-describe('acento personalizado', () => {
-  const samples = ['#E11D48', '#7C3AED', '#0EA5E9', '#F59E0B', '#22C55E', '#111111', '#FFD700', '#8B4513'];
-
-  for (const theme of SCREEN_THEMES) {
-    it(`${theme.id}: cualquier acento aceptado deja todo legible`, () => {
-      for (const hex of samples) {
-        const r = deriveAccent(hex, theme);
-        if (!r.ok) {
-          // Bloqueado: hay sugerencia y la sugerencia sí se acepta.
-          expect(r.suggestion).not.toBeNull();
-          expect(deriveAccent(r.suggestion!, theme).ok).toBe(true);
-          continue;
-        }
-        const t = resolveThemeTokens(theme.id, hex);
-        expect(contrast(t.green, t.bg)).toBeGreaterThanOrEqual(ACCENT_MIN_FILL_CONTRAST);
-        expect(contrast(t.greenInk, t.green)).toBeGreaterThanOrEqual(4.5);
-        expect(contrast(t.greenDeep, t.bg)).toBeGreaterThanOrEqual(4.5);
-        expect(contrast(t.greenDeep, t.surface)).toBeGreaterThanOrEqual(4.5);
-        expect(contrast(t.greenDeep, t.greenSoft)).toBeGreaterThanOrEqual(4.5);
-        expect(contrast(t.alertPanelInk, t.alertPanel)).toBeGreaterThanOrEqual(4.5);
-        expect(contrast(t.alertPanelText, t.alertPanel)).toBeGreaterThanOrEqual(4.5);
-        expect(contrast(t.onGreenInk, t.greenInk)).toBeGreaterThanOrEqual(4.5);
-      }
+describe('páginas del repartidor', () => {
+  it('siguen con EXACTAMENTE los colores de antes del rediseño', () => {
+    expect(DRIVER_C).toEqual({
+      bg: '#FFFFFF', surface: '#F2F4F3', surface2: '#E8ECEA', line: '#E1E6E3', ink: '#0E1412',
+      sub: '#55605C', faint: '#7A8580', black: '#111816', onBlack: '#FFFFFF', green: '#05C8A7',
+      greenInk: '#04241E', greenDeep: '#047A67', greenSoft: '#DFF7F1', blue: '#1D4ED8', blueSoft: '#E8EFFF',
+      violet: '#6D28D9', violetSoft: '#F1E8FF', orange: '#B54708', orangeSoft: '#FFF1E0', amber: '#B45309',
+      amberSoft: '#FEF3C7', red: '#C81E1E', redSoft: '#FDE8E8',
     });
-  }
-
-  it('bloquea un acento que se pierde en el fondo y sugiere uno cercano', () => {
-    const r = deriveAccent('#FFF4F4', getScreenTheme('menius'));
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.suggestion).toMatch(/^#[0-9A-F]{6}$/);
-      expect(contrast(r.suggestion!, '#FFFFFF')).toBeGreaterThanOrEqual(ACCENT_MIN_FILL_CONTRAST);
-    }
-  });
-
-  it('un acento inválido no rompe: se usa el tema tal cual', () => {
-    expect(resolveThemeTokens('menius', 'rojo')).toEqual(MENIUS_TOKENS);
   });
 });

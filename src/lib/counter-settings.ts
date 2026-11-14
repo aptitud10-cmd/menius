@@ -1,14 +1,15 @@
 // Configuración del Counter por restaurante (tabla counter_settings, migración
-// 20261113g). Sin fila = valores por defecto: Firma + verde MENIUS.
+// 20261113g). Sin fila = valores por defecto: Firma + Claro.
 import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_SOUND_THEME, SOUND_THEME_IDS, type SoundThemeId } from './sound-themes';
-import { DEFAULT_SCREEN_THEME, SCREEN_THEME_IDS, type ScreenThemeId } from './counter-themes';
+import { DEFAULT_SCREEN_THEME, SCREEN_THEME_IDS, normalizeScreenThemeId, type ScreenThemeId } from './counter-themes';
 
 export interface CounterSettings {
   soundTheme: SoundThemeId;
   soundVolume: number;
   screenTheme: ScreenThemeId;
+  /** Columna custom_accent: se lee y se acepta (tablets con JS viejo), pero la pantalla ya no la usa. */
   customAccent: string | null;
   staffCanCustomize: boolean;
   urgentAfterSeconds: number;
@@ -56,7 +57,8 @@ export function rowToSettings(row: CounterSettingsRow | null | undefined): Count
   if (!row) return DEFAULT_COUNTER_SETTINGS;
   const d = DEFAULT_COUNTER_SETTINGS;
   const sound = SOUND_THEME_IDS.includes(row.sound_theme as SoundThemeId) ? (row.sound_theme as SoundThemeId) : d.soundTheme;
-  const screen = SCREEN_THEME_IDS.includes(row.screen_theme as ScreenThemeId) ? (row.screen_theme as ScreenThemeId) : d.screenTheme;
+  // Los 10 temas que ya no existen se leen como Claro u Oscuro según su modo.
+  const screen = normalizeScreenThemeId(row.screen_theme);
   const vol = typeof row.sound_volume === 'number' && row.sound_volume >= 0 && row.sound_volume <= 100 ? row.sound_volume : d.soundVolume;
   const urgent = typeof row.urgent_after_seconds === 'number' && row.urgent_after_seconds >= 10 ? row.urgent_after_seconds : d.urgentAfterSeconds;
   return {
