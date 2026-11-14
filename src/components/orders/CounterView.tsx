@@ -6,7 +6,7 @@ import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
-  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus, Ban, BellOff,
+  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus, Ban, BellOff, Palette,
 } from 'lucide-react';
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
@@ -1570,7 +1570,6 @@ export function CounterView({
         onStatus={() => setStatusOpen(true)}
         onView={setView}
         onMenu={() => setSidebarOpen(true)}
-        onCustomize={() => setCustomizeOpen(true)}
       />
 
       {view === 'board' ? (
@@ -1735,6 +1734,14 @@ export function CounterView({
                 >
                   <Printer className="w-4 h-4 text-[#555]" />
                   <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Printer' : 'Impresora'}</span>
+                </button>
+                {/* Sonido y colores: se usa poco, vive en el menú y no en la barra de arriba (Pedro 2026-11-14). */}
+                <button
+                  onClick={() => { setSidebarOpen(false); setCustomizeOpen(true); }}
+                  className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left"
+                >
+                  <Palette className="w-4 h-4 text-[#555]" />
+                  <span className="text-[15px] font-semibold text-[#111]">{T.customize}</span>
                 </button>
                 {!tabletMode && !isDevice && (
                   <a href="/app/counter/tablet" className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left">
