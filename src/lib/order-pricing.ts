@@ -137,6 +137,16 @@ export interface OrderTotals {
   total: number;
 }
 
+/**
+ * ¿El pedido puede llevar propina? Solo si se cobra con tarjeta (online / wallet).
+ * Si paga en efectivo, la propina la da en mano: meterla en el pedido hacía que
+ * el ticket y el repartidor cobraran una propina que el cliente no pensaba dar
+ * por ahí (Pedro, 2026-11-14). El checkout no la ofrece y /api/orders la ignora.
+ */
+export function tipAllowedFor(paymentMethod: string | null | undefined): boolean {
+  return paymentMethod === 'online' || paymentMethod === 'wallet';
+}
+
 export function computeOrderTotals(input: OrderTotalsInput): OrderTotals {
   const subtotal = input.items.reduce(
     (sum, i) => sum + i.unit_price * i.qty,

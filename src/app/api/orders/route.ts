@@ -23,6 +23,7 @@ import {
   resolveCommission,
   computeApplicationFeeCents,
   feeModelFor,
+  tipAllowedFor,
 } from "@/lib/order-pricing";
 import { buildModLines, withTitle, type LineGroup, type LineSelection } from "@/lib/modifier-lines";
 import { dependencyIds } from "@/lib/conditional-modifiers";
@@ -888,7 +889,10 @@ export async function POST(request: NextRequest) {
     }
 
     const serverDeliveryFee = Number(restaurant.delivery_fee) || 0;
-    const rawTip = Math.max(0, Number(parsed.data.tip_amount) || 0);
+    // En efectivo la propina se da en mano: nunca entra al pedido (tipAllowedFor).
+    const rawTip = tipAllowedFor(parsed.data.payment_method)
+      ? Math.max(0, Number(parsed.data.tip_amount) || 0)
+      : 0;
     const subtotal = parsed.data.items.reduce(
       (sum, item) => sum + item.line_total,
       0,

@@ -7,6 +7,7 @@ import {
   computeApplicationFeeCents,
   internationalCardSurchargeCents,
   feeModelFor,
+  tipAllowedFor,
   type ProductRecord,
   type VariantRecord,
   type ExtraRecord,
@@ -462,5 +463,15 @@ describe('canonicalizeModifiers', () => {
     );
     expect(r.modifiers.map((m) => m.option_id)).toEqual(['o-ranch']);
     expect(r.dropped).toBe(5);
+  });
+});
+
+describe('tipAllowedFor', () => {
+  it('propina solo si se cobra con tarjeta; en efectivo se da en mano', () => {
+    expect(tipAllowedFor('online')).toBe(true);
+    expect(tipAllowedFor('wallet')).toBe(true);
+    expect(tipAllowedFor('cash')).toBe(false);
+    expect(tipAllowedFor(null)).toBe(false);
+    expect(tipAllowedFor(undefined)).toBe(false);
   });
 });

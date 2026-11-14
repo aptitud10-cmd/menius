@@ -24,6 +24,7 @@ import {
 import { supabaseLoader } from '@/lib/image-loader';
 import { showsAsRow } from '@/lib/product-display';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
+import { tipAllowedFor } from '@/lib/order-pricing';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl skeleton" />;
 
@@ -296,7 +297,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [demoCVC, setDemoCVC] = useState('123');
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [demoPayProcessing, setDemoPayProcessing] = useState(false);
-  const tipAmount = tipPercent !== null ? Math.round(cartTotal * tipPercent) / 100 : 0;
+  // En efectivo no se ofrece propina: el cliente la da en mano (tipAllowedFor).
+  const tipAllowed = tipAllowedFor(paymentMethod);
+  const tipAmount = tipAllowed && tipPercent !== null ? Math.round(cartTotal * tipPercent) / 100 : 0;
 
   const [serverQuote, setServerQuote] = useState<CartQuoteResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -2172,8 +2175,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             )}
           </div>
 
-          {/* Tip */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          {/* Tip — solo si se paga con tarjeta */}
+          {tipAllowed && <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <label className="block text-sm font-semibold text-gray-900 mb-3">{t.addTipQuestion}</label>
             <div className="grid grid-cols-3 gap-2">
               {[10, 15, 20].map((pct) => {
@@ -2195,7 +2198,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 );
               })}
             </div>
-          </div>
+          </div>}
 
           <div className="h-4" />
         </div>
