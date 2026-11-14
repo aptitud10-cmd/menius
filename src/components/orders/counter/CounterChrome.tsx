@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, CalendarClock, History, Menu as MenuIcon, X } from 'lucide-react';
+import { ArrowLeft, CalendarClock, History, Menu as MenuIcon, Palette, X } from 'lucide-react';
 import type { Order } from '@/types';
 import { C, type CounterText } from './ui';
 import { OrderCard, type PrimaryKind } from './CounterBoard';
@@ -25,7 +25,7 @@ export function StatusPill({ state, T, onClick }: { state: StoreState; T: Counte
     <button type="button" onClick={onClick}
       className="h-12 min-w-0 px-3 sm:px-4 rounded-full inline-flex items-center gap-2.5 font-bold text-[15px] sm:text-[16px] whitespace-nowrap"
       style={{ background: look.bg, color: look.fg }}>
-      <span className="flex-none w-2.5 h-2.5 rounded-full" style={{ background: look.dot, boxShadow: state.kind === 'open' ? `0 0 0 4px ${C.green}33` : undefined }} />
+      <span className="flex-none w-2.5 h-2.5 rounded-full" style={{ background: look.dot, boxShadow: state.kind === 'open' ? `0 0 0 4px color-mix(in srgb, ${C.green} 20%, transparent)` : undefined }} />
       {state.kind === 'open' ? (
         <>
           <span className="md:hidden">{T.receivingShort}</span>
@@ -41,10 +41,12 @@ export function StatusPill({ state, T, onClick }: { state: StoreState; T: Counte
 export type CounterViewMode = 'board' | 'scheduled' | 'history';
 
 export function CounterTopBar({
-  T, restaurantName, state, view, scheduledCount, onStatus, onView, onMenu,
+  T, restaurantName, state, view, scheduledCount, onStatus, onView, onMenu, onCustomize,
 }: {
   T: CounterText; restaurantName: string; state: StoreState; view: CounterViewMode; scheduledCount: number;
   onStatus: () => void; onView: (v: CounterViewMode) => void; onMenu: () => void;
+  /** Sonido, colores y volumen (panel lateral). */
+  onCustomize?: () => void;
 }) {
   // En celular y tablet vertical los botones son solo ícono (48 px); el nombre
   // de la tienda sale desde 768 px: antes no cabían y "Menú" quedaba cortado fuera de la pantalla.
@@ -62,20 +64,39 @@ export function CounterTopBar({
       <span className="flex-1 min-w-0" />
       {(scheduledCount > 0 || view === 'scheduled') && (
         <button type="button" onClick={() => onView('scheduled')} className={btn}
-          style={view === 'scheduled' ? { background: C.black, color: '#fff' } : { background: C.surface, color: C.ink }}>
+          style={view === 'scheduled' ? { background: C.black, color: C.onBlack } : { background: C.surface, color: C.ink }}>
           <CalendarClock className="w-5 h-5" />
           <span className="hidden lg:inline">{T.scheduled}</span>
           <span className="tabular-nums">{scheduledCount}</span>
         </button>
       )}
       <button type="button" onClick={() => onView('history')} className={btn}
-        style={view === 'history' ? { background: C.black, color: '#fff' } : { background: C.surface, color: C.ink }}>
+        style={view === 'history' ? { background: C.black, color: C.onBlack } : { background: C.surface, color: C.ink }}>
         <History className="w-5 h-5" /> <span className="hidden lg:inline">{T.history}</span>
       </button>
+      {onCustomize && (
+        <button type="button" onClick={onCustomize} className={btn} style={{ background: C.surface, color: C.ink }} aria-label={T.customize}>
+          <Palette className="w-5 h-5" /> <span className="hidden lg:inline">{T.customize}</span>
+        </button>
+      )}
       <button type="button" onClick={onMenu} className={btn} style={{ background: C.surface, color: C.ink }}>
         <MenuIcon className="w-5 h-5" /> <span className="hidden lg:inline">{T.menu}</span>
       </button>
     </header>
+  );
+}
+
+/** Banda fija mientras el modo demo está activo (los pedidos son de mentira). */
+export function DemoBanner({ T, onExit }: { T: CounterText; onExit: () => void }) {
+  return (
+    <div role="status" className="fixed top-0 inset-x-0 z-[70] flex items-center justify-center gap-3 px-4 font-extrabold text-[15px] tracking-wide"
+      style={{ background: C.black, color: C.onBlack, height: 'calc(48px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}>
+      <span>{T.demoBanner}</span>
+      <button type="button" onClick={onExit} className="h-10 px-4 rounded-lg font-extrabold"
+        style={{ background: 'color-mix(in srgb, currentColor 16%, transparent)' }}>
+        {T.demoExit}
+      </button>
+    </div>
   );
 }
 
@@ -108,7 +129,7 @@ export function StoreStatusSheet({
           <div className="grid grid-cols-3 gap-2">
             {[0, 10, 20].map((m) => (
               <button key={m} type="button" onClick={() => onBusy(m)} className={opt}
-                style={busyExtra === m ? { background: C.black, color: '#fff' } : { background: C.surface, color: C.ink }}>
+                style={busyExtra === m ? { background: C.black, color: C.onBlack } : { background: C.surface, color: C.ink }}>
                 {m === 0 ? T.normal : `+${m} min`}
               </button>
             ))}
@@ -191,10 +212,10 @@ export function CounterToast({ text, tone, actionLabel, onAction }: {
   return (
     <div role="status" aria-live="polite"
       className="fixed z-[60] left-4 bottom-4 max-w-[min(520px,calc(100vw-2rem))] rounded-2xl pl-5 pr-2 py-2 flex items-center gap-4 shadow-2xl"
-      style={{ background: tone === 'error' ? C.red : C.black, color: '#fff', marginBottom: 'env(safe-area-inset-bottom)' }}>
+      style={{ background: tone === 'error' ? C.red : C.black, color: tone === 'error' ? C.onStatus : C.onBlack, marginBottom: 'env(safe-area-inset-bottom)' }}>
       <span className="text-[16px] font-semibold py-2">{text}</span>
       {actionLabel && onAction && (
-        <button type="button" onClick={onAction} className="h-12 px-4 rounded-xl font-extrabold text-[16px]" style={{ background: 'rgba(255,255,255,.16)' }}>
+        <button type="button" onClick={onAction} className="h-12 px-4 rounded-xl font-extrabold text-[16px]" style={{ background: 'color-mix(in srgb, currentColor 16%, transparent)' }}>
           {actionLabel}
         </button>
       )}

@@ -1,7 +1,7 @@
 -- MENIUS - schema real de produccion (menius-prod)
 -- Generado desde information_schema via MCP de Supabase.
 -- FUENTE DE VERDAD del schema. NO editar a mano: regenerar desde prod.
--- Tablas: 55  -  Columnas: 612  (actualizado 2026-11-11: + order_number_counters)
+-- Tablas: 56  -  Columnas: 621  (actualizado 2026-11-13: + counter_settings)
 --
 -- ESTE ARCHIVO SOLO TIENE COLUMNAS. No sirve para auditar seguridad: no
 -- contiene ni una linea de RLS, POLICY o GRANT. Para eso esta
@@ -122,6 +122,18 @@ CREATE TABLE public.code_embeddings (
   embedding USER-DEFINED,
   sha text,
   indexed_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE public.counter_settings (
+  restaurant_id uuid NOT NULL,
+  sound_theme text NOT NULL DEFAULT 'firma'::text,
+  sound_volume smallint NOT NULL DEFAULT 80,
+  screen_theme text NOT NULL DEFAULT 'menius'::text,
+  custom_accent text,
+  staff_can_customize boolean NOT NULL DEFAULT true,
+  urgent_after_seconds smallint NOT NULL DEFAULT 30,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid
 );
 
 CREATE TABLE public.customers (

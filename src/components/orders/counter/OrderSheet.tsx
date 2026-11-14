@@ -238,7 +238,7 @@ export function OrderSheet({
                 {PREP_CHOICES.map((c) => (
                   <button key={c} type="button" role="radio" aria-checked={mins === c} onClick={() => setMins(c)}
                     className="h-14 rounded-xl font-extrabold text-[19px] tabular-nums"
-                    style={mins === c ? { background: C.black, color: '#fff' } : { background: C.surface, color: C.ink }}>
+                    style={mins === c ? { background: C.black, color: C.onBlack } : { background: C.surface, color: C.ink }}>
                     {c} <span className="text-[13px] font-semibold opacity-70">min</span>
                   </button>
                 ))}
@@ -249,7 +249,7 @@ export function OrderSheet({
               disabled={busy}
               onClick={() => (action.kind === 'accept' ? onAccept(order, mins) : onPrimary(order, action.kind))}
               className="h-[76px] rounded-2xl font-extrabold text-[24px] transition-transform active:scale-[.99] disabled:opacity-50"
-              style={action.kind === 'accept' ? { background: C.green, color: C.greenInk } : { background: C.black, color: '#fff' }}
+              style={action.kind === 'accept' ? { background: C.green, color: C.greenInk } : { background: C.black, color: C.onBlack }}
             >
               {action.label}
             </button>

@@ -31,6 +31,7 @@ ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cfdi_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.code_embeddings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.counter_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dashboard_notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dev_alerts ENABLE ROW LEVEL SECURITY;
@@ -126,6 +127,23 @@ CREATE POLICY chat_messages_owner_access ON public.chat_messages FOR ALL TO publ
   USING ((restaurant_id IN ( SELECT restaurants.id
    FROM restaurants
   WHERE (restaurants.owner_user_id = auth.uid()))));
+
+-- ── counter_settings (20261113g — anon sin acceso, sin DELETE; en supabase_realtime) ──
+CREATE POLICY counter_settings_owner_insert ON public.counter_settings FOR INSERT TO authenticated
+  WITH CHECK ((restaurant_id IN ( SELECT restaurants.id
+   FROM restaurants
+  WHERE (restaurants.owner_user_id = ( SELECT auth.uid() AS uid)))));
+CREATE POLICY counter_settings_owner_select ON public.counter_settings FOR SELECT TO authenticated
+  USING ((restaurant_id IN ( SELECT restaurants.id
+   FROM restaurants
+  WHERE (restaurants.owner_user_id = ( SELECT auth.uid() AS uid)))));
+CREATE POLICY counter_settings_owner_update ON public.counter_settings FOR UPDATE TO authenticated
+  USING ((restaurant_id IN ( SELECT restaurants.id
+   FROM restaurants
+  WHERE (restaurants.owner_user_id = ( SELECT auth.uid() AS uid)))))
+  WITH CHECK ((restaurant_id IN ( SELECT restaurants.id
+   FROM restaurants
+  WHERE (restaurants.owner_user_id = ( SELECT auth.uid() AS uid)))));
 
 -- ── customers ──────────────────────────────────────────────────────────
 CREATE POLICY customers_owner_access ON public.customers FOR ALL TO public

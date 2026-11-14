@@ -1,6 +1,7 @@
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { OPEN_ORDER_STATUSES, olderOpenOrdersFilter } from '@/lib/order-state';
 import { CounterView } from '@/components/orders/CounterView';
+import { loadCounterSettings } from '@/lib/counter-settings';
 import { isDeviceSession } from '@/lib/auth/device-session';
 
 export const metadata = {
@@ -11,7 +12,7 @@ export default async function CounterPage() {
   const { supabase, restaurantId } = await getDashboardContext(true);
 
   const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-  const [{ data: restaurant }, { data: orders }, { data: oldScheduled }, isDevice] = await Promise.all([
+  const [{ data: restaurant }, { data: orders }, { data: oldScheduled }, isDevice, counterSettings] = await Promise.all([
     supabase
       .from('restaurants')
       .select('name, currency, slug, locale, latitude, longitude, tax_label, tax_included, orders_paused_until')
@@ -55,6 +56,8 @@ export default async function CounterPage() {
       .order('created_at', { ascending: false })
       .limit(50),
     isDeviceSession(supabase),
+    // Sonido / colores / volumen. Consulta aparte y tolerante: si falla, defaults (nunca rompe el Counter).
+    loadCounterSettings(supabase, restaurantId),
   ]);
 
   const mappedOrders = [...(orders ?? []), ...(oldScheduled ?? [])].map((o: any) => ({
@@ -75,6 +78,7 @@ export default async function CounterPage() {
       taxIncluded={(restaurant as any)?.tax_included ?? false}
       isDevice={isDevice}
       initialPausedUntil={restaurant?.orders_paused_until ?? null}
+      initialSettings={counterSettings}
     />
   );
 }

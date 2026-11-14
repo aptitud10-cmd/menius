@@ -4,25 +4,43 @@
 import { orderItemModLines, linesTotal, withTitle, type ModLine } from '@/lib/modifier-lines';
 import type { Order, OrderItem } from '@/types';
 import { PREP_CHOICES, nearestChoice, kitchenMinutes } from '@/lib/orders/eta';
+import { MENIUS_TOKENS, cssVarName, type ThemeToken } from '@/lib/counter-themes';
+
+// Cada color es una variable CSS del tema del Counter (lib/counter-themes.ts) con
+// el valor de siempre como respaldo: sin tema (páginas del repartidor) se ve igual
+// que antes. Los valores de respaldo son MENIUS_TOKENS:
+//   bg #FFFFFF · surface #F2F4F3 (tarjetas) · surface2 #E8ECEA (hover) · line #E1E6E3
+//   ink #0E1412 · sub #55605C (7:1 sobre blanco) · faint #7A8580
+//   black #111816 (botón principal) + onBlack #FFFFFF (su texto)
+//   green #05C8A7 (acento — solo fondos, texto greenInk #04241E encima)
+//   greenDeep #047A67 (acento como texto, ≥4.5:1) · greenSoft #DFF7F1
+const v = (k: ThemeToken) => `var(${cssVarName(k)}, ${MENIUS_TOKENS[k]})`;
 
 export const C = {
-  bg: '#FFFFFF',
-  surface: '#F2F4F3',      // tarjetas
-  surface2: '#E8ECEA',     // hover / pulsado
-  line: '#E1E6E3',
-  ink: '#0E1412',
-  sub: '#55605C',          // texto secundario (7:1 sobre blanco)
-  faint: '#7A8580',
-  black: '#111816',        // botón principal
-  green: '#05C8A7',        // verde MENIUS — solo fondos, con texto oscuro encima
-  greenInk: '#04241E',     // texto sobre verde (≈10:1)
-  greenDeep: '#047A67',    // verde para texto sobre blanco (≥4.5:1)
-  greenSoft: '#DFF7F1',
-  blue: '#1D4ED8', blueSoft: '#E8EFFF',
-  violet: '#6D28D9', violetSoft: '#F1E8FF',
-  orange: '#B54708', orangeSoft: '#FFF1E0',
-  amber: '#B45309', amberSoft: '#FEF3C7',
-  red: '#C81E1E', redSoft: '#FDE8E8',
+  bg: v('bg'),
+  surface: v('surface'),
+  surface2: v('surface2'),
+  line: v('line'),
+  ink: v('ink'),
+  sub: v('sub'),
+  faint: v('faint'),
+  black: v('black'),
+  onBlack: v('onBlack'),
+  green: v('green'),
+  greenInk: v('greenInk'),
+  greenDeep: v('greenDeep'),
+  greenSoft: v('greenSoft'),
+  blue: v('blue'), blueSoft: v('blueSoft'),
+  violet: v('violet'), violetSoft: v('violetSoft'),
+  orange: v('orange'), orangeSoft: v('orangeSoft'),
+  amber: v('amber'), amberSoft: v('amberSoft'),
+  red: v('red'), redSoft: v('redSoft'),
+  alert: v('alert'),
+  onStatus: v('onStatus'),
+  onGreenInk: v('onGreenInk'),
+  alertPanel: v('alertPanel'),
+  alertPanelText: v('alertPanelText'),
+  alertPanelInk: v('alertPanelInk'),
 } as const;
 
 export type Lang = 'es' | 'en';
@@ -130,6 +148,42 @@ const ES = {
   hours: (h: number) => (h === 1 ? '1 hora' : `${h} horas`),
   // Vistas
   backToBoard: 'Volver a pedidos',
+  // Personalización (sonido, colores, volumen) y modo demo
+  customize: 'Sonido y colores',
+  tabSound: 'Sonido',
+  tabColors: 'Colores',
+  tabVolume: 'Volumen',
+  official: 'Oficial',
+  recommended: 'Recomendados',
+  seeAllSounds: 'Ver todos los sonidos',
+  hideAllSounds: 'Ocultar sonidos',
+  seeAllColors: 'Ver todos los colores',
+  hideAllColors: 'Ocultar colores',
+  darkThemes: 'Oscuros',
+  lightThemes: 'Claros',
+  useThis: 'Usar este',
+  inUse: 'En uso',
+  listen: 'Escuchar',
+  customAccent: 'Color de acento propio',
+  customAccentHelp: 'Cambia el color de "nuevo pedido" y "recibiendo pedidos".',
+  removeAccent: 'Quitar acento',
+  accentBlocked: 'Ese color casi no se ve sobre el fondo de este tema.',
+  useSuggested: 'Usar el sugerido',
+  volume: 'Volumen de las alertas',
+  urgentAfter: 'Pasar a sonido urgente después de',
+  seconds: (n: number) => `${n} s`,
+  staffCanCustomize: 'Permitir a las tablets cambiar sonido y colores',
+  staffCanCustomizeHelp: 'Si lo apagas, solo tú (con tu sesión) puedes cambiarlos.',
+  locked: 'El dueño bloqueó los cambios de sonido y colores en esta tablet.',
+  saveFailed: 'No se pudo guardar. Revisa la conexión e intenta de nuevo.',
+  demoMode: 'Modo demo',
+  demoModeHelp: 'Pedidos de prueba solo en esta pantalla, para mostrar el Counter. No se guarda nada.',
+  startDemo: 'Iniciar demo',
+  demoBanner: 'MODO DEMO · pedidos de prueba',
+  demoExit: 'Salir',
+  demoSummary: (n: number, total: string) => `${n} órdenes · ${total}`,
+  demoReady: 'Lista para tu restaurante',
+  demoAgain: 'Repetir demo',
   search: 'Buscar por nombre o número',
   noScheduled: 'No hay pedidos programados',
   noHistory: 'Todavía no hay pedidos cerrados hoy',
@@ -236,6 +290,41 @@ const EN: Dict = {
   min: (m) => `${m} min`,
   hours: (h) => (h === 1 ? '1 hour' : `${h} hours`),
   backToBoard: 'Back to orders',
+  customize: 'Sound & colors',
+  tabSound: 'Sound',
+  tabColors: 'Colors',
+  tabVolume: 'Volume',
+  official: 'Official',
+  recommended: 'Recommended',
+  seeAllSounds: 'See all sounds',
+  hideAllSounds: 'Hide sounds',
+  seeAllColors: 'See all colors',
+  hideAllColors: 'Hide colors',
+  darkThemes: 'Dark',
+  lightThemes: 'Light',
+  useThis: 'Use this',
+  inUse: 'In use',
+  listen: 'Listen',
+  customAccent: 'Custom accent color',
+  customAccentHelp: 'Changes the "new order" and "receiving orders" color.',
+  removeAccent: 'Remove accent',
+  accentBlocked: "That color barely shows on this theme's background.",
+  useSuggested: 'Use suggested',
+  volume: 'Alert volume',
+  urgentAfter: 'Switch to urgent sound after',
+  seconds: (n: number) => `${n} s`,
+  staffCanCustomize: 'Let tablets change sound and colors',
+  staffCanCustomizeHelp: 'If off, only you (signed in) can change them.',
+  locked: 'The owner locked sound and color changes on this tablet.',
+  saveFailed: "Couldn't save. Check the connection and try again.",
+  demoMode: 'Demo mode',
+  demoModeHelp: 'Test orders on this screen only, to show the Counter. Nothing is saved.',
+  startDemo: 'Start demo',
+  demoBanner: 'DEMO MODE · test orders',
+  demoExit: 'Exit',
+  demoSummary: (n: number, total: string) => `${n} orders · ${total}`,
+  demoReady: 'Ready for your restaurant',
+  demoAgain: 'Run demo again',
   search: 'Search by name or number',
   noScheduled: 'No scheduled orders',
   noHistory: 'No closed orders yet today',
@@ -273,9 +362,10 @@ export function shortName(name: string | null | undefined, fallback: string) {
 
 export function orderKind(order: Order) {
   const t = order.order_type ?? 'dine_in';
-  if (t === 'delivery') return { key: 'delivery' as const, color: C.blue };
-  if (t === 'pickup') return { key: 'pickup' as const, color: C.violet };
-  return { key: 'dine_in' as const, color: C.black };
+  // fg: el texto que se lee sobre ese relleno en cualquier tema.
+  if (t === 'delivery') return { key: 'delivery' as const, color: C.blue, fg: C.onStatus };
+  if (t === 'pickup') return { key: 'pickup' as const, color: C.violet, fg: C.onStatus };
+  return { key: 'dine_in' as const, color: C.black, fg: C.onBlack };
 }
 
 export function kindLabel(order: Order, T: CounterText) {

@@ -34,7 +34,7 @@ export function NewOrdersAlert({
       aria-modal="true"
       aria-label={T.newOrders(queue.length)}
       className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: C.green, color: C.greenInk }}
+      style={{ background: C.green, color: C.greenInk, top: 'var(--demo-offset, 0px)' }}
     >
       {/* key: cada pedido arranca con su propio tiempo y su propio contador */}
       <AlertBody
@@ -88,7 +88,7 @@ function AlertBody({
       {/* Pedido */}
       <div className="min-h-0 flex flex-col gap-4">
         <div className="flex items-center gap-3 text-[20px] font-extrabold">
-          <span className="tabular-nums min-w-[44px] h-11 px-3 rounded-full inline-flex items-center justify-center text-[20px]" style={{ background: C.greenInk, color: '#fff' }}>
+          <span className="tabular-nums min-w-[44px] h-11 px-3 rounded-full inline-flex items-center justify-center text-[20px]" style={{ background: C.greenInk, color: C.onGreenInk }}>
             {total}
           </span>
           <span>{T.newOrders(total)}</span>
@@ -106,7 +106,7 @@ function AlertBody({
           <span>{paidOnline ? T.paidOnline : T.cash}</span>
         </div>
         {order.scheduled_for && (
-          <p className="-mt-1 self-start text-[18px] min-[880px]:text-[22px] font-extrabold rounded-xl px-3.5 py-1.5" style={{ background: C.greenInk, color: '#fff' }}>
+          <p className="-mt-1 self-start text-[18px] min-[880px]:text-[22px] font-extrabold rounded-xl px-3.5 py-1.5" style={{ background: C.greenInk, color: C.onGreenInk }}>
             {T.scheduledFor(scheduledWhen(order.scheduled_for, T.locale))}
           </p>
         )}
@@ -116,29 +116,32 @@ function AlertBody({
 
         {order.notes?.trim() && (
           <p className="text-[18px] font-extrabold rounded-xl px-4 py-2.5"
-            style={isAllergyText(order.notes) ? { background: '#fff', color: C.red } : { background: 'rgba(255,255,255,.6)' }}>
+            style={isAllergyText(order.notes) ? { background: C.bg, color: C.red } : { background: C.alertPanel, color: C.alertPanelText }}>
             {isAllergyText(order.notes) ? `${T.allergy}: ` : `${T.orderNote}: `}{stripNoteLabel(order.notes)}
           </p>
         )}
 
-        <ul className="min-h-0 overflow-y-auto rounded-2xl px-5 py-3 flex flex-col divide-y" style={{ background: 'rgba(255,255,255,.62)', borderColor: 'rgba(4,36,30,.12)' }}>
+        <ul className="min-h-0 overflow-y-auto rounded-2xl px-5 py-3 flex flex-col divide-y" style={{ background: C.alertPanel, color: C.alertPanelText, borderColor: 'color-mix(in srgb, currentColor 12%, transparent)' }}>
           {items.map((it, i) => (
-            <li key={i} className="py-2.5 first:pt-1 last:pb-1" style={{ borderColor: 'rgba(4,36,30,.12)' }}>
+            <li key={i} className="py-2.5 first:pt-1 last:pb-1" style={{ borderColor: 'color-mix(in srgb, currentColor 12%, transparent)' }}>
               <p className="flex justify-between gap-4 text-[20px] min-[880px]:text-[26px] font-bold leading-snug">
                 <span className="min-w-0"><span className="tabular-nums font-extrabold">{it.qty}×</span> {it.name}{it.variant ? ` · ${it.variant}` : ''}</span>
-                <span className="tabular-nums font-semibold text-[17px] min-[880px]:text-[20px] pt-1 shrink-0" style={{ color: '#1B4A41' }}>
+                <span className="tabular-nums font-semibold text-[17px] min-[880px]:text-[20px] pt-1 shrink-0" style={{ color: C.alertPanelInk }}>
                   {money(it.lines.length + it.extras.length > 0 ? it.basePrice : it.lineTotal, currency)}
                 </span>
               </p>
               {/* Una línea por cosa, como se dice en la cocina, con su precio (lib/modifier-lines). */}
               {[...it.lines, ...it.extras.map((e) => ({ text: `+ ${e.name}`, price: e.price, indent: false }))].map((line, k) => (
-                <p key={k} className={`flex justify-between gap-4 text-[17px] min-[880px]:text-[20px] font-medium leading-snug ${line.indent ? 'pl-14 min-[880px]:pl-16' : 'pl-8 min-[880px]:pl-10'}`} style={{ color: '#1B4A41' }}>
+                <p key={k} className={`flex justify-between gap-4 text-[17px] min-[880px]:text-[20px] font-medium leading-snug ${line.indent ? 'pl-14 min-[880px]:pl-16' : 'pl-8 min-[880px]:pl-10'}`} style={{ color: C.alertPanelInk }}>
                   <span className="min-w-0">{line.text}</span>
                   {line.price > 0 && <span className="tabular-nums shrink-0">{money(line.price, currency)}</span>}
                 </p>
               ))}
               {it.notes && (
-                <p className="text-[17px] min-[880px]:text-[20px] font-extrabold pl-8 min-[880px]:pl-10" style={{ color: isAllergyText(it.notes) ? C.red : C.greenInk }}>
+                <p className="text-[17px] min-[880px]:text-[20px] font-extrabold ml-8 min-[880px]:ml-10" style={isAllergyText(it.notes)
+                  // Alergia: chip rojo suave (rojo sobre el panel del acento no llegaba a 4.5:1 en ningún tema).
+                  ? { color: C.red, background: C.redSoft, borderRadius: 10, padding: '2px 10px', display: 'inline-block' }
+                  : { color: C.alertPanelText }}>
                   {isAllergyText(it.notes) ? `${T.allergy}: ` : `${T.note}: `}{stripNoteLabel(it.notes)}
                 </p>
               )}
@@ -148,7 +151,7 @@ function AlertBody({
       </div>
 
       {/* Decisión */}
-      <div className="rounded-3xl p-5 min-[880px]:p-6 flex flex-col gap-4 min-h-0" style={{ background: '#fff', color: C.ink }}>
+      <div className="rounded-3xl p-5 min-[880px]:p-6 flex flex-col gap-4 min-h-0" style={{ background: C.bg, color: C.ink }}>
         <p className="text-[17px] min-[880px]:text-[20px] font-bold" style={{ color: C.sub }}>{T.readyQuestion}</p>
         <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label={T.readyQuestion}>
           {choices.slice(0, 5).map((c) => (
@@ -160,7 +163,7 @@ function AlertBody({
               onClick={() => { setMins(c); setLeft(autoAcceptSecs); }}
               className="h-16 min-[880px]:h-20 rounded-2xl flex flex-col items-center justify-center font-extrabold text-[22px] tabular-nums leading-none transition-colors"
               style={mins === c
-                ? { background: C.black, color: '#fff' }
+                ? { background: C.black, color: C.onBlack }
                 : { background: C.surface, color: C.ink }}
             >
               {c}
@@ -173,7 +176,7 @@ function AlertBody({
           type="button"
           onClick={() => { if (!fired) { setFired(true); onAccept(order, mins); } }}
           className="h-[84px] min-[880px]:h-[96px] rounded-2xl font-extrabold text-[26px] min-[880px]:text-[30px] transition-transform active:scale-[.98]"
-          style={{ background: C.black, color: '#fff' }}
+          style={{ background: C.black, color: C.onBlack }}
         >
           {T.acceptMin(mins)}
         </button>

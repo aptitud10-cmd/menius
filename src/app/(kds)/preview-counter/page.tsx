@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation';
 import { CounterView } from '@/components/orders/CounterView';
+import { DEFAULT_COUNTER_SETTINGS } from '@/lib/counter-settings';
+import { SCREEN_THEME_IDS, type ScreenThemeId } from '@/lib/counter-themes';
 import type { Order } from '@/types';
 
 // Vista previa SOLO para desarrollo: el Counter con pedidos de ejemplo, sin
@@ -99,7 +101,10 @@ const ORDERS: Order[] = [
   }),
 ];
 
-export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string } }) {
+export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; accent?: string; owner?: string } }) {
+  // ?theme=midnight · ?accent=E11D48 · ?owner=1 (muestra el modo demo y el permiso de tablets)
+  const theme = SCREEN_THEME_IDS.includes(searchParams.theme as ScreenThemeId) ? (searchParams.theme as ScreenThemeId) : 'menius';
+  const accent = searchParams.accent && /^[0-9A-Fa-f]{6}$/.test(searchParams.accent) ? `#${searchParams.accent.toUpperCase()}` : null;
   if (process.env.NODE_ENV === 'production') notFound();
   return (
     <CounterView
@@ -110,7 +115,9 @@ export default function PreviewCounterPage({ searchParams }: { searchParams: { e
       locale={searchParams.lang === 'es' ? 'es' : 'en'}
       restaurantLat={null}
       restaurantLng={null}
-      isDevice
+      isDevice={!searchParams.owner}
+      initialSettings={{ ...DEFAULT_COUNTER_SETTINGS, screenTheme: theme, customAccent: accent }}
+      settingsLive={false}
       previewAlertIds={searchParams.alert ? ['o1', 'o2'] : undefined}
       previewShiftReport={searchParams.z ? {
         totalOrders: 23, totalRevenue: 612.4, totalCash: 401.15, totalCard: 211.25,

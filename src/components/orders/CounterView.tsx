@@ -23,12 +23,21 @@ import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { isRevenueStatus } from '@/lib/order-state';
-import { counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
+import { C, counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
+import {
+  getAudioCtx, unlockWithGesture, loadTheme, setSoundTheme, setVolume as setAudioVolume, resumeAudio,
+  playRing, stopRing, playAccepted, ringKind, loopIntervalMs, msUntilNextRing,
+} from './counter/audio';
+import { CustomizePanel, type AppearancePreview } from './counter/CustomizePanel';
+import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS } from './counter/demo';
+import { useCounterSettings } from '@/hooks/use-counter-settings';
+import { DEFAULT_COUNTER_SETTINGS, type CounterSettings } from '@/lib/counter-settings';
+import { resolveThemeTokens, themeCssVars } from '@/lib/counter-themes';
 import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
 import { NewOrdersAlert } from './counter/NewOrdersAlert';
 import { OrderSheet } from './counter/OrderSheet';
 import {
-  CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast,
+  CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast, DemoBanner,
   type CounterViewMode, type StoreState,
 } from './counter/CounterChrome';
 
@@ -217,100 +226,8 @@ function timeAgo(createdAt: string, t: ReturnType<typeof getT>) {
 }
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
-//
-// Strategy: decode the MP3s into AudioBuffers via the Web Audio API during the
-// unlock tap (user gesture). Once an AudioContext is resumed by a gesture it
-// stays running, so BufferSource nodes created from setInterval will play
-// without any block — even on iOS Safari.
-
-let _audioCtx: AudioContext | null = null;
-let _newOrderBuffer: AudioBuffer | null = null;
-let _acceptedBuffer: AudioBuffer | null = null;
-
-function getAudioCtx(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  if (!_audioCtx) {
-    try {
-      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctx) return null;
-      _audioCtx = new Ctx();
-    } catch { return null; }
-  }
-  return _audioCtx;
-}
-
-function playBuffer(buffer: AudioBuffer | null) {
-  const ctx = getAudioCtx();
-  if (!ctx || !buffer) return;
-  try {
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(ctx.destination);
-    src.start(0);
-  } catch { /* unavailable */ }
-}
-
-function synthChime() {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  try {
-    [523, 659, 784].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      const t = ctx.currentTime + i * 0.18;
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.6, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-      osc.start(t); osc.stop(t + 0.55);
-    });
-  } catch { /* unavailable */ }
-}
-
-async function loadAudioBuffer(url: string): Promise<AudioBuffer | null> {
-  const ctx = getAudioCtx();
-  if (!ctx) return null;
-  try {
-    const res = await fetch(url);
-    const arrayBuf = await res.arrayBuffer();
-    return await ctx.decodeAudioData(arrayBuf);
-  } catch { return null; }
-}
-
-function playNewOrderSound() {
-  if (_newOrderBuffer) {
-    playBuffer(_newOrderBuffer);
-  } else {
-    synthChime();
-  }
-}
-
-function playAcceptSound() {
-  if (_acceptedBuffer) {
-    playBuffer(_acceptedBuffer);
-  } else {
-    synthChime();
-  }
-}
-
-function playUrgentSound() {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  try {
-    [880, 880, 880].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = freq; osc.type = 'square';
-      const t = ctx.currentTime + i * 0.22;
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-      osc.start(t); osc.stop(t + 0.2);
-    });
-  } catch { /* unavailable */ }
-}
+// El motor (Web Audio: temas, volumen, alerta en loop, urgente, aceptadas al
+// azar, respaldo a new-order.mp3 / order-accepted.mp3) vive en ./counter/audio.
 
 function sendPushNotification(title: string, body: string) {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
@@ -355,6 +272,10 @@ interface CounterViewProps {
   previewAlertIds?: string[];
   /** Solo para la vista previa de desarrollo: arranca mostrando este reporte Z. */
   previewShiftReport?: ShiftReport;
+  /** counter_settings del restaurante (sonido, colores, volumen). Sin fila → defaults. */
+  initialSettings?: CounterSettings;
+  /** false = vista previa de desarrollo: la configuración no se guarda ni se sincroniza. */
+  settingsLive?: boolean;
 }
 
 export interface ShiftReport {
@@ -373,8 +294,22 @@ export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
   restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false, isDevice = false,
   initialPausedUntil = null, previewAlertIds, previewShiftReport,
+  initialSettings = DEFAULT_COUNTER_SETTINGS, settingsLive = true,
 }: CounterViewProps) {
   const t = getT(locale);
+
+  // ── Sonido, colores y volumen (counter_settings, en vivo entre tablets) ──
+  const { settings, save: saveSettings } = useCounterSettings(restaurantId, initialSettings, settingsLive);
+  const soundThemeRef = useRef(settings.soundTheme);
+  soundThemeRef.current = settings.soundTheme;
+  useEffect(() => { setSoundTheme(settings.soundTheme); }, [settings.soundTheme]);
+  useEffect(() => { setAudioVolume(settings.soundVolume); }, [settings.soundVolume]);
+  // Vista previa de colores mientras el panel está abierto (no guardada).
+  const [appearancePreview, setAppearancePreview] = useState<AppearancePreview | null>(null);
+  const themeId = appearancePreview?.screenTheme ?? settings.screenTheme;
+  const accent = appearancePreview ? appearancePreview.customAccent : settings.customAccent;
+  const themeVars = useMemo(() => themeCssVars(resolveThemeTokens(themeId, accent)), [themeId, accent]);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   // ── Audio unlock gate ──
   const [audioUnlocked, setAudioUnlocked] = useState(false);
@@ -384,31 +319,14 @@ export function CounterView({
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   const unlockAudio = useCallback((silent = false) => {
-    // Resume (or create) the AudioContext during the user-gesture tap.
-    // On iOS Safari this is the ONLY moment the context can be started.
-    const ctx = getAudioCtx();
-    if (ctx && ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
+    // Resume (or create) the AudioContext during the user-gesture tap + a silent
+    // buffer. On iOS Safari this is the ONLY moment the context can be started.
+    unlockWithGesture();
 
-    // Play a silent buffer immediately to fully unlock the context
-    if (ctx) {
-      try {
-        const buf = ctx.createBuffer(1, 1, 22050);
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        src.connect(ctx.destination);
-        src.start(0);
-      } catch { /* ignore */ }
-    }
-
-    // Decode both MP3s into AudioBuffers in the background.
-    // Once decoded, playBuffer() works from any timer / interval.
-    loadAudioBuffer('/sounds/new-order.mp3').then(b => {
-      if (b) { _newOrderBuffer = b; if (!silent) playBuffer(b); } // first chime confirms a manual unlock
-    });
-    loadAudioBuffer('/sounds/order-accepted.mp3').then(b => {
-      if (b) _acceptedBuffer = b;
+    // Decode the theme's 5 MP3s (+ the 2 fallbacks) in the background. Once
+    // decoded, playRing()/playAccepted() work from any timer.
+    void loadTheme(soundThemeRef.current).then(() => {
+      if (!silent) playRing('alert'); // first chime confirms a manual unlock
     });
 
     setAudioUnlocked(true);
@@ -442,6 +360,13 @@ export function CounterView({
     evs.forEach(e => window.addEventListener(e, onGesture, { capture: true }));
     return () => evs.forEach(e => window.removeEventListener(e, onGesture, { capture: true }));
   }, [audioUnlocked, inApp, unlockAudio]);
+
+  // iOS suspende el AudioContext al volver de segundo plano: se reanuda solo.
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') resumeAudio(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   // ── UI state ──
   const [activeTab, setActiveTab] = useState<Tab>('new');
@@ -734,8 +659,10 @@ export function CounterView({
     // pedido de mañana) ni se imprime. Queda en la pestaña Programados.
     const scheduledMs = order.scheduled_for ? new Date(order.scheduled_for).getTime() : NaN;
     const isFutureScheduled = Number.isFinite(scheduledMs) && scheduledMs > Date.now() + SCHEDULED_SPLASH_LEAD_MS;
+    // Un pedido nuevo no se tapa: el panel de sonido y colores se cierra solo.
+    setCustomizeOpen(false);
     if (isLeaderRef.current) {
-      playNewOrderSound();
+      playRing('alert');
       try { getCounterAppBridge()?.vibrateNewOrder?.(); } catch { /* not in the app */ }
       sendPushNotification(
         `🔔 ${isFutureScheduled ? t.newScheduledOrder : t.newOrder} · ${restaurantName}`,
@@ -760,13 +687,33 @@ export function CounterView({
 
   const { orders, updateOrderLocally, rtStatus, lastSyncAt, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
-  // Pedidos con los cambios "en espera de deshacer" aplicados.
-  const ordersView = useMemo(
-    () => (Object.keys(pendingStatus).length === 0
+  // ── Modo demo: pedidos falsos SOLO en memoria (ver counter/demo.ts) ──
+  // Suenan y se ven como reales, pero toda acción de servidor (estado, impresión,
+  // avisos, push, reembolsos) se corta antes para los ids demo-*.
+  const onDemoArrive = useCallback((o: Order) => {
+    setCustomizeOpen(false);
+    playRing('alert');
+    setSplashQueue(q => (q.some(x => x.id === o.id) ? q : [...q, o]));
+    setRingIds(r => (r.includes(o.id) ? r : [...r, o.id]));
+  }, []);
+  const demo = useCounterDemo(locale === 'en', onDemoArrive);
+  const demoExit = demo.exit;
+  const demoUpdate = demo.update;
+  const exitDemo = useCallback(() => {
+    demoExit();
+    setSplashQueue(q => q.filter(o => !isDemoId(o.id)));
+    setRingIds(r => r.filter(id => !isDemoId(id)));
+    setSheetId(cur => (isDemoId(cur) ? null : cur));
+    stopRing();
+  }, [demoExit]);
+
+  // Pedidos con los cambios "en espera de deshacer" aplicados (+ los del demo).
+  const ordersView = useMemo(() => {
+    const base = Object.keys(pendingStatus).length === 0
       ? orders
-      : orders.map(o => (pendingStatus[o.id] ? { ...o, status: pendingStatus[o.id] } : o))),
-    [orders, pendingStatus],
-  );
+      : orders.map(o => (pendingStatus[o.id] ? { ...o, status: pendingStatus[o.id] } : o));
+    return demo.orders.length > 0 ? [...demo.orders, ...base] : base;
+  }, [orders, pendingStatus, demo.orders]);
 
   // Pickup: el cliente tocó "Ya llegué" en su seguimiento → suena y avisa.
   // La primera pasada solo registra (al abrir la tablet no suenan los viejos).
@@ -777,7 +724,7 @@ export function CounterView({
     for (const o of arrived) {
       if (arrivedSeenRef.current.has(o.id)) continue;
       arrivedSeenRef.current.add(o.id);
-      if (isLeaderRef.current) playNewOrderSound();
+      if (isLeaderRef.current) playRing('alert');
       showSuccess(T.customerArrivedToast(o.customer_name?.split(' ')[0] || T.customer, o.order_number?.split('-').pop() ?? ''));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -795,7 +742,7 @@ export function CounterView({
       const before = notesSeenRef.current.get(o.id);
       notesSeenRef.current.set(o.id, now);
       if (before === undefined || before === now) continue;
-      if (isLeaderRef.current) playNewOrderSound();
+      if (isLeaderRef.current) playRing('alert');
       showSuccess(T.notesChangedToast(o.order_number?.split('-').pop() ?? ''));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -835,7 +782,7 @@ export function CounterView({
     const fresh = due.filter(o => !promotedRef.current!.has(o.id));
     if (fresh.length === 0) return;
     fresh.forEach(o => promotedRef.current!.add(o.id));
-    if (isLeaderRef.current) playNewOrderSound();
+    if (isLeaderRef.current) playRing('alert');
     setSplashQueue(q => [...q, ...fresh.filter(o => !q.some(x => x.id === o.id))]);
     setRingIds(r => [...r, ...fresh.map(o => o.id).filter(id => !r.includes(id))]);
   }, [ordersView, isDue]);
@@ -903,13 +850,15 @@ export function CounterView({
     }
   }, [currentList, selectedId]);
 
-  // SLA urgent beep (after 5 min without response)
+  // SLA: 5 min sin respuesta → sonido urgente + push. Cubre también los pedidos
+  // que ya estaban pendientes al abrir el Counter (esos no entran al loop).
   useEffect(() => {
     newOrders.forEach(o => {
+      if (isDemoId(o.id)) return;
       if (elapsedMins(waitingSinceIso(o)) >= SLA_WARN_MINS && !urgentRef.current.has(o.id)) {
         urgentRef.current.add(o.id);
         // Solo la pestaña principal suena (con dos pestañas sonaba doble).
-        if (isLeaderRef.current) playUrgentSound();
+        if (isLeaderRef.current) playRing('urgent');
         sendPushNotification(
           `⚠️ ${t.urgent} · ${restaurantName}`,
           `#${o.order_number} — ${SLA_WARN_MINS} min ${t.en ? 'without response' : 'sin respuesta'}`
@@ -956,6 +905,18 @@ export function CounterView({
     // both target the same order in the same tick. The ref is synchronous, so the
     // second caller sees it immediately — prevents duplicate status updates and
     // printer tickets. (React state would still be stale within the same tick.)
+    if (isDemoId(order.id)) {
+      // Demo: todo local. Sin servidor, sin impresión, sin avisos.
+      if (order.status !== 'pending') return;
+      const effDemo = mins ?? eta + busyExtra;
+      setSplashQueue(q => q.filter(x => x.id !== order.id));
+      demoUpdate(order.id, { status: 'preparing', estimated_ready_minutes: effDemo, prepared_at: new Date().toISOString() } as Partial<Order>);
+      stopRing();
+      playAccepted();
+      setSheetId(prev => (prev === order.id ? null : prev));
+      showSuccess(T.accepted(order.order_number?.split('-').pop() ?? '', effDemo));
+      return;
+    }
     if (acceptingRef.current.has(order.id) || order.status !== 'pending') return;
     acceptingRef.current.add(order.id);
     setUpdatingId(order.id);
@@ -970,6 +931,9 @@ export function CounterView({
     // Optimistic update — move order to 'preparing' immediately in the UI
     // (con ETA y hora de aceptación, para que "listo en N min" salga bien ya).
     updateOrderLocally(order.id, { status: 'preparing', estimated_ready_minutes: eff, prepared_at: new Date().toISOString() } as Partial<Order>);
+    // Al aceptar se corta en seco la alerta que esté sonando (si quedan otros
+    // pendientes, el loop vuelve a sonar en la próxima vuelta).
+    stopRing();
     try {
       // Una sola escritura: estado + tiempo (antes eran 2 acciones en serie y el
       // evento realtime de la primera devolvía la tarjeta a Nuevos un instante).
@@ -979,7 +943,7 @@ export function CounterView({
         showError(res.error);
         return;
       }
-      playAcceptSound();
+      playAccepted(); // una de las 3 del tema, sin repetir la anterior
       // Si ya salió el ticket al llegar ("imprimir al llegar"), no se imprime otro al aceptar.
       // Mesa imprime sola solo con impresora nativa (app Android); en el
       // navegador abría el diálogo de impresión en CADA pedido de mesa.
@@ -1002,7 +966,7 @@ export function CounterView({
       acceptingRef.current.delete(order.id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally, locale, taxLabel, taxIncluded, showNotif]);
+  }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally, locale, taxLabel, taxIncluded, showNotif, demoUpdate]);
 
 
   // ── Rediseño: acción principal de cada tarjeta ──────────────────────────
@@ -1014,6 +978,11 @@ export function CounterView({
       : (o.order_type === 'dine_in' ? 'completed' : 'delivered');
 
   const commitStatus = useCallback((order: Order, kind: PrimaryKind, bypassGuard = false) => {
+    if (isDemoId(order.id)) {
+      demoUpdate(order.id, { status: statusFor(order, kind) });
+      setSheetId(cur => (cur === order.id ? null : cur));
+      return;
+    }
     // Repartidor asignado que todavía no retiró: se mantiene el aviso de siempre.
     if (!bypassGuard && kind === 'deliver' && order.order_type === 'delivery' && order.driver_name && !order.driver_picked_up_at) {
       setDeliveryGuardModal({ order });
@@ -1059,7 +1028,7 @@ export function CounterView({
       },
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [T, t, updateOrderLocally, showNotif]);
+  }, [T, t, updateOrderLocally, showNotif, demoUpdate]);
 
   // Si la página se cierra con un cambio en espera, se envía igual.
   useEffect(() => {
@@ -1345,15 +1314,36 @@ export function CounterView({
     [splashQueue, ordersView],
   );
   // Suena mientras quede alguno sin aceptar ni rechazar (aunque se haya cerrado la alerta).
-  const ringingCount = useMemo(
-    () => ringIds.filter(id => ordersView.find(x => x.id === id)?.status === 'pending').length,
+  // UN solo loop para todos: la alerta del tema cada 3.5 s (o al terminar el clip,
+  // si dura más); pasa a la urgente cuando el pendiente más viejo supera
+  // urgent_after_seconds (10 s en el demo).
+  const ringingOrders = useMemo(
+    () => ringIds.map(id => ordersView.find(x => x.id === id)).filter((o): o is Order => o?.status === 'pending'),
     [ringIds, ordersView],
   );
+  const ringingCount = ringingOrders.length;
+  const oldestRingRef = useRef<number | null>(null);
+  oldestRingRef.current = ringingCount > 0
+    ? Math.min(...ringingOrders.map(o => waitingSince(o as Order & { updated_at?: string | null })))
+    : null;
+  const urgentAfterRef = useRef(settings.urgentAfterSeconds);
+  urgentAfterRef.current = demo.active ? DEMO_URGENT_AFTER_SECONDS : settings.urgentAfterSeconds;
+  const ringsHere = isLeader || demo.active;
   useEffect(() => {
-    if (ringingCount === 0 || !isLeader) return;
-    const id = setInterval(playNewOrderSound, 4000);
-    return () => clearInterval(id);
-  }, [ringingCount, isLeader]);
+    if (ringingCount === 0 || !ringsHere) return;
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      if (!alive) return;
+      const oldest = oldestRingRef.current;
+      const dur = playRing(ringKind(oldest == null ? null : Date.now() - oldest, urgentAfterRef.current));
+      timer = setTimeout(tick, loopIntervalMs(dur));
+    };
+    timer = setTimeout(tick, msUntilNextRing());
+    return () => { alive = false; clearTimeout(timer); };
+  }, [ringingCount, ringsHere]);
+  // Nadie esperando: se corta lo que esté sonando (aceptado en otra tablet, rechazado…).
+  useEffect(() => { if (ringingCount === 0) stopRing(); }, [ringingCount]);
   // Los que ya se resolvieron salen de la lista (que no crezca en un turno largo).
   useEffect(() => {
     setRingIds(r => {
@@ -1447,7 +1437,39 @@ export function CounterView({
   }
 
   return (
-    <div className="h-full w-full bg-white flex flex-col overflow-hidden select-none">
+    <div className="h-full w-full flex flex-col overflow-hidden select-none"
+      data-theme={themeId}
+      style={{
+        ...themeVars,
+        // Con el demo activo, la banda fija ocupa arriba: todo baja (también la alerta).
+        '--demo-offset': demo.active ? 'calc(48px + env(safe-area-inset-top))' : '0px',
+        paddingTop: 'var(--demo-offset)',
+        background: C.bg, color: C.ink,
+      } as React.CSSProperties}>
+
+      {/* ── Modo demo: banda fija + resumen al terminar ── */}
+      {demo.active && <DemoBanner T={T} onExit={exitDemo} />}
+      {demo.finished && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-6" style={{ background: 'rgba(14,20,18,.55)' }}>
+          <div role="dialog" aria-modal="true" className="w-full max-w-[460px] rounded-3xl p-7 flex flex-col items-center gap-2 text-center shadow-2xl" style={{ background: C.bg, color: C.ink }}>
+            <span className="w-16 h-16 rounded-2xl inline-flex items-center justify-center mb-2" style={{ background: C.green, color: C.greenInk }}>
+              <CheckCircle className="w-9 h-9" />
+            </span>
+            <p className="text-[30px] font-extrabold leading-tight tabular-nums">
+              {T.demoSummary(demo.orders.length, fmt(demo.orders.reduce((sum, o) => sum + Number(o.total), 0), currency))}
+            </p>
+            <p className="text-[20px] font-bold" style={{ color: C.greenDeep }}>{T.demoReady}</p>
+            <div className="w-full grid grid-cols-2 gap-3 mt-5">
+              <button type="button" onClick={() => { exitDemo(); demo.start(); }} className="h-14 rounded-xl font-bold text-[17px]" style={{ background: C.surface, color: C.ink }}>
+                {T.demoAgain}
+              </button>
+              <button type="button" onClick={exitDemo} className="h-14 rounded-xl font-extrabold text-[17px]" style={{ background: C.black, color: C.onBlack }}>
+                {T.demoExit}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Alerta de pedidos nuevos (una sola, con cola) ── */}
       {alertQueue.length > 0 && (
@@ -1460,6 +1482,7 @@ export function CounterView({
           onAccept={(o, m) => handleAccept(o, m)}
           onReject={(o) => {
             setSplashQueue(q => q.filter(x => x.id !== o.id));
+            if (isDemoId(o.id)) { demoUpdate(o.id, { status: 'cancelled' }); stopRing(); return; }
             setCancelModal({ orderId: o.id, type: 'reject' });
             setCancelReason('');
           }}
@@ -1510,6 +1533,7 @@ export function CounterView({
         onStatus={() => setStatusOpen(true)}
         onView={setView}
         onMenu={() => setSidebarOpen(true)}
+        onCustomize={() => setCustomizeOpen(true)}
       />
 
       {view === 'board' ? (
@@ -1539,7 +1563,27 @@ export function CounterView({
         />
       )}
 
-      {sheetOrder && (
+      {sheetOrder && isDemoId(sheetOrder.id) && (
+        <OrderSheet
+          key={sheetOrder.id}
+          order={sheetOrder}
+          T={T}
+          currency={currency}
+          taxLabel={taxLabel}
+          busy={false}
+          acceptMins={defaultMinsFor(sheetOrder)}
+          onClose={() => setSheetId(null)}
+          onPrint={() => {}}
+          onAccept={(o, m) => handleAccept(o, m)}
+          onPrimary={onPrimary}
+          onAdjustEta={(o, m) => demoUpdate(o.id, { estimated_ready_minutes: m })}
+          more={{ onCancel: ['pending', 'confirmed', 'preparing', 'almost_ready'].includes(sheetOrder.status)
+            ? () => { demoUpdate(sheetOrder.id, { status: 'cancelled' }); setSheetId(null); }
+            : undefined }}
+        />
+      )}
+
+      {sheetOrder && !isDemoId(sheetOrder.id) && (
         <OrderSheet
           key={sheetOrder.id}
           order={sheetOrder}
@@ -1573,6 +1617,21 @@ export function CounterView({
               : undefined,
           }}
           historySlot={<StatusHistory orderId={sheetOrder.id} t={t} />}
+        />
+      )}
+
+      {customizeOpen && (
+        <CustomizePanel
+          T={T}
+          lang={locale === 'en' ? 'en' : 'es'}
+          settings={settings}
+          canCustomize={!isDevice || settings.staffCanCustomize}
+          isOwner={!isDevice}
+          onPreviewAppearance={setAppearancePreview}
+          onSave={saveSettings}
+          onVolumeLive={setAudioVolume}
+          onClose={() => setCustomizeOpen(false)}
+          onStartDemo={() => { setCustomizeOpen(false); setView('board'); if (demo.active) exitDemo(); demo.start(); }}
         />
       )}
 

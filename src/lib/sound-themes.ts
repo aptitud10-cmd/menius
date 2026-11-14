@@ -1,6 +1,7 @@
-// MENIUS — catálogo de temas de sonido para la tablet de órdenes.
-// Copiar a lib/sound-themes.ts (o donde encaje en el proyecto).
+// MENIUS — catálogo de temas de sonido para la tablet de órdenes (Counter).
 // Archivos en /public/sounds/<id>/{alert,urgent,accepted-1,accepted-2,accepted-3}.mp3
+// Los ids viven también en el CHECK de counter_settings.sound_theme
+// (migración 20261113g): agregar un tema = migración nueva + entrada aquí.
 
 export type SoundThemeId =
   | 'firma' | 'aurora' | 'cristal' | 'lounge' | 'reloj' | 'arpa' | 'handpan'
@@ -40,6 +41,25 @@ export const SOUND_THEMES: SoundTheme[] = [
 export const BIRTHDAY_SOUND = '/sounds/bonus/feliz-cumpleanos.mp3';
 
 export const DEFAULT_SOUND_THEME: SoundThemeId = 'firma';
+
+export const SOUND_THEME_IDS = SOUND_THEMES.map((t) => t.id) as [SoundThemeId, ...SoundThemeId[]];
+
+/** Fila "Recomendados" del selector (Firma va aparte, destacada). */
+export const RECOMMENDED_SOUND_THEMES: SoundThemeId[] = ['aurora', 'diner', 'entertainer', 'chonta'];
+
+export const SOUND_CATEGORY_LABEL: Record<SoundTheme['category'], { es: string; en: string }> = {
+  signature: { es: 'Oficial', en: 'Official' },
+  premium:   { es: 'Premium', en: 'Premium' },
+  classical: { es: 'Clásicos', en: 'Classical' },
+  cultural:  { es: 'Culturales', en: 'Cultural' },
+  famous:    { es: 'Famosos', en: 'Famous' },
+};
+
+/** Respaldo si el tema no carga (los MP3 de siempre). */
+export const FALLBACK_SOUNDS = {
+  alert: '/sounds/new-order.mp3',
+  accepted: '/sounds/order-accepted.mp3',
+} as const;
 
 export const soundUrls = (id: SoundThemeId) => ({
   alert: `/sounds/${id}/alert.mp3`,

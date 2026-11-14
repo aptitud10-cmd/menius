@@ -84,7 +84,7 @@ function DriverLine({ order, T, routeStop }: { order: Order; T: CounterText; rou
   const text = routeStop ? `${base} · ${T.routeStop(routeStop.stop, routeStop.of)}` : base;
   const moving = !!(o.driver_at_door_at || o.driver_picked_up_at || order.status === 'out_for_delivery');
   return (
-    <p className="text-[15px] font-bold rounded-lg px-2.5 py-1.5" style={moving ? { background: C.blue, color: '#fff' } : { background: C.surface2, color: C.ink }}>
+    <p className="text-[15px] font-bold rounded-lg px-2.5 py-1.5" style={moving ? { background: C.blue, color: C.onStatus } : { background: C.surface2, color: C.ink }}>
       {text}
     </p>
   );
@@ -95,7 +95,7 @@ function ArrivedLine({ order, T }: { order: Order; T: CounterText }) {
   if (order.order_type !== 'pickup' || !order.customer_arrived_at) return null;
   if (['delivered', 'completed', 'cancelled'].includes(order.status)) return null;
   return (
-    <p className="text-[15px] font-bold rounded-lg px-2.5 py-1.5" style={{ background: C.violet, color: '#fff' }}>
+    <p className="text-[15px] font-bold rounded-lg px-2.5 py-1.5" style={{ background: C.violet, color: C.onStatus }}>
       {T.customerArrived}
     </p>
   );
@@ -168,7 +168,7 @@ export function OrderCard({
           className="h-14 rounded-xl font-extrabold text-[18px] transition-transform active:scale-[.98] disabled:opacity-50"
           style={action.kind === 'accept'
             ? { background: C.green, color: C.greenInk }
-            : { background: C.black, color: '#fff' }}
+            : { background: C.black, color: C.onBlack }}
         >
           {action.label}
         </button>
@@ -208,14 +208,14 @@ export function CounterBoard({
             type="button"
             onClick={() => setMobileCol(c.key)}
             className="flex-auto min-w-0 h-12 px-2 max-[379px]:px-1.5 rounded-xl font-bold text-[15px] max-[379px]:text-[14px] min-[400px]:text-[16px] flex items-center justify-center gap-1.5 max-[379px]:gap-1"
-            style={mobileCol === c.key ? { background: C.black, color: '#fff' } : { background: C.surface, color: C.ink }}
+            style={mobileCol === c.key ? { background: C.black, color: C.onBlack } : { background: C.surface, color: C.ink }}
           >
             <span className="truncate">{c.title}</span>
             <span
               className="flex-none tabular-nums min-w-[26px] h-[26px] max-[379px]:min-w-[22px] max-[379px]:h-[22px] px-1.5 rounded-full text-[14px] max-[379px]:text-[13px] font-extrabold inline-flex items-center justify-center"
               style={c.key === 'new' && c.orders.length > 0
                 ? { background: C.green, color: C.greenInk }
-                : { background: mobileCol === c.key ? 'rgba(255,255,255,.2)' : C.surface2 }}
+                : { background: mobileCol === c.key ? 'color-mix(in srgb, currentColor 20%, transparent)' : C.surface2 }}
             >
               {c.orders.length}
             </span>
