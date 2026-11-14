@@ -117,12 +117,16 @@ begin
     where order_id = new.id and status = 'queued';
   end if;
 
-  -- Un job 'cancelled' solo puede venir de 'queued' (nunca se imprimió):
-  -- al reabrir el pedido vuelve a la cola. Si vuelve a 'pending' con una
-  -- impresora 'accepted', no hay job cancelado (nunca se creó) y se imprime al aceptar.
+  -- Un job 'cancelled' puede venir de 'queued' (este trigger) o de 'sent'
+  -- (el cron de §5, y ese sí pudo imprimirse). Al reabrir solo vuelve a la cola
+  -- el que NUNCA se mandó a la impresora (sent_at is null). Uno que se mandó
+  -- alguna vez no se reactiva: si hace falta, Reimprimir.
+  -- Si el pedido vuelve a 'pending' con una impresora 'accepted', no hay job
+  -- cancelado (nunca se creó) y se imprime al aceptar.
   if is_reopen then
     update print_jobs set status = 'queued', not_before = null
-    where order_id = new.id and kind = 'order' and status = 'cancelled';
+    where order_id = new.id and kind = 'order' and status = 'cancelled'
+      and sent_at is null;
   end if;
 
   return new;

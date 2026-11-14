@@ -35,6 +35,7 @@
   - [ ] `created` + online sin cobrar → 0 jobs; al pasar a `paid` → 1 job
   - [ ] aceptar por el panel (`pending → confirmed`) → 1 job
   - [ ] cancelar con job en cola y deshacer (`cancelled → preparing`) → el job vuelve a `queued`
+  - [ ] job que se mandó (`sent_at` no null) y quedó `cancelled` por el cron → al reabrir el pedido **sigue** `cancelled`
 - [ ] `pg_cron` (requeue seguro + purga), con test de que un pedido cancelado nunca vuelve a la cola (CA-5)
 - [ ] Tipos TS
 

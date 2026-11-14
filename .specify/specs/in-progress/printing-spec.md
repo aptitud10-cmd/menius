@@ -91,7 +91,7 @@ Botón "Imprimir prueba" en la configuración de la impresora.
 ### F6 — Diseño del ticket y número corto (ver §6)
 - `#003` gigante, generado con **el mismo helper** que el email y la página de seguimiento. Se extrae a `lib/orders/short-number.ts` y lo usan los 3. **Prohibido reimplementarlo.**
   - Hoy hay 2 helpers iguales: `shortOrderNumber` en `lib/kitchen.ts:99` y en `lib/notifications/customer-email.ts:84`. Además hay copias inline (`split('-').pop()`) en OrderTracker, CounterBoard, OrderSheet y CounterView. Todos usan la misma lógica: es mover código, no cambiar comportamiento.
-- Se repite abajo (sin invertir). El código completo `ORD-...` va chiquito.
+- Se repite abajo, **invertido** (fondo negro) a 72 px, como en §6: por si la grapa tapa el de arriba. El código completo `ORD-...` va chiquito.
 
 ### F7 — Reintentos
 - Un job `sent` sin confirmación en 120 s vuelve a `queued`, **solo si sigue en `sent` y el pedido no está cancelado**.
