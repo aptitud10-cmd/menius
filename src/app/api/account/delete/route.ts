@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '3600' } });
     }
 
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const body = await request.json();

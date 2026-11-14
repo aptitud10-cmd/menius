@@ -12,7 +12,7 @@ const logger = createLogger('tenant-staff');
 export async function GET() {
   try {
     const supabase = await createClient();
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { data, error } = await supabase
@@ -33,7 +33,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id, role, status } = await request.json();
@@ -114,7 +114,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await request.json();

@@ -12,7 +12,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Owner only (a tablet session gets 401): the restaurant's connected tablets. */
 export async function GET() {
-  const tenant = await getTenant();
+  const tenant = await getTenant({ ownerOnly: true });
   if (!tenant) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const admin = createAdminClient();
@@ -61,7 +61,7 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   if (!isSameOriginJson(request)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  const tenant = await getTenant();
+  const tenant = await getTenant({ ownerOnly: true });
   if (!tenant) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const { allowed } = await checkRateLimitAsync(`device-revoke:u:${tenant.userId}`, { limit: 20, windowSec: 300 });

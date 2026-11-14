@@ -14,7 +14,7 @@ interface ConnectedTablet {
 const COPY = {
   es: {
     title: 'Tablets conectadas',
-    note: 'Solo pueden usar el Counter: no ven cobros, reembolsos ni configuración. Si pierdes una tablet, desconéctala aquí.',
+    note: 'Usan solo el Counter; con el PIN del panel abren el panel 10 min, pero nunca cobros, reembolsos ni llaves. Si pierdes una tablet, desconéctala aquí.',
     tablet: 'Tablet',
     app: 'App MENIUS Counter',
     browser: 'Navegador',
@@ -30,7 +30,7 @@ const COPY = {
   },
   en: {
     title: 'Connected tablets',
-    note: 'They can only use the Counter: no payments, refunds or settings. If you lose a tablet, disconnect it here.',
+    note: 'They only use the Counter; with the panel PIN they open the dashboard for 10 min, but never payments, refunds or keys. If you lose a tablet, disconnect it here.',
     tablet: 'Tablet',
     app: 'MENIUS Counter app',
     browser: 'Browser',

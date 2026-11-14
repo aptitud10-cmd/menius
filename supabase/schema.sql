@@ -149,7 +149,10 @@ CREATE TABLE public.customers (
   notes text DEFAULT ''::text,
   tags ARRAY DEFAULT '{}'::text[],
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now()
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  incident_count integer NOT NULL DEFAULT 0,
+  last_incident text CHECK (last_incident = ANY (ARRAY['not_received'::text, 'not_paid'::text])),
+  last_incident_at timestamp with time zone
 );
 
 CREATE TABLE public.dashboard_notifications (
@@ -500,7 +503,8 @@ CREATE TABLE public.orders (
   delivery_failed_at timestamp with time zone,
   delivery_failure_reason text,
   batch_id uuid,
-  batch_seq smallint
+  batch_seq smallint,
+  incident text CHECK (incident = ANY (ARRAY['not_received'::text, 'not_paid'::text]))
 );
 
 CREATE TABLE public.device_pairings (
@@ -525,7 +529,24 @@ CREATE TABLE public.device_sessions (
   restaurant_id uuid NOT NULL,
   user_id uuid NOT NULL,
   pairing_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  panel_unlocked_until timestamp with time zone
+);
+
+CREATE TABLE public.panel_access_log (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  restaurant_id uuid NOT NULL,
+  session_id uuid,
+  success boolean NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.restaurant_panel_pins (
+  restaurant_id uuid NOT NULL,
+  pin_hash text NOT NULL,
+  failed_attempts integer NOT NULL DEFAULT 0,
+  locked_until timestamp with time zone,
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
 CREATE TABLE public.processed_webhook_events (

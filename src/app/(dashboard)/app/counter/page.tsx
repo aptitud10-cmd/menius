@@ -6,6 +6,7 @@ import { Monitor, Smartphone, ExternalLink, Download, Tablet, Printer, Wifi, Che
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { renderStyledQR } from '@/lib/styled-qr';
 import { ConnectedTablets } from '@/components/device/ConnectedTablets';
+import { PanelPinCard } from '@/components/device/PanelPinCard';
 
 /**
  * Link de la app en Google Play (aprobada en producción 2026-11-11).
@@ -147,6 +148,7 @@ export default function CounterHubPage() {
       </div>
 
       <ConnectedTablets />
+      <PanelPinCard />
 
       {/* Install guide — solo tiene sentido con la app publicada */}
       {PLAY_STORE_URL && (

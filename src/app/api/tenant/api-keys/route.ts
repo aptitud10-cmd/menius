@@ -19,7 +19,7 @@ function generateKey(): { raw: string; hash: string; prefix: string } {
 
 export async function GET() {
   try {
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const supabase = await createClient();
@@ -44,7 +44,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const allowed = await hasPlanAccess(tenant.restaurantId, 'business');
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const allowed = await hasPlanAccess(tenant.restaurantId, 'business');

@@ -2,7 +2,8 @@ import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { OPEN_ORDER_STATUSES, olderOpenOrdersFilter } from '@/lib/order-state';
 import { CounterView } from '@/components/orders/CounterView';
 import { loadCounterSettings } from '@/lib/counter-settings';
-import { isDeviceSession } from '@/lib/auth/device-session';
+import { getDeviceSession, isDeviceSession } from '@/lib/auth/device-session';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const metadata = {
   title: 'Counter — MENIUS',
@@ -60,6 +61,17 @@ export default async function CounterPage() {
     loadCounterSettings(supabase, restaurantId),
   ]);
 
+  // Volvió al Counter con el panel del dueño abierto (PIN): se cierra ya, no a los 10 min.
+  if (isDevice) {
+    const device = await getDeviceSession(supabase);
+    if (device.panelUnlocked && device.sessionId) {
+      await createAdminClient()
+        .from('device_sessions')
+        .update({ panel_unlocked_until: null })
+        .eq('session_id', device.sessionId);
+    }
+  }
+
   const mappedOrders = [...(orders ?? []), ...(oldScheduled ?? [])].map((o: any) => ({
     ...o,
     items: o.order_items ?? [],
@@ -77,6 +89,7 @@ export default async function CounterPage() {
       taxLabel={(restaurant as any)?.tax_label ?? undefined}
       taxIncluded={(restaurant as any)?.tax_included ?? false}
       isDevice={isDevice}
+      ownerPanel
       initialPausedUntil={restaurant?.orders_paused_until ?? null}
       initialSettings={counterSettings}
     />

@@ -8,7 +8,7 @@ import {
   minsSince, minsLeft, isClosed,
 } from './ui';
 import { KindTag } from './KindTag';
-import { primaryAction, type PrimaryKind } from './CounterBoard';
+import { primaryAction, CustomerFlagLine, type PrimaryKind } from './CounterBoard';
 
 export interface SheetMoreActions {
   onResendNotice?: () => void;
@@ -109,6 +109,7 @@ export function OrderSheet({
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           <div className="grid grid-cols-1 min-[880px]:grid-cols-[1fr_280px] gap-5 p-5">
             <div className="min-w-0 flex flex-col gap-3">
+              <CustomerFlagLine order={order} T={T} />
               {order.notes?.trim() && (
                 <p className="text-[18px] font-extrabold rounded-xl px-4 py-3 leading-snug"
                   style={isAllergyText(order.notes) ? { background: C.redSoft, color: C.red } : { background: C.amberSoft, color: C.amber }}>

@@ -295,6 +295,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Cliente marcado (un pedido anterior que no recibió o no pagó): si el
+    // restaurante puede cobrar con tarjeta, este pedido se paga online. Si no
+    // puede (sin Stripe), pasa igual y el Counter muestra la alerta — nunca se
+    // deja a un cliente sin forma de pedir.
+    const canChargeOnline =
+      methodsEnabled.includes("online") &&
+      (restaurant.currency ?? "").toUpperCase() !== "COP";
+    if (
+      parsed.data.payment_method === "cash" &&
+      canChargeOnline &&
+      (parsed.data.order_type === "delivery" || parsed.data.order_type === "pickup") &&
+      (customer_phone || customer_email)
+    ) {
+      const [{ data: stripeRow }, { data: flagged }] = await Promise.all([
+        adminDb
+          .from("restaurants")
+          .select("stripe_onboarding_complete")
+          .eq("id", restaurant_id)
+          .maybeSingle(),
+        adminDb
+          .from("customers")
+          .select("id")
+          .eq("restaurant_id", restaurant_id)
+          .gt("incident_count", 0)
+          .or(
+            [
+              customer_phone ? `phone.eq.${customer_phone.replace(/[^0-9+]/g, "")}` : null,
+              customer_phone ? `phone.eq.${customer_phone.replace(/[,()]/g, "")}` : null,
+              customer_email ? `email.eq.${customer_email.replace(/[,()]/g, "")}` : null,
+            ]
+              .filter(Boolean)
+              .join(","),
+          )
+          .limit(1),
+      ]);
+      if (stripeRow?.stripe_onboarding_complete && (flagged?.length ?? 0) > 0) {
+        return NextResponse.json(
+          {
+            error: en
+              ? "For this order, please pay online with a card."
+              : "Para este pedido, paga online con tarjeta.",
+            code: "PREPAY_REQUIRED",
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     // Validate required fields per order type
     // Use the already-sanitized variable, not body.delivery_address
     if (parsed.data.order_type === "delivery") {

@@ -16,7 +16,7 @@ const COMMISSION_BPS: Record<string, number> = {
 
 export async function GET() {
   try {
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { restaurantId } = tenant;

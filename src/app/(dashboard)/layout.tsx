@@ -18,6 +18,7 @@ import { MobileBottomNav } from "@/components/dashboard/MobileBottomNav";
 import { DashboardScrollFix } from "@/components/dashboard/DashboardScrollFix";
 import { DashToastProvider } from "@/components/dashboard/DashToast";
 import { RestaurantSwitcher } from "@/components/dashboard/RestaurantSwitcher";
+import { PanelTabletBar } from "@/components/dashboard/PanelTabletBar";
 import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({
@@ -25,7 +26,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { supabase, userId, userEmail, restaurantId } =
+  const { supabase, userId, userEmail, restaurantId, panelTablet } =
     await getDashboardContext();
 
   // getDashboardContext ya autenticó al usuario (una llamada a auth.getUser).
@@ -194,6 +195,7 @@ export default async function DashboardLayout({
             userName={profile?.full_name ?? undefined}
             hideWidget
           />
+          {panelTablet && <PanelTabletBar restaurantId={restaurantId} />}
           <OrderNotifier
             restaurantId={restaurantId}
             currency={restaurant?.currency || "USD"}

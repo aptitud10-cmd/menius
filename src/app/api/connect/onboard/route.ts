@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const tenant = await getTenant();
+    const tenant = await getTenant({ ownerOnly: true });
     if (!tenant) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }

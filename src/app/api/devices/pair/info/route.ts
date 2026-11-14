@@ -13,7 +13,7 @@ import { normalizePairingCode, isSameOriginJson } from '@/lib/device-pairing';
  */
 export async function POST(request: Request) {
   if (!isSameOriginJson(request)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  const tenant = await getTenant();
+  const tenant = await getTenant({ ownerOnly: true });
   if (!tenant) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const { allowed } = await checkRateLimitAsync(`pair-info:u:${tenant.userId}`, { limit: 30, windowSec: 300 });
