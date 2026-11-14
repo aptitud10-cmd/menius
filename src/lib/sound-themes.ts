@@ -1,11 +1,11 @@
 // MENIUS — catálogo de temas de sonido para la tablet de órdenes (Counter).
 // Archivos en /public/sounds/<id>/{alert,urgent,accepted-1,accepted-2,accepted-3}.mp3
 // Los ids viven también en el CHECK de counter_settings.sound_theme
-// (migración 20261113g): agregar un tema = migración nueva + entrada aquí.
+// (migraciones 20261113g y 20261114): agregar un tema = migración nueva + entrada aquí.
 
 export type SoundThemeId =
   | 'firma' | 'aurora' | 'cristal' | 'lounge' | 'reloj' | 'arpa' | 'handpan'
-  | 'mozart' | 'beethoven' | 'bach' | 'oda-alegria' | 'chonta' | 'diner'
+  | 'mozart' | 'beethoven' | 'bach' | 'oda-alegria' | 'chonta' | 'cumbia' | 'diner'
   | 'entertainer' | 'marcha-turca' | 'guillermo-tell' | 'rey-montana' | 'danubio' | 'cucaracha';
 
 export interface SoundTheme {
@@ -28,6 +28,7 @@ export const SOUND_THEMES: SoundTheme[] = [
   { id: 'bach',        name: 'Bach',                  category: 'classical', description: 'Preludio en Do. Elegante y fluido.' },
   { id: 'oda-alegria', name: 'Himno a la Alegría',    category: 'classical', description: 'Beethoven. Música de celebración.' },
   { id: 'chonta',      name: 'Marimba de chonta',     category: 'cultural',  description: 'Currulao del Pacífico colombiano.' },
+  { id: 'cumbia',      name: 'Cumbia',                category: 'cultural',  description: 'Cumbia original de la costa: acordeón, guacharaca y tambor alegre.' },
   { id: 'diner',       name: 'Classic Diner',         category: 'cultural',  description: 'Campana de servicio y doo-wop de rocola.' },
   { id: 'entertainer',    name: 'The Entertainer',   category: 'famous', description: 'Ragtime de Scott Joplin. Perfecto para diners.' },
   { id: 'marcha-turca',   name: 'Marcha turca',      category: 'famous', description: 'Mozart, rápida y alegre.' },
@@ -45,7 +46,7 @@ export const DEFAULT_SOUND_THEME: SoundThemeId = 'firma';
 export const SOUND_THEME_IDS = SOUND_THEMES.map((t) => t.id) as [SoundThemeId, ...SoundThemeId[]];
 
 /** Fila "Recomendados" del selector (Firma va aparte, destacada). */
-export const RECOMMENDED_SOUND_THEMES: SoundThemeId[] = ['aurora', 'diner', 'entertainer', 'chonta'];
+export const RECOMMENDED_SOUND_THEMES: SoundThemeId[] = ['aurora', 'diner', 'entertainer', 'cumbia'];
 
 export const SOUND_CATEGORY_LABEL: Record<SoundTheme['category'], { es: string; en: string }> = {
   signature: { es: 'Oficial', en: 'Official' },
