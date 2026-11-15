@@ -55,11 +55,14 @@
 > Nota de entorno: en Windows, vitest se tiene que correr desde un cwd con la unidad en mayúscula (`C:\…`). Con `c:\` carga dos instancias y dice "No test suite found".
 
 ## Sprint 3 — Endpoint CloudPRNT [M]
-- [ ] Leer la Protocol Guide en un navegador: nombre del parámetro del job en el GET y TLS (API §1.0)
-- [ ] POST / GET (reclamo atómico) / DELETE + GET de configuración (API §1)
-- [ ] Script que simula la impresora (POST → GET → DELETE), con estos casos:
-  - [ ] carrera "cancelar durante el GET"
-  - [ ] token inválido
+- [x] Parámetro del job: confirmado en la doc oficial (vía búsqueda), `?token=<jobToken>` + header `X-Star-Token`; jobToken desde firmware 3.2 en mC-Print3. Sin token se cae al siguiente de la cola. TLS sigue sin confirmar → Sprint 5
+- [x] POST / GET (reclamo atómico) / DELETE + GET de configuración (API §1): `src/app/api/cloudprnt/[token]/route.ts` + `src/lib/printing/cloudprnt.ts`
+- [x] Migración `20261115_printing_claim_finish.sql` (`claim_print_job` / `finish_print_job`, solo service_role) + tests SQL (6/6 mutaciones detectadas)
+- [ ] **William:** aplicar `20261115_printing_claim_finish.sql` en prod (SQL Editor)
+- [x] Script que simula la impresora (`scripts/cloudprnt-sim.mjs`, POST → GET → DELETE), con estos casos:
+  - [x] carrera "cancelar durante el GET" (tests SQL: antes del GET, GET repetido después de cancelar, error después de cancelar)
+  - [x] token inválido → 404 sin consultar pedidos (CA-6)
+- [ ] Ciclo completo contra prod con una impresora de prueba (necesita la migración aplicada)
 
 ## Sprint 4 — UI + convivencia con la impresión existente [M]
 - [ ] Panel: impresoras (crear, URL una vez, rotar, toggles de v3, prueba)
