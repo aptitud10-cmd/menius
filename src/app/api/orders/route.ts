@@ -25,6 +25,7 @@ import {
   feeBaseCents,
   feeModelFor,
   tipAllowedFor,
+  utensilsRequested,
 } from "@/lib/order-pricing";
 import { buildModLines, withTitle, type LineGroup, type LineSelection } from "@/lib/modifier-lines";
 import { dependencyIds } from "@/lib/conditional-modifiers";
@@ -1090,7 +1091,7 @@ export async function POST(request: NextRequest) {
       discount_amount: totalDiscountAmt,
       idempotency_key: idempotencyKey || null,
       scheduled_for: scheduledFor,
-      include_utensils: body.include_utensils !== false,
+      include_utensils: utensilsRequested(body.include_utensils),
       // Solo delivery lleva token de driver. En pickup/dine_in el token no tiene
       // uso y ademas nacia sin expiracion (preTokenExpiresAt = null), asi que
       // quedaba vivo para siempre: los chequeos son `if (expiry && ...)` y con
@@ -1704,7 +1705,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: parsed.data.payment_method || undefined,
         tableNumber: table_name || undefined,
         notes: parsed.data.notes || null,
-        includeUtensils: body.include_utensils !== false,
+        includeUtensils: utensilsRequested(body.include_utensils),
         customerToken: custToken,
         total,
         items: notifItems,

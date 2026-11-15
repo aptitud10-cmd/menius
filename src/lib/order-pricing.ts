@@ -231,6 +231,16 @@ export function resolveCommission(
 export const STRIPE_US_CARD_FEE = { bps: 290, fixedCents: 30 } as const;
 
 /**
+ * Cubiertos, servilletas y salsas: solo si el cliente los pidió EXPLÍCITAMENTE.
+ * NYC "Skip the Stuff" (Local Law 17/2023) exige que el pedido online vaya sin
+ * ellos por defecto. Un campo ausente, null o cualquier cosa que no sea `true`
+ * cuenta como "no".
+ */
+export function utensilsRequested(value: unknown): boolean {
+  return value === true;
+}
+
+/**
  * Base sobre la que se calcula el application fee: lo cobrado SIN la propina.
  * La propina es del personal: en NY (Labor Law §196-d) nadie —tampoco la
  * plataforma— puede quedarse con una parte. Ni el 4% del commission_plan ni el

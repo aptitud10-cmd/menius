@@ -9,6 +9,7 @@ import {
   internationalCardSurchargeCents,
   feeModelFor,
   tipAllowedFor,
+  utensilsRequested,
   type ProductRecord,
   type VariantRecord,
   type ExtraRecord,
@@ -370,6 +371,31 @@ describe('resolveCommission', () => {
     const { isFreeTier } = resolveCommission(false, null, now);
     // The route uses isFreeTier to block payment_method='online'
     expect(isFreeTier).toBe(true);
+  });
+});
+
+// ── utensilsRequested: NYC "Skip the Stuff" — sin cubiertos salvo pedido ──────
+
+describe('utensilsRequested', () => {
+  it('solo `true` explícito pide cubiertos', () => {
+    expect(utensilsRequested(true)).toBe(true);
+  });
+
+  it('campo ausente, false, null o basura: sin cubiertos', () => {
+    expect(utensilsRequested(undefined)).toBe(false);
+    expect(utensilsRequested(false)).toBe(false);
+    expect(utensilsRequested(null)).toBe(false);
+    expect(utensilsRequested('true')).toBe(false);
+    expect(utensilsRequested(1)).toBe(false);
+  });
+
+  it('ningún camino del server vuelve al default "sí" (guarda de regresión)', () => {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const path = require('node:path') as typeof import('node:path');
+    for (const r of ['src/app/api/orders/route.ts', 'src/lib/orders/validate-order.ts']) {
+      const src = fs.readFileSync(path.join(process.cwd(), r), 'utf8');
+      expect(src, `${r} no puede asumir cubiertos por defecto`).not.toMatch(/include_utensils\s*!==\s*false/);
+    }
   });
 });
 

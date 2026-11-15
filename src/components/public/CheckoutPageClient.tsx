@@ -218,7 +218,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerPhone, restaurant.id]);
 
-  const [includeUtensils, setIncludeUtensils] = useState(true);
+  // NYC "Skip the Stuff": sin cubiertos salvo que el cliente los pida.
+  const [includeUtensils, setIncludeUtensils] = useState(false);
 
   // Pre-order / scheduled
   const [scheduledFor, setScheduledFor] = useState('');
