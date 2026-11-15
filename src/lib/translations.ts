@@ -346,6 +346,49 @@ export interface Translations {
   tipNone: string;
   tipOther: string;
   tipCustomLabel: string;
+  ckYourOrder: string;
+  ckViewDetails: string;
+  ckHideDetails: string;
+  ckDeliverTo: string;
+  ckAddAddress: string;
+  ckAddressTitle: string;
+  ckUseAddress: string;
+  ckWhen: string;
+  ckAsap: string;
+  ckReadyIn: string;
+  ckArrivesIn: string;
+  ckWhenTitle: string;
+  ckScheduleLater: string;
+  ckContact: string;
+  ckAddContact: string;
+  ckContactTitle: string;
+  ckNote: string;
+  ckPromoApplied: string;
+  ckUtensilsTitle: string;
+  ckUtensilsSub: string;
+  ckPayNow: string;
+  ckPayCash: string;
+  ckCashPickup: string;
+  ckCashDelivery: string;
+  ckCashDineIn: string;
+  ckCashTip: string;
+  ckCardSoon: string;
+  ckCashOnly: string;
+  ckChangeQuestion: string;
+  ckExact: string;
+  ckPaysWith: string;
+  ckOnlineHint: string;
+  ckContinue: string;
+  ckAddItems: string;
+  ckDone: string;
+  ckRemove: string;
+  ckLegal: string;
+  ckPrivacy: string;
+  ckCall: string;
+  ckTable: string;
+  ckTableSub: string;
+  ckTableTitle: string;
+  ckLoyalty: string;
   // CheckoutPageClient — CTA / footer
   retryingLabel: string;
   retryingBanner: string;
@@ -728,6 +771,49 @@ const es: Translations = {
   tipNone: 'Ninguna',
   tipOther: 'Otra',
   tipCustomLabel: 'Propina personalizada',
+  ckYourOrder: 'Tu pedido',
+  ckViewDetails: 'Ver detalle',
+  ckHideDetails: 'Ocultar detalle',
+  ckDeliverTo: 'Entregar en',
+  ckAddAddress: 'Agregar dirección',
+  ckAddressTitle: 'Dirección de entrega',
+  ckUseAddress: 'Usar esta dirección',
+  ckWhen: 'Cuándo',
+  ckAsap: 'Lo antes posible',
+  ckReadyIn: 'Listo en ~{n} min',
+  ckArrivesIn: 'Llega en ~{n} min',
+  ckWhenTitle: '¿Cuándo lo quieres?',
+  ckScheduleLater: 'Programar para más tarde',
+  ckContact: 'Contacto',
+  ckAddContact: 'Agregar nombre y teléfono',
+  ckContactTitle: 'Tus datos',
+  ckNote: 'Nota para la cocina',
+  ckPromoApplied: 'Aplicado: -{x}',
+  ckUtensilsTitle: 'Cubiertos y servilletas',
+  ckUtensilsSub: 'También salsas en sobre. Solo van si los pides.',
+  ckPayNow: 'Pagar ahora',
+  ckPayCash: 'En efectivo',
+  ckCashPickup: 'Pagas en efectivo al recoger',
+  ckCashDelivery: 'Pagas en efectivo al recibir',
+  ckCashDineIn: 'Pagas en efectivo en la mesa',
+  ckCashTip: 'La propina, si quieres, la das en mano.',
+  ckCardSoon: 'Pago con tarjeta: próximamente.',
+  ckCashOnly: 'Este restaurante acepta solo efectivo por ahora.',
+  ckChangeQuestion: '¿Con cuánto vas a pagar? El repartidor lleva el cambio.',
+  ckExact: 'Pago exacto',
+  ckPaysWith: 'Paga con',
+  ckOnlineHint: 'Tarjeta, Apple Pay o Google Pay. Pago seguro con Stripe.',
+  ckContinue: 'Continuar',
+  ckAddItems: 'Agregar platos: faltan {x}',
+  ckDone: 'Listo',
+  ckRemove: 'Quitar',
+  ckLegal: '{name} prepara y entrega tu pedido.',
+  ckPrivacy: 'Privacidad',
+  ckCall: 'Llamar al restaurante',
+  ckTable: 'Mesa {name}',
+  ckTableSub: 'Pides desde tu mesa · te lo llevamos ahí',
+  ckTableTitle: 'Tu mesa',
+  ckLoyalty: 'Puntos de lealtad',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Reintentando…',
   retryingBanner: 'Problema de conexión — reintentando automáticamente, no salgas de esta pantalla.',
@@ -1107,6 +1193,49 @@ const en: Translations = {
   tipNone: 'None',
   tipOther: 'Other',
   tipCustomLabel: 'Custom tip',
+  ckYourOrder: 'Your order',
+  ckViewDetails: 'View details',
+  ckHideDetails: 'Hide details',
+  ckDeliverTo: 'Deliver to',
+  ckAddAddress: 'Add address',
+  ckAddressTitle: 'Delivery address',
+  ckUseAddress: 'Use this address',
+  ckWhen: 'When',
+  ckAsap: 'As soon as possible',
+  ckReadyIn: 'Ready in ~{n} min',
+  ckArrivesIn: 'Arrives in ~{n} min',
+  ckWhenTitle: 'When do you want it?',
+  ckScheduleLater: 'Schedule for later',
+  ckContact: 'Contact',
+  ckAddContact: 'Add name and phone',
+  ckContactTitle: 'Your details',
+  ckNote: 'Note for the kitchen',
+  ckPromoApplied: 'Applied: -{x}',
+  ckUtensilsTitle: 'Utensils & napkins',
+  ckUtensilsSub: 'Condiment packets too. Only if you ask.',
+  ckPayNow: 'Pay now',
+  ckPayCash: 'Cash',
+  ckCashPickup: 'Pay cash at pickup',
+  ckCashDelivery: 'Pay cash on delivery',
+  ckCashDineIn: 'Pay cash at your table',
+  ckCashTip: 'Tip in cash if you like.',
+  ckCardSoon: 'Card payments: coming soon.',
+  ckCashOnly: 'This restaurant only takes cash for now.',
+  ckChangeQuestion: 'How much will you pay with? The driver brings change.',
+  ckExact: 'Exact amount',
+  ckPaysWith: 'Pays with',
+  ckOnlineHint: 'Card, Apple Pay or Google Pay. Secure payment by Stripe.',
+  ckContinue: 'Continue',
+  ckAddItems: 'Add items: {x} to go',
+  ckDone: 'Done',
+  ckRemove: 'Remove',
+  ckLegal: '{name} prepares and delivers your order.',
+  ckPrivacy: 'Privacy',
+  ckCall: 'Call the restaurant',
+  ckTable: 'Table {name}',
+  ckTableSub: 'Ordering from your table · we bring it to you',
+  ckTableTitle: 'Your table',
+  ckLoyalty: 'Loyalty points',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Retrying…',
   retryingBanner: 'Connection issue — retrying automatically, please stay on this screen.',

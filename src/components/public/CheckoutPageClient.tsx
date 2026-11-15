@@ -4,7 +4,14 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { ArrowLeft, CheckCircle, ShoppingCart, Lock, UtensilsCrossed } from 'lucide-react';
+import {
+  ArrowLeft, CheckCircle, ShoppingCart, Lock, UtensilsCrossed,
+  ChevronLeft, ChevronDown, MapPin, Clock, User, StickyNote, Tag, Banknote, Armchair, Star,
+} from 'lucide-react';
+import {
+  CkGroup, CkRow, CkIcon, CkSegmented, CkSwitch, CkSheet, CkFields, CkError, CkChoice, CkSpinner,
+  ckCtaClass, ckShadow,
+} from './checkout/ck-ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { estimateMinutes } from '@/lib/orders/eta';
@@ -25,6 +32,9 @@ import { supabaseLoader } from '@/lib/image-loader';
 import { showsAsRow } from '@/lib/product-display';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
 import { tipAllowedFor, tipOptions, customTipAmount } from '@/lib/order-pricing';
+import {
+  isPossiblePhoneNumber, formatPhoneNumber, formatPhoneNumberIntl, getCountryCallingCode, type Country,
+} from 'react-phone-number-input';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl skeleton" />;
 
@@ -145,6 +155,23 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     return () => { clearTimeout(confettiTimer.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Teléfono completo según el país (US: 10 dígitos). Antes bastaban 7 caracteres
+  // y "+1718555" pasaba: el restaurante no podía llamar. Acepta E.164 (lo que
+  // guarda PhoneField) o un número local del país del restaurante (datos viejos).
+  const phoneCountry = (restaurant.country_code?.toUpperCase() || 'US') as Country;
+  const phoneLooksValid = (v: string) => {
+    const s = v.trim();
+    return !!s && (isPossiblePhoneNumber(s) || isPossiblePhoneNumber(s, phoneCountry));
+  };
+  const phoneDisplay = (v: string) => {
+    const s = v.trim();
+    try {
+      return (s.startsWith(`+${getCountryCallingCode(phoneCountry)}`) ? formatPhoneNumber(s) : formatPhoneNumberIntl(s)) || s;
+    } catch {
+      return s; // country_code desconocido para la librería
+    }
+  };
 
   const enabledOrderTypes = restaurant.order_types_enabled?.length
     ? restaurant.order_types_enabled
@@ -269,6 +296,23 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [tipChoice, setTipChoice] = useState<
     null | { kind: 'preset'; index: number } | { kind: 'custom'; value: string; mode: '$' | '%' }
   >(null);
+
+  // Checkout premium: los campos viven en hojas que se abren desde las filas.
+  const [activeSheet, setActiveSheet] = useState<null | 'contact' | 'address' | 'when' | 'note' | 'promo' | 'table'>(null);
+  const closeSheet = useCallback(() => setActiveSheet(null), []);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  // Delivery en efectivo: con cuánto paga, para que el repartidor lleve cambio.
+  // Va en las notas del pedido (sin migración).
+  const [cashChange, setCashChange] = useState<null | 'exact' | number>(null);
+  // Escritorio: el botón va dentro de la tarjeta de acciones, no en la barra de abajo.
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 860px)');
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   // Inline validation: tracks which fields the user has interacted with
   const [fieldTouched, setFieldTouched] = useState<Record<string, boolean>>({});
@@ -408,7 +452,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // Reactive form validation — drives CTA disabled state
   const isFormReady = Boolean(
     customerName.trim().length >= 2 &&
-    customerPhone.trim().length >= 7 &&
+    phoneLooksValid(customerPhone) &&
     // Email opcional: si viene, tiene que tener formato válido.
     (!customerEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) &&
     (orderType !== 'delivery' || deliveryAddress.trim().length > 0) &&
@@ -490,7 +534,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         break;
       case 'customer_phone':
         if (!value.trim()) error = t.validationPhoneRequired;
-        else if (!/^\+?[\d\s()-]{7,}$/.test(value)) error = t.validationPhoneInvalid;
+        else if (!phoneLooksValid(value)) error = t.validationPhoneInvalid;
         break;
       case 'customer_email':
         // Opcional: vacío es válido; si viene, se valida el formato.
@@ -539,24 +583,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     }
   };
 
+  // Los datos de contacto viven en una hoja: si falta algo, se abre con los
+  // errores ya marcados (la hoja enfoca el primer campo).
   const scrollToFirstInvalidField = () => {
-    if (!customerName.trim() || customerName.trim().length < 2) {
-      document.getElementById('checkout-name')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      document.getElementById('checkout-name')?.focus();
-      return;
-    }
-    if (!customerPhone.trim() || !/^\+?[\d\s()-]{7,}$/.test(customerPhone.trim())) {
-      const wrapper = document.getElementById('checkout-phone-wrapper');
-      const phoneInput = wrapper?.querySelector('input') as HTMLInputElement | null;
-      phoneInput?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      phoneInput?.focus();
-      return;
-    }
-    if (customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
-      document.getElementById('checkout-email')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      document.getElementById('checkout-email')?.focus();
-      return;
-    }
+    validateField('customer_name', customerName);
+    validateField('customer_phone', customerPhone);
+    validateField('customer_email', customerEmail);
+    setActiveSheet('contact');
   };
 
   // Builds the items array sent to /api/orders. Shared by the standard submit
@@ -712,7 +745,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   const handleSubmitOrder = async () => {
     if (submittingRef.current) return;
-    if (!customerName.trim() || !customerPhone.trim()) {
+    if (customerName.trim().length < 2 || !phoneLooksValid(customerPhone)) {
       setOrderError(t.validationNamePhoneRequired);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'name_or_phone', order_type: orderType });
       // Trigger shake + scroll to first invalid field
@@ -736,6 +769,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
       setOrderError(t.validationDeliveryAddressRequired);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'delivery_address', order_type: orderType });
+      setActiveSheet('address');
       setCtaShake(true);
       clearTimeout(ctaShakeTimer.current);
       ctaShakeTimer.current = setTimeout(() => setCtaShake(false), 600);
@@ -744,6 +778,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     if (addressNeedsPick()) {
       setOrderError(t.deliveryPickFromList);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'delivery_address_unverified', order_type: orderType });
+      setActiveSheet('address');
       setCtaShake(true);
       clearTimeout(ctaShakeTimer.current);
       ctaShakeTimer.current = setTimeout(() => setCtaShake(false), 600);
@@ -801,7 +836,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             const arrival = orderType === 'dine_in' && !tableName && arrivalTime
               ? `[${t.arrivesLabel}: ${arrivalTime}] `
               : '';
-            return arrival + orderNotes.trim() || undefined;
+            // Delivery en efectivo: el repartidor sabe cuánto cambio llevar.
+            const change = orderType === 'delivery' && paymentMethod === 'cash' && cashChange !== null
+              ? `[${t.ckPaysWith}: ${cashChange === 'exact' ? t.ckExact : fmtPrice(cashChange)}] `
+              : '';
+            return arrival + change + orderNotes.trim() || undefined;
           })(),
           order_type: orderType,
           payment_method: paymentMethod,
@@ -1145,7 +1184,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     }
   };
 
-  const inputClass = 'w-full px-4 py-3.5 rounded-xl border border-gray-300 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
 
   if (!hasMounted) {
     return (
@@ -1632,747 +1670,829 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     );
   }
 
-  return (
-    <div
-      className="h-[100dvh] bg-[#f5f5f5] flex flex-col"
-    >
-      {/* Sticky header */}
-      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
-        <button onClick={goBack} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-          <span className="text-sm font-medium">{t.backToMenu}</span>
-        </button>
-        <h1 className="text-base font-bold text-gray-900">
-          {t.payLabel} {fmtPrice(displayTotal)}
-        </h1>
-        <div className="flex items-center gap-1.5 text-gray-400">
-          <Lock className="w-3.5 h-3.5" />
-          <span className="text-xs font-medium">{t.secureLabel}</span>
+  // ── Checkout premium (SPEC §4): total como ancla + filas agrupadas + un botón ──
+  const emailOk = !customerEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim());
+  const contactReady = customerName.trim().length >= 2 && phoneLooksValid(customerPhone) && emailOk;
+  const addressReady = orderType !== 'delivery' || (deliveryAddress.trim().length > 0 && !addressNeedsPick());
+  const itemCount = items.reduce((s, i) => s + i.qty, 0);
+  const optLabel = t.optional.charAt(0).toUpperCase() + t.optional.slice(1);
+  // D1: Mesa solo llega por QR (tableName). Sin QR no se ofrece, salvo que sea lo único que hay.
+  const segOrderTypes: OrderType[] = tableName
+    ? []
+    : (() => { const v = enabledOrderTypes.filter((o) => o !== 'dine_in'); return v.length ? v : enabledOrderTypes; })();
+  const hasOnline = enabledPaymentMethods.includes('online');
+  const hasCash = enabledPaymentMethods.includes('cash');
+  // R9: "próximamente" solo si el alta en Stripe está en curso.
+  const cardOnboarding = !hasOnline && !!restaurant.stripe_account_id && !restaurant.stripe_onboarding_complete;
+  const eta = estimateMinutes({ items, orderType, restaurant, to: deliveryCoords });
+  const scheduleOn = scheduleEnabled && !!scheduledFor;
+  const whenValue = scheduleOn
+    ? new Date(scheduledFor).toLocaleString(locale === 'en' ? 'en-US' : 'es', { weekday: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : t.ckAsap;
+  const etaText = eta ? (orderType === 'delivery' ? t.ckArrivesIn : t.ckReadyIn).replace('{n}', String(eta)) : undefined;
+  const ctaBusy = submitting || networkRetrying || redirectingToPay;
+  const orderTypeLabel = (v: OrderType) => (v === 'pickup' ? t.pickup : v === 'delivery' ? t.delivery : t.dineIn);
+  const changeOrderType = (type: OrderType) => {
+    if (type === orderType) return;
+    trackEvent('fulfillment_mode_changed', { restaurant_id: restaurant.id, from: orderType, to: type });
+    setOrderType(type);
+  };
+
+  // El botón principal dice lo que falta y lleva ahí (nextStep).
+  const next: { label: string; run: () => void; disabled?: boolean } =
+    items.length === 0 ? { label: t.confirmOrder, run: () => {}, disabled: true }
+    : belowDeliveryMin ? { label: t.ckAddItems.replace('{x}', fmtPrice(Math.max(0, deliveryMinOrder - cartTotal))), run: goBack }
+    : dineInOnlyBlocked ? { label: t.confirmOrder, run: handleSubmitOrder }
+    : !addressReady ? { label: t.ckAddAddress, run: () => setActiveSheet('address') }
+    : !contactReady ? { label: t.ckContinue, run: () => setActiveSheet('contact') }
+    : {
+        label: paymentMethod === 'online' ? `${t.payLabel} ${fmtPrice(displayTotal)}` : `${t.confirmOrder} · ${fmtPrice(displayTotal)}`,
+        run: handleSubmitOrder,
+      };
+
+  const miniBreakdown = [
+    `${t.subtotal} ${fmtPrice(cartTotal)}`,
+    deliveryFee > 0 ? `${t.deliveryLabel} ${fmtPrice(deliveryFee)}` : null,
+    taxAmount > 0 && !taxIncluded ? `${taxLabel} ${fmtPrice(taxAmount)}` : null,
+    tipAmount > 0 ? `${t.tipLabel} ${fmtPrice(tipAmount)}` : null,
+  ].filter(Boolean).join(' · ');
+
+  const thumbs = items.filter((i) => i.product.image_url && !showsAsRow(i.product)).slice(0, 3);
+
+  const fieldLabelCls = 'absolute left-3.5 top-2 text-xs text-[#6b6b74] pointer-events-none';
+  const fieldInputCls = 'w-full bg-transparent border-0 text-[#111114] text-[17px] leading-tight pt-[23px] pb-2 px-3.5 outline-none placeholder:text-[#9a9aa2]';
+
+  const itemsList = items.map((item, idx) => {
+    // "Cheeseburger" + Deluxe → "Cheeseburger Deluxe", como en el carrito y el ticket.
+    const { name: itemName, lines: modLines } = withTitle(item.product.name, cartModLines(item.modifierSelections));
+    const confirmingRemove = confirmRemoveIdx === idx;
+    return (
+      <div key={`${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`} className="grid grid-cols-[52px_1fr_auto] min-[860px]:grid-cols-[64px_1fr_auto] gap-3 items-start">
+        <div className="relative w-[52px] h-[52px] min-[860px]:w-16 min-[860px]:h-16 rounded-xl min-[860px]:rounded-[14px] overflow-hidden bg-[#e9e9ee]">
+          {!showsAsRow(item.product) && item.product.image_url && (
+            <Image
+              src={item.product.image_url}
+              alt=""
+              fill
+              sizes="64px"
+              loader={item.product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
+              className="object-cover opacity-0 transition-opacity duration-300"
+              onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+            />
+          )}
         </div>
-      </header>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-5 py-6 space-y-4">
-
-          {/* Section: Tu pedido */}
-          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 px-1">
-            {t.yourOrderSection}
+        <div className="min-w-0">
+          <p className="text-[15px] font-semibold tracking-[-0.01em] text-[#111114] leading-snug">
+            {itemName}{item.variant ? ` (${item.variant.name})` : ''}
           </p>
-
-          {/* Order summary */}
-          <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <ShoppingCart className="w-4 h-4 text-gray-500" />
-              <p className="text-sm font-semibold text-gray-900">{t.myOrder}</p>
-              <span className="ml-auto text-xs font-medium text-gray-400">
-                {(() => { const n = items.reduce((s, i) => s + i.qty, 0); return `${n} ${n === 1 ? t.itemSingular : t.items}`; })()}
-              </span>
-            </div>
-            {items.map((item, idx) => {
-              // "Cheeseburger" + Deluxe → "Cheeseburger Deluxe", como en el carrito y el ticket.
-              const { name: itemName, lines: modLines } = withTitle(item.product.name, cartModLines(item.modifierSelections));
-              return (
-              <div key={`${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`} className="flex gap-3 items-start">
-                {!showsAsRow(item.product) && item.product.image_url && (
-                  <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                    <Image
-                      src={item.product.image_url}
-                      alt={item.product.name}
-                      fill
-                      sizes="48px"
-                      loader={item.product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
-                      className="object-cover opacity-0 transition-opacity duration-300"
-                      onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
-                    />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between gap-2">
-                    <span className="text-[15px] text-gray-800 font-medium truncate">
-                      {itemName}
-                      {item.variant ? ` (${item.variant.name})` : ''}
-                    </span>
-                    <span className="font-semibold text-gray-900 flex-shrink-0 tabular-nums text-[15px]">{fmtPrice(item.lineTotal)}</span>
-                  </div>
-                  {modLines.length > 0 && (
-                    /* Sin truncate: con Deluxe + side + "No Onion, No Tomato" la línea
-                       se cortaba justo antes de las exclusiones, que son lo que el
-                       cliente más necesita confirmar. */
-                    <div className="mt-0.5 space-y-0.5">
-                      {modLines.map((line, k) => (
-                        <p key={k} className={`flex justify-between gap-2 text-xs text-gray-600 leading-snug break-words ${line.indent ? 'pl-3' : ''}`}>
-                          <span className="min-w-0">{line.indent && <span className="text-gray-300">↳ </span>}{line.text}</span>
-                          {line.price > 0 && <span className="flex-shrink-0 text-gray-400 tabular-nums">+{fmtPrice(line.price)}</span>}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-0 mt-2">
-                    {/* 44px touch target wrapping the visible 28px circle */}
-                    <button
-                      onClick={() => {
-                        if (item.qty > 1) { updateQty(idx, item.qty - 1); return; }
-                        if (confirmRemoveIdx === idx) {
-                          if (confirmRemoveTimer.current) clearTimeout(confirmRemoveTimer.current);
-                          setConfirmRemoveIdx(null);
-                          removeItem(idx);
-                        } else {
-                          setConfirmRemoveIdx(idx);
-                          confirmRemoveTimer.current = setTimeout(() => setConfirmRemoveIdx(null), 2000);
-                        }
-                      }}
-                      className="w-11 h-11 flex items-center justify-center flex-shrink-0"
-                      aria-label={t.decreaseQuantity}
-                    >
-                      <span className={cn(
-                        'w-7 h-7 rounded-full border flex items-center justify-center transition-colors text-lg leading-none pointer-events-none',
-                        confirmRemoveIdx === idx
-                          ? 'border-red-300 bg-red-50 text-red-500'
-                          : 'border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-500'
-                      )}>
-                        −
-                      </span>
-                    </button>
-                    <span className="text-sm font-semibold text-gray-900 w-4 text-center tabular-nums">{item.qty}</span>
-                    {/* 44px touch target wrapping the visible 28px circle */}
-                    <button
-                      onClick={() => updateQty(idx, item.qty + 1)}
-                      className="w-11 h-11 flex items-center justify-center flex-shrink-0"
-                      aria-label={t.increaseQuantity}
-                    >
-                      <span className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-[#e6faf7] hover:border-[#b3efe6] hover:text-[#047a65] transition-colors text-lg leading-none pointer-events-none">
-                        +
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              );
-            })}
-            {promoDiscount > 0 && (
-              <div className="flex justify-between text-[15px] text-[#047a65] pt-1">
-                <span>{t.discount}</span>
-                <span className="font-semibold">-{fmtPrice(promoDiscount)}</span>
-              </div>
-            )}
-            {loyaltyDiscount > 0 && (
-              <div className="flex justify-between text-[15px] text-[#047a65] pt-1">
-                <span>⭐ {t.pointsLabel}</span>
-                <span className="font-semibold">-{fmtPrice(loyaltyDiscount)}</span>
-              </div>
-            )}
-            {deliveryFee > 0 && (
-              <div className="flex justify-between text-[15px] text-gray-500">
-                <span>{t.deliveryLabel}</span>
-                <span className="font-semibold tabular-nums">+{fmtPrice(deliveryFee)}</span>
-              </div>
-            )}
-            {orderType === 'delivery' && deliveryFee === 0 && restaurant.order_types_enabled?.includes('delivery') && (
-              <div className="flex justify-between text-[15px] text-[#047a65]">
-                <span>{t.deliveryLabel}</span>
-                <span className="font-semibold">{t.freeLabel}</span>
-              </div>
-            )}
-            {tipAmount > 0 && (
-              <div className="flex justify-between text-[15px] text-gray-500">
-                <span>{t.tipLabel}</span>
-                <span className="font-semibold tabular-nums">+{fmtPrice(tipAmount)}</span>
-              </div>
-            )}
-            {taxAmount > 0 && (
-              <div className="flex justify-between text-[15px] text-gray-500">
-                <span>
-                  {taxLabel}{' '}
-                  {taxIncluded
-                    ? `(${t.includedLabel})`
-                    : `(${taxRate}%)`}
-                </span>
-                <span className="font-semibold tabular-nums">
-                  {taxIncluded ? '' : '+'}{fmtPrice(taxAmount)}
-                </span>
-              </div>
-            )}
-            <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-lg">
-              <span className="flex items-center gap-2">
-                {t.total}
-                {quoteLoading && (
-                  <span className="inline-block w-3 h-3 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
-                )}
-              </span>
-              <span className={`tabular-nums transition-opacity ${quoteLoading ? 'opacity-50' : 'opacity-100'}`}>{fmtPrice(displayTotal)}</span>
-            </div>
-          </div>
-
-          {/* Order type */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">{t.orderType}</label>
-            <div className={cn('grid gap-2', enabledOrderTypes.length === 3 ? 'grid-cols-3' : enabledOrderTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}>
-              {enabledOrderTypes.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    if (type !== orderType) {
-                      trackEvent('fulfillment_mode_changed', {
-                        restaurant_id: restaurant.id,
-                        from: orderType,
-                        to: type,
-                      });
-                    }
-                    setOrderType(type);
-                  }}
-                  className={cn(
-                    'py-3.5 px-3 rounded-xl text-[15px] font-bold text-center transition-all duration-150 border',
-                    orderType === type
-                      ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-white text-gray-600 border-gray-200 active:border-gray-400'
-                  )}
-                >
-                  {type === 'dine_in' ? t.dineIn : type === 'pickup' ? t.pickup : t.delivery}
-                </button>
+          {modLines.length > 0 && (
+            /* Sin truncate: las exclusiones ("No Onion") son lo que el cliente más necesita confirmar. */
+            <div className="mt-0.5 space-y-0.5">
+              {modLines.map((line, k) => (
+                <p key={k} className={cn('flex justify-between gap-2 text-[13px] text-[#4f4f57] leading-snug break-words', line.indent && 'pl-3')}>
+                  <span className="min-w-0">{line.indent && <span className="text-[#9a9aa2]">↳ </span>}{line.text}</span>
+                  {line.price > 0 && <span className="shrink-0 tabular-nums">+{fmtPrice(line.price)}</span>}
+                </p>
               ))}
             </div>
-            {dineInOnlyBlocked && (
-              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3.5">
-                <p className="text-[13px] font-medium text-amber-900">
-                  {t.validationDineInOnlyItems}
-                </p>
-                <ul className="mt-2 space-y-1.5">
-                  {dineInOnlyItems.map((item) => (
-                    <li key={item.uid} className="flex items-center justify-between gap-2 text-[13px] text-amber-900">
-                      <span className="flex items-center gap-1.5 min-w-0">
-                        <span aria-hidden>🍷</span>
-                        <span className="truncate">{item.qty}× {item.product.name}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(items.indexOf(item))}
-                        className="flex-shrink-0 text-[12px] font-semibold text-amber-700 underline underline-offset-2 active:opacity-70"
-                      >
-                        {t.removeItem}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+          )}
+          <div className={cn('inline-flex items-center mt-1.5 bg-white rounded-full', ckShadow)}>
+            <button
+              type="button"
+              onClick={() => {
+                if (item.qty > 1) { updateQty(idx, item.qty - 1); return; }
+                if (confirmingRemove) {
+                  if (confirmRemoveTimer.current) clearTimeout(confirmRemoveTimer.current);
+                  setConfirmRemoveIdx(null);
+                  removeItem(idx);
+                } else {
+                  setConfirmRemoveIdx(idx);
+                  confirmRemoveTimer.current = setTimeout(() => setConfirmRemoveIdx(null), 2500);
+                }
+              }}
+              aria-label={confirmingRemove ? t.removeItem : t.decreaseQuantity}
+              className={cn(
+                'h-9 min-w-[44px] rounded-full text-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]',
+                confirmingRemove ? 'px-3 text-[13.5px] font-semibold text-[#c4321b]' : 'text-[#4f4f57]',
+              )}
+            >
+              {confirmingRemove ? t.removeItem : '−'}
+            </button>
+            <span className="min-w-[18px] text-center text-sm font-semibold tabular-nums" aria-live="polite">{item.qty}</span>
+            <button
+              type="button"
+              onClick={() => updateQty(idx, item.qty + 1)}
+              aria-label={t.increaseQuantity}
+              className="h-9 min-w-[44px] rounded-full text-lg text-[#4f4f57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+            >
+              +
+            </button>
+          </div>
+        </div>
+        <span className="text-[15px] font-medium tabular-nums text-[#111114]">{fmtPrice(item.lineTotal)}</span>
+      </div>
+    );
+  });
+
+  const breakdown = (
+    <div className="grid gap-2 px-1 pt-1.5 text-sm text-[#4f4f57] tabular-nums">
+      <div className="flex justify-between"><span>{t.subtotal}</span><span>{fmtPrice(cartTotal)}</span></div>
+      {promoDiscount > 0 && (
+        <div className="flex justify-between text-[#047a65]"><span>{t.discount}</span><span>-{fmtPrice(promoDiscount)}</span></div>
+      )}
+      {loyaltyDiscount > 0 && (
+        <div className="flex justify-between text-[#047a65]"><span>{t.pointsLabel}</span><span>-{fmtPrice(loyaltyDiscount)}</span></div>
+      )}
+      {orderType === 'delivery' && (
+        deliveryFee > 0
+          ? <div className="flex justify-between"><span>{t.deliveryLabel}</span><span>{fmtPrice(deliveryFee)}</span></div>
+          : <div className="flex justify-between text-[#047a65]"><span>{t.deliveryLabel}</span><span>{t.freeLabel}</span></div>
+      )}
+      {taxAmount > 0 && (
+        <div className="flex justify-between">
+          <span>{taxLabel} {taxIncluded ? `(${t.includedLabel})` : `(${taxRate}%)`}</span>
+          <span>{fmtPrice(taxAmount)}</span>
+        </div>
+      )}
+      {tipAmount > 0 && (
+        <div className="flex justify-between"><span>{t.tipLabel}</span><span>{fmtPrice(tipAmount)}</span></div>
+      )}
+      <div className="flex justify-between items-center pt-2.5 mt-0.5 border-t border-black/[0.09] text-lg font-semibold text-[#111114]">
+        <span className="flex items-center gap-2">
+          {t.total}
+          {quoteLoading && <span className="w-3 h-3 rounded-full border-2 border-[#d4d4da] border-t-[#4f4f57] animate-spin" aria-hidden="true" />}
+        </span>
+        <span>{fmtPrice(displayTotal)}</span>
+      </div>
+    </div>
+  );
+
+  const legal = (
+    <p className="text-[12.5px] leading-relaxed text-[#6b6b74] px-1 m-0">
+      {t.ckLegal.replace('{name}', restaurant.name)}{' '}
+      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#4f4f57] font-medium underline underline-offset-2">{t.ckPrivacy}</a>
+      {restaurant.phone && (
+        <>
+          {' · '}
+          <a href={`tel:${restaurant.phone.replace(/[^\d+]/g, '')}`} className="text-[#4f4f57] font-medium underline underline-offset-2">{t.ckCall}</a>
+        </>
+      )}
+    </p>
+  );
+
+  const tipBlock = tipAllowed && (
+    <div className="pb-1">
+      <p id="tip-title" className="px-1 text-[15px] font-semibold text-[#111114]">
+        {orderType === 'delivery' ? t.tipTitleDriver : t.tipTitleTeam}{' '}
+        <span className="text-[#6b6b74] font-normal text-[13px]">({t.optional})</span>
+      </p>
+      <p className="px-1 text-[13px] text-[#4f4f57] mt-px">
+        {(orderType === 'delivery' ? t.tipHintDriver : t.tipHintTeam).replace('{name}', restaurant.name)}
+      </p>
+      <div role="radiogroup" aria-labelledby="tip-title" className="grid grid-cols-5 gap-1.5 mt-2.5">
+        {[
+          { key: 'none', label: t.tipNone, sub: null as string | null, active: tipChoice === null, onSelect: () => setTipChoice(null) },
+          ...tipPresets.map((o, index) => ({
+            key: `p${index}`,
+            label: fmtPrice(o.amount).replace(/[.,]00(?=\D*$)/, ''),
+            sub: o.pct > 0 ? `${o.pct}%` : null,
+            active: tipChoice?.kind === 'preset' && tipChoice.index === index,
+            onSelect: () => setTipChoice({ kind: 'preset', index }),
+          })),
+          {
+            key: 'other',
+            label: t.tipOther,
+            sub: null,
+            active: tipChoice?.kind === 'custom',
+            onSelect: () => { if (tipChoice?.kind !== 'custom') setTipChoice({ kind: 'custom', value: '', mode: '$' }); },
+          },
+        ].map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            role="radio"
+            aria-checked={opt.active}
+            onClick={opt.onSelect}
+            className={cn(
+              'grid content-center gap-px min-h-[52px] px-0.5 rounded-xl transition-[background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1',
+              opt.active ? 'bg-[#e2f7f3] shadow-[inset_0_0_0_1.5px_#05c8a7]' : 'bg-[#f5f5f8]',
             )}
-            {belowDeliveryMin && (
-              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3.5">
-                <p className="text-[13px] font-medium text-amber-900">
+          >
+            <span className="text-[15px] font-semibold tabular-nums leading-tight text-[#111114]">{opt.label}</span>
+            {opt.sub && <span className={cn('text-[11.5px] tabular-nums leading-tight', opt.active ? 'text-[#047a65]' : 'text-[#6b6b74]')}>{opt.sub}</span>}
+          </button>
+        ))}
+      </div>
+      {tipChoice?.kind === 'custom' && (
+        <div className="mt-2.5 flex items-center gap-2">
+          <div className="flex rounded-xl bg-[#f0f0f4] p-[3px] shrink-0" role="group" aria-label={t.tipCustomLabel}>
+            {(['$', '%'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={tipChoice.mode === m}
+                onClick={() => setTipChoice({ ...tipChoice, mode: m })}
+                className={cn(
+                  'w-10 h-10 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]',
+                  tipChoice.mode === m ? 'bg-white text-[#111114] shadow-[0_1px_3px_rgba(0,0,0,.12)]' : 'text-[#4f4f57]',
+                )}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            inputMode="decimal"
+            autoFocus
+            aria-label={t.tipCustomLabel}
+            placeholder={tipChoice.mode === '$' ? '0.00' : '18'}
+            value={tipChoice.value}
+            onChange={(e) => setTipChoice({ ...tipChoice, value: e.target.value.replace(/[^0-9.,]/g, '').slice(0, 6) })}
+            className="flex-1 min-w-0 h-[46px] rounded-xl bg-[#f5f5f8] px-3.5 text-base tabular-nums text-[#111114] outline-none focus:shadow-[inset_0_0_0_1.5px_#05c8a7]"
+          />
+          {tipChoice.mode === '%' && tipAmount > 0 && (
+            <span className="text-sm font-semibold text-[#111114] tabular-nums shrink-0">= {fmtPrice(tipAmount)}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const ctaBlock = (
+    <div className="space-y-2.5">
+      <AnimatePresence>
+        {networkRetrying && (
+          <motion.div
+            key="retrying"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            role="status"
+            aria-live="polite"
+            className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] font-medium leading-snug"
+          >
+            <CkSpinner />
+            <span>{t.retryingBanner}</span>
+          </motion.div>
+        )}
+        {orderError && (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            role="alert"
+            aria-live="assertive"
+            className="flex items-start gap-3 px-3 py-2.5 rounded-xl bg-[#fdecea] text-[#c4321b] text-[13.5px] font-medium leading-snug"
+          >
+            <span className="flex-1">{orderError}</span>
+            {canManualRetry && (
+              <button
+                type="button"
+                onClick={() => { retryAttemptRef.current = 0; handleSubmitOrder(); }}
+                className="shrink-0 font-semibold underline underline-offset-2"
+              >
+                {t.retryLabel}
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Apple Pay / Google Pay / Link — arriba del botón principal. Solo mercados
+          Stripe (sin Colombia/Wompi). Un toque: Face ID → crea el pedido → cobra. */}
+      {paymentMethod === 'online' && stripeConnectReady && !isColombianRestaurant && isFormReady && (
+        <div className="space-y-2">
+          <WalletButton
+            amount={displayTotal}
+            currency={restaurant.currency}
+            country={restaurant.country_code || 'US'}
+            label={restaurant.name}
+            onCreateOrder={createOrderForWallet}
+            onSuccess={(oid, onum) => { setWalletPaying(false); handleWalletSuccess(oid, onum); }}
+            onError={(msg) => { setWalletPaying(false); setOrderError(msg); }}
+            onPayingChange={setWalletPaying}
+            disabled={submitting || items.length === 0}
+          />
+          <div className="flex items-center gap-3 py-0.5" aria-hidden="true">
+            <div className="flex-1 h-px bg-black/[0.09]" />
+            <span className="text-[11px] text-[#6b6b74] font-medium uppercase tracking-wide">{locale === 'en' ? 'or' : 'o'}</span>
+            <div className="flex-1 h-px bg-black/[0.09]" />
+          </div>
+        </div>
+      )}
+      <motion.button
+        type="button"
+        onClick={next.run}
+        disabled={next.disabled || ctaBusy || walletPaying}
+        aria-label={next.label === t.confirmOrder ? t.placeOrderAriaLabel : undefined}
+        aria-busy={ctaBusy}
+        animate={ctaShake ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : { x: 0 }}
+        transition={{ duration: 0.5 }}
+        className={ckCtaClass(next.disabled || walletPaying || ctaBusy)}
+      >
+        {ctaBusy ? (
+          <>
+            <CkSpinner />
+            {networkRetrying ? t.retryingLabel : redirectingToPay ? t.redirecting : t.sending}
+          </>
+        ) : (
+          <span className="tabular-nums">{next.label}</span>
+        )}
+      </motion.button>
+    </div>
+  );
+
+  return (
+    <div className="h-[100dvh] bg-[#f2f2f6] flex flex-col text-[#111114] antialiased">
+      {/* Honeypot — invisible para personas, los bots lo llenan */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', visibility: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
+        <label>Website</label>
+        <input type="text" name="website" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
+      </div>
+
+      <header className="shrink-0 z-10 w-full max-w-lg mx-auto grid grid-cols-[44px_1fr_44px] items-center px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 min-[860px]:grid-cols-[auto_1fr_auto] min-[860px]:max-w-[1140px] min-[860px]:px-10 min-[860px]:pt-5 min-[860px]:pb-3">
+        <button
+          type="button"
+          onClick={goBack}
+          aria-label={t.backToMenu}
+          className={cn('w-9 h-9 rounded-full bg-white grid place-items-center text-[#111114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]', ckShadow)}
+        >
+          <ChevronLeft className="w-[18px] h-[18px]" aria-hidden="true" />
+        </button>
+        <p className="text-center min-[860px]:text-left min-[860px]:pl-3 text-[15px] min-[860px]:text-base font-semibold tracking-[-0.01em] truncate">{restaurant.name}</p>
+        <span />
+      </header>
+
+      {/* Scroll en un contenedor (no en el root): iOS respeta overscroll-behavior. */}
+      <div className={cn('flex-1 overflow-y-auto overscroll-contain', activeSheet && 'overflow-hidden')}>
+        <div className="max-w-lg mx-auto min-[860px]:max-w-[1060px] min-[860px]:flex min-[860px]:items-start min-[860px]:gap-14 min-[860px]:px-10 min-[860px]:pb-10">
+
+          {/* Resumen: el total manda */}
+          <section className="px-5 pt-1 pb-1 min-[860px]:flex-1 min-[860px]:px-0 min-[860px]:pt-2 min-[860px]:sticky min-[860px]:top-0">
+            <p className="text-sm text-[#4f4f57] mt-1.5 mb-0.5">{t.ckYourOrder}</p>
+            <p aria-live="polite" className={cn('m-0 text-[46px] min-[860px]:text-[56px] leading-[1.05] font-semibold tracking-[-0.035em] tabular-nums transition-opacity', quoteLoading && 'opacity-60')}>
+              {fmtPrice(displayTotal)}
+            </p>
+            <p className="min-[860px]:hidden mt-1.5 text-[13px] text-[#4f4f57] tabular-nums">{miniBreakdown}</p>
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((v) => !v)}
+              aria-expanded={detailsOpen}
+              aria-controls="ck-items"
+              className="min-[860px]:hidden mt-2 inline-flex items-center gap-2 py-1.5 text-[15px] font-medium text-[#047a65] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] rounded-lg"
+            >
+              {thumbs.length > 0 && (
+                <span className="inline-flex" aria-hidden="true">
+                  {thumbs.map((i, k) => (
+                    <span key={i.uid ?? k} className={cn('relative w-[26px] h-[26px] rounded-full overflow-hidden border-2 border-[#f2f2f6] bg-[#e9e9ee]', k > 0 && '-ml-2')}>
+                      <Image
+                        src={i.product.image_url as string}
+                        alt=""
+                        fill
+                        sizes="26px"
+                        loader={(i.product.image_url as string).includes('.supabase.co/storage/') ? supabaseLoader : undefined}
+                        className="object-cover"
+                      />
+                    </span>
+                  ))}
+                </span>
+              )}
+              <span>{itemCount} {itemCount === 1 ? t.itemSingular : t.items} · {detailsOpen ? t.ckHideDetails : t.ckViewDetails}</span>
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-300', detailsOpen && 'rotate-180')} aria-hidden="true" />
+            </button>
+            <div id="ck-items" className={cn(detailsOpen ? 'grid' : 'hidden', 'min-[860px]:grid gap-3.5 pt-3 pb-1.5 min-[860px]:pt-6 min-[860px]:gap-[18px]')}>
+              {itemsList}
+            </div>
+            <div className="hidden min-[860px]:block pt-5">{breakdown}</div>
+            <div className="hidden min-[860px]:block pt-7">{legal}</div>
+          </section>
+
+          {/* Acciones */}
+          <section className="px-4 pt-2.5 pb-5 flex flex-col gap-3.5 min-[860px]:w-[450px] min-[860px]:shrink-0 min-[860px]:px-0 min-[860px]:pt-2 min-[860px]:gap-3">
+
+            {/* Cómo y cuándo */}
+            <CkGroup>
+              {segOrderTypes.length > 1 && (
+                <CkSegmented
+                  ariaLabel={t.orderType}
+                  options={segOrderTypes.map((v) => ({ value: v, label: orderTypeLabel(v) }))}
+                  value={orderType}
+                  onChange={changeOrderType}
+                />
+              )}
+              {orderType === 'dine_in' && tableName && (
+                <CkRow icon={<Armchair />} value={t.ckTable.replace('{name}', tableName)} sub={t.ckTableSub} />
+              )}
+              {orderType === 'dine_in' && !tableName && (
+                <CkRow
+                  icon={<Armchair />}
+                  label={t.ckTableTitle}
+                  value={manualTableName.trim() || optLabel}
+                  muted={!manualTableName.trim()}
+                  sub={arrivalTime ? `${t.arrivesLabel}: ${arrivalTime}` : undefined}
+                  onClick={() => setActiveSheet('table')}
+                />
+              )}
+              {dineInOnlyBlocked && (
+                <div className="m-3 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug" role="alert">
+                  <p className="font-medium">{t.validationDineInOnlyItems}</p>
+                  <ul className="mt-1.5 space-y-1">
+                    {dineInOnlyItems.map((item) => (
+                      <li key={item.uid} className="flex items-center justify-between gap-2">
+                        <span className="truncate">{item.qty}× {item.product.name}</span>
+                        <button type="button" onClick={() => removeItem(items.indexOf(item))} className="shrink-0 font-semibold underline underline-offset-2">
+                          {t.removeItem}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {belowDeliveryMin && (
+                <div className="m-3 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug">
                   {t.deliveryMinimum}: <strong>{fmtPrice(deliveryMinOrder)}</strong>
                   {' — '}{t.deliveryMinimumMissing} {fmtPrice(Math.max(0, deliveryMinOrder - cartTotal))}
-                </p>
-              </div>
-            )}
-            {orderType === 'delivery' && (
-              <div className="mt-4">
-                <AddressAutocomplete
-                  label={t.deliveryAddress}
-                  value={deliveryAddress}
-                  onChange={(v) => { setDeliveryAddress(v); setDeliveryCoords(null); }}
-                  onPlaceSelect={(p) => {
-                    if (p.lat != null && p.lng != null) setDeliveryCoords({ lat: p.lat, lng: p.lng });
-                  }}
-                  onBlur={() => validateField('delivery_address', deliveryAddress)}
-                  placeholder={t.deliveryAddressPlaceholder}
-                  dark={false}
-                  required
-                  error={!!fieldErrors.delivery_address}
-                  near={restaurant.latitude != null && restaurant.longitude != null ? { lat: restaurant.latitude, lng: restaurant.longitude } : null}
-                  country={restaurant.country_code ?? null}
+                </div>
+              )}
+              {orderType === 'delivery' && (
+                <CkRow
+                  icon={<MapPin />}
+                  label={t.ckDeliverTo}
+                  value={deliveryAddress.trim() || t.ckAddAddress}
+                  need={!deliveryAddress.trim()}
+                  sub={addressNeedsPick() ? <span className="text-[#7a4d00]">{t.deliveryPickFromList}</span> : undefined}
+                  onClick={() => setActiveSheet('address')}
                 />
-                {fieldErrors.delivery_address && (
-                  <p className="text-xs text-red-500 mt-1">{fieldErrors.delivery_address}</p>
-                )}
-              </div>
-            )}
-            {orderType === 'dine_in' && !tableName && (
-              <div className="mt-4 space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    {t.tableQuestion}
-                    <span className="ml-1 text-gray-400 font-normal">({t.optional})</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={manualTableName}
-                    onChange={(e) => setManualTableName(e.target.value)}
-                    placeholder={t.tablePlaceholder}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    {t.arrivalTimeQuestion}
-                    <span className="ml-1 text-gray-400 font-normal">({t.optional})</span>
-                  </label>
-                  <input
-                    type="time"
-                    value={arrivalTime}
-                    onChange={(e) => setArrivalTime(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+              {orderType !== 'dine_in' && (
+                <CkRow
+                  icon={<Clock />}
+                  label={t.ckWhen}
+                  value={whenValue}
+                  sub={!scheduleOn ? etaText : undefined}
+                  onClick={() => setActiveSheet('when')}
+                />
+              )}
+            </CkGroup>
 
-          {/* Section: Tus datos */}
-          <div className="flex items-center justify-between px-1 pt-2">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
-              {t.yourInfoSection}
-            </p>
-            {hasMounted && isReturningCustomer() && savedCustomer && (
-              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
-                {t.infoSaved}
-              </span>
-            )}
-          </div>
+            {/* Pago */}
+            <CkGroup>
+              {hasOnline && hasCash && (
+                <CkSegmented
+                  ariaLabel={t.paymentMethod}
+                  options={[{ value: 'online' as PaymentMethod, label: t.ckPayNow }, { value: 'cash' as PaymentMethod, label: t.ckPayCash }]}
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                />
+              )}
+              {paymentMethod === 'online' ? (
+                <div className={cn('px-3 pb-3.5', !(hasOnline && hasCash) && 'pt-3.5')}>
+                  {tipBlock}
+                  <p className={cn('mx-1 flex items-start gap-1.5 text-[12.5px] leading-snug text-[#6b6b74]', tipAllowed && 'mt-3')}>
+                    <Lock className="w-3.5 h-3.5 mt-px shrink-0" aria-hidden="true" />
+                    {t.ckOnlineHint}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3.5 grid grid-cols-[32px_1fr] gap-3 items-start">
+                  <CkIcon><Banknote /></CkIcon>
+                  <div>
+                    <b className="block text-base font-semibold">
+                      {orderType === 'delivery' ? t.ckCashDelivery : orderType === 'dine_in' ? t.ckCashDineIn : t.ckCashPickup}
+                    </b>
+                    <span className="block text-[13.5px] text-[#4f4f57] mt-0.5">{t.ckCashTip}</span>
+                    {orderType === 'delivery' && (
+                      <>
+                        <span className="block text-[13.5px] text-[#4f4f57] mt-2.5">{t.ckChangeQuestion}</span>
+                        <div className="flex flex-wrap gap-2 mt-2.5" role="radiogroup" aria-label={t.ckChangeQuestion}>
+                          {([
+                            { v: 'exact' as const, label: t.ckExact },
+                            ...[20, 50, 100].filter((n) => n > displayTotal).map((n) => ({ v: n, label: fmtPrice(n).replace(/[.,]00(?=\D*$)/, '') })),
+                          ]).map((c) => (
+                            <button
+                              key={String(c.v)}
+                              type="button"
+                              role="radio"
+                              aria-checked={cashChange === c.v}
+                              onClick={() => setCashChange(cashChange === c.v ? null : c.v)}
+                              className={cn(
+                                'px-3.5 py-2 rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]',
+                                cashChange === c.v ? 'bg-[#111114] text-white' : 'bg-[#f5f5f8] text-[#111114]',
+                              )}
+                            >
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    {!hasOnline && (
+                      <span className="block text-[12.5px] text-[#6b6b74] mt-2">{cardOnboarding ? t.ckCardSoon : t.ckCashOnly}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CkGroup>
 
-          {/* Customer details */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-5">
-            <div>
-              {/* Honeypot — invisible to real users, filled automatically by bots */}
-              <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', visibility: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
-                <label>Website</label>
-                <input type="text" name="website" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
-              </div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <label htmlFor="checkout-name" className="text-sm font-semibold text-gray-900">{t.yourName} <span className="text-red-500" aria-hidden="true">*</span></label>
-                {fieldTouched.customer_name && !fieldErrors.customer_name && customerName.trim().length >= 2 && (
-                  <CheckCircle className="w-4 h-4 text-green-500 ml-auto" aria-hidden="true" />
-                )}
-              </div>
-              <input
-                id="checkout-name"
-                type="text"
-                inputMode="text"
-                autoComplete="name"
-                aria-required="true"
-                aria-invalid={!!fieldErrors.customer_name}
-                aria-describedby={fieldErrors.customer_name ? 'checkout-name-error' : undefined}
-                value={customerName}
-                onChange={(e) => { setCustomerName(e.target.value); touch('customer_name'); }}
-                onBlur={(e) => validateField('customer_name', e.target.value)}
-                onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320); }}
-                placeholder={t.yourNamePlaceholder}
-                className={cn(
-                  inputClass,
-                  fieldErrors.customer_name ? 'border-red-400 focus:border-red-400' : '',
-                  fieldTouched.customer_name && !fieldErrors.customer_name && customerName.trim().length >= 2 ? 'border-green-400 focus:border-green-500' : '',
-                )}
+            {/* Contacto */}
+            <CkGroup>
+              <CkRow
+                icon={<User />}
+                label={t.ckContact}
+                value={contactReady ? `${customerName.trim()} · ${phoneDisplay(customerPhone)}` : t.ckAddContact}
+                need={!contactReady}
+                sub={contactReady && customerEmail.trim() ? customerEmail.trim() : undefined}
+                onClick={() => setActiveSheet('contact')}
               />
-              {fieldErrors.customer_name && (
-                <p id="checkout-name-error" role="alert" className="text-xs text-red-500 mt-1">{fieldErrors.customer_name}</p>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-sm font-semibold text-gray-900">{t.yourPhone} <span className="text-red-500" aria-hidden="true">*</span></span>
-                {fieldTouched.customer_phone && !fieldErrors.customer_phone && /^\+?[\d\s()-]{7,}$/.test(customerPhone.trim()) && (
-                  <CheckCircle className="w-4 h-4 text-green-500 ml-auto" aria-hidden="true" />
-                )}
-              </div>
-              {/* Wrapper id used by scrollToFirstInvalidField to locate the phone input */}
-              <div id="checkout-phone-wrapper">
-                <PhoneField
-                  label=""
-                  value={customerPhone}
-                  onChange={(v) => { setCustomerPhone(v); touch('customer_phone'); }}
-                  onBlur={() => validateField('customer_phone', customerPhone)}
-                  placeholder={t.yourPhonePlaceholder}
-                  required
-                  dark={false}
-                  country={restaurant.country_code ?? undefined}
-                  error={!!fieldErrors.customer_phone}
-                  valid={fieldTouched.customer_phone && !fieldErrors.customer_phone && /^\+?[\d\s()-]{7,}$/.test(customerPhone.trim())}
+            </CkGroup>
+
+            {/* Opcionales */}
+            <CkGroup>
+              <CkRow
+                icon={<StickyNote />}
+                label={t.ckNote}
+                value={orderNotes.trim() || optLabel}
+                muted={!orderNotes.trim()}
+                onClick={() => setActiveSheet('note')}
+              />
+              <CkRow
+                icon={<Tag />}
+                label={t.promoCode}
+                value={promoResult?.valid ? t.ckPromoApplied.replace('{x}', fmtPrice(promoResult.discount)) : optLabel}
+                muted={!promoResult?.valid}
+                onClick={() => setActiveSheet('promo')}
+              />
+              {loyaltyBalance?.config && loyaltyBalance.points >= loyaltyBalance.config.min_redeem_points && (
+                <CkRow
+                  icon={<Star />}
+                  label={t.ckLoyalty}
+                  value={t.youHavePoints.replace('{n}', String(loyaltyBalance.points))}
+                  sub={`= ${fmtPrice(Math.floor(loyaltyBalance.points * loyaltyBalance.config.peso_per_point * 100) / 100)} ${t.ofDiscount}`}
+                  trailing={
+                    <CkSwitch checked={loyaltyApplied} onChange={setLoyaltyApplied} label={t.redeemLabel} />
+                  }
                 />
-              </div>
-              {fieldErrors.customer_phone && (
-                <p className="text-xs text-red-500 mt-1">{fieldErrors.customer_phone}</p>
               )}
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <label htmlFor="checkout-email" className="text-sm font-semibold text-gray-900">
-                  {t.yourEmail} <span className="text-gray-400 font-normal text-xs">({t.optional})</span>
-                </label>
-                {fieldTouched.customer_email && !fieldErrors.customer_email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) && (
-                  <CheckCircle className="w-4 h-4 text-green-500 ml-auto" aria-hidden="true" />
-                )}
+              {orderType !== 'dine_in' && (
+                <CkRow
+                  icon={<UtensilsCrossed />}
+                  value={<span className="text-[15.5px]">{t.ckUtensilsTitle}</span>}
+                  sub={t.ckUtensilsSub}
+                  trailing={<CkSwitch checked={includeUtensils} onChange={setIncludeUtensils} label={t.includeUtensils} />}
+                />
+              )}
+            </CkGroup>
+
+            <div className="min-[860px]:hidden">{breakdown}</div>
+            <div className="min-[860px]:hidden">{legal}</div>
+
+            {isDesktop && (
+              <div className="sticky bottom-4 mt-1 bg-white rounded-[18px] p-4 shadow-[0_0_0_1px_rgba(17,17,20,.09),0_12px_32px_rgba(17,17,20,.10)]">
+                {ctaBlock}
               </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      {/* Botón fijo: barra opaca, nada asoma por detrás */}
+      {!isDesktop && (
+        <div className="shrink-0 bg-[#f2f2f6] shadow-[0_-1px_0_rgba(17,17,20,.09)] px-4 pt-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+          <div className="max-w-lg mx-auto">{ctaBlock}</div>
+        </div>
+      )}
+
+      {/* ── Hojas ── */}
+      <CkSheet open={activeSheet === 'contact'} onClose={closeSheet} title={t.ckContactTitle} closeLabel={t.close} desktop={isDesktop}>
+        <CkFields error={!!fieldErrors.customer_name}>
+          <label className="relative block">
+            <span className={fieldLabelCls}>{t.yourName}</span>
+            <input
+              id="checkout-name"
+              type="text"
+              autoComplete="name"
+              enterKeyHint="next"
+              aria-required="true"
+              aria-invalid={!!fieldErrors.customer_name}
+              aria-describedby={fieldErrors.customer_name ? 'checkout-name-error' : undefined}
+              value={customerName}
+              onChange={(e) => { setCustomerName(e.target.value); touch('customer_name'); if (fieldErrors.customer_name) validateField('customer_name', e.target.value); }}
+              onBlur={(e) => { if (fieldTouched.customer_name) validateField('customer_name', e.target.value); }}
+              placeholder={t.yourNamePlaceholder}
+              className={fieldInputCls}
+            />
+          </label>
+        </CkFields>
+        {fieldErrors.customer_name && <CkError id="checkout-name-error">{fieldErrors.customer_name}</CkError>}
+        <div id="checkout-phone-wrapper" className="mt-2">
+          <PhoneField
+            ios
+            id="checkout-phone"
+            label={t.yourPhone}
+            value={customerPhone}
+            onChange={(v) => { setCustomerPhone(v); touch('customer_phone'); if (fieldErrors.customer_phone) validateField('customer_phone', v); }}
+            onBlur={() => { if (fieldTouched.customer_phone) validateField('customer_phone', customerPhone); }}
+            placeholder={t.yourPhonePlaceholder}
+            required
+            dark={false}
+            country={restaurant.country_code ?? undefined}
+            error={!!fieldErrors.customer_phone}
+            valid={fieldTouched.customer_phone && !fieldErrors.customer_phone && phoneLooksValid(customerPhone)}
+          />
+        </div>
+        {fieldErrors.customer_phone && <CkError>{fieldErrors.customer_phone}</CkError>}
+        <div className="mt-2">
+          <CkFields error={!!fieldErrors.customer_email}>
+            <label className="relative block">
+              <span className={fieldLabelCls}>{t.yourEmail} ({t.optional})</span>
               <input
                 id="checkout-email"
                 type="email"
                 inputMode="email"
                 autoComplete="email"
+                enterKeyHint="done"
                 aria-required="false"
                 aria-invalid={!!fieldErrors.customer_email}
                 aria-describedby={fieldErrors.customer_email ? 'checkout-email-error' : 'checkout-email-hint'}
                 value={customerEmail}
-                onChange={(e) => { setCustomerEmail(e.target.value); touch('customer_email'); }}
+                onChange={(e) => { setCustomerEmail(e.target.value); touch('customer_email'); if (fieldErrors.customer_email) validateField('customer_email', e.target.value); }}
                 onBlur={(e) => validateField('customer_email', e.target.value)}
-                onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320); }}
                 placeholder={t.yourEmailPlaceholder}
-                className={cn(
-                  inputClass,
-                  fieldErrors.customer_email ? 'border-red-400 focus:border-red-400' : '',
-                  fieldTouched.customer_email && !fieldErrors.customer_email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) ? 'border-green-400 focus:border-green-500' : '',
-                )}
+                className={fieldInputCls}
               />
-              {fieldErrors.customer_email ? (
-                <p id="checkout-email-error" role="alert" className="text-xs text-red-500 mt-1">{fieldErrors.customer_email}</p>
-              ) : (
-                <p id="checkout-email-hint" className="text-xs text-gray-500 mt-1">
-                  {t.emailHint}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">{t.orderNotes} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>
-              <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} placeholder={t.orderNotesPlaceholder} rows={2} className={cn(inputClass, 'resize-none')} />
-            </div>
+            </label>
+          </CkFields>
+        </div>
+        {fieldErrors.customer_email
+          ? <CkError id="checkout-email-error">{fieldErrors.customer_email}</CkError>
+          : <p id="checkout-email-hint" className="text-[12.5px] text-[#6b6b74] mt-1.5 mx-1">{t.emailHint}</p>}
+        <label className="flex items-center gap-2.5 mt-3.5 mx-1 text-sm text-[#4f4f57]">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="w-[22px] h-[22px] shrink-0 accent-[#05c8a7]"
+          />
+          <span>
+            {t.rememberMeLabel}{' · '}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#047a65] font-medium underline underline-offset-2">{t.ckPrivacy}</a>
+          </span>
+        </label>
+        <button
+          type="button"
+          className={cn(ckCtaClass(), 'mt-[18px]')}
+          onClick={() => {
+            const ok = [
+              validateField('customer_name', customerName),
+              validateField('customer_phone', customerPhone),
+              validateField('customer_email', customerEmail),
+            ].every(Boolean);
+            if (ok) { setOrderError(''); closeSheet(); }
+          }}
+        >
+          {t.ckDone}
+        </button>
+      </CkSheet>
 
-            <button
-              type="button"
-              onClick={() => setIncludeUtensils(v => !v)}
-              aria-pressed={includeUtensils}
-              className="flex items-center gap-3 w-full py-1 group"
-            >
-              <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', includeUtensils ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white')}>
-                {includeUtensils && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <UtensilsCrossed className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors text-left">
-                {t.includeUtensils}
-              </span>
-            </button>
+      <CkSheet open={activeSheet === 'address'} onClose={closeSheet} title={t.ckAddressTitle} closeLabel={t.close} desktop={isDesktop}>
+        <AddressAutocomplete
+          label={t.deliveryAddress}
+          value={deliveryAddress}
+          onChange={(v) => { setDeliveryAddress(v); setDeliveryCoords(null); }}
+          onPlaceSelect={(p) => {
+            if (p.lat != null && p.lng != null) setDeliveryCoords({ lat: p.lat, lng: p.lng });
+          }}
+          placeholder={t.deliveryAddressPlaceholder}
+          dark={false}
+          required
+          error={!!fieldErrors.delivery_address}
+          near={restaurant.latitude != null && restaurant.longitude != null ? { lat: restaurant.latitude, lng: restaurant.longitude } : null}
+          country={restaurant.country_code ?? null}
+        />
+        {fieldErrors.delivery_address && <CkError>{fieldErrors.delivery_address}</CkError>}
+        {addressNeedsPick() && (
+          <p className="mt-2.5 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug">{t.deliveryPickFromList}</p>
+        )}
+        <button
+          type="button"
+          className={cn(ckCtaClass(!deliveryAddress.trim()), 'mt-[18px]')}
+          onClick={() => {
+            if (validateField('delivery_address', deliveryAddress) && !addressNeedsPick()) { setOrderError(''); closeSheet(); }
+          }}
+        >
+          {t.ckUseAddress}
+        </button>
+      </CkSheet>
 
-            {/* Schedule for later */}
-            <div className="border border-dashed border-gray-200 rounded-2xl p-4 space-y-3">
-              <button
-                type="button"
-                onClick={() => setScheduleEnabled(v => !v)}
-                aria-pressed={scheduleEnabled}
-                className="flex items-center gap-3 w-full group"
-              >
-                <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', scheduleEnabled ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white')}>
-                  {scheduleEnabled && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  {t.scheduleForLater}
-                </span>
-              </button>
-              {scheduleEnabled && (
+      <CkSheet open={activeSheet === 'when'} onClose={closeSheet} title={t.ckWhenTitle} closeLabel={t.close} desktop={isDesktop}>
+        <div role="radiogroup" aria-label={t.ckWhenTitle} className="grid gap-2">
+          <CkChoice title={t.ckAsap} sub={etaText} selected={!scheduleEnabled} onClick={() => setScheduleEnabled(false)} />
+          <CkChoice title={t.ckScheduleLater} selected={scheduleEnabled} onClick={() => setScheduleEnabled(true)} />
+        </div>
+        {scheduleEnabled && (
+          <div className="mt-2.5">
+            <CkFields>
+              <label className="relative block">
+                <span className={fieldLabelCls}>{t.scheduleForLater}</span>
                 <input
                   type="datetime-local"
                   value={scheduledFor}
-                  onChange={e => setScheduledFor(e.target.value)}
+                  onChange={(e) => setScheduledFor(e.target.value)}
                   min={new Date(Date.now() + 10 * 60_000).toISOString().slice(0, 16)}
-                  className={cn(inputClass)}
+                  className={fieldInputCls}
                 />
-              )}
-            </div>
+              </label>
+            </CkFields>
+          </div>
+        )}
+        <button type="button" className={cn(ckCtaClass(scheduleEnabled && !scheduledFor), 'mt-[18px]')} onClick={closeSheet}>
+          {t.ckDone}
+        </button>
+      </CkSheet>
 
+      <CkSheet open={activeSheet === 'note'} onClose={closeSheet} title={t.ckNote} closeLabel={t.close} desktop={isDesktop}>
+        <CkFields>
+          <label className="relative block">
+            <span className={fieldLabelCls}>{t.orderNotes} ({t.optional})</span>
+            <textarea
+              value={orderNotes}
+              onChange={(e) => setOrderNotes(e.target.value)}
+              placeholder={t.orderNotesPlaceholder}
+              rows={4}
+              maxLength={500}
+              className={cn(fieldInputCls, 'resize-none min-h-[110px]')}
+            />
+          </label>
+        </CkFields>
+        <button type="button" className={cn(ckCtaClass(), 'mt-[18px]')} onClick={closeSheet}>{t.ckDone}</button>
+      </CkSheet>
+
+      <CkSheet open={activeSheet === 'promo'} onClose={closeSheet} title={t.promoCode} closeLabel={t.close} desktop={isDesktop}>
+        <CkFields error={!!promoError}>
+          <label className="relative block">
+            <span className={fieldLabelCls}>{t.promoCode}</span>
+            <input
+              type="text"
+              autoCapitalize="characters"
+              value={promoCode}
+              onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); validatePromo(); } }}
+              placeholder={t.promoCodePlaceholder}
+              className={cn(fieldInputCls, 'uppercase')}
+            />
+          </label>
+        </CkFields>
+        {promoError && <CkError>{promoError}</CkError>}
+        {promoResult?.valid && (
+          <div className="mt-2.5 flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-[#e2f7f3] text-[#047a65] text-[13.5px] font-medium">
+            <span>{t.discount}: -{fmtPrice(promoResult.discount)}{promoResult.description && ` — ${promoResult.description}`}</span>
             <button
               type="button"
-              onClick={() => setRememberMe((v) => !v)}
-              aria-pressed={rememberMe}
-              className="flex items-center gap-3 w-full py-1 group"
+              onClick={() => { setPromoResult(null); setPromoCode(''); }}
+              className="shrink-0 font-semibold underline underline-offset-2"
             >
-              <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', rememberMe ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white')}>
-                {rememberMe && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors text-left">
-                {t.rememberMeLabel}
-              </span>
+              {t.ckRemove}
             </button>
           </div>
-
-          {/* Section: Forma de pago */}
-          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 px-1 pt-2">
-            {t.paymentSection}
-          </p>
-
-          {/* Payment method */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">{t.paymentMethod}</label>
-            <div className="space-y-2">
-              {enabledPaymentMethods.map((method) => (
-                <label key={method} className={cn('flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-150', paymentMethod === method ? 'border-gray-900 bg-gray-50' : 'border-gray-200')}>
-                  <input type="radio" name="paymentMethod" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="w-5 h-5 text-gray-900 focus:ring-gray-900/20" />
-                  <span className="text-[15px] font-medium text-gray-800">{method === 'cash' ? t.payCash : t.payOnline}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Loyalty points redemption */}
-          {loyaltyBalance?.config && loyaltyBalance.points >= loyaltyBalance.config.min_redeem_points && (
-            <div className="bg-[#e6faf7] rounded-2xl p-5 border border-[#b3efe6] shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">⭐</span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {t.youHavePoints.replace('{n}', String(loyaltyBalance.points))}
-                    </p>
-                    <p className="text-xs text-[#047a65]">
-                      = {fmtPrice(Math.floor(loyaltyBalance.points * loyaltyBalance.config.peso_per_point * 100) / 100)} {t.ofDiscount}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setLoyaltyApplied((v) => !v)}
-                  className={cn(
-                    'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
-                    loyaltyApplied
-                      ? 'bg-[#05c8a7] text-[#04241E] shadow-sm'
-                      : 'bg-white text-[#047a65] border border-[#b3efe6] hover:bg-[#e6faf7]'
-                  )}
-                >
-                  {loyaltyApplied ? t.loyaltyApplied : t.redeemLabel}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Promo code — collapsed by default */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setPromoOpen(v => !v)}
-              aria-expanded={promoOpen}
-              className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                {promoResult?.valid
-                  ? <span className="text-[#047a65]">✓ {t.promoCode}: -{fmtPrice(promoResult.discount)}</span>
-                  : t.havePromoCode}
-              </span>
-              <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${promoOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {promoOpen && (
-              <div className="px-5 pb-5 border-t border-gray-100 pt-4 space-y-2">
-                <div className="flex gap-2">
-                  <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }} placeholder={t.promoCodePlaceholder} className={cn(inputClass, 'flex-1 uppercase')} />
-                  <button onClick={validatePromo} disabled={promoLoading || !promoCode.trim()} className="px-5 py-3.5 rounded-xl bg-gray-900 text-white text-[15px] font-semibold disabled:opacity-30 transition-colors">
-                    {promoLoading ? t.applyingLabel : t.apply}
-                  </button>
-                </div>
-                {promoError && <p className="text-sm text-red-500">{promoError}</p>}
-                {promoResult?.valid && (
-                  <p className="text-sm text-[#047a65] font-medium">{t.discount}: -{fmtPrice(promoResult.discount)}{promoResult.description && ` — ${promoResult.description}`}</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Tip — solo si se paga con tarjeta */}
-          {tipAllowed && <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <p id="tip-title" className="text-sm font-semibold text-gray-900">
-              {orderType === 'delivery' ? t.tipTitleDriver : t.tipTitleTeam}{' '}
-              <span className="text-gray-500 font-normal text-xs">({t.optional})</span>
-            </p>
-            <p className="text-xs text-gray-500 mt-0.5 mb-3">
-              {(orderType === 'delivery' ? t.tipHintDriver : t.tipHintTeam).replace('{name}', restaurant.name)}
-            </p>
-            <div role="radiogroup" aria-labelledby="tip-title" className="grid grid-cols-5 gap-1.5">
-              {[
-                { key: 'none', label: t.tipNone, sub: null as string | null, active: tipChoice === null, onSelect: () => setTipChoice(null) },
-                ...tipPresets.map((o, index) => ({
-                  key: `p${index}`,
-                  label: fmtPrice(o.amount).replace(/[.,]00(?=\D*$)/, ''),
-                  sub: o.pct > 0 ? `${o.pct}%` : null,
-                  active: tipChoice?.kind === 'preset' && tipChoice.index === index,
-                  onSelect: () => setTipChoice({ kind: 'preset', index }),
-                })),
-                {
-                  key: 'other',
-                  label: t.tipOther,
-                  sub: null,
-                  active: tipChoice?.kind === 'custom',
-                  onSelect: () => { if (tipChoice?.kind !== 'custom') setTipChoice({ kind: 'custom', value: '', mode: '$' }); },
-                },
-              ].map((opt) => (
-                <button
-                  key={opt.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={opt.active}
-                  onClick={opt.onSelect}
-                  className={cn(
-                    'flex flex-col items-center justify-center min-h-[52px] px-1 rounded-xl border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1',
-                    opt.active ? 'border-[#05c8a7] bg-[#e6faf7]' : 'border-gray-200 active:border-gray-400'
-                  )}
-                >
-                  <span className={cn('text-sm font-bold tabular-nums leading-tight', opt.active ? 'text-[#047a65]' : 'text-gray-800')}>{opt.label}</span>
-                  {opt.sub && (
-                    <span className={cn('text-[11px] tabular-nums leading-tight mt-0.5', opt.active ? 'text-[#047a65]' : 'text-gray-500')}>{opt.sub}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-            {tipChoice?.kind === 'custom' && (
-              <div className="mt-3 flex items-center gap-2">
-                <div className="flex rounded-xl border border-gray-200 p-0.5 shrink-0" role="group" aria-label={t.tipCustomLabel}>
-                  {(['$', '%'] as const).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      aria-pressed={tipChoice.mode === m}
-                      onClick={() => setTipChoice({ ...tipChoice, mode: m })}
-                      className={cn(
-                        'w-10 h-10 rounded-[10px] text-sm font-bold transition-colors',
-                        tipChoice.mode === m ? 'bg-gray-900 text-white' : 'text-gray-600'
-                      )}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  autoFocus
-                  aria-label={t.tipCustomLabel}
-                  placeholder={tipChoice.mode === '$' ? '0.00' : '18'}
-                  value={tipChoice.value}
-                  onChange={(e) => setTipChoice({ ...tipChoice, value: e.target.value.replace(/[^0-9.,]/g, '').slice(0, 6) })}
-                  className="flex-1 min-w-0 h-11 rounded-xl border border-gray-200 px-3 text-base tabular-nums focus:outline-none focus:border-[#05c8a7] focus:ring-2 focus:ring-[#05c8a7]/20"
-                />
-                {tipChoice.mode === '%' && tipAmount > 0 && (
-                  <span className="text-sm font-semibold text-gray-700 tabular-nums shrink-0">= {fmtPrice(tipAmount)}</span>
-                )}
-              </div>
-            )}
-          </div>}
-
-          <div className="h-4" />
-        </div>
-      </div>
-
-      {/* Sticky footer */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <AnimatePresence>
-          {networkRetrying && (
-            <motion.div
-              key="retrying"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              role="status"
-              aria-live="polite"
-              className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200"
-            >
-              <svg className="animate-spin h-4 w-4 text-amber-600 shrink-0 mt-0.5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-              <span className="text-amber-700 text-sm font-medium leading-snug">
-                {t.retryingBanner}
-              </span>
-            </motion.div>
-          )}
-          {orderError && (
-            <motion.div
-              key="error"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              role="alert"
-              aria-live="assertive"
-              className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200"
-            >
-              <span className="text-red-700 text-sm font-medium flex-1">{orderError}</span>
-              {canManualRetry && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    retryAttemptRef.current = 0;
-                    handleSubmitOrder();
-                  }}
-                  className="shrink-0 text-sm font-bold text-red-700 underline underline-offset-2 hover:text-red-900"
-                >
-                  {t.retryLabel}
-                </button>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <div className="max-w-lg mx-auto space-y-2">
-          {!isFormReady && !submitting && items.length > 0 && (
-            <p className="text-center text-xs text-gray-400">
-              {t.completeFormToContinue}
-            </p>
-          )}
-          {/* Apple Pay / Google Pay / Link — surfaced EARLY (above the main CTA) for
-              the 2x-conversion "wallet first" effect. Stripe markets only (gated out
-              of Colombia/Wompi). One tap: Face ID → creates order → charges. */}
-          {paymentMethod === 'online' && stripeConnectReady && !isColombianRestaurant && isFormReady && (
-            <div className="space-y-2 mb-2">
-              <WalletButton
-                amount={displayTotal}
-                currency={restaurant.currency}
-                country={restaurant.country_code || 'US'}
-                label={restaurant.name}
-                onCreateOrder={createOrderForWallet}
-                onSuccess={(oid, onum) => { setWalletPaying(false); handleWalletSuccess(oid, onum); }}
-                onError={(msg) => { setWalletPaying(false); setOrderError(msg); }}
-                onPayingChange={setWalletPaying}
-                disabled={submitting || items.length === 0}
-              />
-              <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">{locale === 'en' ? 'or' : 'o'}</span>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
-            </div>
-          )}
-          <motion.button
-            onClick={handleSubmitOrder}
-            disabled={submitting || networkRetrying || walletPaying || redirectingToPay || items.length === 0}
-            aria-label={t.placeOrderAriaLabel}
-            aria-busy={submitting || networkRetrying || redirectingToPay}
-            animate={ctaShake ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : { x: 0 }}
-            transition={{ duration: 0.5 }}
-            className={cn(
-              'w-full py-5 rounded-2xl text-[#04241E] font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 shadow-[0_4px_20px_rgba(5,200,167,0.35)]',
-              // walletPaying included: the button was disabled during Apple/Google
-              // Pay but still looked tappable.
-              submitting || networkRetrying || walletPaying || redirectingToPay || items.length === 0 ? 'opacity-40 cursor-not-allowed bg-[#05c8a7]' : 'bg-[#05c8a7]',
-            )}
+        )}
+        {promoResult?.valid ? (
+          <button type="button" className={cn(ckCtaClass(), 'mt-[18px]')} onClick={closeSheet}>{t.ckDone}</button>
+        ) : (
+          <button
+            type="button"
+            className={cn(ckCtaClass(promoLoading || !promoCode.trim()), 'mt-[18px]')}
+            onClick={validatePromo}
           >
-            {submitting || networkRetrying || redirectingToPay ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                {networkRetrying
-                  ? t.retryingLabel
-                  : redirectingToPay
-                    ? t.redirecting
-                    : t.sending}
-              </span>
-            ) : (
-              `${t.confirmOrder} · ${fmtPrice(displayTotal)}`
-            )}
-          </motion.button>
-        </div>
-      </div>
+            {promoLoading ? <><CkSpinner />{t.applyingLabel}</> : t.apply}
+          </button>
+        )}
+      </CkSheet>
+
+      <CkSheet open={activeSheet === 'table'} onClose={closeSheet} title={t.ckTableTitle} closeLabel={t.close} desktop={isDesktop}>
+        <CkFields>
+          <label className="relative block">
+            <span className={fieldLabelCls}>{t.tableQuestion} ({t.optional})</span>
+            <input
+              type="text"
+              value={manualTableName}
+              onChange={(e) => setManualTableName(e.target.value)}
+              placeholder={t.tablePlaceholder}
+              className={fieldInputCls}
+            />
+          </label>
+          <label className="relative block">
+            <span className={fieldLabelCls}>{t.arrivalTimeQuestion} ({t.optional})</span>
+            <input
+              type="time"
+              value={arrivalTime}
+              onChange={(e) => setArrivalTime(e.target.value)}
+              className={fieldInputCls}
+            />
+          </label>
+        </CkFields>
+        <button type="button" className={cn(ckCtaClass(), 'mt-[18px]')} onClick={closeSheet}>{t.ckDone}</button>
+      </CkSheet>
     </div>
   );
 }
