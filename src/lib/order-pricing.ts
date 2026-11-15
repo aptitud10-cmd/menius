@@ -147,6 +147,47 @@ export function tipAllowedFor(paymentMethod: string | null | undefined): boolean
   return paymentMethod === 'online' || paymentMethod === 'wallet';
 }
 
+export interface TipOption {
+  /** Monto en dólares enteros. */
+  amount: number;
+  /** % real que representa sobre el subtotal (redondeado, 0 si no hay subtotal). */
+  pct: number;
+}
+
+/**
+ * Los 3 botones de propina, en dólares redondos (la gente deja $1, $2, $4, $10;
+ * no $2.69). Subtotal < $10 → $1/$2/$3. Si no: A = ceil(10%), B = max(A+1,
+ * round(15%)), C = max(B+1, round(20%)). A ≥ 10% cumple el mínimo que pide NYC
+ * (LL 107/108 de 2025). Se calcula en centavos para que 10% de $30 no dé $4 por
+ * error de coma flotante.
+ */
+export function tipOptions(subtotal: number): TipOption[] {
+  const cents = Number.isFinite(subtotal) && subtotal > 0 ? Math.round(subtotal * 100) : 0;
+  let amounts: number[];
+  if (cents < 1000) {
+    amounts = [1, 2, 3];
+  } else {
+    const a = Math.ceil(cents / 1000);
+    const b = Math.max(a + 1, Math.round((cents * 15) / 10000));
+    const c = Math.max(b + 1, Math.round(cents / 500));
+    amounts = [a, b, c];
+  }
+  return amounts.map((amount) => ({
+    amount,
+    pct: cents > 0 ? Math.round((amount * 10000) / cents) : 0,
+  }));
+}
+
+/**
+ * Propina "Otra": el cliente escribe un monto o un %. Devuelve dólares con 2
+ * decimales, nunca negativa ni mayor al subtotal (el server la recorta igual).
+ */
+export function customTipAmount(value: number, mode: '$' | '%', subtotal: number): number {
+  if (!Number.isFinite(value) || value <= 0 || !Number.isFinite(subtotal) || subtotal <= 0) return 0;
+  const raw = mode === '%' ? (subtotal * value) / 100 : value;
+  return Math.round(Math.min(raw, subtotal) * 100) / 100;
+}
+
 export function computeOrderTotals(input: OrderTotalsInput): OrderTotals {
   const subtotal = input.items.reduce(
     (sum, i) => sum + i.unit_price * i.qty,

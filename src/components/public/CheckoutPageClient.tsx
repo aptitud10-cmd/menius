@@ -24,7 +24,7 @@ import {
 import { supabaseLoader } from '@/lib/image-loader';
 import { showsAsRow } from '@/lib/product-display';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
-import { tipAllowedFor } from '@/lib/order-pricing';
+import { tipAllowedFor, tipOptions, customTipAmount } from '@/lib/order-pricing';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl skeleton" />;
 
@@ -264,7 +264,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
   const confirmRemoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => { return () => { if (confirmRemoveTimer.current) clearTimeout(confirmRemoveTimer.current); }; }, []);
-  const [tipPercent, setTipPercent] = useState<number | null>(null);
+  // Propina: el índice de un botón en $ (sigue al subtotal si cambia el carrito)
+  // o "Otra" con lo que escribió el cliente. null = Ninguna (estado inicial).
+  const [tipChoice, setTipChoice] = useState<
+    null | { kind: 'preset'; index: number } | { kind: 'custom'; value: string; mode: '$' | '%' }
+  >(null);
 
   // Inline validation: tracks which fields the user has interacted with
   const [fieldTouched, setFieldTouched] = useState<Record<string, boolean>>({});
@@ -300,7 +304,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [demoPayProcessing, setDemoPayProcessing] = useState(false);
   // En efectivo no se ofrece propina: el cliente la da en mano (tipAllowedFor).
   const tipAllowed = tipAllowedFor(paymentMethod);
-  const tipAmount = tipAllowed && tipPercent !== null ? Math.round(cartTotal * tipPercent) / 100 : 0;
+  const tipPresets = tipOptions(cartTotal);
+  const tipAmount = !tipAllowed || tipChoice === null
+    ? 0
+    : tipChoice.kind === 'preset'
+      ? (tipPresets[tipChoice.index]?.amount ?? 0)
+      : customTipAmount(parseFloat(tipChoice.value.replace(',', '.')), tipChoice.mode, cartTotal);
 
   const [serverQuote, setServerQuote] = useState<CartQuoteResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -354,7 +363,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMounted, items, orderType, promoResult, promoCode, loyaltyApplied, loyaltyBalance, tipPercent, restaurant.id, tipAmount]);
+  }, [hasMounted, items, orderType, promoResult, promoCode, loyaltyApplied, loyaltyBalance, restaurant.id, tipAmount]);
 
   // Auto-redirect to order tracking ~1s after successful cash/dine-in order.
   // Short enough that the manual button is essentially a fallback for users
@@ -2179,27 +2188,82 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
           {/* Tip — solo si se paga con tarjeta */}
           {tipAllowed && <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">{t.addTipQuestion}</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[10, 15, 20].map((pct) => {
-                const isActive = tipPercent === pct;
-                const amt = Math.round(cartTotal * pct) / 100;
-                return (
-                  <button
-                    key={pct}
-                    type="button"
-                    onClick={() => { setTipPercent(isActive ? null : pct); }}
-                    className={cn(
-                      'flex flex-col items-center py-3 rounded-xl border transition-all duration-150',
-                      isActive ? 'border-[#05c8a7] bg-[#e6faf7]' : 'border-gray-200 active:border-gray-400'
-                    )}
-                  >
-                    <span className={cn('text-sm font-bold', isActive ? 'text-[#047a65]' : 'text-gray-700')}>{pct}%</span>
-                    <span className={cn('text-[11px] tabular-nums', isActive ? 'text-[#047a65]' : 'text-gray-400')}>{fmtPrice(amt)}</span>
-                  </button>
-                );
-              })}
+            <p id="tip-title" className="text-sm font-semibold text-gray-900">
+              {orderType === 'delivery' ? t.tipTitleDriver : t.tipTitleTeam}{' '}
+              <span className="text-gray-500 font-normal text-xs">({t.optional})</span>
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5 mb-3">
+              {(orderType === 'delivery' ? t.tipHintDriver : t.tipHintTeam).replace('{name}', restaurant.name)}
+            </p>
+            <div role="radiogroup" aria-labelledby="tip-title" className="grid grid-cols-5 gap-1.5">
+              {[
+                { key: 'none', label: t.tipNone, sub: null as string | null, active: tipChoice === null, onSelect: () => setTipChoice(null) },
+                ...tipPresets.map((o, index) => ({
+                  key: `p${index}`,
+                  label: fmtPrice(o.amount).replace(/[.,]00(?=\D*$)/, ''),
+                  sub: o.pct > 0 ? `${o.pct}%` : null,
+                  active: tipChoice?.kind === 'preset' && tipChoice.index === index,
+                  onSelect: () => setTipChoice({ kind: 'preset', index }),
+                })),
+                {
+                  key: 'other',
+                  label: t.tipOther,
+                  sub: null,
+                  active: tipChoice?.kind === 'custom',
+                  onSelect: () => { if (tipChoice?.kind !== 'custom') setTipChoice({ kind: 'custom', value: '', mode: '$' }); },
+                },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={opt.active}
+                  onClick={opt.onSelect}
+                  className={cn(
+                    'flex flex-col items-center justify-center min-h-[52px] px-1 rounded-xl border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1',
+                    opt.active ? 'border-[#05c8a7] bg-[#e6faf7]' : 'border-gray-200 active:border-gray-400'
+                  )}
+                >
+                  <span className={cn('text-sm font-bold tabular-nums leading-tight', opt.active ? 'text-[#047a65]' : 'text-gray-800')}>{opt.label}</span>
+                  {opt.sub && (
+                    <span className={cn('text-[11px] tabular-nums leading-tight mt-0.5', opt.active ? 'text-[#047a65]' : 'text-gray-500')}>{opt.sub}</span>
+                  )}
+                </button>
+              ))}
             </div>
+            {tipChoice?.kind === 'custom' && (
+              <div className="mt-3 flex items-center gap-2">
+                <div className="flex rounded-xl border border-gray-200 p-0.5 shrink-0" role="group" aria-label={t.tipCustomLabel}>
+                  {(['$', '%'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      aria-pressed={tipChoice.mode === m}
+                      onClick={() => setTipChoice({ ...tipChoice, mode: m })}
+                      className={cn(
+                        'w-10 h-10 rounded-[10px] text-sm font-bold transition-colors',
+                        tipChoice.mode === m ? 'bg-gray-900 text-white' : 'text-gray-600'
+                      )}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  autoFocus
+                  aria-label={t.tipCustomLabel}
+                  placeholder={tipChoice.mode === '$' ? '0.00' : '18'}
+                  value={tipChoice.value}
+                  onChange={(e) => setTipChoice({ ...tipChoice, value: e.target.value.replace(/[^0-9.,]/g, '').slice(0, 6) })}
+                  className="flex-1 min-w-0 h-11 rounded-xl border border-gray-200 px-3 text-base tabular-nums focus:outline-none focus:border-[#05c8a7] focus:ring-2 focus:ring-[#05c8a7]/20"
+                />
+                {tipChoice.mode === '%' && tipAmount > 0 && (
+                  <span className="text-sm font-semibold text-gray-700 tabular-nums shrink-0">= {fmtPrice(tipAmount)}</span>
+                )}
+              </div>
+            )}
           </div>}
 
           <div className="h-4" />

@@ -8,6 +8,8 @@ import {
   internationalCardSurchargeCents,
   feeModelFor,
   tipAllowedFor,
+  tipOptions,
+  customTipAmount,
   utensilsRequested,
   type ProductRecord,
   type VariantRecord,
@@ -395,6 +397,85 @@ describe('utensilsRequested', () => {
       const src = fs.readFileSync(path.join(process.cwd(), r), 'utf8');
       expect(src, `${r} no puede asumir cubiertos por defecto`).not.toMatch(/include_utensils\s*!==\s*false/);
     }
+  });
+});
+
+// ── tipOptions: botones de propina en dólares redondos ───────────────────────
+
+describe('tipOptions', () => {
+  const amounts = (s: number) => tipOptions(s).map((o) => o.amount);
+  const pcts = (s: number) => tipOptions(s).map((o) => o.pct);
+
+  it('subtotal < $10: $1 / $2 / $3', () => {
+    expect(amounts(8)).toEqual([1, 2, 3]);
+    expect(pcts(8)).toEqual([13, 25, 38]);
+  });
+
+  it('pedido típico de Buccaneer ($17.95): $2 / $3 / $4', () => {
+    expect(amounts(17.95)).toEqual([2, 3, 4]);
+    expect(pcts(17.95)).toEqual([11, 17, 22]);
+  });
+
+  it('$44.40: $5 / $7 / $9', () => {
+    expect(amounts(44.4)).toEqual([5, 7, 9]);
+    expect(pcts(44.4)).toEqual([11, 16, 20]);
+  });
+
+  it('$80: $8 / $12 / $16 (10/15/20 exactos)', () => {
+    expect(amounts(80)).toEqual([8, 12, 16]);
+    expect(pcts(80)).toEqual([10, 15, 20]);
+  });
+
+  it('$30: el 10% es $3, no $4 (sin error de coma flotante)', () => {
+    expect(amounts(30)[0]).toBe(3);
+  });
+
+  it('$10 justo: $1 / $2 / $3, siempre crecientes', () => {
+    expect(amounts(10)).toEqual([1, 2, 3]);
+  });
+
+  it('la primera opción siempre es ≥ 10% del subtotal (NYC LL 107/108)', () => {
+    for (let s = 10; s <= 300; s += 0.37) {
+      const [a] = tipOptions(s);
+      expect(a.amount * 100, `subtotal ${s}`).toBeGreaterThanOrEqual(Math.round(s * 100) / 10 - 1e-9);
+    }
+  });
+
+  it('montos enteros y estrictamente crecientes', () => {
+    for (let s = 0; s <= 300; s += 1.13) {
+      const [a, b, c] = amounts(s);
+      expect(Number.isInteger(a) && Number.isInteger(b) && Number.isInteger(c)).toBe(true);
+      expect(a < b && b < c, `subtotal ${s}`).toBe(true);
+    }
+  });
+
+  it('subtotal 0, negativo o NaN: $1 / $2 / $3 con 0%', () => {
+    expect(tipOptions(0)).toEqual([{ amount: 1, pct: 0 }, { amount: 2, pct: 0 }, { amount: 3, pct: 0 }]);
+    expect(amounts(-5)).toEqual([1, 2, 3]);
+    expect(amounts(Number.NaN)).toEqual([1, 2, 3]);
+  });
+});
+
+describe('customTipAmount', () => {
+  it('monto en dólares', () => {
+    expect(customTipAmount(5, '$', 40)).toBe(5);
+    expect(customTipAmount(2.5, '$', 40)).toBe(2.5);
+  });
+
+  it('porcentaje sobre el subtotal, redondeado al centavo', () => {
+    expect(customTipAmount(18, '%', 17.95)).toBe(3.23);
+  });
+
+  it('nunca mayor al subtotal (el server la recorta igual)', () => {
+    expect(customTipAmount(100, '$', 40)).toBe(40);
+    expect(customTipAmount(150, '%', 40)).toBe(40);
+  });
+
+  it('vacío, cero, negativo o NaN: 0', () => {
+    expect(customTipAmount(0, '$', 40)).toBe(0);
+    expect(customTipAmount(-3, '$', 40)).toBe(0);
+    expect(customTipAmount(Number.NaN, '%', 40)).toBe(0);
+    expect(customTipAmount(5, '$', 0)).toBe(0);
   });
 });
 

@@ -339,6 +339,13 @@ export interface Translations {
   havePromoCode: string;
   applyingLabel: string;
   addTipQuestion: string;
+  tipTitleTeam: string;
+  tipTitleDriver: string;
+  tipHintTeam: string;
+  tipHintDriver: string;
+  tipNone: string;
+  tipOther: string;
+  tipCustomLabel: string;
   // CheckoutPageClient — CTA / footer
   retryingLabel: string;
   retryingBanner: string;
@@ -714,6 +721,13 @@ const es: Translations = {
   havePromoCode: '¿Tienes un código de descuento?',
   applyingLabel: 'Aplicando…',
   addTipQuestion: '¿Deseas dejar propina?',
+  tipTitleTeam: 'Propina para el equipo',
+  tipTitleDriver: 'Propina para tu repartidor',
+  tipHintTeam: 'Es para el personal de {name}. Calculada sobre el subtotal.',
+  tipHintDriver: 'Es para quien te lleva el pedido. Calculada sobre el subtotal.',
+  tipNone: 'Ninguna',
+  tipOther: 'Otra',
+  tipCustomLabel: 'Propina personalizada',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Reintentando…',
   retryingBanner: 'Problema de conexión — reintentando automáticamente, no salgas de esta pantalla.',
@@ -1086,6 +1100,13 @@ const en: Translations = {
   havePromoCode: 'Have a promo code?',
   applyingLabel: 'Applying…',
   addTipQuestion: 'Add a tip?',
+  tipTitleTeam: 'Tip for the team',
+  tipTitleDriver: 'Tip for your driver',
+  tipHintTeam: 'Goes to the staff at {name}. Based on the subtotal.',
+  tipHintDriver: 'Goes to whoever brings your order. Based on the subtotal.',
+  tipNone: 'None',
+  tipOther: 'Other',
+  tipCustomLabel: 'Custom tip',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Retrying…',
   retryingBanner: 'Connection issue — retrying automatically, please stay on this screen.',
