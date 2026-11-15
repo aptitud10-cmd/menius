@@ -5,7 +5,6 @@ import {
   computeOrderTotals,
   resolveCommission,
   computeApplicationFeeCents,
-  feeBaseCents,
   internationalCardSurchargeCents,
   feeModelFor,
   tipAllowedFor,
@@ -399,29 +398,47 @@ describe('utensilsRequested', () => {
   });
 });
 
-// ── feeBaseCents: la comisión nunca se calcula sobre la propina ───────────────
+// ── computeApplicationFeeCents ────────────────────────────────────────────────
 
-describe('feeBaseCents', () => {
-  it('resta la propina del total cobrado', () => {
-    expect(feeBaseCents(5500, 500)).toBe(5000);
+describe('computeApplicationFeeCents', () => {
+  it('planes de suscripción en USD: traslada el procesamiento de Stripe (2.9% + 30¢)', () => {
+    // $30.00 → 87¢ + 30¢
+    expect(computeApplicationFeeCents(3000, 0, 'usd', 0)).toBe(117);
+    expect(computeApplicationFeeCents(3000, 0, 'USD', 0)).toBe(117);
   });
 
-  it('sin propina (0, negativa o NaN): el total entero', () => {
-    expect(feeBaseCents(3000, 0)).toBe(3000);
-    expect(feeBaseCents(3000, -100)).toBe(3000);
-    expect(feeBaseCents(3000, Number.NaN)).toBe(3000);
+  it('planes de suscripción: el restaurante paga el Stripe de TODO, propina incluida (MENIUS en $0)', () => {
+    // $20 comida + $3 propina = $23 → Stripe le cobra a MENIUS 2.9% de 2300 + 30 = 97
+    expect(computeApplicationFeeCents(2300, 300, 'usd', 0)).toBe(97);
+    expect(computeApplicationFeeCents(2300, 300, 'usd', 0)).toBe(computeApplicationFeeCents(2300, 0, 'usd', 0));
   });
 
-  it('nunca negativa', () => {
-    expect(feeBaseCents(300, 500)).toBe(0);
+  it('commission_plan: la comisión nunca se calcula sobre la propina (NY §196-d)', () => {
+    // $50 + $5 propina → 4% de 5000 (200) + solo el 2.9% de procesamiento de la propina (15)
+    expect(computeApplicationFeeCents(5500, 500, 'usd', 400)).toBe(215);
+    expect(computeApplicationFeeCents(3000, 0, 'usd', 400)).toBe(120);
   });
 
-  it('commission_plan: el 4% sale de $50 de comida, no de $55 con propina', () => {
-    // $50 comida+impuesto + $5 propina → 4% de 5000 = 200, no 220
-    expect(computeApplicationFeeCents(feeBaseCents(5500, 500), 'usd', 400)).toBe(200);
+  it('propina inválida (negativa, NaN) o mayor al total: no rompe la cuenta', () => {
+    expect(computeApplicationFeeCents(3000, -100, 'usd', 400)).toBe(120);
+    expect(computeApplicationFeeCents(3000, Number.NaN, 'usd', 400)).toBe(120);
+    expect(computeApplicationFeeCents(300, 500, 'usd', 400)).toBe(9);
   });
 
-  it('las 3 rutas que cobran pasan la base SIN propina (guarda de regresión)', () => {
+  it('otras monedas sin comisión: 0 (no hay tabla de tarifas por país)', () => {
+    expect(computeApplicationFeeCents(30000, 0, 'mxn', 0)).toBe(0);
+  });
+
+  it('nunca supera el monto cobrado', () => {
+    expect(computeApplicationFeeCents(20, 0, 'usd', 0)).toBe(20);
+  });
+
+  it('monto cero o negativo: 0', () => {
+    expect(computeApplicationFeeCents(0, 0, 'usd', 0)).toBe(0);
+    expect(computeApplicationFeeCents(-100, 0, 'usd', 400)).toBe(0);
+  });
+
+  it('las 3 rutas que cobran pasan la propina por separado (guarda de regresión)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
     const routes = [
@@ -431,37 +448,10 @@ describe('feeBaseCents', () => {
     ];
     for (const r of routes) {
       const src = fs.readFileSync(path.join(process.cwd(), r), 'utf8');
-      const calls = src.match(/computeApplicationFeeCents\(\s*([^,]+),/g) ?? [];
-      expect(calls.length, `${r} debería calcular la comisión`).toBeGreaterThan(0);
-      for (const c of calls) expect(c, `${r}: la comisión no puede incluir la propina`).toContain('feeBaseCents(');
+      const calls = src.match(/computeApplicationFeeCents\([^;]*;/g) ?? [];
+      expect(calls.length, `${r} debería calcular el application fee`).toBeGreaterThan(0);
+      for (const c of calls) expect(c, `${r}: tiene que pasar la propina`).toMatch(/tip/i);
     }
-  });
-});
-
-// ── computeApplicationFeeCents ────────────────────────────────────────────────
-
-describe('computeApplicationFeeCents', () => {
-  it('planes sin comisión en USD: traslada el procesamiento de Stripe (2.9% + 30¢)', () => {
-    // $30.00 → 87¢ + 30¢
-    expect(computeApplicationFeeCents(3000, 'usd', 0)).toBe(117);
-    expect(computeApplicationFeeCents(3000, 'USD', 0)).toBe(117);
-  });
-
-  it('commission_plan: el 4% acordado, sin procesamiento aparte', () => {
-    expect(computeApplicationFeeCents(3000, 'usd', 400)).toBe(120);
-  });
-
-  it('otras monedas sin comisión: 0 (no hay tabla de tarifas por país)', () => {
-    expect(computeApplicationFeeCents(30000, 'mxn', 0)).toBe(0);
-  });
-
-  it('nunca supera el monto cobrado', () => {
-    expect(computeApplicationFeeCents(20, 'usd', 0)).toBe(20);
-  });
-
-  it('monto cero o negativo: 0', () => {
-    expect(computeApplicationFeeCents(0, 'usd', 0)).toBe(0);
-    expect(computeApplicationFeeCents(-100, 'usd', 400)).toBe(0);
   });
 });
 

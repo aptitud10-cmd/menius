@@ -241,40 +241,36 @@ export function utensilsRequested(value: unknown): boolean {
 }
 
 /**
- * Base sobre la que se calcula el application fee: lo cobrado SIN la propina.
- * La propina es del personal: en NY (Labor Law §196-d) nadie —tampoco la
- * plataforma— puede quedarse con una parte. Ni el 4% del commission_plan ni el
- * procesamiento trasladado se calculan sobre ella; MENIUS absorbe el ~2.9% de
- * Stripe que corresponde a la propina.
- */
-export function feeBaseCents(totalCents: number, tipCents: number): number {
-  const tip = Number.isFinite(tipCents) && tipCents > 0 ? tipCents : 0;
-  return Math.max(0, totalCents - tip);
-}
-
-/**
  * Application fee de un pago online, en centavos.
- * `amountCents` es la base SIN propina: usar siempre `feeBaseCents()`.
- * - commission_plan (commissionBps > 0): el 4% acordado, sin procesamiento aparte.
- * - resto de planes en USD: el procesamiento de Stripe al costo (0% de MENIUS).
- * - otras monedas: 0 — la tarifa varía por país y no hay tabla todavía, así que
- *   MENIUS la sigue absorbiendo.
+ * `totalCents` es TODO lo cobrado (propina incluida); `tipCents` la parte que es propina.
+ * - Planes de suscripción en USD: el restaurante paga el procesamiento de Stripe
+ *   completo, al costo, propina incluida (2.9% + 30¢ sobre el total). MENIUS no
+ *   gana ni pierde. NY permite trasladar el costo proporcional de tarjeta de la
+ *   propina (12 NYCRR 146-2.20).
+ * - commission_plan (commissionBps > 0): la comisión se calcula SOLO sobre lo que
+ *   no es propina (Labor Law §196-d: nadie puede quedarse parte de la propina);
+ *   sobre la propina se traslada solo el % de procesamiento, al costo.
+ * - otras monedas: 0 — la tarifa varía por país y no hay tabla todavía.
  */
 export function computeApplicationFeeCents(
-  amountCents: number,
+  totalCents: number,
+  tipCents: number,
   currency: string,
   commissionBps: number,
 ): number {
-  if (amountCents <= 0) return 0;
+  if (totalCents <= 0) return 0;
+  const tip = Number.isFinite(tipCents) && tipCents > 0 ? Math.min(tipCents, totalCents) : 0;
   let fee = 0;
   if (commissionBps > 0) {
-    fee = Math.round((amountCents * commissionBps) / 10000);
+    fee =
+      Math.round(((totalCents - tip) * commissionBps) / 10000) +
+      Math.round((tip * STRIPE_US_CARD_FEE.bps) / 10000);
   } else if (currency.toLowerCase() === "usd") {
     fee =
-      Math.round((amountCents * STRIPE_US_CARD_FEE.bps) / 10000) +
+      Math.round((totalCents * STRIPE_US_CARD_FEE.bps) / 10000) +
       STRIPE_US_CARD_FEE.fixedCents;
   }
-  return Math.min(fee, amountCents);
+  return Math.min(fee, totalCents);
 }
 
 /**

@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimitAsync, getClientIP } from "@/lib/rate-limit";
 import { getStripe } from "@/lib/stripe";
 import { captureError } from "@/lib/error-reporting";
-import { computeApplicationFeeCents, feeBaseCents, feeModelFor } from "@/lib/order-pricing";
+import { computeApplicationFeeCents, feeModelFor } from "@/lib/order-pricing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,10 +105,11 @@ export async function POST(request: NextRequest) {
     }
 
     const commissionBps = (rest as any)?.commission_plan === true ? 400 : 0;
-    // 4% for commission_plan; Stripe's processing at cost for every other plan.
-    // Never on the tip: it belongs to the staff.
+    // Stripe's processing at cost on the full charge, tip included, for subscription
+    // plans. commission_plan: 4% only on the non-tip part.
     const applicationFeeAmount = computeApplicationFeeCents(
-      feeBaseCents(amount, Math.round(Number(order.tip_amount ?? 0) * 100)),
+      amount,
+      Math.round(Number(order.tip_amount ?? 0) * 100),
       currency,
       commissionBps,
     );
