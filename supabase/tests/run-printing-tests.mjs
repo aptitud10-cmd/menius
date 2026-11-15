@@ -62,19 +62,25 @@ language sql stable security definer set search_path to '' as $$
 $$;
 `;
 
-const migration = readFileSync(join(here, '..', 'migrations', '20261114_printing_cloudprnt.sql'), 'utf8');
-const tests = readFileSync(join(here, 'printing_cloudprnt.test.sql'), 'utf8');
+const MIGRATIONS = ['20261114_printing_cloudprnt.sql', '20261115_printing_claim_finish.sql']
+  .map((f) => readFileSync(join(here, '..', 'migrations', f), 'utf8'));
+const SUITES = [
+  ['printing_cloudprnt.test.sql', 'ALL PRINTING TESTS PASSED'],
+  ['printing_claim_finish.test.sql', 'ALL CLAIM/FINISH TESTS PASSED'],
+];
 
 const db = new PGlite();
 try {
   await db.exec(STUB);
-  await db.exec(migration);
-  // La migración tiene que ser re-ejecutable (if not exists / or replace / drop if exists).
-  await db.exec(migration);
-  const results = await db.exec(tests);
-  const passed = results.some((r) => r.rows?.some((row) => row.result === 'ALL PRINTING TESTS PASSED'));
-  if (!passed) throw new Error('No llegó al final de los tests');
-  console.log('ALL PRINTING TESTS PASSED');
+  // Las migraciones tienen que ser re-ejecutables (if not exists / or replace / drop if exists).
+  for (const m of MIGRATIONS) await db.exec(m);
+  for (const m of MIGRATIONS) await db.exec(m);
+  for (const [file, marker] of SUITES) {
+    const results = await db.exec(readFileSync(join(here, file), 'utf8'));
+    const passed = results.some((r) => r.rows?.some((row) => row.result === marker));
+    if (!passed) throw new Error(`${file}: no llegó al final`);
+    console.log(marker);
+  }
 } catch (err) {
   console.error('FALLÓ:', err instanceof Error ? err.message : err);
   process.exitCode = 1;

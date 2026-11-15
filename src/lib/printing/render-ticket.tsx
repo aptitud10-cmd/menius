@@ -163,7 +163,9 @@ function OrderTicket({ d }: { d: TicketData }) {
   );
 }
 
-function TestTicket({ d }: { d: Pick<TicketData, 'locale' | 'restaurant' | 'placedAt'> }) {
+export type TestTicketData = Pick<TicketData, 'locale' | 'placedAt'> & { restaurant: Pick<TicketData['restaurant'], 'name'> };
+
+function TestTicket({ d }: { d: TestTicketData }) {
   const t = ticketStrings(d.locale);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: TICKET_WIDTH, background: WHITE, color: BLACK, fontFamily: 'Inter', paddingTop: 8, paddingBottom: 48 }}>
@@ -180,4 +182,9 @@ function TestTicket({ d }: { d: Pick<TicketData, 'locale' | 'restaurant' | 'plac
 /** Ticket → PNG 1-bit de 576 px de ancho, listo para CloudPRNT (image/png). */
 export function renderTicketPng(d: TicketData): Promise<Buffer> {
   return renderToPng(d.kind === 'test' ? <TestTicket d={d} /> : <OrderTicket d={d} />);
+}
+
+/** Ticket de prueba ("Imprimir prueba", F3): solo necesita el restaurante. */
+export function renderTestTicketPng(d: TestTicketData): Promise<Buffer> {
+  return renderToPng(<TestTicket d={d} />);
 }

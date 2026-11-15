@@ -13,6 +13,7 @@ import {
   toTicketData, type TicketData, type TicketKind, type TicketItemRow,
   type TicketOrderRow, type TicketRestaurantRow,
 } from './ticket-data';
+import type { TestTicketData } from './render-ticket';
 
 const logger = createLogger('printing');
 
@@ -57,4 +58,21 @@ export async function loadTicketData(args: {
     appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app',
     reprintedAt: args.reprintedAt,
   });
+}
+
+/** Datos del ticket de prueba (F3): nombre, idioma y hora local del restaurante. */
+export async function loadTestTicketData(restaurantId: string): Promise<TestTicketData | null> {
+  const { data, error } = await createAdminClient()
+    .from('restaurants').select('name, locale, timezone').eq('id', restaurantId).maybeSingle();
+  if (error) logger.error('test ticket load failed', { restaurantId, code: error.code });
+  if (!data) return null;
+  const r = data as { name: string; locale: string | null; timezone: string | null };
+  const locale = r.locale === 'en' ? 'en' : 'es';
+  return {
+    locale,
+    restaurant: { name: r.name },
+    placedAt: new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-MX', {
+      timeZone: r.timezone || 'America/New_York', dateStyle: 'medium', timeStyle: 'short',
+    }).format(new Date()),
+  };
 }
