@@ -837,7 +837,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               ? `[${t.arrivesLabel}: ${arrivalTime}] `
               : '';
             // Delivery en efectivo: el repartidor sabe cuánto cambio llevar.
-            const change = orderType === 'delivery' && paymentMethod === 'cash' && cashChange !== null
+            // Un billete que ya no alcanza (el total subió después de elegirlo) no se manda.
+            const change = orderType === 'delivery' && paymentMethod === 'cash' && cashChange !== null &&
+              (cashChange === 'exact' || cashChange > displayTotal)
               ? `[${t.ckPaysWith}: ${cashChange === 'exact' ? t.ckExact : fmtPrice(cashChange)}] `
               : '';
             return arrival + change + orderNotes.trim() || undefined;
