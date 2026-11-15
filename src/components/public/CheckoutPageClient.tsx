@@ -400,7 +400,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const isFormReady = Boolean(
     customerName.trim().length >= 2 &&
     customerPhone.trim().length >= 7 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) &&
+    // Email opcional: si viene, tiene que tener formato válido.
+    (!customerEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) &&
     (orderType !== 'delivery' || deliveryAddress.trim().length > 0) &&
     !belowDeliveryMin
   );
@@ -483,8 +484,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         else if (!/^\+?[\d\s()-]{7,}$/.test(value)) error = t.validationPhoneInvalid;
         break;
       case 'customer_email':
-        if (!value.trim()) error = t.validationEmailRequired;
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = t.validationEmailInvalid;
+        // Opcional: vacío es válido; si viene, se valida el formato.
+        if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) error = t.validationEmailInvalid;
         break;
       case 'delivery_address':
         if (orderType === 'delivery' && !value.trim()) error = t.validationAddressRequired;
@@ -542,7 +543,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       phoneInput?.focus();
       return;
     }
-    if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+    if (customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
       document.getElementById('checkout-email')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       document.getElementById('checkout-email')?.focus();
       return;
@@ -712,8 +713,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       scrollToFirstInvalidField();
       return;
     }
-    if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
-      setOrderError(t.validationEmailRequiredOrder);
+    // Email opcional: solo frena si vino con formato inválido.
+    if (customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      setOrderError(t.validationEmailInvalid);
       validateField('customer_email', customerEmail);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'email', order_type: orderType });
       setCtaShake(true);
@@ -1984,7 +1986,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <label htmlFor="checkout-email" className="text-sm font-semibold text-gray-900">
-                  {t.yourEmail}<span className="text-red-500 ml-0.5" aria-hidden="true">*</span>
+                  {t.yourEmail} <span className="text-gray-400 font-normal text-xs">({t.optional})</span>
                 </label>
                 {fieldTouched.customer_email && !fieldErrors.customer_email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) && (
                   <CheckCircle className="w-4 h-4 text-green-500 ml-auto" aria-hidden="true" />
@@ -1995,7 +1997,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 type="email"
                 inputMode="email"
                 autoComplete="email"
-                aria-required="true"
+                aria-required="false"
                 aria-invalid={!!fieldErrors.customer_email}
                 aria-describedby={fieldErrors.customer_email ? 'checkout-email-error' : 'checkout-email-hint'}
                 value={customerEmail}
@@ -2008,7 +2010,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   fieldErrors.customer_email ? 'border-red-400 focus:border-red-400' : '',
                   fieldTouched.customer_email && !fieldErrors.customer_email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) ? 'border-green-400 focus:border-green-500' : '',
                 )}
-                required
               />
               {fieldErrors.customer_email ? (
                 <p id="checkout-email-error" role="alert" className="text-xs text-red-500 mt-1">{fieldErrors.customer_email}</p>
