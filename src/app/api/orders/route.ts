@@ -22,6 +22,7 @@ import {
   computeOrderTotals,
   resolveCommission,
   computeApplicationFeeCents,
+  feeBaseCents,
   feeModelFor,
   tipAllowedFor,
 } from "@/lib/order-pricing";
@@ -1548,10 +1549,10 @@ export async function POST(request: NextRequest) {
           },
         ];
 
-        // Application fee on the gross order total (after discounts): 4% for
-        // commission_plan, Stripe's processing at cost for every other plan.
+        // Application fee on the order total WITHOUT the tip (the tip belongs to
+        // the staff): 4% for commission_plan, Stripe's processing at cost otherwise.
         const applicationFeeAmount = computeApplicationFeeCents(
-          Math.round(total * 100), // total is in currency units
+          feeBaseCents(Math.round(total * 100), Math.round(tipAmt * 100)), // currency units → cents
           restaurant.currency || "usd",
           commissionBps,
         );

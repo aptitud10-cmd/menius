@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimitAsync, getClientIP } from "@/lib/rate-limit";
 import { getStripe } from "@/lib/stripe";
 import { captureError } from "@/lib/error-reporting";
-import { computeApplicationFeeCents, feeModelFor } from "@/lib/order-pricing";
+import { computeApplicationFeeCents, feeBaseCents, feeModelFor } from "@/lib/order-pricing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const { data: order } = await adminDb
       .from("orders")
       .select(
-        "id, status, total, order_number, payment_intent_id, payment_status, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
+        "id, status, total, tip_amount, order_number, payment_intent_id, payment_status, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
       )
       .eq("id", order_id)
       .maybeSingle();
@@ -106,8 +106,9 @@ export async function POST(request: NextRequest) {
 
     const commissionBps = (rest as any)?.commission_plan === true ? 400 : 0;
     // 4% for commission_plan; Stripe's processing at cost for every other plan.
+    // Never on the tip: it belongs to the staff.
     const applicationFeeAmount = computeApplicationFeeCents(
-      amount,
+      feeBaseCents(amount, Math.round(Number(order.tip_amount ?? 0) * 100)),
       currency,
       commissionBps,
     );

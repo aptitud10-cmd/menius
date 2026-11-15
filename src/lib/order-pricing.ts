@@ -231,7 +231,20 @@ export function resolveCommission(
 export const STRIPE_US_CARD_FEE = { bps: 290, fixedCents: 30 } as const;
 
 /**
+ * Base sobre la que se calcula el application fee: lo cobrado SIN la propina.
+ * La propina es del personal: en NY (Labor Law §196-d) nadie —tampoco la
+ * plataforma— puede quedarse con una parte. Ni el 4% del commission_plan ni el
+ * procesamiento trasladado se calculan sobre ella; MENIUS absorbe el ~2.9% de
+ * Stripe que corresponde a la propina.
+ */
+export function feeBaseCents(totalCents: number, tipCents: number): number {
+  const tip = Number.isFinite(tipCents) && tipCents > 0 ? tipCents : 0;
+  return Math.max(0, totalCents - tip);
+}
+
+/**
  * Application fee de un pago online, en centavos.
+ * `amountCents` es la base SIN propina: usar siempre `feeBaseCents()`.
  * - commission_plan (commissionBps > 0): el 4% acordado, sin procesamiento aparte.
  * - resto de planes en USD: el procesamiento de Stripe al costo (0% de MENIUS).
  * - otras monedas: 0 — la tarifa varía por país y no hay tabla todavía, así que

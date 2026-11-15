@@ -5,6 +5,7 @@ import {
   computeOrderTotals,
   resolveCommission,
   computeApplicationFeeCents,
+  feeBaseCents,
   internationalCardSurchargeCents,
   feeModelFor,
   tipAllowedFor,
@@ -369,6 +370,45 @@ describe('resolveCommission', () => {
     const { isFreeTier } = resolveCommission(false, null, now);
     // The route uses isFreeTier to block payment_method='online'
     expect(isFreeTier).toBe(true);
+  });
+});
+
+// ── feeBaseCents: la comisión nunca se calcula sobre la propina ───────────────
+
+describe('feeBaseCents', () => {
+  it('resta la propina del total cobrado', () => {
+    expect(feeBaseCents(5500, 500)).toBe(5000);
+  });
+
+  it('sin propina (0, negativa o NaN): el total entero', () => {
+    expect(feeBaseCents(3000, 0)).toBe(3000);
+    expect(feeBaseCents(3000, -100)).toBe(3000);
+    expect(feeBaseCents(3000, Number.NaN)).toBe(3000);
+  });
+
+  it('nunca negativa', () => {
+    expect(feeBaseCents(300, 500)).toBe(0);
+  });
+
+  it('commission_plan: el 4% sale de $50 de comida, no de $55 con propina', () => {
+    // $50 comida+impuesto + $5 propina → 4% de 5000 = 200, no 220
+    expect(computeApplicationFeeCents(feeBaseCents(5500, 500), 'usd', 400)).toBe(200);
+  });
+
+  it('las 3 rutas que cobran pasan la base SIN propina (guarda de regresión)', () => {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const path = require('node:path') as typeof import('node:path');
+    const routes = [
+      'src/app/api/orders/route.ts',
+      'src/app/api/payments/intent/route.ts',
+      'src/app/api/payments/checkout/route.ts',
+    ];
+    for (const r of routes) {
+      const src = fs.readFileSync(path.join(process.cwd(), r), 'utf8');
+      const calls = src.match(/computeApplicationFeeCents\(\s*([^,]+),/g) ?? [];
+      expect(calls.length, `${r} debería calcular la comisión`).toBeGreaterThan(0);
+      for (const c of calls) expect(c, `${r}: la comisión no puede incluir la propina`).toContain('feeBaseCents(');
+    }
   });
 });
 
