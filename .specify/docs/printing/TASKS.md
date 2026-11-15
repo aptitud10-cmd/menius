@@ -54,15 +54,16 @@
 - Nota: un pedido en efectivo no debería traer propina (el cliente la da en mano). Hoy el checkout la ofrece con cualquier método de pago: arreglo aparte, fuera de este spec
 > Nota de entorno: en Windows, vitest se tiene que correr desde un cwd con la unidad en mayúscula (`C:\…`). Con `c:\` carga dos instancias y dice "No test suite found".
 
-## Sprint 3 — Endpoint CloudPRNT [M]
+## Sprint 3 — Endpoint CloudPRNT [M] ✅ (2026-11-15)
 - [x] Parámetro del job: confirmado en la doc oficial (vía búsqueda), `?token=<jobToken>` + header `X-Star-Token`; jobToken desde firmware 3.2 en mC-Print3. Sin token se cae al siguiente de la cola. TLS sigue sin confirmar → Sprint 5
 - [x] POST / GET (reclamo atómico) / DELETE + GET de configuración (API §1): `src/app/api/cloudprnt/[token]/route.ts` + `src/lib/printing/cloudprnt.ts`
 - [x] Migración `20261115_printing_claim_finish.sql` (`claim_print_job` / `finish_print_job`, solo service_role) + tests SQL (6/6 mutaciones detectadas)
-- [ ] **William:** aplicar `20261115_printing_claim_finish.sql` en prod (SQL Editor)
+- [x] **William:** aplicar `20261115_printing_claim_finish.sql` en prod (SQL Editor). Verificado: `authenticated` sin execute, `service_role` con execute
 - [x] Script que simula la impresora (`scripts/cloudprnt-sim.mjs`, POST → GET → DELETE), con estos casos:
   - [x] carrera "cancelar durante el GET" (tests SQL: antes del GET, GET repetido después de cancelar, error después de cancelar)
   - [x] token inválido → 404 sin consultar pedidos (CA-6)
-- [ ] Ciclo completo contra prod con una impresora de prueba (necesita la migración aplicada)
+- [x] Prueba contra prod (preview de Vercel + DB de prod) con una impresora de prueba temporal: secreto inválido → 404, GET sin `type` → configuración, GET de job → PNG 576 px 1 bit (pedido y ticket de prueba), los jobs pasaron a `sent` con `attempts=1`. La impresora y sus jobs se borraron después (0 filas en `printers` / `print_jobs`)
+  - POST y DELETE contra prod no se pudieron probar (la herramienta de preview solo hace GET). Cubiertos por tests; se prueban con la impresora real en el Sprint 5
 
 ## Sprint 4 — UI + convivencia con la impresión existente [M]
 - [ ] Panel: impresoras (crear, URL una vez, rotar, toggles de v3, prueba)
