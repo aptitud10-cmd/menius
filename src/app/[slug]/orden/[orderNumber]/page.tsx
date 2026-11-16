@@ -27,18 +27,21 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
   const paidSuccess = searchParams.paid === 'true';
   const token = searchParams.t ?? null;
 
-  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null; phone: string | null; latitude: number | null; longitude: number | null; logo_url: string | null } | null = null;
+  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null; phone: string | null; latitude: number | null; longitude: number | null; logo_url: string | null; brand_color: string | null; google_business_url: string | null } | null = null;
   let initialOrder: any = null;
 
   try {
     const adminDb = createAdminClient();
 
-    // Fetch restaurant first so we have the UUID needed for the order RPC
-    const { data: restaurantData } = await adminDb
-      .from('restaurants')
-      .select('id, name, slug, currency, locale, address, phone, latitude, longitude, logo_url')
-      .eq('slug', params.slug)
-      .maybeSingle();
+    // Fetch restaurant first so we have the UUID needed for the order RPC.
+    // brand_color llega con la migración 20261116: si todavía no se corrió, se
+    // reintenta sin esa columna en vez de romper el seguimiento (error 42703).
+    const RESTAURANT_SELECT = 'id, name, slug, currency, locale, address, phone, latitude, longitude, logo_url, google_business_url';
+    let restRes = await adminDb.from('restaurants').select(`${RESTAURANT_SELECT}, brand_color`).eq('slug', params.slug).maybeSingle();
+    if (restRes.error && (restRes.error as { code?: string }).code === '42703') {
+      restRes = await adminDb.from('restaurants').select(RESTAURANT_SELECT).eq('slug', params.slug).maybeSingle() as typeof restRes;
+    }
+    const restaurantData = restRes.data;
 
     if (restaurantData) {
       restaurant = {
@@ -52,6 +55,8 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         latitude: (restaurantData as any).latitude ?? null,
         logo_url: (restaurantData as any).logo_url ?? null,
         longitude: (restaurantData as any).longitude ?? null,
+        brand_color: (restaurantData as any).brand_color ?? null,
+        google_business_url: (restaurantData as any).google_business_url ?? null,
       };
 
       // Fetch order server-side so the page renders with data immediately.
@@ -179,6 +184,8 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       restaurantLng={restaurant.longitude ?? null}
       restaurantPhone={restaurant.phone ?? undefined}
       restaurantLogo={restaurant.logo_url ?? null}
+      brandColor={restaurant.brand_color}
+      googleReviewUrl={restaurant.google_business_url}
       orderNumber={params.orderNumber}
       trackingToken={token ?? undefined}
       currency={restaurant.currency ?? 'MXN'}

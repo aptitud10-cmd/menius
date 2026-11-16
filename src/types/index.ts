@@ -15,6 +15,8 @@ export interface Restaurant {
   locale?: 'es' | 'en';
   available_locales?: string[];
   logo_url: string | null;
+  /** Color del seguimiento del pedido (#RRGGBB). Migración 20261116. */
+  brand_color?: string | null;
   cover_image_url?: string | null;
   hero_video_url?: string | null;
   description?: string;

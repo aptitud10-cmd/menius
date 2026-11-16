@@ -169,6 +169,7 @@ export const restaurantUpdateSchema = z.object({
   currency: z.string().optional(),
   locale: z.enum(['es', 'en']).optional(),
   theme_color: z.string().max(20).optional(),
+  brand_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
   order_types: z.array(z.enum(['dine_in', 'pickup', 'delivery'])).optional(),
   tax_rate: z.number().min(0).max(100).optional(),
   tax_included: z.boolean().optional(),

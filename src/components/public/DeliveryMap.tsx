@@ -65,11 +65,12 @@ async function fetchDirections(from: Coords, to: Coords): Promise<DirectionsResu
 // Used when driver is not yet active — ETA from restaurant to delivery address
 // ── Look: mismos tokens que el seguimiento (--tk-* viven en .mt-root) ──────────
 
-const prefersDark = () =>
-  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+// Color de estado del restaurante (--brand, lo pone el seguimiento) para la ruta.
+const brandColorOf = (el: HTMLElement | null) =>
+  (el ? getComputedStyle(el).getPropertyValue('--brand').trim() : '') || '#111114';
 
 const RESTAURANT_PIN = `<div style="width:30px;height:30px;border-radius:10px;background:var(--tk-card,#fff);border:2px solid var(--tk-ink,#0E1412);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.18)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="stroke:var(--tk-ink,#0E1412)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M10 20v-5h4v5"/></svg></div>`;
-const HOME_PIN = `<div style="width:34px;height:34px;border-radius:50%;background:var(--tk-green,#05C8A7);border:3px solid var(--tk-card,#fff);display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.25)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#04241E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5.5 9.5V20h13V9.5"/></svg></div>`;
+const HOME_PIN = `<div style="width:34px;height:34px;border-radius:50%;background:var(--tk-ink,#111114);border:3px solid var(--tk-card,#fff);display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.25)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5.5 9.5V20h13V9.5"/></svg></div>`;
 /** Rumbo en grados (0 = norte, sentido horario) de a hacia b. */
 function bearingDeg(a: Coords, b: Coords): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
@@ -80,7 +81,7 @@ function bearingDeg(a: Coords, b: Coords): number {
 }
 
 // Flecha hacia el norte; el marcador entero gira con setRotation(rumbo).
-const DRIVER_PIN = `<svg width="18" height="18" viewBox="0 0 24 24" style="fill:var(--tk-btn-fg,#fff)"><path d="M12 2.5l7 18.5-7-4-7 4z"/></svg>`;
+const DRIVER_PIN = `<svg width="18" height="18" viewBox="0 0 24 24" style="fill:var(--brand-ink,#fff)"><path d="M12 2.5l7 18.5-7-4-7 4z"/></svg>`;
 
 // ── Mapbox Geocoding v6 ──────────────────────────────────────────────────────
 
@@ -142,7 +143,7 @@ function MapFallback({ deliveryAddress, restaurantAddress, locale }: DeliveryMap
   const gmapsEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed&z=15`;
   return (
     <div>
-      <div className="w-full h-64 overflow-hidden">
+      <div className="w-full h-[var(--map-h,16rem)] overflow-hidden">
         <iframe
           src={gmapsEmbedUrl}
           width="100%"
@@ -251,17 +252,15 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
       if (deliveryCoords) points.push([deliveryCoords.lng, deliveryCoords.lat]);
       if (driverCoords) points.push([driverCoords.lng, driverCoords.lat]);
 
-      const dark = prefersDark();
-      const routeColor = dark ? '#5BE3C9' : '#0E1412';
+      const routeColor = brandColorOf(containerRef.current);
       // Antes, si Mapbox fallaba (llave, estilo, sin WebGL) el cliente veía un
       // recuadro negro sin aviso. Ahora cae al mapa de Google y queda en Sentry.
       let map: any;
       try {
       map = new mapboxgl.Map({
         container: containerRef.current,
-        // Mapa sobrio (gris) para que el color lo pongan los puntos y la ruta;
-        // oscuro si el teléfono está en oscuro, como el resto de la página.
-        style: dark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
+        // Mapa sobrio (gris) para que el color lo pongan los puntos y la ruta.
+        style: 'mapbox://styles/mapbox/light-v11',
         center: driverCoords
           ? [driverCoords.lng, driverCoords.lat]
           : deliveryCoords
@@ -359,7 +358,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
       // Repartidor: círculo con flecha — always created, hidden if no coords yet
       const driverEl = document.createElement('div');
-      driverEl.style.cssText = 'width:40px;height:40px;border-radius:50%;background:var(--tk-btn,#111816);border:3px solid var(--tk-card,#fff);box-shadow:0 3px 12px rgba(0,0,0,.3);display:grid;place-items:center;transition:opacity 0.3s ease;';
+      driverEl.style.cssText = 'width:40px;height:40px;border-radius:50%;background:var(--brand,#111114);border:3px solid var(--tk-card,#fff);box-shadow:0 3px 12px rgba(0,0,0,.3);display:grid;place-items:center;transition:opacity 0.3s ease;';
       driverEl.innerHTML = DRIVER_PIN;
       driverElRef.current = driverEl;
 
@@ -445,7 +444,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
   // Los minutos van en el bloque grande del seguimiento; el mapa no los repite.
   return (
-    <div className="w-full h-64 overflow-hidden">
+    <div className="w-full h-[var(--map-h,16rem)] overflow-hidden">
       <div ref={containerRef} className="w-full h-full" />
     </div>
   );
@@ -498,7 +497,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   // llamada) y sube por onEtaUpdate al bloque grande del seguimiento.
 
   if (!geocodingDone) {
-    return <div className="w-full h-64 animate-pulse" style={{ background: 'var(--tk-surface, #f3f4f6)' }} />;
+    return <div className="w-full h-[var(--map-h,16rem)] animate-pulse" style={{ background: 'var(--tk-surface, #f3f4f6)' }} />;
   }
 
   if (!restaurantCoords || !MAPBOX_TOKEN || liveFailed) {

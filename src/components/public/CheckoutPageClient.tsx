@@ -414,9 +414,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMounted, items, orderType, promoResult, promoCode, loyaltyApplied, loyaltyBalance, restaurant.id, tipAmount]);
 
-  // Auto-redirect to order tracking ~1s after successful cash/dine-in order.
-  // Short enough that the manual button is essentially a fallback for users
-  // on flaky connections — the most common case is the auto-redirect wins.
+  // Pedido hecho → directo al seguimiento (A10): ahí arranca la confirmación con
+  // el check. Antes había una pantalla de "Pedido enviado" de 1 s en medio.
+  // El botón manual de esa pantalla queda solo para pagos online pendientes y demos.
   const trackRedirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (step !== 'confirmation' || !orderNumber || !orderId) return;
@@ -427,7 +427,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       // replace, not push: the cart is already cleared, so "back" from the
       // tracker must not land on an empty /checkout — it goes to the menu.
       router.replace(`/${slug}/orden/${orderNumber}${tokenQs}`);
-    }, 1000);
+    }, 0);
     return () => {
       if (trackRedirectTimer.current) {
         clearTimeout(trackRedirectTimer.current);
@@ -1497,6 +1497,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     );
   }
 
+  // Mientras navega al seguimiento: la misma superficie, sin pantalla intermedia.
+  if (step === 'confirmation' && orderNumber && orderId && orderId !== 'demo-order-id' && !awaitingPayment) {
+    return <div className="h-[100dvh] bg-[#f2f2f6]" aria-busy="true" />;
+  }
   if (step === 'confirmation') {
     return (
       <div className="h-[100dvh] bg-white flex flex-col">

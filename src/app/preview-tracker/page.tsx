@@ -11,11 +11,11 @@ const PreviewTrackerClient = dynamicImport(
   { ssr: false },
 );
 
-export default function PreviewTrackerPage({ searchParams }: { searchParams: { s?: string; type?: string; lang?: string } }) {
+export default function PreviewTrackerPage({ searchParams }: { searchParams: { s?: string; type?: string; lang?: string; brand?: string } }) {
   if (process.env.NODE_ENV === 'production') notFound();
   return (
-    <div className="bg-white text-gray-900 overflow-x-hidden">
-      <PreviewTrackerClient state={searchParams.s ?? 'preparing'} type={searchParams.type ?? 'delivery'} lang={searchParams.lang === 'en' ? 'en' : 'es'} />
+    <div className="overflow-x-clip">
+      <PreviewTrackerClient state={searchParams.s ?? 'preparing'} type={searchParams.type ?? 'delivery'} lang={searchParams.lang === 'en' ? 'en' : 'es'} brand={searchParams.brand} />
     </div>
   );
 }
