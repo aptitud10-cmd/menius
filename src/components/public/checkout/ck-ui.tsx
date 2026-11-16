@@ -6,7 +6,7 @@
  * lógica vive en CheckoutPageClient. Tema claro, igual que el menú público.
  */
 
-import { useEffect, useRef, useState, type ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -198,8 +198,8 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]):not([ty
 
 /**
  * Hoja inferior (centrada en escritorio). X, Escape, foco atrapado y devuelto
- * al cerrar, safe area abajo. Con el teclado de iOS abierto se sube lo que
- * ocupa el teclado (visualViewport), porque `fixed bottom:0` queda detrás.
+ * al cerrar, safe area abajo. En móvil la capa sigue el área visible
+ * (visualViewport) para que el teclado nunca tape ni empuje el campo.
  */
 export function CkSheet({
   open,
@@ -221,7 +221,14 @@ export function CkSheet({
   const reduce = useReducedMotion();
   const panelRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
-  const [kb, setKb] = useState(0);
+  // Rectángulo VISIBLE (visualViewport). Con el teclado abierto iOS no achica
+  // el layout viewport: lo desplaza por su cuenta para mostrar el campo. Antes
+  // sumábamos el alto del teclado como padding y la hoja subía dos veces (el
+  // campo quedaba fuera de pantalla, arriba). Ahora la capa ocupa exactamente
+  // lo visible: top = offsetTop, alto = vv.height. En Android (resizes-content)
+  // es igual al viewport, así que no cambia nada.
+  const [vp, setVp] = useState<{ top: number; height: number } | null>(null);
+  const revealRef = useRef(false);
   const titleId = useRef(`ck-sheet-${Math.random().toString(36).slice(2, 8)}`).current;
 
   useEffect(() => {
@@ -243,16 +250,40 @@ export function CkSheet({
     if (!open || desktop) return;
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setKb(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
-    update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
+    let raf = 0;
+    const update = (resized: boolean) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        // Solo al cambiar el alto (teclado que abre/cierra): en un `scroll` del
+        // viewport no se re-enfoca, o el cliente que bajó hasta "Listo" volvía arriba.
+        if (resized) revealRef.current = true;
+        setVp({ top: vv.offsetTop, height: vv.height });
+      });
+    };
+    const onResize = () => update(true);
+    const onScroll = () => update(false);
+    update(true);
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onScroll);
+    // Sin setVp(null) al cerrar: la capa saltaba a 100dvh en plena salida.
     return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-      setKb(0);
+      cancelAnimationFrame(raf);
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onScroll);
     };
   }, [open, desktop]);
+
+  // El campo con foco tiene que quedar a la vista DENTRO de la hoja. Va después
+  // de pintar el alto nuevo (useLayoutEffect sobre vp): hacerlo en el mismo rAF
+  // que setVp medía con la hoja todavía alta y el email quedaba tapado.
+  useLayoutEffect(() => {
+    if (!revealRef.current) return;
+    revealRef.current = false;
+    const a = document.activeElement as HTMLElement | null;
+    if (a && panelRef.current?.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) {
+      a.scrollIntoView({ block: 'nearest' });
+    }
+  }, [vp]);
 
   const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Escape') {
@@ -273,7 +304,10 @@ export function CkSheet({
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-end min-[860px]:items-center justify-center" style={{ paddingBottom: kb }}>
+        <div
+          className="fixed inset-x-0 top-0 h-[100dvh] z-[60] flex items-end min-[860px]:items-center justify-center"
+          style={vp ? { top: vp.top, height: vp.height } : undefined}
+        >
           <motion.div
             className="absolute inset-0 bg-[rgba(10,10,14,.38)]"
             initial={{ opacity: 0 }}
@@ -292,7 +326,8 @@ export function CkSheet({
             onKeyDown={onKeyDown}
             className={cn(
               'relative w-full bg-white overflow-y-auto overscroll-contain focus:outline-none',
-              'rounded-t-[22px] max-h-[90dvh] px-[18px] pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]',
+              // % del contenedor (= lo visible), no dvh: dvh no descuenta el teclado en iOS.
+              'rounded-t-[22px] max-h-[92%] px-[18px] pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]',
               'min-[860px]:w-[460px] min-[860px]:rounded-[20px] min-[860px]:pb-[22px] min-[860px]:max-h-[85vh]',
             )}
             initial={desktop ? { opacity: 0, scale: 0.97 } : { y: '100%' }}

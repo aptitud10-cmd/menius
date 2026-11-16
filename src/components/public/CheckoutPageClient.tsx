@@ -1771,6 +1771,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   const thumbs = items.filter((i) => i.product.image_url && !showsAsRow(i.product)).slice(0, 3);
 
+  // Con una hoja abierta, lo de atrás queda inerte: las flechas del teclado de
+  // iOS (anterior/siguiente) saltaban a la propina detrás del velo.
+  // React 18 no tipa `inert`; como atributo string llega igual al DOM.
+  const behindSheet = (activeSheet ? { inert: '' } : {}) as Record<string, string>;
   const fieldLabelCls = 'absolute left-3.5 top-2 text-xs text-[#6b6b74] pointer-events-none';
   const fieldInputCls = 'w-full bg-transparent border-0 text-[#111114] text-[17px] leading-tight pt-[23px] pb-2 px-3.5 outline-none placeholder:text-[#9a9aa2]';
 
@@ -2068,7 +2072,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         <input type="text" name="website" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
       </div>
 
-      <header className="shrink-0 z-10 w-full max-w-lg mx-auto grid grid-cols-[44px_1fr_44px] items-center px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 min-[860px]:grid-cols-[auto_1fr_auto] min-[860px]:max-w-[1140px] min-[860px]:px-10 min-[860px]:pt-5 min-[860px]:pb-3">
+      <header {...behindSheet} className="shrink-0 z-10 w-full max-w-lg mx-auto grid grid-cols-[44px_1fr_44px] items-center px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 min-[860px]:grid-cols-[auto_1fr_auto] min-[860px]:max-w-[1140px] min-[860px]:px-10 min-[860px]:pt-5 min-[860px]:pb-3">
         <button
           type="button"
           onClick={goBack}
@@ -2082,7 +2086,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       </header>
 
       {/* Scroll en un contenedor (no en el root): iOS respeta overscroll-behavior. */}
-      <div className={cn('flex-1 overflow-y-auto overscroll-contain', activeSheet && 'overflow-hidden')}>
+      <div {...behindSheet} className={cn('flex-1 overflow-y-auto overscroll-contain', activeSheet && 'overflow-hidden')}>
         <div className="max-w-lg mx-auto min-[860px]:max-w-[1060px] min-[860px]:flex min-[860px]:items-start min-[860px]:gap-14 min-[860px]:px-10 min-[860px]:pb-10">
 
           {/* Resumen: el total manda */}
@@ -2332,7 +2336,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
       {/* Botón fijo: barra opaca, nada asoma por detrás */}
       {!isDesktop && (
-        <div className="shrink-0 bg-[#f2f2f6] shadow-[0_-1px_0_rgba(17,17,20,.09)] px-4 pt-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+        <div {...behindSheet} className="shrink-0 bg-[#f2f2f6] shadow-[0_-1px_0_rgba(17,17,20,.09)] px-4 pt-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
           <div className="max-w-lg mx-auto">{ctaBlock}</div>
         </div>
       )}
