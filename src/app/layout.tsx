@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
+import { Instrument_Serif } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Suspense } from "react";
@@ -27,10 +27,21 @@ const inter = localFont({
   display: "swap",
 });
 
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
+// Bricolage ESTÁTICA por la misma razón que Inter (la variable de Google se
+// dibuja con un solo grosor en iPhone). Sin precarga: solo la usan la landing,
+// el repartidor, las pantallas de tablet y los sitios de Buccaneer; el menú,
+// el checkout y el seguimiento no la bajan. 900 cae en 800.
+const bricolage = localFont({
+  src: [
+    { path: "./fonts/bricolage-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/bricolage-latin-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/bricolage-latin-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/bricolage-latin-700.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/bricolage-latin-800.woff2", weight: "800", style: "normal" },
+  ],
   variable: "--font-display",
   display: "swap",
+  preload: false,
   adjustFontFallback: false,
 });
 

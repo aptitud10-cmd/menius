@@ -49,9 +49,11 @@ interface CkRowProps {
   onClick?: () => void;
   trailing?: ReactNode;
   id?: string;
+  /** Fila-casilla: toda la fila marca/desmarca (role="checkbox"). Usar con CkCheckMark. */
+  checked?: boolean;
 }
 
-export function CkRow({ icon, label, value, sub, need, muted, onClick, trailing, id }: CkRowProps) {
+export function CkRow({ icon, label, value, sub, need, muted, onClick, trailing, id, checked }: CkRowProps) {
   const body = (
     <>
       <CkIcon>{icon}</CkIcon>
@@ -79,6 +81,8 @@ export function CkRow({ icon, label, value, sub, need, muted, onClick, trailing,
         id={id}
         type="button"
         onClick={onClick}
+        role={checked === undefined ? undefined : 'checkbox'}
+        aria-checked={checked}
         className={cn(cls, 'transition-colors active:bg-[#f5f5f8] [@media(hover:hover)]:hover:bg-[#f5f5f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#05c8a7]')}
       >
         {body}
@@ -136,25 +140,23 @@ export function CkSegmented<T extends string>({
   );
 }
 
-export function CkSwitch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+/**
+ * Casilla (decorativa: la fila entera es el control, ver CkRow `checked`).
+ * Para "pedir algo" se lee mejor que un interruptor: apagado no parece roto.
+ */
+export function CkCheckMark({ checked }: { checked: boolean }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
+    <span
+      aria-hidden="true"
       className={cn(
-        'relative w-[51px] h-[31px] rounded-full shrink-0 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-2',
-        checked ? 'bg-[#05c8a7]' : 'bg-[#e3e3e8]',
+        'w-6 h-6 rounded-[7px] grid place-items-center transition-[background-color,box-shadow] duration-150',
+        checked ? 'bg-[#05c8a7]' : 'bg-white shadow-[inset_0_0_0_2px_rgba(17,17,20,.22)]',
       )}
     >
-      <span
-        aria-hidden="true"
-        className="absolute top-[2px] left-[2px] w-[27px] h-[27px] rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,.2)] transition-transform duration-300"
-        style={{ transform: checked ? 'translateX(20px)' : 'translateX(0)', transitionTimingFunction: 'cubic-bezier(.32,.72,0,1)' }}
-      />
-    </button>
+      <svg viewBox="0 0 24 24" className={cn('w-3.5 h-3.5 transition-opacity duration-150', checked ? 'opacity-100' : 'opacity-0')} fill="none" stroke="#04241e" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    </span>
   );
 }
 

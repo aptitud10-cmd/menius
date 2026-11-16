@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { Anton, JetBrains_Mono } from 'next/font/google';
+import { Anton } from 'next/font/google';
+import localFont from 'next/font/local';
 
 /**
  * Buccaneer Diner's landing page — a client site, not MENIUS.
@@ -21,8 +22,13 @@ const anton = Anton({
 
 // Not a stylistic choice: the hero clock re-renders every minute, and tabular
 // figures stop the line from reflowing as the digits change width.
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
+// Estática (un archivo por peso): la variable de Google se dibuja con un solo
+// grosor en iPhone. El sitio usa 400 y 500.
+const mono = localFont({
+  src: [
+    { path: '../fonts/jetbrains-mono-latin-400.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/jetbrains-mono-latin-500.woff2', weight: '500', style: 'normal' },
+  ],
   variable: '--bd-mono',
   display: 'swap',
 });

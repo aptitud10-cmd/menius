@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronDown, MapPin, Clock, User, StickyNote, Tag, Banknote, Armchair, Star,
 } from 'lucide-react';
 import {
-  CkGroup, CkRow, CkIcon, CkSegmented, CkSwitch, CkSheet, CkFields, CkError, CkChoice, CkSpinner,
+  CkGroup, CkRow, CkIcon, CkSegmented, CkCheckMark, CkSheet, CkFields, CkError, CkChoice, CkSpinner,
   ckCtaClass, ckShadow,
 } from './checkout/ck-ui';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -2301,9 +2301,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   label={t.ckLoyalty}
                   value={t.youHavePoints.replace('{n}', String(loyaltyBalance.points))}
                   sub={`= ${fmtPrice(Math.floor(loyaltyBalance.points * loyaltyBalance.config.peso_per_point * 100) / 100)} ${t.ofDiscount}`}
-                  trailing={
-                    <CkSwitch checked={loyaltyApplied} onChange={setLoyaltyApplied} label={t.redeemLabel} />
-                  }
+                  checked={loyaltyApplied}
+                  onClick={() => setLoyaltyApplied((v) => !v)}
+                  trailing={<CkCheckMark checked={loyaltyApplied} />}
                 />
               )}
               {orderType !== 'dine_in' && (
@@ -2311,7 +2311,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   icon={<UtensilsCrossed />}
                   value={<span className="text-[15.5px]">{t.ckUtensilsTitle}</span>}
                   sub={t.ckUtensilsSub}
-                  trailing={<CkSwitch checked={includeUtensils} onChange={setIncludeUtensils} label={t.includeUtensils} />}
+                  checked={includeUtensils}
+                  onClick={() => setIncludeUtensils((v) => !v)}
+                  trailing={<CkCheckMark checked={includeUtensils} />}
                 />
               )}
             </CkGroup>
