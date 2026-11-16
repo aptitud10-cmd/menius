@@ -384,6 +384,7 @@ export async function POST(request: NextRequest) {
               error: en
                 ? "This address is outside the restaurant's delivery area."
                 : "Esta dirección está fuera del área de entrega del restaurante.",
+              code: "OUT_OF_ZONE",
             },
             { status: 400 },
           );
@@ -410,6 +411,7 @@ export async function POST(request: NextRequest) {
           error: en
             ? "This restaurant is not accepting orders right now. Please try again later."
             : "El restaurante no está aceptando órdenes en este momento. Intenta más tarde.",
+          code: "PAUSED",
         },
         { status: 503 },
       );
@@ -429,6 +431,7 @@ export async function POST(request: NextRequest) {
               error: en
                 ? "The restaurant is closed at that time. Please pick another time."
                 : "El restaurante está cerrado a esa hora. Elige otro horario.",
+              code: "CLOSED_AT_TIME",
             },
             { status: 400 },
           );
@@ -439,6 +442,7 @@ export async function POST(request: NextRequest) {
             error: en
               ? "This restaurant is currently closed. You can schedule an order for later."
               : "El restaurante está cerrado en este momento. Puedes programar tu pedido para más tarde.",
+            code: "CLOSED_NOW",
           },
           { status: 503 },
         );

@@ -26,12 +26,15 @@ import { computeTaxAmount } from '@/lib/tax-presets';
 import {
   formatOrderSubmitError,
   formatPaymentStartError,
+  errorActionFor,
+  type OrderErrorAction,
   safeParseJson,
 } from '@/lib/checkout-errors';
 import { supabaseLoader } from '@/lib/image-loader';
 import { showsAsRow } from '@/lib/product-display';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
 import { tipAllowedFor, tipOptions, customTipAmount } from '@/lib/order-pricing';
+import { isOpenAt, inTimeZone, type OperatingHours } from '@/lib/orders/business-hours';
 import {
   isPossiblePhoneNumber, formatPhoneNumber, formatPhoneNumberIntl, getCountryCallingCode, type Country,
 } from 'react-phone-number-input';
@@ -304,6 +307,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // Delivery en efectivo: con cuánto paga, para que el repartidor lleve cambio.
   // Va en las notas del pedido (sin migración).
   const [cashChange, setCashChange] = useState<null | 'exact' | number>(null);
+  // A9: un error del servidor trae una salida (cambiar dirección, programar…), no solo texto rojo.
+  const [orderErrorAction, setOrderErrorAction] = useState<OrderErrorAction>(null);
   // Escritorio: el botón va dentro de la tarjeta de acciones, no en la barra de abajo.
   const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
@@ -745,6 +750,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   const handleSubmitOrder = async () => {
     if (submittingRef.current) return;
+    setOrderErrorAction(null);
     if (customerName.trim().length < 2 || !phoneLooksValid(customerPhone)) {
       setOrderError(t.validationNamePhoneRequired);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'name_or_phone', order_type: orderType });
@@ -904,6 +910,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         if (data.code === 'PREPAY_REQUIRED' && enabledPaymentMethods.includes('online')) {
           setPaymentMethod('online');
         }
+        setOrderErrorAction(errorActionFor(data.code));
         setOrderError(formatOrderSubmitError(res.status, data.error, locale));
         trackEvent('checkout_error', { restaurant_id: restaurant.id, reason: data.error ?? 'server_error', status: res.status, order_type: orderType, payment_method: paymentMethod });
         return;
@@ -1688,6 +1695,37 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const cardOnboarding = !hasOnline && !!restaurant.stripe_account_id && !restaurant.stripe_onboarding_complete;
   const eta = estimateMinutes({ items, orderType, restaurant, to: deliveryCoords });
   const scheduleOn = scheduleEnabled && !!scheduledFor;
+  // A9: el mismo chequeo de horario que hace /api/orders, para avisar ANTES de
+  // que el cliente apriete el botón (antes se enteraba con un error rojo al final).
+  const opHours = restaurant.operating_hours as OperatingHours | undefined;
+  const hasHours = !!opHours && Object.keys(opHours).length > 0;
+  const restTz = restaurant.timezone || 'UTC';
+  const pausedNow = !!restaurant.orders_paused_until && new Date(restaurant.orders_paused_until) > new Date();
+  const closedNow = hasHours && !isOpenAt(opHours as OperatingHours, inTimeZone(new Date(), restTz));
+  const scheduledClosed = hasHours && scheduleOn && !Number.isNaN(new Date(scheduledFor).getTime())
+    && !isOpenAt(opHours as OperatingHours, inTimeZone(new Date(scheduledFor), restTz));
+  const needsSchedule = closedNow && !scheduleOn && orderType !== 'dine_in';
+  const openScheduler = () => { setScheduleEnabled(true); setActiveSheet('when'); };
+  const runErrorAction = () => {
+    const action = orderErrorAction;
+    setOrderError('');
+    setOrderErrorAction(null);
+    if (action === 'address') setActiveSheet('address');
+    else if (action === 'schedule') openScheduler();
+    else if (action === 'when') setActiveSheet('when');
+    else if (action === 'menu') goBack();
+    else if (action === 'items') {
+      setDetailsOpen(true);
+      setTimeout(() => document.getElementById('ck-items')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
+    }
+  };
+  const errorActionLabel =
+    orderErrorAction === 'address' ? t.ckFixAddress
+    : orderErrorAction === 'schedule' ? t.ckScheduleCta
+    : orderErrorAction === 'when' ? t.ckChangeTime
+    : orderErrorAction === 'items' ? t.ckReviewItems
+    : orderErrorAction === 'menu' ? t.ckEditInMenu
+    : null;
   const whenValue = scheduleOn
     ? new Date(scheduledFor).toLocaleString(locale === 'en' ? 'en-US' : 'es', { weekday: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
     : t.ckAsap;
@@ -1703,6 +1741,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // El botón principal dice lo que falta y lleva ahí (nextStep).
   const next: { label: string; run: () => void; disabled?: boolean } =
     items.length === 0 ? { label: t.confirmOrder, run: () => {}, disabled: true }
+    : pausedNow ? { label: t.ckPausedCta, run: () => {}, disabled: true }
+    : closedNow && orderType === 'dine_in' ? { label: t.ckClosedNow, run: () => {}, disabled: true }
+    : needsSchedule ? { label: t.ckScheduleCta, run: openScheduler }
+    : scheduledClosed ? { label: t.ckChangeTime, run: () => setActiveSheet('when') }
     : belowDeliveryMin ? { label: t.ckAddItems.replace('{x}', fmtPrice(Math.max(0, deliveryMinOrder - cartTotal))), run: goBack }
     : dineInOnlyBlocked ? { label: t.confirmOrder, run: handleSubmitOrder }
     : !addressReady ? { label: t.ckAddAddress, run: () => setActiveSheet('address') }
@@ -1949,6 +1991,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             className="flex items-start gap-3 px-3 py-2.5 rounded-xl bg-[#fdecea] text-[#c4321b] text-[13.5px] font-medium leading-snug"
           >
             <span className="flex-1">{orderError}</span>
+            {errorActionLabel && (
+              <button type="button" onClick={runErrorAction} className="shrink-0 font-semibold underline underline-offset-2">
+                {errorActionLabel}
+              </button>
+            )}
             {canManualRetry && (
               <button
                 type="button"
@@ -1972,7 +2019,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             label={restaurant.name}
             onCreateOrder={createOrderForWallet}
             onSuccess={(oid, onum) => { setWalletPaying(false); handleWalletSuccess(oid, onum); }}
-            onError={(msg) => { setWalletPaying(false); setOrderError(msg); }}
+            onError={(msg) => { setWalletPaying(false); setOrderErrorAction(null); setOrderError(msg); }}
             onPayingChange={setWalletPaying}
             disabled={submitting || items.length === 0}
           />
@@ -2096,6 +2143,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   onClick={() => setActiveSheet('table')}
                 />
               )}
+              {pausedNow && (
+                <div className="m-3 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug" role="status">
+                  {t.ckPaused.replace('{name}', restaurant.name)}
+                </div>
+              )}
+              {!pausedNow && closedNow && !scheduleOn && (
+                <div className="m-3 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug" role="status">
+                  {t.ckClosedBanner.replace('{name}', restaurant.name)}
+                </div>
+              )}
               {dineInOnlyBlocked && (
                 <div className="m-3 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug" role="alert">
                   <p className="font-medium">{t.validationDineInOnlyItems}</p>
@@ -2132,7 +2189,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   icon={<Clock />}
                   label={t.ckWhen}
                   value={whenValue}
-                  sub={!scheduleOn ? etaText : undefined}
+                  sub={
+                    scheduledClosed ? <span className="text-[#7a4d00]">{t.ckClosedAtTime}</span>
+                    : closedNow && !scheduleOn ? <span className="text-[#7a4d00]">{t.ckClosedNow}</span>
+                    : !scheduleOn ? etaText
+                    : undefined
+                  }
                   onClick={() => setActiveSheet('when')}
                 />
               )}
@@ -2389,14 +2451,20 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
       <CkSheet open={activeSheet === 'when'} onClose={closeSheet} title={t.ckWhenTitle} closeLabel={t.close} desktop={isDesktop}>
         <div role="radiogroup" aria-label={t.ckWhenTitle} className="grid gap-2">
-          <CkChoice title={t.ckAsap} sub={etaText} selected={!scheduleEnabled} onClick={() => setScheduleEnabled(false)} />
+          <CkChoice
+            title={t.ckAsap}
+            sub={closedNow ? t.ckClosedNow : etaText}
+            selected={!scheduleEnabled}
+            disabled={closedNow}
+            onClick={() => setScheduleEnabled(false)}
+          />
           <CkChoice title={t.ckScheduleLater} selected={scheduleEnabled} onClick={() => setScheduleEnabled(true)} />
         </div>
         {scheduleEnabled && (
           <div className="mt-2.5">
             <CkFields>
               <label className="relative block">
-                <span className={fieldLabelCls}>{t.scheduleForLater}</span>
+                <span className={fieldLabelCls}>{t.ckDateTime}</span>
                 <input
                   type="datetime-local"
                   value={scheduledFor}
@@ -2406,9 +2474,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 />
               </label>
             </CkFields>
+            {scheduledClosed && (
+              <p className="mt-2.5 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug" role="alert">{t.ckClosedAtTime}</p>
+            )}
           </div>
         )}
-        <button type="button" className={cn(ckCtaClass(scheduleEnabled && !scheduledFor), 'mt-[18px]')} onClick={closeSheet}>
+        <button
+          type="button"
+          className={cn(ckCtaClass((scheduleEnabled && !scheduledFor) || scheduledClosed || (!scheduleEnabled && closedNow)), 'mt-[18px]')}
+          onClick={() => { setOrderError(''); setOrderErrorAction(null); closeSheet(); }}
+        >
           {t.ckDone}
         </button>
       </CkSheet>

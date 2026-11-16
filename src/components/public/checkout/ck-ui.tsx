@@ -320,15 +320,16 @@ export function CkSheet({
 }
 
 /** Opción grande dentro de una hoja (p. ej. "Lo antes posible" / "Programar"). */
-export function CkChoice({ title, sub, selected, onClick }: { title: string; sub?: string; selected: boolean; onClick: () => void }) {
+export function CkChoice({ title, sub, selected, onClick, disabled }: { title: string; sub?: string; selected: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       role="radio"
       aria-checked={selected}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
-        'w-full grid grid-cols-[1fr_auto] items-center gap-3 p-3.5 text-left rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]',
+        'w-full grid grid-cols-[1fr_auto] items-center gap-3 p-3.5 text-left rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] disabled:opacity-50',
         selected ? 'bg-[#e2f7f3] shadow-[inset_0_0_0_1.5px_#05c8a7]' : 'bg-[#f5f5f8]',
       )}
     >

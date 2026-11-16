@@ -389,6 +389,17 @@ export interface Translations {
   ckTableSub: string;
   ckTableTitle: string;
   ckLoyalty: string;
+  ckClosedNow: string;
+  ckClosedBanner: string;
+  ckScheduleCta: string;
+  ckClosedAtTime: string;
+  ckChangeTime: string;
+  ckPaused: string;
+  ckPausedCta: string;
+  ckFixAddress: string;
+  ckReviewItems: string;
+  ckEditInMenu: string;
+  ckDateTime: string;
   // CheckoutPageClient — CTA / footer
   retryingLabel: string;
   retryingBanner: string;
@@ -814,6 +825,17 @@ const es: Translations = {
   ckTableSub: 'Pides desde tu mesa · te lo llevamos ahí',
   ckTableTitle: 'Tu mesa',
   ckLoyalty: 'Puntos de lealtad',
+  ckClosedNow: 'Cerrado ahora',
+  ckClosedBanner: '{name} está cerrado ahora. Programa tu pedido para cuando abra.',
+  ckScheduleCta: 'Programar pedido',
+  ckClosedAtTime: 'El restaurante está cerrado a esa hora. Elige otra.',
+  ckChangeTime: 'Cambiar hora',
+  ckPaused: '{name} no está tomando pedidos en este momento. Prueba en un rato.',
+  ckPausedCta: 'Pedidos en pausa',
+  ckFixAddress: 'Cambiar dirección',
+  ckReviewItems: 'Revisar pedido',
+  ckEditInMenu: 'Editar en el menú',
+  ckDateTime: 'Fecha y hora',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Reintentando…',
   retryingBanner: 'Problema de conexión — reintentando automáticamente, no salgas de esta pantalla.',
@@ -1236,6 +1258,17 @@ const en: Translations = {
   ckTableSub: 'Ordering from your table · we bring it to you',
   ckTableTitle: 'Your table',
   ckLoyalty: 'Loyalty points',
+  ckClosedNow: 'Closed now',
+  ckClosedBanner: '{name} is closed right now. Schedule your order for when it opens.',
+  ckScheduleCta: 'Schedule order',
+  ckClosedAtTime: 'The restaurant is closed at that time. Pick another.',
+  ckChangeTime: 'Change time',
+  ckPaused: "{name} isn't taking orders right now. Try again shortly.",
+  ckPausedCta: 'Orders paused',
+  ckFixAddress: 'Change address',
+  ckReviewItems: 'Review order',
+  ckEditInMenu: 'Edit in menu',
+  ckDateTime: 'Date & time',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Retrying…',
   retryingBanner: 'Connection issue — retrying automatically, please stay on this screen.',
