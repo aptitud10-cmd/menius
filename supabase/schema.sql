@@ -738,7 +738,8 @@ CREATE TABLE public.restaurants (
   wompi_public_key text,
   wompi_integrity_secret_enc text,
   wompi_events_secret_enc text,
-  wompi_connected boolean NOT NULL DEFAULT false
+  wompi_connected boolean NOT NULL DEFAULT false,
+  brand_color text
 );
 
 CREATE TABLE public.reviews (
