@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Suspense } from "react";
 import CookieConsent from "@/components/CookieConsent";
@@ -8,13 +9,20 @@ import { validateEnv } from "@/lib/env";
 import { SITE_URL, url } from "@/lib/site-url";
 
 validateEnv();
-// `subsets` only decides what is PRELOADED: next/font keeps every @font-face
-// (latin-ext included) and the browser fetches it by unicode-range the first
-// time a character needs it. Spanish and English (á é ñ ü ¿) live in "latin",
-// so preloading latin-ext too made every menu visit download ~2 extra font
-// files up front, competing with the cover photo on a 4G phone.
-const inter = Inter({
-  subsets: ["latin"],
+// Inter ESTÁTICA (un archivo por peso, @fontsource/inter 5.1.0, OFL-1.1, solo
+// "latin": español e inglés viven ahí). La variable de Google (un archivo
+// 100–900 con ejes wght+opsz) se dibujaba con un solo grosor en iPhone: todo
+// el sitio salía en 400 aunque el código pidiera semibold/bold (visto en el
+// iPhone de Pedro y reproducido en WebKit; Chrome de escritorio sí variaba,
+// por eso las capturas se veían bien). Pesos: 300 cae en 400 y 900 en 800.
+const inter = localFont({
+  src: [
+    { path: "./fonts/inter-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/inter-latin-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/inter-latin-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/inter-latin-700.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/inter-latin-800.woff2", weight: "800", style: "normal" },
+  ],
   variable: "--font-inter",
   display: "swap",
 });
