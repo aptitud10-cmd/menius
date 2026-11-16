@@ -1697,10 +1697,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const scheduleOn = scheduleEnabled && !!scheduledFor;
   // A9: el mismo chequeo de horario que hace /api/orders, para avisar ANTES de
   // que el cliente apriete el botón (antes se enteraba con un error rojo al final).
+  // Los demos (La Casa del Sabor, The Grill House) tienen horario cargado, pero
+  // sus pedidos son simulados: un prospecto que prueba de noche no debe chocar
+  // con "cerrado" ni con la pausa.
+  const isDemoRestaurant = restaurant.id.startsWith('demo');
   const opHours = restaurant.operating_hours as OperatingHours | undefined;
-  const hasHours = !!opHours && Object.keys(opHours).length > 0;
+  const hasHours = !isDemoRestaurant && !!opHours && Object.keys(opHours).length > 0;
   const restTz = restaurant.timezone || 'UTC';
-  const pausedNow = !!restaurant.orders_paused_until && new Date(restaurant.orders_paused_until) > new Date();
+  const pausedNow = !isDemoRestaurant && !!restaurant.orders_paused_until && new Date(restaurant.orders_paused_until) > new Date();
   const closedNow = hasHours && !isOpenAt(opHours as OperatingHours, inTimeZone(new Date(), restTz));
   const scheduledClosed = hasHours && scheduleOn && !Number.isNaN(new Date(scheduledFor).getTime())
     && !isOpenAt(opHours as OperatingHours, inTimeZone(new Date(scheduledFor), restTz));
