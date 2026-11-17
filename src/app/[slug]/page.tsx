@@ -170,10 +170,14 @@ export async function generateMetadata({
   const description = restaurant.description || autoDescription;
 
   const url = `${APP_URL}/${restaurant.slug}`;
-  const image =
-    restaurant.cover_image_url ||
-    restaurant.logo_url ||
-    `${APP_URL}/opengraph-image`;
+  // The shared card is generated (opengraph-image.tsx): photo + name + "Order
+  // online", always a 1200×630 JPEG-backed PNG. Before, the raw cover went out
+  // (a .webp of any size, which WhatsApp doesn't always preview). `v` changes
+  // when what the card shows changes, so WhatsApp/iMessage don't keep the old one.
+  const cardKey = [restaurant.name, restaurant.description, restaurant.cover_image_url, restaurant.logo_url].join("|");
+  let cardHash = 0;
+  for (let i = 0; i < cardKey.length; i++) cardHash = (cardHash * 31 + cardKey.charCodeAt(i)) | 0;
+  const image = `${url}/opengraph-image?v=${(cardHash >>> 0).toString(36)}`;
   const logoUrl = restaurant.logo_url ?? undefined;
 
   const availableLocales: string[] = restaurant.available_locales ?? [
