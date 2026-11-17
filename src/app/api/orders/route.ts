@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       const adminDb = createAdminClient();
       const { data: existing } = await adminDb
         .from("orders")
-        .select("id, order_number, total, status")
+        .select("id, order_number, total, status, customer_token")
         .eq("idempotency_key", idempotencyKey)
         .maybeSingle();
       if (existing) {
@@ -104,6 +104,11 @@ export async function POST(request: NextRequest) {
             order_id: existing.id,
             order_number: existing.order_number,
             total: existing.total,
+            // Mismo token que la respuesta normal: sin él, el reintento que
+            // recupera el pedido llevaba a un seguimiento recortado (sin
+            // "I'm here", mapa ni instrucciones). La key solo la tiene quien
+            // creó el pedido.
+            tracking_token: existing.customer_token ?? undefined,
             idempotent: true,
           },
           { status: 200 },

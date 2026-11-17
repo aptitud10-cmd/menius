@@ -413,11 +413,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             tip_amount: tipAmount,
           }),
         });
-        if (cancelled || !res.ok) return;
+        if (cancelled) return;
+        // Si la cotización falla, se descarta la anterior: era de otro carrito
+        // (otra cantidad, otro tipo de pedido) y el total grande y el del botón
+        // seguían mostrándola. Mejor la estimación local, que sí es de este.
+        if (!res.ok) { setServerQuote(null); return; }
         const data: CartQuoteResponse = await res.json();
         if (!cancelled) setServerQuote(data);
       } catch {
-        // Network failure — local estimate remains visible
+        // Network failure — local estimate of THIS cart, not a stale quote
+        if (!cancelled) setServerQuote(null);
       } finally {
         if (!cancelled) setQuoteLoading(false);
       }
@@ -503,6 +508,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount + (taxIncluded ? 0 : taxAmount));
   const displayTotal = serverQuote?.total ?? finalTotal;
+  // P7: con cotización del servidor, las líneas del desglose salen de ella
+  // (si un precio cambió, antes las líneas locales no sumaban el total).
+  const shownSubtotal = serverQuote?.subtotal ?? cartTotal;
+  const shownPromo = serverQuote ? serverQuote.discount_amount : promoDiscount;
+  const shownLoyalty = serverQuote ? serverQuote.loyalty_discount : loyaltyDiscount;
+  const shownDeliveryFee = serverQuote ? serverQuote.delivery_fee : deliveryFee;
+  const shownTax = serverQuote ? serverQuote.tax_amount : taxAmount;
 
   // Did the customer reach /checkout by a client-side navigation from the menu
   // (MenuShell's cart is the only in-app entry point)? Then the previous history
@@ -1816,9 +1828,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       };
 
   const miniBreakdown = [
-    `${t.subtotal} ${fmtPrice(cartTotal)}`,
-    deliveryFee > 0 ? `${t.deliveryLabel} ${fmtPrice(deliveryFee)}` : null,
-    taxAmount > 0 && !taxIncluded ? `${taxLabel} ${fmtPrice(taxAmount)}` : null,
+    `${t.subtotal} ${fmtPrice(shownSubtotal)}`,
+    shownDeliveryFee > 0 ? `${t.deliveryLabel} ${fmtPrice(shownDeliveryFee)}` : null,
+    shownTax > 0 && !taxIncluded ? `${taxLabel} ${fmtPrice(shownTax)}` : null,
     tipAmount > 0 ? `${t.tipLabel} ${fmtPrice(tipAmount)}` : null,
   ].filter(Boolean).join(' · ');
 
@@ -1905,22 +1917,22 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   const breakdown = (
     <div className="grid gap-2 px-1 pt-1.5 text-sm text-[#4f4f57] tabular-nums">
-      <div className="flex justify-between"><span>{t.subtotal}</span><span>{fmtPrice(cartTotal)}</span></div>
-      {promoDiscount > 0 && (
-        <div className="flex justify-between text-[#047a65]"><span>{t.discount}</span><span>-{fmtPrice(promoDiscount)}</span></div>
+      <div className="flex justify-between"><span>{t.subtotal}</span><span>{fmtPrice(shownSubtotal)}</span></div>
+      {shownPromo > 0 && (
+        <div className="flex justify-between text-[#047a65]"><span>{t.discount}</span><span>-{fmtPrice(shownPromo)}</span></div>
       )}
-      {loyaltyDiscount > 0 && (
-        <div className="flex justify-between text-[#047a65]"><span>{t.pointsLabel}</span><span>-{fmtPrice(loyaltyDiscount)}</span></div>
+      {shownLoyalty > 0 && (
+        <div className="flex justify-between text-[#047a65]"><span>{t.pointsLabel}</span><span>-{fmtPrice(shownLoyalty)}</span></div>
       )}
       {orderType === 'delivery' && (
-        deliveryFee > 0
-          ? <div className="flex justify-between"><span>{t.deliveryLabel}</span><span>{fmtPrice(deliveryFee)}</span></div>
+        shownDeliveryFee > 0
+          ? <div className="flex justify-between"><span>{t.deliveryLabel}</span><span>{fmtPrice(shownDeliveryFee)}</span></div>
           : <div className="flex justify-between text-[#047a65]"><span>{t.deliveryLabel}</span><span>{t.freeLabel}</span></div>
       )}
-      {taxAmount > 0 && (
+      {shownTax > 0 && (
         <div className="flex justify-between">
           <span>{taxLabel} {taxIncluded ? `(${t.includedLabel})` : `(${taxRate}%)`}</span>
-          <span>{fmtPrice(taxAmount)}</span>
+          <span>{fmtPrice(shownTax)}</span>
         </div>
       )}
       {tipAmount > 0 && (
