@@ -154,7 +154,7 @@ function payLine(ctx: CustomerEmailCtx): string {
 
 function typeLabel(ctx: CustomerEmailCtx): string {
   const en = isEn(ctx.locale);
-  if (ctx.orderType === 'delivery') return en ? 'Delivery' : 'Delivery';
+  if (ctx.orderType === 'delivery') return en ? 'Delivery' : 'A domicilio';
   if (ctx.orderType === 'dine_in') return en ? 'Dine-in' : 'En mesa';
   return en ? 'Pickup' : 'Para recoger';
 }
@@ -203,19 +203,35 @@ function button(href: string, text: string, ghost = false): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="${ghost ? 'line' : 'btn'}" style="border-radius:12px;${ghost ? '' : `background:${T.btn};`}"><a href="${esc(href)}" class="${ghost ? 'ink' : 'btnfg'}" style="${style}">${esc(text)}</a></td></tr></table>`;
 }
 
+/**
+ * The big time reads like the tracker: one line, "12:25–12:35" with a small
+ * "PM". It wrapped to "12:25 y 12:35 / p.m." in Spanish and in English where
+ * the web font doesn't load (Gmail desktop, Outlook). Subjects keep "y".
+ */
+function heroBig(big: string): string {
+  const compact = big.replace(/ y (?=\d)/, '–');
+  const m = compact.match(/^(.*?)\s?(AM|PM|a\.\s?m\.|p\.\s?m\.)$/i);
+  return m
+    ? `${m[1]}<span style="font-size:18px;font-weight:700;letter-spacing:0;padding-left:4px;">${m[2]}</span>`
+    : compact;
+}
+
 function hero(label: string, big: string, sub: string, tone: 'green' | 'ink' = 'green'): string {
   const bg = tone === 'ink' ? T.ink : T.green;
   const fg = tone === 'ink' ? T.card : T.greenInk;
+  // Dark mode: the ink hero becomes a raised dark card (heroinkbox) instead
+  // of a light block identical to the button under it.
   const cls = tone === 'ink' ? 'heroink' : '';
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="${cls}" style="background:${bg};color:${fg};border-radius:16px;padding:16px 18px;">
+  const boxCls = tone === 'ink' ? 'heroinkbox' : '';
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="${boxCls}" style="background:${bg};color:${fg};border-radius:16px;padding:16px 18px;">
 <div class="${cls}" style="font-family:${BODY};font-size:13px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${fg};opacity:0.85;">${label}</div>
-<div class="${cls}" style="font-family:${DISPLAY};font-size:40px;line-height:1.05;font-weight:800;letter-spacing:-0.8px;color:${fg};padding:2px 0;">${big}</div>
+<div class="${cls}" style="font-family:${DISPLAY};font-size:36px;line-height:1.08;font-weight:800;letter-spacing:-0.8px;color:${fg};padding:2px 0;white-space:nowrap;">${heroBig(big)}</div>
 <div class="${cls}" style="font-family:${BODY};font-size:14px;font-weight:600;color:${fg};">${sub}</div>
 </td></tr></table>`;
 }
 
 function orderNumberBlock(ctx: CustomerEmailCtx): string {
-  return `<div><span class="ink" style="font-family:${DISPLAY};font-size:30px;font-weight:800;letter-spacing:-0.3px;color:${T.ink};">#${esc(shortOrderNumber(ctx.orderNumber))}</span><span class="sub" style="font-family:${BODY};font-size:12.5px;color:${T.sub};padding-left:10px;">${esc(ctx.orderNumber)}</span></div>`;
+  return `<div><span class="ink" style="font-family:${DISPLAY};font-size:30px;font-weight:800;letter-spacing:-0.3px;color:${T.ink};">#${esc(shortOrderNumber(ctx.orderNumber))}</span></div>`;
 }
 
 function itemsBlock(ctx: CustomerEmailCtx): string {
@@ -340,7 +356,8 @@ a{text-decoration:none}
   .btnfg{background:#F1F4F2 !important;color:#0E1412 !important}
   .lnk{color:#5BE3C9 !important}
   .pillred{background:#3A1717 !important;color:#FF9B91 !important}
-  .heroink{background:#F1F4F2 !important;color:#161B19 !important}
+  .heroinkbox{background:#1D2421 !important;border:1px solid #2A322F !important}
+  .heroink{color:#F1F4F2 !important}
   .mono{background:#F1F4F2 !important;color:#0E1412 !important}
 }
 [data-ogsc] .ink{color:#F1F4F2 !important}
@@ -431,7 +448,9 @@ export function buildEtaEmail(ctx: CustomerEmailCtx, opts: { readyAtMs?: number 
   const heroSub = opts.isUpdate
     ? (en ? 'The kitchen needs a few more minutes. Sorry for the wait.' : 'La cocina necesita unos minutos más. Perdón por la espera.')
     : (en ? "We're making your order now." : 'Ya estamos preparando tu pedido.');
-  const preheader = `${opts.isUpdate ? '' : (en ? "We're making it now · " : 'Ya lo estamos preparando · ')}${itemsTxt} · ${total}`;
+  const preheader = opts.isUpdate
+    ? (en ? 'Sorry for the wait · here is the new time' : 'Perdón por la espera · aquí está la nueva hora')
+    : `${en ? "We're making it now · " : 'Ya lo estamos preparando · '}${itemsTxt} · ${total}`;
   const place = placeLine(ctx);
   const blocks = [
     hero(esc(label), esc(big), esc(heroSub)),
@@ -517,7 +536,7 @@ export function buildCancelledEmail(ctx: CustomerEmailCtx, opts: { reason?: stri
     ? (en ? `${total} back to your card in 5–10 business days` : `${total} vuelven a tu tarjeta en 5 a 10 días hábiles`)
     : opts.refundPending
       ? (en ? `The restaurant will refund your ${total}` : `El restaurante te devolverá ${total}`)
-      : (en ? 'Call the restaurant if you have questions' : 'Llama al restaurante si tienes dudas');
+      : (en ? "You weren't charged · You can order again anytime" : 'No se te cobró nada · Puedes volver a pedir cuando quieras');
   const reason = (opts.reason ?? '').trim();
   // Motivos del sistema: nunca se muestran como "Motivo del restaurante".
   const notAccepted = reason === 'not_accepted';
@@ -530,8 +549,9 @@ export function buildCancelledEmail(ctx: CustomerEmailCtx, opts: { reason?: stri
       : opts.refundPending
         ? infoBlock([{ k: en ? 'Refund' : 'Reembolso', v: en ? `The restaurant will refund your <b>${esc(total)}</b>` : `El restaurante te devolverá <b>${esc(total)}</b>` }, { v: en ? 'If it hasn’t arrived in a few days, call them.' : 'Si no te llega en unos días, llámalo.' }])
         : '',
-    ctx.restaurant.phone ? button(telHref(ctx.restaurant.phone), en ? `Call ${ctx.restaurant.name}` : `Llamar a ${ctx.restaurant.name}`) : '',
-    button(ctx.menuUrl, en ? 'Order something else' : 'Pedir otra cosa', true),
+    // Ordering again is the way forward; calling is for questions.
+    button(ctx.menuUrl, en ? 'Order again' : 'Volver a pedir'),
+    ctx.restaurant.phone ? button(telHref(ctx.restaurant.phone), en ? `Call ${ctx.restaurant.name}` : `Llamar a ${ctx.restaurant.name}`, true) : '',
   ];
   return { subject, preheader, html: layout(ctx, { preheader, title: subject, blocks }) };
 }
