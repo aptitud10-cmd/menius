@@ -20,7 +20,7 @@
  *   - updateOrderStatus() in restaurant.ts
  *   - driver/status route (picked_up, at_door, delivered)
  *   - driver/location route (GPS coordinates — triggers map refresh)
- *   - cron/auto-complete-pickup
+ *   - cron/order-timeouts
  */
 import { createLogger } from '@/lib/logger';
 import { liveLocationTopic } from './live-topic';

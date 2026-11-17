@@ -41,6 +41,7 @@ function mock(state: string, type: string) {
     delivered: { status: 'delivered', driver_name: 'Carlos', driver_picked_up_at: ago(8), driver_at_door_at: ago(5), driver_delivered_at: ago(4), updated_at: ago(4) },
     picked_up: { status: 'delivered', updated_at: ago(2) },
     cancelled: { status: 'cancelled', updated_at: ago(2) },
+    not_accepted: { status: 'cancelled', updated_at: ago(1), not_accepted: true },
     scheduled: { status: 'pending', scheduled_for: new Date(Date.now() + 3 * 3600_000).toISOString(), prepared_at: null },
     unpaid: { status: 'pending', payment_method: 'online', payment_status: 'pending', prepared_at: null, estimated_ready_minutes: null },
     refunded: { status: 'cancelled', payment_method: 'online', payment_status: 'refunded' },

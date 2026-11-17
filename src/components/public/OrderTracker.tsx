@@ -16,6 +16,7 @@ import ShareReceiptButton from './ShareReceiptButton';
 import { trackerBrand } from '@/lib/tracker-brand';
 import { formatPhoneNumber, formatPhoneNumberIntl } from 'react-phone-number-input';
 import { DM_Mono } from 'next/font/google';
+import { NOT_ACCEPTED_MINS } from '@/lib/orders/order-timeouts';
 
 // Segundo registro del seguimiento: datos "de máquina" (n.º de pedido, horas de
 // los pasos, "Actualizado hace…"). Fuente cargada, no la del sistema: en Windows
@@ -591,6 +592,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const awaitingPayment = isAwaitingOnlinePayment(o);
   const refunded = isCancelled && o.payment_status === 'refunded';
   const autoClosed = Boolean(o.auto_closed);
+  const notAccepted = isCancelled && Boolean(o.not_accepted);
   const shortNum = String(o.order_number ?? '').split('-').pop();
   const driverName = String(o.driver_name ?? '').trim().split(' ')[0] || null;
   const customerFirst = String(o.customer_name ?? '').trim().split(' ')[0] || null;
@@ -737,6 +739,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const acceptedAt = Number.isFinite(acceptedMs) ? fmtClock(acceptedMs) : null;
   const doorMs = tsMs(o.driver_at_door_at);
   const [headline, lead] = ((): [string, string] => {
+    if (notAccepted) return [en ? "It wasn't confirmed in time" : 'No lo confirmaron a tiempo', en
+      ? `${R} didn't accept your order within ${NOT_ACCEPTED_MINS} minutes, so we cancelled it.`
+      : `${R} no aceptó tu pedido en ${NOT_ACCEPTED_MINS} minutos, así que lo cancelamos.`];
     if (isCancelled) return [en ? 'Order cancelled' : 'Pedido cancelado', en ? `${R} couldn't take it this time.` : `${R} no pudo tomarlo esta vez.`];
     if (isComplete) {
       if (autoClosed) return [en ? 'Order closed' : 'Pedido cerrado', ''];

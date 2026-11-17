@@ -1990,7 +1990,7 @@ export async function updateOrderStatus(
   } else if (status === "cancelled" && cancellationReason) {
     updatePayload.cancellation_reason = cancellationReason;
   }
-  // Record when the order entered 'preparing' so cron/auto-complete-pickup
+  // Record when the order entered 'preparing' so cron/order-timeouts
   // measures elapsed time independently of other row updates (ETA edits, etc.)
   if (status === "preparing") {
     updatePayload.prepared_at = new Date().toISOString();
