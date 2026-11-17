@@ -273,6 +273,7 @@ export interface Translations {
   seeOnGoogleMaps: string;
   closeSearch: string;
   clearSearch: string;
+  searching: string;
   clearFilters: string;
   continueOrderItems: string;
   ordersPaused: string;
@@ -725,6 +726,7 @@ const es: Translations = {
   seeOnGoogleMaps: 'Ver en Google Maps',
   closeSearch: 'Cerrar búsqueda',
   clearSearch: 'Borrar búsqueda',
+  searching: 'Buscando…',
   clearFilters: 'Limpiar filtros',
   continueOrderItems: 'Continúa tu pedido ({n} items)',
   ordersPaused: 'Los pedidos están temporalmente pausados',
@@ -1175,6 +1177,7 @@ const en: Translations = {
   seeOnGoogleMaps: 'See on Google Maps',
   closeSearch: 'Close search',
   clearSearch: 'Clear search',
+  searching: 'Searching…',
   clearFilters: 'Clear filters',
   continueOrderItems: 'Continue your order ({n} items)',
   ordersPaused: 'Orders are temporarily paused',

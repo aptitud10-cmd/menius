@@ -18,6 +18,7 @@ import {
   AlertCircle,
   AlignJustify,
   Sparkles,
+  SearchX,
 } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
@@ -1872,6 +1873,131 @@ export function MenuShell({
     [products, categories],
   );
 
+  // Section under each search result ("Burgers · 7 oz."): a flat list of
+  // names didn't say where a dish lives.
+  const categoryNameById = useMemo(
+    () => new Map(categories.map((c) => [c.id, tName(c, locale, defaultLocale)])),
+    [categories, locale, defaultLocale],
+  );
+  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Desktop: searching from far down the page left the results (and their
+  // count) above the fold, with the footer on screen. When results appear,
+  // bring their top into view once.
+  const searchResultsTopRef = useRef<HTMLDivElement | null>(null);
+  const searchShown = searchResults !== null;
+  useEffect(() => {
+    if (!searchShown || window.innerWidth < 1024) return;
+    const main = mainRef.current;
+    const el = searchResultsTopRef.current;
+    if (!main || !el) return;
+    const top = el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop - 24;
+    if (main.scrollTop > top) main.scrollTo({ top: Math.max(0, top) });
+  }, [searchShown]);
+
+  const renderSearchRow = (product: Product) => {
+    const unavailable = product.in_stock === false;
+    const section = categoryNameById.get(product.category_id);
+    const desc = tDesc(product, locale, defaultLocale);
+    return (
+      <button
+        key={product.id}
+        type="button"
+        onClick={() => openProductFromSearch(product)}
+        className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+      >
+        {!showsAsRow(product) && product.image_url && (
+          <div
+            className={cn(
+              "relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0",
+              unavailable && "opacity-50",
+            )}
+          >
+            <Image
+              src={product.image_url}
+              alt=""
+              fill
+              sizes="56px"
+              loader={
+                product.image_url.includes(".supabase.co/storage/")
+                  ? supabaseLoader
+                  : undefined
+              }
+              className="object-cover"
+            />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p
+            className={cn(
+              "text-[15px] font-semibold truncate",
+              unavailable ? "text-gray-600" : "text-gray-900",
+            )}
+          >
+            {tName(product, locale, defaultLocale)}
+          </p>
+          <p
+            className={cn(
+              "text-[13px] truncate mt-0.5",
+              unavailable ? "font-medium text-gray-700" : "text-gray-600",
+            )}
+          >
+            {unavailable
+              ? (product.unavailable_note ?? t.soldOut)
+              : [section, desc].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "text-[15px] font-semibold tabular-nums flex-shrink-0",
+            unavailable ? "text-gray-600" : "text-gray-900",
+          )}
+        >
+          {fmtPrice(Number(product.price))}
+        </span>
+      </button>
+    );
+  };
+
+  // A way out of an empty field and of "no results": real dishes with photos,
+  // not tips (Baymard: no-results pages that only give advice are dead ends).
+  const renderPopularForSearch = () => {
+    const list = popularProducts.slice(0, 5);
+    if (list.length === 0) return null;
+    return (
+      <section aria-label={t.popularItems}>
+        <h3 className="px-2 mb-1 text-[13px] font-semibold text-gray-600 uppercase tracking-wide">
+          {t.popularItems}
+        </h3>
+        {list.map(renderSearchRow)}
+      </section>
+    );
+  };
+
+  const renderNoSearchResults = (onClear: () => void) => (
+    <div>
+      <div className="pt-8 pb-8 text-center">
+        <SearchX
+          className="w-10 h-10 mx-auto text-gray-500"
+          strokeWidth={1.5}
+          aria-hidden="true"
+        />
+        <p className="mt-3 text-[17px] font-semibold text-gray-900">
+          {t.noResults}
+        </p>
+        <p className="mt-1 text-[14px] text-gray-600">{t.tryDifferentSearch}</p>
+        <button
+          type="button"
+          onClick={onClear}
+          className="mt-5 h-11 px-5 rounded-full border border-gray-300 text-[14px] font-semibold text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+        >
+          {t.clearSearch}
+        </button>
+      </div>
+      {renderPopularForSearch()}
+    </div>
+  );
+
   // Scroll-spy: disabled for large-catalog mode (one-category-at-a-time, no scroll needed)
   useEffect(() => {
     const main = mainRef.current;
@@ -1967,7 +2093,13 @@ export function MenuShell({
 
       if (e.key === "/" || (e.key === "k" && (e.metaKey || e.ctrlKey))) {
         e.preventDefault();
-        setShowSearch(true);
+        // Desktop has no overlay: the field lives in the header.
+        const desktopInput =
+          window.innerWidth >= 1024
+            ? document.getElementById("menu-search-desktop")
+            : null;
+        if (desktopInput) desktopInput.focus();
+        else setShowSearch(true);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -2758,7 +2890,7 @@ export function MenuShell({
               <CategorySidebar
                 categories={sidebarCats}
                 products={products}
-                activeCategory={menuSheetActiveId}
+                activeCategory={searchQuery.trim() ? null : menuSheetActiveId}
                 onSelect={(id) => id && handleMenuSheetSelect(id)}
                 allLabel={t.allCategories}
                 locale={locale}
@@ -2905,7 +3037,7 @@ export function MenuShell({
                         )}
                       </div>
                       {(restaurant.address || restaurant.operating_hours) && (
-                        <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
+                        <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
                           {restaurant.address && (
                             <span className="inline-flex items-center gap-1.5">
                               <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
@@ -2947,12 +3079,15 @@ export function MenuShell({
                   )}
 
                   {searchResults !== null ? (
-                    <div>
+                    <div ref={searchResultsTopRef}>
                       <motion.p
                         key={searchResults.length}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-sm text-gray-500 mb-4"
+                        className={cn(
+                          "text-sm text-gray-600 mb-4",
+                          searchResults.length === 0 && "hidden",
+                        )}
                       >
                         {searchResults.length}{" "}
                         {searchResults.length === 1
@@ -2960,58 +3095,9 @@ export function MenuShell({
                           : t.resultPlural}
                       </motion.p>
                       {searchResults.length === 0 ? (
-                        <motion.div
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.35 }}
-                          className="text-center py-20 text-gray-400 flex flex-col items-center gap-4"
-                        >
-                          <motion.svg
-                            width="64"
-                            height="64"
-                            viewBox="0 0 64 64"
-                            fill="none"
-                            aria-hidden="true"
-                            initial={{ scale: 0.7, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{
-                              type: "spring",
-                              stiffness: 260,
-                              damping: 20,
-                              delay: 0.1,
-                            }}
-                          >
-                            <circle
-                              cx="28"
-                              cy="28"
-                              r="18"
-                              stroke="#d1d5db"
-                              strokeWidth="3"
-                              fill="none"
-                            />
-                            <path
-                              d="M41 41L52 52"
-                              stroke="#d1d5db"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                            />
-                            <path
-                              d="M22 28h12M28 22v12"
-                              stroke="#d1d5db"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              opacity="0.4"
-                            />
-                          </motion.svg>
-                          <div>
-                            <p className="font-bold text-gray-700">
-                              {t.noResults}
-                            </p>
-                            <p className="text-sm text-gray-400 mt-1 leading-relaxed max-w-[180px] mx-auto">
-                              {t.tryDifferentKeyword}
-                            </p>
-                          </div>
-                        </motion.div>
+                        <div className="max-w-xl mx-auto">
+                          {renderNoSearchResults(() => setSearchQuery(""))}
+                        </div>
                       ) : (
                         <>
                           {/* Cards then rows, same as the category sections, but
@@ -4277,222 +4363,128 @@ export function MenuShell({
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              <div
-                className="flex items-center gap-3 px-4 py-3 border-b border-gray-100"
-                role="search"
-              >
-                <button
-                  onClick={() => {
-                    setShowSearch(false);
-                    setSearchQuery("");
-                  }}
-                  aria-label={t.closeSearch}
-                  className="p-1.5 -ml-1 rounded-lg active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-                >
-                  <ArrowLeft
-                    className="w-5 h-5 text-gray-600"
-                    aria-hidden="true"
-                  />
-                </button>
-                <div className="relative flex-1">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                    aria-hidden="true"
-                  />
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t.searchPlaceholder}
-                    aria-label={t.searchPlaceholder}
-                    className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[16px] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder-gray-400"
-                    autoFocus
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      aria-label={t.clearSearch}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] rounded"
-                    >
-                      <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                    </button>
-                  )}
+              <div className="border-b border-gray-100" role="search">
+                <div className="max-w-[640px] mx-auto flex items-center gap-1 px-2 py-2">
+                  <button
+                    onClick={() => {
+                      setShowSearch(false);
+                      setSearchQuery("");
+                    }}
+                    aria-label={t.closeSearch}
+                    className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                  >
+                    <ArrowLeft
+                      className="w-5 h-5 text-gray-800"
+                      aria-hidden="true"
+                    />
+                  </button>
+                  <div className="relative flex-1">
+                    <Search
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600"
+                      aria-hidden="true"
+                    />
+                    <input
+                      ref={mobileSearchInputRef}
+                      type="search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={t.searchPlaceholder}
+                      aria-label={t.searchPlaceholder}
+                      className="w-full h-11 pl-9 pr-11 rounded-xl bg-gray-50 border border-gray-200 text-[16px] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder:text-gray-600 [&::-webkit-search-cancel-button]:hidden"
+                      autoFocus
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => {
+                          setSearchQuery("");
+                          mobileSearchInputRef.current?.focus();
+                        }}
+                        aria-label={t.clearSearch}
+                        className="absolute right-0 top-0 w-11 h-11 flex items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                      >
+                        <X className="w-4 h-4 text-gray-600" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-4 py-3">
-                {!searchQuery.trim() ? (
-                  <div className="pt-1">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                      {t.searchSuggestions}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {searchSuggestions.map((cat) => (
-                        <button
-                          key={cat.id}
-                          onClick={() => {
-                            setShowSearch(false);
-                            setSearchQuery("");
-                            setActiveCatFilter(cat.id);
-                            setActiveCategory(cat.id);
-                          }}
-                          className="px-3.5 py-2 rounded-full border border-gray-200 text-sm text-gray-700 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-                        >
-                          {tName(cat, locale, defaultLocale)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : searchResults && searchResults.length > 0 ? (
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                      {searchResults.length}{" "}
-                      {searchResults.length === 1
-                        ? t.resultSingular
-                        : t.resultPlural}
-                    </p>
-                    {searchResults.map((product) => (
-                      <button
-                        key={product.id}
-                        onClick={() => openProductFromSearch(product)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
-                      >
-                        {!showsAsRow(product) && product.image_url && (
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                            <Image
-                              src={product.image_url}
-                              alt={product.name}
-                              fill
-                              sizes="48px"
-                              loader={
-                                product.image_url.includes(
-                                  ".supabase.co/storage/",
-                                )
-                                  ? supabaseLoader
-                                  : undefined
-                              }
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[15px] font-semibold text-gray-900 truncate">
-                            {tName(product, locale, defaultLocale)}
-                          </p>
-                          {product.in_stock === false ? (
-                            <p className="text-[13px] font-medium text-gray-700 truncate mt-0.5">
-                              {product.unavailable_note ?? t.soldOut}
-                            </p>
-                          ) : tDesc(product, locale, defaultLocale) ? (
-                            <p className="text-[13px] text-gray-600 truncate mt-0.5">
-                              {tDesc(product, locale, defaultLocale)}
-                            </p>
-                          ) : null}
+              <div className="flex-1 overflow-y-auto">
+                <div className="max-w-[640px] mx-auto px-2 py-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                  {!searchQuery.trim() ? (
+                    <div className="space-y-6 pt-1">
+                      {renderPopularForSearch()}
+                      <section>
+                        <h3 className="px-2 mb-3 text-[13px] font-semibold text-gray-600 uppercase tracking-wide">
+                          {t.searchSuggestions}
+                        </h3>
+                        <div className="flex flex-wrap gap-2 px-2">
+                          {searchSuggestions.map((cat) => (
+                            <button
+                              key={cat.id}
+                              onClick={() => {
+                                setShowSearch(false);
+                                setSearchQuery("");
+                                setActiveCatFilter(cat.id);
+                                setActiveCategory(cat.id);
+                              }}
+                              className="h-10 px-4 rounded-full border border-gray-200 text-[14px] text-gray-800 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                            >
+                              {tName(cat, locale, defaultLocale)}
+                            </button>
+                          ))}
                         </div>
-                        <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
-                          {fmtPrice(Number(product.price))}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : naturalSearch.active ? (
-                  /* El motor léxico no encontró nada, pero la interpretación de
-                     la frase sí. Se marca como sugerencia, no como coincidencia
-                     exacta, para que el comensal entienda por qué ve esto. */
-                  <div className="space-y-1">
-                    <div className="mb-3 flex items-start gap-2">
-                      <Sparkles
-                        className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5"
+                      </section>
+                    </div>
+                  ) : searchResults && searchResults.length > 0 ? (
+                    <div>
+                      <p className="px-2 mb-1 text-[13px] font-semibold text-gray-600 uppercase tracking-wide">
+                        {searchResults.length}{" "}
+                        {searchResults.length === 1
+                          ? t.resultSingular
+                          : t.resultPlural}
+                      </p>
+                      {searchResults.map(renderSearchRow)}
+                    </div>
+                  ) : naturalSearch.active ? (
+                    /* El motor léxico no encontró nada, pero la interpretación de
+                       la frase sí. Se marca como sugerencia, no como coincidencia
+                       exacta, para que el comensal entienda por qué ve esto. */
+                    <div>
+                      <div className="mb-2 px-2 flex items-start gap-2">
+                        <Sparkles
+                          className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5"
+                          aria-hidden="true"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 leading-snug">
+                            {naturalSearch.reply ?? t.searchSuggestions}
+                          </p>
+                          <p className="text-[13px] text-gray-600 mt-0.5">
+                            {naturalSearch.results.length}{" "}
+                            {naturalSearch.results.length === 1
+                              ? t.resultSingular
+                              : t.resultPlural}
+                          </p>
+                        </div>
+                      </div>
+                      {naturalSearch.results.slice(0, 20).map(renderSearchRow)}
+                    </div>
+                  ) : naturalSearch.loading ? (
+                    <div className="pt-12 flex flex-col items-center text-center" role="status">
+                      <span
+                        className="w-6 h-6 rounded-full border-2 border-gray-300 border-t-[#05c8a7] animate-spin"
                         aria-hidden="true"
                       />
-                      <div className="min-w-0">
-                        {/* Sin uppercase: es una oración, no una etiqueta. En
-                            mayúsculas una frase entera se lee como grito. */}
-                        <p className="text-sm font-semibold text-gray-900 leading-snug">
-                          {naturalSearch.reply ?? t.searchSuggestions}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {naturalSearch.results.length}{" "}
-                          {naturalSearch.results.length === 1
-                            ? t.resultSingular
-                            : t.resultPlural}
-                        </p>
-                      </div>
+                      <p className="mt-3 text-[14px] text-gray-600">{t.searching}</p>
                     </div>
-                    {naturalSearch.results.slice(0, 20).map((product) => (
-                      <button
-                        key={product.id}
-                        onClick={() => openProductFromSearch(product)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
-                      >
-                        {!showsAsRow(product) && product.image_url && (
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                            <Image
-                              src={product.image_url}
-                              alt={product.name}
-                              fill
-                              sizes="48px"
-                              loader={
-                                product.image_url.includes(".supabase.co/storage/")
-                                  ? supabaseLoader
-                                  : undefined
-                              }
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[15px] font-semibold text-gray-900 truncate">
-                            {tName(product, locale, defaultLocale)}
-                          </p>
-                          {product.in_stock === false ? (
-                            <p className="text-[13px] font-medium text-gray-700 truncate mt-0.5">
-                              {product.unavailable_note ?? t.soldOut}
-                            </p>
-                          ) : tDesc(product, locale, defaultLocale) ? (
-                            <p className="text-[13px] text-gray-600 truncate mt-0.5">
-                              {tDesc(product, locale, defaultLocale)}
-                            </p>
-                          ) : null}
-                        </div>
-                        <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
-                          {fmtPrice(Number(product.price))}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : naturalSearch.loading ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center px-8 py-12">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                      <span className="w-6 h-6 rounded-full border-2 border-gray-300 border-t-[#05c8a7] animate-spin" aria-hidden="true" />
-                    </div>
-                    <p className="text-sm text-gray-400">{t.searchPlaceholder}</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center px-8 py-12">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                      <span className="text-3xl select-none" aria-hidden="true">
-                        🔍
-                      </span>
-                    </div>
-                    <p className="text-base font-bold text-gray-900 mb-1">
-                      {t.noResults}
-                    </p>
-                    <p className="text-sm text-gray-400 leading-relaxed max-w-[200px]">
-                      {t.tryDifferentSearch}
-                    </p>
-                    <button
-                      onClick={() => {
-                        setSearchQuery("");
-                        setActiveDiet(null);
-                        setShowFavs(false);
-                      }}
-                      className="mt-5 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold active:scale-95 transition-transform"
-                    >
-                      {t.clearFilters}
-                    </button>
-                  </div>
-                )}
+                  ) : (
+                    renderNoSearchResults(() => {
+                      setSearchQuery("");
+                      mobileSearchInputRef.current?.focus();
+                    })
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
