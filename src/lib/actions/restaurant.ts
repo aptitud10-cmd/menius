@@ -395,6 +395,11 @@ export async function updateCategory(id: string, data: CategoryInput) {
     payload.available_to = data.available_to || null;
   if (data.send_to_kitchen !== undefined)
     payload.send_to_kitchen = data.send_to_kitchen;
+  if (data.display_mode !== undefined) {
+    if (data.display_mode !== null && data.display_mode !== "grid" && data.display_mode !== "list")
+      return { error: "Formato inválido" };
+    payload.display_mode = data.display_mode;
+  }
 
   const { error } = await supabase
     .from("categories")

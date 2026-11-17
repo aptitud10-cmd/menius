@@ -3,9 +3,10 @@
 import { memo, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
+import { Plus, Check, UtensilsCrossed, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { showsPopularityBadge } from '@/lib/social-proof';
+import { SHOW_FAVORITES } from '@/lib/menu-ui';
 import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -106,9 +107,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
         // borde de CADA card de la sección hacía que el ámbar compitiera con la
         // foto —que es lo que vende— y perdiera valor de señal. Solo el #1
         // conserva una marca, y sutil.
-        !outOfStock && showsPopularityBadge(product) && product.popularity_rank === 1
-          ? 'border border-amber-300 shadow-[0_2px_14px_rgba(245,158,11,0.14)]'
-          : 'border border-ink-100',
+        'border border-ink-100',
         outOfStock
           ? 'opacity-75'
           : 'cursor-pointer hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)] hover:-translate-y-1 active:scale-[0.98]'
@@ -145,14 +144,13 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           {!outOfStock && (() => {
             const rank = showsPopularityBadge(product) ? product.popularity_rank : null;
-            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ {t.popularityTop1}</span>;
-            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 Top {rank}</span>;
-            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
+            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">{t.popularityTop1}</span>;
+            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">Top {rank}</span>;
+            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">{t.productNew}</span>;
             return null;
           })()}
           {!outOfStock && showDineInOnly && (
-            <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100/95 border border-amber-300 text-amber-950 text-[10px] font-bold shadow-sm backdrop-blur-sm">
-              <span aria-hidden>🍷</span>
+            <span className="absolute bottom-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">
               {t.dineInOnlyBadge}
             </span>
           )}
@@ -166,14 +164,14 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               {cartQty}
             </motion.span>
           )}
-          <button
+          {SHOW_FAVORITES && <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
             className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
             aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
             aria-pressed={isFav}
           >
             <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-ink-400 group-hover:text-ink-500')} />
-          </button>
+          </button>}
         </div>
       ) : (
         <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-ink-50 to-ink-100 flex items-center justify-center overflow-hidden">
@@ -185,14 +183,13 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           {!outOfStock && (() => {
             const rank = showsPopularityBadge(product) ? product.popularity_rank : null;
-            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ {t.popularityTop1}</span>;
-            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 Top {rank}</span>;
-            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
+            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">{t.popularityTop1}</span>;
+            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">Top {rank}</span>;
+            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">{t.productNew}</span>;
             return null;
           })()}
           {!outOfStock && showDineInOnly && (
-            <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100/95 border border-amber-300 text-amber-950 text-[10px] font-bold shadow-sm backdrop-blur-sm">
-              <span aria-hidden>🍷</span>
+            <span className="absolute bottom-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">
               {t.dineInOnlyBadge}
             </span>
           )}
@@ -206,14 +203,14 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               {cartQty}
             </motion.span>
           )}
-          <button
+          {SHOW_FAVORITES && <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
             className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
             aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
             aria-pressed={isFav}
           >
             <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-ink-400 group-hover:text-ink-500')} />
-          </button>
+          </button>}
         </div>
       )}
 
@@ -222,7 +219,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           {displayName}
         </h3>
         {displayDesc && (
-          <p className="text-sm text-ink-500 line-clamp-2 mt-1.5 leading-relaxed">{displayDesc}</p>
+          <p className="text-sm text-ink-600 line-clamp-2 mt-1.5 leading-relaxed">{displayDesc}</p>
         )}
         {(product.dietary_tags?.length ?? 0) > 0 && (
           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -241,12 +238,10 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
 
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-ink-100">
           <div className="flex flex-col gap-0.5">
-            {hasModifiers && !outOfStock && (
-              <span className="text-[10px] font-semibold text-ink-400 uppercase tracking-wide leading-none">{t.fromPrice}</span>
-            )}
             <div className="flex items-baseline gap-1.5">
               <span className={cn('text-base font-bold tabular-nums', outOfStock ? 'text-ink-300 line-through' : 'text-ink-900')}>
                 {fmtPrice(Number(product.price))}
+                {hasModifiers && !outOfStock ? '+' : ''}
               </span>
               {!outOfStock && product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price) && (
                 <span className="text-xs text-ink-400 line-through tabular-nums">
@@ -259,15 +254,10 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               product.unavailable_note ? (
                 <span className="text-xs text-ink-500 font-semibold">{labelSoldOut}</span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-xs text-red-500 font-semibold">
+                <span className="inline-flex items-center gap-1 text-xs text-ink-700 font-semibold">
                   <Ban className="w-3 h-3" /> {labelSoldOut}
                 </span>
               )
-            ) : hasModifiers ? (
-              <span className="inline-flex items-center gap-0.5 text-xs text-[#047a65] font-medium">
-                {customizeLabel}
-                <ChevronRight className="w-3 h-3" />
-              </span>
             ) : null}
           </div>
           {outOfStock ? (

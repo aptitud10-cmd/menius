@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical, Languages, X, Camera, ImageIcon, Clock, ChefHat, Store } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical, Languages, X, Camera, ImageIcon, Clock, ChefHat, Store, LayoutGrid, List, Wand2 } from 'lucide-react';
 import Image from 'next/image';
 import {
   DndContext,
@@ -39,6 +39,7 @@ function SortableCategoryRow({
   hasMultiLang,
   onToggle,
   onToggleKitchen,
+  onCycleDisplay,
   onEdit,
   onDelete,
   onTranslate,
@@ -48,6 +49,7 @@ function SortableCategoryRow({
   hasMultiLang: boolean;
   onToggle: () => void;
   onToggleKitchen: () => void;
+  onCycleDisplay: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onTranslate: () => void;
@@ -132,6 +134,26 @@ function SortableCategoryRow({
           {cat.send_to_kitchen === false
             ? <><Store className="w-3 h-3" />{locale === 'en' ? 'Counter' : 'Mostrador'}</>
             : <><ChefHat className="w-3 h-3" />{locale === 'en' ? 'Kitchen' : 'Cocina'}</>}
+        </button>
+        {/* Formato en el teléfono: Auto (grilla en menús chicos, lista en
+            catálogos grandes) → Grilla → Lista. Tablet y desktop siempre grilla. */}
+        <button
+          onClick={onCycleDisplay}
+          className={cn(
+            'inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-semibold border transition-colors flex-shrink-0',
+            cat.display_mode
+              ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+              : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100',
+          )}
+          title={locale === 'en'
+            ? 'How this category looks on phones. Grid = big photos, for dishes chosen by how they look (desserts). List = small photo, for dishes that look alike (burgers). Auto = grid on small menus, list on large ones. Tap to change.'
+            : 'Cómo se ve esta categoría en el teléfono. Grilla = fotos grandes, para platos que se eligen por la foto (postres). Lista = foto chica, para platos que se parecen (hamburguesas). Auto = grilla en menús chicos, lista en grandes. Tocá para cambiar.'}
+        >
+          {cat.display_mode === 'grid'
+            ? <><LayoutGrid className="w-3 h-3" />{locale === 'en' ? 'Grid' : 'Grilla'}</>
+            : cat.display_mode === 'list'
+              ? <><List className="w-3 h-3" />{locale === 'en' ? 'List' : 'Lista'}</>
+              : <><Wand2 className="w-3 h-3" />Auto</>}
         </button>
       </div>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -243,6 +265,16 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
     startTransition(async () => {
       const res = await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, send_to_kitchen: next });
       if (res?.error) setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, send_to_kitchen: !next } : c));
+    });
+  };
+
+  const handleCycleDisplay = (cat: Category) => {
+    const prev = cat.display_mode ?? null;
+    const next = prev === null ? 'grid' : prev === 'grid' ? 'list' : null;
+    setCategories((all) => all.map((c) => c.id === cat.id ? { ...c, display_mode: next } : c));
+    startTransition(async () => {
+      const res = await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, display_mode: next });
+      if (res?.error) setCategories((all) => all.map((c) => c.id === cat.id ? { ...c, display_mode: prev } : c));
     });
   };
 
@@ -372,6 +404,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
                   hasMultiLang={hasMultiLang}
                   onToggle={() => handleToggle(cat)}
                   onToggleKitchen={() => handleToggleKitchen(cat)}
+                  onCycleDisplay={() => handleCycleDisplay(cat)}
                   onEdit={() => handleEdit(cat)}
                   onDelete={() => handleDelete(cat.id)}
                   onTranslate={() => setTranslatingCat(cat)}

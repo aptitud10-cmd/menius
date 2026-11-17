@@ -26,6 +26,8 @@ import { useCartStore } from "@/store/cartStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { formatPrice, cn } from "@/lib/utils";
 import { hasRealPopularity } from "@/lib/social-proof";
+import { SHOW_FAVORITES } from "@/lib/menu-ui";
+import { ProductListItem } from "./ProductListItem";
 import { getTranslations, type Locale } from "@/lib/translations";
 import type {
   Restaurant,
@@ -423,23 +425,29 @@ export function MenuShell({
   const bannerVisibleRef = useRef(true);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
-  // Initialize synchronously from window so desktop users never see the mobile flash.
-  // The SSR/hydration mismatch risk is acceptable here: isDesktopView only affects JS
-  // scroll-logic, not JSX layout (layout is controlled by Tailwind `lg:` CSS classes).
-  const [isDesktopView, setIsDesktopView] = useState(
-    () => typeof window !== "undefined" && window.innerWidth >= 1024,
-  );
+  // Start false and measure after mount (the effect below). Reading window in the
+  // initializer was harmless while the menu rendered client-side only; since the
+  // menu is server-rendered (2026-11-16) it made the first desktop render differ
+  // from the server HTML (motion props, and lightMobileProductGrid swaps <div>
+  // for <motion.div>) — a hydration mismatch. Layout itself is Tailwind `lg:`.
+  const [isDesktopView, setIsDesktopView] = useState(false);
   // xl (≥1280) shows the cart as a persistent column and hides the cart sheet
   // (xl:hidden). Tracked so back-to-close never pushes a history entry for an
   // overlay that isn't on screen — back would then "close" something invisible.
-  const [isXlView, setIsXlView] = useState(
-    () => typeof window !== "undefined" && window.innerWidth >= 1280,
-  );
+  const [isXlView, setIsXlView] = useState(false);
+  // md (≥768): categories marked "list" switch back to the grid — the list exists
+  // for phone density, which a 3-column tablet grid doesn't have. Starts false
+  // and is set after mount (not in the initializer): SSR renders the phone
+  // layout, and an initializer reading window would make the first client
+  // render differ from the server HTML on tablets.
+  const [isTabletUp, setIsTabletUp] = useState(false);
   useEffect(() => {
     const check = () => {
       setIsDesktopView(window.innerWidth >= 1024);
       setIsXlView(window.innerWidth >= 1280);
+      setIsTabletUp(window.innerWidth >= 768);
     };
+    check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
@@ -1992,16 +2000,11 @@ export function MenuShell({
       style={{ touchAction: "manipulation" }}
       className={cn(
         "flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap",
-        id === POPULAR_ID
-          ? isActive
-            ? "bg-amber-500 text-white shadow-sm"
-            : "bg-white border border-gray-200 text-gray-600 active:bg-gray-50"
-          : isActive
-            ? "bg-[#05c8a7] text-[#04241E] shadow-sm"
-            : "bg-white border border-gray-200 text-gray-600 active:bg-gray-50",
+        isActive
+          ? "bg-gray-900 text-white shadow-sm"
+          : "bg-white border border-gray-200 text-gray-600 active:bg-gray-50",
       )}
     >
-      {id === POPULAR_ID && <span className="text-xs leading-none">🔥</span>}
       {label}
     </button>
   );
@@ -2015,18 +2018,11 @@ export function MenuShell({
       style={{ touchAction: "manipulation" }}
       className={cn(
         "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
-        id === POPULAR_ID
-          ? isActive
-            ? "bg-amber-500 text-amber-950"
-            : "bg-white/70 text-gray-700 active:bg-gray-200"
-          : isActive
-            ? "bg-gray-900 text-white"
-            : "bg-white/70 text-gray-700 active:bg-gray-200",
+        isActive
+          ? "bg-gray-900 text-white"
+          : "bg-white/70 text-gray-700 active:bg-gray-200",
       )}
     >
-      {id === POPULAR_ID && (
-        <span className="text-[15px] leading-none">🔥</span>
-      )}
       {label}
     </button>
   );
@@ -2082,7 +2078,7 @@ export function MenuShell({
   );
 
   // Desktop fav / diet pills
-  const favPill = hasMounted && favIds.length > 0 && (
+  const favPill = SHOW_FAVORITES && hasMounted && favIds.length > 0 && (
     <button
       key="__favs__"
       data-pill-id="__favs__"
@@ -2195,20 +2191,15 @@ export function MenuShell({
               style={{ touchAction: "manipulation" }}
               className={cn(
                 "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
+                // One active state for every tab (2026-11-16): the amber Popular
+                // pill was a second accent competing with the menu's green.
                 !activeCatFilter && !showFavs && !activeDiet
-                  ? // Popular keeps its amber treatment (from the premium mobile pass)
-                    // so it reads as a distinct section, not one more category.
-                    popularProducts.length > 0
-                    ? "bg-amber-500 text-amber-950"
-                    : "bg-gray-900 text-white"
+                  ? "bg-gray-900 text-white"
                   : "bg-white/70 text-gray-700 active:bg-gray-200",
               )}
             >
               {popularProducts.length > 0 ? (
-                <>
-                  <span className="text-[15px] leading-none">🔥</span>
-                  {t.popularItems}
-                </>
+                t.popularItems
               ) : (
                 t.filterAll
               )}
@@ -2817,7 +2808,7 @@ export function MenuShell({
                               drink still leads the row list. */}
                           <motion.div
                             className={cn(
-                              "grid grid-cols-2 lg:grid-cols-3 gap-3",
+                              "grid grid-cols-2 md:grid-cols-3 gap-3",
                               searchCards.length === 0 && "hidden",
                             )}
                             initial="hidden"
@@ -2920,7 +2911,7 @@ export function MenuShell({
                           return (
                             <>
                               {favCards.length > 0 && (
-                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                   {favCards.map((product) => (
                                     <ProductCard
                                       key={product.id}
@@ -3054,7 +3045,7 @@ export function MenuShell({
                           {t.viewFullMenu}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {filteredProducts.map((product) => (
                           <ProductCard
                             key={product.id}
@@ -3157,6 +3148,22 @@ export function MenuShell({
                               // photographed dishes read as the highlighted ones.
                               const { cards: cardItems, rows: rowItems } =
                                 splitByDisplay(items);
+                              // Phone format per category: grid where the photo is
+                              // what makes people choose (desserts), a list where the
+                              // dishes look alike and are chosen by reading (burgers).
+                              // null = automatic by menu size. Popular is always a
+                              // grid; tablets and desktops always get the grid.
+                              const showAsList =
+                                !isPopular &&
+                                !isTabletUp &&
+                                (category.display_mode ??
+                                  (isLargeCatalog ? "list" : "grid")) === "list";
+                              // An odd count in the 2-column phone grid leaves the last
+                              // card alone next to a hole: it takes the full width.
+                              const oddLastId =
+                                cardItems.length % 2 === 1
+                                  ? cardItems[cardItems.length - 1]?.id
+                                  : undefined;
                               return (
                                 <section
                                   key={category.id}
@@ -3183,11 +3190,6 @@ export function MenuShell({
                                   }}
                                 >
                                   <div className="flex items-center gap-2 mb-4 pt-3">
-                                    {isPopular && (
-                                      <span className="text-lg leading-none">
-                                        🔥
-                                      </span>
-                                    )}
                                     {/* Serif editorial: separa el título de sección
                                         del nombre de plato, que sigue en Inter.
                                         Sin font-extrabold (Instrument Serif solo
@@ -3237,10 +3239,10 @@ export function MenuShell({
                                         </div>
                                       </div>
                                     )}
-                                    {lightMobileProductGrid ? (
+                                    {showAsList ? (
                                       <div
                                         className={cn(
-                                          "grid grid-cols-2 lg:grid-cols-3 gap-3",
+                                          "rounded-2xl bg-white border border-ink-100 overflow-hidden divide-y divide-ink-100",
                                           isLocked && "opacity-40",
                                           cardItems.length === 0 && "hidden",
                                         )}
@@ -3253,8 +3255,52 @@ export function MenuShell({
                                             globalProductIdx < PRIORITY_CARD_IMAGES;
                                           globalProductIdx++;
                                           return (
-                                            <div key={product.id}>
+                                            <ProductListItem
+                                              key={product.id}
+                                              product={product}
+                                              restaurantId={restaurant.id}
+                                              onSelect={handleProductSelect}
+                                              onQuickAdd={handleQuickAdd}
+                                              fmtPrice={fmtPrice}
+                                              addLabel={t.addToCart}
+                                              customizeLabel={t.customize}
+                                              popularLabel={t.popular}
+                                              soldOutLabel={t.soldOut}
+                                              unavailableLabel={t.unavailable}
+                                              addedShortLabel={t.addedShort}
+                                              locale={locale}
+                                              defaultLocale={defaultLocale}
+                                              priority={isPriority}
+                                            />
+                                          );
+                                        })}
+                                      </div>
+                                    ) : lightMobileProductGrid ? (
+                                      <div
+                                        className={cn(
+                                          "grid grid-cols-2 md:grid-cols-3 gap-3",
+                                          isLocked && "opacity-40",
+                                          cardItems.length === 0 && "hidden",
+                                        )}
+                                        {...(isLocked
+                                          ? { "aria-hidden": true }
+                                          : {})}
+                                      >
+                                        {cardItems.map((product) => {
+                                          const isPriority =
+                                            globalProductIdx < PRIORITY_CARD_IMAGES;
+                                          globalProductIdx++;
+                                          return (
+                                            <div
+                                              key={product.id}
+                                              className={
+                                                product.id === oddLastId
+                                                  ? "col-span-2 md:col-span-1"
+                                                  : undefined
+                                              }
+                                            >
                                               <ProductCard
+                                                wide={product.id === oddLastId}
                                                 product={product}
                                                 restaurantId={restaurant.id}
                                                 onSelect={handleProductSelect}
@@ -3278,7 +3324,7 @@ export function MenuShell({
                                     ) : (
                                       <motion.div
                                         className={cn(
-                                          "grid grid-cols-2 lg:grid-cols-3 gap-3",
+                                          "grid grid-cols-2 md:grid-cols-3 gap-3",
                                           isLocked && "opacity-40",
                                           cardItems.length === 0 && "hidden",
                                         )}
@@ -3320,6 +3366,11 @@ export function MenuShell({
                                           return (
                                             <motion.div
                                               key={product.id}
+                                              className={
+                                                product.id === oddLastId
+                                                  ? "col-span-2 md:col-span-1"
+                                                  : undefined
+                                              }
                                               variants={
                                                 isDesktopView
                                                   ? {
@@ -3340,6 +3391,7 @@ export function MenuShell({
                                               }
                                             >
                                               <ProductCard
+                                                wide={product.id === oddLastId}
                                                 product={product}
                                                 restaurantId={restaurant.id}
                                                 onSelect={handleProductSelect}

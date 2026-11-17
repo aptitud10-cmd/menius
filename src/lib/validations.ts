@@ -36,6 +36,7 @@ export const categorySchema = z.object({
   available_from: z.string().nullable().optional(), // "HH:MM" 24h
   available_to: z.string().nullable().optional(),   // "HH:MM" 24h
   send_to_kitchen: z.boolean().optional(),          // false = no va a la pantalla/ticket de cocina
+  display_mode: z.enum(['grid', 'list']).nullable().optional(), // formato en el teléfono; null = automático
 });
 
 export const productSchema = z.object({
