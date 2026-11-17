@@ -395,20 +395,22 @@ export function CartPanel({
   return (
     <div className="flex flex-col h-full">
 
-      {/* ── Header: drag pill + item count + clear + close ── */}
+      {/* ── Header: "Your order" + item count + clear + close ──
+          Same title as the empty cart, so the panel never loses its name
+          (a grey "1 item" pill alone read as a tag, not a heading). */}
       <div className="px-4 pt-2 pb-2 flex-shrink-0">
         <div className="flex items-center gap-2">
-          {/* Item count pill */}
-          <div className="flex-1 flex justify-start">
+          <div className="flex-1 flex items-baseline gap-2 min-w-0">
+            <span className="text-[17px] font-semibold text-gray-900">{t.yourOrder}</span>
             {(() => {
               const totalQty = items.reduce((s, i) => s + i.qty, 0);
               return (
                 <motion.span
                   key={totalQty}
-                  initial={{ scale: 1.4 }}
+                  initial={{ scale: 1.25 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold inline-block"
+                  className="text-[14px] text-gray-600 tabular-nums inline-block"
                 >
                   {totalQty} {totalQty === 1 ? t.itemSingular : t.items}
                 </motion.span>
@@ -421,10 +423,10 @@ export function CartPanel({
             title={t.clearCart}
             aria-label={t.clearCart}
             className={cn(
-              'p-2 rounded-lg transition-all duration-150',
+              'w-10 h-10 flex items-center justify-center rounded-full transition-all duration-150',
               clearStep === 1
-                ? 'bg-red-50 text-red-500'
-                : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+                ? 'bg-red-50 text-red-600'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             )}
           >
             <Trash2 className="w-4 h-4" />
@@ -433,10 +435,10 @@ export function CartPanel({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
+              className="w-10 h-10 flex items-center justify-center rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-150"
               aria-label={t.closeCart}
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           )}
         </div>
@@ -524,8 +526,8 @@ export function CartPanel({
                             {fmtPrice(Number(item.product.price) + Number(item.variant?.price_delta ?? 0) + titlePrice)}
                           </span>
                         )}
-                        <div className="flex-shrink-0 p-1.5 -mt-1 text-gray-300" aria-hidden>
-                          <Pencil className="w-3 h-3" />
+                        <div className="flex-shrink-0 p-1.5 -mt-1 text-gray-500" aria-hidden>
+                          <Pencil className="w-3.5 h-3.5" />
                         </div>
                       </div>
 
@@ -590,7 +592,7 @@ export function CartPanel({
                           </span>
                           <button
                             onClick={(e) => { e.stopPropagation(); removeWithUndo(idx); }}
-                            className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
                             aria-label={`${t.removeItem} ${item.product.name}`}
                           >
                             <Trash2 className="w-4 h-4" />

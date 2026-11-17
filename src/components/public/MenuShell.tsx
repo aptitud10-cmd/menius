@@ -4018,11 +4018,14 @@ export function MenuShell({
           )
         )}
 
-        {/* ── Mobile: Cart Bottom Sheet ── */}
+        {/* ── Cart: bottom sheet on the phone, right-hand drawer on tablet ──
+            On an iPad the bottom sheet rose ~95% of the screen and hid the
+            whole menu; a 400px drawer leaves the menu in view and is where
+            Uber Eats / DoorDash put it at that width. */}
         <AnimatePresence>
           {isOpen && (
             <div
-              className="fixed inset-0 z-50 xl:hidden flex flex-col justify-end"
+              className="fixed inset-0 z-50 xl:hidden flex flex-col justify-end md:flex-row"
               role="dialog"
               aria-modal="true"
               aria-labelledby="cart-sheet-title"
@@ -4036,19 +4039,21 @@ export function MenuShell({
                 onClick={() => setOpen(false)}
               />
               <motion.div
-                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col"
-                style={{
-                  maxHeight: "calc(95dvh - env(safe-area-inset-bottom, 0px))",
-                }}
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
+                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col md:rounded-none md:w-[400px] md:h-full md:pt-[max(12px,env(safe-area-inset-top))]"
+                style={
+                  isTabletUp
+                    ? undefined
+                    : { maxHeight: "calc(95dvh - env(safe-area-inset-bottom, 0px))" }
+                }
+                initial={isTabletUp ? { x: "100%" } : { y: "100%" }}
+                animate={isTabletUp ? { x: 0 } : { y: 0 }}
+                exit={isTabletUp ? { x: "100%" } : { y: "100%" }}
                 transition={{
                   type: "tween" as const,
                   duration: 0.22,
                   ease: [0.25, 0.46, 0.45, 0.94] as const,
                 }}
-                drag="y"
+                drag={isTabletUp ? false : "y"}
                 dragControls={cartDragControls}
                 dragConstraints={{ top: 0 }}
                 dragElastic={0.15}
@@ -4060,7 +4065,7 @@ export function MenuShell({
               >
                 {/* Drag handle + hidden title for screen readers */}
                 <div
-                  className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                  className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing md:hidden"
                   onPointerDown={(e) => cartDragControls.start(e)}
                   style={{ touchAction: "none" }}
                 >
