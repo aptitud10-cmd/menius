@@ -84,14 +84,25 @@ export default async function Image({ params }: { params: { slug: string } }) {
   const cover = drawable(coverUrl);
   const logo = drawable(logoUrl);
 
-  const logoBox = logo ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={logo} alt="" width={96} height={96} style={{ width: 96, height: 96, borderRadius: 48, border: '4px solid #FFFFFF' }} />
-  ) : null;
+  // Everything sits in the centre 600×600: WhatsApp on a computer (and some
+  // phones) crops the card to a small square from the middle, so a left-aligned
+  // layout or a line of description came out as unreadable specks. The
+  // description already travels as text next to the image (og:description).
+  const NAME_SIZE = name.length > 22 ? 56 : 72;
 
-  const pillEl = (
-    <div style={{ display: 'flex', alignSelf: 'flex-start', padding: '14px 28px', borderRadius: 999, background: pill.bg, color: pill.fg, fontSize: 28, fontWeight: 700 }}>
-      {cta}
+  const logoEl = (px: number) =>
+    logo ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={logo} alt="" width={px} height={px} style={{ width: px, height: px, borderRadius: px / 2, border: '6px solid #FFFFFF' }} />
+    ) : (
+      <div style={{ width: px, height: px, borderRadius: px / 2, background: '#FFFFFF', color: b.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: px * 0.42, fontWeight: 700 }}>
+        {name.charAt(0).toUpperCase()}
+      </div>
+    );
+
+  const nameEl = (
+    <div style={{ display: 'flex', maxWidth: 600, fontSize: NAME_SIZE, fontWeight: 700, lineHeight: 1.05, textAlign: 'center', justifyContent: 'center', letterSpacing: '-0.02em' }}>
+      {clip(name, 40)}
     </div>
   );
 
@@ -108,18 +119,13 @@ export default async function Image({ params }: { params: { slug: string } }) {
               left: 0,
               width: '100%',
               height: '100%',
-              backgroundImage: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.05) 80%)',
+              backgroundImage: 'radial-gradient(circle at 50% 55%, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.2) 100%)',
             }}
           />
-          <div style={{ position: 'absolute', left: 64, right: 64, bottom: 56, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {logoBox}
-            <div style={{ display: 'flex', fontSize: 68, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.05, letterSpacing: '-0.02em' }}>
-              {clip(name, 40)}
-            </div>
-            {description ? (
-              <div style={{ display: 'flex', fontSize: 28, color: 'rgba(255,255,255,0.88)', lineHeight: 1.35 }}>{clip(description, 90)}</div>
-            ) : null}
-            {pillEl}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, color: '#FFFFFF' }}>
+            {logoEl(170)}
+            {nameEl}
+            <div style={{ display: 'flex', padding: '16px 36px', borderRadius: 999, background: pill.bg, color: pill.fg, fontSize: 32, fontWeight: 700 }}>{cta}</div>
           </div>
         </div>
       ),
@@ -138,28 +144,15 @@ export default async function Image({ params }: { params: { slug: string } }) {
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: 22,
+          gap: 24,
           background: b.brand,
           color: b.ink,
           fontFamily: 'Inter, sans-serif',
-          padding: '0 80px',
         }}
       >
-        {logo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt="" width={150} height={150} style={{ width: 150, height: 150, borderRadius: 75, border: '5px solid #FFFFFF' }} />
-        ) : (
-          <div style={{ width: 150, height: 150, borderRadius: 75, background: '#FFFFFF', color: b.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, fontWeight: 700 }}>
-            {name.charAt(0).toUpperCase()}
-          </div>
-        )}
-        <div style={{ display: 'flex', fontSize: 64, fontWeight: 700, lineHeight: 1.1, textAlign: 'center', letterSpacing: '-0.02em' }}>{clip(name, 40)}</div>
-        {description ? (
-          <div style={{ display: 'flex', fontSize: 28, opacity: 0.9, textAlign: 'center', lineHeight: 1.35 }}>{clip(description, 110)}</div>
-        ) : null}
-        <div style={{ display: 'flex', marginTop: 6, padding: '14px 30px', borderRadius: 999, background: '#FFFFFF', color: '#111114', fontSize: 28, fontWeight: 700 }}>
-          {cta}
-        </div>
+        {logoEl(220)}
+        {nameEl}
+        <div style={{ display: 'flex', padding: '16px 36px', borderRadius: 999, background: '#FFFFFF', color: '#111114', fontSize: 32, fontWeight: 700 }}>{cta}</div>
       </div>
     ),
     { ...size, fonts },
