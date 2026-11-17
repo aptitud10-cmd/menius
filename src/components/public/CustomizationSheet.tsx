@@ -1662,7 +1662,17 @@ export function CustomizationSheet({
   // put on the left while the options scroll on the right with the Add bar
   // under them — 2.9 screens instead of 4.9 in the 520px side panel, and the
   // name never has to be repeated in a header.
-  const desktopBody = (
+  // Without a photo the left column was a name over ~500px of white (Pedro,
+  // 2026-11-17: "Sex on the Beach" looked broken). One narrower column instead.
+  const desktopBody = !hasHero ? (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div ref={bodyScrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain pt-6">
+        <div className="pr-14">{heroText}</div>
+        {optionsContent}
+      </div>
+      {sheetFooter}
+    </div>
+  ) : (
     <div className="flex flex-1 min-h-0">
       <div className="w-[380px] flex-shrink-0 border-r border-gray-100 overflow-y-auto">
         {renderHeroMedia(true)}
@@ -1697,7 +1707,12 @@ export function CustomizationSheet({
           role="dialog"
           aria-modal="true"
           aria-labelledby="customization-dialog-title"
-          className="fixed left-1/2 top-1/2 w-[min(920px,calc(100vw-64px))] h-[min(720px,calc(100dvh-56px))] bg-white flex flex-col overflow-hidden rounded-[20px] shadow-[0_24px_80px_rgba(0,0,0,0.22)]"
+          className={cn(
+            "fixed left-1/2 top-1/2 bg-white flex flex-col overflow-hidden rounded-[20px] shadow-[0_24px_80px_rgba(0,0,0,0.22)]",
+            hasHero
+              ? "w-[min(920px,calc(100vw-64px))] h-[min(720px,calc(100dvh-56px))]"
+              : "w-[min(600px,calc(100vw-64px))] max-h-[min(720px,calc(100dvh-56px))]",
+          )}
           style={{ x: "-50%", y: "-50%" }}
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
