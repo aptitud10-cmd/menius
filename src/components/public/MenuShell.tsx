@@ -20,6 +20,8 @@ import {
   Sparkles,
   SearchX,
   UtensilsCrossed,
+  ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
@@ -86,6 +88,8 @@ import { CartFlyParticles } from "./CartFlyParticles";
 import { MenuSheet, type MenuSheetEntry } from "./MenuSheet";
 import { hasHours, isOptionAvailableAt, optionHoursLabel, hoursRangeLabel, clockLabel } from "@/lib/option-hours";
 import { inTimeZone, isOpenAt, nextOpening, type OperatingHours } from "@/lib/orders/business-hours";
+import { RestaurantInfoSheet, dayHoursText } from "./RestaurantInfoSheet";
+import { prettyPhone, telHref } from "@/lib/phone-format";
 import { usablePaymentMethods } from "@/lib/payments/online-ready";
 interface ReviewStats {
   average: number;
@@ -217,6 +221,8 @@ export function MenuShell({
     }>;
   } | null>(null);
   const [tableBannerDismissed, setTableBannerDismissed] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const closeInfo = useCallback(() => setShowInfo(false), []);
   const [activeTableName, setActiveTableName] = useState<string | null>(null);
 
   const lastOrder = useCartStore((s) => s.lastOrder);
@@ -1142,6 +1148,7 @@ export function MenuShell({
   useBackToClose(showSearch && !isDesktopView, closeSearch);
   useBackToClose(showCatSheet && !isDesktopView, closeCatSheet);
   useBackToClose(showSubcatSheet && !isXlView, closeSubcatSheet);
+  useBackToClose(showInfo, closeInfo);
   useBackToClose(customization !== null, handleCloseCustomization);
 
   // Dishes served only part of the day (Oatmeal 5:30–11 AM, restaurant time).
@@ -2801,8 +2808,11 @@ export function MenuShell({
                   {(restaurant.address || restaurant.operating_hours) && (
                     // White on the photo: the dark teal (#047a65) used here
                     // vanished on a dark cover — "Open 24 hours" was unreadable.
-                    <div
-                      className="flex items-center gap-4 mt-2 text-[15px] text-white/90"
+                    <button
+                      type="button"
+                      onClick={() => setShowInfo(true)}
+                      aria-haspopup="dialog"
+                      className="group flex items-center gap-4 mt-2 text-[15px] text-white/90 hover:text-white text-left rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                       style={{ textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}
                     >
                       {restaurant.address && (
@@ -2836,7 +2846,11 @@ export function MenuShell({
                             </span>
                           );
                         })()}
-                    </div>
+                      <span className="inline-flex items-center font-semibold text-white underline-offset-4 group-hover:underline">
+                        {t.infoShort}
+                        <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                      </span>
+                    </button>
                   )}
                 </div>
                 {reviewStats && reviewStats.total > 0 && (
@@ -2853,6 +2867,53 @@ export function MenuShell({
               </div>
             </div>
           )}
+
+          {/* Store info row (phone/tablet): today's hours + street, opens the
+              info sheet with the week, directions and the phone. */}
+          {(restaurant.address ||
+            (restaurant.operating_hours &&
+              Object.keys(restaurant.operating_hours).length > 0)) &&
+            (() => {
+              const hrs = restaurant.operating_hours;
+              const todayKey = [
+                "sunday",
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+              ][inTimeZone(new Date(), restaurant.timezone || "UTC").getDay()];
+              const today =
+                hrs && Object.keys(hrs).length > 0
+                  ? dayHoursText(hrs[todayKey], locale, t)
+                  : null;
+              const street = restaurant.address?.split(",")[0]?.trim() ?? "";
+              return (
+                <button
+                  type="button"
+                  onClick={() => setShowInfo(true)}
+                  aria-haspopup="dialog"
+                  className="lg:hidden w-full flex items-center gap-2 px-4 min-h-[44px] bg-white border-b border-gray-100 text-left text-[14px] text-gray-700 active:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#05c8a7]"
+                >
+                  <Clock
+                    className="w-4 h-4 text-[#047a65] flex-shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 truncate">
+                    {today && (
+                      <span className="font-semibold text-gray-900">{today}</span>
+                    )}
+                    {today && street && " · "}
+                    {street}
+                  </span>
+                  <span className="ml-auto flex items-center flex-shrink-0 font-semibold text-[#047a65]">
+                    {t.infoShort}
+                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                  </span>
+                </button>
+              );
+            })()}
 
           {/* Closed / paused: a strip in the flow under the cover, every width.
               Before, the phone showed nothing (the whole cart could be built
@@ -3886,7 +3947,7 @@ export function MenuShell({
                               <p className="text-sm font-semibold text-gray-900">
                                 {t.addressLabel}
                               </p>
-                              <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
+                              <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">
                                 {restaurant.address}
                               </p>
                               <a
@@ -3962,7 +4023,7 @@ export function MenuShell({
                                   <p className="text-sm font-semibold text-gray-900">
                                     {t.schedule}
                                   </p>
-                                  <p className="text-sm text-gray-500 mt-0.5">
+                                  <p className="text-sm text-gray-600 mt-0.5">
                                     <span className="font-medium text-gray-700">
                                       {dayNames[todayIdx]}:
                                     </span>{" "}
@@ -4006,10 +4067,10 @@ export function MenuShell({
                                 {t.phoneLabel}
                               </p>
                               <a
-                                href={`tel:${restaurant.phone}`}
+                                href={telHref(restaurant.phone)}
                                 className="text-sm text-[#047a65] font-medium hover:text-[#047a65] transition-colors mt-0.5 block"
                               >
-                                {restaurant.phone}
+                                {prettyPhone(restaurant.phone)}
                               </a>
                             </div>
                           </div>
@@ -4017,29 +4078,8 @@ export function MenuShell({
 
                         {restaurant.google_business_url && (
                           <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                              <svg
-                                className="w-4 h-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                              >
-                                <path
-                                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                  fill="#4285F4"
-                                />
-                                <path
-                                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                  fill="#34A853"
-                                />
-                                <path
-                                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                                  fill="#FBBC05"
-                                />
-                                <path
-                                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                                  fill="#EA4335"
-                                />
-                              </svg>
+                            <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
+                              <ExternalLink className="w-4 h-4 text-[#047a65]" aria-hidden="true" />
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-gray-900">
@@ -4049,7 +4089,7 @@ export function MenuShell({
                                 href={restaurant.google_business_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors mt-0.5 block"
+                                className="text-sm text-[#047a65] font-medium hover:underline mt-0.5 block"
                               >
                                 {t.seeOnGoogleMaps}
                               </a>
@@ -4366,6 +4406,14 @@ export function MenuShell({
 
         {/* Reorder: floating "order again" button. Self-gates — only renders when a
             saved phone has a previous order at this restaurant. */}
+        <RestaurantInfoSheet
+          open={showInfo}
+          onClose={closeInfo}
+          restaurant={restaurant}
+          locale={locale}
+          t={t}
+        />
+
         <RepeatOrderButton
           restaurantId={restaurant.id}
           locale={locale as "es" | "en"}

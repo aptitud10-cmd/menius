@@ -183,6 +183,8 @@ export interface Translations {
   addressLabel: string;
   getDirections: string;
   open24h: string;
+  infoShort: string;
+  everyDay: string;
   phoneLabel: string;
   sendWhatsApp: string;
   // Catalog & search
@@ -646,7 +648,9 @@ const es: Translations = {
   customersTestimonial: 'Lo que dicen nuestros clientes',
   addressLabel: 'Dirección',
   getDirections: 'Cómo llegar',
-  open24h: 'Abierto 24 Horas',
+  open24h: 'Abierto 24 horas',
+  infoShort: 'Info',
+  everyDay: 'Todos los días',
   phoneLabel: 'Teléfono',
   sendWhatsApp: 'Enviar mensaje',
   resultSingular: 'resultado',
@@ -1100,6 +1104,8 @@ const en: Translations = {
   addressLabel: 'Address',
   getDirections: 'Get directions',
   open24h: 'Open 24 hours',
+  infoShort: 'Info',
+  everyDay: 'Every day',
   phoneLabel: 'Phone',
   sendWhatsApp: 'Send message',
   resultSingular: 'result',
