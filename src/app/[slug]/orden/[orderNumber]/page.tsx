@@ -144,22 +144,22 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
   if (!restaurant) {
     if (paidSuccess) {
       return (
-        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className="min-h-[100dvh] bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
           <div className="max-w-sm w-full">
-            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
-              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            <div className="w-20 h-20 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
+              <CheckCircle2 className="w-10 h-10 text-[#047a65]" />
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
               {en ? 'Payment received!' : '¡Pago recibido!'}
             </h1>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-600 mb-6">
               {en
                 ? 'Your payment was processed successfully. The restaurant has received your order.'
                 : 'Tu pago fue procesado exitosamente. El restaurante ha recibido tu pedido.'}
             </p>
             <Link
               href={`/${params.slug}`}
-              className="block w-full py-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors"
+              className="block w-full py-3.5 rounded-2xl bg-[#05c8a7] text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
             >
               {en ? 'Back to menu' : 'Volver al menú'}
             </Link>

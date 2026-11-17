@@ -510,10 +510,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F2F2F6] flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-[3px] border-gray-200 border-t-[#05c8a7] rounded-full motion-safe:animate-spin mx-auto mb-4" />
-          <p className="text-sm text-gray-500">{t.loading}</p>
+          <p className="text-sm text-gray-600">{t.loading}</p>
         </div>
       </div>
     );
@@ -522,17 +522,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   if (error || !order) {
     if (showPaidBanner) {
       return (
-        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className="min-h-[100dvh] bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
           <div className="max-w-sm w-full">
             <div className="w-20 h-20 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 className="w-10 h-10 text-[#047a65]" />
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900 mb-2">{t.paymentReceived}</h1>
-            <p className="text-sm text-gray-500 mb-6">{t.paymentReceivedDesc}</p>
+            <p className="text-sm text-gray-600 mb-6">{t.paymentReceivedDesc}</p>
             <div className="space-y-3">
               <button
                 onClick={() => { setLoading(true); setError(''); fetchOrder(); }}
-                className="w-full py-3.5 rounded-2xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors"
+                className="w-full py-3.5 rounded-2xl bg-[#05c8a7] text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
               >
                 {t.viewOrderStatus}
               </button>
@@ -545,17 +545,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       );
     }
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-[100dvh] bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
         <div className="max-w-sm w-full">
           <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
             <Clock className="w-8 h-8 text-amber-500" />
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">{t.errorTitle}</h1>
-          <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">{t.errorDesc}</p>
+          <p className="text-sm text-gray-600 mb-6 max-w-xs mx-auto">{t.errorDesc}</p>
           <div className="space-y-3">
             <button
               onClick={() => { setLoading(true); setError(''); fetchOrder(); }}
-              className="w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-sm hover:bg-gray-800 transition-colors"
+              className="w-full py-3.5 rounded-2xl bg-[#05c8a7] text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
             >
               {t.tryAgain}
             </button>
@@ -784,7 +784,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   })();
 
   // ── Un solo dato gigante ──
-  type Anchor = { lbl: string; val: string; suf?: string; ctx?: React.ReactNode; muted?: boolean } | { code: true; lbl: string; val: string; ctx: string } | null;
+  type Anchor = { lbl: string; val: string; suf?: string; ctx?: React.ReactNode; muted?: boolean; words?: boolean } | { code: true; lbl: string; val: string; ctx: string } | null;
   const freshNode = (
     <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ fontFamily: K.mono, color: K.faint }}>
       {!offline && <i className="block w-[7px] h-[7px] rounded-full" style={{ background: K.brand }} aria-hidden />}
@@ -841,14 +841,16 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         return { lbl: en ? 'Arrives in' : 'Llega en', val: `~${mins} min`, ctx: <><span>{en ? `Around ${fmtClock(arrivalMs)}` : `Cerca de las ${fmtClock(arrivalMs)}`}</span>{freshNode}</> };
       }
       if (arrivalMs != null && readyMs != null) {
-        if (kitchenLate) { const r = range(win5(readyMs + travelMs)); return { lbl: en ? 'Was going to arrive between' : 'Iba a llegar entre', val: r.val, suf: r.suf, muted: true, ctx: <>{lateChip}{freshNode}</> }; }
+        // Late: the biggest thing on screen was a time that no longer holds.
+        // Say what we know; the old window goes small and struck through.
+        if (kitchenLate) { const r = range(win5(readyMs + travelMs)); return { lbl: en ? 'Arrives' : 'Llega', val: en ? 'A little later' : 'Un poco más tarde', words: true, ctx: <>{lateChip}<span>{en ? 'Was ' : 'Era '}<s>{r.val}{r.suf ? ` ${r.suf}` : ''}</s></span>{freshNode}</> }; }
         const r = range(win5(arrivalMs));
         return { lbl: en ? 'Arrives between' : 'Llega entre', val: r.val, suf: r.suf, ctx: <><span>{en ? `Includes the ride from ${R}` : `Incluye el viaje desde ${R}`}</span>{freshNode}</> };
       }
       return null;
     }
     if (isPickup && readyMs != null) {
-      if (kitchenLate) { const r = range(win5(readyMs)); return { lbl: en ? 'Was going to be ready between' : 'Iba a estar listo entre', val: r.val, suf: r.suf, muted: true, ctx: <>{lateChip}{freshNode}</> }; }
+      if (kitchenLate) { const r = range(win5(readyMs)); return { lbl: en ? 'Ready' : 'Listo', val: en ? 'In a few more minutes' : 'En unos minutos más', words: true, ctx: <>{lateChip}<span>{en ? 'Was ' : 'Era '}<s>{r.val}{r.suf ? ` ${r.suf}` : ''}</s></span>{freshNode}</> }; }
       if (almost) { const c = clock(Math.max(readyMs, now)); return { lbl: en ? 'Ready at' : 'Estará listo a las', val: c.hm, suf: c.suf, ctx: freshNode }; }
       const r = range(win5(readyMs));
       return { lbl: en ? 'Ready for pickup between' : 'Listo para recoger entre', val: r.val, suf: r.suf, ctx: freshNode };
@@ -936,7 +938,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       ) : (
         <div className="mt-5 grid gap-0.5">
           <span className="text-[14px]" style={{ color: K.sub }}>{anchor.lbl}</span>
-          <span className="text-[48px] min-[860px]:text-[56px] leading-[1.02] font-bold tracking-[-0.045em] tabular-nums whitespace-nowrap" style={{ color: anchor.muted ? K.faint : K.ink, fontWeight: anchor.muted ? 600 : 700 }}>
+          <span className={anchor.words ? 'text-[32px] min-[860px]:text-[40px] leading-[1.08] font-bold tracking-[-0.03em]' : 'text-[48px] min-[860px]:text-[56px] leading-[1.02] font-bold tracking-[-0.045em] tabular-nums whitespace-nowrap'} style={{ color: anchor.muted ? K.faint : K.ink, fontWeight: anchor.muted ? 600 : 700 }}>
             {anchor.val}{anchor.suf && <small className="text-[18px] font-semibold tracking-[-0.01em] ml-1.5" style={{ color: K.sub }}>{anchor.suf}</small>}
           </span>
           {anchor.ctx && <span className="mt-pretty mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13.5px]" style={{ color: K.sub }}>{anchor.ctx}</span>}
@@ -1781,7 +1783,7 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, curr
 
   return (
     <div className="mt-2">
-      <button onClick={() => setShowHistory(!showHistory)} className="w-full text-center text-xs text-gray-400 hover:text-gray-600 py-2">
+      <button onClick={() => setShowHistory(!showHistory)} className="w-full text-center text-[13px] text-gray-600 hover:text-gray-900 py-2.5">
         {toggleLabel}
       </button>
       {showHistory && (
@@ -1791,7 +1793,7 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, curr
               className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
               <div>
                 <p className="text-sm font-medium">#{h.number}</p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-600">
                   {new Date(h.date).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {h.items} items
                 </p>
               </div>
