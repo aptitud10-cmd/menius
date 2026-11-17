@@ -8,6 +8,7 @@ import { estimateMinutes, type EtaRestaurant } from '@/lib/orders/eta';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import { showsAsRow } from '@/lib/product-display';
+import { ProductGlyph } from './ProductGlyph';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
 import type { Translations } from '@/lib/translations';
 import type { Product, CartItem, OrderType } from '@/types';
@@ -384,10 +385,12 @@ export function CartPanel({
                   onClick={() => onSuggestionAdd(p)}
                   className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white shadow-sm p-2.5 active:scale-[0.98] transition-transform text-left"
                 >
-                  {!showsAsRow(p) && p.image_url && (
+                  {!showsAsRow(p) && p.image_url ? (
                     <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       <Image src={p.image_url} alt={p.name} fill sizes="48px" className="object-cover" />
                     </div>
+                  ) : (
+                    <ProductGlyph name={p.name} className="w-12 h-12 rounded-lg" iconClassName="w-5 h-5" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-medium text-gray-900 line-clamp-1">{p.name}</p>
@@ -512,10 +515,9 @@ export function CartPanel({
                     className="flex gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer active:bg-gray-50 transition-colors"
                     onClick={() => onEdit(idx)}
                   >
-                    {/* Thumbnail — omitted entirely for row-display products.
-                        A greyed-out plate icon next to real photos reads as a
-                        failed image; the line simply starts at the name instead. */}
-                    {!showsAsRow(item.product) && item.product.image_url && (
+                    {/* Thumbnail. Without a photo, a tinted tile with an icon:
+                        text alone made a cart of rolls and coffees look empty. */}
+                    {!showsAsRow(item.product) && item.product.image_url ? (
                       <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
                         <Image
                           src={item.product.image_url}
@@ -526,6 +528,8 @@ export function CartPanel({
                           onLoad={(e) => markImageLoaded(imgKey, e.currentTarget)}
                         />
                       </div>
+                    ) : (
+                      <ProductGlyph name={item.product.name} className="w-14 h-14 rounded-xl" />
                     )}
 
                     <div className="flex-1 min-w-0">
