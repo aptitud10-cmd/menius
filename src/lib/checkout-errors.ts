@@ -209,7 +209,7 @@ export function safeParseJson<T = Record<string, unknown>>(text: string): { ok: 
  * cambiar la dirección, programar, cambiar la hora, revisar los platos acá o
  * editarlos en el menú (las opciones de un plato solo se editan en el carrito).
  */
-export type OrderErrorAction = null | 'address' | 'schedule' | 'when' | 'items' | 'menu';
+export type OrderErrorAction = null | 'address' | 'contact' | 'schedule' | 'when' | 'items' | 'menu';
 
 const ITEMS_FIXABLE_HERE = new Set(['STOCK_LIMIT', 'PRODUCT_UNAVAILABLE', 'PRODUCT_SOLD_OUT', 'PRODUCT_OUT_OF_HOURS']);
 const ITEMS_EDIT_IN_MENU = new Set(['MODIFIERS_CHANGED', 'MODIFIER_MAX', 'MODIFIER_REQUIRED', 'OPTION_UNAVAILABLE']);
@@ -217,6 +217,7 @@ const ITEMS_EDIT_IN_MENU = new Set(['MODIFIERS_CHANGED', 'MODIFIER_MAX', 'MODIFI
 export function errorActionFor(code: string | null | undefined): OrderErrorAction {
   if (!code) return null;
   if (code === 'OUT_OF_ZONE') return 'address';
+  if (code === 'INVALID_CONTACT') return 'contact';
   if (code === 'CLOSED_NOW') return 'schedule';
   if (code === 'CLOSED_AT_TIME' || code === 'SCHEDULE_TOO_SOON') return 'when';
   if (ITEMS_FIXABLE_HERE.has(code)) return 'items';

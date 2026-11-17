@@ -412,6 +412,7 @@ export interface Translations {
   ckPaused: string;
   ckPausedCta: string;
   ckFixAddress: string;
+  ckFixContact: string;
   ckReviewItems: string;
   ckEditInMenu: string;
   ckDateTime: string;
@@ -863,6 +864,7 @@ const es: Translations = {
   ckPaused: '{name} no está tomando pedidos en este momento. Prueba en un rato.',
   ckPausedCta: 'Pedidos en pausa',
   ckFixAddress: 'Cambiar dirección',
+  ckFixContact: 'Corregir contacto',
   ckReviewItems: 'Revisar pedido',
   ckEditInMenu: 'Editar en el menú',
   ckDateTime: 'Fecha y hora',
@@ -1311,6 +1313,7 @@ const en: Translations = {
   ckPaused: "{name} isn't taking orders right now. Try again shortly.",
   ckPausedCta: 'Orders paused',
   ckFixAddress: 'Change address',
+  ckFixContact: 'Edit contact',
   ckReviewItems: 'Review order',
   ckEditInMenu: 'Edit in menu',
   ckDateTime: 'Date & time',

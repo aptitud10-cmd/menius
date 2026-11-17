@@ -1770,6 +1770,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     setOrderError('');
     setOrderErrorAction(null);
     if (action === 'address') setActiveSheet('address');
+    else if (action === 'contact') setActiveSheet('contact');
     else if (action === 'schedule') openScheduler();
     else if (action === 'when') setActiveSheet('when');
     else if (action === 'menu') goBack();
@@ -1780,6 +1781,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   };
   const errorActionLabel =
     orderErrorAction === 'address' ? t.ckFixAddress
+    : orderErrorAction === 'contact' ? t.ckFixContact
     : orderErrorAction === 'schedule' ? t.ckScheduleCta
     : orderErrorAction === 'when' ? t.ckChangeTime
     : orderErrorAction === 'items' ? t.ckReviewItems

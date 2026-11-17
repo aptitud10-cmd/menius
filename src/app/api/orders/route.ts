@@ -228,8 +228,28 @@ export async function POST(request: NextRequest) {
         errors: parsed.error.errors,
         restaurant_id,
       });
+      // Mensaje en el idioma del cliente (antes salía el texto de Zod en
+      // español también en tiendas en inglés) y, si es un dato de contacto,
+      // con código para que el checkout ofrezca "Edit contact".
+      const field = String(parsed.error.errors[0].path[0] ?? "");
+      const enMsg = sentLocale === "en";
+      const contactMsg: Record<string, [string, string]> = {
+        customer_name: ["Please enter your name.", "Escribe tu nombre."],
+        customer_phone: ["Please enter a valid phone number.", "Escribe un teléfono válido."],
+        customer_email: ["That email doesn't look right. Check it or leave it blank.", "Ese email no parece correcto. Revísalo o déjalo vacío."],
+      };
+      if (contactMsg[field]) {
+        return NextResponse.json(
+          { error: contactMsg[field][enMsg ? 0 : 1], code: "INVALID_CONTACT" },
+          { status: 400 },
+        );
+      }
       return NextResponse.json(
-        { error: parsed.error.errors[0].message },
+        {
+          error: enMsg
+            ? "Something in your order isn't valid. Please review your cart."
+            : "Algo de tu pedido no es válido. Revisa tu carrito.",
+        },
         { status: 400 },
       );
     }
@@ -819,12 +839,25 @@ export async function POST(request: NextRequest) {
       );
       if (priceResult.error === "invalid_variant") {
         return NextResponse.json(
-          { error: "Variante inválida." },
+          {
+            error: en
+              ? "One of your items changed. Please update it in the menu."
+              : "Uno de tus platos cambió. Actualízalo en el menú.",
+            code: "MODIFIERS_CHANGED",
+          },
           { status: 400 },
         );
       }
       if (priceResult.error === "invalid_extra") {
-        return NextResponse.json({ error: "Extra inválido." }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: en
+              ? "One of your items changed. Please update it in the menu."
+              : "Uno de tus platos cambió. Actualízalo en el menú.",
+            code: "MODIFIERS_CHANGED",
+          },
+          { status: 400 },
+        );
       }
       const expectedUnitPrice = priceResult.unitPrice;
 
