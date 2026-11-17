@@ -15,6 +15,7 @@
 import { formatPrice } from '@/lib/utils';
 import { travelMinutes, haversineKm } from '@/lib/orders/eta';
 import { NOT_ACCEPTED_MINS } from '@/lib/orders/order-timeouts';
+import { trackerBrand, type TrackerBrand } from '@/lib/tracker-brand';
 
 export interface CustomerEmailItem {
   qty: number;
@@ -32,6 +33,8 @@ export interface CustomerEmailCtx {
     phone?: string | null;
     logoUrl?: string | null;
     timezone?: string | null;
+    /** restaurants.brand_color: same rule as the tracker (lib/tracker-brand). */
+    brandColor?: string | null;
   };
   orderNumber: string;
   customerName: string;
@@ -63,13 +66,15 @@ export interface BuiltEmail {
   html: string;
 }
 
-// ── Tokens (identidad del Counter) ─────────────────────────────────────────
+// ── Tokens ─────────────────────────────────────────────────────────────────
+// Same language as the tracker the email links to: the restaurant's color marks
+// the order's state (pill, hero, number, logo without image); what you tap is
+// MENIUS green. Titles in Inter. A diner going from email to tracker sees one brand.
 const T = {
   bg: '#F2F4F3', card: '#FFFFFE', ink: '#0E1412', sub: '#55605C', line: '#E1E6E3',
-  btn: '#111816', btnFg: '#FFFFFE', green: '#05C8A7', greenInk: '#04241E', link: '#047A67',
+  btn: '#05C8A7', btnFg: '#04241E', link: '#047A67',
   soft: '#F6F8F7', redBg: '#FDE8E8', red: '#B42318',
 };
-const DISPLAY = "'Bricolage Grotesque','Helvetica Neue',Helvetica,Arial,sans-serif";
 const BODY = "Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 // ── Utilidades ─────────────────────────────────────────────────────────────
@@ -187,13 +192,14 @@ function para(text: string, cls = 'sub', size = 15): string {
 }
 
 function heading(text: string, align: 'left' | 'center' = 'left'): string {
-  return `<h1 class="ink" style="margin:0;font-family:${DISPLAY};font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-0.3px;color:${T.ink};text-align:${align};">${text}</h1>`;
+  return `<h1 class="ink" style="margin:0;font-family:${BODY};font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-0.5px;color:${T.ink};text-align:${align};">${text}</h1>`;
 }
 
-function pill(text: string, tone: 'green' | 'red' = 'green'): string {
-  const bg = tone === 'red' ? T.redBg : T.green;
-  const fg = tone === 'red' ? T.red : T.greenInk;
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="${tone === 'red' ? 'pillred' : ''}" style="background:${bg};color:${fg};border-radius:999px;padding:5px 10px;font-family:${BODY};font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">${esc(text)}</td></tr></table>`;
+function pill(text: string, color: TrackerBrand | 'red'): string {
+  const red = color === 'red';
+  const bg = red ? T.redBg : color.brand;
+  const fg = red ? T.red : color.ink;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="${red ? 'pillred' : ''}" style="background:${bg};color:${fg};border-radius:999px;padding:5px 10px;font-family:${BODY};font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">${esc(text)}</td></tr></table>`;
 }
 
 function button(href: string, text: string, ghost = false): string {
@@ -216,22 +222,18 @@ function heroBig(big: string): string {
     : compact;
 }
 
-function hero(label: string, big: string, sub: string, tone: 'green' | 'ink' = 'green'): string {
-  const bg = tone === 'ink' ? T.ink : T.green;
-  const fg = tone === 'ink' ? T.card : T.greenInk;
-  // Dark mode: the ink hero becomes a raised dark card (heroinkbox) instead
-  // of a light block identical to the button under it.
-  const cls = tone === 'ink' ? 'heroink' : '';
-  const boxCls = tone === 'ink' ? 'heroinkbox' : '';
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="${boxCls}" style="background:${bg};color:${fg};border-radius:16px;padding:16px 18px;">
-<div class="${cls}" style="font-family:${BODY};font-size:13px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${fg};opacity:0.85;">${label}</div>
-<div class="${cls}" style="font-family:${DISPLAY};font-size:36px;line-height:1.08;font-weight:800;letter-spacing:-0.8px;color:${fg};padding:2px 0;white-space:nowrap;">${heroBig(big)}</div>
-<div class="${cls}" style="font-family:${BODY};font-size:14px;font-weight:600;color:${fg};">${sub}</div>
+/** The state block, like the tracker's "show this at the counter" card. */
+function hero(b: TrackerBrand, label: string, big: string, sub: string): string {
+  const fg = b.ink;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:${b.brand};color:${fg};border-radius:16px;padding:16px 18px;">
+<div style="font-family:${BODY};font-size:13px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${fg};opacity:0.85;">${label}</div>
+<div style="font-family:${BODY};font-size:36px;line-height:1.08;font-weight:700;letter-spacing:-1px;color:${fg};padding:2px 0;white-space:nowrap;">${heroBig(big)}</div>
+<div style="font-family:${BODY};font-size:14px;font-weight:600;color:${fg};">${sub}</div>
 </td></tr></table>`;
 }
 
-function orderNumberBlock(ctx: CustomerEmailCtx): string {
-  return `<div><span class="ink" style="font-family:${DISPLAY};font-size:30px;font-weight:800;letter-spacing:-0.3px;color:${T.ink};">#${esc(shortOrderNumber(ctx.orderNumber))}</span></div>`;
+function orderNumberBlock(ctx: CustomerEmailCtx, b: TrackerBrand): string {
+  return `<div><span style="font-family:${BODY};font-size:30px;font-weight:700;letter-spacing:-0.5px;color:${b.brand};">#${esc(shortOrderNumber(ctx.orderNumber))}</span></div>`;
 }
 
 function itemsBlock(ctx: CustomerEmailCtx): string {
@@ -316,12 +318,13 @@ function initials(name: string): string {
 
 function header(ctx: CustomerEmailCtx): string {
   const r = ctx.restaurant;
+  const b = trackerBrand(r.brandColor);
   const logo = r.logoUrl
-    ? `<img src="${esc(r.logoUrl)}" width="40" height="40" alt="" style="display:block;width:40px;height:40px;border-radius:12px;border:0;background:#FFFFFF;">`
-    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="40" height="40" align="center" valign="middle" class="mono" style="width:40px;height:40px;border-radius:12px;background:${T.ink};color:#FFFFFE;font-family:${DISPLAY};font-size:15px;font-weight:800;">${esc(initials(r.name))}</td></tr></table>`;
+    ? `<img src="${esc(r.logoUrl)}" width="40" height="40" alt="" style="display:block;width:40px;height:40px;border-radius:20px;border:0;background:#FFFFFF;">`
+    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;border-radius:20px;background:${b.brand};color:${b.ink};font-family:${BODY};font-size:15px;font-weight:700;">${esc(initials(r.name))}</td></tr></table>`;
   return `<tr><td style="padding:18px 20px 0;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
 <td valign="middle" style="padding-right:10px;">${logo}</td>
-<td valign="middle" class="ink" style="font-family:${DISPLAY};font-size:15px;font-weight:700;color:${T.ink};">${esc(r.name)}</td>
+<td valign="middle" class="ink" style="font-family:${BODY};font-size:16px;font-weight:700;letter-spacing:-0.2px;color:${T.ink};">${esc(r.name)}</td>
 </tr></table></td></tr>`;
 }
 
@@ -340,7 +343,7 @@ function layout(ctx: CustomerEmailCtx, opts: { preheader: string; title: string;
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark">
 <title>${esc(opts.title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:light dark;supported-color-schemes:light dark}
 body{margin:0;padding:0;-webkit-text-size-adjust:100%}
@@ -352,13 +355,8 @@ a{text-decoration:none}
   .sub{color:#A3ADA9 !important}
   .line{border-color:#2A322F !important}
   .soft{background:#1D2421 !important}
-  .btn{background:#F1F4F2 !important}
-  .btnfg{background:#F1F4F2 !important;color:#0E1412 !important}
   .lnk{color:#5BE3C9 !important}
   .pillred{background:#3A1717 !important;color:#FF9B91 !important}
-  .heroinkbox{background:#1D2421 !important;border:1px solid #2A322F !important}
-  .heroink{color:#F1F4F2 !important}
-  .mono{background:#F1F4F2 !important;color:#0E1412 !important}
 }
 [data-ogsc] .ink{color:#F1F4F2 !important}
 [data-ogsc] .sub{color:#A3ADA9 !important}
@@ -403,10 +401,11 @@ export function buildReceiptEmail(ctx: CustomerEmailCtx): BuiltEmail {
     ? (en ? "The kitchen will start on it in a moment." : 'La cocina lo empieza en un momento.')
     : (en ? `The restaurant will confirm it in a moment and we'll email you ${what}.` : `El restaurante lo confirma en un momento y te mandamos ${what} por email.`);
   const place = placeLine(ctx);
+  const b = trackerBrand(ctx.restaurant.brandColor);
   const blocks = [
-    pill(ctx.paid ? (en ? 'Paid' : 'Pagado') : (en ? 'Received' : 'Recibido')),
+    pill(ctx.paid ? (en ? 'Paid' : 'Pagado') : (en ? 'Received' : 'Recibido'), b),
     `${heading(name ? (en ? `Thanks, ${esc(name)}. We got your order.` : `Gracias, ${esc(name)}. Recibimos tu pedido.`) : (en ? 'Thanks. We got your order.' : 'Gracias. Recibimos tu pedido.'))}<div style="height:6px;line-height:6px;">&nbsp;</div>${para(esc(sub))}`,
-    orderNumberBlock(ctx),
+    orderNumberBlock(ctx, b),
     button(ctx.trackingUrl, en ? 'Track your order' : 'Seguir mi pedido'),
     itemsBlock(ctx),
     totalsBlock(ctx),
@@ -453,7 +452,7 @@ export function buildEtaEmail(ctx: CustomerEmailCtx, opts: { readyAtMs?: number 
     : `${en ? "We're making it now · " : 'Ya lo estamos preparando · '}${itemsTxt} · ${total}`;
   const place = placeLine(ctx);
   const blocks = [
-    hero(esc(label), esc(big), esc(heroSub)),
+    hero(trackerBrand(ctx.restaurant.brandColor), esc(label), esc(big), esc(heroSub)),
     button(ctx.trackingUrl, en ? 'Track your order' : 'Seguir mi pedido'),
     infoBlock([
       { v: `#${esc(n)} · ${esc(itemsTxt)} · <b>${esc(total)}</b> · ${esc(payLine(ctx))}` },
@@ -477,12 +476,12 @@ export function buildReadyEmail(ctx: CustomerEmailCtx, opts?: { reminder?: boole
   const place = placeLine(ctx);
   const blocks = [
     hero(
+      trackerBrand(ctx.restaurant.brandColor),
       reminder ? (en ? 'Waiting for you' : 'Te espera') : (en ? 'Ready now' : 'Listo ahora'),
       `#${esc(n)}`,
       reminder
         ? (en ? 'It’s been ready for a while. Show this number at the counter.' : 'Está listo hace un rato. Muestra este número en el mostrador.')
         : (en ? 'Show this number at the counter.' : 'Muestra este número en el mostrador.'),
-      'ink',
     ),
     button(ctx.mapsUrl || ctx.trackingUrl, ctx.mapsUrl ? (en ? 'Get directions' : 'Cómo llegar') : (en ? 'View order' : 'Ver pedido')),
     infoBlock([
@@ -512,7 +511,7 @@ export function buildOnTheWayEmail(ctx: CustomerEmailCtx, opts: { arrivalMs: num
   const label = driver ? (en ? `${esc(driver)} is on the way · arrives` : `${esc(driver)} viene en camino · llega entre`) : (en ? 'On the way · arrives' : 'En camino · llega entre');
   const count = itemCount(ctx);
   const blocks = [
-    hero(label, esc(win), esc(heroSub)),
+    hero(trackerBrand(ctx.restaurant.brandColor), label, esc(win), esc(heroSub)),
     button(ctx.trackingUrl, en ? 'Track live' : 'Seguir en vivo'),
     infoBlock([
       ...(ctx.deliveryAddress ? [{ k: en ? 'Deliver to' : 'Entregar en', v: esc(ctx.deliveryAddress) }] : []),

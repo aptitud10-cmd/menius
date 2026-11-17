@@ -41,7 +41,7 @@ const ORDER_SELECT = `
   delivery_address, delivery_lat, delivery_lng, table_name, estimated_ready_minutes, prepared_at, created_at,
   driver_name, cancellation_reason, batch_id, batch_seq, driver_at_door_at,
   restaurants ( name, slug, address, phone, logo_url, email, notifications_enabled, timezone, currency, locale,
-    tax_label, tax_rate, tax_included, latitude, longitude )
+    tax_label, tax_rate, tax_included, latitude, longitude, brand_color )
 `;
 
 interface ItemRow {
@@ -118,6 +118,7 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
       phone: (r.phone as string | null) ?? null,
       logoUrl: (r.logo_url as string | null) ?? null,
       timezone: (r.timezone as string | null) ?? null,
+      brandColor: (r.brand_color as string | null) ?? null,
     },
     orderNumber: String(o.order_number ?? ''),
     customerName: String(o.customer_name ?? ''),
