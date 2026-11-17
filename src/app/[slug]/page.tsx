@@ -477,7 +477,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
           slug={params.slug}
           categories={demoConfig.categories}
           products={demoConfig.products}
-          reviewStats={{ average: 4.7, total: 128 }}
+          reviewStats={null}
         />
         <MenuShell
           restaurant={demoConfig.restaurant}
@@ -485,7 +485,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
           products={demoConfig.products}
           tableName={null}
           locale={demoConfig.locale}
-          reviewStats={{ average: 4.7, total: 128 }}
+          reviewStats={null}
           backUrl="/demo"
         />
       </>

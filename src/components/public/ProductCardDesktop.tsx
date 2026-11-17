@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { showsPopularityBadge } from '@/lib/social-proof';
 import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -105,7 +106,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
         // borde de CADA card de la sección hacía que el ámbar compitiera con la
         // foto —que es lo que vende— y perdiera valor de señal. Solo el #1
         // conserva una marca, y sutil.
-        !outOfStock && product.popularity_rank === 1
+        !outOfStock && showsPopularityBadge(product) && product.popularity_rank === 1
           ? 'border border-amber-300 shadow-[0_2px_14px_rgba(245,158,11,0.14)]'
           : 'border border-ink-100',
         outOfStock
@@ -143,11 +144,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             </div>
           )}
           {!outOfStock && (() => {
-            const rank = product.popularity_rank;
-            const orders7d = product.orders_last_7d ?? 0;
+            const rank = showsPopularityBadge(product) ? product.popularity_rank : null;
             if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ {t.popularityTop1}</span>;
             if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 Top {rank}</span>;
-            if (orders7d >= 10) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 {t.popularityOrders(orders7d)}</span>;
             if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
             return null;
           })()}
@@ -185,11 +184,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             </div>
           )}
           {!outOfStock && (() => {
-            const rank = product.popularity_rank;
-            const orders7d = product.orders_last_7d ?? 0;
+            const rank = showsPopularityBadge(product) ? product.popularity_rank : null;
             if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ {t.popularityTop1}</span>;
             if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 Top {rank}</span>;
-            if (orders7d >= 10) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 {t.popularityOrders(orders7d)}</span>;
             if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
             return null;
           })()}

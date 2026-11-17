@@ -77,7 +77,6 @@ export interface Translations {
   createFree: string;
   // Footer
   poweredBy: string;
-  createYourMenu: string;
   // Days
   monday: string;
   tuesday: string;
@@ -160,6 +159,7 @@ export interface Translations {
   servedHours: (hours: string) => string;
   /** Badge on a required group once it is satisfied. */
   groupDone: string;
+  groupRequired: string;
   // Product card
   soldOut: string;
   unavailable: string;
@@ -545,7 +545,6 @@ const es: Translations = {
   wantThisForYours: '¿Quieres esto para tu restaurante?',
   createFree: 'Crear gratis',
   poweredBy: 'Hecho con',
-  createYourMenu: 'Crea tu menú digital gratis',
   monday: 'Lunes',
   tuesday: 'Martes',
   wednesday: 'Miércoles',
@@ -609,6 +608,7 @@ const es: Translations = {
   optionHoursOnly: (name, hours) => `${name}: solo ${hours}`,
   servedHours: (hours) => `Se sirve ${hours}`,
   groupDone: 'Listo',
+  groupRequired: 'Obligatorio',
   soldOut: 'Agotado',
   unavailable: 'No disponible',
   addedShort: 'Listo',
@@ -978,7 +978,6 @@ const en: Translations = {
   wantThisForYours: 'Want this for your restaurant?',
   createFree: 'Start free',
   poweredBy: 'Powered by',
-  createYourMenu: 'Create your digital menu for free',
   monday: 'Monday',
   tuesday: 'Tuesday',
   wednesday: 'Wednesday',
@@ -1042,6 +1041,7 @@ const en: Translations = {
   optionHoursOnly: (name, hours) => `${name}: ${hours} only`,
   servedHours: (hours) => `Served ${hours}`,
   groupDone: 'Done',
+  groupRequired: 'Required',
   soldOut: 'Sold out',
   unavailable: 'Unavailable',
   addedShort: 'Added',

@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
+import { REVIEWS_MIN_FOR_RATING } from '@/lib/social-proof';
 import type { Restaurant, Category, Product } from '@/types';
 
 const logger = createLogger('menu-data');
@@ -178,14 +179,18 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         .select('id, customer_name, rating, comment, created_at')
         .eq('restaurant_id', restaurant.id)
         .eq('is_visible', true)
+        .not('order_id', 'is', null)
         .order('created_at', { ascending: false })
         .limit(10),
-      // Aggregate query for accurate review stats across ALL visible reviews
+      // Aggregate query for accurate review stats across ALL visible reviews.
+      // Only reviews tied to an order count: one without an order was never a
+      // purchase (the owner testing, or anyone with the link).
       db
         .from('reviews')
-        .select('rating', { count: 'exact' })
+        .select('rating, comment', { count: 'exact' })
         .eq('restaurant_id', restaurant.id)
-        .eq('is_visible', true),
+        .eq('is_visible', true)
+        .not('order_id', 'is', null),
     ] as const);
 
     // Lightweight modifier presence check — runs after we have product IDs.
@@ -302,15 +307,21 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
     let reviewStats: ReviewStats | null = null;
     const reviews = (reviewRows ?? []) as any[];
     // Use all visible reviews for accurate aggregate stats
-    const allRatingRows = (reviewAggResult.data ?? []) as { rating: number }[];
+    const allRatingRows = (reviewAggResult.data ?? []) as { rating: number; comment: string | null }[];
     const totalReviews = reviewAggResult.count ?? allRatingRows.length;
-    if (totalReviews > 0) {
+    // Below the minimum a rating does more harm than good, so the cover rating,
+    // the review cards and the JSON-LD aggregateRating all stay hidden together.
+    // The minimum counts reviews WITH text: a bare tap on 5 stars is what a test
+    // order leaves behind (Buccaneer 2026-11-16: 10 order-linked 5★, 1 with text).
+    const reviewsWithText = allRatingRows.filter((r) => (r.comment ?? '').trim().length > 0).length;
+    const enoughReviews = reviewsWithText >= REVIEWS_MIN_FOR_RATING;
+    if (enoughReviews) {
       const sum = allRatingRows.reduce((s, r) => s + (r.rating ?? 0), 0);
       const avg = sum / allRatingRows.length;
       reviewStats = { average: Math.round(avg * 10) / 10, total: totalReviews };
     }
 
-    const recentReviews: ReviewItem[] = reviews
+    const recentReviews: ReviewItem[] = (enoughReviews ? reviews : [])
       .filter((r: any) => r.comment && r.comment.trim().length > 0)
       .slice(0, 10)
       .map((r: any) => ({

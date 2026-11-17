@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { showsPopularityBadge } from '@/lib/social-proof';
 import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -99,7 +100,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         // borde de CADA card de la sección hacía que el ámbar compitiera con la
         // foto —que es lo que vende— y perdiera valor de señal. Solo el #1
         // conserva una marca, y sutil.
-        !outOfStock && product.popularity_rank === 1
+        !outOfStock && showsPopularityBadge(product) && product.popularity_rank === 1
           ? 'border border-amber-300 shadow-[0_2px_14px_rgba(245,158,11,0.14)]'
           : 'border border-ink-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)]',
         outOfStock ? 'opacity-60' : 'cursor-pointer active:opacity-80'
@@ -143,11 +144,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </div>
         )}
         {!outOfStock && (() => {
-          const rank = product.popularity_rank;
-          const orders7d = product.orders_last_7d ?? 0;
+          const rank = showsPopularityBadge(product) ? product.popularity_rank : null;
           if (rank === 1) return <span className="absolute top-2 left-2 text-[11px] font-bold text-amber-950 px-2 py-1 rounded-full leading-none bg-amber-300 shadow-sm">⭐ {t.popularityTop1}</span>;
           if (rank != null && rank <= 3) return <span className="absolute top-2 left-2 text-[11px] font-bold text-white px-2 py-1 rounded-full leading-none bg-red-600 shadow-sm">🔥 Top {rank}</span>;
-          if (orders7d >= 10) return <span className="absolute top-2 left-2 text-[11px] font-bold text-white px-2 py-1 rounded-full leading-none bg-red-600 shadow-sm">🔥 {t.popularityOrders(orders7d)}</span>;
           if (product.is_new) return <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-blue-600 px-2 py-1 rounded-full leading-none shadow-sm">{t.productNew}</span>;
           return null;
         })()}

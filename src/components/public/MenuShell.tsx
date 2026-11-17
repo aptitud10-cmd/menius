@@ -25,6 +25,7 @@ import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { formatPrice, cn } from "@/lib/utils";
+import { hasRealPopularity } from "@/lib/social-proof";
 import { getTranslations, type Locale } from "@/lib/translations";
 import type {
   Restaurant,
@@ -119,6 +120,14 @@ interface CustomizationTarget {
   editIndex: number | null;
 }
 
+/**
+ * Card images preloaded with high priority: only the first row, the one a phone
+ * shows on load (its photo is the LCP). 4 competed with the cover and the
+ * restaurant-name font once the menu became server-rendered (2026-11-16); 0 left
+ * the LCP photo lazy-loading late.
+ */
+const PRIORITY_CARD_IMAGES = 2;
+
 const POPULAR_ID = "__popular__";
 /** Prefijo de stockOutAlert: el texto se muestra tal cual, sin la plantilla "«X» ya no está disponible". */
 const RAW_ALERT = "\u0001";
@@ -144,6 +153,16 @@ export function MenuShell({
   const availableLocales = availableLocalesRaw ?? [initialLocale];
   const hasMultiLang = availableLocales.length > 1;
   const [locale, setLocale] = useState<Locale>(initialLocale);
+  // The root layout can't know the menu's language (no cookies() there, to
+  // keep ISR) and sets <html lang> from the MENIUS UI preference, so an
+  // English menu was announced as Spanish to screen readers (WCAG 3.1.1).
+  useEffect(() => {
+    const prev = document.documentElement.lang;
+    document.documentElement.lang = locale;
+    return () => {
+      document.documentElement.lang = prev;
+    };
+  }, [locale]);
   const [showLangPicker, setShowLangPicker] = useState(false);
   const t = getTranslations(locale);
   const currency = restaurant.currency;
@@ -1231,8 +1250,11 @@ export function MenuShell({
     // Real sales data first — popularity_rank/orders_last_7d are filled weekly by
     // the recalc-popularity cron and until now only drove a badge on the card.
     // is_featured is the fallback: a new restaurant has no order history yet.
+    // Only products above the real-volume minimum count as "ranked": a handful
+    // of (often test) orders used to fill all 10 slots and hide every dish the
+    // owner featured.
     const ranked = inStock
-      .filter((p) => p.popularity_rank != null || (p.orders_last_7d ?? 0) > 0)
+      .filter((p) => hasRealPopularity(p))
       .sort((a, b) => {
         const ra = a.popularity_rank ?? Number.MAX_SAFE_INTEGER;
         const rb = b.popularity_rank ?? Number.MAX_SAFE_INTEGER;
@@ -2354,6 +2376,7 @@ export function MenuShell({
                 sizes="(max-width: 1440px) 100vw, 1440px"
                 className="object-cover animate-cover-zoom"
                 priority
+                quality={60}
               />
               {/* Mobile: gradient. Multi-stop con aceleración hacia abajo (ease-in) en
                 lugar de un 2-stop transparent→negro, que produce banding gris visible
@@ -2393,7 +2416,7 @@ export function MenuShell({
                       {reviewStats.average}
                     </span>
                     <span className="text-xs text-white/75">
-                      ({reviewStats.total}+)
+                      ({reviewStats.total})
                     </span>
                   </div>
                 )}
@@ -2460,7 +2483,7 @@ export function MenuShell({
                       {reviewStats.average}
                     </span>
                     <span className="text-sm text-white/70">
-                      ({reviewStats.total}+)
+                      ({reviewStats.total})
                     </span>
                   </div>
                 )}
@@ -2577,7 +2600,7 @@ export function MenuShell({
                             {reviewStats.average}
                           </span>
                           <span className="text-xs text-gray-400">
-                            ({reviewStats.total}+)
+                            ({reviewStats.total})
                           </span>
                         </div>
                       )}
@@ -2673,7 +2696,7 @@ export function MenuShell({
                               {reviewStats.average}
                             </span>
                             <span className="text-sm text-gray-500">
-                              ({reviewStats.total}+)
+                              ({reviewStats.total})
                             </span>
                           </div>
                         )}
@@ -3125,7 +3148,7 @@ export function MenuShell({
                         {(() => {
                           let globalProductIdx = 0;
                           return displayedGroups.map(
-                            ({ category, items, available }) => {
+                            ({ category, items, available }, groupIdx) => {
                               const isPopular = category.id === POPULAR_ID;
                               const isLocked = !available;
                               // Photo cards first, then the photo-less items as a
@@ -3138,7 +3161,20 @@ export function MenuShell({
                                 <section
                                   key={category.id}
                                   data-cat-id={category.id}
-                                  style={{ contentVisibility: "auto" }}
+                                  // Never on the first section: it is on screen at
+                                  // load, and content-visibility measures it as 0 px
+                                  // for the first frame of the server-rendered HTML
+                                  // — the footer painted mid-screen and jumped
+                                  // (CLS 0.14–0.19). The rest keep the skip, with a
+                                  // reserved height so scrolling to them doesn't jump.
+                                  style={
+                                    groupIdx === 0
+                                      ? undefined
+                                      : {
+                                          contentVisibility: "auto",
+                                          containIntrinsicSize: "auto 900px",
+                                        }
+                                  }
                                   ref={(el) => {
                                     if (el)
                                       sectionRefs.current.set(category.id, el);
@@ -3214,7 +3250,7 @@ export function MenuShell({
                                       >
                                         {cardItems.map((product) => {
                                           const isPriority =
-                                            globalProductIdx < 4;
+                                            globalProductIdx < PRIORITY_CARD_IMAGES;
                                           globalProductIdx++;
                                           return (
                                             <div key={product.id}>
@@ -3279,7 +3315,7 @@ export function MenuShell({
                                           // mobile en el LCP de tiendas nuevas sin CDN
                                           // caliente; el resto carga lazy al scrollear.
                                           const isPriority =
-                                            globalProductIdx < 4;
+                                            globalProductIdx < PRIORITY_CARD_IMAGES;
                                           globalProductIdx++;
                                           return (
                                             <motion.div
@@ -3648,7 +3684,7 @@ export function MenuShell({
                   )}
 
                   {/* Powered by MENIUS — todas las tiendas */}
-                  <div className="mt-8 mb-4 flex flex-col items-center gap-1.5">
+                  <div className="mt-8 mb-4 flex justify-center">
                     <a
                       href="https://menius.app?ref=menu-footer"
                       target="_blank"
@@ -3664,14 +3700,6 @@ export function MenuShell({
                       <span className="text-[12px] text-gray-600 font-semibold">
                         MENIUS
                       </span>
-                    </a>
-                    <a
-                      href="https://menius.app?ref=menu-footer-cta"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[12px] text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                      {t.createYourMenu} →
                     </a>
                   </div>
                 </div>

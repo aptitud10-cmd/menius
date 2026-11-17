@@ -245,8 +245,9 @@ export default async function RootLayout({
         `,
           }}
         />
+        {children}
         <Suspense fallback={null}>
-          <PostHogProvider>{children}</PostHogProvider>
+          <PostHogProvider />
         </Suspense>
         <CookieConsent />
         <ServiceWorkerRegister />

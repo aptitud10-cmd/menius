@@ -903,14 +903,26 @@ export function CustomizationSheet({
                 {groupTitle}
               </h4>
               <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                {/* Pending required groups read as a quiet grey "Required" — red
+                    only once the diner tried to add without answering (the same
+                    moment the ring turns red). Answered ones become a tick in the
+                    accent instead of a "Done" chip: a checklist, not six pills. */}
                 {isSatisfied ? (
-                  <span className="inline-flex items-center gap-1 text-[12px] font-semibold px-2 py-0.5 rounded-full text-[#047a65] bg-[#d0f7f1]">
-                    <Check className="w-3 h-3" strokeWidth={3} aria-hidden="true" />
-                    {t.groupDone}
+                  <span className="inline-flex items-center gap-1.5 text-[14px] text-gray-600">
+                    <span className="flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#05c8a7]">
+                      <Check className="w-3 h-3 text-[#04241E]" strokeWidth={3} aria-hidden="true" />
+                    </span>
+                    <span className="sr-only">{t.groupDone}:</span>
+                    {getRuleLabel(group)}
                   </span>
                 ) : minRequired > 0 ? (
-                  <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full text-red-600 bg-red-50">
-                    {getRuleLabel(group)}
+                  <span
+                    className={cn(
+                      "text-[12px] font-semibold px-2 py-0.5 rounded-full",
+                      isHighlighted ? "text-red-700 bg-red-50" : "text-gray-700 bg-gray-100",
+                    )}
+                  >
+                    {t.groupRequired} · {getRuleLabel(group)}
                   </span>
                 ) : (
                   <span className="text-[14px] text-gray-600">{getRuleLabel(group)}</span>
