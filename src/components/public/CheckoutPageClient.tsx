@@ -1193,6 +1193,27 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     }
   };
 
+  // Desktop: the actions column is sticky. When it is taller than the visible
+  // area (707px against 692px on a 1024x768 iPad), sticking it by its top let
+  // the end of the page push it up and cut off Pickup/Delivery, and on short
+  // screens "Confirm order" could sit below the fold. A negative top equal to
+  // the overflow sticks it by its bottom instead: the button stays in view and
+  // only the top of the column scrolls away — and only when it doesn't fit.
+  // (The page's bottom padding lives on the left column, not on their flex
+  // parent: a sticky child can't go past its parent's content box, so 40px
+  // of padding there pushed the column 40px up at the end of the page.)
+  const [actionsEl, setActionsEl] = useState<HTMLElement | null>(null);
+  const [actionsTop, setActionsTop] = useState(0);
+  useEffect(() => {
+    const scroller = actionsEl?.parentElement?.parentElement;
+    if (!actionsEl || !scroller || typeof ResizeObserver === 'undefined') return;
+    const update = () => setActionsTop(Math.min(0, scroller.clientHeight - actionsEl.offsetHeight));
+    const ro = new ResizeObserver(update);
+    ro.observe(actionsEl);
+    ro.observe(scroller);
+    update();
+    return () => ro.disconnect();
+  }, [actionsEl]);
 
   if (!hasMounted) {
     return (
@@ -2087,10 +2108,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
       {/* Scroll en un contenedor (no en el root): iOS respeta overscroll-behavior. */}
       <div {...behindSheet} className={cn('flex-1 overflow-y-auto overscroll-contain', activeSheet && 'overflow-hidden')}>
-        <div className="max-w-lg mx-auto min-[860px]:max-w-[1060px] min-[860px]:flex min-[860px]:items-start min-[860px]:gap-14 min-[860px]:px-10 min-[860px]:pb-10">
+        <div className="max-w-lg mx-auto min-[860px]:max-w-[1060px] min-[860px]:flex min-[860px]:items-start min-[860px]:gap-14 min-[860px]:px-10">
 
           {/* Resumen: el total manda */}
-          <section className="px-5 pt-1 pb-1 min-[860px]:flex-1 min-[860px]:px-0 min-[860px]:pt-2 min-[860px]:sticky min-[860px]:top-0">
+          <section className="px-5 pt-1 pb-1 min-[860px]:flex-1 min-[860px]:px-0 min-[860px]:pt-2 min-[860px]:pb-10">
             <p className="text-sm text-[#4f4f57] mt-1.5 mb-0.5">{t.ckYourOrder}</p>
             <p aria-live="polite" className={cn('m-0 text-[46px] min-[860px]:text-[56px] leading-[1.05] font-semibold tracking-[-0.035em] tabular-nums transition-opacity', quoteLoading && 'opacity-60')}>
               {fmtPrice(displayTotal)}
@@ -2129,8 +2150,15 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             <div className="hidden min-[860px]:block pt-7">{legal}</div>
           </section>
 
-          {/* Acciones */}
-          <section className="px-4 pt-2.5 pb-5 flex flex-col gap-3.5 min-[860px]:w-[450px] min-[860px]:shrink-0 min-[860px]:px-0 min-[860px]:pt-2 min-[860px]:gap-3">
+          {/* Acciones — sticky en escritorio: con un pedido largo la lista de la
+              izquierda scrollea y el pago + "Confirm order" quedan a la vista.
+              Antes el sticky estaba en el resumen (más alto que la pantalla →
+              no hacía nada) y esta columna se iba con el scroll. */}
+          <section
+            ref={setActionsEl}
+            style={{ top: actionsTop }}
+            className="px-4 pt-2.5 pb-5 flex flex-col gap-3.5 min-[860px]:w-[450px] min-[860px]:shrink-0 min-[860px]:px-0 min-[860px]:pt-2 min-[860px]:gap-3 min-[860px]:sticky"
+          >
 
             {/* Cómo y cuándo */}
             <CkGroup>
