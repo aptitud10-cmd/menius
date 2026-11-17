@@ -19,6 +19,7 @@ import {
   AlignJustify,
   Sparkles,
   SearchX,
+  UtensilsCrossed,
 } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
@@ -387,6 +388,11 @@ export function MenuShell({
     return () => window.clearInterval(id);
   }, []);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // The cart as it was before the last quick-add, for the toast's "Undo".
+  const undoCartRef = useRef<Pick<
+    ReturnType<typeof useCartStore.getState>,
+    "items" | "reorderSkipped"
+  > | null>(null);
   const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -991,7 +997,8 @@ export function MenuShell({
   const showToast = useCallback((name: string) => {
     clearTimeout(toastTimer.current);
     setToastName(name);
-    toastTimer.current = setTimeout(() => setToastName(null), 2000);
+    // 4 s: with an action in it, 2 s was too short to reach "Undo".
+    toastTimer.current = setTimeout(() => setToastName(null), 4000);
     try {
       if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
         audioCtxRef.current = new (
@@ -1029,8 +1036,18 @@ export function MenuShell({
     } catch {}
   }, []);
 
+  const undoQuickAdd = useCallback(() => {
+    const prev = undoCartRef.current;
+    if (prev) useCartStore.setState(prev);
+    undoCartRef.current = null;
+    clearTimeout(toastTimer.current);
+    setToastName(null);
+  }, []);
+
   const handleQuickAdd = useCallback(
     (product: Product) => {
+      const { items, reorderSkipped } = useCartStore.getState();
+      undoCartRef.current = { items, reorderSkipped };
       addItem(product, null, [], 1, "");
       showToast(product.name);
       trackEvent("product_added_to_cart", {
@@ -2987,18 +3004,28 @@ export function MenuShell({
 
                 {/* Table context banner — shown when customer arrives via table QR */}
                 {hasMounted && activeTableName && !tableBannerDismissed && (
-                  <div className="mx-4 lg:mx-8 mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl bg-gray-950 text-white">
-                    <span className="text-lg flex-shrink-0">🍽️</span>
-                    <p className="flex-1 text-sm font-bold">
-                      {t.youreAt}{" "}
-                      <span className="text-[#05c8a7]">{activeTableName}</span>
+                  <div className="mx-4 lg:mx-8 mt-3 lg:mt-5 flex items-center gap-3 pl-4 pr-1 py-1.5 rounded-2xl bg-[#e6faf7] border border-[#b3efe6]">
+                    <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
+                      <UtensilsCrossed
+                        className="w-4 h-4 text-[#047a65]"
+                        strokeWidth={2.25}
+                        aria-hidden="true"
+                      />
+                    </div>
+                    {/* The QR carries the bare table ("12"): say what it is. */}
+                    <p className="flex-1 min-w-0 text-sm font-semibold text-[#047a65] truncate">
+                      {/^\d+$/.test(activeTableName.trim())
+                        ? `${t.tableWord} ${activeTableName.trim()}`
+                        : activeTableName}
+                      {" · "}
+                      {t.dineIn}
                     </p>
                     <button
                       onClick={() => setTableBannerDismissed(true)}
-                      className="flex-shrink-0 p-1 text-white/50 hover:text-white transition-colors"
+                      className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl text-[#047a65] hover:bg-[#d0f7f1] transition-colors"
                       aria-label={t.dismiss}
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
                 )}
@@ -4342,6 +4369,7 @@ export function MenuShell({
         <RepeatOrderButton
           restaurantId={restaurant.id}
           locale={locale as "es" | "en"}
+          currency={currency}
           suppressed={showReorderBanner || reorderDismissed}
         />
 
@@ -4502,11 +4530,8 @@ export function MenuShell({
 
         {/* ── Toast: "X se ha agregado al carrito" — centrado en pantalla ── */}
         {toastName && (
-          <div
-            className="fixed bottom-[88px] left-0 right-0 lg:bottom-8 z-[60] flex justify-center pointer-events-none"
-            aria-hidden="true"
-          >
-            <div className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl">
+          <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] left-0 right-0 lg:bottom-8 z-[60] flex justify-center px-4 pointer-events-none">
+            <div className="pointer-events-auto flex items-center gap-2.5 max-w-full min-h-[52px] pl-4 pr-1.5 py-1.5 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl">
               <span className="w-5 h-5 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
                 <svg
                   className="w-3 h-3 text-white"
@@ -4522,7 +4547,16 @@ export function MenuShell({
                   />
                 </svg>
               </span>
-              {toastName} {t.addedCartSuffix}
+              <span className="min-w-0 truncate" aria-hidden="true">
+                {toastName} {t.addedCartSuffix}
+              </span>
+              <button
+                type="button"
+                onClick={undoQuickAdd}
+                className="flex-shrink-0 h-10 px-3 rounded-xl text-[#5BE3C9] font-semibold hover:bg-white/10 active:bg-white/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+              >
+                {t.cartUndo}
+              </button>
             </div>
           </div>
         )}

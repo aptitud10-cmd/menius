@@ -264,6 +264,8 @@ export interface Translations {
   scrollLeftAriaLabel: string;
   scrollRightAriaLabel: string;
   youreAt: string;
+  tableWord: string;
+  installIosTap: string;
   dismiss: string;
   tryDifferentKeyword: string;
   todayLabel: string;
@@ -717,6 +719,8 @@ const es: Translations = {
   scrollLeftAriaLabel: 'Desplazar izquierda',
   scrollRightAriaLabel: 'Desplazar derecha',
   youreAt: 'Estás en',
+  tableWord: 'Mesa',
+  installIosTap: 'Toca',
   dismiss: 'Cerrar',
   tryDifferentKeyword: 'Intenta con otra palabra o revisa la ortografía',
   todayLabel: 'Hoy',
@@ -946,7 +950,7 @@ const es: Translations = {
   repeatOrderNumber: (n) => `Pedido #${n}`,
   repeatSomeUnavailable: 'Algunos productos ya no están disponibles',
   repeatPriceUpdated: 'Precio actualizado',
-  repeatAddItemsToCart: (n) => `Agregar ${n} productos al carrito`,
+  repeatAddItemsToCart: (n) => (n === 1 ? `Agregar 1 producto al carrito` : `Agregar ${n} productos al carrito`),
   repeatNeedsCustomization: 'Elegí opciones en el menú',
   repeatBrowseMenu: 'Ver el menú',
   repeatDontShowAgain: 'No volver a mostrar',
@@ -1168,6 +1172,8 @@ const en: Translations = {
   scrollLeftAriaLabel: 'Scroll left',
   scrollRightAriaLabel: 'Scroll right',
   youreAt: `You're at`,
+  tableWord: 'Table',
+  installIosTap: 'Tap',
   dismiss: 'Dismiss',
   tryDifferentKeyword: 'Try a different keyword or check the spelling',
   todayLabel: 'Today',
@@ -1397,7 +1403,7 @@ const en: Translations = {
   repeatOrderNumber: (n) => `Order #${n}`,
   repeatSomeUnavailable: 'Some items are no longer available',
   repeatPriceUpdated: 'Price updated',
-  repeatAddItemsToCart: (n) => `Add ${n} items to cart`,
+  repeatAddItemsToCart: (n) => (n === 1 ? `Add 1 item to cart` : `Add ${n} items to cart`),
   repeatNeedsCustomization: 'Choose options on the menu',
   repeatBrowseMenu: 'Browse the menu',
   repeatDontShowAgain: "Don't show this again",
