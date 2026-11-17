@@ -533,7 +533,7 @@ export function CartPanel({
                           opción con su recargo debajo (Pedro 2026-11-13); el total queda abajo. */}
                       <div className="flex items-start justify-between gap-1">
                         <div className="min-w-0">
-                          <h4 className="font-semibold text-sm text-gray-900 truncate leading-tight">{itemName}</h4>
+                          <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 leading-tight">{itemName}</h4>
                         </div>
                         {modLines.length > 0 && (
                           <span className="flex-shrink-0 text-sm font-semibold text-gray-900 tabular-nums leading-tight">
@@ -704,11 +704,6 @@ export function CartPanel({
                 </motion.span>
               </AnimatePresence>
             </div>
-            {deliveryFee > 0 && (
-              <p className="text-[11px] text-gray-500 mt-1 text-right">
-                {t.deliveryIfSelected}: +{fmtPrice(deliveryFee)}
-              </p>
-            )}
           </div>
         ) : (
           <div className="flex justify-between items-baseline mb-3">
@@ -727,14 +722,25 @@ export function CartPanel({
             </AnimatePresence>
           </div>
         )}
-        {taxPending && (
-          <p className="-mt-2 mb-3 text-[11px] text-gray-500 text-right">{t.taxAtCheckout}</p>
-        )}
-        {cashOnly && (
-          <p className="-mt-1 mb-3 flex items-center gap-1.5 text-[12px] text-gray-600">
-            <Banknote className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-            {t.cartCashOnly}
-          </p>
+        {/* Letra chica del pie en un solo bloque: mismo tamaño, misma alineación
+            (antes eran líneas de 11 y 12 px, unas a la derecha y otras a la izquierda). */}
+        {((deliveryFee ?? 0) > 0 || taxPending || cashOnly) && (
+          <div className="-mt-1.5 mb-3 grid gap-1 text-[13px] leading-snug text-gray-600">
+            {((deliveryFee ?? 0) > 0 || taxPending) && (
+              <p>
+                {[
+                  (deliveryFee ?? 0) > 0 ? `${t.deliveryIfSelected}: +${fmtPrice(deliveryFee ?? 0)}` : null,
+                  taxPending ? t.taxAtCheckout : null,
+                ].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            {cashOnly && (
+              <p className="flex items-center gap-1.5">
+                <Banknote className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                {t.cartCashOnly}
+              </p>
+            )}
+          </div>
         )}
         <motion.button
           onClick={onCheckout}

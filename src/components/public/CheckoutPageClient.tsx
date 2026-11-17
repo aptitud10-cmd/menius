@@ -726,7 +726,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         includeUtensils,
         tableName || manualTableName.trim(),
       ]),
-    [buildOrderItemsPayload, orderType, paymentMethod, tipAmount, promoResult, promoCode, loyaltyPointsToRedeem, deliveryAddress, deliveryUnit, deliveryCoords, fullDeliveryAddress, scheduleEnabled, scheduledFor, customerName, customerPhone, customerEmail, orderNotes, includeUtensils, tableName, manualTableName],
+    [buildOrderItemsPayload, orderType, paymentMethod, tipAmount, promoResult, promoCode, loyaltyPointsToRedeem, fullDeliveryAddress, scheduleEnabled, scheduledFor, customerName, customerPhone, customerEmail, orderNotes, includeUtensils, tableName, manualTableName],
   );
   const firstPayloadSigRef = useRef(true);
   useEffect(() => {
@@ -1821,7 +1821,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     : belowDeliveryMin ? { label: t.ckAddItems.replace('{x}', fmtPrice(Math.max(0, deliveryMinOrder - cartTotal))), run: goBack }
     : dineInOnlyBlocked ? { label: t.confirmOrder, run: handleSubmitOrder }
     : !addressReady ? { label: t.ckAddAddress, run: () => setActiveSheet('address') }
-    : !contactReady ? { label: t.ckContinue, run: () => setActiveSheet('contact') }
+    : !contactReady ? { label: t.ckAddContact, run: () => setActiveSheet('contact') }
     : {
         label: paymentMethod === 'online' ? `${t.payLabel} ${fmtPrice(displayTotal)}` : `${t.confirmOrder} · ${fmtPrice(displayTotal)}`,
         run: handleSubmitOrder,
@@ -1948,19 +1948,20 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     </div>
   );
 
+  // Las políticas se abren en otra pestaña (el checkout no pierde lo escrito);
+  // ?from=checkout hace que su botón diga "Back to checkout" y cierre esa pestaña.
+  const legalLinkCls = 'inline-flex items-center min-h-[40px] whitespace-nowrap text-[#4f4f57] font-medium underline underline-offset-2';
   const legal = (
-    <p className="text-[12.5px] leading-relaxed text-[#6b6b74] px-1 m-0">
-      {t.ckLegal.replace('{name}', restaurant.name)}{' '}
-      <a href={`/${slug}/legal/refunds`} target="_blank" rel="noopener noreferrer" className="text-[#4f4f57] font-medium underline underline-offset-2">{t.ckRefunds}</a>
-      {' · '}
-      <a href={`/${slug}/legal/privacy`} target="_blank" rel="noopener noreferrer" className="text-[#4f4f57] font-medium underline underline-offset-2">{t.ckPrivacy}</a>
-      {restaurant.phone && (
-        <>
-          {' · '}
-          <a href={`tel:${restaurant.phone.replace(/[^\d+]/g, '')}`} className="text-[#4f4f57] font-medium underline underline-offset-2">{t.ckCall}</a>
-        </>
-      )}
-    </p>
+    <div className="text-[12.5px] leading-relaxed text-[#6b6b74] px-1">
+      <p className="m-0">{t.ckLegal.replace('{name}', restaurant.name)}</p>
+      <div className="flex flex-wrap gap-x-5 -mb-2">
+        <a href={`/${slug}/legal/refunds?from=checkout`} target="_blank" rel="noopener noreferrer" className={legalLinkCls}>{t.ckRefunds}</a>
+        <a href={`/${slug}/legal/privacy?from=checkout`} target="_blank" rel="noopener noreferrer" className={legalLinkCls}>{t.ckPrivacy}</a>
+        {restaurant.phone && (
+          <a href={`tel:${restaurant.phone.replace(/[^\d+]/g, '')}`} className={legalLinkCls}>{t.ckCall}</a>
+        )}
+      </div>
+    </div>
   );
 
   const tipBlock = tipAllowed && (
@@ -2270,6 +2271,27 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   onClick={() => setActiveSheet('address')}
                 />
               )}
+              {orderType === 'pickup' && restaurant.address && (
+                <CkRow
+                  icon={<MapPin />}
+                  label={t.ckPickupAt}
+                  value={restaurant.address}
+                  sub={
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                        restaurant.latitude != null && restaurant.longitude != null
+                          ? `${restaurant.latitude},${restaurant.longitude}`
+                          : `${restaurant.name}, ${restaurant.address}`,
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center min-h-[32px] font-medium text-[#047a65] underline underline-offset-2"
+                    >
+                      {t.getDirections}
+                    </a>
+                  }
+                />
+              )}
               {orderType !== 'dine_in' && (
                 <CkRow
                   icon={<Clock />}
@@ -2312,14 +2334,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     <b className="block text-base font-semibold">
                       {orderType === 'delivery' ? t.ckCashDelivery : orderType === 'dine_in' ? t.ckCashDineIn : t.ckCashPickup}
                     </b>
-                    <span className="block text-[13.5px] text-[#4f4f57] mt-0.5">{t.ckCashTip}</span>
+                    <span className="block text-[13.5px] text-[#4f4f57] mt-0.5">{hasOnline ? t.ckCashTip : `${t.ckCashOnly} ${t.ckCashTip}`}</span>
                     {orderType === 'delivery' && (
                       <>
                         <span className="block text-[13.5px] text-[#4f4f57] mt-2.5">{t.ckChangeQuestion}</span>
                         <div className="flex flex-wrap gap-2 mt-2.5" role="radiogroup" aria-label={t.ckChangeQuestion}>
                           {([
                             { v: 'exact' as const, label: t.ckExact },
-                            ...[20, 50, 100].filter((n) => n > displayTotal).map((n) => ({ v: n, label: fmtPrice(n).replace(/[.,]00(?=\D*$)/, '') })),
+                            ...[10, 20, 40, 50, 100].filter((n) => n > displayTotal).slice(0, 3).map((n) => ({ v: n, label: fmtPrice(n).replace(/[.,]00(?=\D*$)/, '') })),
                           ]).map((c) => (
                             <button
                               key={String(c.v)}
@@ -2337,9 +2359,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                           ))}
                         </div>
                       </>
-                    )}
-                    {!hasOnline && (
-                      <span className="block text-[12.5px] text-[#6b6b74] mt-2">{t.ckCashOnly}</span>
                     )}
                   </div>
                 </div>
@@ -2622,7 +2641,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); validatePromo(); } }}
               placeholder={t.promoCodePlaceholder}
-              className={cn(fieldInputCls, 'uppercase')}
+              className={cn(fieldInputCls, 'uppercase placeholder:normal-case')}
             />
           </label>
         </CkFields>

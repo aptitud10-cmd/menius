@@ -413,6 +413,7 @@ export interface Translations {
   ckPausedCta: string;
   ckFixAddress: string;
   ckFixContact: string;
+  ckPickupAt: string;
   ckReviewItems: string;
   ckEditInMenu: string;
   ckDateTime: string;
@@ -609,7 +610,7 @@ const es: Translations = {
   peopleAlsoOrder: 'También piden con esto',
   freeDelivery: 'Gratis',
   deliveryIfSelected: 'Envío (si eliges domicilio)',
-  taxAtCheckout: '+ impuestos al pagar',
+  taxAtCheckout: 'Impuestos se suman al pagar',
   deliveryMinimum: 'Pedido mínimo para domicilio',
   deliveryMinimumMissing: 'Te falta agregar',
   maxReached: 'Máximo alcanzado',
@@ -865,6 +866,7 @@ const es: Translations = {
   ckPausedCta: 'Pedidos en pausa',
   ckFixAddress: 'Cambiar dirección',
   ckFixContact: 'Corregir contacto',
+  ckPickupAt: 'Recoges en',
   ckReviewItems: 'Revisar pedido',
   ckEditInMenu: 'Editar en el menú',
   ckDateTime: 'Fecha y hora',
@@ -1058,7 +1060,7 @@ const en: Translations = {
   peopleAlsoOrder: 'People also order',
   freeDelivery: 'Free',
   deliveryIfSelected: 'Delivery (if selected)',
-  taxAtCheckout: '+ tax at checkout',
+  taxAtCheckout: 'Tax added at checkout',
   deliveryMinimum: 'Minimum order for delivery',
   deliveryMinimumMissing: 'Add',
   maxReached: 'Max reached',
@@ -1277,7 +1279,7 @@ const en: Translations = {
   ckCashPickup: 'Pay cash at pickup',
   ckCashDelivery: 'Pay cash on delivery',
   ckCashDineIn: 'Pay cash at your table',
-  ckCashTip: 'Tip in cash if you like.',
+  ckCashTip: 'You can tip in person.',
   ckRefunds: 'Refunds',
   cartCashOnly: 'Cash only · you pay when you get your order',
   ckCashOnly: 'This restaurant only takes cash.',
@@ -1314,6 +1316,7 @@ const en: Translations = {
   ckPausedCta: 'Orders paused',
   ckFixAddress: 'Change address',
   ckFixContact: 'Edit contact',
+  ckPickupAt: 'Pick up at',
   ckReviewItems: 'Review order',
   ckEditInMenu: 'Edit in menu',
   ckDateTime: 'Date & time',

@@ -214,7 +214,6 @@ export function MenuShell({
       has_modifiers: boolean;
     }>;
   } | null>(null);
-  const [cartResumeShown, setCartResumeShown] = useState(false);
   const [tableBannerDismissed, setTableBannerDismissed] = useState(false);
   const [activeTableName, setActiveTableName] = useState<string | null>(null);
 
@@ -288,13 +287,9 @@ export function MenuShell({
       ? window.requestIdleCallback(prefetchCheckout, { timeout: 4000 })
       : window.setTimeout(prefetchCheckout, 2500);
 
-    // If returning customer has items in cart, show a brief "resume cart" toast
-    const stored = useCartStore.getState();
-    let resumeTimer: number | undefined;
-    if (stored.restaurantId === restaurant.id && stored.items.length > 0) {
-      setCartResumeShown(true);
-      resumeTimer = window.setTimeout(() => setCartResumeShown(false), 4000);
-    }
+    // No "resume your cart" pill: below xl the "My Order" bar already shows a
+    // saved cart and from xl the cart is a permanent column, so the pill was
+    // the same button twice (and covered the cart's total / checkout button).
 
     return () => {
       if (hasIdle) {
@@ -302,7 +297,6 @@ export function MenuShell({
       } else {
         window.clearTimeout(idleId as number);
       }
-      if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
     };
   }, [
     restaurant.id,
@@ -694,6 +688,30 @@ export function MenuShell({
   }, [customization?.product?.id, restaurant.id]);
 
   const cartColRef = useRef<HTMLDivElement>(null);
+
+  // The xl cart column starts below the cover photo, so with a fixed
+  // h-[calc(100dvh-48px)] its footer (total + Checkout) sat ~180px below the
+  // fold until the diner scrolled. Fit its height to what is visible instead.
+  useEffect(() => {
+    const el = cartColRef.current;
+    if (!el) return;
+    let raf = 0;
+    const fit = () => {
+      raf = 0;
+      const top = Math.max(0, el.getBoundingClientRect().top);
+      el.style.height = `${Math.max(320, window.innerHeight - top)}px`;
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(fit); };
+    fit();
+    window.addEventListener("scroll", schedule, { passive: true, capture: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+      el.style.height = "";
+    };
+  }, []);
 
   const getBannerHeight = useCallback(
     () => bannerRef.current?.offsetHeight ?? 0,
@@ -4533,24 +4551,6 @@ export function MenuShell({
                   : `"${stockOutAlert}" is no longer available and was removed from your cart.`}
               </span>
             </div>
-          </div>
-        )}
-
-        {/* ── Cart resumption toast — shown once when returning with items in cart ── */}
-        {cartResumeShown && !toastName && !isOpen && (
-          // xl:hidden: from xl the cart is a permanent column, and this pill sat
-          // right on top of its checkout button.
-          <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 xl:hidden pointer-events-none">
-            <button
-              className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#05c8a7] text-[#04241E] text-sm font-semibold shadow-lg active:scale-95 transition-transform"
-              onClick={() => {
-                setCartResumeShown(false);
-                setOpen(true);
-              }}
-            >
-              <ShoppingCart className="w-4 h-4" aria-hidden="true" />
-              {t.continueOrderItems.replace("{n}", String(rawCartCount))}
-            </button>
           </div>
         )}
 

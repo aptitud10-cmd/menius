@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { ChevronLeft } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { demoRestaurant } from '@/lib/demo-data';
 import { grillHouseRestaurant } from '@/lib/demo-data-en';
 import { PrivacyPolicyContent } from '@/components/legal/PrivacyPolicyContent';
 import { RefundPolicyContent, REFUND_POLICY_UPDATED } from '@/components/legal/RefundPolicyContent';
+import { usablePaymentMethods } from '@/lib/payments/online-ready';
+import type { PaymentMethod } from '@/types';
+import { LegalBackButton } from './LegalBackButton';
 
 // Páginas legales DENTRO de la tienda (claras, con el nombre del restaurante),
 // para que el link del checkout no saque al comensal al sitio de MENIUS.
@@ -25,22 +27,32 @@ interface StoreInfo {
   logo_url: string | null;
   phone: string | null;
   address: string | null;
+  /** Sin tarjeta habilitada: la política omite las secciones de tarjeta. */
+  cashOnly: boolean;
 }
 
 const DEMOS: Record<string, StoreInfo> = {
-  'la-casa-del-sabor': { name: demoRestaurant.name, slug: 'la-casa-del-sabor', locale: 'es', logo_url: null, phone: null, address: null },
-  'the-grill-house': { name: grillHouseRestaurant.name, slug: 'the-grill-house', locale: 'en', logo_url: null, phone: null, address: null },
+  'la-casa-del-sabor': { name: demoRestaurant.name, slug: 'la-casa-del-sabor', locale: 'es', logo_url: null, phone: null, address: null, cashOnly: true },
+  'the-grill-house': { name: grillHouseRestaurant.name, slug: 'the-grill-house', locale: 'en', logo_url: null, phone: null, address: null, cashOnly: true },
 };
 
 async function getStore(slug: string): Promise<StoreInfo | null> {
   if (DEMOS[slug]) return DEMOS[slug];
   const { data } = await createAdminClient()
     .from('restaurants')
-    .select('name, slug, locale, logo_url, phone, address')
+    .select('name, slug, locale, logo_url, phone, address, payment_methods_enabled, stripe_account_id, stripe_onboarding_complete, currency, wompi_connected')
     .eq('slug', slug)
     .maybeSingle();
   if (!data) return null;
-  return { ...data, locale: data.locale === 'en' ? 'en' : 'es' } as StoreInfo;
+  return {
+    name: data.name,
+    slug: data.slug,
+    locale: data.locale === 'en' ? 'en' : 'es',
+    logo_url: data.logo_url,
+    phone: data.phone,
+    address: data.address,
+    cashOnly: !usablePaymentMethods({ ...data, payment_methods_enabled: data.payment_methods_enabled as PaymentMethod[] | null }).includes('online'),
+  };
 }
 
 const COPY = {
@@ -49,6 +61,7 @@ const COPY = {
     privacy: 'Política de privacidad',
     updated: 'Última actualización',
     back: 'Volver al menú',
+    backCheckout: 'Volver al pedido',
     privacyIntro: (r: string) => `${r} usa MENIUS para recibir pedidos en línea. Esta es la política de privacidad de MENIUS y cubre los datos que das al hacer tu pedido. Para dudas sobre el pedido en sí, habla con ${r}.`,
     seeAlso: 'Ver también',
     poweredBy: 'Pedidos en línea con MENIUS',
@@ -58,6 +71,7 @@ const COPY = {
     privacy: 'Privacy policy',
     updated: 'Last updated',
     back: 'Back to menu',
+    backCheckout: 'Back to checkout',
     privacyIntro: (r: string) => `${r} uses MENIUS to take orders online. This is the MENIUS privacy policy, and it covers the details you give when you order. For questions about the order itself, talk to ${r}.`,
     seeAlso: 'See also',
     poweredBy: 'Online ordering by MENIUS',
@@ -75,7 +89,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!store) return { robots: { index: false } };
   const c = COPY[store.locale];
   return {
-    title: `${params.doc === 'refunds' ? c.refunds : c.privacy} · ${store.name}`,
+    // absolute: sin el "| MENIUS" del template del sitio; es una página de la tienda.
+    title: { absolute: `${params.doc === 'refunds' ? c.refunds : c.privacy} · ${store.name}` },
     robots: { index: false },
   };
 }
@@ -94,13 +109,7 @@ export default async function StoreLegalPage({ params }: PageProps) {
     <div className="min-h-[100dvh] bg-white text-[#111114]">
       <header className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-black/[0.07]">
         <div className="max-w-[680px] mx-auto px-4 h-14 flex items-center gap-3">
-          <Link
-            href={`/${store.slug}`}
-            className="relative -ml-2 flex items-center gap-1 h-11 pr-2 pl-1 rounded-full text-[15px] font-medium text-[#111114] hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-          >
-            <ChevronLeft className="w-5 h-5" aria-hidden="true" />
-            {c.back}
-          </Link>
+          <LegalBackButton slug={store.slug} menuLabel={c.back} checkoutLabel={c.backCheckout} />
           <span className="ml-auto flex items-center gap-2 min-w-0">
             {store.logo_url && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -127,7 +136,7 @@ export default async function StoreLegalPage({ params }: PageProps) {
 
         <div className="mt-4">
           {doc === 'refunds'
-            ? <RefundPolicyContent locale={locale} name={store.name} phone={store.phone} address={store.address} />
+            ? <RefundPolicyContent locale={locale} name={store.name} phone={store.phone} address={store.address} cashOnly={store.cashOnly} />
             : <PrivacyPolicyContent locale={locale} tone="light" />}
         </div>
 
