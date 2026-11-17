@@ -25,7 +25,7 @@ import { supabaseLoader, getBlurUrl } from "@/lib/image-loader";
 import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
 import { inTimeZone } from "@/lib/orders/business-hours";
 import { showsAsRow } from "@/lib/product-display";
-import { planGroupLayout } from "@/lib/modifier-layout";
+import { planGroupLayout, splitOptionName } from "@/lib/modifier-layout";
 
 /** Height of the compact header that replaces the floating X on scroll. */
 const COMPACT_HEADER_PX = 52;
@@ -762,6 +762,72 @@ export function CustomizationSheet({
     );
   };
 
+  /**
+   * Plain dish or paid upgrade (Regular | Deluxe +$4.00): one segmented
+   * control of 52px with what the upgrade adds on a single line underneath —
+   * two side-by-side cards took ~114px and broke "…choice of / side" across
+   * three centred lines. Text after " — " in the option name is that line.
+   */
+  const renderToggle = (group: ModifierGroup, headingId: string) => {
+    const details = group.options
+      .map((opt) => {
+        const { title, detail } = splitOptionName(tName(opt, locale, defaultLocale));
+        return detail ? title + ": " + detail : null;
+      })
+      .filter(Boolean);
+    return (
+      <>
+        <div
+          role="radiogroup"
+          aria-labelledby={headingId}
+          className="grid grid-cols-2 gap-1 p-1 rounded-full bg-gray-100"
+        >
+          {group.options.map((opt) => {
+            const { isSelected, isOffHours, hours, price } = optionState(group, opt);
+            const { title } = splitOptionName(tName(opt, locale, defaultLocale));
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                aria-disabled={isOffHours || undefined}
+                onClick={() => toggleOption(group, opt)}
+                className={cn(
+                  "min-h-[44px] px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-[15px] leading-tight transition-colors duration-150",
+                  isSelected
+                    ? "bg-[#05c8a7] text-[#04241E] font-semibold shadow-sm"
+                    : isOffHours
+                      ? "text-gray-500"
+                      : "text-gray-800 font-medium hover:bg-white/70 active:bg-white",
+                )}
+              >
+                {isSelected && <Check className="w-4 h-4 flex-shrink-0" aria-hidden="true" />}
+                <span className="truncate">{title}</span>
+                {price !== 0 && (
+                  <span
+                    className={cn(
+                      "text-[13px] font-medium tabular-nums flex-shrink-0",
+                      isSelected ? "text-[#04241E]/80" : "text-gray-600",
+                    )}
+                  >
+                    {priceLabel(price)}
+                  </span>
+                )}
+                {hours && <span className="sr-only">{hours}</span>}
+              </button>
+            );
+          })}
+        </div>
+        {details.length > 0 && (
+          <p className="mt-2 px-1 text-[13px] leading-snug text-gray-600">
+            {details.join(" · ")}
+          </p>
+        )}
+      </>
+    );
+  };
+
   /** Priced add-ons: checkbox (or radio), name, price aligned right. */
   const renderListRow = (group: ModifierGroup, opt: ModifierOption, showsIncluded: boolean) => {
     const { isSelected, isDisabled, isOffHours, hours, price } = optionState(group, opt);
@@ -1116,7 +1182,9 @@ export function CustomizationSheet({
                 <p className="mt-1 text-[13px] text-gray-600">{standardHint}</p>
               )}
             </div>
-            {format === "chips" ? (
+            {format === "toggle" ? (
+              renderToggle(group, headingId)
+            ) : format === "chips" ? (
               <div role="group" aria-labelledby={headingId} className="flex flex-wrap gap-2">
                 {group.options.map((opt) => renderChip(group, opt, showsIncluded))}
               </div>

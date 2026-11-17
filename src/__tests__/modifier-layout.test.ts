@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupFormat, planGroupLayout } from '@/lib/modifier-layout';
+import { groupFormat, planGroupLayout, splitOptionName } from '@/lib/modifier-layout';
 import type { ModifierGroup } from '@/types';
 
 let n = 0;
@@ -43,8 +43,20 @@ const cheeseFries = group('Would you like cheese on your fries?', [['Cheese on F
 const sauce = group('Would you like extra sauce?', [['Gravy', 0.75], ['Ranch', 0.75], ['BBQ', 0.75], ['Mayo', 0.75], ['Ketchup', 0.75]], { ...optional, max_select: 5 });
 
 describe('groupFormat', () => {
-  it('cards when an option carries a description after an em dash', () => {
-    expect(groupFormat(style)).toBe('cards');
+  it('toggle for a required plain-or-upgrade choice', () => {
+    expect(groupFormat(style)).toBe('toggle');
+  });
+  it('not a toggle when both options cost the same or it is optional', () => {
+    expect(groupFormat(group('Size', [['Small', 0], ['Large', 0]]))).toBe('chips');
+    expect(groupFormat({ ...style, is_required: false, min_select: 0 })).toBe('cards');
+  });
+  it('cards when the upgrade label is too long for half a toggle', () => {
+    const long = group('Style', [['Regular', 0], ['Super Deluxe Platter — fries & salad', 4]]);
+    expect(groupFormat(long)).toBe('cards');
+  });
+  it('splits title and detail on the em dash', () => {
+    expect(splitOptionName('Deluxe — lettuce, tomato & choice of side')).toEqual({ title: 'Deluxe', detail: 'lettuce, tomato & choice of side' });
+    expect(splitOptionName('Regular')).toEqual({ title: 'Regular', detail: null });
   });
   it('chips for short choices, priced or not', () => {
     expect(groupFormat(cooked)).toBe('chips');
