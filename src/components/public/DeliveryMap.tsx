@@ -86,6 +86,13 @@ const DRIVER_PIN = `<svg width="18" height="18" viewBox="0 0 24 24" style="fill:
 // ── Mapbox Geocoding v6 ──────────────────────────────────────────────────────
 
 /** Distancia aproximada en km (haversine). */
+/** Short phone maps (176px) get small, top-heavy padding: 60px on every side
+ *  left ~56px to fit three pins in and Mapbox zoomed out to the airport. */
+function fitPadding(map: any): number | { top: number; bottom: number; left: number; right: number } {
+  const h = map?.getContainer?.()?.clientHeight ?? 0;
+  return h > 0 && h < 220 ? { top: 36, bottom: 20, left: 32, right: 32 } : 60;
+}
+
 function distanceKm(a: Coords, b: Coords): number {
   const R = 6371;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
@@ -284,15 +291,18 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
         onFail(e?.error?.status ? `HTTP ${e.error.status}: ${e.error.message ?? ''}` : (e?.error?.message ?? 'map error'));
       });
 
-      // Fit map to show all markers
-      if (points.length > 1) {
-        const lngs = points.map(p => p[0]);
-        const lats = points.map(p => p[1]);
+      // Fit the map. With the driver out, frame the driver and the destination
+      // only (the restaurant pin is still drawn): on the 176px phone map,
+      // fitting all three zoomed out to LaGuardia with the pins piled up.
+      const frame = driverCoords && deliveryCoords ? points.slice(1) : points;
+      if (frame.length > 1) {
+        const lngs = frame.map(p => p[0]);
+        const lats = frame.map(p => p[1]);
         const bounds: [[number, number], [number, number]] = [
           [Math.min(...lngs), Math.min(...lats)],
           [Math.max(...lngs), Math.max(...lats)],
         ];
-        map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 0 });
+        map.fitBounds(bounds, { padding: fitPadding(map), maxZoom: 15.5, duration: 0 });
       }
 
       // Restaurant marker
@@ -398,12 +408,24 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
     if (driverElRef.current) driverElRef.current.style.opacity = '1';
     animateMarkerTo(driverCoords);
 
-    // Smoothly pan map to follow driver
-    mapRef.current.easeTo({
-      center: [driverCoords.lng, driverCoords.lat],
-      duration: 1000,
-      easing: (t: number) => t * (2 - t), // ease out quad
-    });
+    // Follow the driver keeping the destination in frame: re-fit both (the
+    // Uber/DoorDash framing). Just centering on the driver kept the zoom of
+    // the first fit and pushed the house off the 176px phone map.
+    if (deliveryCoords) {
+      mapRef.current.fitBounds(
+        [
+          [Math.min(driverCoords.lng, deliveryCoords.lng), Math.min(driverCoords.lat, deliveryCoords.lat)],
+          [Math.max(driverCoords.lng, deliveryCoords.lng), Math.max(driverCoords.lat, deliveryCoords.lat)],
+        ],
+        { padding: fitPadding(mapRef.current), maxZoom: 15.5, duration: 1000 },
+      );
+    } else {
+      mapRef.current.easeTo({
+        center: [driverCoords.lng, driverCoords.lat],
+        duration: 1000,
+        easing: (t: number) => t * (2 - t), // ease out quad
+      });
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, driverCoords?.lat, driverCoords?.lng]);
 

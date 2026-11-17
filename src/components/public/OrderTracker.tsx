@@ -15,13 +15,11 @@ import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import ShareReceiptButton from './ShareReceiptButton';
 import { trackerBrand } from '@/lib/tracker-brand';
 import { formatPhoneNumber, formatPhoneNumberIntl } from 'react-phone-number-input';
-import { DM_Mono } from 'next/font/google';
 import { NOT_ACCEPTED_MINS } from '@/lib/orders/order-timeouts';
 
-// Segundo registro del seguimiento: datos "de máquina" (n.º de pedido, horas de
-// los pasos, "Actualizado hace…"). Fuente cargada, no la del sistema: en Windows
-// y Android "monospace" cae a Courier.
-const tkMono = DM_Mono({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--font-tk-mono' });
+// Datos "de máquina" (n.º de pedido, horas de los pasos, "Actualizado…") van
+// en Inter con cifras tabulares: la DM Mono con cero tachado se leía como una
+// terminal ("#Ø42", "Updated Ø s ago"). --tk-mono queda como alias de la fuente.
 
 const phoneText = (p: string) => formatPhoneNumber(p) || formatPhoneNumberIntl(p) || p;
 
@@ -44,7 +42,7 @@ const TRACKER_CSS = `
 --tk-btn:#05C8A7;--tk-btn-fg:#04241E;--tk-green:#05C8A7;--tk-green-ink:#04241E;--tk-green-deep:#047A65;--tk-green-soft:#E2F7F3;
 --tk-amber:#8A5100;--tk-amber-soft:#FFF4DC;--tk-red:#C4321B;--tk-red-soft:#FDECEA;
 --tk-shadow:0 1px 2px rgba(17,17,20,.04),0 8px 24px rgba(17,17,20,.06);
---tk-mono:var(--font-tk-mono),ui-monospace,"SF Mono",Menlo,monospace;color-scheme:light}
+--tk-mono:inherit;color-scheme:light}
 .mt-root .mt-ok circle{fill:var(--brand)}
 .mt-root .mt-ok path{fill:none;stroke:var(--brand-ink);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
 .mt-root .mt-ok.draw circle{animation:mtPop .45s cubic-bezier(.32,.72,0,1) both;transform-origin:center}
@@ -679,8 +677,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const fetchAgeS = lastFetchAt != null ? Math.max(0, Math.round((now - lastFetchAt) / 1000)) : null;
   const freshLabel = offline
     ? (en ? `Updated at ${fmtClock(lastFetchAt ?? now)}` : `Actualizado a las ${fmtClock(lastFetchAt ?? now)}`)
-    : fetchAgeS == null || fetchAgeS < 60
-      ? (en ? `Updated ${fetchAgeS ?? 0} s ago` : `Actualizado hace ${fetchAgeS ?? 0} s`)
+    : fetchAgeS == null || fetchAgeS < 10
+      ? (en ? 'Updated just now' : 'Actualizado ahora')
+      : fetchAgeS < 60
+      ? (en ? 'Updated a moment ago' : 'Actualizado hace un momento')
       : (en ? `Updated ${Math.floor(fetchAgeS / 60)} min ago` : `Actualizado hace ${Math.floor(fetchAgeS / 60)} min`);
 
   // Billete con el que paga (el checkout lo deja en las notas: "[Paga con: $100]").
@@ -759,7 +759,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     }
     if (onTheWay) return [en ? 'On the way' : 'Va en camino', driverName ? (en ? `${driverName} has your order.` : `${driverName} lleva tu pedido.`) : ''];
     if (isPending) {
-      if (scheduled) return [en ? 'Order scheduled' : 'Pedido programado', en ? `${R} will start it in time for the time you chose.` : `${R} lo empieza a tiempo para la hora que elegiste.`];
+      if (scheduled) return [en ? 'Order scheduled' : 'Pedido programado', en ? `${R} will have it ready at the time you chose.` : `${R} lo tendrá listo a la hora que elegiste.`];
       if (waiting) return [en ? 'Not accepted yet' : 'Aún no lo aceptan', en
         ? `We sent it to ${R} ${pendingMin} minutes ago and they haven't answered yet.${restaurantPhone ? ' Call them to make sure they got it.' : ''}`
         : `Lo enviamos a ${R} hace ${pendingMin} minutos y todavía no responden.${restaurantPhone ? ' Llámalos para confirmar que lo recibieron.' : ''}`];
@@ -796,7 +796,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     if (!isActive || awaitingPayment) return null;
     if (scheduled) {
       const c = clock(scheduledMs);
-      const day = new Date(scheduledMs).toLocaleDateString(dateLocale, { weekday: 'short' });
+      const sd = new Date(scheduledMs);
+      const tomorrow = new Date(now + 86_400_000);
+      const day = sd.toDateString() === new Date(now).toDateString() ? (en ? 'today' : 'hoy')
+        : sd.toDateString() === tomorrow.toDateString() ? (en ? 'tomorrow' : 'mañana')
+        : sd.toLocaleDateString(dateLocale, { weekday: 'short' });
       const full = new Date(scheduledMs).toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' });
       return { lbl: isDelivery ? (en ? 'Arrives' : 'Llega') : isPickup ? (en ? 'Ready for pickup' : 'Listo para recoger') : (en ? 'Ready' : 'Listo'),
         val: `${day.charAt(0).toUpperCase()}${day.slice(1).replace('.', '')} ${c.hm}`, suf: c.suf,
@@ -819,7 +823,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     }
     if (pickupReady) {
       const since = tsMs(o.updated_at);
-      return { code: true, lbl: en ? 'When you arrive, show this' : 'Al llegar, muestra esto', val: `#${shortNum}${customerFirst ? ` · ${customerFirst}` : ''}`,
+      return { code: true, lbl: arrived ? (en ? 'Show this at the counter' : 'Muestra esto en el mostrador') : (en ? 'When you arrive, show this' : 'Al llegar, muestra esto'), val: `#${shortNum}${customerFirst ? ` · ${customerFirst}` : ''}`,
         ctx: arrived ? (en ? "They'll bring it out in a moment" : 'Te lo traen en un momento') : Number.isFinite(since) ? (en ? `Waiting for you since ${fmtClock(since)}` : `Te espera desde las ${fmtClock(since)}`) : '' };
     }
     if (isDelivery) {
@@ -890,14 +894,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     if (key === 'accepted' && waiting) return en ? `${pendingMin} min, no answer yet` : `Hace ${pendingMin} min, sin respuesta todavía`;
     if (key === 'accepted' && almost) return en ? 'Almost ready' : 'Casi listo';
     if (key === 'onway' && atDoor && Number.isFinite(doorMs)) return en ? `At your door since ${fmtClock(doorMs)}` : `En tu puerta desde las ${fmtClock(doorMs)}`;
-    if (key === 'onway' && stopsAhead > 0) return stopsAheadText;
     if (key === 'ready' && arrived) { const a = tsMs(o.customer_arrived_at); return Number.isFinite(a) ? (en ? `You told them at ${fmtClock(a)}` : `Avisaste a las ${fmtClock(a)}`) : undefined; }
     return undefined;
   };
   const showSteps = !isCancelled && !scheduled && !awaitingPayment;
 
   // ── Acción principal ──
-  const callState = isActive && !awaitingPayment && (waiting || onTheWay) && !!restaurantPhone;
+  const callState = isActive && !awaitingPayment && (waiting || atDoor) && !!restaurantPhone;
   const canArrive = pickupReady && o.authorized && !!trackingToken;
   const canReorder = isComplete && !isDineIn && (o.order_items?.length ?? 0) > 0;
   const cashStripShown = cashDue && isActive && !awaitingPayment && !pickupReady && !atDoor;
@@ -910,7 +913,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const ctaCls = 'w-full h-14 rounded-2xl flex items-center justify-center gap-2 text-[17px] font-semibold tracking-[-0.01em] active:scale-[0.985] transition-transform disabled:opacity-60';
   const ctaSecondaryCls = 'w-full h-[50px] rounded-2xl flex items-center justify-center gap-2 text-[16px] font-semibold active:scale-[0.985] transition-transform';
 
-  const checkMark = (isPending && !awaitingPayment) ? (
+  const checkMark = (isPending && !awaitingPayment && !waiting && !scheduled) ? (
     <svg className={`mt-ok ${freshOrder ? 'draw' : ''} w-10 h-10 mb-2.5`} viewBox="0 0 52 52" aria-hidden><circle cx="26" cy="26" r="26" /><path d="M16 27l7 7 13-15" /></svg>
   ) : null;
 
@@ -976,7 +979,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     </div>
   ) : null;
 
-  const mapBlock = isDelivery && onTheWay && hasDriverGps ? (
+  // At the door the map adds nothing (the driver pin sat on the house pin).
+  const mapBlock = isDelivery && onTheWay && !atDoor && hasDriverGps ? (
     <section className={`relative ${groupCls}`} style={{ ...groupStyle, ['--map-h' as string]: isDesktop ? '260px' : '176px' }}>
       <DeliveryMap
         restaurantAddress={restaurantAddress}
@@ -1070,7 +1074,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       </div>,
     );
   }
-  if (isPickup && isActive && !arrived && restaurantAddress) {
+  if (isPickup && isActive && !arrived && !awaitingPayment && restaurantAddress) {
     detailRows.push(
       <div key="pickup" className={rowCls}>
         {rowIcon(<MapPin className="w-[17px] h-[17px]" />)}
@@ -1244,7 +1248,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       )}
       {isActive && !awaitingPayment && (
         <p className="text-[12.5px] leading-[1.6] px-1" style={{ color: K.faint }}>
-          {en ? `Keep this link: your order updates here live. ${R} prepares and delivers your order.` : `Guarda este enlace: aquí ves tu pedido en vivo. ${R} prepara y entrega tu pedido.`}
+          {en ? `Keep this link: your order updates here live. ${R} ${isDelivery ? 'prepares and delivers' : 'prepares'} your order.` : `Guarda este enlace: aquí ves tu pedido en vivo. ${R} ${isDelivery ? 'prepara y entrega' : 'prepara'} tu pedido.`}
         </p>
       )}
       <nav className="flex items-center gap-1 text-[13.5px] font-medium -ml-2" style={{ color: K.sub }}>
@@ -1260,7 +1264,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const rootVars = { '--brand': brand.brand, '--brand-ink': brand.ink, '--brand-soft': brand.soft, background: K.surface, color: K.ink } as React.CSSProperties;
 
   return (
-    <div className={`mt-root ${tkMono.variable} min-h-[100dvh] flex flex-col font-sans antialiased`} style={rootVars}>
+    <div className={`mt-root min-h-[100dvh] flex flex-col font-sans antialiased`} style={rootVars}>
       <style>{TRACKER_CSS}</style>
       <div className="sr-only" aria-live="polite" aria-atomic="true">{headline}</div>
 
@@ -1315,8 +1319,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           {feedbackBlock}
           {detailCard}
           {!isDesktop && callRow}
-          {tailBlock}
-          {footer}
+          {isDesktop ? <>{footer}{tailBlock}</> : <>{tailBlock}{footer}</>}
         </div>
       </main>
     </div>
