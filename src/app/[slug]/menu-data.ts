@@ -42,7 +42,7 @@ async function probeProductIds(
  */
 export async function fetchAllSlugs(): Promise<string[]> {
   try {
-    const db = createAdminClient();
+    const db = createAdminClient({ isr: true });
     const { data } = await db.from('restaurants').select('slug');
     return (data ?? []).map((r: { slug: string }) => r.slug).filter(Boolean);
   } catch {
@@ -56,7 +56,7 @@ export async function fetchAllSlugs(): Promise<string[]> {
  */
 export const fetchRestaurantMeta = cache(async function fetchRestaurantMeta(slug: string) {
   try {
-    const db = createAdminClient();
+    const db = createAdminClient({ isr: true });
     const { data: restaurant } = await db
       .from('restaurants')
       .select('id, name, description, cover_image_url, logo_url, slug, locale, available_locales, cuisine_type, address, country_code')
@@ -145,7 +145,7 @@ export interface MenuData {
 async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
   try {
     // Admin client bypasses RLS for public menu reads (server-side only, never exposed to client)
-    const db = createAdminClient();
+    const db = createAdminClient({ isr: true });
 
     const { data: restaurant, error: restaurantError } = await db
       .from('restaurants')

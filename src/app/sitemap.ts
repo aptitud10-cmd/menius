@@ -97,7 +97,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
-    const db = createAdminClient();
+    const db = createAdminClient({ isr: true });
     const { data: restaurants } = await db
       .from("restaurants")
       .select("slug, created_at")

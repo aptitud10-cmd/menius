@@ -37,7 +37,7 @@ const DEMOS: Record<string, StoreInfo> = {
 
 async function getStore(slug: string): Promise<StoreInfo | null> {
   if (DEMOS[slug]) return DEMOS[slug];
-  const { data } = await createAdminClient()
+  const { data } = await createAdminClient({ isr: true })
     .from('restaurants')
     .select('name, slug, locale, logo_url, phone, address, payment_methods_enabled, stripe_account_id, stripe_onboarding_complete, currency, wompi_connected')
     .eq('slug', slug)
