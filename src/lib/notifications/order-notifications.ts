@@ -9,6 +9,7 @@ import { loadCustomerEmailOrder, sendCustomerEmail } from './customer-email-data
 import { formatPrice } from '@/lib/utils';
 import { createLogger } from '@/lib/logger';
 import { orderItemModLines, withTitle } from '@/lib/modifier-lines';
+import { fetchStopsAhead, MINUTES_PER_STOP_AHEAD } from '@/lib/orders/driver-route';
 
 const logger = createLogger('order-notifications');
 
@@ -304,7 +305,18 @@ async function sendStatusEmail(opts: {
   } else if (kind === 'ready' || kind === 'ready_reminder') {
     email = buildReadyEmail(order.ctx, { reminder: kind === 'ready_reminder' });
   } else if (kind === 'on_the_way') {
-    email = buildOnTheWayEmail(order.ctx, { arrivalMs: now + travelMs, driverName: order.driverName });
+    // Same window as the tracker: a driver with other deliveries first adds
+    // MINUTES_PER_STOP_AHEAD per stop. Without it the 2nd customer on a route
+    // was promised 12:25–12:35 while their tracker said 1:10–1:20.
+    const stops = await fetchStopsAhead(createAdminClient(), {
+      id: order.orderId,
+      status: order.status,
+      batch_id: order.batchId,
+      batch_seq: order.batchSeq,
+      driver_at_door_at: order.driverAtDoorAt,
+    });
+    const arrivalMs = now + travelMs + stops * MINUTES_PER_STOP_AHEAD * 60_000;
+    email = buildOnTheWayEmail(order.ctx, { arrivalMs, driverName: order.driverName });
   } else {
     email = buildCancelledEmail(order.ctx, { reason: order.cancellationReason, refunded: order.paymentStatus === 'refunded', refundPending: order.paymentStatus === 'paid' });
   }
