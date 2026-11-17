@@ -85,7 +85,8 @@ CREATE TABLE public.categories (
   available_to time without time zone,
   group_name text,
   group_sort_order integer,
-  send_to_kitchen boolean NOT NULL DEFAULT true
+  send_to_kitchen boolean NOT NULL DEFAULT true,
+  display_mode text
 );
 
 CREATE TABLE public.cfdi_requests (
