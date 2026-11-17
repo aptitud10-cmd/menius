@@ -39,7 +39,7 @@ export const FREE_MONTHLY_ORDER_LIMIT = -1;
 
 /**
  * Planes que se pueden contratar hoy. Desde 2026-11 MENIUS vende un solo plan
- * pago (Pro, $79/mes o $790/año). Starter y Business siguen definidos para no
+ * pago (Pro, $149/mes o $1,490/año; antes $79, cambio 2026-11-17). Starter y Business siguen definidos para no
  * romper suscripciones, gates ni datos existentes, pero no se ofrecen.
  */
 export const SELLABLE_PLAN_IDS: PlanId[] = ['pro'];
@@ -170,7 +170,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     name: 'Pro',
     description: 'Todo incluido: menú, pedidos online, pagos y marketing.',
     description_en: 'Everything included: menu, online orders, payments and marketing.',
-    price: { monthly: 79, annual: 790 },
+    price: { monthly: 149, annual: 1490 },
     stripePriceId: {
       monthly: (process.env.STRIPE_PRICE_PRO_MONTHLY ?? '').trim(),
       annual: (process.env.STRIPE_PRICE_PRO_ANNUAL ?? '').trim(),
@@ -285,7 +285,13 @@ export function getPlan(planId: PlanId | string): PlanConfig | null {
 }
 
 export function getPlanByStripePrice(priceId: string): PlanConfig | null {
-  for (const plan of Object.values(PLANS)) {
+  // Primero los planes a la venta: si Pro reusa el precio de $149 que tenía
+  // Business en Stripe, una suscripción nueva tiene que quedar como Pro.
+  const ordered = [
+    ...SELLABLE_PLAN_IDS.map((id) => PLANS[id]),
+    ...Object.values(PLANS).filter((p) => !isSellablePlan(p.id)),
+  ];
+  for (const plan of ordered) {
     if (plan.stripePriceId.monthly === priceId || plan.stripePriceId.annual === priceId) {
       return plan;
     }

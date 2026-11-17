@@ -638,7 +638,7 @@ export function buildTrialEndingEmail(params: {
     <tr>
       <td style="background-color:#f9fafb;border-radius:12px;padding:16px 20px;text-align:center;">
         <p style="margin:0;font-size:13px;font-weight:700;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${en ? "Pro plan · $79/mo or $790/yr" : "Plan Pro · $79/mes o $790/año"}
+          ${en ? "Pro plan · $149/mo or $1,490/yr" : "Plan Pro · $149/mes o $1,490/año"}
         </p>
         <p style="margin:4px 0 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
           ${en ? "Pickup & delivery · Online payments (0% MENIUS commission) · Analytics · Up to 5 users" : "Pickup y delivery · Pagos online (0% de comisión de MENIUS) · Analytics · Hasta 5 usuarios"}

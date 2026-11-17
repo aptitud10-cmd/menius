@@ -108,7 +108,7 @@ No todas las soluciones son iguales. Busca una plataforma que ofrezca:
 - **QR personalizados por mesa** — Para identificar de dónde viene cada pedido
 - **Analytics** — Para saber qué se vende más y cuándo
 
-Con MENIUS, tienes todo esto incluido en el plan Pro ($79 USD/mes) con 0% de comisión de MENIUS por pedido.
+Con MENIUS, tienes todo esto incluido en el plan Pro ($149 USD/mes) con 0% de comisión de MENIUS por pedido.
 
 ## Paso 2: Organiza tu menú en categorías
 
@@ -181,7 +181,7 @@ Not all solutions are equal. Look for a platform that offers:
 - **Per-table custom QR codes** — To identify where each order comes from
 - **Analytics** — To know what sells most and when
 
-With MENIUS, you get all this included in the Pro plan ($79 USD/month) with 0% MENIUS commission per order.
+With MENIUS, you get all this included in the Pro plan ($149 USD/month) with 0% MENIUS commission per order.
 
 ## Step 2: Organize Your Menu into Categories
 
@@ -263,11 +263,11 @@ Además, la app se queda con los datos de tus clientes. No puedes contactarlos, 
 
 Con un menú digital propio (como MENIUS), pagas una **tarifa fija mensual** sin importar cuánto vendas:
 
-- **$79/mes** con el plan Pro (o $790/año)
+- **$149/mes** con el plan Pro (o $1,490/año)
 - **0% de comisión de MENIUS** por pedido (el procesamiento de Stripe, 2.9% + 30¢ por pago con tarjeta, lo paga el restaurante)
 - **Tus datos, tu marca, tus clientes**
 
-Ejemplo: Un restaurante que vende $10,000/mes en delivery ahorra hasta **$2,421/mes** en comisiones cambiando de una app de delivery (25% comisión) a MENIUS Pro ($79/mes), antes del procesamiento de Stripe en los pagos con tarjeta.
+Ejemplo: Un restaurante que vende $10,000/mes en delivery ahorra hasta **$2,351/mes** en comisiones cambiando de una app de delivery (25% comisión) a MENIUS Pro ($149/mes), antes del procesamiento de Stripe en los pagos con tarjeta.
 
 ## ¿Cuándo usar cada opción?
 
@@ -319,11 +319,11 @@ Plus, the app keeps your customer data. You can't contact them, you can't do dir
 
 With your own digital menu (like MENIUS), you pay a **fixed monthly fee** regardless of how much you sell:
 
-- **$79/month** with the Pro plan (or $790/year)
+- **$149/month** with the Pro plan (or $1,490/year)
 - **0% MENIUS commission** per order (Stripe processing, 2.9% + 30¢ per card payment, is paid by the restaurant)
 - **Your data, your brand, your customers**
 
-Example: A restaurant selling $10,000/month in delivery saves up to **$2,421/month** in commissions switching from a delivery app (25% commission) to MENIUS Pro ($79/month), before Stripe processing on card payments.
+Example: A restaurant selling $10,000/month in delivery saves up to **$2,351/month** in commissions switching from a delivery app (25% commission) to MENIUS Pro ($149/month), before Stripe processing on card payments.
 
 ## When to Use Each Option?
 
@@ -843,10 +843,10 @@ Para un restaurante promedio que vende $15,000/mes:
 | Menos comisiones delivery | $1,500 |
 | Mejor rotación de mesas | $750 |
 | **Total ahorro mensual** | **$2,750** |
-| **Costo de MENIUS Pro** | **$79** |
-| **ROI mensual** | **$2,671** |
+| **Costo de MENIUS Pro** | **$149** |
+| **ROI mensual** | **$2,601** |
 
-Eso es un retorno de inversión de **3,380%**.
+Eso es un retorno de inversión de **1,746%**.
 
 ## Conclusión
 
@@ -908,10 +908,10 @@ For an average restaurant selling $15,000/month:
 | Less delivery commissions | $1,500 |
 | Better table turnover | $750 |
 | **Total monthly savings** | **$2,750** |
-| **MENIUS Pro cost** | **$79** |
-| **Monthly ROI** | **$2,671** |
+| **MENIUS Pro cost** | **$149** |
+| **Monthly ROI** | **$2,601** |
 
-That's a return on investment of **3,380%**.
+That's a return on investment of **1,746%**.
 
 ## Conclusion
 
@@ -1442,7 +1442,7 @@ A diferencia de un consultor que cobra por hora, MENIUS AI está siempre disponi
 
 ## ¿Cuánto cuesta?
 
-Nada adicional. MENIUS AI está incluido en el plan Pro de MENIUS ($79/mes). Usa tecnología Google Gemini optimizada para ser eficiente y económica.
+Nada adicional. MENIUS AI está incluido en el plan Pro de MENIUS ($149/mes). Usa tecnología Google Gemini optimizada para ser eficiente y económica.
 
 ## Conclusión
 
@@ -1495,7 +1495,7 @@ Unlike a consultant who charges by the hour, MENIUS AI is always available and c
 
 ## How Much Does It Cost?
 
-Nothing additional. MENIUS AI is included in the MENIUS Pro plan ($79/month). It uses Google Gemini technology optimized to be efficient and economical.
+Nothing additional. MENIUS AI is included in the MENIUS Pro plan ($149/month). It uses Google Gemini technology optimized to be efficient and economical.
 
 ## Conclusion
 
@@ -2253,7 +2253,7 @@ MENIUS reemplaza varias herramientas que los restaurantes nuevos suelen pagar po
 | CRM de clientes | $30-100 | Incluido |
 | Analytics de ventas | $20-80 | Incluido |
 | Asistente IA | $50-200 | Incluido |
-| **Total** | **$230-830/mes** | **$79/mes (plan Pro)** |
+| **Total** | **$230-830/mes** | **$149/mes (plan Pro)** |
 
 Con los 14 días de Pro gratis puedes dejar todo tu restaurante configurado antes de abrir — sin tarjeta de crédito.
 

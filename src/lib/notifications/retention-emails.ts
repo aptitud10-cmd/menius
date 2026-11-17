@@ -171,7 +171,7 @@ export function buildTrialEndingEmail(params: {
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
             <tr style="background:#f9fafb;">
               <td style="padding:10px 16px;font-size:12px;font-weight:700;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;width:50%;border-right:1px solid #e5e7eb;">GRATIS (tu próximo plan)</td>
-              <td style="padding:10px 16px;font-size:12px;font-weight:700;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">PRO $79/mes o $790/año</td>
+              <td style="padding:10px 16px;font-size:12px;font-weight:700;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">PRO $149/mes o $1,490/año</td>
             </tr>
             <tr>
               <td style="padding:12px 16px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;border-right:1px solid #f3f4f6;border-top:1px solid #f3f4f6;vertical-align:top;">5 mesas<br/>15 productos<br/>Solo en mesa, en efectivo<br/>Con marca MENIUS<br/><span style="color:#ef4444;">✕ Sin analytics</span><br/><span style="color:#ef4444;">✕ Sin delivery/pickup</span><br/><span style="color:#ef4444;">✕ Sin pagos online</span></td>
@@ -186,7 +186,7 @@ export function buildTrialEndingEmail(params: {
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
       <tr>
         <td style="padding:0 40px 12px;text-align:center;">
-          ${cta(pricingUrl, '🚀 Continuar con Pro — $79/mes', '#7c3aed')}
+          ${cta(pricingUrl, '🚀 Continuar con Pro — $149/mes', '#7c3aed')}
         </td>
       </tr>
       <tr>

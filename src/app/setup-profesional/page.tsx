@@ -152,7 +152,7 @@ const t = {
       },
       {
         q: "¿Necesito una suscripción mensual también?",
-        a: "Sí, el servicio de setup es adicional a tu suscripción de MENIUS (plan Pro, $79/mes o $790/año). El setup es un pago único que cubre la configuración inicial completa.",
+        a: "Sí, el servicio de setup es adicional a tu suscripción de MENIUS (plan Pro, $149/mes o $1,490/año). El setup es un pago único que cubre la configuración inicial completa.",
       },
     ],
   },
@@ -288,7 +288,7 @@ const t = {
       },
       {
         q: "Do I need a monthly subscription too?",
-        a: "Yes, the setup service is in addition to your MENIUS subscription (Pro plan, $79/mo or $790/yr). The setup is a one-time payment that covers the full initial configuration.",
+        a: "Yes, the setup service is in addition to your MENIUS subscription (Pro plan, $149/mo or $1,490/yr). The setup is a one-time payment that covers the full initial configuration.",
       },
     ],
   },

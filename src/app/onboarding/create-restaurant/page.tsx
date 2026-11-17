@@ -63,7 +63,7 @@ const WIZARD_TEXT = {
     planSubscribe: (n: string) => `Suscribirme a ${n}`,
     plans: [
       { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mes', desc: 'Para probar. Hasta 5 mesas, solo dine-in en efectivo.', features: ['Menú digital + QR (5 mesas)', 'Pedidos ilimitados', 'Solo efectivo', 'Branding "Powered by MENIUS"'] },
-      { id: 'pro', name: 'Pro', price: '$79', priceSuffix: '/mes', desc: 'Todo incluido: pedidos online, pagos, KDS y marketing.', features: ['Pickup + Delivery', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio', 'Cocina KDS, lealtad y promociones', 'Sin marca MENIUS'], recommended: true },
+      { id: 'pro', name: 'Pro', price: '$149', priceSuffix: '/mes', desc: 'Todo incluido: pedidos online, pagos, KDS y marketing.', features: ['Pickup + Delivery', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio', 'Cocina KDS, lealtad y promociones', 'Sin marca MENIUS'], recommended: true },
     ],
   },
   en: {
@@ -118,7 +118,7 @@ const WIZARD_TEXT = {
     planSubscribe: (n: string) => `Subscribe to ${n}`,
     plans: [
       { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mo', desc: 'Try it out. Up to 5 tables, cash dine-in only.', features: ['Digital menu + QR (5 tables)', 'Unlimited orders', 'Cash only', '"Powered by MENIUS" branding'] },
-      { id: 'pro', name: 'Pro', price: '$79', priceSuffix: '/mo', desc: 'Everything included: online orders, payments, KDS and marketing.', features: ['Pickup + Delivery', 'Online payments (0% MENIUS commission)', 'Custom domain', 'Kitchen KDS, loyalty and promotions', 'No MENIUS branding'], recommended: true },
+      { id: 'pro', name: 'Pro', price: '$149', priceSuffix: '/mo', desc: 'Everything included: online orders, payments, KDS and marketing.', features: ['Pickup + Delivery', 'Online payments (0% MENIUS commission)', 'Custom domain', 'Kitchen KDS, loyalty and promotions', 'No MENIUS branding'], recommended: true },
     ],
   },
 };
