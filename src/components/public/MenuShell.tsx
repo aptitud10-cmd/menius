@@ -82,7 +82,7 @@ import { ReservationWidget } from "./ReservationWidget";
 import { MenuUpdateBanner } from "./MenuUpdateBanner";
 import { CartFlyParticles } from "./CartFlyParticles";
 import { MenuSheet, type MenuSheetEntry } from "./MenuSheet";
-import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
+import { hasHours, isOptionAvailableAt, optionHoursLabel, hoursRangeLabel } from "@/lib/option-hours";
 import { inTimeZone } from "@/lib/orders/business-hours";
 interface ReviewStats {
   average: number;
@@ -2616,7 +2616,7 @@ export function MenuShell({
                           return (
                             <span className="inline-flex items-center gap-1.5 font-semibold text-white">
                               <Clock className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                              {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
+                              {is24h ? t.open24h : hoursRangeLabel(dh.open, dh.close, locale)}
                             </span>
                           );
                         })()}
@@ -2849,7 +2849,7 @@ export function MenuShell({
                                   <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                                   {is24h
                                     ? t.open24h
-                                    : `${dh.open} – ${dh.close}`}
+                                    : hoursRangeLabel(dh.open, dh.close, locale)}
                                 </span>
                               );
                             })()}
@@ -3772,7 +3772,7 @@ export function MenuShell({
                                           {t.open24h}
                                         </span>
                                       ) : (
-                                        `${todayHours.open} – ${todayHours.close}`
+                                        hoursRangeLabel(todayHours.open, todayHours.close, locale)
                                       )
                                     ) : (
                                       t.closedDay
