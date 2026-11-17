@@ -34,6 +34,9 @@ interface CartPanelProps {
   estimatedMinutes?: number;
   /** Datos para calcular el tiempo del carrito (plato más lento + viaje). */
   etaRestaurant?: EtaRestaurant;
+  /** "Closed now · Opens tomorrow at 7 AM" / "Online ordering is paused": shown
+   *  instead of the wait, which would promise a time the kitchen can't keep. */
+  storeNotice?: string | null;
   deliveryFee?: number;
   /** El impuesto se suma recién en el checkout (tax_rate > 0 y no incluido):
    *  el carrito dice "Subtotal" + "+ tax at checkout" en vez de un "Total"
@@ -99,6 +102,7 @@ export function CartPanel({
   onClose,
   estimatedMinutes,
   etaRestaurant,
+  storeNotice = null,
   deliveryFee,
   taxPending = false,
   lastOrder,
@@ -331,7 +335,12 @@ export function CartPanel({
               })}
             </div>
           )}
-          {etaMinutes != null && etaMinutes > 0 && (
+          {storeNotice ? (
+            <p className="mt-3 inline-flex items-start gap-1.5 text-[14px] font-medium text-[#7a4d00]">
+              <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+              {storeNotice}
+            </p>
+          ) : etaMinutes != null && etaMinutes > 0 && (
             <p className="mt-3 inline-flex items-center gap-1.5 text-[14px] text-gray-700">
               <Clock className="w-4 h-4 text-gray-600" aria-hidden="true" />
               {t.readyInApprox} {etaMinutes} min
@@ -656,9 +665,14 @@ export function CartPanel({
 
       {/* ── Footer: breakdown + checkout ── */}
       <div className="border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">
-        {!!etaMinutes && etaMinutes > 0 && (
-          <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-2">
-            <Clock className="w-3.5 h-3.5" />
+        {storeNotice ? (
+          <div className="flex items-start gap-1.5 text-[13px] font-medium text-[#7a4d00] mb-2">
+            <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <span>{storeNotice}</span>
+          </div>
+        ) : !!etaMinutes && etaMinutes > 0 && (
+          <div className="flex items-center gap-1.5 text-[13px] text-gray-600 mb-2">
+            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
             <span>~{etaMinutes} min</span>
           </div>
         )}

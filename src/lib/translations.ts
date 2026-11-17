@@ -396,6 +396,12 @@ export interface Translations {
   ckTableTitle: string;
   ckLoyalty: string;
   ckClosedNow: string;
+  storeOpensAt: string;
+  storeOpensTomorrowAt: string;
+  storeOpensDayAt: string;
+  storeScheduleHint: string;
+  storePausedTitle: string;
+  storeBackAt: string;
   ckClosedBanner: string;
   ckScheduleCta: string;
   ckClosedAtTime: string;
@@ -838,6 +844,12 @@ const es: Translations = {
   ckTableTitle: 'Tu mesa',
   ckLoyalty: 'Puntos de lealtad',
   ckClosedNow: 'Cerrado ahora',
+  storeOpensAt: 'Abre a las {time}',
+  storeOpensTomorrowAt: 'Abre mañana a las {time}',
+  storeOpensDayAt: 'Abre el {day} a las {time}',
+  storeScheduleHint: 'Puedes programar tu pedido para más tarde.',
+  storePausedTitle: 'Los pedidos en línea están en pausa',
+  storeBackAt: 'Vuelve a las {time}',
   ckClosedBanner: '{name} está cerrado ahora. Programa tu pedido para cuando abra.',
   ckScheduleCta: 'Programar pedido',
   ckClosedAtTime: 'El restaurante está cerrado a esa hora. Elige otra.',
@@ -1277,6 +1289,12 @@ const en: Translations = {
   ckTableTitle: 'Your table',
   ckLoyalty: 'Loyalty points',
   ckClosedNow: 'Closed now',
+  storeOpensAt: 'Opens at {time}',
+  storeOpensTomorrowAt: 'Opens tomorrow at {time}',
+  storeOpensDayAt: 'Opens {day} at {time}',
+  storeScheduleHint: 'You can schedule an order for later.',
+  storePausedTitle: 'Online ordering is paused',
+  storeBackAt: 'Back at {time}',
   ckClosedBanner: '{name} is closed right now. Schedule your order for when it opens.',
   ckScheduleCta: 'Schedule order',
   ckClosedAtTime: 'The restaurant is closed at that time. Pick another.',

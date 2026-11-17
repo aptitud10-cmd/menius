@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { RefreshCw } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -9,9 +9,13 @@ import { getTranslations } from '@/lib/translations';
 interface MenuUpdateBannerProps {
   restaurantId: string;
   locale?: string;
+  /** Pausing orders writes to restaurants too: that change is shown by the
+   *  menu's store strip, not as "Menu updated · Reload" stacked on top. */
+  initialPausedUntil?: string | null;
 }
 
-export function MenuUpdateBanner({ restaurantId, locale }: MenuUpdateBannerProps) {
+export function MenuUpdateBanner({ restaurantId, locale, initialPausedUntil = null }: MenuUpdateBannerProps) {
+  const pausedRef = useRef<string | null>(initialPausedUntil);
   const t = getTranslations(locale ?? 'es');
   const router = useRouter();
   const [hasUpdate, setHasUpdate] = useState(false);
@@ -27,7 +31,14 @@ export function MenuUpdateBanner({ restaurantId, locale }: MenuUpdateBannerProps
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'restaurants', filter: `id=eq.${restaurantId}` },
-        () => setHasUpdate(true)
+        (payload) => {
+          const next = (payload.new as { orders_paused_until?: string | null }).orders_paused_until ?? null;
+          if (next !== pausedRef.current) {
+            pausedRef.current = next;
+            return;
+          }
+          setHasUpdate(true);
+        }
       )
       .on(
         'postgres_changes',

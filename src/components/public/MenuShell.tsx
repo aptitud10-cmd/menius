@@ -82,8 +82,8 @@ import { ReservationWidget } from "./ReservationWidget";
 import { MenuUpdateBanner } from "./MenuUpdateBanner";
 import { CartFlyParticles } from "./CartFlyParticles";
 import { MenuSheet, type MenuSheetEntry } from "./MenuSheet";
-import { hasHours, isOptionAvailableAt, optionHoursLabel, hoursRangeLabel } from "@/lib/option-hours";
-import { inTimeZone } from "@/lib/orders/business-hours";
+import { hasHours, isOptionAvailableAt, optionHoursLabel, hoursRangeLabel, clockLabel } from "@/lib/option-hours";
+import { inTimeZone, isOpenAt, nextOpening, type OperatingHours } from "@/lib/orders/business-hours";
 import { usablePaymentMethods } from "@/lib/payments/online-ready";
 interface ReviewStats {
   average: number;
@@ -385,6 +385,12 @@ export function MenuShell({
   const [pausedUntil, setPausedUntil] = useState<string | null>(
     () => restaurant.orders_paused_until ?? null,
   );
+  const [storeClock, setStoreClock] = useState(0);
+  useEffect(() => {
+    setStoreClock(Date.now());
+    const id = window.setInterval(() => setStoreClock(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -1127,6 +1133,45 @@ export function MenuShell({
     const id = window.setInterval(() => setHoursClock(Date.now()), 60_000);
     return () => window.clearInterval(id);
   }, [anyProductHours]);
+
+  // Closed / paused, as one strip under the cover. Same rules as the checkout
+  // (paused wins; demos never pause; no hours = always open).
+  const storeNotice = useMemo<{ title: string; when?: string; hint?: string } | null>(() => {
+    if (storeClock === 0) return null;
+    const tz = restaurant.timezone || "UTC";
+    const local = inTimeZone(new Date(storeClock), tz);
+    const toMin = (d: Date) => d.getHours() * 60 + d.getMinutes();
+    if (!isDemo && pausedUntil && Date.parse(pausedUntil) > storeClock) {
+      const until = new Date(pausedUntil);
+      // "Back at 7:30 PM" only when it's within the day; a pause "until
+      // further notice" (far future) just says paused.
+      const soon = until.getTime() - storeClock < 12 * 3_600_000;
+      return {
+        title: t.storePausedTitle,
+        when: soon ? t.storeBackAt.replace("{time}", clockLabel(toMin(inTimeZone(until, tz)), locale)) : undefined,
+      };
+    }
+    const hours = restaurant.operating_hours as OperatingHours | null | undefined;
+    if (!hours || Object.keys(hours).length === 0 || isOpenAt(hours, local)) return null;
+    const next = nextOpening(hours, local);
+    let when: string | undefined;
+    if (next) {
+      const time = clockLabel(next.minutes, locale);
+      if (next.daysAhead === 0) when = t.storeOpensAt.replace("{time}", time);
+      else if (next.daysAhead === 1) when = t.storeOpensTomorrowAt.replace("{time}", time);
+      else {
+        // 2026-01-04 was a Sunday: +getDay() gives that weekday's name.
+        const day = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(
+          new Date(2026, 0, 4 + ((local.getDay() + next.daysAhead) % 7)),
+        );
+        when = t.storeOpensDayAt.replace("{day}", day).replace("{time}", time);
+      }
+    }
+    return { title: t.ckClosedNow, when, hint: t.storeScheduleHint };
+  }, [storeClock, restaurant.timezone, restaurant.operating_hours, isDemo, pausedUntil, t, locale]);
+  const storeNoticeLine = storeNotice
+    ? [storeNotice.title, storeNotice.when].filter(Boolean).join(" · ")
+    : null;
 
   // Every product as it stands right now: realtime sold-out overrides and
   // dishes outside their hours. Search, favourites and suggestions read this so
@@ -2642,6 +2687,27 @@ export function MenuShell({
             </div>
           )}
 
+          {/* Closed / paused: a strip in the flow under the cover, every width.
+              Before, the phone showed nothing (the whole cart could be built
+              and the checkout said "closed"), desktop had only a small pill
+              while the cover still read like open hours, and the pause was a
+              floating orange pill that covered the search. */}
+          {storeNotice && (
+            <div
+              role="status"
+              className="flex items-start gap-2.5 px-4 lg:px-8 py-3 bg-[#fff6e0] border-b border-[#f1e0b6] text-[14px] leading-snug text-[#5c3a00]"
+            >
+              <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+              <p className="min-w-0">
+                <span className="font-semibold">{storeNotice.title}</span>
+                {storeNotice.when && <span> · {storeNotice.when}{storeNotice.hint ? "." : ""}</span>}
+                {storeNotice.hint && (
+                  <span className="block sm:inline text-[#7a4d00] sm:ml-1.5">{storeNotice.hint}</span>
+                )}
+              </p>
+            </div>
+          )}
+
           {/* Mobile pills — sticky debajo del header */}
           {mobileCategoryPills}
 
@@ -3918,6 +3984,7 @@ export function MenuShell({
                   suggestions={cartBasedSuggestions}
                   onSuggestionAdd={handleCartSuggestionAdd}
                   loyaltyData={loyaltyData}
+                  storeNotice={storeNoticeLine}
                   orderTypes={(restaurant.order_types_enabled ?? []).filter((ot) => ot !== "dine_in")}
                   cashOnly={!usablePaymentMethods(restaurant).includes("online")}
                 />
@@ -4108,6 +4175,7 @@ export function MenuShell({
                     suggestions={cartBasedSuggestions}
                     onSuggestionAdd={handleCartSuggestionAdd}
                     loyaltyData={loyaltyData}
+                  storeNotice={storeNoticeLine}
                     cashOnly={!usablePaymentMethods(restaurant).includes("online")}
                   />
                 </div>
@@ -4486,20 +4554,12 @@ export function MenuShell({
           </div>
         )}
 
-        {/* ── Orders Paused Banner (realtime) ── */}
-        {!!pausedUntil && new Date(pausedUntil) > new Date() && (
-          <div className="fixed top-0 left-0 right-0 z-[92] flex justify-center px-4 pt-2 pointer-events-none">
-            <div className="pointer-events-none flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-orange-600 text-white shadow-xl border border-orange-400/30 text-sm font-semibold animate-in slide-in-from-top-2 duration-300 max-w-sm w-full">
-              <span className="text-base" aria-hidden="true">
-                ⏸️
-              </span>
-              <span className="flex-1">{t.ordersPaused}</span>
-            </div>
-          </div>
-        )}
-
-        {/* ── Menu Update Banner ── */}
-        <MenuUpdateBanner restaurantId={restaurant.id} locale={locale} />
+        {/* ── Menu Update Banner ── (pauses are shown by the store strip) */}
+        <MenuUpdateBanner
+          restaurantId={restaurant.id}
+          locale={locale}
+          initialPausedUntil={restaurant.orders_paused_until ?? null}
+        />
 
         {/* ── PWA Install Banner ── */}
         <InstallBanner

@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { getTranslations } from '@/lib/translations';
 import type { MenuHeaderProps } from './MenuHeader';
+import { isRestaurantOpen } from './MenuHeader';
 
 let _sessionCache: Promise<boolean> | null = null;
 function checkIsLoggedIn(): Promise<boolean> {
@@ -43,6 +44,15 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   const t = getTranslations(locale);
   const showName = !hasCover || isScrolled;
   const isTransparent = hasCover && !isScrolled;
+  // Closed shows next to the name once the cover (and its strip) scroll away.
+  // After mount only: the server's clock must not decide the first render.
+  const [closed, setClosed] = useState(false);
+  useEffect(() => {
+    const check = () => setClosed(!isRestaurantOpen(restaurant.operating_hours, restaurant.timezone));
+    check();
+    const id = window.setInterval(check, 60_000);
+    return () => window.clearInterval(id);
+  }, [restaurant.operating_hours, restaurant.timezone]);
 
   return (
     <header
@@ -83,6 +93,11 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           isTransparent ? 'text-white drop-shadow' : 'text-gray-900'
         )}>
           {restaurant.name}
+          {closed && (
+            <span className="ml-2 align-[2px] text-[13px] font-semibold tracking-normal text-[#b42318]">
+              {closedLabel}
+            </span>
+          )}
         </span>
 
         {/* Right: Loyalty badge + Dashboard + Search */}

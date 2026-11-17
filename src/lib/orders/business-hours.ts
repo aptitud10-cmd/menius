@@ -52,3 +52,21 @@ export function validScheduledFor(raw: unknown, nowMs = Date.now()): Date | null
   const d = new Date(raw);
   return Number.isFinite(d.getTime()) && d.getTime() > nowMs + 5 * 60_000 ? d : null;
 }
+
+/**
+ * When the restaurant next opens, from `local` (getters in the restaurant's
+ * zone): daysAhead 0 = later today. null when no day of the next week opens
+ * (or the hours say nothing). The menu shows "Closed now · Opens at 7 AM".
+ */
+export function nextOpening(hours: OperatingHours, local: Date): { daysAhead: number; minutes: number } | null {
+  const now = local.getHours() * 60 + local.getMinutes();
+  for (let d = 0; d <= 7; d++) {
+    const day = hours[DAYS[(local.getDay() + d) % 7]];
+    if (!day || day.closed) continue;
+    const o = day.fullDay || !day.open ? 0 : mins(day.open);
+    if (o == null) continue;
+    if (d === 0 && o <= now) continue;
+    return { daysAhead: d, minutes: o };
+  }
+  return null;
+}
