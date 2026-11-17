@@ -88,6 +88,16 @@ function scheduledForIso(local: string): string | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
+// The other direction: a moment as "YYYY-MM-DDTHH:mm" in the phone's local
+// time, which is what datetime-local min/value expect. toISOString() gives
+// UTC: at 1:04 AM in New York the minimum became 06:14 and nothing in the
+// next ~5 hours could be scheduled.
+function localDateTimeInput(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }: CheckoutPageClientProps) {
   const router = useRouter();
   const t = getTranslations(locale);
@@ -2512,7 +2522,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   type="datetime-local"
                   value={scheduledFor}
                   onChange={(e) => setScheduledFor(e.target.value)}
-                  min={new Date(Date.now() + 10 * 60_000).toISOString().slice(0, 16)}
+                  min={localDateTimeInput(Date.now() + 10 * 60_000)}
                   className={fieldInputCls}
                 />
               </label>
