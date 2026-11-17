@@ -2077,7 +2077,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           type="button"
           onClick={goBack}
           aria-label={t.backToMenu}
-          className={cn('w-9 h-9 rounded-full bg-white grid place-items-center text-[#111114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]', ckShadow)}
+          className={cn('relative w-9 h-9 rounded-full bg-white grid place-items-center text-[#111114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] after:absolute after:-inset-1 after:content-[""]', ckShadow)}
         >
           <ChevronLeft className="w-[18px] h-[18px]" aria-hidden="true" />
         </button>
@@ -2366,6 +2366,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         <div id="checkout-phone-wrapper" className="mt-2">
           <PhoneField
             ios
+            locale={locale === 'es' ? 'es' : 'en'}
             id="checkout-phone"
             label={t.yourPhone}
             value={customerPhone}

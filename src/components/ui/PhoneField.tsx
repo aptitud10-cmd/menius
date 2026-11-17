@@ -2,6 +2,7 @@
 
 import PhoneInput, { type Country } from 'react-phone-number-input';
 import flags from 'react-phone-number-input/flags';
+import esLabels from 'react-phone-number-input/locale/es';
 import 'react-phone-number-input/style.css';
 
 interface PhoneFieldProps {
@@ -19,6 +20,8 @@ interface PhoneFieldProps {
   country?: string;
   /** Caja gris con etiqueta arriba, como los demás campos del checkout premium. */
   ios?: boolean;
+  /** Idioma de los nombres de país del selector (sin esto, inglés). */
+  locale?: 'es' | 'en';
 }
 
 export function PhoneField({
@@ -34,7 +37,9 @@ export function PhoneField({
   id,
   country,
   ios = false,
+  locale,
 }: PhoneFieldProps) {
+  const labels = locale === 'es' ? esLabels : undefined;
   const defaultCountry = (country?.toUpperCase() ?? 'US') as Country;
   const resolvedPlaceholder = placeholder ?? (country ? undefined : '+1 555 123 4567');
 
@@ -50,6 +55,7 @@ export function PhoneField({
         <PhoneInput
           defaultCountry={defaultCountry}
           flags={flags}
+          labels={labels}
           value={value}
           onChange={(v) => onChange(v ?? '')}
           placeholder={resolvedPlaceholder}
@@ -94,6 +100,7 @@ export function PhoneField({
       <PhoneInput
         defaultCountry={defaultCountry}
         flags={flags}
+        labels={labels}
         value={value}
         onChange={(v) => onChange(v ?? '')}
         placeholder={resolvedPlaceholder}

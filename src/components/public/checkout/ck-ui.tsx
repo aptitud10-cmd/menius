@@ -342,7 +342,8 @@ export function CkSheet({
                 type="button"
                 onClick={onClose}
                 aria-label={closeLabel}
-                className="w-8 h-8 mt-1 rounded-full bg-[#f5f5f8] grid place-items-center text-[#4f4f57] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                // Se ve de 32 px; la zona de toque (after) mide 44 px.
+                className="relative w-8 h-8 mt-1 rounded-full bg-[#f5f5f8] grid place-items-center text-[#4f4f57] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] after:absolute after:-inset-1.5 after:content-['']"
               >
                 <X className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
