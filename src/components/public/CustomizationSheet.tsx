@@ -70,6 +70,11 @@ export function CustomizationSheet({
   const replaceItem = useCartStore((s) => s.replaceItem);
   const items = useCartStore((s) => s.items);
   const isEditing = editIndex !== null;
+  // Sold out or outside its hours (MenuShell's liveProducts sets in_stock=false
+  // and unavailable_note "Served 5:30–11 AM"). The grid never opens these, but
+  // search results and links can: the sheet still shows the dish, it just
+  // can't be added — before, "Add" worked and the server refused it at checkout.
+  const unavailable = product.in_stock === false && !isEditing;
   const editItem = isEditing ? items[editIndex] : null;
 
   // ── Lazy-load modifier data ──────────────────────────────────────────────────
@@ -605,6 +610,7 @@ export function CustomizationSheet({
   };
 
   const handleSubmit = () => {
+    if (unavailable) return;
     // Opciones todavía sin llegar (4G lento) o con error: los grupos están
     // vacíos e isValid da true, así que se agregaba el plato pelado — y al
     // EDITAR se borraban Deluxe, side y los "No …". Esperar o reintentar.
@@ -1546,6 +1552,14 @@ export function CustomizationSheet({
   const sheetFooter = isPreview ? null : (
     <div className="border-t border-gray-100 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="px-5 py-4">
+        {unavailable ? (
+          <p
+            role="status"
+            className="h-[52px] px-4 flex items-center justify-center rounded-2xl bg-gray-100 text-[15px] font-semibold text-gray-700 text-center"
+          >
+            {product.unavailable_note ?? t.soldOut}
+          </p>
+        ) : (
         <div className="flex items-center gap-3">
           <div className="flex items-center bg-gray-100 rounded-xl">
             <button
@@ -1622,6 +1636,7 @@ export function CustomizationSheet({
             </button>
           )}
         </div>
+        )}
       </div>
     </div>
   );

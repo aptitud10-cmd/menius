@@ -4290,11 +4290,15 @@ export function MenuShell({
                           <p className="text-[15px] font-semibold text-gray-900 truncate">
                             {tName(product, locale, defaultLocale)}
                           </p>
-                          {tDesc(product, locale, defaultLocale) && (
-                            <p className="text-xs text-gray-400 truncate mt-0.5">
+                          {product.in_stock === false ? (
+                            <p className="text-[13px] font-medium text-gray-700 truncate mt-0.5">
+                              {product.unavailable_note ?? t.soldOut}
+                            </p>
+                          ) : tDesc(product, locale, defaultLocale) ? (
+                            <p className="text-[13px] text-gray-600 truncate mt-0.5">
                               {tDesc(product, locale, defaultLocale)}
                             </p>
-                          )}
+                          ) : null}
                         </div>
                         <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
                           {fmtPrice(Number(product.price))}
@@ -4352,11 +4356,15 @@ export function MenuShell({
                           <p className="text-[15px] font-semibold text-gray-900 truncate">
                             {tName(product, locale, defaultLocale)}
                           </p>
-                          {tDesc(product, locale, defaultLocale) && (
-                            <p className="text-xs text-gray-400 truncate mt-0.5">
+                          {product.in_stock === false ? (
+                            <p className="text-[13px] font-medium text-gray-700 truncate mt-0.5">
+                              {product.unavailable_note ?? t.soldOut}
+                            </p>
+                          ) : tDesc(product, locale, defaultLocale) ? (
+                            <p className="text-[13px] text-gray-600 truncate mt-0.5">
                               {tDesc(product, locale, defaultLocale)}
                             </p>
-                          )}
+                          ) : null}
                         </div>
                         <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
                           {fmtPrice(Number(product.price))}
