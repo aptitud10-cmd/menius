@@ -2485,11 +2485,14 @@ export function MenuShell({
             } as React.CSSProperties
           }
         >
-          {/* Cover banner — full width, scrolls away naturally with content */}
+          {/* Cover banner — full width, scrolls away naturally with content.
+              lg was 288px: on a 1024x768 iPad or a 1280x800 laptop the cover
+              plus header pushed the first dishes to y=373, half the screen.
+              224px, and 176px on screens 820px tall or less. */}
           {restaurant.cover_image_url && (
             <div
               ref={bannerRef}
-              className="relative w-full h-48 sm:h-56 lg:h-72 bg-gray-100 overflow-hidden"
+              className="relative w-full h-48 sm:h-56 lg:h-56 lg:[@media(max-height:820px)]:h-44 bg-gray-100 overflow-hidden"
             >
               {isDemo && (
                 <a
