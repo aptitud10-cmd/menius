@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   ShoppingCart,
-  ChevronLeft,
-  ChevronRight,
   X,
   MapPin,
   Clock,
@@ -2053,31 +2051,6 @@ export function MenuShell({
     }
   }, [activeCategory, activeCatFilter, isLargeCatalog]);
 
-  const scrollCats = (dir: "left" | "right") => {
-    catScrollRef.current?.scrollBy({
-      left: dir === "left" ? -200 : 200,
-      behavior: "smooth",
-    });
-  };
-
-  // Shared pill renderer — desktop only
-  const categoryPill = (id: string, label: string, isActive: boolean) => (
-    <button
-      key={id}
-      data-pill-id={id}
-      onClick={() => handleCategorySelect(id)}
-      style={{ touchAction: "manipulation" }}
-      className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap",
-        isActive
-          ? "bg-gray-900 text-white shadow-sm"
-          : "bg-white border border-gray-200 text-gray-600 active:bg-gray-50",
-      )}
-    >
-      {label}
-    </button>
-  );
-
   // Mobile pill renderer — modern squircle style, premium dark active state
   const mobileCategoryPill = (id: string, label: string, isActive: boolean) => (
     <button
@@ -2187,6 +2160,26 @@ export function MenuShell({
     }
     return entries;
   }, [isLargeCatalog, popularProducts.length, visibleCats, categories, countForSidebar, locale, defaultLocale, t]);
+
+  // Desktop sidebar: Popular first. Without it, once a category was picked
+  // there was no way back to Popular on desktop (the pills bar that had it
+  // repeated the sidebar and is gone).
+  const sidebarCats = useMemo<Category[]>(() => {
+    const base = groupsActive ? visibleCats : categories;
+    if (popularProducts.length === 0 || base.some((c) => c.id === POPULAR_ID)) {
+      return base;
+    }
+    const popular = {
+      ...(base[0] ?? categories[0]),
+      id: POPULAR_ID,
+      name: t.popularItems,
+      translations: undefined,
+      group_name: null,
+      available_from: null,
+      available_to: null,
+    } as Category;
+    return [popular, ...base];
+  }, [groupsActive, visibleCats, categories, popularProducts.length, t.popularItems]);
 
   const menuSheetActiveId = isLargeCatalog
     ? (activeCatFilter ?? (popularProducts.length > 0 ? POPULAR_ID : null))
@@ -2590,10 +2583,15 @@ export function MenuShell({
                     </p>
                   )}
                   {(restaurant.address || restaurant.operating_hours) && (
-                    <div className="flex items-center gap-4 mt-2 text-sm text-white/70">
+                    // White on the photo: the dark teal (#047a65) used here
+                    // vanished on a dark cover — "Open 24 hours" was unreadable.
+                    <div
+                      className="flex items-center gap-4 mt-2 text-[15px] text-white/90"
+                      style={{ textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}
+                    >
                       {restaurant.address && (
                         <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[#047a65]" />
+                          <MapPin className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                           <span className="truncate max-w-[240px]">
                             {restaurant.address}
                           </span>
@@ -2616,8 +2614,8 @@ export function MenuShell({
                           const is24h =
                             dh.open === "00:00" && dh.close === "23:59";
                           return (
-                            <span className="inline-flex items-center gap-1.5 text-[#047a65] font-medium">
-                              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="inline-flex items-center gap-1.5 font-semibold text-white">
+                              <Clock className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                               {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
                             </span>
                           );
@@ -2667,19 +2665,17 @@ export function MenuShell({
               ref={(el) => {
                 sidebarRef.current = el;
               }}
-              className="hidden lg:flex flex-col w-[200px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
+              className="hidden lg:flex flex-col w-[224px] xl:w-[232px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
             >
               <CategorySidebar
-                categories={groupsActive ? visibleCats : categories}
+                categories={sidebarCats}
                 products={products}
-                activeCategory={
-                  isLargeCatalog ? (activeCatFilter ?? null) : activePillId
-                }
-                onSelect={handleCategorySelect}
+                activeCategory={menuSheetActiveId}
+                onSelect={(id) => id && handleMenuSheetSelect(id)}
                 allLabel={t.allCategories}
                 locale={locale}
                 defaultLocale={defaultLocale}
-                countFor={groupsActive ? countForSidebar : undefined}
+                countFor={countForSidebar}
                 isAvailable={isCategoryAvailableNow}
                 hoursLabel={categoryHoursLabel}
                 subcategories={subcatsOfActiveGroup}
@@ -2689,48 +2685,18 @@ export function MenuShell({
 
             {/* Center: wrapper so sticky pills + products stack vertically */}
             <div className="flex-1 min-w-0 flex flex-col">
-              {/* Sticky category pills — desktop only, pins once banner scrolls away */}
+              {/* Desktop: the sidebar is the one category control. The pills
+                  bar that repeated it (and was the only home of "Popular")
+                  is gone; what stays is the dietary filter row, only for
+                  restaurants that tag dishes. */}
               <div
                 ref={desktopPillsRef}
-                className="hidden lg:block sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100"
-              >
-                <div className="relative px-2 py-2">
-                  <button
-                    onClick={() => scrollCats("left")}
-                    className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start"
-                    aria-label={t.scrollLeftAriaLabel}
-                  >
-                    <ChevronLeft className="w-4 h-4 text-gray-400" />
-                  </button>
-                  <div
-                    ref={catScrollRef}
-                    className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5"
-                    style={{
-                      WebkitOverflowScrolling: "touch",
-                      touchAction: "pan-x",
-                    }}
-                  >
-                    {visibleCats.map((cat) =>
-                      categoryPill(
-                        cat.id,
-                        tName(cat, locale, defaultLocale),
-                        activePillId === cat.id && !showFavs && !activeDiet,
-                      ),
-                    )}
-                    {filterDivider}
-                    {favPill}
-                  </div>
-                  <button
-                    onClick={() => scrollCats("right")}
-                    className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end"
-                    aria-label={t.scrollRightAriaLabel}
-                  >
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </button>
-                </div>
-                {availableDietTags.length > 0 && (
-                  <div className="border-t border-gray-100">{dietaryPills}</div>
+                className={cn(
+                  "hidden sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100",
+                  availableDietTags.length > 0 && "lg:block",
                 )}
+              >
+                {availableDietTags.length > 0 && dietaryPills}
               </div>
 
               {/* Center: Products — natural flow, no independent scroll */}

@@ -47,7 +47,7 @@ export const CategorySidebar = memo(function CategorySidebar({
   hoursLabel,
 }: CategorySidebarProps) {
   return (
-    <nav className="py-5 pr-3 font-sidebar">
+    <nav className="py-5 px-3 font-sidebar">
       <div className="space-y-0.5">
         {categories.map((cat) => {
           const count = countFor
@@ -74,8 +74,8 @@ export const CategorySidebar = memo(function CategorySidebar({
                 'w-full flex items-start gap-2 px-4 py-2.5 rounded-xl text-[15px] transition-colors duration-150 relative',
                 available
                   ? isActive
-                    ? 'text-[#047a65] font-semibold'
-                    : 'text-ink-600 font-medium hover:text-ink-900'
+                    ? 'text-white font-semibold'
+                    : 'text-ink-700 font-medium hover:text-ink-950 hover:bg-ink-50'
                   : 'text-ink-300 font-medium cursor-not-allowed'
               )}
             >
@@ -83,12 +83,7 @@ export const CategorySidebar = memo(function CategorySidebar({
                 <>
                   <motion.span
                     layoutId="sidebar-pill"
-                    className="absolute inset-0 rounded-xl bg-[#e6faf7]"
-                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                  />
-                  <motion.span
-                    layoutId="sidebar-bar"
-                    className="absolute inset-x-4 bottom-0 h-[2px] rounded-full bg-[#05c8a7]"
+                    className="absolute inset-0 rounded-xl bg-ink-950"
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                   />
                 </>
@@ -96,17 +91,17 @@ export const CategorySidebar = memo(function CategorySidebar({
               <div className="flex-1 text-left min-w-0 relative z-10">
                 <span className="truncate block">{tName(cat, locale, defaultLocale)}</span>
                 {hasSchedule && !available && (
-                  <span className="flex items-center gap-1 text-[10px] text-ink-400 mt-0.5">
-                    <Clock className="w-2.5 h-2.5" />
+                  <span className="flex items-center gap-1 text-[13px] text-ink-600 mt-0.5">
+                    <Clock className="w-3 h-3" aria-hidden="true" />
                     {hours}
                   </span>
                 )}
               </div>
               <span className={cn(
-                'text-xs tabular-nums flex-shrink-0 mt-0.5 relative z-10',
+                'text-[13px] tabular-nums flex-shrink-0 mt-0.5 relative z-10',
                 available
-                  ? isActive ? 'text-[#047a65]' : 'text-ink-300'
-                  : 'text-ink-200'
+                  ? isActive ? 'text-white/75' : 'text-ink-600'
+                  : 'text-ink-300'
               )}>
                 {count}
               </span>
@@ -126,12 +121,12 @@ export const CategorySidebar = memo(function CategorySidebar({
                   <button
                     key={sub.id}
                     onClick={() => onSelectSubcategory?.(sub.id)}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-ink-500 font-medium hover:text-ink-900 hover:bg-ink-50 transition-colors text-left"
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[14px] text-ink-700 font-medium hover:text-ink-950 hover:bg-ink-50 transition-colors text-left"
                   >
                     <span className="truncate flex-1">
                       {tName(sub, locale, defaultLocale)}
                     </span>
-                    <span className="text-[11px] tabular-nums text-ink-300 flex-shrink-0">
+                    <span className="text-[13px] tabular-nums text-ink-600 flex-shrink-0">
                       {items.length}
                     </span>
                   </button>
