@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 
@@ -37,6 +37,21 @@ export function LegalBackButton({ slug, menuLabel, checkoutLabel }: { slug: stri
     <Link href={`/${slug}`} className={cls}>
       <ChevronLeft className="w-5 h-5" aria-hidden="true" />
       {menuLabel}
+    </Link>
+  );
+}
+
+// "Ver también" a la otra política sin perder el ?from=checkout: así su botón
+// sigue diciendo "Back to checkout". replace no suma historial, y la pestaña
+// abierta desde el checkout sigue pudiéndose cerrar con window.close().
+export function LegalSeeAlsoLink({ href, className, children }: { href: string; className: string; children: ReactNode }) {
+  const [fromCheckout, setFromCheckout] = useState(false);
+  useEffect(() => {
+    setFromCheckout(new URLSearchParams(window.location.search).get('from') === 'checkout');
+  }, []);
+  return (
+    <Link href={fromCheckout ? `${href}?from=checkout` : href} replace={fromCheckout} className={className}>
+      {children}
     </Link>
   );
 }

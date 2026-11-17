@@ -40,17 +40,17 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (error || !promo) {
-      return NextResponse.json({ error: en ? 'Invalid code' : 'Código no válido' }, { status: 404 });
+      return NextResponse.json({ error: en ? "That code doesn't exist. Check how it's spelled." : 'Ese código no existe. Revisa cómo lo escribiste.' }, { status: 404 });
     }
 
     // Check expiration
     if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
-      return NextResponse.json({ error: en ? 'This code has expired' : 'Este código ha expirado' }, { status: 400 });
+      return NextResponse.json({ error: en ? 'This code has expired.' : 'Este código ya venció.' }, { status: 400 });
     }
 
     // Check max uses
     if (promo.max_uses && promo.current_uses >= promo.max_uses) {
-      return NextResponse.json({ error: en ? 'This code has reached its usage limit' : 'Este código ya alcanzó su límite de usos' }, { status: 400 });
+      return NextResponse.json({ error: en ? 'This code has already been used up.' : 'Este código ya se agotó.' }, { status: 400 });
     }
 
     // Check minimum order

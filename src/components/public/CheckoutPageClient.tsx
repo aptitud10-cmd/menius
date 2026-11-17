@@ -600,7 +600,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           valid: data.valid,
         });
       } else {
-        setPromoError(data.error);
+        // 429 y 5xx traen textos técnicos o solo en inglés: el mensaje propio es mejor.
+        setPromoError(res.status === 429 || res.status >= 500 ? t.validationErrorPromo : data.error);
         setPromoResult(null);
         trackEvent('promo_failed', {
           restaurant_id: restaurant.id,
@@ -1950,7 +1951,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   // Las políticas se abren en otra pestaña (el checkout no pierde lo escrito);
   // ?from=checkout hace que su botón diga "Back to checkout" y cierre esa pestaña.
-  const legalLinkCls = 'inline-flex items-center min-h-[40px] whitespace-nowrap text-[#4f4f57] font-medium underline underline-offset-2';
+  const legalLinkCls = 'inline-flex items-center min-h-[44px] whitespace-nowrap text-[#4f4f57] font-medium underline underline-offset-2';
   const legal = (
     <div className="text-[12.5px] leading-relaxed text-[#6b6b74] px-1">
       <p className="m-0">{t.ckLegal.replace('{name}', restaurant.name)}</p>
@@ -2420,8 +2421,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             <div className="min-[860px]:hidden">{legal}</div>
 
             {isDesktop && (
-              <div className="sticky bottom-4 mt-1 bg-white rounded-[18px] p-4 shadow-[0_0_0_1px_rgba(17,17,20,.09),0_12px_32px_rgba(17,17,20,.10)]">
-                {ctaBlock}
+              // Franja del color de la página bajo la tarjeta + degradé arriba:
+              // lo que scrollea por detrás se desvanece en vez de asomar cortado
+              // entre la tarjeta y el borde (iPad acostado, pantallas bajas).
+              <div className="sticky bottom-0 mt-1 -mb-5 pb-5 bg-[#f2f2f6] before:content-[''] before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-b before:from-[#f2f2f6]/0 before:to-[#f2f2f6] before:pointer-events-none">
+                <div className="bg-white rounded-[18px] p-4 shadow-[0_0_0_1px_rgba(17,17,20,.09),0_12px_32px_rgba(17,17,20,.10)]">
+                  {ctaBlock}
+                </div>
               </div>
             )}
           </section>
@@ -2500,7 +2506,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         {fieldErrors.customer_email
           ? <CkError id="checkout-email-error">{fieldErrors.customer_email}</CkError>
           : <p id="checkout-email-hint" className="text-[12.5px] text-[#6b6b74] mt-1.5 mx-1">{t.emailHint}</p>}
-        <label className="flex items-center gap-2.5 mt-3.5 mx-1 text-sm text-[#4f4f57]">
+        <label className="flex items-center gap-2.5 mt-2 mx-1 min-h-[44px] text-sm text-[#4f4f57]">
           <input
             type="checkbox"
             checked={rememberMe}
@@ -2509,7 +2515,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           />
           <span>
             {t.rememberMeLabel}{' · '}
-            <a href={`/${slug}/legal/privacy`} target="_blank" rel="noopener noreferrer" className="text-[#047a65] font-medium underline underline-offset-2">{t.ckPrivacy}</a>
+            <a href={`/${slug}/legal/privacy?from=checkout`} target="_blank" rel="noopener noreferrer" className="inline-block py-3 -my-3 px-1 -mx-1 text-[#047a65] font-medium underline underline-offset-2">{t.ckPrivacy}</a>
           </span>
         </label>
         <button

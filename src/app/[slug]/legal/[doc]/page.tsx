@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -8,7 +7,7 @@ import { PrivacyPolicyContent } from '@/components/legal/PrivacyPolicyContent';
 import { RefundPolicyContent, REFUND_POLICY_UPDATED } from '@/components/legal/RefundPolicyContent';
 import { usablePaymentMethods } from '@/lib/payments/online-ready';
 import type { PaymentMethod } from '@/types';
-import { LegalBackButton } from './LegalBackButton';
+import { LegalBackButton, LegalSeeAlsoLink } from './LegalBackButton';
 
 // Páginas legales DENTRO de la tienda (claras, con el nombre del restaurante),
 // para que el link del checkout no saque al comensal al sitio de MENIUS.
@@ -142,9 +141,9 @@ export default async function StoreLegalPage({ params }: PageProps) {
 
         <p className="mt-10 pt-5 border-t border-black/[0.07] text-[14px] text-[#4f4f57]">
           {c.seeAlso}:{' '}
-          <Link href={`/${store.slug}/legal/${other}`} className="font-medium text-[#047a65] underline underline-offset-2">
+          <LegalSeeAlsoLink href={`/${store.slug}/legal/${other}`} className="font-medium text-[#047a65] underline underline-offset-2">
             {other === 'refunds' ? c.refunds : c.privacy}
-          </Link>
+          </LegalSeeAlsoLink>
         </p>
         <p className="mt-6 text-[12.5px] text-[#6b6b74]">{c.poweredBy}</p>
       </main>
