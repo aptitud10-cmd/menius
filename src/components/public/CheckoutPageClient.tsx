@@ -20,6 +20,7 @@ import { setPendingPayment } from '@/lib/pending-payment';
 import { cn, formatPrice } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
+import { usablePaymentMethods } from '@/lib/payments/online-ready';
 import { trackEvent } from '@/lib/analytics';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 import { computeTaxAmount } from '@/lib/tax-presets';
@@ -190,14 +191,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     ? restaurant.order_types_enabled
     : (['dine_in', 'pickup', 'delivery'] as OrderType[]);
   const stripeConnectReady = !!restaurant.stripe_onboarding_complete && !!restaurant.stripe_account_id;
-  // CO stores can't have Stripe (connect/onboard rejects CO/COP) — their online
-  // gateway is Wompi with the restaurant's own keys. Without this branch the
-  // 'online' method never rendered for CO and the whole Wompi flow was dead code.
-  const wompiReady = (restaurant.currency?.toUpperCase() === 'COP') && !!restaurant.wompi_connected;
-  const enabledPaymentMethods = (restaurant.payment_methods_enabled?.length
-    ? restaurant.payment_methods_enabled
-    : (['cash'] as PaymentMethod[])
-  ).filter((m) => m !== 'online' || stripeConnectReady || wompiReady);
+  // Tarjeta solo con Stripe terminado o, en CO, Wompi (lib/payments/online-ready).
+  const enabledPaymentMethods = usablePaymentMethods(restaurant);
 
   const [step, setStep] = useState<CheckoutStep>('form');
   const [orderType, setOrderType] = useState<OrderType>(enabledOrderTypes[0]);
@@ -1520,9 +1515,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </svg>
               </div>
               <div className="flex items-center gap-3 text-[10px] text-gray-400">
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{t.termsLabel}</a>
+                <a href={`/${slug}/legal/refunds`} target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{t.ckRefunds}</a>
                 <span>·</span>
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{t.privacyLabel}</a>
+                <a href={`/${slug}/legal/privacy`} target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{t.privacyLabel}</a>
               </div>
             </div>
 
@@ -1730,8 +1725,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     : (() => { const v = enabledOrderTypes.filter((o) => o !== 'dine_in'); return v.length ? v : enabledOrderTypes; })();
   const hasOnline = enabledPaymentMethods.includes('online');
   const hasCash = enabledPaymentMethods.includes('cash');
-  // R9: "próximamente" solo si el alta en Stripe está en curso.
-  const cardOnboarding = !hasOnline && !!restaurant.stripe_account_id && !restaurant.stripe_onboarding_complete;
   const eta = estimateMinutes({ items, orderType, restaurant, to: deliveryCoords });
   const scheduleOn = scheduleEnabled && !!scheduledFor;
   // A9: el mismo chequeo de horario que hace /api/orders, para avisar ANTES de
@@ -1921,7 +1914,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const legal = (
     <p className="text-[12.5px] leading-relaxed text-[#6b6b74] px-1 m-0">
       {t.ckLegal.replace('{name}', restaurant.name)}{' '}
-      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#4f4f57] font-medium underline underline-offset-2">{t.ckPrivacy}</a>
+      <a href={`/${slug}/legal/refunds`} target="_blank" rel="noopener noreferrer" className="text-[#4f4f57] font-medium underline underline-offset-2">{t.ckRefunds}</a>
+      {' · '}
+      <a href={`/${slug}/legal/privacy`} target="_blank" rel="noopener noreferrer" className="text-[#4f4f57] font-medium underline underline-offset-2">{t.ckPrivacy}</a>
       {restaurant.phone && (
         <>
           {' · '}
@@ -2306,7 +2301,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       </>
                     )}
                     {!hasOnline && (
-                      <span className="block text-[12.5px] text-[#6b6b74] mt-2">{cardOnboarding ? t.ckCardSoon : t.ckCashOnly}</span>
+                      <span className="block text-[12.5px] text-[#6b6b74] mt-2">{t.ckCashOnly}</span>
                     )}
                   </div>
                 </div>
@@ -2457,7 +2452,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           />
           <span>
             {t.rememberMeLabel}{' · '}
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#047a65] font-medium underline underline-offset-2">{t.ckPrivacy}</a>
+            <a href={`/${slug}/legal/privacy`} target="_blank" rel="noopener noreferrer" className="text-[#047a65] font-medium underline underline-offset-2">{t.ckPrivacy}</a>
           </span>
         </label>
         <button

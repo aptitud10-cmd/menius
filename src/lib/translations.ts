@@ -377,7 +377,8 @@ export interface Translations {
   ckCashDelivery: string;
   ckCashDineIn: string;
   ckCashTip: string;
-  ckCardSoon: string;
+  ckRefunds: string;
+  cartCashOnly: string;
   ckCashOnly: string;
   ckChangeQuestion: string;
   ckExact: string;
@@ -818,8 +819,9 @@ const es: Translations = {
   ckCashDelivery: 'Pagas en efectivo al recibir',
   ckCashDineIn: 'Pagas en efectivo en la mesa',
   ckCashTip: 'La propina, si quieres, la das en mano.',
-  ckCardSoon: 'Pago con tarjeta: próximamente.',
-  ckCashOnly: 'Este restaurante acepta solo efectivo por ahora.',
+  ckRefunds: 'Reembolsos',
+  cartCashOnly: 'Solo efectivo · pagas al recibir tu pedido',
+  ckCashOnly: 'Este restaurante solo acepta efectivo.',
   ckChangeQuestion: '¿Con cuánto vas a pagar? El repartidor lleva el cambio.',
   ckExact: 'Pago exacto',
   ckPaysWith: 'Paga con',
@@ -1256,8 +1258,9 @@ const en: Translations = {
   ckCashDelivery: 'Pay cash on delivery',
   ckCashDineIn: 'Pay cash at your table',
   ckCashTip: 'Tip in cash if you like.',
-  ckCardSoon: 'Card payments: coming soon.',
-  ckCashOnly: 'This restaurant only takes cash for now.',
+  ckRefunds: 'Refunds',
+  cartCashOnly: 'Cash only · you pay when you get your order',
+  ckCashOnly: 'This restaurant only takes cash.',
   ckChangeQuestion: 'How much will you pay with? The driver brings change.',
   ckExact: 'Exact amount',
   ckPaysWith: 'Pays with',

@@ -84,6 +84,7 @@ import { CartFlyParticles } from "./CartFlyParticles";
 import { MenuSheet, type MenuSheetEntry } from "./MenuSheet";
 import { hasHours, isOptionAvailableAt, optionHoursLabel, hoursRangeLabel } from "@/lib/option-hours";
 import { inTimeZone } from "@/lib/orders/business-hours";
+import { usablePaymentMethods } from "@/lib/payments/online-ready";
 interface ReviewStats {
   average: number;
   total: number;
@@ -3918,6 +3919,7 @@ export function MenuShell({
                   onSuggestionAdd={handleCartSuggestionAdd}
                   loyaltyData={loyaltyData}
                   orderTypes={(restaurant.order_types_enabled ?? []).filter((ot) => ot !== "dine_in")}
+                  cashOnly={!usablePaymentMethods(restaurant).includes("online")}
                 />
               </MenuErrorBoundary>
             </aside>
@@ -4106,6 +4108,7 @@ export function MenuShell({
                     suggestions={cartBasedSuggestions}
                     onSuggestionAdd={handleCartSuggestionAdd}
                     loyaltyData={loyaltyData}
+                    cashOnly={!usablePaymentMethods(restaurant).includes("online")}
                   />
                 </div>
                 {/* No safe-area spacer here: CartPanel's footer already pads
@@ -4467,7 +4470,9 @@ export function MenuShell({
 
         {/* ── Cart resumption toast — shown once when returning with items in cart ── */}
         {cartResumeShown && !toastName && (
-          <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none">
+          // xl:hidden: from xl the cart is a permanent column, and this pill sat
+          // right on top of its checkout button.
+          <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 xl:hidden pointer-events-none">
             <button
               className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#05c8a7] text-[#04241E] text-sm font-semibold shadow-lg active:scale-95 transition-transform"
               onClick={() => {

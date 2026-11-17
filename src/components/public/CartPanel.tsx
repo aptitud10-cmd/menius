@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Pencil, Trash2, Clock, RotateCcw, X } from 'lucide-react';
+import { Minus, Plus, Pencil, Trash2, Clock, RotateCcw, X, Banknote } from 'lucide-react';
 import { estimateMinutes, type EtaRestaurant } from '@/lib/orders/eta';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
@@ -51,6 +51,10 @@ interface CartPanelProps {
   /** Pickup / delivery the restaurant takes (dine-in excluded). With two or
    *  more, the empty cart lets the diner pick one up front. */
   orderTypes?: OrderType[];
+  /** Sin tarjeta habilitada: se avisa aquí, antes del checkout, para que quien
+   *  solo tiene tarjeta no lo descubra al final (Baymard: falta del método
+   *  preferido = abandono). */
+  cashOnly?: boolean;
 }
 
 // ── Swipeable cart item ──────────────────────────────────────────────────────
@@ -105,6 +109,7 @@ export function CartPanel({
   onSuggestionAdd,
   loyaltyData,
   orderTypes = [],
+  cashOnly = false,
 }: CartPanelProps) {
   const items = useCartStore((s) => s.items);
   const updateQty = useCartStore((s) => s.updateQty);
@@ -710,6 +715,12 @@ export function CartPanel({
         )}
         {taxPending && (
           <p className="-mt-2 mb-3 text-[11px] text-gray-400 text-right">{t.taxAtCheckout}</p>
+        )}
+        {cashOnly && (
+          <p className="-mt-1 mb-3 flex items-center gap-1.5 text-[12px] text-gray-600">
+            <Banknote className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            {t.cartCashOnly}
+          </p>
         )}
         <motion.button
           onClick={onCheckout}
