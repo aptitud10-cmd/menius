@@ -3,14 +3,14 @@
 import Image from 'next/image';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock, RotateCcw, X } from 'lucide-react';
+import { Minus, Plus, Pencil, Trash2, Clock, RotateCcw, X } from 'lucide-react';
 import { estimateMinutes, type EtaRestaurant } from '@/lib/orders/eta';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import { showsAsRow } from '@/lib/product-display';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
 import type { Translations } from '@/lib/translations';
-import type { Product, CartItem } from '@/types';
+import type { Product, CartItem, OrderType } from '@/types';
 
 // How long the "Removed · Undo" toast stays actionable.
 const UNDO_WINDOW_MS = 5000;
@@ -48,6 +48,9 @@ interface CartPanelProps {
   suggestions?: Product[];
   onSuggestionAdd?: (product: Product) => void;
   loyaltyData?: { points: number; config: { min_redeem_points: number; peso_per_point: number } | null } | null;
+  /** Pickup / delivery the restaurant takes (dine-in excluded). With two or
+   *  more, the empty cart lets the diner pick one up front. */
+  orderTypes?: OrderType[];
 }
 
 // ── Swipeable cart item ──────────────────────────────────────────────────────
@@ -101,6 +104,7 @@ export function CartPanel({
   suggestions,
   onSuggestionAdd,
   loyaltyData,
+  orderTypes = [],
 }: CartPanelProps) {
   const items = useCartStore((s) => s.items);
   const updateQty = useCartStore((s) => s.updateQty);
@@ -108,6 +112,8 @@ export function CartPanel({
   const clearCart = useCartStore((s) => s.clearCart);
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const orderType = useCartStore((s) => s.selectedOrderType);
+  const setOrderType = useCartStore((s) => s.setSelectedOrderType);
+  const tableName = useCartStore((s) => s.tableName);
   const reorderSkipped = useCartStore((s) => s.reorderSkipped);
   const reorderUnavailable = useCartStore((s) => s.reorderUnavailable);
   // Mismo cálculo que el checkout: con tiempos por plato, el del plato más
@@ -286,12 +292,47 @@ export function CartPanel({
       <div className="relative flex flex-col h-full px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
         {/* Removing the last line lands here — keep Undo reachable. */}
         {renderUndoToast('max(0.75rem, env(safe-area-inset-bottom))')}
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-4">
-            <ShoppingCart className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
-          </div>
-          <p className="font-semibold text-gray-700 text-sm mb-1">{t.cartEmpty}</p>
-          <p className="text-xs text-center text-gray-500 leading-relaxed max-w-[200px]">{t.cartEmptyDesc}</p>
+        {/* The empty column used to be 340px saying only "Your cart is
+            empty". Now it answers what a diner wants before choosing: pickup
+            or delivery (picked here, it is preselected at checkout through
+            the cart store), how long it takes, and what to do next. */}
+        <div className="flex flex-col mb-6">
+          <h2 className="text-[17px] font-semibold text-gray-900">{t.yourOrder}</h2>
+          {!tableName && orderTypes.length > 1 && (
+            <div
+              role="radiogroup"
+              aria-label={t.yourOrder}
+              className="mt-3 grid grid-cols-2 gap-1 p-1 rounded-full bg-gray-100"
+            >
+              {orderTypes.map((type) => {
+                const active = (orderType ?? orderTypes[0]) === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setOrderType(type)}
+                    className={cn(
+                      'min-h-[40px] rounded-full text-[14px] transition-colors',
+                      active
+                        ? 'bg-white text-gray-900 font-semibold shadow-sm'
+                        : 'text-gray-700 font-medium hover:bg-white/60',
+                    )}
+                  >
+                    {type === 'delivery' ? t.delivery : t.pickup}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {etaMinutes != null && etaMinutes > 0 && (
+            <p className="mt-3 inline-flex items-center gap-1.5 text-[14px] text-gray-700">
+              <Clock className="w-4 h-4 text-gray-600" aria-hidden="true" />
+              {t.readyInApprox} {etaMinutes} min
+            </p>
+          )}
+          <p className="mt-4 text-[14px] text-gray-600 leading-relaxed">{t.cartEmptyDesc}</p>
 
           {/* Reorder — only shown if there's a previous order from this restaurant */}
           {lastOrder && lastOrder.items.length > 0 && onReorder && (
@@ -319,7 +360,7 @@ export function CartPanel({
         {/* Popular suggestions in empty cart */}
         {emptySuggestions.length > 0 && onSuggestionAdd && (
           <div className="mt-auto pt-4 border-t border-gray-100">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            <p className="text-[14px] font-semibold text-gray-900 mb-3">
               {t.popularItems}
             </p>
             <div className="flex flex-col gap-2">
@@ -335,8 +376,8 @@ export function CartPanel({
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-gray-800 line-clamp-1">{p.name}</p>
-                    <p className="text-[11px] font-bold text-[#047a65] tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
+                    <p className="text-[14px] font-medium text-gray-900 line-clamp-1">{p.name}</p>
+                    <p className="text-[13px] text-gray-700 tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
                   </div>
                   <div className="w-7 h-7 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
                     <Plus className="w-4 h-4 text-[#04241E]" />

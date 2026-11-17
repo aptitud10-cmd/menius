@@ -3914,6 +3914,7 @@ export function MenuShell({
                   suggestions={cartBasedSuggestions}
                   onSuggestionAdd={handleCartSuggestionAdd}
                   loyaltyData={loyaltyData}
+                  orderTypes={(restaurant.order_types_enabled ?? []).filter((ot) => ot !== "dine_in")}
                 />
               </MenuErrorBoundary>
             </aside>

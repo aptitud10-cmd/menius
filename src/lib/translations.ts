@@ -164,6 +164,7 @@ export interface Translations {
   menuSheetTitle: string;
   searchDishes: (n: number) => string;
   menuSections: string;
+  yourOrder: string;
   // Product card
   soldOut: string;
   unavailable: string;
@@ -617,6 +618,7 @@ const es: Translations = {
   menuSheetTitle: 'Menú',
   searchDishes: (n) => `Buscar entre ${n} platos`,
   menuSections: 'Secciones',
+  yourOrder: 'Tu pedido',
   soldOut: 'Agotado',
   unavailable: 'No disponible',
   addedShort: 'Listo',
@@ -1054,6 +1056,7 @@ const en: Translations = {
   menuSheetTitle: 'Menu',
   searchDishes: (n) => `Search ${n} dishes`,
   menuSections: 'Sections',
+  yourOrder: 'Your order',
   soldOut: 'Sold out',
   unavailable: 'Unavailable',
   addedShort: 'Added',
