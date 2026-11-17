@@ -104,6 +104,18 @@ export function formatOrderSubmitError(
 ): string {
   const raw = (apiError ?? '').trim();
 
+  // 500s carry internal, Spanish-only text ("Error interno", "Error guardando
+  // items") that reached English-speaking diners as-is. The server rolls the
+  // order back on every 500, so say that nothing was charged and offer a retry
+  // (the checkout shows the Retry button for these). 502/503 keep their own,
+  // already-localized messages (payment start, paused, closed).
+  if (status >= 500 && status !== 502 && status !== 503) {
+    return pick(locale, {
+      es: 'No pudimos enviar tu pedido. No se cobró nada: inténtalo de nuevo.',
+      en: "We couldn't send your order. Nothing was charged — please try again.",
+    });
+  }
+
   if (raw && ORDER_API_EXACT[raw]) return pick(locale, ORDER_API_EXACT[raw]);
   for (const { test, msg } of ORDER_SUBSTRINGS) {
     if (test(raw)) return pick(locale, msg);

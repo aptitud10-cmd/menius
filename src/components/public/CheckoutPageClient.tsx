@@ -908,6 +908,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         idempotent?: boolean;
         code?: string;
       }>(text);
+      // A server error (not paused/closed) can be retried with the same
+      // Idempotency-Key: the server rolled the order back, or returns it if
+      // it did get created. Before, Retry only appeared on network failures.
+      if (res.status >= 500 && res.status !== 503) setCanManualRetry(true);
       if (!parsed.ok) {
         setOrderError(formatOrderSubmitError(res.status, undefined, locale));
         trackEvent('checkout_error', { restaurant_id: restaurant.id, reason: 'parse_error', status: res.status, order_type: orderType });
