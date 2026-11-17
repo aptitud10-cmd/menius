@@ -5,11 +5,11 @@ import { uploadOptimizedProductImage } from '@/lib/product-image-upload';
 
 /** Storage falso: guarda lo subido y puede fallar para ciertas rutas. */
 function fakeDb(failIf?: (path: string) => boolean) {
-  const uploaded: Record<string, { size: number; contentType?: string }> = {};
+  const uploaded: Record<string, { size: number; contentType?: string; buf: Buffer }> = {};
   const bucket = {
     upload: async (path: string, buf: Buffer, opts: { contentType?: string }) => {
       if (failIf?.(path)) return { data: null, error: new Error('boom') };
-      uploaded[path] = { size: buf.length, contentType: opts.contentType };
+      uploaded[path] = { size: buf.length, contentType: opts.contentType, buf };
       return { data: { path }, error: null };
     },
     getPublicUrl: (path: string) => ({ data: { publicUrl: `https://x.supabase.co/storage/v1/object/public/product-images/${path}` } }),
@@ -35,6 +35,21 @@ describe('uploadOptimizedProductImage', () => {
     const url = await uploadOptimizedProductImage(db, 'u/burger-2', await png());
     expect(url).toMatch(/\/u\/burger-2\.jpg$/);
     expect(Object.keys(uploaded)).toEqual(['u/burger-2.jpg']);
+  });
+
+  it('un logo PNG transparente queda con esquinas BLANCAS, no negras', async () => {
+    const circle = Buffer.from(
+      '<svg width="512" height="512"><circle cx="256" cy="256" r="256" fill="#f4cad4"/></svg>',
+    );
+    const logo = await sharp(circle).png().toBuffer();
+    const { db, uploaded } = fakeDb();
+    await uploadOptimizedProductImage(db, 'u/logo', logo);
+    for (const path of ['u/logo__lg.jpg', 'u/logo__sm.webp']) {
+      const { data, info } = await sharp(uploaded[path].buf).raw().toBuffer({ resolveWithObject: true });
+      const corner = [data[0], data[1], data[2]];
+      expect(corner.every((v) => v > 245), `${path} esquina ${corner}`).toBe(true);
+      expect(info.channels).toBe(3);
+    }
   });
 
   it('rechaza algo que no es imagen', async () => {
