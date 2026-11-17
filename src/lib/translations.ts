@@ -213,6 +213,8 @@ export interface Translations {
   reviewThankYou: string;
   reviewThankYouHelp: string;
   reviewThankYouAppreciate: string;
+  reviewGoogleCta: string;
+  reviewGoogleHint: string;
   starLabel1: string;
   starLabel2: string;
   starLabel3: string;
@@ -674,6 +676,8 @@ const es: Translations = {
   reviewThankYou: '¡Gracias!',
   reviewThankYouHelp: 'Tu reseña nos ayuda a mejorar.',
   reviewThankYouAppreciate: 'Apreciamos tu opinión sobre',
+  reviewGoogleCta: 'Compártela también en Google',
+  reviewGoogleHint: 'Ayuda a que más gente encuentre {name}.',
   starLabel1: 'Muy malo',
   starLabel2: 'Malo',
   starLabel3: 'Regular',
@@ -1129,6 +1133,8 @@ const en: Translations = {
   reviewThankYou: 'Thank you!',
   reviewThankYouHelp: 'Your review helps us improve.',
   reviewThankYouAppreciate: 'We appreciate your feedback for',
+  reviewGoogleCta: 'Share it on Google too',
+  reviewGoogleHint: 'It helps more people find {name}.',
   starLabel1: 'Terrible',
   starLabel2: 'Bad',
   starLabel3: 'OK',

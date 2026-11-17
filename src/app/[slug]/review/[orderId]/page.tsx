@@ -11,9 +11,16 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  // In the store's language (it was "Leave a review" on Spanish stores too).
+  const { data } = await createAdminClient()
+    .from('restaurants')
+    .select('name, locale')
+    .eq('slug', params.slug)
+    .maybeSingle();
+  const en = data?.locale === 'en';
+  const label = en ? 'Rate your order' : 'Califica tu pedido';
   return {
-    title: `Leave a review`,
-    description: 'Rate your experience',
+    title: data?.name ? `${label} · ${data.name}` : label,
     robots: { index: false, follow: false },
   };
 }
@@ -23,7 +30,7 @@ export default async function ReviewPage({ params, searchParams }: PageProps) {
 
   const { data: order } = await adminDb
     .from('orders')
-    .select('id, status, customer_name, customer_locale, restaurant_id, restaurants(id, name, slug, locale)')
+    .select('id, status, customer_name, customer_locale, restaurant_id, restaurants(id, name, slug, locale, google_business_url)')
     .eq('id', params.orderId)
     .maybeSingle();
 
@@ -49,6 +56,7 @@ export default async function ReviewPage({ params, searchParams }: PageProps) {
       customerName={order.customer_name ?? ''}
       locale={order.customer_locale ?? restaurant.locale ?? 'es'}
       initialRating={initialRating}
+      googleReviewUrl={restaurant.google_business_url ?? null}
     />
   );
 }
