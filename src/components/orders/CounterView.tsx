@@ -1907,8 +1907,12 @@ export function CounterView({
                 )}
               </SidebarSection>
 
-              {/* Panel del dueño: escondido al final del menú; en la tablet pide PIN. */}
-              {(ownerPanel || tabletMode) && (
+              {/* Panel del dueño: escondido al final del menú. Apagado en la tablet
+                  vinculada (2026-11-17): dentro de la app Counter el panel quedaba
+                  sin scroll ni botones y no se pudo reproducir fuera de la tablet.
+                  El dueño entra desde su celular o computadora. El PIN y el
+                  servidor siguen ahí: para volver a encenderlo, quitar !isDevice. */}
+              {!isDevice && (ownerPanel || tabletMode) && (
                 <OwnerPanelButton needsPin={isDevice} en={t.en} />
               )}
 
