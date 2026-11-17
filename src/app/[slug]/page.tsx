@@ -215,7 +215,9 @@ export async function generateMetadata({
       canonical: url,
       ...(langAlternates ? { languages: langAlternates } : {}),
     },
-    robots: { index: true, follow: true },
+    robots: getStoreOverrides(restaurant.slug).noindex
+      ? { index: false, follow: false }
+      : { index: true, follow: true },
   };
 }
 

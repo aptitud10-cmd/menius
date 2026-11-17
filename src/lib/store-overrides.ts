@@ -51,6 +51,14 @@ export interface StoreOverrides {
    * as selectable pack options.
    */
   packProductIds?: string[];
+
+  /**
+   * Keep the store out of search engines: noindex,nofollow on the menu page
+   * and excluded from sitemap.xml. For stores used as private demos/tests
+   * that carry a real business's name (we don't want them showing up when
+   * someone searches for that business).
+   */
+  noindex?: boolean;
 }
 
 const OVERRIDES: Record<string, StoreOverrides> = {
@@ -61,6 +69,9 @@ const OVERRIDES: Record<string, StoreOverrides> = {
     /** 408 productos en 47 categorías: el buscador léxico se queda corto ante
      *  pedidos por propiedad ("algo liviano") en vez de por nombre de plato. */
     naturalSearch: true,
+    /** Demo privada con el nombre de un negocio real que NO es cliente:
+     *  no debe aparecer cuando alguien busca "Buccaneer Diner" en Google. */
+    noindex: true,
   },
   // Configuración para el nuevo modo de alta conversión (ejemplo)
   // ¡Recuerda reemplazar los IDs de producto con IDs reales de tu base de datos!

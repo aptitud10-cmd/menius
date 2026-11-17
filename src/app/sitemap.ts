@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { blogPosts } from "@/lib/blog-data";
 import { url } from "@/lib/site-url";
+import { getStoreOverrides } from "@/lib/store-overrides";
 import type { MetadataRoute } from "next";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -104,8 +105,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .order("created_at", { ascending: false })
       .limit(5000);
 
-    const restaurantPages: MetadataRoute.Sitemap = (restaurants ?? []).map(
-      (r) => ({
+    const restaurantPages: MetadataRoute.Sitemap = (restaurants ?? [])
+      .filter((r) => !getStoreOverrides(r.slug).noindex)
+      .map((r) => ({
         url: url(r.slug),
         lastModified: new Date(r.created_at),
         changeFrequency: "daily" as const,
