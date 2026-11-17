@@ -83,6 +83,7 @@ import { MenuErrorBoundary } from "./MenuErrorBoundary";
 import { ReservationWidget } from "./ReservationWidget";
 import { MenuUpdateBanner } from "./MenuUpdateBanner";
 import { CartFlyParticles } from "./CartFlyParticles";
+import { MenuSheet, type MenuSheetEntry } from "./MenuSheet";
 import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
 import { inTimeZone } from "@/lib/orders/business-hours";
 interface ReviewStats {
@@ -748,8 +749,29 @@ export function MenuShell({
         // Unlock scroll-spy when the animation ends; fall back to 1.5 s.
         // (scrollend is not supported on iOS Safari < 16.4 — the timeout is the safety net.)
         // 1.5s covers long pages where iOS smooth-scroll can take > 1s.
+        // Sections off screen use content-visibility with a 900px estimate;
+        // as the smooth scroll passes them they render at their real height
+        // and the target drifts ("French Toast" landed mid-screen). Once the
+        // scroll ends, measure again and close the gap without animation —
+        // twice, since the correction can reveal one more section.
+        const correct = () => {
+          const m = mainRef.current;
+          if (!m) return;
+          const drift =
+            section.getBoundingClientRect().top -
+            m.getBoundingClientRect().top -
+            margin +
+            8;
+          if (Math.abs(drift) > 4) {
+            m.scrollTo({ top: Math.max(0, m.scrollTop + drift), behavior: "auto" });
+          }
+        };
         const unlock = () => {
-          isScrollingRef.current = false;
+          correct();
+          requestAnimationFrame(() => {
+            correct();
+            isScrollingRef.current = false;
+          });
         };
         const timer = setTimeout(unlock, 1500);
         mainRef.current.addEventListener(
@@ -2124,6 +2146,95 @@ export function MenuShell({
     [categories, products, popularProducts.length],
   );
 
+  // ── "Menu" sheet: Popular first, every group with its dish count, and the
+  // sections of groups that have 3 or more (the same threshold as the
+  // floating "Sections" button).
+  const menuSheetEntries = useMemo<MenuSheetEntry[]>(() => {
+    const entries: MenuSheetEntry[] = [];
+    if (
+      isLargeCatalog &&
+      popularProducts.length > 0 &&
+      !visibleCats.some((c) => c.id === POPULAR_ID)
+    ) {
+      entries.push({
+        id: POPULAR_ID,
+        label: t.popularItems,
+        count: popularProducts.length,
+        sections: [],
+      });
+    }
+    for (const cat of visibleCats) {
+      let sections: MenuSheetEntry["sections"] = [];
+      if (isGroupId(cat.id)) {
+        const grp = groupNameFromId(cat.id);
+        sections = categories
+          .filter((c) => c.group_name === grp)
+          .map((c) => ({
+            id: c.id,
+            label: tName(c, locale, defaultLocale),
+            count: countForSidebar(c),
+          }))
+          .filter((sec) => sec.count > 0);
+        if (sections.length < 3) sections = [];
+      }
+      entries.push({
+        id: cat.id,
+        label:
+          cat.id === POPULAR_ID ? t.popularItems : tName(cat, locale, defaultLocale),
+        count: countForSidebar(cat),
+        sections,
+      });
+    }
+    return entries;
+  }, [isLargeCatalog, popularProducts.length, visibleCats, categories, countForSidebar, locale, defaultLocale, t]);
+
+  const menuSheetActiveId = isLargeCatalog
+    ? (activeCatFilter ?? (popularProducts.length > 0 ? POPULAR_ID : null))
+    : activePillId;
+
+  const closeMenuSheet = useCallback(() => {
+    setShowCatSheet(false);
+    setShowSubcatSheet(false);
+  }, []);
+
+  const handleMenuSheetSelect = useCallback(
+    (id: string) => {
+      closeMenuSheet();
+      if (id === POPULAR_ID && isLargeCatalog) {
+        // Same as the "Popular" pill: the unfiltered view, from the top.
+        setActiveCatFilter(null);
+        setActiveCategory(null);
+        mainRef.current?.scrollTo({ top: 0, behavior: "auto" });
+        return;
+      }
+      handleCategorySelect(id);
+    },
+    [closeMenuSheet, isLargeCatalog, handleCategorySelect],
+  );
+
+  // A section of a group that isn't on screen yet: switch group, then scroll
+  // once its list has rendered.
+  const pendingSectionRef = useRef<string | null>(null);
+  const handleMenuSheetSection = useCallback(
+    (groupId: string, sectionId: string) => {
+      closeMenuSheet();
+      if (activeCatFilter === groupId) {
+        // Next frame: the sheet's exit must not fight the smooth scroll.
+        requestAnimationFrame(() => scrollToSection(sectionId));
+        return;
+      }
+      pendingSectionRef.current = sectionId;
+      handleCategorySelect(groupId);
+    },
+    [closeMenuSheet, activeCatFilter, scrollToSection, handleCategorySelect],
+  );
+  useEffect(() => {
+    const id = pendingSectionRef.current;
+    if (!id || !displayedGroups.some((g) => g.category.id === id)) return;
+    pendingSectionRef.current = null;
+    requestAnimationFrame(() => scrollToSection(id));
+  }, [displayedGroups, scrollToSection]);
+
   // Desktop fav / diet pills
   const favPill = SHOW_FAVORITES && hasMounted && favIds.length > 0 && (
     <button
@@ -2196,7 +2307,7 @@ export function MenuShell({
         <button
           onClick={() => setShowCatSheet(true)}
           style={{ touchAction: "manipulation" }}
-          className="flex-shrink-0 flex items-center justify-center w-9 h-9 ml-2 rounded-lg text-gray-500 active:bg-gray-200 transition-colors"
+          className="flex-shrink-0 flex items-center justify-center w-11 h-11 ml-1 rounded-lg text-gray-600 active:bg-gray-200 transition-colors"
           aria-label={t.browseCategoriesAriaLabel}
         >
           <AlignJustify className="w-[18px] h-[18px]" />
@@ -3870,9 +3981,7 @@ export function MenuShell({
             >
               <AlignJustify className="w-4 h-4" aria-hidden="true" />
               {groupNameFromId(activeCatFilter!)}
-              <span className="text-white/60 tabular-nums">
-                {subcatsOfActiveGroup.length}
-              </span>
+              <span className="text-white/70">· {t.menuSections}</span>
             </button>
           </div>
         )}
@@ -4478,166 +4587,25 @@ export function MenuShell({
           </>
         )}
 
-        {/* ── CATEGORY BOTTOM SHEET (mobile only) ── */}
-        <AnimatePresence>
-          {showCatSheet && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                className="lg:hidden fixed inset-0 z-[80] bg-black/40"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowCatSheet(false)}
-              />
-              {/* Sheet */}
-              <motion.div
-                className="lg:hidden fixed bottom-0 left-0 right-0 z-[81] bg-white rounded-t-3xl overflow-hidden flex flex-col"
-                style={{ maxHeight: "80dvh" }}
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 320 }}
-                role="dialog"
-                aria-modal="true"
-                aria-label={t.browseCategoriesAriaLabel}
-              >
-                {/* Drag indicator pill */}
-                <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                  <div className="w-10 h-1 rounded-full bg-gray-200" />
-                </div>
-
-                {/* Restaurant name header */}
-                <div className="text-center px-6 pt-2 pb-4 flex-shrink-0">
-                  <p className="font-bold text-[18px] text-gray-900 leading-tight">
-                    {restaurant.name}
-                  </p>
-                </div>
-
-                {/* Category list — scrollable */}
-                <div className="overflow-y-auto flex-1 pb-4">
-                  <p className="px-6 py-2 text-[12px] font-bold text-gray-500 uppercase tracking-wider">
-                    {t.exploreMenu}
-                  </p>
-                  {visibleCats.map((cat) => {
-                    const label = tName(cat, locale, defaultLocale);
-                    const isActive = isLargeCatalog
-                      ? activeCatFilter === cat.id
-                      : activePillId === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          handleCategorySelect(cat.id);
-                          setShowCatSheet(false);
-                        }}
-                        className={cn(
-                          "w-full text-left px-6 py-3.5 text-[15px] transition-colors flex items-center justify-between",
-                          isActive
-                            ? "font-semibold text-gray-900 bg-gray-50"
-                            : "font-normal text-gray-700 active:bg-gray-50",
-                        )}
-                      >
-                        <span>{label}</span>
-                        {isActive && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] flex-shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Dismiss button */}
-                <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t border-gray-100">
-                  <button
-                    onClick={() => setShowCatSheet(false)}
-                    className="w-full py-3 rounded-2xl border border-gray-200 bg-transparent text-gray-600 font-semibold text-[15px] active:bg-gray-50 transition-colors"
-                  >
-                    {t.dismiss}
-                  </button>
-                </div>
-                {/* Safe area spacer — decoupled to prevent reflow during slide-in animation */}
-                <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]" />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* ── SUBCATEGORY JUMP SHEET ──
-            The "section menu" NN/g prescribes for 6–15 subcategories. Item
-            counts are part of the point: "Buttermilk Pancakes 14" tells the
-            customer how much is there before jumping. */}
-        <AnimatePresence>
-          {showSubcatSheet && (
-            <>
-              <motion.div
-                className="xl:hidden fixed inset-0 z-[80] bg-black/40"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowSubcatSheet(false)}
-              />
-              <motion.div
-                className="xl:hidden fixed bottom-0 left-0 right-0 z-[81] bg-white rounded-t-3xl overflow-hidden flex flex-col"
-                style={{ maxHeight: "75dvh" }}
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 320 }}
-                role="dialog"
-                aria-modal="true"
-                aria-label={t.jumpToSection}
-              >
-                <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                  <div className="w-10 h-1 rounded-full bg-gray-200" />
-                </div>
-
-                <div className="px-6 pt-2 pb-3 flex-shrink-0">
-                  <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">
-                    {t.jumpToSection}
-                  </p>
-                  <p className="font-bold text-[17px] text-gray-900 leading-tight mt-0.5">
-                    {activeCatFilter ? groupNameFromId(activeCatFilter) : ""}
-                  </p>
-                </div>
-
-                <div className="overflow-y-auto flex-1 pb-2">
-                  {subcatsOfActiveGroup.map(({ category, items }) => (
-                    <button
-                      key={category.id}
-                      onClick={() => {
-                        setShowSubcatSheet(false);
-                        // Next frame: the sheet's exit animation must not fight
-                        // the smooth scroll on the container underneath.
-                        requestAnimationFrame(() =>
-                          scrollToSection(category.id),
-                        );
-                      }}
-                      className="w-full text-left px-6 py-3.5 text-[15px] text-gray-700 active:bg-gray-50 transition-colors flex items-center justify-between gap-3"
-                    >
-                      <span className="truncate">
-                        {tName(category, locale, defaultLocale)}
-                      </span>
-                      <span className="text-[13px] font-medium text-gray-500 tabular-nums flex-shrink-0">
-                        {items.length}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t border-gray-100">
-                  <button
-                    onClick={() => setShowSubcatSheet(false)}
-                    className="w-full py-3 rounded-2xl border border-gray-200 bg-transparent text-gray-600 font-semibold text-[15px] active:bg-gray-50 transition-colors"
-                  >
-                    {t.dismiss}
-                  </button>
-                </div>
-                <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]" />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        {/* ── "Menu" sheet: ☰ opens it folded, the floating "Sections" button
+            opens it with the active group unfolded. ── */}
+        <MenuSheet
+          open={showCatSheet || showSubcatSheet}
+          onClose={closeMenuSheet}
+          title={t.menuSheetTitle}
+          closeLabel={t.close}
+          searchLabel={t.searchDishes(products.length)}
+          onSearch={() => {
+            closeMenuSheet();
+            setShowSearch(true);
+          }}
+          entries={menuSheetEntries}
+          activeId={menuSheetActiveId}
+          expandOnOpen={showSubcatSheet ? activeCatFilter : null}
+          onSelect={handleMenuSheetSelect}
+          onSelectSection={handleMenuSheetSection}
+          hiddenFromClass={showSubcatSheet ? "xl:hidden" : "lg:hidden"}
+        />
       </div>
     </StoreConfigProvider>
   );

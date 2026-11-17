@@ -161,6 +161,9 @@ export interface Translations {
   groupDone: string;
   groupRequired: string;
   goesWellWith: string;
+  menuSheetTitle: string;
+  searchDishes: (n: number) => string;
+  menuSections: string;
   // Product card
   soldOut: string;
   unavailable: string;
@@ -611,6 +614,9 @@ const es: Translations = {
   groupDone: 'Listo',
   groupRequired: 'Obligatorio',
   goesWellWith: 'Para acompañar',
+  menuSheetTitle: 'Menú',
+  searchDishes: (n) => `Buscar entre ${n} platos`,
+  menuSections: 'Secciones',
   soldOut: 'Agotado',
   unavailable: 'No disponible',
   addedShort: 'Listo',
@@ -1045,6 +1051,9 @@ const en: Translations = {
   groupDone: 'Done',
   groupRequired: 'Required',
   goesWellWith: 'Goes well with',
+  menuSheetTitle: 'Menu',
+  searchDishes: (n) => `Search ${n} dishes`,
+  menuSections: 'Sections',
   soldOut: 'Sold out',
   unavailable: 'Unavailable',
   addedShort: 'Added',
