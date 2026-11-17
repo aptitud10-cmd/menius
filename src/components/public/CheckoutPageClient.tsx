@@ -2335,7 +2335,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     <b className="block text-base font-semibold">
                       {orderType === 'delivery' ? t.ckCashDelivery : orderType === 'dine_in' ? t.ckCashDineIn : t.ckCashPickup}
                     </b>
-                    <span className="block text-[13.5px] text-[#4f4f57] mt-0.5">{hasOnline ? t.ckCashTip : `${t.ckCashOnly} ${t.ckCashTip}`}</span>
+                    {/* The tip line only for delivery, worded as an invitation (Pedro,
+                        2026-11-17): at the counter or the table there's nobody to
+                        hand it to through the app, and "tip in person" read as a request. */}
+                    {(!hasOnline || orderType === 'delivery') && (
+                      <span className="block text-[13.5px] text-[#4f4f57] mt-0.5">
+                        {[!hasOnline && t.ckCashOnly, orderType === 'delivery' && t.ckCashTip].filter(Boolean).join(' ')}
+                      </span>
+                    )}
                     {orderType === 'delivery' && (
                       <>
                         <span className="block text-[13.5px] text-[#4f4f57] mt-2.5">{t.ckChangeQuestion}</span>
