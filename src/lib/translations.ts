@@ -160,6 +160,7 @@ export interface Translations {
   /** Badge on a required group once it is satisfied. */
   groupDone: string;
   groupRequired: string;
+  goesWellWith: string;
   // Product card
   soldOut: string;
   unavailable: string;
@@ -609,6 +610,7 @@ const es: Translations = {
   servedHours: (hours) => `Se sirve ${hours}`,
   groupDone: 'Listo',
   groupRequired: 'Obligatorio',
+  goesWellWith: 'Para acompañar',
   soldOut: 'Agotado',
   unavailable: 'No disponible',
   addedShort: 'Listo',
@@ -1042,6 +1044,7 @@ const en: Translations = {
   servedHours: (hours) => `Served ${hours}`,
   groupDone: 'Done',
   groupRequired: 'Required',
+  goesWellWith: 'Goes well with',
   soldOut: 'Sold out',
   unavailable: 'Unavailable',
   addedShort: 'Added',

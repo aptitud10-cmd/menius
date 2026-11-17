@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
-import { X, Minus, Plus, Check, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Minus, Plus, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, useDragControls, type PanInfo } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,9 @@ import { supabaseLoader, getBlurUrl } from "@/lib/image-loader";
 import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
 import { inTimeZone } from "@/lib/orders/business-hours";
 import { showsAsRow } from "@/lib/product-display";
+
+/** Height of the compact header that replaces the floating X on scroll. */
+const COMPACT_HEADER_PX = 52;
 
 const DIETARY_TAGS_MAP = Object.fromEntries(DIETARY_TAGS.map((t) => [t.id, t]));
 
@@ -396,6 +399,27 @@ export function CustomizationSheet({
     return () => mq.removeEventListener("change", handler);
   }, []);
 
+  // One name on screen at a time. The title lives in the body under the
+  // photo; once it scrolls out of view a compact opaque header (name, price,
+  // X) takes over. The old fixed header showed the name above the photo AND
+  // under it, and cost 64px on every screen of a 5-screen sheet.
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const [titleHidden, setTitleHidden] = useState(false);
+  useEffect(() => {
+    const root = bodyScrollRef.current;
+    const el = titleRef.current;
+    if (!root || !el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        const top = entry.rootBounds?.top ?? 0;
+        setTitleHidden(!entry.isIntersecting && entry.boundingClientRect.top < top);
+      },
+      { root, rootMargin: `-${COMPACT_HEADER_PX}px 0px 0px 0px`, threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [product.id, isDesktop]);
+
   const suggestionsScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = suggestionsScrollRef.current;
@@ -540,7 +564,9 @@ export function CustomizationSheet({
         target.getBoundingClientRect().top -
         container.getBoundingClientRect().top;
       container.scrollTo({
-        top: Math.max(0, container.scrollTop + delta - 8),
+        // Minus the compact header, which is showing by then and would
+        // otherwise cover the title of the group being pointed at.
+        top: Math.max(0, container.scrollTop + delta - COMPACT_HEADER_PX - 8),
         behavior: reduceMotion ? "auto" : "smooth",
       });
     }
@@ -665,6 +691,8 @@ export function CustomizationSheet({
       : `Optional · up to ${g.max_select}`;
   };
 
+  const hasHero = !showsAsRow(product) && !!product.image_url;
+
   const springTransition = {
     type: "tween" as const,
     duration: 0.18,
@@ -694,8 +722,11 @@ export function CustomizationSheet({
           option groups below the fold — the CTA stayed disabled ("Choose: …")
           with nothing visible to choose, so the dish could not be added at all.
           The photo is context; the options are the task. */}
-      {!showsAsRow(product) && product.image_url && (
-        <div className="relative w-full aspect-[4/3] max-h-[38dvh] sm:max-h-[34dvh] bg-gray-100 overflow-hidden">
+      {/* 16:9 rather than 4:3 (219px instead of 293 on a phone): the photo
+          says which dish this is, the options are the task. The cap stays for
+          the wide tablet sheet. Handle and X float over it (sheetChrome). */}
+      {hasHero ? (
+        <div className="relative w-full aspect-video max-h-[32dvh] bg-gray-100 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
           <div className="absolute inset-0">
             <Image
@@ -718,15 +749,28 @@ export function CustomizationSheet({
             />
           </div>
         </div>
+      ) : (
+        // No photo: a strip for the floating X so it never sits on the title.
+        <div style={{ height: COMPACT_HEADER_PX }} aria-hidden="true" />
       )}
       <div className="px-5 pt-4 pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-extrabold text-gray-900 leading-tight">
+        <div>
+          <div>
+            {isEditing && (
+              <p className="text-[13px] font-medium text-gray-600 mb-1">{t.editItem}</p>
+            )}
+            <h3
+              id="customization-dialog-title"
+              ref={titleRef}
+              className="text-[22px] font-bold text-gray-900 leading-tight tracking-[-0.01em]"
+            >
               {displayName}
             </h3>
+            <p className="mt-1 text-[17px] font-semibold text-gray-900 tabular-nums">
+              {fmtPrice(Number(product.price))}
+            </p>
             {displayDesc && (
-              <p className="text-[15px] text-gray-600 mt-1 leading-relaxed">
+              <p className="text-[15px] text-gray-600 mt-2 leading-relaxed">
                 {displayDesc}
               </p>
             )}
@@ -748,9 +792,6 @@ export function CustomizationSheet({
               </div>
             )}
           </div>
-          <span className="text-xl font-extrabold text-gray-900 flex-shrink-0 tabular-nums">
-            {fmtPrice(Number(product.price))}
-          </span>
         </div>
       </div>
 
@@ -885,7 +926,7 @@ export function CustomizationSheet({
               if (el) groupRefs.current.set(group.id, el);
               else groupRefs.current.delete(group.id);
             }}
-            className="px-5 pt-6"
+            className="px-5 pt-4"
           >
             <div
               ref={(el) => {
@@ -903,10 +944,10 @@ export function CustomizationSheet({
                 an uppercase pill competing with them. Only what blocks the
                 order (a required group) keeps colour. Size and weight rather
                 than a brand colour: teal already means "selected" here. */}
-            <div className="border-t border-gray-100 pt-5 mb-3">
+            <div className="border-t border-gray-100 pt-4 mb-3">
               <h4
                 id={headingId}
-                className="text-[17px] font-extrabold leading-snug tracking-[-0.01em] text-gray-900"
+                className="text-[17px] font-semibold leading-snug text-gray-900"
               >
                 {groupTitle}
               </h4>
@@ -916,7 +957,7 @@ export function CustomizationSheet({
                     moment the ring turns red). Answered ones become a tick in the
                     accent instead of a "Done" chip: a checklist, not six pills. */}
                 {isSatisfied ? (
-                  <span className="inline-flex items-center gap-1.5 text-[14px] text-gray-600">
+                  <span className="inline-flex items-center gap-1.5 text-[13px] text-gray-600">
                     <span className="flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#05c8a7]">
                       <Check className="w-3 h-3 text-[#04241E]" strokeWidth={3} aria-hidden="true" />
                     </span>
@@ -926,23 +967,23 @@ export function CustomizationSheet({
                 ) : minRequired > 0 ? (
                   <span
                     className={cn(
-                      "text-[12px] font-semibold px-2 py-0.5 rounded-full",
+                      "text-[13px] font-medium px-2 py-0.5 rounded-full",
                       isHighlighted ? "text-red-700 bg-red-50" : "text-gray-700 bg-gray-100",
                     )}
                   >
                     {t.groupRequired} · {getRuleLabel(group)}
                   </span>
                 ) : (
-                  <span className="text-[14px] text-gray-600">{getRuleLabel(group)}</span>
+                  <span className="text-[13px] text-gray-600">{getRuleLabel(group)}</span>
                 )}
                 {atMax && (
-                  <span className="text-[12px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
+                  <span className="text-[13px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
                     {t.maxReached}
                   </span>
                 )}
               </div>
               {standardHint && (
-                <p className="mt-1 text-[14px] text-gray-600">{standardHint}</p>
+                <p className="mt-1 text-[13px] text-gray-600">{standardHint}</p>
               )}
             </div>
             {group.display_type === "grid" ? (
@@ -1149,10 +1190,10 @@ export function CustomizationSheet({
           them first and reach for prose only for what they don't cover
           ("no pickles", "gravy on the side"). Placing it earlier invites people
           to type requests that already exist as a tappable option. */}
-      <div className="px-5 pt-5">
+      <div className="px-5 pt-4">
         <label
           htmlFor="item-notes"
-          className="block text-[17px] font-extrabold leading-snug tracking-[-0.01em] text-gray-900 mb-3 border-t border-gray-100 pt-5"
+          className="block text-[17px] font-semibold leading-snug text-gray-900 mb-3 border-t border-gray-100 pt-4"
         >
           {t.itemNotesLabel}
         </label>
@@ -1186,14 +1227,9 @@ export function CustomizationSheet({
           visually subordinate to the solid sticky CTA below (avoids confusion). */}
       {!isEditing && (suggestedProducts ?? []).length > 0 && (
         <div className="pt-5 pb-6">
-          <div className="flex items-center gap-1.5 mb-3 px-5">
-            <span className="text-sm" aria-hidden>
-              ✨
-            </span>
-            <p className="text-[13px] font-bold text-gray-600 uppercase tracking-wider">
-              {locale === "es" ? "Combiná tu pedido" : "Pair it with"}
-            </p>
-          </div>
+          <h4 className="mb-3 px-5 text-[17px] font-semibold leading-snug text-gray-900">
+            {t.goesWellWith}
+          </h4>
           <div className="relative group/sugg">
             <div
               ref={suggestionsScrollRef}
@@ -1289,6 +1325,78 @@ export function CustomizationSheet({
     </span>
   );
 
+  const closeButtonClass =
+    "w-11 h-11 flex items-center justify-center rounded-full flex-shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1";
+
+  // Floating handle + X over the photo, and the compact header that replaces
+  // them once the title scrolls away. Both drag the sheet on mobile
+  // (startSheetDrag ignores the X itself).
+  const sheetChrome = (
+    <>
+      <div
+        className={cn(
+          "absolute inset-x-0 top-0 z-20 flex items-center gap-3 pl-5 pr-1.5 bg-white border-b border-gray-100 select-none transition-opacity duration-150",
+          titleHidden ? "opacity-100" : "opacity-0 pointer-events-none",
+        )}
+        style={{ height: COMPACT_HEADER_PX, touchAction: "none" }}
+        onPointerDown={isDesktop ? undefined : startSheetDrag}
+        aria-hidden={!titleHidden}
+      >
+        <p className="min-w-0 flex-1 truncate text-[16px] font-semibold text-gray-900">
+          {displayName}
+        </p>
+        <span className="text-[15px] text-gray-600 tabular-nums flex-shrink-0">
+          {fmtPrice(Number(product.price))}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          tabIndex={titleHidden ? 0 : -1}
+          aria-label={t.close}
+          className={cn(closeButtonClass, "active:bg-gray-100 hover:bg-gray-100")}
+        >
+          <X className="w-5 h-5 text-gray-700" />
+        </button>
+      </div>
+
+      {!titleHidden && (
+        <>
+          {!isDesktop && (
+            <div
+              className="absolute inset-x-0 top-0 z-10 h-7 flex justify-center pt-2 cursor-grab active:cursor-grabbing"
+              onPointerDown={startSheetDrag}
+              style={{ touchAction: "none" }}
+            >
+              <div
+                className={cn(
+                  "w-10 h-1 rounded-full",
+                  hasHero ? "bg-white/85 shadow-sm" : "bg-gray-300",
+                )}
+              />
+            </div>
+          )}
+          {isPreview && <div className="absolute left-4 top-3 z-10">{previewBadge}</div>}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t.close}
+            className={cn(
+              closeButtonClass,
+              "absolute right-3 z-10",
+              // Over a photo it needs its own white disc to read; on a plain
+              // white strip that disc just floats, so it goes quiet grey.
+              hasHero
+                ? "top-3 bg-white/95 shadow-md active:bg-gray-100 hover:bg-white"
+                : "top-1.5 bg-gray-100 active:bg-gray-200 hover:bg-gray-200",
+            )}
+          >
+            <X className="w-5 h-5 text-gray-900" />
+          </button>
+        </>
+      )}
+    </>
+  );
+
   const sheetFooter = isPreview ? null : (
     <div className="border-t border-gray-100 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="px-5 py-4">
@@ -1299,11 +1407,12 @@ export function CustomizationSheet({
                 resetAdded();
                 setQty(Math.max(1, qty - 1));
               }}
+              aria-label={t.decreaseQuantity}
               className="w-11 h-11 flex items-center justify-center rounded-l-xl active:bg-gray-200 transition-colors"
             >
               <Minus className="w-4 h-4 text-gray-600" />
             </button>
-            <span className="w-10 text-center font-bold text-base tabular-nums">
+            <span className="w-10 text-center font-semibold text-base tabular-nums" aria-live="polite">
               {qty}
             </span>
             <button
@@ -1311,6 +1420,7 @@ export function CustomizationSheet({
                 resetAdded();
                 setQty(qty + 1);
               }}
+              aria-label={t.increaseQuantity}
               className="w-11 h-11 flex items-center justify-center rounded-r-xl active:bg-gray-200 transition-colors"
             >
               <Plus className="w-4 h-4 text-gray-600" />
@@ -1321,7 +1431,7 @@ export function CustomizationSheet({
             <div className="flex flex-1 gap-2">
               <button
                 onClick={onViewCart ?? onClose}
-                className="flex-1 h-[52px] rounded-2xl font-extrabold text-[15px] bg-[#05c8a7] text-[#04241E] transition-all duration-200 active:scale-[0.98]"
+                className="flex-1 h-[52px] rounded-2xl font-bold text-[15px] bg-[#05c8a7] text-[#04241E] transition-all duration-200 active:scale-[0.98]"
               >
                 ✓ {locale === "es" ? "Ver carrito" : "View cart"}
               </button>
@@ -1344,7 +1454,7 @@ export function CustomizationSheet({
               // ~195px wide on a 375px phone next to the stepper: 14px keeps
               // "Choose 2 more · $12.50" whole; 16px would cut the count.
               className={cn(
-                "flex-1 min-w-0 h-[52px] px-3 flex items-center justify-center gap-1.5 rounded-2xl font-extrabold whitespace-nowrap bg-[#05c8a7] text-[#04241E] transition-all duration-200 active:scale-[0.98] shadow-sm hover:bg-[#04b096]",
+                "flex-1 min-w-0 h-[52px] px-3 flex items-center justify-center gap-1.5 rounded-2xl font-bold whitespace-nowrap bg-[#05c8a7] text-[#04241E] transition-all duration-200 active:scale-[0.98] shadow-sm hover:bg-[#04b096]",
                 isValid && !optionsPending ? "text-[16px]" : "text-[14px]",
                 optionsPending && modifiersLoading && "opacity-70",
               )}
@@ -1387,52 +1497,13 @@ export function CustomizationSheet({
           role="dialog"
           aria-modal="true"
           aria-labelledby="customization-dialog-title"
-          className="flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100"
+          className="flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col overflow-hidden shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100"
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={springTransition}
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-white z-10">
-            <div className="flex items-center gap-3 min-w-0">
-              {!isPreview && (
-                <button
-                  onClick={onClose}
-                  aria-label={locale === "es" ? "Volver" : "Back"}
-                  className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1"
-                >
-                  <ArrowLeft className="w-5 h-5 text-gray-600" />
-                </button>
-              )}
-              {isPreview && previewBadge}
-              <div className="min-w-0">
-                <h2
-                  id="customization-dialog-title"
-                  className="text-base font-bold text-gray-900 truncate"
-                >
-                  {isEditing ? t.editItem : displayName}
-                </h2>
-                <p className="text-[13px] text-gray-500 font-medium tabular-nums">
-                  {fmtPrice(Number(product.price))}
-                  {displayDesc && <span className="ml-2 text-gray-300">·</span>}
-                  {displayDesc && (
-                    <span className="ml-2 truncate">
-                      {displayDesc.slice(0, 40)}
-                      {displayDesc.length > 40 ? "..." : ""}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              aria-label={t.close}
-              className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1"
-            >
-              <X className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
-            </button>
-          </div>
-
+          {sheetChrome}
           {sheetBody}
           {sheetFooter}
         </motion.div>
@@ -1444,7 +1515,7 @@ export function CustomizationSheet({
           role="dialog"
           aria-modal="true"
           aria-labelledby="customization-dialog-title"
-          className="fixed left-0 right-0 bottom-0 bg-white flex flex-col shadow-2xl rounded-t-2xl max-h-[92dvh]"
+          className="fixed left-0 right-0 bottom-0 bg-white flex flex-col overflow-hidden shadow-2xl rounded-t-2xl max-h-[92dvh]"
           style={{ minHeight: "min(60dvh, 100dvh)" }}
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
@@ -1457,42 +1528,7 @@ export function CustomizationSheet({
           dragListener={false}
           onDragEnd={handleDragEnd}
         >
-          {/* Drag handle */}
-          <div
-            className="flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing flex-shrink-0"
-            onPointerDown={startSheetDrag}
-            style={{ touchAction: "none" }}
-          >
-            <div className="w-10 h-1 rounded-full bg-gray-300" />
-          </div>
-
-          {/* Header — large X, no back arrow. Altura fija 48px (h-12) para igualar
-            el header del restaurante; nombre en sans extrabold tracking apretado
-            (Opción C) para mantener consistencia visual entre ambos headers.
-            Also a drag zone (startSheetDrag skips the close button). */}
-          <div
-            className="flex items-center justify-between h-12 px-5 border-b border-gray-100 flex-shrink-0 bg-white z-10 select-none"
-            onPointerDown={startSheetDrag}
-            style={{ touchAction: "none" }}
-          >
-            <div className="min-w-0 flex-1">
-              {isPreview && previewBadge}
-              <h2
-                id="customization-dialog-title"
-                className="text-[17px] font-extrabold tracking-[-0.03em] text-gray-900 truncate"
-              >
-                {isEditing ? t.editItem : displayName}
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              aria-label={t.close}
-              className="p-2 -mr-1 ml-3 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1"
-            >
-              <X className="w-6 h-6 text-gray-700" />
-            </button>
-          </div>
-
+          {sheetChrome}
           {sheetBody}
           {sheetFooter}
         </motion.div>
