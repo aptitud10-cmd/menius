@@ -751,8 +751,18 @@ export function CustomizationSheet({
         )}
       >
         {/* The tick is not decoration: colour alone must not carry the
-            selected state (WCAG 1.4.1). */}
-        {isSelected && <Check className="w-4 h-4 flex-shrink-0" aria-hidden="true" />}
+            selected state (WCAG 1.4.1). The slot is always there (ring for a
+            single choice, plus for add-ons) so selecting doesn't widen the chip
+            and make the whole row jump. */}
+        <span className="w-4 h-4 flex-shrink-0 grid place-items-center" aria-hidden="true">
+          {isSelected ? (
+            <Check className="w-4 h-4" strokeWidth={2.5} />
+          ) : group.selection_type === "single" || group.max_select <= 1 ? (
+            <span className="w-3.5 h-3.5 rounded-full border-[1.5px] border-current opacity-50" />
+          ) : (
+            <Plus className="w-4 h-4 opacity-60" />
+          )}
+        </span>
         <span>{tName(opt, locale, defaultLocale)}</span>
         {price !== 0 ? (
           <span className={cn("text-[13px] font-medium tabular-nums", isSelected ? "text-[#04241E]/80" : "text-gray-600")}>
@@ -814,7 +824,8 @@ export function CustomizationSheet({
                       : "text-gray-800 font-medium hover:bg-white/70 active:bg-white",
                 )}
               >
-                {isSelected && <Check className="w-4 h-4 flex-shrink-0" aria-hidden="true" />}
+                {/* Tick reserved in both halves: the label doesn't slide over when chosen. */}
+                <Check className={cn("w-4 h-4 flex-shrink-0", !isSelected && "invisible")} aria-hidden="true" />
                 <span className="truncate">{title}</span>
                 {price !== 0 && (
                   <span
@@ -1243,7 +1254,7 @@ export function CustomizationSheet({
                         onClick={() => !isDisabled && toggleOption(group, opt)}
                         disabled={isDisabled}
                         className={cn(
-                          "flex flex-col items-center justify-center px-3 py-3.5 rounded-2xl transition-colors duration-150 text-center border gap-0.5",
+                          "relative flex flex-col items-center justify-center px-3 py-3.5 rounded-2xl transition-colors duration-150 text-center border gap-0.5",
                           isSelected
                             ? "bg-[#05c8a7] text-[#04241E] border-[#05c8a7] shadow-sm"
                             : isDisabled
@@ -1253,15 +1264,17 @@ export function CustomizationSheet({
                                 : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
                         )}
                       >
+                        {isSelected && (
+                          <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#04241E] text-white grid place-items-center" aria-hidden="true">
+                            <Check className="w-3 h-3" strokeWidth={3} />
+                          </span>
+                        )}
                         <span className="flex items-center gap-1 text-[14px] font-semibold leading-tight">
                           {/* The tick is not decoration: in the grid the teal fill
                               was the only signal that an option was chosen, which
                               fails WCAG 1.4.1 (colour as the sole means of
                               conveying state) and disappears entirely for the ~8%
                               of men with colour blindness. */}
-                          {isSelected && (
-                            <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-                          )}
                           {tName(opt, locale, defaultLocale)}
                         </span>
                         {hours && (
