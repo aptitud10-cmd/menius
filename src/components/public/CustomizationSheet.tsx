@@ -922,14 +922,17 @@ export function CustomizationSheet({
             option groups below the fold — the CTA stayed disabled ("Choose: …")
             with nothing visible to choose, so the dish could not be added at all.
             The photo is context; the options are the task. */}
-        {/* 16:9 rather than 4:3 (219px instead of 293 on a phone): the photo
-            says which dish this is, the options are the task. The cap stays for
-            the wide tablet sheet. Handle and X float over it (sheetChrome). */}
+        {/* Square, like the photos themselves (Pedro, 2026-11-17). 16:9 cut the
+            top and bottom off every square photo: a tall glass (juices,
+            smoothies) became a giant close-up of the middle of the glass. The
+            cap keeps small phones (SE) and the wide tablet sheet from showing a
+            photo taller than half the screen; there it trims the sides a little.
+            Handle and X float over it (sheetChrome). */}
         {hasHero ? (
           <div
             className={cn(
               "relative w-full bg-gray-100 overflow-hidden",
-              desktop ? "aspect-[4/3]" : "aspect-video max-h-[32dvh]",
+              desktop ? "aspect-[4/3]" : "aspect-square max-h-[50dvh]",
             )}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
