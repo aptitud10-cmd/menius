@@ -632,7 +632,15 @@ export function CustomizationSheet({
     setAdded(true);
   };
 
-  const getRuleLabel = (g: ModifierGroup) => {
+  const getRuleLabel = (raw: ModifierGroup) => {
+    // A badly loaded group ("Extra cheese", max 2, one option) promised
+    // "up to 2" while toggleOption can't pick the same option twice. The label
+    // says what the diner can actually choose.
+    const optionCount = raw.options?.length ?? 0;
+    const g =
+      optionCount > 0 && raw.max_select > optionCount
+        ? { ...raw, max_select: optionCount, min_select: Math.min(raw.min_select, optionCount) }
+        : raw;
     if (g.selection_type === "single") {
       return g.is_required
         ? locale === "es"

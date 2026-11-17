@@ -814,7 +814,11 @@ export function MenuShell({
     // so jumping would just hide the hero for nothing. Before this, a change
     // made with the banner scrolled away kept the old scrollTop and dropped
     // the customer in the middle of the new category.
-    if (main.scrollTop > target) {
+    // Halfway through the hero is neither: the header has already gone opaque
+    // and a sliver of cover photo (with the rating cut in half) stayed wedged
+    // between it and the pills. Once the hero is partly gone, finish the job.
+    const HERO_PARTLY_SCROLLED = 24;
+    if (main.scrollTop > target || main.scrollTop > HERO_PARTLY_SCROLLED) {
       main.scrollTo({ top: Math.max(0, target), behavior: "auto" });
     }
   }, [catScrollRequest]);
@@ -1283,7 +1287,12 @@ export function MenuShell({
     (s) => new Set(s.items.map((i) => i.product.id)),
   );
 
-  // Classifier shared between suggestedProducts and the data-merge below
+  // Classifier shared between suggestedProducts and the data-merge below.
+  // Whole words only: as bare substrings "te" (tea) matched omelet-te and
+  // chocola-te, "latte" matched p-latte-r and "corn" matched corned beef, so an
+  // omelette, chocolate-chip pancakes and a seafood platter were all "drinks".
+  // No "waffle" in desserts: in a diner a Belgian waffle is breakfast, and it
+  // put an $18.95 chicken & waffle under a burger as "dessert".
   const classifyProduct = useCallback(
     (
       catName: string,
@@ -1291,19 +1300,19 @@ export function MenuShell({
     ): "drink" | "dessert" | "side" | "main" => {
       const text = `${catName} ${productName}`.toLowerCase();
       if (
-        /bebida|bebidas|drink|drinks|refresco|soda|agua\b|jugo|jugos|juice|juices|cerveza|beer|vino|wine|shake|batido|batidos|caf[eé]|coffee|t[eé]\b|smoothie|smoothies|limon|milkshake|horchata|margarita|coctel|cocktail|limonada|frapp[eé]|cappuccino|latte|espresso|gatorade|red bull|energy|agua mineral|sparkling|kombucha|infusion|chai|matcha|mojito|sangria|michelada|tepache|agua fresca|jamaica|tamarindo|hibiscus|lemonade|limeade|iced tea|naranjada|fresco|fresca|refresco|zumo|beber|brebaje/i.test(
+        /(?:^|[^a-zà-ÿ])(?:bebida|bebidas|drink|drinks|refresco|soda|agua\b|jugo|jugos|juice|juices|cerveza|beer|vino|wine|shake|batido|batidos|caf[eé]|coffee|t[eé]\b|smoothie|smoothies|limon|milkshake|horchata|margarita|coctel|cocktail|limonada|frapp[eé]|cappuccino|latte|espresso|gatorade|red bull|energy|agua mineral|sparkling|kombucha|infusion|chai|matcha|mojito|sangria|michelada|tepache|agua fresca|jamaica|tamarindo|hibiscus|lemonade|limeade|iced tea|naranjada|fresco|fresca|refresco|zumo|beber|brebaje)s?(?![a-zà-ÿ])/i.test(
           text,
         )
       )
         return "drink";
       if (
-        /postre|postres|dessert|desserts|helado|helados|ice cream|pastel|cake|brownie|dulce|sweet|cookie|tiramisú|flan|churro|cheesecake|mousse|pudding|gelato|sorbet|donut|muffin|crepe|waffle|tarta|pie|eclair|profiterole|macaron|tres leches|panna cotta|tiramisu|cannoli|semifreddo|paleta|gelatina|mazapán/i.test(
+        /(?:^|[^a-zà-ÿ])(?:postre|postres|dessert|desserts|helado|helados|ice cream|pastel|cake|brownie|dulce|sweet|cookie|tiramisú|flan|churro|cheesecake|mousse|pudding|gelato|sorbet|donut|muffin|crepe|tarta|pie|eclair|profiterole|macaron|tres leches|panna cotta|tiramisu|cannoli|semifreddo|paleta|gelatina|mazapán)s?(?![a-zà-ÿ])/i.test(
           text,
         )
       )
         return "dessert";
       if (
-        /acompañ|acompañamiento|side|sides|ensalada|salad|sopa|soup|papa|fries|chips|guarnición|arroz|rice|wings|alitas|nachos|onion ring|mozzarella stick|guacamole|dip|coleslaw|breadstick|garlic bread|pan de ajo|bastones|elote|corn|coliflor|cauliflower|brócoli|broccoli|jalapeño|poppers|tater tot|yuca|plantain|patacón|tostón|boniato|camote|edamame|dumplings|gyoza|spring roll|rollo|extras?|adicional|complemento|entrante|entrada|appetizer|starter/i.test(
+        /(?:^|[^a-zà-ÿ])(?:acompañ|acompañamiento|side|sides|ensalada|salad|sopa|soup|papa|fries|chips|guarnición|arroz|rice|wings|alitas|nachos|onion ring|mozzarella stick|guacamole|dip|coleslaw|breadstick|garlic bread|pan de ajo|bastones|elote|corn|coliflor|cauliflower|brócoli|broccoli|jalapeño|poppers|tater tot|yuca|plantain|patacón|tostón|boniato|camote|edamame|dumplings|gyoza|spring roll|rollo|extras?|adicional|complemento|entrante|entrada|appetizer|starter)s?(?![a-zà-ÿ])/i.test(
           text,
         )
       )
@@ -1319,6 +1328,24 @@ export function MenuShell({
     if (!mainProduct) return [];
 
     const productMap = new Map(liveProducts.map((p) => [p.id, p]));
+    // Candidates are typed by their CATEGORY only — "Desserts", "Side Orders",
+    // "Juices" is how the owner already sorted them. Guessing from the dish
+    // name can't be made reliable: "Crab Cakes Benedict" reads as cake. A dish
+    // whose category says nothing counts as a main.
+    const typeOf = (p: Product) =>
+      classifyProduct(
+        categories.find((c) => c.id === p.category_id)?.name ?? "",
+        "",
+      );
+    // Opening a main means the diner already chose dinner: offer what goes
+    // with it (drink, side, dessert), never another main. Co-occurrence from
+    // a few (test) orders put pancakes, an omelette and a $45.95 platter
+    // under a burger, and it outranks the rule-based fallback.
+    const mainIsMain =
+      classifyProduct(
+        categories.find((c) => c.id === mainProduct.category_id)?.name ?? "",
+        mainProduct.name,
+      ) === "main";
     // The "Pair it with" carousel is a row of photo cards: a product without a
     // visible photo renders as an empty grey square. Buccaneer has ~90 drinks
     // without photos and drinks rank first for mains, so the row was mostly
@@ -1327,7 +1354,8 @@ export function MenuShell({
       p.id !== mainProduct.id &&
       p.in_stock !== false &&
       !cartProductIds.has(p.id) &&
-      !showsAsRow(p);
+      !showsAsRow(p) &&
+      !(mainIsMain && typeOf(p) === "main");
 
     // Time-of-day context: filter alcohol before noon
     const hour = inTimeZone(new Date(), restaurant.timezone || "UTC").getHours();
@@ -1354,8 +1382,12 @@ export function MenuShell({
 
     // 2. Regex fallback to pad remaining slots
     const seen = new Set(dataProducts.map((p) => p.id));
-    const mainCat = categories.find((c) => c.id === mainProduct.category_id);
-    const mainType = classifyProduct(mainCat?.name ?? "", mainProduct.name);
+    const mainType = mainIsMain
+      ? "main"
+      : classifyProduct(
+          categories.find((c) => c.id === mainProduct.category_id)?.name ?? "",
+          mainProduct.name,
+        );
 
     const wantOrder: Array<"drink" | "dessert" | "side" | "main"> = (() => {
       if (mainType === "main") return ["drink", "side", "dessert"];
@@ -1367,26 +1399,33 @@ export function MenuShell({
 
     const remaining = MAX_SUGGESTIONS - dataProducts.length;
 
-    const fallback = liveProducts
-      .filter(
-        (p) =>
-          isEligible(p) &&
-          !seen.has(p.id) &&
-          !(isBreakfastHour && isAlcohol(p)),
-      )
-      .map((p) => {
-        const cat = categories.find((c) => c.id === p.category_id);
-        const pType = classifyProduct(cat?.name ?? "", p.name);
-        const typeRank = wantOrder.indexOf(pType);
-        // Products that don't match any wanted type get a low-priority score instead of being excluded
-        const baseRank = typeRank === -1 ? wantOrder.length + 1 : typeRank;
-        const featuredBoost = p.is_featured ? 0 : 3;
-        const score = baseRank * 10 + featuredBoost;
-        return { product: p, score };
-      })
-      .sort((a, b) => a.score - b.score)
-      .slice(0, remaining)
-      .map(({ product }) => product);
+    // One queue per wanted type (featured first), then dealt round-robin:
+    // sorting by type alone filled all 12 slots with drinks, so a burger never
+    // got fries or a slice of cake. Types outside wantOrder only fill leftovers.
+    const candidates = liveProducts.filter(
+      (p) =>
+        isEligible(p) &&
+        !seen.has(p.id) &&
+        !(isBreakfastHour && isAlcohol(p)),
+    );
+    const byFeatured = (a: Product, b: Product) =>
+      Number(!!b.is_featured) - Number(!!a.is_featured);
+    const queues = wantOrder.map((type) =>
+      candidates.filter((p) => typeOf(p) === type).sort(byFeatured),
+    );
+    const fallback: Product[] = [];
+    while (fallback.length < remaining && queues.some((q) => q.length > 0)) {
+      for (const q of queues) {
+        const next = q.shift();
+        if (next && fallback.length < remaining) fallback.push(next);
+      }
+    }
+    if (fallback.length < remaining) {
+      const rest = candidates
+        .filter((p) => !wantOrder.includes(typeOf(p)))
+        .sort(byFeatured);
+      fallback.push(...rest.slice(0, remaining - fallback.length));
+    }
 
     return [...dataProducts, ...fallback];
   }, [
@@ -1433,7 +1472,15 @@ export function MenuShell({
           p.id !== anchor.id &&
           p.in_stock !== false &&
           !cartProductIds.has(p.id) &&
-          !(isBreakfastHour && isAlcohol(p)),
+          !(isBreakfastHour && isAlcohol(p)) &&
+          // Same rule as the sheet: by category only, never another main.
+          !(
+            anchorType === "main" &&
+            classifyProduct(
+              categories.find((c) => c.id === p.category_id)?.name ?? "",
+              "",
+            ) === "main"
+          ),
       )
       .map((p) => {
         const cat = categories.find((c) => c.id === p.category_id);
