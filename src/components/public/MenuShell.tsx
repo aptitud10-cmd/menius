@@ -4537,7 +4537,7 @@ export function MenuShell({
         )}
 
         {/* ── Cart resumption toast — shown once when returning with items in cart ── */}
-        {cartResumeShown && !toastName && (
+        {cartResumeShown && !toastName && !isOpen && (
           // xl:hidden: from xl the cart is a permanent column, and this pill sat
           // right on top of its checkout button.
           <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 xl:hidden pointer-events-none">

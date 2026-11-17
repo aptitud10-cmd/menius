@@ -126,6 +126,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.svg",
+    // In metadata (not a hand-written <link> in <head>) so a store's own
+    // apple icon replaces it instead of shipping two.
+    apple: "/apple-icon",
   },
   // Search Console — prueba de propiedad de menius.app (requisito de Google Play
   // para pasar la cuenta de desarrollador a organización). No borrar: si
@@ -185,7 +188,6 @@ export default async function RootLayout({
           content="black-translucent"
         />
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="apple-touch-icon" href="/apple-icon" />
       </head>
       <body className="bg-white text-gray-900 antialiased font-sans">
         <script

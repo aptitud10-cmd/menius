@@ -185,7 +185,12 @@ export async function generateMetadata({
     title,
     description,
     manifest: `/${restaurant.slug}/manifest.webmanifest`,
-    icons: { apple: logoUrl || "/icons/icon-192.svg" },
+    // Both keys: Next merges metadata shallowly, so an icons object with only
+    // `apple` replaced the root's favicon and the store tab had none.
+    icons: {
+      icon: logoUrl || "/favicon.svg",
+      apple: logoUrl || "/icons/icon-192.svg",
+    },
     appleWebApp: {
       title: restaurant.name,
       statusBarStyle: "default",

@@ -4,7 +4,7 @@ import Link from "next/link";
 // MENIUS, oscuro) y /[slug]/legal/privacy (dentro de la tienda, claro).
 
 const DARK =
-  "\"prose prose-invert prose-lg max-w-none prose-headings:font-semibold prose-headings:text-white prose-headings:tracking-tight prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-base prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-400 prose-p:leading-relaxed prose-p:text-[15px] prose-li:text-gray-400 prose-li:text-[15px] prose-strong:text-white prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:text-emerald-300 prose-code:text-emerald-300 prose-code:bg-emerald-500/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none\"";
+  "prose prose-invert prose-lg max-w-none prose-headings:font-semibold prose-headings:text-white prose-headings:tracking-tight prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-base prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-400 prose-p:leading-relaxed prose-p:text-[15px] prose-li:text-gray-400 prose-li:text-[15px] prose-strong:text-white prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:text-emerald-300 prose-code:text-emerald-300 prose-code:bg-emerald-500/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none";
 
 export const LEGAL_PROSE_LIGHT =
   "prose max-w-none prose-headings:font-semibold prose-headings:text-[#111114] prose-headings:tracking-tight prose-h2:text-[19px] prose-h2:mt-9 prose-h2:mb-3 prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2 prose-p:text-[#4f4f57] prose-p:leading-relaxed prose-p:text-[15px] prose-li:text-[#4f4f57] prose-li:text-[15px] prose-strong:text-[#111114] prose-a:text-[#047a65] prose-a:underline-offset-2";
@@ -51,9 +51,15 @@ function ContentEs({ className }: { className: string }) {
       <h3>2.2 Datos de Consumidores Finales (Clientes del Restaurante)</h3>
       <ul>
         <li>
-          <strong>Datos de pedido:</strong> nombre del cliente, correo
-          electrónico (opcional), dirección de entrega (si aplica), contenido
-          del pedido, notas especiales.
+          <strong>Datos de pedido:</strong> nombre del cliente, teléfono,
+          correo electrónico (opcional), dirección de entrega y su ubicación
+          en el mapa (si aplica), contenido del pedido, notas especiales.
+        </li>
+        <li>
+          <strong>Historial con el restaurante:</strong> si un pedido no se
+          recoge, no se recibe o no se paga, el restaurante puede dejarlo
+          registrado. Ese registro solo lo ve ese restaurante y puede hacer que
+          te pida pagar por adelantado en tus próximos pedidos.
         </li>
         <li>
           <strong>Fotos de comprobante de entrega:</strong> cuando un
@@ -354,8 +360,15 @@ function ContentEn({ className }: { className: string }) {
       <h3>2.2 End Consumer Data (Restaurant Customers)</h3>
       <ul>
         <li>
-          <strong>Order data:</strong> customer name, email (optional), delivery
-          address (if applicable), order contents, special notes.
+          <strong>Order data:</strong> customer name, phone number, email
+          (optional), delivery address and its map location (if applicable),
+          order contents, special notes.
+        </li>
+        <li>
+          <strong>History with the restaurant:</strong> if an order is not
+          picked up, not received or not paid for, the restaurant may record
+          it. Only that restaurant sees this record, and it may lead the
+          restaurant to ask you to pay in advance on future orders.
         </li>
         <li>
           <strong>Proof-of-delivery photos:</strong> when a restaurant uses the

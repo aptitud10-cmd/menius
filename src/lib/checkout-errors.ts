@@ -218,7 +218,7 @@ export function errorActionFor(code: string | null | undefined): OrderErrorActio
   if (!code) return null;
   if (code === 'OUT_OF_ZONE') return 'address';
   if (code === 'CLOSED_NOW') return 'schedule';
-  if (code === 'CLOSED_AT_TIME') return 'when';
+  if (code === 'CLOSED_AT_TIME' || code === 'SCHEDULE_TOO_SOON') return 'when';
   if (ITEMS_FIXABLE_HERE.has(code)) return 'items';
   if (ITEMS_EDIT_IN_MENU.has(code)) return 'menu';
   return null;

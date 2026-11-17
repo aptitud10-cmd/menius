@@ -405,6 +405,9 @@ export interface Translations {
   ckClosedBanner: string;
   ckScheduleCta: string;
   ckClosedAtTime: string;
+  ckTimeTooSoon: string;
+  ckUnitLabel: string;
+  ckUnitPlaceholder: string;
   ckChangeTime: string;
   ckPaused: string;
   ckPausedCta: string;
@@ -836,7 +839,7 @@ const es: Translations = {
   ckAddItems: 'Agregar platos: faltan {x}',
   ckDone: 'Listo',
   ckRemove: 'Quitar',
-  ckLegal: '{name} prepara y entrega tu pedido.',
+  ckLegal: '{name} prepara tu pedido.',
   ckPrivacy: 'Privacidad',
   ckCall: 'Llamar al restaurante',
   ckTable: 'Mesa {name}',
@@ -853,6 +856,9 @@ const es: Translations = {
   ckClosedBanner: '{name} está cerrado ahora. Programa tu pedido para cuando abra.',
   ckScheduleCta: 'Programar pedido',
   ckClosedAtTime: 'El restaurante está cerrado a esa hora. Elige otra.',
+  ckUnitLabel: 'Apto, piso o local (opcional)',
+  ckUnitPlaceholder: 'Ej.: Apto 4B',
+  ckTimeTooSoon: 'Esa hora ya pasó o está muy cerca. Elige una al menos 10 minutos más tarde.',
   ckChangeTime: 'Cambiar hora',
   ckPaused: '{name} no está tomando pedidos en este momento. Prueba en un rato.',
   ckPausedCta: 'Pedidos en pausa',
@@ -1281,7 +1287,7 @@ const en: Translations = {
   ckAddItems: 'Add items: {x} to go',
   ckDone: 'Done',
   ckRemove: 'Remove',
-  ckLegal: '{name} prepares and delivers your order.',
+  ckLegal: '{name} prepares your order.',
   ckPrivacy: 'Privacy',
   ckCall: 'Call the restaurant',
   ckTable: 'Table {name}',
@@ -1298,6 +1304,9 @@ const en: Translations = {
   ckClosedBanner: '{name} is closed right now. Schedule your order for when it opens.',
   ckScheduleCta: 'Schedule order',
   ckClosedAtTime: 'The restaurant is closed at that time. Pick another.',
+  ckUnitLabel: 'Apt, suite or floor (optional)',
+  ckUnitPlaceholder: 'E.g. Apt 4B',
+  ckTimeTooSoon: 'That time has passed or is too soon. Pick one at least 10 minutes from now.',
   ckChangeTime: 'Change time',
   ckPaused: "{name} isn't taking orders right now. Try again shortly.",
   ckPausedCta: 'Orders paused',

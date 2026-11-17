@@ -18,12 +18,12 @@ function getHero(locale: LandingLocale) {
     return {
       badge: "Legal",
       title: "Privacy Policy",
-      date: "Last updated: June 27, 2026",
+      date: "Last updated: November 17, 2026",
     };
   return {
     badge: "Legal",
     title: "Política de Privacidad",
-    date: "Última actualización: 27 de junio de 2026",
+    date: "Última actualización: 17 de noviembre de 2026",
   };
 }
 

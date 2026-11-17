@@ -417,6 +417,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Hora programada pasada o a menos de 5 min: rechazar. Convertirla en
+    // "lo antes posible" mandaba a cocinar YA un pedido que el cliente veía
+    // como "mañana 8:00" (iOS no respeta el min del selector).
+    if (typeof body.scheduled_for === "string" && body.scheduled_for && !validScheduledFor(body.scheduled_for)) {
+      return NextResponse.json(
+        {
+          error: en
+            ? "That time has passed or is too soon. Please pick a later time."
+            : "Esa hora ya pasó o está muy cerca. Elige una más tarde.",
+          code: "SCHEDULE_TOO_SOON",
+        },
+        { status: 400 },
+      );
+    }
+
     // Horario de atención. Un pedido programado se valida a SU hora; uno con
     // scheduled_for pasado o inválido se trata como inmediato (antes se saltaba
     // el chequeo y entraba con el local cerrado). Cruza medianoche: isOpenAt.

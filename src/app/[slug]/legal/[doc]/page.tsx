@@ -64,7 +64,7 @@ const COPY = {
   },
 };
 
-const PRIVACY_UPDATED = { es: '27 de junio de 2026', en: 'June 27, 2026' };
+const PRIVACY_UPDATED = { es: '17 de noviembre de 2026', en: 'November 17, 2026' };
 
 interface PageProps {
   params: { slug: string; doc: string };

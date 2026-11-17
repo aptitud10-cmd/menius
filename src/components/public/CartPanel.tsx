@@ -558,7 +558,7 @@ export function CartPanel({
                           {modLines.map((line, k) => (
                             <p key={k} className={cn('basis-full flex justify-between gap-2 text-xs leading-relaxed text-gray-600', line.indent && 'pl-3')}>
                               <span className="min-w-0">{line.indent && <span className="text-gray-300">↳ </span>}{line.text}</span>
-                              {line.price > 0 && <span className="flex-shrink-0 text-gray-400 tabular-nums">+{fmtPrice(line.price)}</span>}
+                              {line.price > 0 && <span className="flex-shrink-0 text-gray-500 tabular-nums">+{fmtPrice(line.price)}</span>}
                             </p>
                           ))}
                           {(item.modifierSelections ?? []).length === 0 && item.extras.map(e => (
@@ -705,7 +705,7 @@ export function CartPanel({
               </AnimatePresence>
             </div>
             {deliveryFee > 0 && (
-              <p className="text-[11px] text-gray-400 mt-1 text-right">
+              <p className="text-[11px] text-gray-500 mt-1 text-right">
                 {t.deliveryIfSelected}: +{fmtPrice(deliveryFee)}
               </p>
             )}
@@ -728,7 +728,7 @@ export function CartPanel({
           </div>
         )}
         {taxPending && (
-          <p className="-mt-2 mb-3 text-[11px] text-gray-400 text-right">{t.taxAtCheckout}</p>
+          <p className="-mt-2 mb-3 text-[11px] text-gray-500 text-right">{t.taxAtCheckout}</p>
         )}
         {cashOnly && (
           <p className="-mt-1 mb-3 flex items-center gap-1.5 text-[12px] text-gray-600">

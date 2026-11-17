@@ -139,6 +139,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         if (c.phone) setCustomerPhone(c.phone);
         if (c.email) setCustomerEmail(c.email);
         if (c.deliveryAddress) setDeliveryAddress(c.deliveryAddress);
+        if (c.deliveryAddress && typeof c.deliveryLat === 'number' && typeof c.deliveryLng === 'number') {
+          setDeliveryCoords({ lat: c.deliveryLat, lng: c.deliveryLng });
+        }
+        if (c.deliveryUnit) setDeliveryUnit(c.deliveryUnit);
       } else {
         // Fallback: legacy menius_guest_info for users who ordered before this change
         const saved = localStorage.getItem('menius_guest_info');
@@ -221,6 +225,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // coords never outlive the address they belonged to. Sent to the server for
   // delivery-radius validation and driver routing.
   const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // Apto / piso en su propio campo: escribirlo en la dirección borraba las
+  // coordenadas y obligaba a volver a elegir la sugerencia (se perdía el apto).
+  const [deliveryUnit, setDeliveryUnit] = useState('');
+  const fullDeliveryAddress = deliveryUnit.trim()
+    ? `${deliveryAddress.trim()}, ${deliveryUnit.trim()}`
+    : deliveryAddress.trim();
   const [manualTableName, setManualTableName] = useState('');
   const [arrivalTime, setArrivalTime] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -654,7 +664,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           })(),
           order_type: orderType,
           payment_method: 'wallet',
-          delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
+          delivery_address: orderType === 'delivery' ? fullDeliveryAddress : undefined,
           delivery_lat: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lat : undefined,
           delivery_lng: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lng : undefined,
           table_name: orderType === 'dine_in' ? (tableName || manualTableName.trim() || undefined) : undefined,
@@ -679,7 +689,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     } catch {
       return { error: t.noConnectionRetry };
     }
-  }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, customerEmail, orderNotes, arrivalTime, orderType, deliveryAddress, deliveryCoords, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
+  }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, customerEmail, orderNotes, arrivalTime, orderType, deliveryAddress, deliveryUnit, deliveryCoords, fullDeliveryAddress, deliveryCoords, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
 
   // B2 — la Idempotency-Key se renueva cuando cambia lo que se va a pedir.
   // Antes era una por sesión de checkout: si el cliente volvía de Stripe con
@@ -695,7 +705,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         tipAmount,
         promoResult?.valid ? promoCode.trim() : '',
         loyaltyPointsToRedeem,
-        deliveryAddress.trim(),
+        fullDeliveryAddress,
         scheduleEnabled ? scheduledFor : '',
         customerName.trim(),
         customerPhone.trim(),
@@ -704,7 +714,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         includeUtensils,
         tableName || manualTableName.trim(),
       ]),
-    [buildOrderItemsPayload, orderType, paymentMethod, tipAmount, promoResult, promoCode, loyaltyPointsToRedeem, deliveryAddress, scheduleEnabled, scheduledFor, customerName, customerPhone, customerEmail, orderNotes, includeUtensils, tableName, manualTableName],
+    [buildOrderItemsPayload, orderType, paymentMethod, tipAmount, promoResult, promoCode, loyaltyPointsToRedeem, deliveryAddress, deliveryUnit, deliveryCoords, fullDeliveryAddress, scheduleEnabled, scheduledFor, customerName, customerPhone, customerEmail, orderNotes, includeUtensils, tableName, manualTableName],
   );
   const firstPayloadSigRef = useRef(true);
   useEffect(() => {
@@ -732,6 +742,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           lastOrderType: orderType,
           lastPaymentMethod: 'online',
           deliveryAddress: deliveryAddress.trim() || undefined,
+          deliveryUnit: deliveryUnit.trim() || undefined,
+          deliveryLat: deliveryCoords?.lat,
+          deliveryLng: deliveryCoords?.lng,
         });
         localStorage.setItem('menius_customer_phone', customerPhone.trim());
       }
@@ -751,7 +764,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     playSuccessChime();
     confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saveLastOrder, items, displayTotal, rememberMe, saveCustomer, customerName, customerPhone, customerEmail, orderType, deliveryAddress, restaurant, cartTotal, clearCart]);
+  }, [saveLastOrder, items, displayTotal, rememberMe, saveCustomer, customerName, customerPhone, customerEmail, orderType, deliveryAddress, deliveryUnit, deliveryCoords, restaurant, cartTotal, clearCart]);
 
   const handleSubmitOrder = async () => {
     if (submittingRef.current) return;
@@ -857,7 +870,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           })(),
           order_type: orderType,
           payment_method: paymentMethod,
-          delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
+          delivery_address: orderType === 'delivery' ? fullDeliveryAddress : undefined,
           delivery_lat: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lat : undefined,
           delivery_lng: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lng : undefined,
           table_name: orderType === 'dine_in' ? (tableName || manualTableName.trim() || undefined) : undefined,
@@ -975,6 +988,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             lastOrderType: orderType,
             lastPaymentMethod: paymentMethod,
             deliveryAddress: deliveryAddress.trim() || undefined,
+          deliveryUnit: deliveryUnit.trim() || undefined,
+          deliveryLat: deliveryCoords?.lat,
+          deliveryLng: deliveryCoords?.lng,
           });
           localStorage.setItem('menius_customer_phone', customerPhone.trim());
         } else {
@@ -1036,6 +1052,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           lastOrderType: orderType,
           lastPaymentMethod: paymentMethod,
           deliveryAddress: deliveryAddress.trim() || undefined,
+          deliveryUnit: deliveryUnit.trim() || undefined,
+          deliveryLat: deliveryCoords?.lat,
+          deliveryLng: deliveryCoords?.lng,
         });
         localStorage.setItem('menius_customer_phone', customerPhone.trim());
       } else {
@@ -1060,7 +1079,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     playSuccessChime();
     confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saveLastOrder, rememberMe, saveCustomer, customerName, customerPhone, customerEmail, deliveryAddress, paymentMethod, restaurant, orderNumber, orderType, items, cartTotal, displayTotal, clearCart, confettiTimer]);
+  }, [saveLastOrder, rememberMe, saveCustomer, customerName, customerPhone, customerEmail, deliveryAddress, deliveryUnit, deliveryCoords, paymentMethod, restaurant, orderNumber, orderType, items, cartTotal, displayTotal, clearCart, confettiTimer]);
 
   const currencyUpper = restaurant.currency?.toUpperCase() ?? '';
   const isColombianRestaurant = currencyUpper === 'COP';
@@ -1740,6 +1759,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const closedNow = hasHours && !isOpenAt(opHours as OperatingHours, inTimeZone(new Date(), restTz));
   const scheduledClosed = hasHours && scheduleOn && !Number.isNaN(new Date(scheduledFor).getTime())
     && !isOpenAt(opHours as OperatingHours, inTimeZone(new Date(scheduledFor), restTz));
+  // Hora pasada o a menos de 5 min: el servidor la rechaza (SCHEDULE_TOO_SOON).
+  // Antes la tomaba como "lo antes posible" y la cocina lo hacía en el acto
+  // aunque la pantalla dijera "mañana 8:00" (iOS no respeta el min del input).
+  const scheduledTooSoon = scheduleOn && !(new Date(scheduledFor).getTime() > Date.now() + 5 * 60_000);
   const needsSchedule = closedNow && !scheduleOn && orderType !== 'dine_in';
   const openScheduler = () => { setScheduleEnabled(true); setActiveSheet('when'); };
   const runErrorAction = () => {
@@ -1780,7 +1803,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     : pausedNow ? { label: t.ckPausedCta, run: () => {}, disabled: true }
     : closedNow && orderType === 'dine_in' ? { label: t.ckClosedNow, run: () => {}, disabled: true }
     : needsSchedule ? { label: t.ckScheduleCta, run: openScheduler }
-    : scheduledClosed ? { label: t.ckChangeTime, run: () => setActiveSheet('when') }
+    : scheduledTooSoon || scheduledClosed ? { label: t.ckChangeTime, run: () => setActiveSheet('when') }
     : belowDeliveryMin ? { label: t.ckAddItems.replace('{x}', fmtPrice(Math.max(0, deliveryMinOrder - cartTotal))), run: goBack }
     : dineInOnlyBlocked ? { label: t.confirmOrder, run: handleSubmitOrder }
     : !addressReady ? { label: t.ckAddAddress, run: () => setActiveSheet('address') }
@@ -2227,7 +2250,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <CkRow
                   icon={<MapPin />}
                   label={t.ckDeliverTo}
-                  value={deliveryAddress.trim() || t.ckAddAddress}
+                  value={fullDeliveryAddress || t.ckAddAddress}
                   need={!deliveryAddress.trim()}
                   sub={addressNeedsPick() ? <span className="text-[#7a4d00]">{t.deliveryPickFromList}</span> : undefined}
                   onClick={() => setActiveSheet('address')}
@@ -2239,7 +2262,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   label={t.ckWhen}
                   value={whenValue}
                   sub={
-                    scheduledClosed ? <span className="text-[#7a4d00]">{t.ckClosedAtTime}</span>
+                    scheduledTooSoon ? <span className="text-[#7a4d00]">{t.ckTimeTooSoon}</span>
+                    : scheduledClosed ? <span className="text-[#7a4d00]">{t.ckClosedAtTime}</span>
                     : closedNow && !scheduleOn ? <span className="text-[#7a4d00]">{t.ckClosedNow}</span>
                     : !scheduleOn ? etaText
                     : undefined
@@ -2490,6 +2514,22 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         {addressNeedsPick() && (
           <p className="mt-2.5 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug">{t.deliveryPickFromList}</p>
         )}
+        <div className="mt-2.5">
+          <CkFields>
+            <label className="relative block">
+              <span className={fieldLabelCls}>{t.ckUnitLabel}</span>
+              <input
+                type="text"
+                autoComplete="address-line2"
+                value={deliveryUnit}
+                maxLength={60}
+                onChange={(e) => setDeliveryUnit(e.target.value)}
+                placeholder={t.ckUnitPlaceholder}
+                className={fieldInputCls}
+              />
+            </label>
+          </CkFields>
+        </div>
         <button
           type="button"
           className={cn(ckCtaClass(!deliveryAddress.trim()), 'mt-[18px]')}
@@ -2526,14 +2566,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 />
               </label>
             </CkFields>
-            {scheduledClosed && (
-              <p className="mt-2.5 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug" role="alert">{t.ckClosedAtTime}</p>
+            {(scheduledTooSoon || scheduledClosed) && (
+              <p className="mt-2.5 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug" role="alert">{scheduledTooSoon ? t.ckTimeTooSoon : t.ckClosedAtTime}</p>
             )}
           </div>
         )}
         <button
           type="button"
-          className={cn(ckCtaClass((scheduleEnabled && !scheduledFor) || scheduledClosed || (!scheduleEnabled && closedNow)), 'mt-[18px]')}
+          className={cn(ckCtaClass((scheduleEnabled && !scheduledFor) || scheduledTooSoon || scheduledClosed || (!scheduleEnabled && closedNow)), 'mt-[18px]')}
           onClick={() => { setOrderError(''); setOrderErrorAction(null); closeSheet(); }}
         >
           {t.ckDone}

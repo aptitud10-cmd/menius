@@ -11,6 +11,7 @@ describe('errorActionFor: cada error del pedido trae una salida', () => {
   it('cerrado ahora → programar; cerrado a esa hora → cambiar hora', () => {
     expect(errorActionFor('CLOSED_NOW')).toBe('schedule');
     expect(errorActionFor('CLOSED_AT_TIME')).toBe('when');
+    expect(errorActionFor('SCHEDULE_TOO_SOON')).toBe('when');
   });
 
   it('plato agotado, fuera de horario, sin stock o retirado → revisar el pedido acá', () => {
@@ -35,7 +36,7 @@ describe('errorActionFor: cada error del pedido trae una salida', () => {
   it('/api/orders sigue mandando los códigos que el checkout espera (guarda de regresión)', () => {
     const src = readFileSync(join(process.cwd(), 'src/app/api/orders/route.ts'), 'utf8');
     for (const c of [
-      'OUT_OF_ZONE', 'CLOSED_NOW', 'CLOSED_AT_TIME', 'PAUSED',
+      'OUT_OF_ZONE', 'CLOSED_NOW', 'CLOSED_AT_TIME', 'SCHEDULE_TOO_SOON', 'PAUSED',
       'PRODUCT_SOLD_OUT', 'PRODUCT_UNAVAILABLE', 'PRODUCT_OUT_OF_HOURS', 'STOCK_LIMIT',
       'MODIFIERS_CHANGED', 'MODIFIER_MAX', 'MODIFIER_REQUIRED', 'OPTION_UNAVAILABLE',
     ]) {
