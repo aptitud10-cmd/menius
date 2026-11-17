@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
-import { REVIEWS_MIN_FOR_RATING } from '@/lib/social-proof';
+import { REVIEWS_MIN_FOR_RATING, hasRealPopularity } from '@/lib/social-proof';
 import type { Restaurant, Category, Product } from '@/types';
 
 const logger = createLogger('menu-data');
@@ -73,7 +73,33 @@ export const fetchRestaurantMeta = cache(async function fetchRestaurantMeta(slug
       .order('sort_order', { ascending: true })
       .limit(4);
 
-    return { ...restaurant, topCategoryNames: (topCategories ?? []).map((c: { name: string }) => c.name) };
+    // For the shared-link description: the same "Popular" the menu shows —
+    // real sales above the minimum (social-proof), else the owner's featured
+    // dishes. The first categories by sort order were "Juices, Fruits…" on a
+    // diner known for burgers; raw popularity_rank listed test orders.
+    const { data: candidates } = await db
+      .from('products')
+      .select('name, popularity_rank, orders_last_7d, is_featured, sort_order')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .eq('in_stock', true)
+      .or('popularity_rank.not.is.null,is_featured.eq.true')
+      .limit(60);
+    type Cand = { name: string; popularity_rank: number | null; orders_last_7d: number | null; is_featured: boolean | null; sort_order: number | null };
+    const list = (candidates ?? []) as Cand[];
+    const ranked = list
+      .filter((p) => hasRealPopularity(p))
+      .sort((a, b) => (a.popularity_rank ?? 1e9) - (b.popularity_rank ?? 1e9));
+    const featured = list
+      .filter((p) => p.is_featured)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const topDishes = (ranked.length >= 2 ? ranked : featured).slice(0, 3);
+
+    return {
+      ...restaurant,
+      topCategoryNames: (topCategories ?? []).map((c: { name: string }) => c.name),
+      topDishNames: topDishes.map((p) => p.name),
+    };
   } catch {
     return null;
   }
