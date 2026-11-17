@@ -223,11 +223,13 @@ function heroBig(big: string): string {
 }
 
 /** The state block, like the tracker's "show this at the counter" card. */
-function hero(b: TrackerBrand, label: string, big: string, sub: string): string {
+function hero(b: TrackerBrand, label: string, big: string, sub: string, opts?: { plain?: boolean }): string {
   const fg = b.ink;
+  // plain: a name, not a time — no AM/PM split, and it may wrap.
+  const bigHtml = opts?.plain ? big : heroBig(big);
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:${b.brand};color:${fg};border-radius:16px;padding:16px 18px;">
 <div style="font-family:${BODY};font-size:13px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${fg};opacity:0.85;">${label}</div>
-<div style="font-family:${BODY};font-size:36px;line-height:1.08;font-weight:700;letter-spacing:-1px;color:${fg};padding:2px 0;white-space:nowrap;">${heroBig(big)}</div>
+<div style="font-family:${BODY};font-size:36px;line-height:1.08;font-weight:700;letter-spacing:-1px;color:${fg};padding:2px 0;white-space:${opts?.plain ? 'normal' : 'nowrap'};">${bigHtml}</div>
 <div style="font-family:${BODY};font-size:14px;font-weight:600;color:${fg};">${sub}</div>
 </td></tr></table>`;
 }
@@ -434,11 +436,13 @@ export function buildEtaEmail(ctx: CustomerEmailCtx, opts: { readyAtMs?: number 
       ? (en ? `New delivery time: ${big} — order #${n}` : `Nueva hora de entrega: ${big} — pedido #${n}`)
       : (en ? `Arrives ${big} — order #${n}` : `Llega entre ${big} — pedido #${n}`);
   } else if (opts.readyAtMs) {
-    big = fmtClock(opts.readyAtMs, ctx.locale, tz);
-    label = ctx.orderType === 'dine_in' ? (en ? 'Ready around' : 'Listo cerca de las') : (en ? 'Ready for pickup around' : 'Listo para recoger cerca de las');
+    // Same 10-minute window the tracker shows (it said "12:40 PM" here and
+    // "between 12:35–12:45" there).
+    big = windowLabel(opts.readyAtMs, ctx.locale, tz);
+    label = ctx.orderType === 'dine_in' ? (en ? 'Ready between' : 'Listo entre') : (en ? 'Ready for pickup between' : 'Listo para recoger entre');
     subject = opts.isUpdate
-      ? (en ? `New pickup time: ${big} — order #${n}` : `Nueva hora: ${big} — pedido #${n}`)
-      : (en ? `Ready around ${big} — order #${n}` : `Listo cerca de las ${big} — pedido #${n}`);
+      ? (en ? `New pickup time: ${big} — order #${n}` : `Nueva hora: entre ${big} — pedido #${n}`)
+      : (en ? `Ready ${big} — order #${n}` : `Listo entre ${big} — pedido #${n}`);
   } else {
     big = `#${n}`;
     label = en ? 'Order accepted' : 'Pedido aceptado';
@@ -478,10 +482,12 @@ export function buildReadyEmail(ctx: CustomerEmailCtx, opts?: { reminder?: boole
     hero(
       trackerBrand(ctx.restaurant.brandColor),
       reminder ? (en ? 'Waiting for you' : 'Te espera') : (en ? 'Ready now' : 'Listo ahora'),
-      `#${esc(n)}`,
+      // Same as the tracker and the counter: number + first name.
+      `#${esc(n)}${firstName(ctx.customerName) ? ` · ${esc(firstName(ctx.customerName))}` : ''}`,
       reminder
         ? (en ? 'It’s been ready for a while. Show this number at the counter.' : 'Está listo hace un rato. Muestra este número en el mostrador.')
         : (en ? 'Show this number at the counter.' : 'Muestra este número en el mostrador.'),
+      { plain: true },
     ),
     button(ctx.mapsUrl || ctx.trackingUrl, ctx.mapsUrl ? (en ? 'Get directions' : 'Cómo llegar') : (en ? 'View order' : 'Ver pedido')),
     infoBlock([
@@ -563,10 +569,13 @@ export function buildReviewEmail(ctx: CustomerEmailCtx, opts: { reviewUrl: strin
   const preheader = en ? 'One tap to rate it · it helps the restaurant' : 'Un toque para calificar · ayuda al restaurante';
   const summary = ctx.items.slice(0, 3).map((i) => i.name).join(', ') + (ctx.items.length > 3 ? '…' : '');
   const sep = opts.reviewUrl.includes('?') ? '&' : '?';
-  const stars = [1, 2, 3, 4, 5].map((r) => `<td style="padding:0 3px;"><a href="${esc(`${opts.reviewUrl}${sep}r=${r}`)}" aria-label="${r} ${en ? (r === 1 ? 'star' : 'stars') : (r === 1 ? 'estrella' : 'estrellas')}" class="line" style="display:block;width:46px;height:46px;line-height:46px;text-align:center;border:1px solid ${T.line};border-radius:12px;font-size:22px;color:#F5A524;text-decoration:none;">&#9733;</a></td>`).join('');
+  // Five identical stars gave no scale: each one now carries its number, and
+  // the ends say what 1 and 5 mean.
+  const stars = [1, 2, 3, 4, 5].map((r) => `<td align="center" style="padding:0 3px;"><a href="${esc(`${opts.reviewUrl}${sep}r=${r}`)}" aria-label="${r} ${en ? (r === 1 ? 'star' : 'stars') : (r === 1 ? 'estrella' : 'estrellas')}" class="line" style="display:block;width:46px;height:46px;line-height:46px;text-align:center;border:1px solid ${T.line};border-radius:12px;font-size:22px;color:#F5A524;text-decoration:none;">&#9733;</a><div class="sub" style="font-family:${BODY};font-size:12px;font-weight:600;color:${T.sub};padding-top:4px;">${r}</div></td>`).join('');
+  const scale = `<tr><td colspan="5" style="padding:4px 3px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="sub" align="left" style="font-family:${BODY};font-size:12px;color:${T.sub};">${en ? 'Poor' : 'Malo'}</td><td class="sub" align="right" style="font-family:${BODY};font-size:12px;color:${T.sub};">${en ? 'Great' : 'Excelente'}</td></tr></table></td></tr>`;
   const blocks = [
     `${heading(name ? (en ? `How was your order, ${esc(name)}?` : `¿Qué tal estuvo tu pedido, ${esc(name)}?`) : (en ? 'How was your order?' : '¿Qué tal estuvo tu pedido?'), 'center')}${summary ? `<div style="height:6px;line-height:6px;">&nbsp;</div><p class="sub" style="margin:0;text-align:center;font-family:${BODY};font-size:15px;color:${T.sub};">${esc(summary)}</p>` : ''}`,
-    `<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr>${stars}</tr></table>`,
+    `<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr>${stars}</tr>${scale}</table>`,
     `<div style="text-align:center;font-family:${BODY};font-size:14px;">${link(ctx.trackingUrl, en ? 'Something wrong? Tell the restaurant privately' : '¿Algo salió mal? Díselo al restaurante en privado')}</div>`,
   ];
   const footerExtra = opts.unsubscribeUrl
