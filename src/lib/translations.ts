@@ -185,6 +185,8 @@ export interface Translations {
   open24h: string;
   infoShort: string;
   everyDay: string;
+  reviewsLatestNote: string;
+  seeAll: string;
   phoneLabel: string;
   sendWhatsApp: string;
   // Catalog & search
@@ -653,6 +655,8 @@ const es: Translations = {
   open24h: 'Abierto 24 horas',
   infoShort: 'Info',
   everyDay: 'Todos los días',
+  reviewsLatestNote: 'Las reseñas más recientes con comentario.',
+  seeAll: 'Ver todas',
   phoneLabel: 'Teléfono',
   sendWhatsApp: 'Enviar mensaje',
   resultSingular: 'resultado',
@@ -1110,6 +1114,8 @@ const en: Translations = {
   open24h: 'Open 24 hours',
   infoShort: 'Info',
   everyDay: 'Every day',
+  reviewsLatestNote: 'The most recent reviews with a comment.',
+  seeAll: 'See all',
   phoneLabel: 'Phone',
   sendWhatsApp: 'Send message',
   resultSingular: 'result',

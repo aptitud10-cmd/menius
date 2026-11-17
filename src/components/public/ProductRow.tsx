@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Plus, Check, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
+import { DietIcon } from './DietIcon';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { SHOW_FAVORITES } from '@/lib/menu-ui';
 import { useCartStore } from '@/store/cartStore';
@@ -143,7 +144,13 @@ export const ProductRow = memo(function ProductRow({
               {product.dietary_tags!.slice(0, 3).map((tagId) => {
                 const tag = DIETARY_TAGS.find((d) => d.id === tagId);
                 if (!tag) return null;
-                return <span key={tagId} className="text-xs" aria-hidden="true">{tag.emoji}</span>;
+                const label = locale === 'en' ? tag.labelEn : tag.labelEs;
+                return (
+                  <span key={tagId} title={label} className="inline-flex">
+                    <DietIcon tag={tagId} className="w-3.5 h-3.5 text-[#047a65]" />
+                    <span className="sr-only">{label}</span>
+                  </span>
+                );
               })}
             </span>
           )}

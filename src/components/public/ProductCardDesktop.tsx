@@ -9,6 +9,7 @@ import { showsPopularityBadge } from '@/lib/social-proof';
 import { SHOW_FAVORITES } from '@/lib/menu-ui';
 import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
+import { DietIcon } from './DietIcon';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { useCartStore } from '@/store/cartStore';
 import { tName, tDesc } from '@/lib/i18n';
@@ -227,8 +228,8 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               const tag = DIETARY_TAGS.find((t) => t.id === tagId);
               if (!tag) return null;
               return (
-                <span key={tagId} className="inline-flex items-center gap-1 text-[11px] font-medium text-ink-500 bg-ink-50 px-2 py-0.5 rounded-full">
-                  <span aria-hidden="true">{tag.emoji}</span>
+                <span key={tagId} className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-700 bg-ink-50 px-2 py-0.5 rounded-full">
+                  <DietIcon tag={tagId} className="w-3.5 h-3.5 text-[#047a65]" />
                   <span>{locale === 'en' ? tag.labelEn : tag.labelEs}</span>
                 </span>
               );

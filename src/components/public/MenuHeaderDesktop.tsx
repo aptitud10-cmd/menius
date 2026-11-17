@@ -12,6 +12,7 @@ import { Search, X, ArrowLeft, LayoutDashboard, Clock, History } from 'lucide-re
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { getTranslations } from '@/lib/translations';
+import { LanguageMenu } from './LanguageMenu';
 import type { MenuHeaderProps } from './MenuHeader';
 import { isRestaurantOpen } from './MenuHeader';
 
@@ -39,6 +40,8 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
   hasCover = false,
   locale = 'es',
   loyaltyPoints,
+  languages,
+  onLocaleChange,
 }: MenuHeaderProps) {
   const t = getTranslations(locale);
   const open = isRestaurantOpen(restaurant.operating_hours, restaurant.timezone);
@@ -150,6 +153,15 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
             <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-gray-100 text-[13px] font-semibold text-gray-700">
               {tableName}
             </span>
+          )}
+
+          {languages && languages.length > 1 && onLocaleChange && (
+            <LanguageMenu
+              locales={languages}
+              current={locale}
+              onChange={onLocaleChange}
+              label={t.changeLanguageAriaLabel}
+            />
           )}
 
           <Link

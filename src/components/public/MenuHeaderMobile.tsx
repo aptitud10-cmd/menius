@@ -11,6 +11,7 @@ import { Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { getTranslations } from '@/lib/translations';
+import { LanguageMenu } from './LanguageMenu';
 import type { MenuHeaderProps } from './MenuHeader';
 import { isRestaurantOpen } from './MenuHeader';
 
@@ -35,6 +36,8 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   hasCover = false,
   locale = 'es',
   loyaltyPoints,
+  languages,
+  onLocaleChange,
 }: MenuHeaderProps) {
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {
@@ -121,6 +124,15 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
             >
               <LayoutDashboard className={cn('w-4 h-4', isTransparent ? 'text-white' : 'text-gray-500')} />
             </Link>
+          )}
+          {languages && languages.length > 1 && onLocaleChange && (
+            <LanguageMenu
+              locales={languages}
+              current={locale}
+              onChange={onLocaleChange}
+              label={t.changeLanguageAriaLabel}
+              tone={isTransparent ? 'overlay' : 'light'}
+            />
           )}
           <button
             onClick={onToggleSearch}

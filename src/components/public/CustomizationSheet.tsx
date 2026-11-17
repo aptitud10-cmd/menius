@@ -16,6 +16,7 @@ import type {
 } from "@/types";
 import type { Translations, Locale } from "@/lib/translations";
 import { DIETARY_TAGS } from "@/lib/dietary-tags";
+import { DietIcon } from "./DietIcon";
 import { tName, tDesc } from "@/lib/i18n";
 import {
   visibleGroups,
@@ -982,7 +983,7 @@ export function CustomizationSheet({
                         key={tagId}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-[12px] font-medium text-gray-700"
                       >
-                        <span>{tag.emoji}</span>
+                        <DietIcon tag={tagId} className="w-3.5 h-3.5 text-[#047a65]" />
                         {locale?.startsWith("en") ? tag.labelEn : tag.labelEs}
                       </span>
                     );

@@ -13,7 +13,6 @@ import {
   ArrowLeft,
   ArrowUp,
   Search,
-  Globe,
   RotateCcw,
   AlertCircle,
   AlignJustify,
@@ -43,7 +42,7 @@ import type {
 } from "@/types";
 import { rebuildSelections } from "@/lib/reorder";
 import { DIETARY_TAGS, getTagConfig } from "@/lib/dietary-tags";
-import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from "@/lib/i18n";
+import { tName, tDesc } from "@/lib/i18n";
 import { searchMenu, suggestedCategories } from "@/lib/menu-search";
 import { trackEvent } from "@/lib/analytics";
 
@@ -89,6 +88,8 @@ import { MenuSheet, type MenuSheetEntry } from "./MenuSheet";
 import { hasHours, isOptionAvailableAt, optionHoursLabel, hoursRangeLabel, clockLabel } from "@/lib/option-hours";
 import { inTimeZone, isOpenAt, nextOpening, type OperatingHours } from "@/lib/orders/business-hours";
 import { RestaurantInfoSheet, dayHoursText } from "./RestaurantInfoSheet";
+import { ReviewsSheet } from "./ReviewsSheet";
+import { DietIcon } from "./DietIcon";
 import { prettyPhone, telHref } from "@/lib/phone-format";
 import { usablePaymentMethods } from "@/lib/payments/online-ready";
 interface ReviewStats {
@@ -171,7 +172,6 @@ export function MenuShell({
       document.documentElement.lang = prev;
     };
   }, [locale]);
-  const [showLangPicker, setShowLangPicker] = useState(false);
   const t = getTranslations(locale);
   const currency = restaurant.currency;
   const fmtPrice = useCallback(
@@ -223,6 +223,8 @@ export function MenuShell({
   const [tableBannerDismissed, setTableBannerDismissed] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const closeInfo = useCallback(() => setShowInfo(false), []);
+  const [showReviews, setShowReviews] = useState(false);
+  const closeReviews = useCallback(() => setShowReviews(false), []);
   const [activeTableName, setActiveTableName] = useState<string | null>(null);
 
   const lastOrder = useCartStore((s) => s.lastOrder);
@@ -827,6 +829,16 @@ export function MenuShell({
   const catListRef = useRef<HTMLDivElement>(null);
   const mobilePillsBarRef = useRef<HTMLDivElement>(null);
   const mobileDietBarRef = useRef<HTMLDivElement>(null);
+  const [mobilePillsH, setMobilePillsH] = useState(56);
+  useEffect(() => {
+    const el = mobilePillsBarRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (el.offsetHeight > 0) setMobilePillsH(el.offsetHeight);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   // Bumped on every category pick (even re-picking the same one), so the
   // effect below runs after React has committed the new list.
   const [catScrollRequest, setCatScrollRequest] = useState(0);
@@ -1149,6 +1161,7 @@ export function MenuShell({
   useBackToClose(showCatSheet && !isDesktopView, closeCatSheet);
   useBackToClose(showSubcatSheet && !isXlView, closeSubcatSheet);
   useBackToClose(showInfo, closeInfo);
+  useBackToClose(showReviews, closeReviews);
   useBackToClose(customization !== null, handleCloseCustomization);
 
   // Dishes served only part of the day (Oatmeal 5:30–11 AM, restaurant time).
@@ -2618,16 +2631,6 @@ export function MenuShell({
       className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2 -mx-0"
       style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
     >
-      {activeDiet && (
-        <button
-          onClick={() => setActiveDiet(null)}
-          style={{ touchAction: "manipulation" }}
-          className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap bg-gray-900 text-white active:opacity-80 transition-opacity"
-        >
-          <X className="w-3 h-3" />
-          {t.clearFilters}
-        </button>
-      )}
       {availableDietTags.map((tag) => {
         const isActive = activeDiet === tag.id;
         return (
@@ -2636,16 +2639,18 @@ export function MenuShell({
             onClick={() =>
               setActiveDiet(isActive ? null : (tag.id as DietaryTag))
             }
+            aria-pressed={isActive}
             style={{ touchAction: "manipulation" }}
             className={cn(
-              "flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap border transition-colors",
+              "flex-shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full text-[14px] font-medium whitespace-nowrap border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]",
               isActive
-                ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E]"
-                : "bg-white border-gray-200 text-gray-600 active:bg-gray-100",
+                ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E] font-semibold"
+                : "bg-white border-gray-200 text-gray-800 hover:bg-gray-50 active:bg-gray-100",
             )}
           >
-            <span aria-hidden="true">{tag.emoji}</span>
+            <DietIcon tag={tag.id} className="w-4 h-4" />
             <span>{locale === "en" ? tag.labelEn : tag.labelEs}</span>
+            {isActive && <X className="w-3.5 h-3.5 -mr-0.5" aria-hidden="true" />}
           </button>
         );
       })}
@@ -2689,6 +2694,8 @@ export function MenuShell({
             hasCover={hasCover}
             locale={locale}
             loyaltyPoints={loyaltyData?.points ?? null}
+            languages={hasMultiLang ? availableLocales : undefined}
+            onLocaleChange={(code) => setLocale(code as Locale)}
           />
         </div>
 
@@ -2775,15 +2782,21 @@ export function MenuShell({
                   </p>
                 )}
                 {reviewStats && reviewStats.total > 0 && (
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400 drop-shadow-sm" />
+                  <button
+                    type="button"
+                    onClick={() => setShowReviews(true)}
+                    disabled={!recentReviews?.length}
+                    aria-haspopup="dialog"
+                    className="flex items-center gap-1.5 mt-1.5 -ml-1 px-1 min-h-[32px] rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400 drop-shadow-sm" aria-hidden="true" />
                     <span className="text-sm font-bold text-white drop-shadow-sm tabular-nums">
                       {reviewStats.average}
                     </span>
-                    <span className="text-xs text-white/75">
-                      ({reviewStats.total})
+                    <span className="text-[13px] text-white/90 underline underline-offset-2 decoration-white/50">
+                      {reviewStats.total} {t.reviews}
                     </span>
-                  </div>
+                  </button>
                 )}
               </div>
 
@@ -2854,15 +2867,21 @@ export function MenuShell({
                   )}
                 </div>
                 {reviewStats && reviewStats.total > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-400/20 backdrop-blur-sm border border-amber-400/30 flex-shrink-0">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <button
+                    type="button"
+                    onClick={() => setShowReviews(true)}
+                    disabled={!recentReviews?.length}
+                    aria-haspopup="dialog"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/35 backdrop-blur-sm border border-white/20 flex-shrink-0 hover:bg-black/45 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" aria-hidden="true" />
                     <span className="text-sm font-bold text-white tabular-nums">
                       {reviewStats.average}
                     </span>
-                    <span className="text-sm text-white/70">
-                      ({reviewStats.total})
+                    <span className="text-sm text-white/90">
+                      {reviewStats.total} {t.reviews}
                     </span>
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
@@ -2948,8 +2967,8 @@ export function MenuShell({
                 // Con cover suma header+category pills+notch; sin cover solo las
                 // category pills (40px) — el header en flujo ya consumió el notch.
                 top: hasCover
-                  ? `calc(${HEADER_HEIGHT + 40}px + env(safe-area-inset-top))`
-                  : `40px`,
+                  ? `calc(${HEADER_HEIGHT + mobilePillsH}px + env(safe-area-inset-top))`
+                  : `${mobilePillsH}px`,
               }}
             >
               {dietaryPills}
@@ -3385,21 +3404,10 @@ export function MenuShell({
                     <motion.div
                       initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-center py-20 text-gray-400 flex flex-col items-center gap-3"
+                      className="text-center py-20 flex flex-col items-center gap-3"
                     >
-                      <motion.p
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 20,
-                        }}
-                        className="text-4xl"
-                      >
-                        {DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}
-                      </motion.p>
-                      <p className="font-medium">{t.noDietMatch}</p>
+                      <DietIcon tag={activeDiet} className="w-10 h-10 text-gray-500" />
+                      <p className="text-[16px] font-semibold text-gray-900">{t.noDietMatch}</p>
                       <button
                         onClick={() => setActiveDiet(null)}
                         className="mt-1 text-sm text-[#047a65] font-semibold hover:text-[#047a65] transition-colors"
@@ -3413,15 +3421,13 @@ export function MenuShell({
                     // "N results" instead of a near-empty menu scattered over categories.
                     <div>
                       <div className="flex items-center gap-2 mb-4 py-1">
-                        <span aria-hidden="true" className="text-lg">
-                          {DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}
-                        </span>
+                        <DietIcon tag={activeDiet} className="w-5 h-5 text-[#047a65]" />
                         <h2 className="text-lg font-bold text-gray-900">
                           {locale === "en"
                             ? getTagConfig(activeDiet)?.labelEn
                             : getTagConfig(activeDiet)?.labelEs}
                         </h2>
-                        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">
+                        <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">
                           {filteredProducts.length}
                         </span>
                         <button
@@ -3849,11 +3855,19 @@ export function MenuShell({
                         <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                         {t.customersTestimonial}
                         {reviewStats && reviewStats.total > 0 && (
-                          <span className="text-sm font-normal text-gray-400 ml-1">
+                          <span className="text-sm font-normal text-gray-600 ml-1">
                             ({reviewStats.average} / 5 · {reviewStats.total}{" "}
                             {t.reviews})
                           </span>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => setShowReviews(true)}
+                          aria-haspopup="dialog"
+                          className="ml-auto h-9 px-2 text-sm font-semibold text-[#047a65] hover:underline"
+                        >
+                          {t.seeAll}
+                        </button>
                       </h3>
                       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
                         {recentReviews.map((review) => {
@@ -4406,6 +4420,19 @@ export function MenuShell({
 
         {/* Reorder: floating "order again" button. Self-gates — only renders when a
             saved phone has a previous order at this restaurant. */}
+        {reviewStats && recentReviews && recentReviews.length > 0 && (
+          <ReviewsSheet
+            open={showReviews}
+            onClose={closeReviews}
+            restaurantName={restaurant.name}
+            average={reviewStats.average}
+            total={reviewStats.total}
+            reviews={recentReviews}
+            locale={locale}
+            t={t}
+          />
+        )}
+
         <RestaurantInfoSheet
           open={showInfo}
           onClose={closeInfo}
@@ -4643,71 +4670,6 @@ export function MenuShell({
           locale={locale === "en" ? "en" : "es"}
           recurring={isRecurringVisitor}
         />
-
-        {/* ── Language Switcher (floating pill) ── */}
-        {hasMultiLang && (
-          <>
-            <AnimatePresence>
-              {showLangPicker && (
-                <motion.div
-                  className="fixed inset-0 bg-black/20 z-[70]"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setShowLangPicker(false)}
-                />
-              )}
-            </AnimatePresence>
-            <AnimatePresence>
-              {showLangPicker && (
-                <motion.div
-                  className={cn(
-                    "fixed left-4 z-[71] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden",
-                    cartCount > 0 ? "bottom-48 lg:bottom-16" : "bottom-16",
-                  )}
-                  initial={{ y: 20, opacity: 0, scale: 0.9 }}
-                  animate={{ y: 0, opacity: 1, scale: 1 }}
-                  exit={{ y: 10, opacity: 0, scale: 0.95 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 350 }}
-                >
-                  {availableLocales.map((code) => {
-                    const loc = SUPPORTED_LOCALES.find((l) => l.code === code);
-                    const active = locale === code;
-                    return (
-                      <button
-                        key={code}
-                        onClick={() => {
-                          setLocale(code);
-                          setShowLangPicker(false);
-                        }}
-                        className={cn(
-                          "flex items-center gap-2.5 w-full px-4 py-2.5 text-sm transition-colors",
-                          active
-                            ? "bg-[#e6faf7] text-[#047a65] font-semibold"
-                            : "text-gray-700 hover:bg-gray-50",
-                        )}
-                      >
-                        <span className="text-base">{loc?.flag ?? "🌐"}</span>
-                        <span>{loc?.label ?? code}</span>
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <button
-              onClick={() => setShowLangPicker((s) => !s)}
-              className={cn(
-                "fixed left-4 z-[60] flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-gray-200 shadow-lg text-sm font-medium text-gray-700 hover:shadow-xl transition-shadow active:scale-95",
-                cartCount > 0 ? "bottom-36 lg:bottom-6" : "bottom-6",
-              )}
-              aria-label={t.changeLanguageAriaLabel}
-            >
-              <Globe className="w-4 h-4 text-gray-500" />
-              <span>{getLocaleFlag(locale)}</span>
-            </button>
-          </>
-        )}
 
         {/* ── "Menu" sheet: ☰ opens it folded, the floating "Sections" button
             opens it with the active group unfolded. ── */}
