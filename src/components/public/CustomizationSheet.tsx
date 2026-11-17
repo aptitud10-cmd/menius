@@ -25,6 +25,7 @@ import { supabaseLoader, getBlurUrl } from "@/lib/image-loader";
 import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
 import { inTimeZone } from "@/lib/orders/business-hours";
 import { showsAsRow } from "@/lib/product-display";
+import { planGroupLayout } from "@/lib/modifier-layout";
 
 /** Height of the compact header that replaces the floating X on scroll. */
 const COMPACT_HEADER_PX = 52;
@@ -302,6 +303,8 @@ export function CustomizationSheet({
     () => visibleGroups(allGroups, selections),
     [allGroups, selections],
   );
+  // Chips, list or cards per group, and which lone add-ons join a list.
+  const layout = useMemo(() => planGroupLayout(activeGroups), [activeGroups]);
 
   // A hidden group's stale selection would still reach the cart: picking
   // Deluxe → Onion Rings (+$1.50) and switching back to Regular kept the
@@ -693,6 +696,121 @@ export function CustomizationSheet({
 
   const hasHero = !showsAsRow(product) && !!product.image_url;
 
+  // Shared state of one option button, whatever its shape.
+  const optionState = (group: ModifierGroup, opt: ModifierOption) => {
+    const selected = selections[group.id] ?? [];
+    const atMax =
+      group.selection_type === "multi" &&
+      group.max_select > 1 &&
+      selected.length >= group.max_select;
+    const isSelected = selected.some((o) => o.id === opt.id);
+    return {
+      isSelected,
+      isDisabled: !isSelected && atMax,
+      // Out of hours: greyed, but still tappable so the tap can say when it
+      // is served (a disabled button swallows the tap).
+      isOffHours: !isSelected && !isAvailableNow(opt),
+      hours: optionHoursLabel(opt, locale),
+      price: Number(opt.price_delta),
+    };
+  };
+  const priceLabel = (price: number) => `${price > 0 ? "+" : ""}${fmtPrice(price)}`;
+
+  /** Short options that flow and wrap: cooking, cheeses, "No pickle", sauces. */
+  const renderChip = (group: ModifierGroup, opt: ModifierOption, showsIncluded: boolean) => {
+    const { isSelected, isDisabled, isOffHours, hours, price } = optionState(group, opt);
+    return (
+      <button
+        key={opt.id}
+        type="button"
+        aria-pressed={isSelected}
+        aria-disabled={isOffHours || undefined}
+        onClick={() => !isDisabled && toggleOption(group, opt)}
+        disabled={isDisabled}
+        className={cn(
+          "inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-full border text-[15px] leading-tight text-left transition-colors duration-150",
+          isSelected
+            ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E] font-semibold"
+            : isDisabled
+              ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
+              : isOffHours
+                ? "bg-gray-50 border-dashed border-gray-200 text-gray-500"
+                : "bg-white border-gray-200 text-gray-800 font-medium hover:border-gray-300 active:border-gray-400",
+        )}
+      >
+        {/* The tick is not decoration: colour alone must not carry the
+            selected state (WCAG 1.4.1). */}
+        {isSelected && <Check className="w-4 h-4 flex-shrink-0" aria-hidden="true" />}
+        <span>{tName(opt, locale, defaultLocale)}</span>
+        {price !== 0 ? (
+          <span className={cn("text-[13px] font-medium tabular-nums", isSelected ? "text-[#04241E]/80" : "text-gray-600")}>
+            {priceLabel(price)}
+          </span>
+        ) : (
+          showsIncluded && (
+            <span className={cn("text-[13px] font-medium", isSelected ? "text-[#04241E]/80" : "text-gray-600")}>
+              {t.included}
+            </span>
+          )
+        )}
+        {hours && (
+          <span className={cn("text-[13px] font-medium", isSelected ? "text-[#04241E]/80" : "text-gray-600")}>
+            {hours}
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  /** Priced add-ons: checkbox (or radio), name, price aligned right. */
+  const renderListRow = (group: ModifierGroup, opt: ModifierOption, showsIncluded: boolean) => {
+    const { isSelected, isDisabled, isOffHours, hours, price } = optionState(group, opt);
+    const single = group.selection_type === "single";
+    return (
+      <button
+        key={opt.id}
+        type="button"
+        aria-pressed={isSelected}
+        aria-disabled={isOffHours || undefined}
+        onClick={() => !isDisabled && toggleOption(group, opt)}
+        disabled={isDisabled}
+        className={cn(
+          "w-full min-h-[52px] flex items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150",
+          isDisabled
+            ? "text-gray-300 cursor-not-allowed"
+            : isOffHours
+              ? "text-gray-500"
+              : "text-gray-900 hover:bg-gray-50 active:bg-gray-100",
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            "w-[22px] h-[22px] flex items-center justify-center flex-shrink-0 transition-colors",
+            single ? "rounded-full" : "rounded-md",
+            isSelected ? "bg-[#05c8a7]" : "border-2 border-gray-300 bg-white",
+          )}
+        >
+          {isSelected &&
+            (single ? (
+              <span className="w-2 h-2 rounded-full bg-[#04241E]" />
+            ) : (
+              <Check className="w-3.5 h-3.5 text-[#04241E]" strokeWidth={3} />
+            ))}
+        </span>
+        <span className={cn("flex-1 min-w-0 text-[15px] leading-snug", isSelected ? "font-semibold" : "font-medium")}>
+          {tName(opt, locale, defaultLocale)}
+          {hours && <span className="block text-[13px] font-medium text-gray-600">{hours}</span>}
+        </span>
+        {price !== 0 ? (
+          <span className="text-[15px] text-gray-700 tabular-nums flex-shrink-0">{priceLabel(price)}</span>
+        ) : (
+          showsIncluded && <span className="text-[13px] text-gray-600 flex-shrink-0">{t.included}</span>
+        )}
+      </button>
+    );
+  };
+
   const springTransition = {
     type: "tween" as const,
     duration: 0.18,
@@ -832,6 +950,9 @@ export function CustomizationSheet({
       )}
 
       {activeGroups.map((group) => {
+        if (layout.absorbed.has(group.id)) return null;
+        const format = layout.format.get(group.id) ?? "chips";
+        const guests = layout.guests.get(group.id) ?? [];
         const selected = selections[group.id] ?? [];
         // atMax only blocks when max > 1; for max_select=1 we swap instead of block
         const atMax =
@@ -917,7 +1038,12 @@ export function CustomizationSheet({
           !groupTitle.toLowerCase().includes(defaultName.toLowerCase())
             ? t.standardChoice(defaultName)
             : null;
-        const notice = hoursNotice?.groupId === group.id ? hoursNotice.text : null;
+        const notice =
+          hoursNotice &&
+          (hoursNotice.groupId === group.id ||
+            guests.some((g) => g.id === hoursNotice.groupId))
+            ? hoursNotice.text
+            : null;
 
         return (
           <div
@@ -974,7 +1100,11 @@ export function CustomizationSheet({
                     {t.groupRequired} · {getRuleLabel(group)}
                   </span>
                 ) : (
-                  <span className="text-[13px] text-gray-600">{getRuleLabel(group)}</span>
+                  // A list that took in lone add-ons has more rows than its own
+                  // "up to 4" counts; each joined row keeps its own rule.
+                  <span className="text-[13px] text-gray-600">
+                    {getRuleLabel(guests.length > 0 ? { ...group, max_select: 1 } : group)}
+                  </span>
                 )}
                 {atMax && (
                   <span className="text-[13px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
@@ -986,7 +1116,24 @@ export function CustomizationSheet({
                 <p className="mt-1 text-[13px] text-gray-600">{standardHint}</p>
               )}
             </div>
-            {group.display_type === "grid" ? (
+            {format === "chips" ? (
+              <div role="group" aria-labelledby={headingId} className="flex flex-wrap gap-2">
+                {group.options.map((opt) => renderChip(group, opt, showsIncluded))}
+              </div>
+            ) : format === "list" ? (
+              <div
+                role="group"
+                aria-labelledby={headingId}
+                className="rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden"
+              >
+                {group.options.map((opt) => renderListRow(group, opt, showsIncluded))}
+                {/* Lone add-ons that follow ("Extra cheese?") as more rows:
+                    separate groups in the data, one list on screen. */}
+                {guests.map((g) =>
+                  g.options.map((opt) => renderListRow(g, opt, false)),
+                )}
+              </div>
+            ) : (
               <div
                 role="group"
                 aria-labelledby={headingId}
@@ -1047,106 +1194,6 @@ export function CustomizationSheet({
                         <span
                           className={cn(
                             "text-[13px] font-medium",
-                            isSelected ? "text-[#04241E]/80" : "text-gray-600",
-                          )}
-                        >
-                          {Number(opt.price_delta) > 0 ? "+" : ""}
-                          {fmtPrice(Number(opt.price_delta))}
-                        </span>
-                      ) : (
-                        showsIncluded && (
-                          <span
-                            className={cn(
-                              "text-[11px] font-semibold uppercase tracking-wide",
-                              isSelected ? "text-[#04241E]/80" : "text-gray-500",
-                            )}
-                          >
-                            {t.included}
-                          </span>
-                        )
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div
-                role="group"
-                aria-labelledby={headingId}
-                className="space-y-2"
-              >
-                {group.options.map((opt) => {
-                  const isSelected = selected.some((o) => o.id === opt.id);
-                  const isDisabled = !isSelected && atMax;
-                  // Out of hours: greyed, but still tappable so the tap can say
-                  // when it is served (a disabled button swallows the tap).
-                  const isOffHours = !isSelected && !isAvailableNow(opt);
-                  const hours = optionHoursLabel(opt, locale);
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      aria-pressed={isSelected}
-                      aria-disabled={isOffHours || undefined}
-                      onClick={() => !isDisabled && toggleOption(group, opt)}
-                      disabled={isDisabled}
-                      className={cn(
-                        "w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border",
-                        isSelected
-                          ? "bg-[#05c8a7] text-[#04241E] border-[#05c8a7] shadow-sm"
-                          : isDisabled
-                            ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
-                            : isOffHours
-                              ? "bg-gray-50 border-dashed border-gray-200 text-gray-500"
-                              : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        {group.selection_type === "single" ? (
-                          <div
-                            className={cn(
-                              "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0",
-                              isSelected
-                                ? "border-white bg-white"
-                                : "border-gray-300",
-                            )}
-                          >
-                            {isSelected && (
-                              <div className="w-2.5 h-2.5 rounded-full bg-[#05c8a7]" />
-                            )}
-                          </div>
-                        ) : (
-                          <div
-                            className={cn(
-                              "w-5 h-5 rounded-md flex items-center justify-center transition-colors flex-shrink-0",
-                              isSelected
-                                ? "bg-white"
-                                : "border-2 border-gray-300",
-                            )}
-                          >
-                            {isSelected && (
-                              <Check className="w-3.5 h-3.5 text-[#047a65]" />
-                            )}
-                          </div>
-                        )}
-                        <span className="text-[15px] font-medium">
-                          {tName(opt, locale, defaultLocale)}
-                          {hours && (
-                            <span
-                              className={cn(
-                                "ml-2 text-[13px] font-medium",
-                                isSelected ? "text-[#04241E]/80" : "text-gray-600",
-                              )}
-                            >
-                              {hours}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      {Number(opt.price_delta) !== 0 ? (
-                        <span
-                          className={cn(
-                            "text-sm font-semibold",
                             isSelected ? "text-[#04241E]/80" : "text-gray-600",
                           )}
                         >
