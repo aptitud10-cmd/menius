@@ -409,6 +409,11 @@ export function CustomizationSheet({
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [titleHidden, setTitleHidden] = useState(false);
   useEffect(() => {
+    // Desktop keeps the title in a fixed left column: nothing to replace.
+    if (isDesktop) {
+      setTitleHidden(false);
+      return;
+    }
     const root = bodyScrollRef.current;
     const el = titleRef.current;
     if (!root || !el || typeof IntersectionObserver === "undefined") return;
@@ -831,7 +836,9 @@ export function CustomizationSheet({
   /** Priced add-ons: checkbox (or radio), name, price aligned right. */
   const renderListRow = (group: ModifierGroup, opt: ModifierOption, showsIncluded: boolean) => {
     const { isSelected, isDisabled, isOffHours, hours, price } = optionState(group, opt);
-    const single = group.selection_type === "single";
+    // A lone option ("Egg Whites +$1.25") toggles on and off: a checkbox,
+    // not a radio, even when the group is stored as single choice.
+    const single = group.selection_type === "single" && group.options.length > 1;
     return (
       <button
         key={opt.id}
@@ -883,6 +890,564 @@ export function CustomizationSheet({
     ease: [0.25, 0.46, 0.45, 0.94] as const,
   };
 
+  const renderHeroMedia = (desktop: boolean) => (
+    <>
+        {/* The detail sheet is the fifth surface that has to agree with the menu
+            about whether a product shows a photo. Without showsAsRow() a drink
+            listed as a row still opened onto a full-bleed hero image — Buccaneer's
+            nine beers all pointed at one generic stock photo of a sandwich, so
+            tapping "Corona" showed a panini.
+
+            The max-h is the other half of that agreement: 4/3 alone has no
+            ceiling, so the wider the surface the taller the photo. On an iPad the
+            sheet is wide enough that the hero grew past 700px and pushed the
+            option groups below the fold — the CTA stayed disabled ("Choose: …")
+            with nothing visible to choose, so the dish could not be added at all.
+            The photo is context; the options are the task. */}
+        {/* 16:9 rather than 4:3 (219px instead of 293 on a phone): the photo
+            says which dish this is, the options are the task. The cap stays for
+            the wide tablet sheet. Handle and X float over it (sheetChrome). */}
+        {hasHero ? (
+          <div
+            className={cn(
+              "relative w-full bg-gray-100 overflow-hidden",
+              desktop ? "aspect-[4/3]" : "aspect-video max-h-[32dvh]",
+            )}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
+            <div className="absolute inset-0">
+              <Image
+                src={product.image_url}
+                alt={displayName}
+                fill
+                sizes={desktop ? "380px" : "(max-width: 640px) 100vw, 600px"}
+                loader={
+                  product.image_url.includes(".supabase.co/storage/")
+                    ? supabaseLoader
+                    : undefined
+                }
+                placeholder={getBlurUrl(product.image_url) ? "blur" : undefined}
+                blurDataURL={getBlurUrl(product.image_url)}
+                className="object-cover opacity-0 transition-opacity duration-150"
+                onLoad={(e) =>
+                  e.currentTarget.classList.replace("opacity-0", "opacity-100")
+                }
+                priority
+              />
+            </div>
+          </div>
+        ) : desktop ? null : (
+          // No photo: a strip for the floating X so it never sits on the title.
+          <div style={{ height: COMPACT_HEADER_PX }} aria-hidden="true" />
+        )}
+    </>
+  );
+
+  const heroText = (
+    <>
+        <div className="px-5 pt-4 pb-2">
+          <div>
+            <div>
+              {isEditing && (
+                <p className="text-[13px] font-medium text-gray-600 mb-1">{t.editItem}</p>
+              )}
+              <h3
+                id="customization-dialog-title"
+                ref={titleRef}
+                className="text-[22px] font-bold text-gray-900 leading-tight tracking-[-0.01em]"
+              >
+                {displayName}
+              </h3>
+              <p className="mt-1 text-[17px] font-semibold text-gray-900 tabular-nums">
+                {fmtPrice(Number(product.price))}
+              </p>
+              {displayDesc && (
+                <p className="text-[15px] text-gray-600 mt-2 leading-relaxed">
+                  {displayDesc}
+                </p>
+              )}
+              {(product.dietary_tags?.length ?? 0) > 0 && (
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  {product.dietary_tags!.map((tagId) => {
+                    const tag = DIETARY_TAGS_MAP[tagId];
+                    if (!tag) return null;
+                    return (
+                      <span
+                        key={tagId}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-[12px] font-medium text-gray-700"
+                      >
+                        <span>{tag.emoji}</span>
+                        {locale?.startsWith("en") ? tag.labelEn : tag.labelEs}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+    </>
+  );
+
+  const optionsContent = (
+    <>
+        {/* Loading skeleton while modifier data is fetched for large-catalog stores */}
+        {modifiersLoading && (
+          <div className="px-5 pt-5 space-y-3">
+            <div className="skeleton h-4 w-32 rounded-lg" />
+            <div className="grid grid-cols-2 gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="skeleton h-10 rounded-xl"
+                  style={{ animationDelay: `${i * 60}ms` }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Error state when modifier data fails to load */}
+        {modifiersError && !modifiersLoading && (
+          <div className="px-5 pt-5">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+              <span className="text-amber-500 text-base flex-shrink-0">⚠️</span>
+              <p className="text-sm text-amber-700 flex-1">
+                {locale === "es"
+                  ? "No se pudieron cargar las opciones."
+                  : "Options could not be loaded."}
+              </p>
+              <button
+                onClick={loadModifiers}
+                className="text-xs font-semibold text-amber-700 underline underline-offset-2 hover:no-underline flex-shrink-0"
+              >
+                {locale === "es" ? "Reintentar" : "Retry"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeGroups.map((group) => {
+          if (layout.absorbed.has(group.id)) return null;
+          const format = layout.format.get(group.id) ?? "chips";
+          const guests = layout.guests.get(group.id) ?? [];
+          const selected = selections[group.id] ?? [];
+          // atMax only blocks when max > 1; for max_select=1 we swap instead of block
+          const atMax =
+            group.selection_type === "multi" &&
+            group.max_select > 1 &&
+            selected.length >= group.max_select;
+
+          /**
+           * "Incluido" on the free options of a required single-choice group.
+           *
+           * A Roadhouse Burger arrives with pepperjack in the recipe and in the
+           * price, so its option is pre-selected — but pre-selected looked exactly
+           * like chosen-by-the-customer, and a blank space where a price would be
+           * says nothing. Baymard measured the cost of that silence in product
+           * configurators: 63% of users assume wrongly what is included, and find
+           * out late enough to feel misled.
+           *
+           * The label goes on every free option, not just the default: it is also
+           * what tells the diner that switching to cheddar costs nothing.
+           *
+           * "Incluido" rather than "$0" (reads as a bug) or "Gratis" (reads as a
+           * giveaway) — the point is that the price already covers it.
+           */
+          // Only where "free" genuinely means "already paid for": a required
+          // single choice the diner must make. On an optional add-on group a zero
+          // price means free-of-charge, which is a different claim.
+          //
+          // And only where the group actually charges for something else. A first
+          // pass keyed purely off required+single put "Incluido" next to every
+          // cooking temperature — nobody suspects they are billed for medium rare,
+          // so the label was pure noise — and next to "Regular" in the Style group,
+          // where it read as a promise of something included while Deluxe sat
+          // beside it at +$4. The label only carries meaning by contrast: it says
+          // "this one costs nothing, that one does", which needs a "that one".
+          // One more exclusion, and it is the sharpest: a group whose paid option
+          // is an UPGRADE of the whole dish rather than a variant of one
+          // ingredient. Buccaneer's "Style" offers Regular against "Deluxe —
+          // lettuce, tomato & choice of side +$4"; labelling Regular "Incluido"
+          // announces that something comes with it, when Regular is precisely the
+          // one that comes with less. The tell is that the free option is the
+          // baseline the price already names, not one flavour among equals.
+          const options = group.options ?? [];
+          const freeCount = options.filter(
+            (o) => Number(o.price_delta) === 0,
+          ).length;
+          const hasPricedOption = freeCount < options.length;
+          // Two options, one free one paid, is an upgrade toggle, not a choice of
+          // ingredient. A cheese list has many free options and a couple of paid.
+          const isUpgradeToggle = options.length === 2 && freeCount === 1;
+          const showsIncluded =
+            group.is_required &&
+            group.selection_type === "single" &&
+            hasPricedOption &&
+            !isUpgradeToggle;
+
+          // Every group stays open, always (Pedro 2026-11-11). Folding an answered
+          // group into a "Cheese: Pepperjack · Change" row hid the live choices
+          // behind an extra tap; the diner wants to see and switch options in place.
+          // A required group the diner has already answered turns its red
+          // "Choose 1" into a green tick: on a six-group burger the badges become
+          // a checklist of what is still missing instead of six identical alarms.
+          const minRequired = minRequiredFor(group);
+          const isSatisfied = minRequired > 0 && selected.length >= minRequired;
+          const isHighlighted = highlightGroupId === group.id;
+          const headingId = `cs-group-${group.id}`;
+          // A single choice that arrives preselected reads as "already decided"
+          // unless it says so: diners didn't realise eggs come with home fries
+          // and that fries are one tap away (Pedro 2026-11-12). Worded "Standard"
+          // rather than "Comes with" because the same shape covers cooking
+          // temperature, size and burger style, where "comes with Medium Rare"
+          // would be nonsense.
+          const defaults = group.options.filter((o) => o.is_default);
+          const groupTitle = tName(group, locale, defaultLocale);
+          const defaultName =
+            defaults.length === 1 ? tName(defaults[0], locale, defaultLocale) : "";
+          // A title written as a question that already names the standard
+          // ("Comes with Home Fries. Want to swap?") would only be repeated by
+          // the hint underneath.
+          const standardHint =
+            group.selection_type === "single" &&
+            group.options.length > 1 &&
+            defaults.length === 1 &&
+            !groupTitle.toLowerCase().includes(defaultName.toLowerCase())
+              ? t.standardChoice(defaultName)
+              : null;
+          const notice =
+            hoursNotice &&
+            (hoursNotice.groupId === group.id ||
+              guests.some((g) => g.id === hoursNotice.groupId))
+              ? hoursNotice.text
+              : null;
+
+          return (
+            <div
+              key={group.id}
+              ref={(el) => {
+                if (el) groupRefs.current.set(group.id, el);
+                else groupRefs.current.delete(group.id);
+              }}
+              className="px-5 pt-4"
+            >
+              <div
+                ref={(el) => {
+                  if (el) highlightRefs.current.set(group.id, el);
+                  else highlightRefs.current.delete(group.id);
+                }}
+                className={cn(
+                  "rounded-2xl transition-shadow duration-300",
+                  isHighlighted && "ring-2 ring-red-400 ring-offset-4",
+                )}
+              >
+              {/* Group titles are the questions the diner answers ("How would you
+                  like your eggs?"), so they carry the hierarchy: 17px extrabold,
+                  a hairline above each group, and a quiet "Optional" instead of
+                  an uppercase pill competing with them. Only what blocks the
+                  order (a required group) keeps colour. Size and weight rather
+                  than a brand colour: teal already means "selected" here. */}
+              <div className="border-t border-gray-100 pt-4 mb-3">
+                <h4
+                  id={headingId}
+                  className="text-[17px] font-semibold leading-snug text-gray-900"
+                >
+                  {groupTitle}
+                </h4>
+                <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                  {/* Pending required groups read as a quiet grey "Required" — red
+                      only once the diner tried to add without answering (the same
+                      moment the ring turns red). Answered ones become a tick in the
+                      accent instead of a "Done" chip: a checklist, not six pills. */}
+                  {isSatisfied ? (
+                    <span className="inline-flex items-center gap-1.5 text-[13px] text-gray-600">
+                      <span className="flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#05c8a7]">
+                        <Check className="w-3 h-3 text-[#04241E]" strokeWidth={3} aria-hidden="true" />
+                      </span>
+                      <span className="sr-only">{t.groupDone}:</span>
+                      {getRuleLabel(group)}
+                    </span>
+                  ) : minRequired > 0 ? (
+                    <span
+                      className={cn(
+                        "text-[13px] font-medium px-2 py-0.5 rounded-full",
+                        isHighlighted ? "text-red-700 bg-red-50" : "text-gray-700 bg-gray-100",
+                      )}
+                    >
+                      {t.groupRequired} · {getRuleLabel(group)}
+                    </span>
+                  ) : (
+                    // A list that took in lone add-ons has more rows than its own
+                    // "up to 4" counts; each joined row keeps its own rule.
+                    <span className="text-[13px] text-gray-600">
+                      {getRuleLabel(guests.length > 0 ? { ...group, max_select: 1 } : group)}
+                    </span>
+                  )}
+                  {atMax && (
+                    <span className="text-[13px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
+                      {t.maxReached}
+                    </span>
+                  )}
+                </div>
+                {standardHint && (
+                  <p className="mt-1 text-[13px] text-gray-600">{standardHint}</p>
+                )}
+              </div>
+              {format === "toggle" ? (
+                renderToggle(group, headingId)
+              ) : format === "chips" ? (
+                <div role="group" aria-labelledby={headingId} className="flex flex-wrap gap-2">
+                  {group.options.map((opt) => renderChip(group, opt, showsIncluded))}
+                </div>
+              ) : format === "list" ? (
+                <div
+                  role="group"
+                  aria-labelledby={headingId}
+                  className="rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden"
+                >
+                  {group.options.map((opt) => renderListRow(group, opt, showsIncluded))}
+                  {/* Lone add-ons that follow ("Extra cheese?") as more rows:
+                      separate groups in the data, one list on screen. */}
+                  {guests.map((g) =>
+                    g.options.map((opt) => renderListRow(g, opt, false)),
+                  )}
+                </div>
+              ) : (
+                <div
+                  role="group"
+                  aria-labelledby={headingId}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  {group.options.map((opt) => {
+                    const isSelected = selected.some((o) => o.id === opt.id);
+                    const isDisabled = !isSelected && atMax;
+                    // Out of hours: greyed, but still tappable so the tap can say
+                    // when it is served (a disabled button swallows the tap).
+                    const isOffHours = !isSelected && !isAvailableNow(opt);
+                    const hours = optionHoursLabel(opt, locale);
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        aria-disabled={isOffHours || undefined}
+                        onClick={() => !isDisabled && toggleOption(group, opt)}
+                        disabled={isDisabled}
+                        className={cn(
+                          "flex flex-col items-center justify-center px-3 py-3.5 rounded-2xl transition-colors duration-150 text-center border gap-0.5",
+                          isSelected
+                            ? "bg-[#05c8a7] text-[#04241E] border-[#05c8a7] shadow-sm"
+                            : isDisabled
+                              ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
+                              : isOffHours
+                                ? "bg-gray-50 border-dashed border-gray-200 text-gray-500"
+                                : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
+                        )}
+                      >
+                        <span className="flex items-center gap-1 text-[14px] font-semibold leading-tight">
+                          {/* The tick is not decoration: in the grid the teal fill
+                              was the only signal that an option was chosen, which
+                              fails WCAG 1.4.1 (colour as the sole means of
+                              conveying state) and disappears entirely for the ~8%
+                              of men with colour blindness. */}
+                          {isSelected && (
+                            <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                          )}
+                          {tName(opt, locale, defaultLocale)}
+                        </span>
+                        {hours && (
+                          <span
+                            className={cn(
+                              "text-[13px] font-medium",
+                              isSelected ? "text-[#04241E]/80" : "text-gray-600",
+                            )}
+                          >
+                            {hours}
+                          </span>
+                        )}
+                        {/* Secondary text on the selected teal (#05c8a7) uses the
+                            dark ink at 80% (~5.1:1). The old #d0f7f1 / gray-300
+                            sat at ~1.4:1 — the price vanished exactly when the
+                            diner had just picked it. */}
+                        {Number(opt.price_delta) !== 0 ? (
+                          <span
+                            className={cn(
+                              "text-[13px] font-medium",
+                              isSelected ? "text-[#04241E]/80" : "text-gray-600",
+                            )}
+                          >
+                            {Number(opt.price_delta) > 0 ? "+" : ""}
+                            {fmtPrice(Number(opt.price_delta))}
+                          </span>
+                        ) : (
+                          showsIncluded && (
+                            <span
+                              className={cn(
+                                "text-[11px] font-semibold uppercase tracking-wide",
+                                isSelected ? "text-[#04241E]/80" : "text-gray-500",
+                              )}
+                            >
+                              {t.included}
+                            </span>
+                          )
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <p
+                aria-live="polite"
+                className={cn(
+                  "text-[13px] font-medium text-amber-700",
+                  notice ? "mt-2" : "sr-only",
+                )}
+              >
+                {notice}
+              </p>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* ── Free-text note for this line ──
+            Deliberately last, after every modifier group: the structured options
+            are what the kitchen can price and route, so the diner should meet
+            them first and reach for prose only for what they don't cover
+            ("no pickles", "gravy on the side"). Placing it earlier invites people
+            to type requests that already exist as a tappable option. */}
+        <div className="px-5 pt-4">
+          <label
+            htmlFor="item-notes"
+            className="block text-[17px] font-semibold leading-snug text-gray-900 mb-3 border-t border-gray-100 pt-4"
+          >
+            {t.itemNotesLabel}
+          </label>
+          <textarea
+            id="item-notes"
+            value={notes}
+            onChange={(e) => {
+              resetAdded();
+              setNotes(e.target.value.slice(0, 200));
+            }}
+            maxLength={200}
+            rows={2}
+            placeholder={t.itemNotesPlaceholder}
+            /* text-base (16px) is not a style choice: iOS Safari zooms the whole
+               page when a focused input is under 16px, and the diner lands back
+               on a menu they have to pinch out of. */
+            className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 resize-none transition-colors focus:outline-none focus:border-[#05c8a7] focus:ring-1 focus:ring-[#05c8a7]"
+          />
+          {notes.length > 150 && (
+            <p className="mt-1 text-[12px] text-gray-500 text-right tabular-nums">
+              {notes.length}/200
+            </p>
+          )}
+        </div>
+
+        {/* ── Smart complementary suggestions ──
+            Horizontal carousel on BOTH desktop and mobile (the pattern Uber Eats /
+            DoorDash use inside the item detail). Mobile: swipe. Desktop: arrow
+            buttons + wheel-to-horizontal. Cards peek past the right edge to signal
+            there's more. The quick-add control is an OUTLINE "+" so it stays
+            visually subordinate to the solid sticky CTA below (avoids confusion). */}
+        {!isEditing && (suggestedProducts ?? []).length > 0 && (
+          <div className="pt-5 pb-6">
+            <h4 className="mb-3 px-5 text-[17px] font-semibold leading-snug text-gray-900">
+              {t.goesWellWith}
+            </h4>
+            <div className="relative group/sugg">
+              <div
+                ref={suggestionsScrollRef}
+                className="flex gap-3 overflow-x-auto px-5 pb-1 scroll-smooth"
+                style={
+                  {
+                    WebkitOverflowScrolling: "touch",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                  } as React.CSSProperties
+                }
+              >
+                {(suggestedProducts ?? []).slice(0, 12).map((p) => (
+                  <button
+                    type="button"
+                    key={p.id}
+                    onClick={() => onSuggestAdd?.(p)}
+                    aria-label={
+                      locale === "es"
+                        ? `Agregar ${tName(p, locale, defaultLocale)}`
+                        : `Add ${tName(p, locale, defaultLocale)}`
+                    }
+                    className="group/card flex-shrink-0 w-[132px] lg:w-[160px] text-left bg-white rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                  >
+                    <div className="relative w-full aspect-square bg-gray-100">
+                      {!showsAsRow(p) && p.image_url ? (
+                        <Image
+                          src={p.image_url}
+                          alt={tName(p, locale, defaultLocale)}
+                          fill
+                          sizes="160px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-3xl">
+                          🍽️
+                        </div>
+                      )}
+                      {/* Outline quick-add "+" — white fill, brand border, sits over
+                          the image corner. Deliberately lighter weight than the CTA. */}
+                      <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white border-[1.5px] border-[#05c8a7] flex items-center justify-center shadow-sm group-hover/card:bg-[#05c8a7] transition-colors">
+                        <Plus className="w-4 h-4 text-[#047a65] group-hover/card:text-white transition-colors" />
+                      </span>
+                    </div>
+                    <div className="p-2.5">
+                      <p className="text-[14px] font-medium text-gray-900 line-clamp-2 leading-tight mb-1">
+                        {tName(p, locale, defaultLocale)}
+                      </p>
+                      <span className="text-[14px] font-semibold text-gray-800 tabular-nums">
+                        {fmtPrice(Number(p.price))}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Desktop arrow controls — appear on hover. Hidden on mobile (swipe). */}
+              <button
+                type="button"
+                onClick={() => scrollSuggestions("left")}
+                aria-label={locale === "es" ? "Ver anteriores" : "Scroll left"}
+                className="hidden lg:flex absolute left-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollSuggestions("right")}
+                aria-label={locale === "es" ? "Ver más" : "Scroll right"}
+                className="hidden lg:flex absolute right-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Right-edge fade — signals more content past the peek. */}
+              {(suggestedProducts ?? []).length > 3 && (
+                <div
+                  className="pointer-events-none absolute top-0 right-0 h-full w-12"
+                  style={{
+                    background: "linear-gradient(to right, transparent, white)",
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        )}
+    </>
+  );
+
+  // Phone and tablet: one scroll — photo, name, then the options.
   const sheetBody = (
     <div
       ref={bodyScrollRef}
@@ -894,543 +1459,9 @@ export function CustomizationSheet({
         } as React.CSSProperties
       }
     >
-      {/* The detail sheet is the fifth surface that has to agree with the menu
-          about whether a product shows a photo. Without showsAsRow() a drink
-          listed as a row still opened onto a full-bleed hero image — Buccaneer's
-          nine beers all pointed at one generic stock photo of a sandwich, so
-          tapping "Corona" showed a panini.
-
-          The max-h is the other half of that agreement: 4/3 alone has no
-          ceiling, so the wider the surface the taller the photo. On an iPad the
-          sheet is wide enough that the hero grew past 700px and pushed the
-          option groups below the fold — the CTA stayed disabled ("Choose: …")
-          with nothing visible to choose, so the dish could not be added at all.
-          The photo is context; the options are the task. */}
-      {/* 16:9 rather than 4:3 (219px instead of 293 on a phone): the photo
-          says which dish this is, the options are the task. The cap stays for
-          the wide tablet sheet. Handle and X float over it (sheetChrome). */}
-      {hasHero ? (
-        <div className="relative w-full aspect-video max-h-[32dvh] bg-gray-100 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
-          <div className="absolute inset-0">
-            <Image
-              src={product.image_url}
-              alt={displayName}
-              fill
-              sizes="(max-width: 640px) 100vw, 600px"
-              loader={
-                product.image_url.includes(".supabase.co/storage/")
-                  ? supabaseLoader
-                  : undefined
-              }
-              placeholder={getBlurUrl(product.image_url) ? "blur" : undefined}
-              blurDataURL={getBlurUrl(product.image_url)}
-              className="object-cover opacity-0 transition-opacity duration-150"
-              onLoad={(e) =>
-                e.currentTarget.classList.replace("opacity-0", "opacity-100")
-              }
-              priority
-            />
-          </div>
-        </div>
-      ) : (
-        // No photo: a strip for the floating X so it never sits on the title.
-        <div style={{ height: COMPACT_HEADER_PX }} aria-hidden="true" />
-      )}
-      <div className="px-5 pt-4 pb-2">
-        <div>
-          <div>
-            {isEditing && (
-              <p className="text-[13px] font-medium text-gray-600 mb-1">{t.editItem}</p>
-            )}
-            <h3
-              id="customization-dialog-title"
-              ref={titleRef}
-              className="text-[22px] font-bold text-gray-900 leading-tight tracking-[-0.01em]"
-            >
-              {displayName}
-            </h3>
-            <p className="mt-1 text-[17px] font-semibold text-gray-900 tabular-nums">
-              {fmtPrice(Number(product.price))}
-            </p>
-            {displayDesc && (
-              <p className="text-[15px] text-gray-600 mt-2 leading-relaxed">
-                {displayDesc}
-              </p>
-            )}
-            {(product.dietary_tags?.length ?? 0) > 0 && (
-              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                {product.dietary_tags!.map((tagId) => {
-                  const tag = DIETARY_TAGS_MAP[tagId];
-                  if (!tag) return null;
-                  return (
-                    <span
-                      key={tagId}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-[12px] font-medium text-gray-700"
-                    >
-                      <span>{tag.emoji}</span>
-                      {locale?.startsWith("en") ? tag.labelEn : tag.labelEs}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Loading skeleton while modifier data is fetched for large-catalog stores */}
-      {modifiersLoading && (
-        <div className="px-5 pt-5 space-y-3">
-          <div className="skeleton h-4 w-32 rounded-lg" />
-          <div className="grid grid-cols-2 gap-2">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="skeleton h-10 rounded-xl"
-                style={{ animationDelay: `${i * 60}ms` }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Error state when modifier data fails to load */}
-      {modifiersError && !modifiersLoading && (
-        <div className="px-5 pt-5">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
-            <span className="text-amber-500 text-base flex-shrink-0">⚠️</span>
-            <p className="text-sm text-amber-700 flex-1">
-              {locale === "es"
-                ? "No se pudieron cargar las opciones."
-                : "Options could not be loaded."}
-            </p>
-            <button
-              onClick={loadModifiers}
-              className="text-xs font-semibold text-amber-700 underline underline-offset-2 hover:no-underline flex-shrink-0"
-            >
-              {locale === "es" ? "Reintentar" : "Retry"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {activeGroups.map((group) => {
-        if (layout.absorbed.has(group.id)) return null;
-        const format = layout.format.get(group.id) ?? "chips";
-        const guests = layout.guests.get(group.id) ?? [];
-        const selected = selections[group.id] ?? [];
-        // atMax only blocks when max > 1; for max_select=1 we swap instead of block
-        const atMax =
-          group.selection_type === "multi" &&
-          group.max_select > 1 &&
-          selected.length >= group.max_select;
-
-        /**
-         * "Incluido" on the free options of a required single-choice group.
-         *
-         * A Roadhouse Burger arrives with pepperjack in the recipe and in the
-         * price, so its option is pre-selected — but pre-selected looked exactly
-         * like chosen-by-the-customer, and a blank space where a price would be
-         * says nothing. Baymard measured the cost of that silence in product
-         * configurators: 63% of users assume wrongly what is included, and find
-         * out late enough to feel misled.
-         *
-         * The label goes on every free option, not just the default: it is also
-         * what tells the diner that switching to cheddar costs nothing.
-         *
-         * "Incluido" rather than "$0" (reads as a bug) or "Gratis" (reads as a
-         * giveaway) — the point is that the price already covers it.
-         */
-        // Only where "free" genuinely means "already paid for": a required
-        // single choice the diner must make. On an optional add-on group a zero
-        // price means free-of-charge, which is a different claim.
-        //
-        // And only where the group actually charges for something else. A first
-        // pass keyed purely off required+single put "Incluido" next to every
-        // cooking temperature — nobody suspects they are billed for medium rare,
-        // so the label was pure noise — and next to "Regular" in the Style group,
-        // where it read as a promise of something included while Deluxe sat
-        // beside it at +$4. The label only carries meaning by contrast: it says
-        // "this one costs nothing, that one does", which needs a "that one".
-        // One more exclusion, and it is the sharpest: a group whose paid option
-        // is an UPGRADE of the whole dish rather than a variant of one
-        // ingredient. Buccaneer's "Style" offers Regular against "Deluxe —
-        // lettuce, tomato & choice of side +$4"; labelling Regular "Incluido"
-        // announces that something comes with it, when Regular is precisely the
-        // one that comes with less. The tell is that the free option is the
-        // baseline the price already names, not one flavour among equals.
-        const options = group.options ?? [];
-        const freeCount = options.filter(
-          (o) => Number(o.price_delta) === 0,
-        ).length;
-        const hasPricedOption = freeCount < options.length;
-        // Two options, one free one paid, is an upgrade toggle, not a choice of
-        // ingredient. A cheese list has many free options and a couple of paid.
-        const isUpgradeToggle = options.length === 2 && freeCount === 1;
-        const showsIncluded =
-          group.is_required &&
-          group.selection_type === "single" &&
-          hasPricedOption &&
-          !isUpgradeToggle;
-
-        // Every group stays open, always (Pedro 2026-11-11). Folding an answered
-        // group into a "Cheese: Pepperjack · Change" row hid the live choices
-        // behind an extra tap; the diner wants to see and switch options in place.
-        // A required group the diner has already answered turns its red
-        // "Choose 1" into a green tick: on a six-group burger the badges become
-        // a checklist of what is still missing instead of six identical alarms.
-        const minRequired = minRequiredFor(group);
-        const isSatisfied = minRequired > 0 && selected.length >= minRequired;
-        const isHighlighted = highlightGroupId === group.id;
-        const headingId = `cs-group-${group.id}`;
-        // A single choice that arrives preselected reads as "already decided"
-        // unless it says so: diners didn't realise eggs come with home fries
-        // and that fries are one tap away (Pedro 2026-11-12). Worded "Standard"
-        // rather than "Comes with" because the same shape covers cooking
-        // temperature, size and burger style, where "comes with Medium Rare"
-        // would be nonsense.
-        const defaults = group.options.filter((o) => o.is_default);
-        const groupTitle = tName(group, locale, defaultLocale);
-        const defaultName =
-          defaults.length === 1 ? tName(defaults[0], locale, defaultLocale) : "";
-        // A title written as a question that already names the standard
-        // ("Comes with Home Fries. Want to swap?") would only be repeated by
-        // the hint underneath.
-        const standardHint =
-          group.selection_type === "single" &&
-          group.options.length > 1 &&
-          defaults.length === 1 &&
-          !groupTitle.toLowerCase().includes(defaultName.toLowerCase())
-            ? t.standardChoice(defaultName)
-            : null;
-        const notice =
-          hoursNotice &&
-          (hoursNotice.groupId === group.id ||
-            guests.some((g) => g.id === hoursNotice.groupId))
-            ? hoursNotice.text
-            : null;
-
-        return (
-          <div
-            key={group.id}
-            ref={(el) => {
-              if (el) groupRefs.current.set(group.id, el);
-              else groupRefs.current.delete(group.id);
-            }}
-            className="px-5 pt-4"
-          >
-            <div
-              ref={(el) => {
-                if (el) highlightRefs.current.set(group.id, el);
-                else highlightRefs.current.delete(group.id);
-              }}
-              className={cn(
-                "rounded-2xl transition-shadow duration-300",
-                isHighlighted && "ring-2 ring-red-400 ring-offset-4",
-              )}
-            >
-            {/* Group titles are the questions the diner answers ("How would you
-                like your eggs?"), so they carry the hierarchy: 17px extrabold,
-                a hairline above each group, and a quiet "Optional" instead of
-                an uppercase pill competing with them. Only what blocks the
-                order (a required group) keeps colour. Size and weight rather
-                than a brand colour: teal already means "selected" here. */}
-            <div className="border-t border-gray-100 pt-4 mb-3">
-              <h4
-                id={headingId}
-                className="text-[17px] font-semibold leading-snug text-gray-900"
-              >
-                {groupTitle}
-              </h4>
-              <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                {/* Pending required groups read as a quiet grey "Required" — red
-                    only once the diner tried to add without answering (the same
-                    moment the ring turns red). Answered ones become a tick in the
-                    accent instead of a "Done" chip: a checklist, not six pills. */}
-                {isSatisfied ? (
-                  <span className="inline-flex items-center gap-1.5 text-[13px] text-gray-600">
-                    <span className="flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#05c8a7]">
-                      <Check className="w-3 h-3 text-[#04241E]" strokeWidth={3} aria-hidden="true" />
-                    </span>
-                    <span className="sr-only">{t.groupDone}:</span>
-                    {getRuleLabel(group)}
-                  </span>
-                ) : minRequired > 0 ? (
-                  <span
-                    className={cn(
-                      "text-[13px] font-medium px-2 py-0.5 rounded-full",
-                      isHighlighted ? "text-red-700 bg-red-50" : "text-gray-700 bg-gray-100",
-                    )}
-                  >
-                    {t.groupRequired} · {getRuleLabel(group)}
-                  </span>
-                ) : (
-                  // A list that took in lone add-ons has more rows than its own
-                  // "up to 4" counts; each joined row keeps its own rule.
-                  <span className="text-[13px] text-gray-600">
-                    {getRuleLabel(guests.length > 0 ? { ...group, max_select: 1 } : group)}
-                  </span>
-                )}
-                {atMax && (
-                  <span className="text-[13px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
-                    {t.maxReached}
-                  </span>
-                )}
-              </div>
-              {standardHint && (
-                <p className="mt-1 text-[13px] text-gray-600">{standardHint}</p>
-              )}
-            </div>
-            {format === "toggle" ? (
-              renderToggle(group, headingId)
-            ) : format === "chips" ? (
-              <div role="group" aria-labelledby={headingId} className="flex flex-wrap gap-2">
-                {group.options.map((opt) => renderChip(group, opt, showsIncluded))}
-              </div>
-            ) : format === "list" ? (
-              <div
-                role="group"
-                aria-labelledby={headingId}
-                className="rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden"
-              >
-                {group.options.map((opt) => renderListRow(group, opt, showsIncluded))}
-                {/* Lone add-ons that follow ("Extra cheese?") as more rows:
-                    separate groups in the data, one list on screen. */}
-                {guests.map((g) =>
-                  g.options.map((opt) => renderListRow(g, opt, false)),
-                )}
-              </div>
-            ) : (
-              <div
-                role="group"
-                aria-labelledby={headingId}
-                className="grid grid-cols-2 gap-2"
-              >
-                {group.options.map((opt) => {
-                  const isSelected = selected.some((o) => o.id === opt.id);
-                  const isDisabled = !isSelected && atMax;
-                  // Out of hours: greyed, but still tappable so the tap can say
-                  // when it is served (a disabled button swallows the tap).
-                  const isOffHours = !isSelected && !isAvailableNow(opt);
-                  const hours = optionHoursLabel(opt, locale);
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      aria-pressed={isSelected}
-                      aria-disabled={isOffHours || undefined}
-                      onClick={() => !isDisabled && toggleOption(group, opt)}
-                      disabled={isDisabled}
-                      className={cn(
-                        "flex flex-col items-center justify-center px-3 py-3.5 rounded-2xl transition-colors duration-150 text-center border gap-0.5",
-                        isSelected
-                          ? "bg-[#05c8a7] text-[#04241E] border-[#05c8a7] shadow-sm"
-                          : isDisabled
-                            ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
-                            : isOffHours
-                              ? "bg-gray-50 border-dashed border-gray-200 text-gray-500"
-                              : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
-                      )}
-                    >
-                      <span className="flex items-center gap-1 text-[14px] font-semibold leading-tight">
-                        {/* The tick is not decoration: in the grid the teal fill
-                            was the only signal that an option was chosen, which
-                            fails WCAG 1.4.1 (colour as the sole means of
-                            conveying state) and disappears entirely for the ~8%
-                            of men with colour blindness. */}
-                        {isSelected && (
-                          <Check className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-                        )}
-                        {tName(opt, locale, defaultLocale)}
-                      </span>
-                      {hours && (
-                        <span
-                          className={cn(
-                            "text-[13px] font-medium",
-                            isSelected ? "text-[#04241E]/80" : "text-gray-600",
-                          )}
-                        >
-                          {hours}
-                        </span>
-                      )}
-                      {/* Secondary text on the selected teal (#05c8a7) uses the
-                          dark ink at 80% (~5.1:1). The old #d0f7f1 / gray-300
-                          sat at ~1.4:1 — the price vanished exactly when the
-                          diner had just picked it. */}
-                      {Number(opt.price_delta) !== 0 ? (
-                        <span
-                          className={cn(
-                            "text-[13px] font-medium",
-                            isSelected ? "text-[#04241E]/80" : "text-gray-600",
-                          )}
-                        >
-                          {Number(opt.price_delta) > 0 ? "+" : ""}
-                          {fmtPrice(Number(opt.price_delta))}
-                        </span>
-                      ) : (
-                        showsIncluded && (
-                          <span
-                            className={cn(
-                              "text-[11px] font-semibold uppercase tracking-wide",
-                              isSelected ? "text-[#04241E]/80" : "text-gray-500",
-                            )}
-                          >
-                            {t.included}
-                          </span>
-                        )
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <p
-              aria-live="polite"
-              className={cn(
-                "text-[13px] font-medium text-amber-700",
-                notice ? "mt-2" : "sr-only",
-              )}
-            >
-              {notice}
-            </p>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* ── Free-text note for this line ──
-          Deliberately last, after every modifier group: the structured options
-          are what the kitchen can price and route, so the diner should meet
-          them first and reach for prose only for what they don't cover
-          ("no pickles", "gravy on the side"). Placing it earlier invites people
-          to type requests that already exist as a tappable option. */}
-      <div className="px-5 pt-4">
-        <label
-          htmlFor="item-notes"
-          className="block text-[17px] font-semibold leading-snug text-gray-900 mb-3 border-t border-gray-100 pt-4"
-        >
-          {t.itemNotesLabel}
-        </label>
-        <textarea
-          id="item-notes"
-          value={notes}
-          onChange={(e) => {
-            resetAdded();
-            setNotes(e.target.value.slice(0, 200));
-          }}
-          maxLength={200}
-          rows={2}
-          placeholder={t.itemNotesPlaceholder}
-          /* text-base (16px) is not a style choice: iOS Safari zooms the whole
-             page when a focused input is under 16px, and the diner lands back
-             on a menu they have to pinch out of. */
-          className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 resize-none transition-colors focus:outline-none focus:border-[#05c8a7] focus:ring-1 focus:ring-[#05c8a7]"
-        />
-        {notes.length > 150 && (
-          <p className="mt-1 text-[12px] text-gray-500 text-right tabular-nums">
-            {notes.length}/200
-          </p>
-        )}
-      </div>
-
-      {/* ── Smart complementary suggestions ──
-          Horizontal carousel on BOTH desktop and mobile (the pattern Uber Eats /
-          DoorDash use inside the item detail). Mobile: swipe. Desktop: arrow
-          buttons + wheel-to-horizontal. Cards peek past the right edge to signal
-          there's more. The quick-add control is an OUTLINE "+" so it stays
-          visually subordinate to the solid sticky CTA below (avoids confusion). */}
-      {!isEditing && (suggestedProducts ?? []).length > 0 && (
-        <div className="pt-5 pb-6">
-          <h4 className="mb-3 px-5 text-[17px] font-semibold leading-snug text-gray-900">
-            {t.goesWellWith}
-          </h4>
-          <div className="relative group/sugg">
-            <div
-              ref={suggestionsScrollRef}
-              className="flex gap-3 overflow-x-auto px-5 pb-1 scroll-smooth"
-              style={
-                {
-                  WebkitOverflowScrolling: "touch",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                } as React.CSSProperties
-              }
-            >
-              {(suggestedProducts ?? []).slice(0, 12).map((p) => (
-                <button
-                  type="button"
-                  key={p.id}
-                  onClick={() => onSuggestAdd?.(p)}
-                  aria-label={
-                    locale === "es"
-                      ? `Agregar ${tName(p, locale, defaultLocale)}`
-                      : `Add ${tName(p, locale, defaultLocale)}`
-                  }
-                  className="group/card flex-shrink-0 w-[132px] lg:w-[160px] text-left bg-white rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-                >
-                  <div className="relative w-full aspect-square bg-gray-100">
-                    {!showsAsRow(p) && p.image_url ? (
-                      <Image
-                        src={p.image_url}
-                        alt={tName(p, locale, defaultLocale)}
-                        fill
-                        sizes="160px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-3xl">
-                        🍽️
-                      </div>
-                    )}
-                    {/* Outline quick-add "+" — white fill, brand border, sits over
-                        the image corner. Deliberately lighter weight than the CTA. */}
-                    <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white border-[1.5px] border-[#05c8a7] flex items-center justify-center shadow-sm group-hover/card:bg-[#05c8a7] transition-colors">
-                      <Plus className="w-4 h-4 text-[#047a65] group-hover/card:text-white transition-colors" />
-                    </span>
-                  </div>
-                  <div className="p-2.5">
-                    <p className="text-[14px] font-medium text-gray-900 line-clamp-2 leading-tight mb-1">
-                      {tName(p, locale, defaultLocale)}
-                    </p>
-                    <span className="text-[14px] font-semibold text-gray-800 tabular-nums">
-                      {fmtPrice(Number(p.price))}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Desktop arrow controls — appear on hover. Hidden on mobile (swipe). */}
-            <button
-              type="button"
-              onClick={() => scrollSuggestions("left")}
-              aria-label={locale === "es" ? "Ver anteriores" : "Scroll left"}
-              className="hidden lg:flex absolute left-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollSuggestions("right")}
-              aria-label={locale === "es" ? "Ver más" : "Scroll right"}
-              className="hidden lg:flex absolute right-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-
-            {/* Right-edge fade — signals more content past the peek. */}
-            {(suggestedProducts ?? []).length > 3 && (
-              <div
-                className="pointer-events-none absolute top-0 right-0 h-full w-12"
-                style={{
-                  background: "linear-gradient(to right, transparent, white)",
-                }}
-              />
-            )}
-          </div>
-        </div>
-      )}
+      {renderHeroMedia(false)}
+      {heroText}
+      {optionsContent}
     </div>
   );
 
@@ -1500,7 +1531,7 @@ export function CustomizationSheet({
               "absolute right-3 z-10",
               // Over a photo it needs its own white disc to read; on a plain
               // white strip that disc just floats, so it goes quiet grey.
-              hasHero
+              hasHero && !isDesktop
                 ? "top-3 bg-white/95 shadow-md active:bg-gray-100 hover:bg-white"
                 : "top-1.5 bg-gray-100 active:bg-gray-200 hover:bg-gray-200",
             )}
@@ -1595,6 +1626,28 @@ export function CustomizationSheet({
     </div>
   );
 
+  // Desktop: two columns. The dish (4:3 photo, name, price, description) stays
+  // put on the left while the options scroll on the right with the Add bar
+  // under them — 2.9 screens instead of 4.9 in the 520px side panel, and the
+  // name never has to be repeated in a header.
+  const desktopBody = (
+    <div className="flex flex-1 min-h-0">
+      <div className="w-[380px] flex-shrink-0 border-r border-gray-100 overflow-y-auto">
+        {renderHeroMedia(true)}
+        <div className={hasHero ? "pt-1" : "pt-6"}>{heroText}</div>
+      </div>
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div
+          ref={bodyScrollRef}
+          className="flex-1 overflow-y-auto overscroll-contain pt-10"
+        >
+          {optionsContent}
+        </div>
+        {sheetFooter}
+      </div>
+    </div>
+  );
+
   return (
     <div ref={dialogRef} className="fixed inset-0 z-50">
       <motion.div
@@ -1606,21 +1659,21 @@ export function CustomizationSheet({
         onClick={onClose}
       />
 
-      {/* Desktop: slide from right — polished side panel */}
+      {/* Desktop: centred two-column modal */}
       {isDesktop && (
         <motion.div
           role="dialog"
           aria-modal="true"
           aria-labelledby="customization-dialog-title"
-          className="flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col overflow-hidden shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100"
-          initial={{ x: "100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "100%" }}
+          className="fixed left-1/2 top-1/2 w-[min(920px,calc(100vw-64px))] h-[min(720px,calc(100dvh-56px))] bg-white flex flex-col overflow-hidden rounded-[20px] shadow-[0_24px_80px_rgba(0,0,0,0.22)]"
+          style={{ x: "-50%", y: "-50%" }}
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97 }}
           transition={springTransition}
         >
           {sheetChrome}
-          {sheetBody}
-          {sheetFooter}
+          {desktopBody}
         </motion.div>
       )}
 
