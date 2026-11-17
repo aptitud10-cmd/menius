@@ -9,6 +9,7 @@ import { customerFlagLabel, type CustomerFlag } from '@/lib/customer-incidents';
 import {
   C, type CounterText, shortName, minsSince, minsLeft, itemCount,
   orderAllergies, money, stripNoteLabel, scheduledWhen, waitingSince,
+  PICKUP_WAIT_WARN_MINS, PICKUP_WAIT_LATE_MINS,
 } from './ui';
 
 export type PrimaryKind = 'accept' | 'ready' | 'serve' | 'dispatch' | 'deliver' | 'complete';
@@ -64,7 +65,19 @@ function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
     return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.sub }}>{T.minAgo(m)}</span>;
   }
   const since = minsSince((order.updated_at as string | undefined) ?? order.created_at);
-  return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: since >= 10 ? C.amber : C.sub }}>{T.waiting(since)}</span>;
+  // Pickup: envejece por tiempo (30 ámbar / 60 rojo). El resto (delivery
+  // esperando repartidor) avisa a los 10.
+  const color = order.order_type === 'pickup'
+    ? (since >= PICKUP_WAIT_LATE_MINS ? C.red : since >= PICKUP_WAIT_WARN_MINS ? C.amber : C.sub)
+    : (since >= 10 ? C.amber : C.sub);
+  return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color }}>{T.waiting(since)}</span>;
+}
+
+/** Pickup en Listo desde hace ≥30 min y sin pago online (eso va por reembolso). */
+export function canMarkNoShow(order: Order): boolean {
+  if (order.order_type !== 'pickup' || order.status !== 'ready') return false;
+  if ((order as { payment_status?: string }).payment_status === 'paid') return false;
+  return minsSince((order.updated_at as string | undefined) ?? order.created_at) >= PICKUP_WAIT_WARN_MINS;
 }
 
 /**
@@ -143,10 +156,12 @@ export function AllergyBlock({ T, text, size = 'md' }: { T: CounterText; text: s
 }
 
 export function OrderCard({
-  order, T, currency, acceptMins, busy, onOpen, onPrimary, routeStop,
+  order, T, currency, acceptMins, busy, onOpen, onPrimary, onNoShow, routeStop,
 }: {
   order: Order; T: CounterText; currency: string; acceptMins: number; busy: boolean;
   onOpen: () => void; onPrimary: (kind: PrimaryKind) => void;
+  /** Solo en el tablero: "No vino a buscarlo" en un pickup envejecido. */
+  onNoShow?: () => void;
   routeStop?: { stop: number; of: number };
 }) {
   const isNew = order.status === 'pending';
@@ -216,6 +231,20 @@ export function OrderCard({
           {action.label}
         </button>
       )}
+
+      {/* Secundario y callado a propósito: cancela la venta y marca al cliente,
+          así que no pesa lo mismo que "Recogido". Se deshace desde el aviso. */}
+      {onNoShow && canMarkNoShow(order) && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={(e) => { e.stopPropagation(); onNoShow(); }}
+          className="-mt-1 -mb-2 h-11 self-center px-3 text-[16px] font-medium underline underline-offset-4 decoration-1 disabled:opacity-50"
+          style={{ color: C.sub }}
+        >
+          {T.noShow}
+        </button>
+      )}
     </div>
   );
 }
@@ -223,7 +252,7 @@ export function OrderCard({
 type ColKey = 'new' | 'prep' | 'ready';
 
 export function CounterBoard({
-  T, currency, newOrders, prepOrders, readyOrders, busyIds, acceptMinsFor, onOpen, onPrimary, routeStops,
+  T, currency, newOrders, prepOrders, readyOrders, busyIds, acceptMinsFor, onOpen, onPrimary, onNoShow, routeStops,
 }: {
   T: CounterText; currency: string;
   newOrders: Order[]; prepOrders: Order[]; readyOrders: Order[];
@@ -231,6 +260,7 @@ export function CounterBoard({
   acceptMinsFor: (o: Order) => number;
   onOpen: (o: Order) => void;
   onPrimary: (o: Order, kind: PrimaryKind) => void;
+  onNoShow?: (o: Order) => void;
   routeStops?: Map<string, { stop: number; of: number }>;
 }) {
   // En pantallas angostas (tablet vertical, celular) se ve una columna a la vez.
@@ -305,6 +335,7 @@ export function CounterBoard({
                     busy={busyIds.has(o.id)}
                     onOpen={() => onOpen(o)}
                     onPrimary={(kind) => onPrimary(o, kind)}
+                    onNoShow={onNoShow ? () => onNoShow(o) : undefined}
                     routeStop={routeStops?.get(o.id)}
                   />
                 ))

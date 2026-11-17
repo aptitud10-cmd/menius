@@ -1067,6 +1067,52 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [T, t, updateOrderLocally, showNotif, demoUpdate]);
 
+  // "No vino a buscarlo" (pickup envejecido en Listo): cancela con el incidente
+  // not_received — no cuenta como venta y marca al cliente para su próximo
+  // pedido. Mismo mecanismo que commitStatus: 5 s con "Deshacer" antes de
+  // mandarlo (una cancelación no se puede revertir después).
+  const commitNoShow = useCallback((order: Order) => {
+    if (isDemoId(order.id)) {
+      demoUpdate(order.id, { status: 'cancelled' });
+      return;
+    }
+    const previous = pendingTimers.current.get(order.id);
+    if (previous) { clearTimeout(previous.timer); previous.run(); }
+    setPendingStatus(p => ({ ...p, [order.id]: 'cancelled' }));
+    setSheetId(cur => (cur === order.id ? null : cur));
+
+    const run = async () => {
+      pendingTimers.current.delete(order.id);
+      setUpdatingId(order.id);
+      try {
+        const res = await updateOrderStatus(order.id, 'cancelled', undefined, { incident: 'not_received' });
+        if (res?.error) { showError(res.error); return; }
+        updateOrderLocally(order.id, { status: 'cancelled' });
+        void loadCustomerFlags();
+      } catch {
+        showError(t.en ? 'Unexpected error' : 'Error inesperado');
+      } finally {
+        if (!pendingTimers.current.has(order.id)) {
+          setPendingStatus(p => { const c = { ...p }; delete c[order.id]; return c; });
+        }
+        setUpdatingId(null);
+      }
+    };
+    const timer = setTimeout(run, 5000);
+    pendingTimers.current.set(order.id, { timer, run });
+
+    showSuccess(T.markedNoShow(order.order_number?.split('-').pop() ?? ''), {
+      label: T.undo,
+      run: () => {
+        const pend = pendingTimers.current.get(order.id);
+        if (pend) { clearTimeout(pend.timer); pendingTimers.current.delete(order.id); }
+        setPendingStatus(p => { const c = { ...p }; delete c[order.id]; return c; });
+        setSuccessToast(null); setToastAction(null);
+      },
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [T, t, updateOrderLocally, demoUpdate, loadCustomerFlags]);
+
   // Si la página se cierra con un cambio en espera, se envía igual.
   useEffect(() => {
     const flush = () => { pendingTimers.current.forEach(p => { clearTimeout(p.timer); p.run(); }); };
@@ -1594,6 +1640,7 @@ export function CounterView({
           acceptMinsFor={defaultMinsFor}
           onOpen={(o) => setSheetId(o.id)}
           onPrimary={onPrimary}
+          onNoShow={commitNoShow}
           routeStops={routeStops}
         />
       ) : (

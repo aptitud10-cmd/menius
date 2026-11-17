@@ -301,8 +301,8 @@ async function sendStatusEmail(opts: {
     }
     const arrivalMs = order.ctx.orderType === 'delivery' && readyAtMs != null ? readyAtMs + travelMs : null;
     email = buildEtaEmail(order.ctx, { readyAtMs, arrivalMs, isUpdate: opts.etaUpdate });
-  } else if (kind === 'ready') {
-    email = buildReadyEmail(order.ctx);
+  } else if (kind === 'ready' || kind === 'ready_reminder') {
+    email = buildReadyEmail(order.ctx, { reminder: kind === 'ready_reminder' });
   } else if (kind === 'on_the_way') {
     email = buildOnTheWayEmail(order.ctx, { arrivalMs: now + travelMs, driverName: order.driverName });
   } else {

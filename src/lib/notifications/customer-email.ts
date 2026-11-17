@@ -159,7 +159,7 @@ function typeLabel(ctx: CustomerEmailCtx): string {
   return en ? 'Pickup' : 'Para recoger';
 }
 
-export type CustomerEmailKind = 'eta' | 'ready' | 'on_the_way' | 'cancelled';
+export type CustomerEmailKind = 'eta' | 'ready' | 'ready_reminder' | 'on_the_way' | 'cancelled';
 
 /**
  * Qué email (si alguno) corresponde a un cambio de estado. El resto de los
@@ -168,6 +168,8 @@ export type CustomerEmailKind = 'eta' | 'ready' | 'on_the_way' | 'cancelled';
 export function customerEmailKind(status: string, orderType?: string | null): CustomerEmailKind | null {
   if (status === 'confirmed' || status === 'preparing') return 'eta';
   if (status === 'ready') return orderType === 'pickup' ? 'ready' : null;
+  // Recordatorio del cron order-timeouts (pickup listo hace 20 min).
+  if (status === 'pickup_reminder') return orderType === 'pickup' ? 'ready_reminder' : null;
   if (status === 'out_for_delivery') return orderType === 'delivery' ? 'on_the_way' : null;
   if (status === 'cancelled') return 'cancelled';
   return null;
@@ -443,16 +445,26 @@ export function buildEtaEmail(ctx: CustomerEmailCtx, opts: { readyAtMs?: number 
 }
 
 // ── 3a. Listo para recoger (pickup) ───────────────────────────────────────
-export function buildReadyEmail(ctx: CustomerEmailCtx): BuiltEmail {
+export function buildReadyEmail(ctx: CustomerEmailCtx, opts?: { reminder?: boolean }): BuiltEmail {
   const en = isEn(ctx.locale);
   const n = shortOrderNumber(ctx.orderNumber);
   const total = money(ctx, ctx.total);
-  const subject = en ? `Your order #${n} is ready — ${ctx.restaurant.name}` : `Tu pedido #${n} está listo — ${ctx.restaurant.name}`;
+  const reminder = !!opts?.reminder;
+  const subject = reminder
+    ? (en ? `Your order #${n} is waiting for you — ${ctx.restaurant.name}` : `Tu pedido #${n} te espera — ${ctx.restaurant.name}`)
+    : (en ? `Your order #${n} is ready — ${ctx.restaurant.name}` : `Tu pedido #${n} está listo — ${ctx.restaurant.name}`);
   const pay = ctx.paid ? (en ? 'Already paid' : 'Ya está pagado') : `${en ? 'Pay' : 'Pagas'} ${total}${ctx.paymentMethod === 'cash' ? (en ? ' cash' : ' en efectivo') : ''}`;
   const preheader = `${en ? `Show #${n} at the counter` : `Muestra el #${n} en el mostrador`} · ${pay}`;
   const place = placeLine(ctx);
   const blocks = [
-    hero(en ? 'Ready now' : 'Listo ahora', `#${esc(n)}`, en ? 'Show this number at the counter.' : 'Muestra este número en el mostrador.', 'ink'),
+    hero(
+      reminder ? (en ? 'Waiting for you' : 'Te espera') : (en ? 'Ready now' : 'Listo ahora'),
+      `#${esc(n)}`,
+      reminder
+        ? (en ? 'It’s been ready for a while. Show this number at the counter.' : 'Está listo hace un rato. Muestra este número en el mostrador.')
+        : (en ? 'Show this number at the counter.' : 'Muestra este número en el mostrador.'),
+      'ink',
+    ),
     button(ctx.mapsUrl || ctx.trackingUrl, ctx.mapsUrl ? (en ? 'Get directions' : 'Cómo llegar') : (en ? 'View order' : 'Ver pedido')),
     infoBlock([
       ...(place ? [{ k: place.k, v: esc(ctx.restaurant.address ?? '') }] : []),

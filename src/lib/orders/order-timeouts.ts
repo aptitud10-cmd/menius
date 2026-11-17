@@ -29,6 +29,10 @@ export const STALE_KITCHEN_MINS = 240;
 export const OUT_FOR_DELIVERY_MINS = 180;
 export const SERVED_MINS = 180;
 
+/** Pickup listo sin recoger: recordatorio al cliente (push + email), una vez. */
+export const PICKUP_REMINDER_MINS = 20;
+export const PICKUP_REMINDER_EVENT = 'pickup_reminder';
+
 export const NOT_ACCEPTED_REASON = 'not_accepted';
 export const AUTO_CLOSED_REASON = 'auto_closed';
 
@@ -41,6 +45,7 @@ export interface TimeoutOrder {
   created_at: string;
   updated_at: string | null;
   prepared_at: string | null;
+  customer_arrived_at?: string | null;
 }
 
 export type TimeoutAction =
@@ -53,6 +58,17 @@ const latest = (...xs: number[]) => Math.max(...xs.filter(Number.isFinite));
 /** Cierre final según el tipo: la mesa termina en 'completed', el resto en 'delivered' (igual que el Counter). */
 function closedStatus(o: TimeoutOrder): 'delivered' | 'completed' {
   return o.order_type === 'dine_in' ? 'completed' : 'delivered';
+}
+
+/**
+ * ¿Toca recordarle al cliente que su pickup lo espera? Entre los 20 min y el
+ * cierre automático (2 h), y no si ya avisó "Ya llegué". El "una sola vez" lo
+ * controla el cron con order_notification_log.
+ */
+export function needsPickupReminder(o: TimeoutOrder, now: number): boolean {
+  if (o.status !== 'ready' || o.order_type !== 'pickup' || o.customer_arrived_at) return false;
+  const mins = (now - latest(t(o.created_at), t(o.updated_at), t(o.prepared_at))) / 60_000;
+  return mins >= PICKUP_REMINDER_MINS && mins < READY_PICKUP_MINS;
 }
 
 export function classifyTimeout(o: TimeoutOrder, now: number): TimeoutAction | null {

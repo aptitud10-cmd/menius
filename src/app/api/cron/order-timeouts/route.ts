@@ -7,6 +7,7 @@
  *   (seguimiento en vivo, push y email). El stock y los puntos vuelven solos
  *   (triggers de cancelación en la base).
  * - Aceptado y olvidado → cerrado en silencio ('auto_closed').
+ * - Pickup listo hace 20 min → recordatorio al cliente (push + email), una vez.
  *
  * Corre cada 10 minutos (vercel.json) y SIEMPRE deja una línea en el log, para
  * poder confirmar que corre (el anterior solo escribía si cerraba algo).
@@ -21,6 +22,8 @@ import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 import { OPEN_ORDER_STATUSES } from '@/lib/order-state';
 import {
   classifyTimeout,
+  needsPickupReminder,
+  PICKUP_REMINDER_EVENT,
   NOT_ACCEPTED_REASON,
   AUTO_CLOSED_REASON,
   type TimeoutOrder,
@@ -49,7 +52,7 @@ export async function GET(req: Request) {
 
   const { data, error } = await db
     .from('orders')
-    .select('id, order_number, restaurant_id, status, order_type, payment_method, payment_status, scheduled_for, created_at, updated_at, prepared_at, customer_name, customer_email, customer_phone, driver_tracking_token')
+    .select('id, order_number, restaurant_id, status, order_type, payment_method, payment_status, scheduled_for, created_at, updated_at, prepared_at, customer_arrived_at, customer_name, customer_email, customer_phone, driver_tracking_token')
     .in('status', OPEN_ORDER_STATUSES)
     .order('created_at', { ascending: true })
     .limit(500);
@@ -62,6 +65,39 @@ export async function GET(req: Request) {
   const cancelled: string[] = [];
   const closed: string[] = [];
   const failed: string[] = [];
+  const reminded: string[] = [];
+
+  // Recordatorio "tu pedido te espera" (pickup listo hace 20 min). Una sola vez
+  // por pedido: cuenta cualquier fila del log, no solo las exitosas — un cliente
+  // sin email no deja fila "exitosa" y si no recibía el push cada 10 min.
+  const reminderCandidates = ((data ?? []) as Row[]).filter((o) => needsPickupReminder(o, now));
+  if (reminderCandidates.length > 0) {
+    const { data: sent } = await db
+      .from('order_notification_log')
+      .select('order_id')
+      .eq('event', PICKUP_REMINDER_EVENT)
+      .in('order_id', reminderCandidates.map((o) => o.id));
+    const already = new Set((sent ?? []).map((r) => r.order_id as string));
+    const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
+    for (const o of reminderCandidates) {
+      if (already.has(o.id)) continue;
+      try {
+        await notifyStatusChange({
+          orderId: o.id,
+          orderNumber: o.order_number,
+          restaurantId: o.restaurant_id,
+          status: PICKUP_REMINDER_EVENT,
+          customerName: o.customer_name ?? '',
+          customerEmail: o.customer_email || undefined,
+          customerPhone: o.customer_phone || undefined,
+          orderType: o.order_type || undefined,
+        });
+        reminded.push(o.order_number);
+      } catch (err) {
+        logger.warn('reminder failed', { orderId: o.id, error: err instanceof Error ? err.message : String(err) });
+      }
+    }
+  }
 
   for (const o of (data ?? []) as Row[]) {
     const action = classifyTimeout(o, now);
@@ -129,8 +165,9 @@ export async function GET(req: Request) {
     cancelled: cancelled.length,
     closed: closed.length,
     failed: failed.length,
+    reminded: reminded.length,
     ...(cancelled.length ? { cancelledOrders: cancelled } : {}),
     ...(closed.length ? { closedOrders: closed } : {}),
   });
-  return NextResponse.json({ cancelled, closed, failed });
+  return NextResponse.json({ cancelled, closed, failed, reminded });
 }

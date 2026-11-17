@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyTimeout, type TimeoutOrder } from '@/lib/orders/order-timeouts';
+import { classifyTimeout, needsPickupReminder, type TimeoutOrder } from '@/lib/orders/order-timeouts';
 
 const NOW = Date.parse('2026-11-17T18:00:00Z');
 const ago = (min: number) => new Date(NOW - min * 60_000).toISOString();
@@ -63,5 +63,22 @@ describe('aceptados y olvidados', () => {
     for (const status of ['delivered', 'completed', 'cancelled']) {
       expect(classifyTimeout(order({ status, updated_at: ago(9999) }), NOW)).toBeNull();
     }
+  });
+});
+
+describe('recordatorio de pickup', () => {
+  const ready = (updatedMin: number, extra: Partial<TimeoutOrder> = {}) =>
+    order({ created_at: ago(999), status: 'ready', order_type: 'pickup', updated_at: ago(updatedMin), ...extra });
+
+  it('entre los 20 min y el cierre de las 2 h', () => {
+    expect(needsPickupReminder(ready(19), NOW)).toBe(false);
+    expect(needsPickupReminder(ready(20), NOW)).toBe(true);
+    expect(needsPickupReminder(ready(119), NOW)).toBe(true);
+    expect(needsPickupReminder(ready(120), NOW)).toBe(false);
+  });
+
+  it('no si el cliente ya avisó que llegó, ni en delivery', () => {
+    expect(needsPickupReminder(ready(30, { customer_arrived_at: ago(2) }), NOW)).toBe(false);
+    expect(needsPickupReminder(ready(30, { order_type: 'delivery' }), NOW)).toBe(false);
   });
 });

@@ -167,6 +167,9 @@ const ES = {
   markedDelivered: (n: string) => `#${n} entregado`,
   markedDispatched: (n: string) => `#${n} salió`,
   markedServed: (n: string) => `#${n} servido`,
+  // Pickup que nadie vino a buscar (cancela + marca al cliente; con Deshacer).
+  noShow: 'No vino a buscarlo',
+  markedNoShow: (n: string) => `#${n}: no vino · cliente marcado`,
   accepted: (n: string, m: number) => `#${n} aceptado · listo en ${m} min`,
   undo: 'Deshacer',
   noticeFailed: 'No se pudo enviar el email al cliente.',
@@ -299,6 +302,8 @@ const EN: Dict = {
   markedDelivered: (n) => `#${n} delivered`,
   markedDispatched: (n) => `#${n} sent out`,
   markedServed: (n) => `#${n} served`,
+  noShow: 'Never picked it up',
+  markedNoShow: (n) => `#${n}: no-show · customer flagged`,
   accepted: (n, m) => `#${n} accepted · ready in ${m} min`,
   undo: 'Undo',
   noticeFailed: "Couldn't email the customer.",
@@ -475,6 +480,14 @@ export function minsLeft(order: Order): number | null {
 
 /** Margen con que un programado pasa a Nuevos antes de su hora. */
 export const SCHEDULED_LEAD_MS = 30 * 60_000;
+
+/**
+ * Pickup en Listo: el contador pasa a ámbar a los 30 min y a rojo a los 60, como
+ * el envejecimiento de tickets de Toast/Square/Aloha. Desde el ámbar aparece
+ * "No vino a buscarlo". (Delivery listo sigue en ámbar a los 10: espera repartidor.)
+ */
+export const PICKUP_WAIT_WARN_MINS = 30;
+export const PICKUP_WAIT_LATE_MINS = 60;
 
 /**
  * Desde cuándo un pedido NUEVO espera respuesta: su llegada; para un programado,

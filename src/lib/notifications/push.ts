@@ -201,6 +201,11 @@ export function getStatusPushPayload(
       title: en ? `🔔 Your order is ready!` : `🔔 ¡Tu pedido está listo!`,
       body: readyBody,
     },
+    // Cron order-timeouts: pickup listo hace 20 min y el cliente no llegó.
+    pickup_reminder: {
+      title: en ? `🥡 Your order is waiting for you` : `🥡 Tu pedido te espera`,
+      body: en ? `Order #${orderNumber} has been ready at ${restaurantName} for a while` : `El pedido #${orderNumber} está listo en ${restaurantName} hace un rato`,
+    },
     out_for_delivery: {
       title: en ? `🛵 On its way!` : `🛵 ¡Va en camino!`,
       // Sin "en vivo": también sale con "Salió" del mostrador, sin GPS del repartidor.

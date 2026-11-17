@@ -84,6 +84,17 @@ const ORDERS: Order[] = [
     order_type: 'pickup', total: 17.5, created_at: ago(24),
     items: [item('p7', 1, 'Western Omelette', 12.5), item('p8', 1, 'Coffee', 2.5)],
   }),
+  // Pickups que nadie vino a buscar: ámbar a los 30 min, rojo a los 60, con "No vino a buscarlo".
+  order({
+    id: 'o8', order_number: 'ORD-261110-006', status: 'ready', customer_name: 'Ana Lopez',
+    order_type: 'pickup', total: 22.0, created_at: ago(55), updated_at: ago(40),
+    items: [item('p14', 1, 'Pancakes', 11.0), item('p15', 1, 'Orange Juice', 4.0)],
+  } as Parameters<typeof order>[0]),
+  order({
+    id: 'o9', order_number: 'ORD-261110-003', status: 'ready', customer_name: 'Mike Ross',
+    order_type: 'pickup', total: 15.5, created_at: ago(90), updated_at: ago(75),
+    items: [item('p16', 1, 'BLT Sandwich', 11.5)],
+  } as Parameters<typeof order>[0]),
   order({
     id: 'o6', order_number: 'ORD-261110-010', status: 'out_for_delivery', customer_name: 'Rosa Diaz',
     order_type: 'delivery', delivery_address: '31-20 82nd St', total: 29.4, created_at: ago(35),
