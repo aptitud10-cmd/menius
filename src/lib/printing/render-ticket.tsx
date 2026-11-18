@@ -114,13 +114,15 @@ function Item({ item, t, currency }: { item: TicketItem; t: TicketStrings; curre
 function OrderTicket({ d }: { d: TicketData }) {
   const t = ticketStrings(d.locale);
   const c = d.restaurant.currency;
-  const totalsLine = [
-    `${t.subtotal} ${amount(d.totals.subtotal, c)}`,
-    d.totals.tax > 0 ? `${d.restaurant.taxLabel} ${amount(d.totals.tax, c)}` : null,
-    d.totals.deliveryFee > 0 ? `${t.delivery} ${amount(d.totals.deliveryFee, c)}` : null,
-    d.totals.discount > 0 ? `${t.discount} -${amount(d.totals.discount, c)}` : null,
-    d.totals.tip > 0 ? `${t.tip} ${amount(d.totals.tip, c)}` : null,
-  ].filter(Boolean).join(' · ');
+  // Una fila por concepto, con el monto en la columna de los precios (Pedro 2026-11-18).
+  // Envío, descuento y propina solo si el pedido los tiene.
+  const totalRows: [string, string][] = [
+    [t.subtotal, amount(d.totals.subtotal, c)],
+    ...(d.totals.tax > 0 ? [[d.restaurant.taxLabel, amount(d.totals.tax, c)] as [string, string]] : []),
+    ...(d.totals.deliveryFee > 0 ? [[t.delivery, amount(d.totals.deliveryFee, c)] as [string, string]] : []),
+    ...(d.totals.discount > 0 ? [[t.discount, `-${amount(d.totals.discount, c)}`] as [string, string]] : []),
+    ...(d.totals.tip > 0 ? [[t.tip, amount(d.totals.tip, c)] as [string, string]] : []),
+  ];
 
   const sideOfNumber = d.tableName ? `${t.table} ${d.tableName}` : d.readyAt ? `${t.ready} ${d.readyAt}` : null;
 
@@ -151,10 +153,21 @@ function OrderTicket({ d }: { d: TicketData }) {
         </div>
       ) : null}
 
+      {/* Delivery: dirección y teléfono arriba, debajo del número (Pedro 2026-11-18):
+          el del counter los pasa primero al POS y el repartidor los ve sin dar vuelta el ticket. */}
+      {d.delivery ? (
+        <div style={{ display: 'flex', flexDirection: 'column', paddingTop: 10 }}>
+          <div style={{ display: 'flex', fontSize: 36, fontWeight: 900, padding: `0 ${PAD}px`, lineHeight: 1.15 }}>{d.delivery.address}</div>
+          {d.delivery.phone ? <div style={{ display: 'flex', fontSize: 30, fontWeight: 900, padding: `4px ${PAD}px 0` }}>{prettyPhone(d.delivery.phone)}</div> : null}
+          {d.delivery.instructions ? <Boxed size={24}>{d.delivery.instructions}</Boxed> : null}
+        </div>
+      ) : null}
+
       {d.scheduledFor ? (
         <div style={{ display: 'flex', fontSize: 32, fontWeight: 900, padding: `8px ${PAD}px 0` }}>{`${t.scheduled} ${d.scheduledFor}`}</div>
       ) : null}
       <div style={{ display: 'flex', fontSize: 24, fontWeight: 700, padding: `8px ${PAD}px 0` }}>{t.utensils(d.includeUtensils)}</div>
+      <div style={{ display: 'flex', fontSize: 26, fontWeight: 900, padding: `4px ${PAD}px 0` }}>{t.itemCount(d.itemCount)}</div>
 
       <Rule />
       {/* Línea fina entre platos: dos Cheeseburger Deluxe distintas se leen como dos (Pedro 2026-11-18). */}
@@ -165,10 +178,9 @@ function OrderTicket({ d }: { d: TicketData }) {
         </div>
       ))}
       {d.orderNotes ? <Boxed size={24}>{`${t.note}: ${d.orderNotes}`}</Boxed> : null}
-      <div style={{ display: 'flex', fontSize: 26, fontWeight: 900, padding: `6px ${PAD}px 0` }}>{t.itemsCheckBag(d.itemCount)}</div>
 
       <Rule />
-      <div style={{ display: 'flex', flexWrap: 'wrap', fontSize: 22, fontWeight: 700, padding: `0 ${PAD}px`, lineHeight: 1.25 }}>{totalsLine}</div>
+      {totalRows.map(([label, value]) => <Row key={label} left={label} right={value} size={24} />)}
       <Row left={t.total} right={amount(d.totals.total, c)} size={30} weight={900} />
 
       {d.payment.kind === 'paid' ? <Boxed size={30}>{t.paid}</Boxed> : null}
@@ -179,21 +191,21 @@ function OrderTicket({ d }: { d: TicketData }) {
       ) : null}
       {d.payment.kind === 'verify' ? <Boxed size={30} thick>{t.verifyPayment}</Boxed> : null}
 
-      {d.delivery ? (
+      {d.delivery?.driverUrl ? (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Rule />
-          <div style={{ display: 'flex', fontSize: 36, fontWeight: 900, padding: `0 ${PAD}px`, lineHeight: 1.15 }}>{d.delivery.address}</div>
-          {d.delivery.phone ? <div style={{ display: 'flex', fontSize: 28, fontWeight: 700, padding: `4px ${PAD}px 0` }}>{prettyPhone(d.delivery.phone)}</div> : null}
-          {d.delivery.instructions ? <Boxed size={24}>{d.delivery.instructions}</Boxed> : null}
-          {d.delivery.driverUrl ? <DriverQr url={d.delivery.driverUrl} label={t.driverScan} /> : null}
+          <DriverQr url={d.delivery.driverUrl} label={t.driverScan} />
         </div>
       ) : null}
 
+      {/* Pie como el de Uber (Pedro 2026-11-18): cuándo entró, para cuándo y las gracias. */}
       <Rule />
-      <Inverted size={72} center>{`#${d.shortNumber}`}</Inverted>
-      <div style={{ display: 'flex', fontSize: 18, fontWeight: 700, padding: `8px ${PAD}px 0` }}>{`${d.orderNumber} · ${t.placed} ${d.placedAt}`}</div>
-      <div style={{ display: 'flex', fontSize: 20, fontWeight: 700, padding: `4px ${PAD}px 0` }}>{`${t.orderDirect}: ${d.restaurant.orderDirectUrl}`}</div>
-      <div style={{ display: 'flex', fontSize: 16, fontWeight: 700, padding: `4px ${PAD}px 0` }}>{t.poweredBy}</div>
+      <div style={{ display: 'flex', fontSize: 24, fontWeight: 700, padding: `0 ${PAD}px` }}>{`${t.placedAt} ${d.placedFull}`}</div>
+      {d.dueFull ? <div style={{ display: 'flex', fontSize: 26, fontWeight: 900, padding: `4px ${PAD}px 0` }}>{`${t.dueAt} ${d.dueFull}`}</div> : null}
+      <div style={{ display: 'flex', height: 2, background: BLACK, margin: `14px ${PAD}px` }} />
+      <div style={{ display: 'flex', justifyContent: 'center', textAlign: 'center', fontSize: 24, fontWeight: 700, padding: `0 ${PAD}px` }}>{t.thanks(d.restaurant.name)}</div>
+      {d.restaurant.orderDirectUrl ? <div style={{ display: 'flex', justifyContent: 'center', fontSize: 20, fontWeight: 700, padding: `6px ${PAD}px 0` }}>{`${t.orderDirect}: ${d.restaurant.orderDirectUrl}`}</div> : null}
+      <div style={{ display: 'flex', justifyContent: 'center', fontSize: 16, fontWeight: 700, padding: `10px ${PAD}px 0` }}>{`${d.orderNumber} · ${t.poweredBy}`}</div>
     </div>
   );
 }

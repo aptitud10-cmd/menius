@@ -66,6 +66,10 @@ export interface TicketData {
   delivery?: { address: string; phone?: string; instructions?: string; driverUrl?: string };
   /** Hora en que entró el pedido ("2:43 AM"). */
   placedAt: string;
+  /** Pie como Uber (Pedro 2026-11-18): "November 13, 2:43 AM". */
+  placedFull: string;
+  /** Para cuándo: la hora programada o la estimada de listo. */
+  dueFull?: string;
 }
 
 // ── Entradas crudas (filas de la base, con nombres de columna reales) ──────────
@@ -144,6 +148,12 @@ function formatDayTime(d: Date, locale: TicketLocale, timeZone: string): string 
   }).format(d).replace(/,/g, '');
 }
 
+/** "November 13, 2:43 AM" / "13 de noviembre, 2:43 a.m." */
+function formatDateTime(d: Date, locale: TicketLocale, timeZone: string): string {
+  const day = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-MX', { timeZone, month: 'long', day: 'numeric' }).format(d);
+  return `${day}, ${formatTime(d, locale, timeZone)}`;
+}
+
 function parseDate(v: string | null | undefined): Date | null {
   if (!v) return null;
   const d = new Date(v);
@@ -200,10 +210,10 @@ export function toTicketData(input: ToTicketDataInput): TicketData {
 
   const created = parseDate(o.created_at) ?? new Date();
   const readyBase = parseDate(o.prepared_at) ?? created;
-  const readyAt = o.estimated_ready_minutes
-    ? formatTime(new Date(readyBase.getTime() + o.estimated_ready_minutes * 60_000), locale, timeZone)
-    : undefined;
+  const readyDate = o.estimated_ready_minutes ? new Date(readyBase.getTime() + o.estimated_ready_minutes * 60_000) : null;
+  const readyAt = readyDate ? formatTime(readyDate, locale, timeZone) : undefined;
   const scheduled = parseDate(o.scheduled_for);
+  const due = scheduled ?? readyDate;
 
   const orderNotes = clean(o.notes);
   const allergy = detectAllergy([orderNotes, ...items.map((i) => i.notes)]) ?? undefined;
@@ -253,5 +263,7 @@ export function toTicketData(input: ToTicketDataInput): TicketData {
         }
       : undefined,
     placedAt: formatTime(created, locale, timeZone),
+    placedFull: formatDateTime(created, locale, timeZone),
+    dueFull: due ? formatDateTime(due, locale, timeZone) : undefined,
   };
 }

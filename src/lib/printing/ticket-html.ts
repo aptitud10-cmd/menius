@@ -58,13 +58,14 @@ function itemHtml(item: TicketItem, note: string, currency: string): string {
 export function buildTicketHTML(d: TicketData): string {
   const t = ticketStrings(d.locale);
   const c = d.restaurant.currency;
-  const totalsLine = [
-    `${t.subtotal} ${ticketAmount(d.totals.subtotal, c)}`,
-    d.totals.tax > 0 ? `${d.restaurant.taxLabel} ${ticketAmount(d.totals.tax, c)}` : null,
-    d.totals.deliveryFee > 0 ? `${t.delivery} ${ticketAmount(d.totals.deliveryFee, c)}` : null,
-    d.totals.discount > 0 ? `${t.discount} -${ticketAmount(d.totals.discount, c)}` : null,
-    d.totals.tip > 0 ? `${t.tip} ${ticketAmount(d.totals.tip, c)}` : null,
-  ].filter(Boolean).join(' · ');
+  // Una fila por concepto, con el monto en la columna de los precios (como el PNG).
+  const totalRows: [string, string][] = [
+    [t.subtotal, ticketAmount(d.totals.subtotal, c)],
+    ...(d.totals.tax > 0 ? [[d.restaurant.taxLabel, ticketAmount(d.totals.tax, c)] as [string, string]] : []),
+    ...(d.totals.deliveryFee > 0 ? [[t.delivery, ticketAmount(d.totals.deliveryFee, c)] as [string, string]] : []),
+    ...(d.totals.discount > 0 ? [[t.discount, `-${ticketAmount(d.totals.discount, c)}`] as [string, string]] : []),
+    ...(d.totals.tip > 0 ? [[t.tip, ticketAmount(d.totals.tip, c)] as [string, string]] : []),
+  ];
   // Etiqueta arriba y valor abajo: en una sola línea no entra al lado del número.
   const sideOfNumber = d.tableName ? [t.table, d.tableName] : d.readyAt ? [t.ready, d.readyAt] : null;
 
@@ -73,12 +74,14 @@ export function buildTicketHTML(d: TicketData): string {
     : d.payment.kind === 'collect_cash' ? `<div class="inv pay-cash">${esc(t.collectCash(formatPrice(d.payment.amount, c)))}</div>`
     : `<div class="boxed thick pay">${esc(t.verifyPayment)}</div>`;
 
+  // Delivery: dirección y teléfono arriba, debajo del número (Pedro 2026-11-18);
+  // abajo queda solo el QR del repartidor.
   const delivery = d.delivery ? `
-    <div class="rule"></div>
     <div class="address">${esc(d.delivery.address)}</div>
     ${d.delivery.phone ? `<div class="phone">${esc(prettyPhone(d.delivery.phone))}</div>` : ''}
-    ${d.delivery.instructions ? `<div class="boxed note">${esc(d.delivery.instructions)}</div>` : ''}
-    ${d.delivery.driverUrl ? `<div class="driver"><div class="driver-label">${esc(t.driverScan)}</div>${qrSvg(d.delivery.driverUrl)}</div>` : ''}` : '';
+    ${d.delivery.instructions ? `<div class="boxed note">${esc(d.delivery.instructions)}</div>` : ''}` : '';
+  const driverQr = d.delivery?.driverUrl
+    ? `<div class="rule"></div><div class="driver"><div class="driver-label">${esc(t.driverScan)}</div>${qrSvg(d.delivery.driverUrl)}</div>` : '';
 
   return `<!DOCTYPE html>
 <html lang="${d.locale}">
@@ -90,7 +93,7 @@ export function buildTicketHTML(d: TicketData): string {
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { background: #fff; color: #000; }
   /* La térmica imprime pálido lo fino: lo grande va en Arial Black (Windows y Mac la traen). */
-  .name, .inv, .num, .side, .customer, .allergy, .scheduled, .item-head, .check-bag, .total, .pay, .address, .driver-label { font-family: 'Arial Black', 'Arial Bold', Arial, Helvetica, sans-serif; }
+  .name, .inv, .num, .side, .customer, .allergy, .scheduled, .item-head, .item-count, .total, .pay, .address, .driver-label { font-family: 'Arial Black', 'Arial Bold', Arial, Helvetica, sans-serif; }
   body { width: 72mm; font-family: Arial, Helvetica, sans-serif; font-weight: 700; padding: ${mm(8)} 0 ${mm(48)}; }
   .name { text-align: center; font-size: ${mm(40)}; font-weight: 900; line-height: 1.1; padding: 0 ${mm(10)} ${mm(10)}; }
   .inv { background: #000; color: #fff; font-weight: 900; padding: ${mm(4)} ${mm(16)}; line-height: 1.15; }
@@ -119,21 +122,24 @@ export function buildTicketHTML(d: TicketData): string {
   /* La nota cuelga del plato; línea fina entre platos (dos Deluxe distintas se leen como dos). */
   .item-note { margin-left: ${mm(42)}; }
   .item-sep { height: ${mm(2)}; background: #000; margin: ${mm(2)} ${mm(10)} ${mm(8)}; }
-  .check-bag { font-size: ${mm(26)}; font-weight: 900; padding: ${mm(6)} ${mm(10)} 0; }
-  .totals { font-size: ${mm(22)}; padding: 0 ${mm(10)}; line-height: 1.25; }
+  .item-count { font-size: ${mm(26)}; font-weight: 900; padding: ${mm(4)} ${mm(10)} 0; }
+  .totals { font-size: ${mm(24)}; }
   .total { font-size: ${mm(30)}; font-weight: 900; }
   .pay { font-size: ${mm(30)}; }
   .pay-cash { font-size: ${mm(34)}; margin-top: ${mm(8)}; }
-  .address { font-size: ${mm(36)}; font-weight: 900; padding: 0 ${mm(10)}; line-height: 1.15; }
-  .phone { font-size: ${mm(28)}; padding: ${mm(4)} ${mm(10)} 0; }
+  .address { font-size: ${mm(36)}; font-weight: 900; padding: ${mm(10)} ${mm(10)} 0; line-height: 1.15; }
+  .phone { font-size: ${mm(30)}; font-family: 'Arial Black', Arial, Helvetica, sans-serif; padding: ${mm(4)} ${mm(10)} 0; }
   .driver { display: flex; flex-direction: column; align-items: center; margin-top: ${mm(14)}; break-inside: avoid; }
   .driver-label { font-size: ${mm(26)}; font-weight: 900; }
   .qr { width: 30mm; height: 30mm; margin-top: ${mm(6)}; }
-  .num-bottom { font-size: ${mm(72)}; text-align: center; }
-  .foot { padding: ${mm(4)} ${mm(10)} 0; }
-  .foot.first { font-size: ${mm(18)}; padding-top: ${mm(8)}; }
+  /* Pie como Uber: cuándo entró, para cuándo y las gracias. */
+  .placed { font-size: ${mm(24)}; padding: 0 ${mm(10)}; }
+  .due { font-size: ${mm(26)}; font-family: 'Arial Black', Arial, Helvetica, sans-serif; padding: ${mm(4)} ${mm(10)} 0; }
+  .foot-sep { margin-top: ${mm(14)}; margin-bottom: ${mm(14)}; }
+  .thanks { font-size: ${mm(24)}; text-align: center; padding: 0 ${mm(10)}; }
+  .foot { text-align: center; padding: ${mm(6)} ${mm(10)} 0; }
   .foot.direct { font-size: ${mm(20)}; }
-  .foot.powered { font-size: ${mm(16)}; }
+  .foot.powered { font-size: ${mm(16)}; padding-top: ${mm(10)}; }
 </style>
 </head>
 <body>
@@ -145,22 +151,25 @@ export function buildTicketHTML(d: TicketData): string {
     ${d.customerName ? `<div class="customer">${esc(d.customerName)}</div>` : ''}
   </div>
   ${d.allergy ? `<div class="allergy">${ALERT_ICON}<div>${esc(`${t.allergy}: ${d.allergy}`)}</div></div>` : ''}
+  ${delivery}
   ${d.scheduledFor ? `<div class="scheduled">${esc(`${t.scheduled} ${d.scheduledFor}`)}</div>` : ''}
   <div class="utensils">${esc(t.utensils(d.includeUtensils))}</div>
+  <div class="item-count">${esc(t.itemCount(d.itemCount))}</div>
   <div class="rule"></div>
   ${d.items.map((i, n) => (n > 0 ? '<div class="item-sep"></div>' : '') + itemHtml(i, t.note, c)).join('')}
   ${d.orderNotes ? `<div class="boxed note">${esc(`${t.note}: ${d.orderNotes}`)}</div>` : ''}
-  <div class="check-bag">${esc(t.itemsCheckBag(d.itemCount))}</div>
   <div class="rule"></div>
-  <div class="totals">${esc(totalsLine)}</div>
+  ${totalRows.map(([label, value]) => row(label, value, 'totals')).join('')}
   ${row(t.total, ticketAmount(d.totals.total, c), 'total')}
   ${payment}
-  ${delivery}
+  ${driverQr}
   <div class="rule"></div>
-  <div class="inv num-bottom">#${esc(d.shortNumber)}</div>
-  <div class="foot first">${esc(`${d.orderNumber} · ${t.placed} ${d.placedAt}`)}</div>
+  <div class="placed">${esc(`${t.placedAt} ${d.placedFull}`)}</div>
+  ${d.dueFull ? `<div class="due">${esc(`${t.dueAt} ${d.dueFull}`)}</div>` : ''}
+  <div class="item-sep foot-sep"></div>
+  <div class="thanks">${esc(t.thanks(d.restaurant.name))}</div>
   ${d.restaurant.orderDirectUrl ? `<div class="foot direct">${esc(`${t.orderDirect}: ${d.restaurant.orderDirectUrl}`)}</div>` : ''}
-  <div class="foot powered">${esc(t.poweredBy)}</div>
+  <div class="foot powered">${esc(`${d.orderNumber} · ${t.poweredBy}`)}</div>
 </body>
 </html>`;
 }

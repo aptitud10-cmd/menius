@@ -18,7 +18,8 @@ export interface TicketStrings {
   allergy: string;
   scheduled: string;
   utensils: (yes: boolean) => string;
-  itemsCheckBag: (n: number) => string;
+  /** Cantidad de productos, debajo de cubiertos (Pedro 2026-11-18). */
+  itemCount: (n: number) => string;
   note: string;
   subtotal: string;
   delivery: string;
@@ -29,6 +30,9 @@ export interface TicketStrings {
   collectCash: (amount: string) => string;
   verifyPayment: string;
   placed: string;
+  placedAt: string;
+  dueAt: string;
+  thanks: (restaurant: string) => string;
   orderDirect: string;
   driverScan: string;
   poweredBy: string;
@@ -45,7 +49,7 @@ const en: TicketStrings = {
   allergy: 'ALLERGY',
   scheduled: 'SCHEDULED',
   utensils: (yes) => `Utensils: ${yes ? 'Yes' : 'No'}`,
-  itemsCheckBag: (n) => `${n} ${n === 1 ? 'item' : 'items'} — check bag`,
+  itemCount: (n) => `${n} ${n === 1 ? 'item' : 'items'}`,
   note: 'Note',
   subtotal: 'Subtotal',
   delivery: 'Delivery',
@@ -56,6 +60,9 @@ const en: TicketStrings = {
   collectCash: (amount) => `COLLECT ${amount} CASH`,
   verifyPayment: 'VERIFY PAYMENT ON TABLET',
   placed: 'Placed',
+  placedAt: 'Placed at',
+  dueAt: 'Due at',
+  thanks: (r) => `Thank you for ordering from ${r}`,
   orderDirect: 'Order direct',
   driverScan: 'DRIVER: SCAN TO START',
   poweredBy: 'Online ordering by MENIUS',
@@ -72,7 +79,7 @@ const es: TicketStrings = {
   allergy: 'ALERGIA',
   scheduled: 'PROGRAMADO',
   utensils: (yes) => `Cubiertos: ${yes ? 'Sí' : 'No'}`,
-  itemsCheckBag: (n) => `${n} ${n === 1 ? 'producto' : 'productos'} — revisa la bolsa`,
+  itemCount: (n) => `${n} ${n === 1 ? 'producto' : 'productos'}`,
   note: 'Nota',
   subtotal: 'Subtotal',
   delivery: 'Envío',
@@ -83,6 +90,9 @@ const es: TicketStrings = {
   collectCash: (amount) => `COBRAR ${amount} EFECTIVO`,
   verifyPayment: 'VERIFICAR PAGO EN LA TABLET',
   placed: 'Hecho',
+  placedAt: 'Pedido:',
+  dueAt: 'Para:',
+  thanks: (r) => `Gracias por pedir en ${r}`,
   orderDirect: 'Pide directo',
   driverScan: 'REPARTIDOR: ESCANEA',
   poweredBy: 'Pedidos online con MENIUS',
@@ -100,7 +110,7 @@ export interface TicketText {
   allergy: string;
   scheduled: string;
   utensils: string;
-  itemsCheckBag: string;
+  itemCount: string;
   note: string;
   subtotal: string;
   tax: string;
@@ -111,6 +121,10 @@ export interface TicketText {
   payment: string;
   table: string;
   placed: string;
+  /** Pie ya armado: "Placed at November 13, 2:43 AM". */
+  placedLine: string;
+  dueLine: string;
+  thanks: string;
   orderDirect: string;
   driverScan: string;
   poweredBy: string;
@@ -118,7 +132,8 @@ export interface TicketText {
 
 export function ticketTextFor(
   d: { locale: TicketLocale; channel: TicketChannel; orderType: 'delivery' | 'pickup' | 'dine_in'; includeUtensils: boolean; itemCount: number;
-       payment: { kind: 'paid' | 'collect_cash' | 'verify' }; restaurant: { taxLabel: string } },
+       payment: { kind: 'paid' | 'collect_cash' | 'verify' }; restaurant: { taxLabel: string; name: string };
+       placedFull: string; dueFull?: string },
   paymentAmount: string,
 ): TicketText {
   const t = ticketStrings(d.locale);
@@ -130,7 +145,7 @@ export function ticketTextFor(
     allergy: t.allergy,
     scheduled: t.scheduled,
     utensils: t.utensils(d.includeUtensils),
-    itemsCheckBag: ascii(t.itemsCheckBag(d.itemCount)),
+    itemCount: t.itemCount(d.itemCount),
     note: t.note,
     subtotal: t.subtotal,
     tax: d.restaurant.taxLabel,
@@ -141,6 +156,9 @@ export function ticketTextFor(
     payment: ascii(d.payment.kind === 'paid' ? t.paid : d.payment.kind === 'collect_cash' ? t.collectCash(paymentAmount) : t.verifyPayment),
     table: t.table,
     placed: t.placed,
+    placedLine: `${t.placedAt} ${d.placedFull}`,
+    dueLine: d.dueFull ? `${t.dueAt} ${d.dueFull}` : '',
+    thanks: t.thanks(d.restaurant.name),
     orderDirect: t.orderDirect,
     driverScan: t.driverScan,
     poweredBy: t.poweredBy,

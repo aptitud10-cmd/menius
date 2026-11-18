@@ -58,11 +58,13 @@ function input(over: Partial<ToTicketDataInput['order']> = {}, extra: Partial<To
 const CASES: Record<string, ToTicketDataInput> = {
   'pickup-cash': input(),
   'delivery-cash': input({
-    order_type: 'delivery', delivery_fee: 3.99, tip_amount: 5, total: 70.85, customer_phone: '+17185550123',
+    // Como Buccaneer: sin cargo de envío y, en efectivo, sin propina (se da en mano).
+    order_type: 'delivery', delivery_fee: 0, tip_amount: 0, total: 61.86, customer_phone: '+17185550123',
     delivery_address: '45-12 102nd St, Apt 3B, East Elmhurst, NY 11369', delivery_instructions: 'Ring bell 2, leave at door',
     driver_tracking_token: 'd9b68aef-0000-4000-8000-000000000000',
   }),
-  'delivery-paid': input({ order_type: 'delivery', payment_method: 'online', payment_status: 'paid', delivery_address: '45-12 102nd St', customer_phone: '7185550123' }),
+  // Online pagado: el único caso con propina (en efectivo nunca entra al pedido).
+  'delivery-paid': input({ order_type: 'delivery', payment_method: 'online', payment_status: 'paid', delivery_address: '45-12 102nd St', customer_phone: '7185550123', delivery_fee: 3.99, tip_amount: 5, total: 70.85 }),
   'online-unpaid-verify': input({ payment_method: 'online', payment_status: 'pending' }),
   'dine-in': input({ order_type: 'dine_in', table_name: '7', customer_name: '' }),
   'scheduled': input({ scheduled_for: '2026-11-15T00:30:00Z' }),
@@ -124,12 +126,13 @@ describe('toTicketData', () => {
   });
 
   it('totales de orders; con propina la suma cierra (CA-15)', () => {
-    const d = toTicketData(CASES['delivery-cash']);
+    const d = toTicketData(CASES['delivery-paid']);
     expect(d.totals).toEqual({ subtotal: 56.82, tax: 5.04, deliveryFee: 3.99, discount: 0, tip: 5, total: 70.85 });
     const { subtotal, tax, deliveryFee, discount, tip, total } = d.totals;
     expect(Math.round((subtotal + tax + deliveryFee - discount + tip) * 100) / 100).toBe(total);
-    expect(d.payment).toEqual({ kind: 'collect_cash', amount: 70.85 });
+    expect(d.payment).toEqual({ kind: 'paid', amount: 70.85 });
     expect(toTicketData(CASES['pickup-cash']).totals.tip).toBe(0);
+    expect(toTicketData(CASES['delivery-cash']).payment).toEqual({ kind: 'collect_cash', amount: 61.86 });
     expect(d.includeUtensils).toBe(false);
   });
 
@@ -137,6 +140,10 @@ describe('toTicketData', () => {
     const d = toTicketData(CASES['pickup-cash']);
     expect(d.placedAt).toBe('2:43 PM');
     expect(d.readyAt).toBe('2:55 PM');
+    // Pie como Uber: fecha completa; "Due" es la hora programada si la hay.
+    expect(d.placedFull).toBe('November 14, 2:43 PM');
+    expect(d.dueFull).toBe('November 14, 2:55 PM');
+    expect(toTicketData(CASES['scheduled']).dueFull).toBe('November 14, 7:30 PM');
     expect(toTicketData(CASES['reprint']).reprintedAt).toBe('3:10 PM');
     expect(toTicketData(CASES['scheduled']).scheduledFor).toBe('Sat 11/14 7:30 PM');
   });
@@ -222,7 +229,8 @@ describe('buildTicketHTML (navegador)', () => {
 
   it('delivery en efectivo: COLLECT, dirección y QR del repartidor', () => {
     const html = buildTicketHTML(toTicketData(CASES['delivery-cash']));
-    expect(html).toContain('COLLECT $70.85 CASH');
+    expect(html).toContain('COLLECT $61.86 CASH');
+    expect(html).not.toContain('>Tip<');
     expect(html).toContain('45-12 102nd St, Apt 3B');
     expect(html).toContain('(718) 555-0123');
     expect(html).toContain('DRIVER: SCAN TO START');

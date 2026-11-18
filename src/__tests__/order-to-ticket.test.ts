@@ -30,7 +30,7 @@ describe('orderToTicketData (Android v2 = mismo diseño que CloudPRNT)', () => {
   it('ítems con sus líneas y sin "—" en los textos para ESC/POS', () => {
     expect(ticket.items[0]).toMatchObject({ qty: 2, name: 'Bacon Cheeseburger', lineTotal: 29 });
     expect(ticket.items[0].lines[0].text).toBe('Medium');
-    expect(ticketText.itemsCheckBag).toBe('2 items - check bag');
+    expect(ticketText.itemCount).toBe('2 items');
     expect(ticketText.channelLine).toBe('WEBSITE · DELIVERY');
   });
 
