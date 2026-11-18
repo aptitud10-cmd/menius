@@ -143,7 +143,6 @@ export interface Translations {
   deliveryMinimumMissing: string;
   // Product sheet
   maxReached: string;
-  included: string;
   itemNotesLabel: string;
   itemNotesPlaceholder: string;
   added: string;
@@ -623,7 +622,6 @@ const es: Translations = {
   deliveryMinimum: 'Pedido mínimo para domicilio',
   deliveryMinimumMissing: 'Te falta agregar',
   maxReached: 'Máximo alcanzado',
-  included: 'Incluido',
   itemNotesLabel: 'Alguna indicación',
   itemNotesPlaceholder: 'Ej: sin pepinillos, salsa aparte…',
   added: '✓ Agregado',
@@ -1082,7 +1080,6 @@ const en: Translations = {
   deliveryMinimum: 'Minimum order for delivery',
   deliveryMinimumMissing: 'Add',
   maxReached: 'Max reached',
-  included: 'Included',
   itemNotesLabel: 'Special instructions',
   itemNotesPlaceholder: 'e.g. no pickles, gravy on the side…',
   added: '✓ Added',

@@ -746,7 +746,7 @@ export function CustomizationSheet({
   const priceLabel = (price: number) => `${price > 0 ? "+" : ""}${fmtPrice(price)}`;
 
   /** Short options that flow and wrap: cooking, cheeses, "No pickle", sauces. */
-  const renderChip = (group: ModifierGroup, opt: ModifierOption, showsIncluded: boolean) => {
+  const renderChip = (group: ModifierGroup, opt: ModifierOption) => {
     const { isSelected, isDisabled, isOffHours, hours, price } = optionState(group, opt);
     return (
       <button
@@ -781,16 +781,10 @@ export function CustomizationSheet({
           )}
         </span>
         <StableWeightLabel text={tName(opt, locale, defaultLocale)} bold={isSelected} />
-        {price !== 0 ? (
+        {price !== 0 && (
           <span className={cn("text-[13px] font-medium tabular-nums", isSelected ? "text-[#04241E]/80" : "text-gray-600")}>
             {priceLabel(price)}
           </span>
-        ) : (
-          showsIncluded && (
-            <span className={cn("text-[13px] font-medium", isSelected ? "text-[#04241E]/80" : "text-gray-600")}>
-              {t.included}
-            </span>
-          )
         )}
         {hours && (
           <span className={cn("text-[13px] font-medium", isSelected ? "text-[#04241E]/80" : "text-gray-600")}>
@@ -869,7 +863,7 @@ export function CustomizationSheet({
   };
 
   /** Priced add-ons: checkbox (or radio), name, price aligned right. */
-  const renderListRow = (group: ModifierGroup, opt: ModifierOption, showsIncluded: boolean) => {
+  const renderListRow = (group: ModifierGroup, opt: ModifierOption) => {
     const { isSelected, isDisabled, isOffHours, hours, price } = optionState(group, opt);
     // A lone option ("Egg Whites +$1.25") toggles on and off: a checkbox,
     // not a radio, even when the group is stored as single choice.
@@ -910,10 +904,8 @@ export function CustomizationSheet({
           <StableWeightLabel text={tName(opt, locale, defaultLocale)} bold={isSelected} block />
           {hours &&<span className="block text-[13px] font-medium text-gray-600">{hours}</span>}
         </span>
-        {price !== 0 ? (
+        {price !== 0 && (
           <span className="text-[15px] text-gray-700 tabular-nums flex-shrink-0">{priceLabel(price)}</span>
-        ) : (
-          showsIncluded && <span className="text-[13px] text-gray-600 flex-shrink-0">{t.included}</span>
         )}
       </button>
     );
@@ -1077,53 +1069,10 @@ export function CustomizationSheet({
             group.max_select > 1 &&
             selected.length >= group.max_select;
 
-          /**
-           * "Incluido" on the free options of a required single-choice group.
-           *
-           * A Roadhouse Burger arrives with pepperjack in the recipe and in the
-           * price, so its option is pre-selected — but pre-selected looked exactly
-           * like chosen-by-the-customer, and a blank space where a price would be
-           * says nothing. Baymard measured the cost of that silence in product
-           * configurators: 63% of users assume wrongly what is included, and find
-           * out late enough to feel misled.
-           *
-           * The label goes on every free option, not just the default: it is also
-           * what tells the diner that switching to cheddar costs nothing.
-           *
-           * "Incluido" rather than "$0" (reads as a bug) or "Gratis" (reads as a
-           * giveaway) — the point is that the price already covers it.
-           */
-          // Only where "free" genuinely means "already paid for": a required
-          // single choice the diner must make. On an optional add-on group a zero
-          // price means free-of-charge, which is a different claim.
-          //
-          // And only where the group actually charges for something else. A first
-          // pass keyed purely off required+single put "Incluido" next to every
-          // cooking temperature — nobody suspects they are billed for medium rare,
-          // so the label was pure noise — and next to "Regular" in the Style group,
-          // where it read as a promise of something included while Deluxe sat
-          // beside it at +$4. The label only carries meaning by contrast: it says
-          // "this one costs nothing, that one does", which needs a "that one".
-          // One more exclusion, and it is the sharpest: a group whose paid option
-          // is an UPGRADE of the whole dish rather than a variant of one
-          // ingredient. Buccaneer's "Style" offers Regular against "Deluxe —
-          // lettuce, tomato & choice of side +$4"; labelling Regular "Incluido"
-          // announces that something comes with it, when Regular is precisely the
-          // one that comes with less. The tell is that the free option is the
-          // baseline the price already names, not one flavour among equals.
-          const options = group.options ?? [];
-          const freeCount = options.filter(
-            (o) => Number(o.price_delta) === 0,
-          ).length;
-          const hasPricedOption = freeCount < options.length;
-          // Two options, one free one paid, is an upgrade toggle, not a choice of
-          // ingredient. A cheese list has many free options and a couple of paid.
-          const isUpgradeToggle = options.length === 2 && freeCount === 1;
-          const showsIncluded =
-            group.is_required &&
-            group.selection_type === "single" &&
-            hasPricedOption &&
-            !isUpgradeToggle;
+          // Free options carry no label: only the ones that cost show "+$1.00"
+          // (Pedro 2026-11-18). An "Included" tag beside Ham/Bacon/Sausage, with
+          // Turkey Bacon at +$1 next to them, read as noise; the price on the
+          // paid ones already says which choices add to the bill.
 
           // Every group stays open, always (Pedro 2026-11-11). Folding an answered
           // group into a "Cheese: Pepperjack · Change" row hid the live choices
@@ -1237,7 +1186,7 @@ export function CustomizationSheet({
                 renderToggle(group, headingId)
               ) : format === "chips" ? (
                 <div role="group" aria-labelledby={headingId} className="flex flex-wrap gap-2">
-                  {group.options.map((opt) => renderChip(group, opt, showsIncluded))}
+                  {group.options.map((opt) => renderChip(group, opt))}
                 </div>
               ) : format === "list" ? (
                 <div
@@ -1245,11 +1194,11 @@ export function CustomizationSheet({
                   aria-labelledby={headingId}
                   className="rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden"
                 >
-                  {group.options.map((opt) => renderListRow(group, opt, showsIncluded))}
+                  {group.options.map((opt) => renderListRow(group, opt))}
                   {/* Lone add-ons that follow ("Extra cheese?") as more rows:
                       separate groups in the data, one list on screen. */}
                   {guests.map((g) =>
-                    g.options.map((opt) => renderListRow(g, opt, false)),
+                    g.options.map((opt) => renderListRow(g, opt)),
                   )}
                 </div>
               ) : (
@@ -1311,7 +1260,7 @@ export function CustomizationSheet({
                             dark ink at 80% (~5.1:1). The old #d0f7f1 / gray-300
                             sat at ~1.4:1 — the price vanished exactly when the
                             diner had just picked it. */}
-                        {Number(opt.price_delta) !== 0 ? (
+                        {Number(opt.price_delta) !== 0 && (
                           <span
                             className={cn(
                               "text-[13px] font-medium",
@@ -1321,17 +1270,6 @@ export function CustomizationSheet({
                             {Number(opt.price_delta) > 0 ? "+" : ""}
                             {fmtPrice(Number(opt.price_delta))}
                           </span>
-                        ) : (
-                          showsIncluded && (
-                            <span
-                              className={cn(
-                                "text-[11px] font-semibold uppercase tracking-wide",
-                                isSelected ? "text-[#04241E]/80" : "text-gray-500",
-                              )}
-                            >
-                              {t.included}
-                            </span>
-                          )
                         )}
                       </button>
                     );
