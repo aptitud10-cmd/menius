@@ -18,37 +18,7 @@ import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { broadcastDriverLocation } from '@/lib/realtime/broadcast-order';
 import { getCachedToken, setCachedToken } from '@/lib/tracking/token-cache';
 import { MAX_ROUTE_ORDERS, parseRouteTokens } from '@/lib/orders/driver-route';
-
-type Resolved = { orderId: string } | { error: string; status: number };
-
-/** Token → pedido (Redis primero, Postgres si no está). Mismas guardas de siempre. */
-async function resolveToken(supabase: ReturnType<typeof createAdminClient>, token: string): Promise<Resolved> {
-  const tokenPrefix = token.slice(0, 16);
-  let orderId: string | null = null;
-  let tokenExpiresAt: string | null = null;
-
-  const cached = await getCachedToken(tokenPrefix);
-  if (cached) {
-    orderId = cached.orderId;
-    tokenExpiresAt = cached.expiresAt;
-  } else {
-    const { data: order } = await supabase
-      .from('orders')
-      .select('id, order_type, status, driver_token_expires_at')
-      .eq('driver_tracking_token', token)
-      .maybeSingle();
-    if (!order) return { error: 'Invalid token', status: 404 };
-    // Solo delivery acepta pings de GPS (si no, se inyectan coordenadas en un pickup).
-    if ((order as any).order_type !== 'delivery') return { error: 'Location is only valid for delivery orders', status: 409 };
-    // Cerrado o cancelado: no más GPS. Al cerrar se invalida la caché.
-    if (['delivered', 'completed', 'cancelled'].includes((order as any).status)) return { error: 'Order closed', status: 409 };
-    orderId = order.id as string;
-    tokenExpiresAt = (order as any).driver_token_expires_at ?? null;
-    await setCachedToken(tokenPrefix, { orderId, expiresAt: tokenExpiresAt });
-  }
-  if (tokenExpiresAt && new Date(tokenExpiresAt) < new Date()) return { error: 'Token expired', status: 410 };
-  return { orderId };
-}
+import { resolveDriverToken as resolveToken } from '@/lib/tracking/resolve-driver-token';
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
