@@ -114,14 +114,15 @@ const ITEMS = {
     plate: SLICE('apple pie', 'The slice shows a golden top and bottom crust with sliced apple filling visible between them.'),
     styling: `Golden flaky pastry top and bottom, filling of soft cinnamon-brown apple slices clearly visible on the cut face, slightly spilling.`,
     lighting: HARD, aperture: 'f/4.0 — the crust and filling tack sharp' },
-  // Buccaneer bakes this one in a sheet pan and cuts it into bars, so it is never
+  // Buccaneer bakes this one in a sheet pan and cuts it into pieces, so it is never
   // the wedge the rest of the case is cut into. Real piece (visit 2026-11-18): a
-  // LONG LOW bar about twice as long as wide, fine sandy crumb (no oat clusters),
+  // compact rectangle only a little longer than wide (asking for "twice as long"
+  // gave a strip — Pedro rejected it), fine sandy crumb (no oat clusters),
   // a thin apple layer and a heavy snow of powdered sugar. The first AI version was
   // a tall cube of oat streusel — another product.
   'apple-crumb-pie': {
     subject: `"Apple Crumb Pie" — one rectangular bar of apple crumb pie, dusted with powdered sugar.`,
-    plate: `ONE single RECTANGULAR bar of apple crumb pie lying flat in the centre of the plate, set at a slight diagonal. It is LONG and LOW: about twice as long as it is wide, and only about 3-4 cm tall — NOT a cube, NOT a tall square, NOT a wedge, NOT a slice from a round pie. One long straight CUT SIDE faces the camera so the layers are visible. Only one piece. Nothing else on the plate — NO ice cream, NO sauce, NO cream, NO fork. ${ANGLE}`,
+    plate: `ONE single RECTANGULAR bar of apple crumb pie lying flat in the centre of the plate, set at a slight diagonal. It is a SHORT, compact rectangle — only slightly longer than it is wide, roughly 10 cm long by 7 cm wide and about 4 cm tall. It is NOT a long bar, NOT a strip, NOT a cube, NOT a wedge, NOT a slice from a round pie. The piece occupies only the central third of the plate, with plenty of empty plate around it. One long straight CUT SIDE faces the camera so the layers are visible. Only one piece. Nothing else on the plate — NO ice cream, NO sauce, NO cream, NO fork. ${ANGLE}`,
     styling: `From bottom to top: a thin golden shortcrust pastry base, a THIN layer of soft cinnamon-brown apple filling, then a thick layer of FINE, SANDY, buttery golden crumb topping made of small crumbs — NO oats, NO large clumps. The whole top is HEAVILY dusted with white powdered sugar, like a light snowfall, so the top reads pale and white-speckled; a little powdered sugar has fallen on the plate right around the bar. The cut side is slightly rough and homemade, showing the three layers.`,
     lighting: SOFT, aperture: 'f/4.0 — the powdered sugar and the cut side tack sharp' },
 
