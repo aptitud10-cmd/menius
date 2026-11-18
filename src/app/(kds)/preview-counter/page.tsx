@@ -105,6 +105,7 @@ const ORDERS: Order[] = [
   } as Parameters<typeof order>[0]),
   order({
     id: 'o7', order_number: 'ORD-261110-012', status: 'ready', customer_name: 'Kevin Park',
+    customer_phone: '+17185550199',
     order_type: 'delivery', delivery_address: '94-02 Ditmars Blvd', total: 21.0, created_at: ago(18),
     items: [item('p12', 1, 'Club Sandwich', 13.5), item('p13', 1, 'Fries', 4.5)],
   }),

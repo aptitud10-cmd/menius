@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { Printer, MoreHorizontal, X, Phone, Send, Pencil, Bike, History, Ban, MapPin, LifeBuoy } from 'lucide-react';
+import { Printer, MoreHorizontal, X, Phone, Send, Pencil, Bike, History, Ban, LifeBuoy } from 'lucide-react';
+import { prettyPhone } from '@/lib/phone-format';
 import type { Order } from '@/types';
 import {
   C, RAISED, type CounterText, PREP_CHOICES, money, parseItem, isAllergyText, stripNoteLabel,
@@ -50,8 +51,10 @@ export function OrderSheet({
   const phone = order.customer_phone?.trim();
   const drv = order as Order & { driver_delivered_at?: string | null; delivery_photo_url?: string | null };
 
+  // Sin "Llamar al cliente": la tablet no tiene línea y, dentro de la app
+  // Android, un enlace tel: tumba la página del WebView. El número va a la
+  // vista, grande, para marcarlo desde el teléfono del local.
   const moreItems: { label: string; icon: ReactNode; onClick?: () => void; href?: string; danger?: boolean }[] = [];
-  if (phone) moreItems.push({ label: T.callCustomer, icon: <Phone className="w-5 h-5" />, href: `tel:${phone.replace(/[^\d+]/g, '')}` });
   if (more.onResendNotice) moreItems.push({ label: T.resendNotice, icon: <Send className="w-5 h-5" />, onClick: more.onResendNotice });
   if (more.onEditItems) moreItems.push({ label: T.editItems, icon: <Pencil className="w-5 h-5" />, onClick: more.onEditItems });
   if (more.onAssignDriver) moreItems.push({ label: T.assignDriver, icon: <Bike className="w-5 h-5" />, onClick: more.onAssignDriver });
@@ -193,16 +196,19 @@ export function OrderSheet({
 
               <Box k={T.customer}>
                 <p className="text-[18px] font-semibold">{order.customer_name || '—'}</p>
-                {phone && <p className="text-[16px] tabular-nums select-text" style={{ color: C.sub }}>{phone}</p>}
+                {phone && (
+                  <p className="mt-1 flex items-center gap-2 text-[20px] font-semibold tabular-nums select-text" style={{ color: C.ink }}>
+                    <Phone className="w-[18px] h-[18px] flex-none" style={{ color: C.sub }} aria-hidden />
+                    {prettyPhone(phone)}
+                  </p>
+                )}
               </Box>
 
               {order.order_type === 'delivery' && order.delivery_address && (
                 <Box k={T.address}>
-                  <p className="text-[16px] leading-snug select-text">{order.delivery_address}</p>
-                  <a href={mapsUrl(order)} target="_blank" rel="noopener noreferrer"
-                    className="mt-1.5 h-11 rounded-xl inline-flex items-center justify-center gap-2 font-semibold text-[15px]" style={{ background: C.fill, color: C.ink }}>
-                    <MapPin className="w-4 h-4" /> {T.openMap}
-                  </a>
+                  {/* Sin "Abrir mapa": en la app Android abría Google Maps encima
+                      del Counter. El repartidor navega desde su propia página. */}
+                  <p className="text-[17px] font-medium leading-snug select-text">{order.delivery_address}</p>
                   {(order.driver_name || order.driver_picked_up_at || drv.driver_delivered_at) && (
                     <p className="text-[15px] mt-1.5" style={{ color: C.sub }}>
                       {T.driver}{order.driver_name ? <>: <b style={{ color: C.ink }}>{order.driver_name}</b></> : ''}
@@ -292,16 +298,4 @@ function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between gap-3"><dt>{k}</dt><dd className="tabular-nums">{v}</dd></div>
   );
-}
-
-/**
- * Google Maps del pedido: con las coordenadas que se guardaron al pedir (punto
- * exacto, sirve aunque la dirección escrita sea ambigua); si no hay, por texto.
- */
-function mapsUrl(order: Order) {
-  const o = order as Order & { delivery_lat?: number | null; delivery_lng?: number | null };
-  if (typeof o.delivery_lat === 'number' && typeof o.delivery_lng === 'number') {
-    return `https://www.google.com/maps/search/?api=1&query=${o.delivery_lat},${o.delivery_lng}`;
-  }
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address ?? '')}`;
 }

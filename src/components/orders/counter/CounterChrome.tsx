@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CalendarClock, History, Menu as MenuIcon, Palette, X } from 'lucide-react';
 import type { Order } from '@/types';
 import { C, RAISED, type CounterText } from './ui';
@@ -66,6 +66,7 @@ export function CounterTopBar({
       )}
       <StatusPill state={state} T={T} onClick={onStatus} />
       <span className="flex-1 min-w-0" />
+      <Clock locale={T.locale} />
       {(scheduledCount > 0 || view === 'scheduled') && (
         <button type="button" onClick={() => onView('scheduled')} className={btn} aria-label={`${T.scheduled} ${scheduledCount}`}
           style={view === 'scheduled' ? active : idle}>
@@ -87,6 +88,31 @@ export function CounterTopBar({
         <MenuIcon className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.menu}</span>
       </button>
     </header>
+  );
+}
+
+/**
+ * Hora y fecha. La app Android corre en pantalla completa (sin la barra de
+ * Android), así que sin esto la tablet no muestra la hora en ningún lado.
+ * Arranca vacío y se llena en el cliente: la hora del servidor no coincide.
+ */
+function Clock({ locale }: { locale: string }) {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+  if (!now) return null;
+  return (
+    <span className="flex-none flex items-baseline gap-2 mr-1 sm:mr-2 tabular-nums whitespace-nowrap" style={{ color: C.ink }}>
+      <span className="font-bold text-[20px] sm:text-[22px] tracking-[-0.015em]">
+        {now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}
+      </span>
+      <span className="hidden lg:inline font-medium text-[16px]" style={{ color: C.sub }}>
+        {now.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })}
+      </span>
+    </span>
   );
 }
 
