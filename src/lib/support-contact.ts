@@ -7,9 +7,9 @@
  */
 export const SUPPORT_CONTACT = {
   email: 'soporte@menius.app',
-  phoneE164: '',
+  phoneE164: '+13478489720',
   /** How the number is written for people, e.g. "(718) 555-0123". */
-  phoneDisplay: '',
+  phoneDisplay: '(347) 848-9720',
 } as const;
 
 /** wa.me link with an optional first message already typed. */

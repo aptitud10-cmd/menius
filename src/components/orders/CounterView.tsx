@@ -49,6 +49,9 @@ import {
 
 // ─── i18n ─────────────────────────────────────────────────────────────────────
 
+/** Turno de caja en el menú del Counter: apagado, no se usa en la tablet. */
+const SHOW_CASH_SHIFT = false;
+
 function getT(locale?: string) {
   const en = locale === 'en';
   return {
@@ -1958,7 +1961,9 @@ export function CounterView({
                 </div>
               </SidebarSection>
 
-              {/* Cash Register / Shift */}
+              {/* Cash Register / Shift — oculto (Pedro 2026-11-18: en la tablet no se
+                  usa). La lógica sigue; para volver a mostrarlo, SHOW_CASH_SHIFT = true. */}
+              {SHOW_CASH_SHIFT && (
               <SidebarSection title={t.shiftTitle} icon={<Wallet className="w-4 h-4" />}>
                 {activeShift ? (
                   <div className="space-y-2">
@@ -1984,6 +1989,7 @@ export function CounterView({
                   </button>
                 )}
               </SidebarSection>
+              )}
 
               {/* Idioma de esta pantalla */}
               <SidebarSection title={t.en ? 'Screen language' : 'Idioma de la pantalla'} icon={<Languages className="w-4 h-4" />}>
