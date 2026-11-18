@@ -297,6 +297,16 @@ class PrinterServiceImpl {
         } catch { /* non-critical — will fall back to external URL in the HTML template */ }
       }
 
+      // Ticket v2 para la app Android (mismo diseño que CloudPRNT). Si falla,
+      // imprime igual con el formato de siempre.
+      try {
+        const { orderToTicketData } = await import('./order-to-ticket');
+        Object.assign(receiptData, orderToTicketData(order, {
+          restaurantName, currency, locale, taxLabel,
+          appUrl: typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'),
+        }));
+      } catch { /* sin ticket v2 */ }
+
       const cfg = PrinterConfig.config;
 
       // Android Counter app: native Bluetooth ESC/POS (no browser print dialog)

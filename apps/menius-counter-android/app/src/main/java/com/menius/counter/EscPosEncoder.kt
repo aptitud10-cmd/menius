@@ -52,6 +52,13 @@ class EscPosEncoder(private val codePage: EscPosCodePage = EscPosCodePage.CP858)
     fun doubleHeight(on: Boolean): EscPosEncoder =
         also { write(0x1b, 0x21, if (on) 0x10 else 0x00) }
 
+    /** GS ! n — ancho y alto de 1 a 8 veces (ticket v2: el #003 grande). */
+    fun size(width: Int, height: Int): EscPosEncoder =
+        also { write(0x1d, 0x21, ((width.coerceIn(1, 8) - 1) shl 4) or (height.coerceIn(1, 8) - 1)) }
+
+    /** GS B n — blanco sobre negro (las franjas invertidas del ticket v2). */
+    fun reverse(on: Boolean): EscPosEncoder = also { write(0x1d, 0x42, if (on) 1 else 0) }
+
     fun line(char: Char = '-', width: Int): EscPosEncoder {
         repeat(width) { text(char.toString()) }
         return newline()

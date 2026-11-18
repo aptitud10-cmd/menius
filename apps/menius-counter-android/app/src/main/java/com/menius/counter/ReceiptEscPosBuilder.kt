@@ -13,6 +13,11 @@ object ReceiptEscPosBuilder {
     fun build(jsonPayload: String, lineWidth: Int): ByteArray {
         val root = JSONObject(jsonPayload)
         val ticketType = root.optString("ticketType", "receipt")
+        // Web >= 2026-11-18 (app 1.0.5): el mismo ticket que la impresora CloudPRNT.
+        // Si falta algo, cae al formato de siempre: nunca se queda sin imprimir.
+        if (ticketType != "kitchen" && root.optInt("ticketVersion", 0) >= 2) {
+            try { TicketV2.build(root, lineWidth)?.let { return it } } catch (_: Exception) { }
+        }
         return if (ticketType == "kitchen") {
             buildKitchen(root, lineWidth)
         } else {

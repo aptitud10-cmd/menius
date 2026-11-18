@@ -60,4 +60,7 @@ export interface ReceiptData {
   locale?: string;
   driverTrackingUrl?: string;
   driverQrDataUrl?: string;
+  /** App Android >= 1.0.5: el ticket del diseño CloudPRNT, ya resuelto (SPEC §1b opción b). */
+  ticket?: import('./ticket-data').TicketData;
+  ticketText?: import('./ticket-i18n').TicketText;
 }

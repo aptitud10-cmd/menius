@@ -154,6 +154,8 @@ function parseDate(v: string | null | undefined): Date | null {
 export function orderDirectUrl(r: Pick<TicketRestaurantRow, 'slug' | 'custom_domain' | 'domain_verified'>, appUrl: string): string {
   const domain = clean(r.custom_domain);
   if (domain && r.domain_verified) return domain;
+  // Sin slug (la tablet no siempre lo tiene) no se inventa una URL rota: sin línea.
+  if (!clean(r.slug)) return '';
   return `${appUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}/${r.slug}`;
 }
 

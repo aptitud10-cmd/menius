@@ -88,6 +88,65 @@ const es: TicketStrings = {
   poweredBy: 'Pedidos online con MENIUS',
 };
 
+/**
+ * Los textos del ticket ya resueltos (sin funciones) para la app Android, que
+ * imprime el MISMO diseño en ESC/POS (SPEC §1b opción b). Las térmicas ESC/POS
+ * no tienen "—" en CP858: va "-".
+ */
+export interface TicketText {
+  channelLine: string;
+  ready: string;
+  reprint: string;
+  allergy: string;
+  scheduled: string;
+  utensils: string;
+  itemsCheckBag: string;
+  note: string;
+  subtotal: string;
+  tax: string;
+  delivery: string;
+  discount: string;
+  tip: string;
+  total: string;
+  payment: string;
+  table: string;
+  placed: string;
+  orderDirect: string;
+  driverScan: string;
+  poweredBy: string;
+}
+
+export function ticketTextFor(
+  d: { locale: TicketLocale; channel: TicketChannel; orderType: 'delivery' | 'pickup' | 'dine_in'; includeUtensils: boolean; itemCount: number;
+       payment: { kind: 'paid' | 'collect_cash' | 'verify' }; restaurant: { taxLabel: string } },
+  paymentAmount: string,
+): TicketText {
+  const t = ticketStrings(d.locale);
+  const ascii = (s: string) => s.replace(/—/g, '-');
+  return {
+    channelLine: `${t.channel[d.channel]} · ${t.orderType[d.orderType]}`,
+    ready: t.ready,
+    reprint: ascii(t.reprint),
+    allergy: t.allergy,
+    scheduled: t.scheduled,
+    utensils: t.utensils(d.includeUtensils),
+    itemsCheckBag: ascii(t.itemsCheckBag(d.itemCount)),
+    note: t.note,
+    subtotal: t.subtotal,
+    tax: d.restaurant.taxLabel,
+    delivery: t.delivery,
+    discount: t.discount,
+    tip: t.tip,
+    total: t.total,
+    payment: ascii(d.payment.kind === 'paid' ? t.paid : d.payment.kind === 'collect_cash' ? t.collectCash(paymentAmount) : t.verifyPayment),
+    table: t.table,
+    placed: t.placed,
+    orderDirect: t.orderDirect,
+    driverScan: t.driverScan,
+    poweredBy: t.poweredBy,
+  };
+}
+
 export function ticketStrings(locale: TicketLocale): TicketStrings {
   return locale === 'en' ? en : es;
 }

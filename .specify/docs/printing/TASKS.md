@@ -73,8 +73,8 @@
 - [x] Counter app: online/offline + banner rojo (F5) + botón Reimprimir (F2)
 - [x] `GET /api/tenant/printers/status`: 6b6cb89c (hook `useCloudPrnt`: al montar, cada 2 min y al volver a la pestaña)
 - [x] Con CloudPRNT activo: desactivar y ocultar las 4 impresiones locales (`counter-auto-print`, `counter-print-on-arrival`, la regla de mesa con bridge nativo, `menius-auto-print`); "Imprimir" → job `reprint` (CA-17)
-- [ ] Camino Bluetooth/red con el layout nuevo, opción (b): `ReceiptEscPosBuilder.kt` lee `ticket` (`ticketVersion: 2`) con `GS !` + `GS B`. El JSON mantiene `ReceiptData` para los APKs viejos (CA-18)
-- [ ] Si se toca la app Android: rebuild del APK y prueba en la tablet
+- [x] Camino Bluetooth/red con el layout nuevo, opción (b) (`TicketV2.kt` + `order-to-ticket.ts`): `ReceiptEscPosBuilder.kt` lee `ticket` (`ticketVersion: 2`) con `GS !` + `GS B`. El JSON mantiene `ReceiptData` para los APKs viejos (CA-18)
+- [x] Rebuild: AAB 1.0.5 (versionCode 6) compilado, en OneDriveDesktop. [ ] Prueba con la impresora Bluetooth de William + subir a Prueba interna (después del merge a main: sin la web nueva, 1.0.5 imprime como 1.0.4)
 
 ## Sprint 5 — Prueba física en Buccaneer [S]
 - [ ] Configurar la TSP143IVUE (CloudPRNT, URL, poll interval)

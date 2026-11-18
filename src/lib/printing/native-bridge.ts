@@ -72,6 +72,12 @@ export function nativePrintReceipt(data: ReceiptData, ticketType: NativeTicketTy
     timestamp: ts,
     locale: data.locale ?? 'es',
     ticketType,
+    // App >= 1.0.5: el mismo ticket que la impresora CloudPRNT (las anteriores lo
+    // ignoran y siguen imprimiendo con los campos de arriba). Solo el recibo:
+    // la copia de cocina mantiene su formato.
+    ...(ticketType !== 'kitchen' && data.ticket && data.ticketText
+      ? { ticket: data.ticket, ticketText: data.ticketText, ticketVersion: 2 }
+      : {}),
   };
 
   const result = M.printReceipt(JSON.stringify(payload));
