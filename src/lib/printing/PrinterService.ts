@@ -236,6 +236,8 @@ class PrinterServiceImpl {
     locale?: string,
     taxLabel?: string,
     taxIncluded?: boolean,
+    /** Para "Order direct: menius.app/<slug>" al pie del ticket. */
+    slug?: string,
   ): Promise<PrintJob> {
     // Create job
     const job: PrintJob = {
@@ -250,7 +252,7 @@ class PrinterServiceImpl {
     this.jobs.set(job.id, job);
     this.notify(job);
 
-    return this._execute(job, order, etaMinutes, restaurantName, currency, locale, taxLabel, taxIncluded);
+    return this._execute(job, order, etaMinutes, restaurantName, currency, locale, taxLabel, taxIncluded, slug);
   }
 
   async retryJob(
@@ -262,13 +264,14 @@ class PrinterServiceImpl {
     locale?: string,
     taxLabel?: string,
     taxIncluded?: boolean,
+    slug?: string,
   ): Promise<PrintJob | null> {
     const job = this.jobs.get(jobId);
     if (!job || job.state !== 'failed') return null;
     if (job.attempts >= job.maxAttempts) return job;
 
     const retrying = this.transition(job, 'retrying');
-    return this._execute(retrying, order, etaMinutes, restaurantName, currency, locale, taxLabel, taxIncluded);
+    return this._execute(retrying, order, etaMinutes, restaurantName, currency, locale, taxLabel, taxIncluded, slug);
   }
 
   private async _execute(
@@ -280,6 +283,7 @@ class PrinterServiceImpl {
     locale?: string,
     taxLabel?: string,
     taxIncluded?: boolean,
+    slug?: string,
   ): Promise<PrintJob> {
     // Transition → printing
     let current = this.transition(job, 'printing');
@@ -303,7 +307,7 @@ class PrinterServiceImpl {
       try {
         const { orderToTicketData } = await import('./order-to-ticket');
         Object.assign(receiptData, orderToTicketData(order, {
-          restaurantName, currency, locale, taxLabel, etaMinutes,
+          restaurantName, currency, locale, taxLabel, etaMinutes, slug,
           appUrl: typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'),
         }));
       } catch { /* sin ticket v2 */ }

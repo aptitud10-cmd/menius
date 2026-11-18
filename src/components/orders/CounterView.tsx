@@ -276,6 +276,8 @@ interface CounterViewProps {
   restaurantLng?: number | null;
   taxLabel?: string;
   taxIncluded?: boolean;
+  /** Para "Order direct: menius.app/<slug>" al pie del ticket impreso. */
+  restaurantSlug?: string;
   tabletMode?: boolean;
   /** Tablet vinculada con código: solo Counter, sin reembolsos ni enlaces al panel. */
   isDevice?: boolean;
@@ -309,7 +311,7 @@ export interface ShiftReport {
 
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
-  restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false, isDevice = false,
+  restaurantLat, restaurantLng, taxLabel, taxIncluded, restaurantSlug, tabletMode = false, isDevice = false,
   initialPausedUntil = null, ownerPanel = false, previewAlertIds, previewShiftReport, previewModal,
   initialSettings = DEFAULT_COUNTER_SETTINGS, settingsLive = true,
 }: CounterViewProps) {
@@ -595,7 +597,7 @@ export function CounterView({
   const printTicket = async (order: Order, etaMin?: number): Promise<boolean> => {
     let err: string | undefined;
     try {
-      const job = await PrinterService.printOrder(order, etaMin, restaurantName, currency, locale, taxLabel, taxIncluded);
+      const job = await PrinterService.printOrder(order, etaMin, restaurantName, currency, locale, taxLabel, taxIncluded, restaurantSlug);
       if (job.state !== 'failed') return true;
       err = job.error;
     } catch (e) {

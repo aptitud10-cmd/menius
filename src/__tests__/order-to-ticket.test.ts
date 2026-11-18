@@ -37,4 +37,11 @@ describe('orderToTicketData (Android v2 = mismo diseño que CloudPRNT)', () => {
   it('sin slug no inventa una URL de "Order direct"', () => {
     expect(ticket.restaurant.orderDirectUrl).toBe('');
   });
+
+  it('con el slug del Counter sale "Order direct: menius.app/buccaneer"', () => {
+    const withSlug = orderToTicketData(order, {
+      restaurantName: 'Buccaneer Diner', currency: 'USD', locale: 'en', appUrl: 'https://menius.app', timeZone: 'America/New_York', slug: 'buccaneer',
+    });
+    expect(withSlug.ticket.restaurant.orderDirectUrl).toBe('menius.app/buccaneer');
+  });
 });

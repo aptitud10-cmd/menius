@@ -75,6 +75,7 @@ export default async function CounterTabletPage() {
         restaurantLng={restaurant?.longitude ?? null}
         taxLabel={(restaurant as any)?.tax_label ?? undefined}
         taxIncluded={(restaurant as any)?.tax_included ?? false}
+        restaurantSlug={restaurant?.slug ?? undefined}
         tabletMode
         initialPausedUntil={restaurant?.orders_paused_until ?? null}
         initialSettings={counterSettings}

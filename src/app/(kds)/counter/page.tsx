@@ -88,6 +88,7 @@ export default async function CounterPage() {
       restaurantLng={restaurant?.longitude ?? null}
       taxLabel={(restaurant as any)?.tax_label ?? undefined}
       taxIncluded={(restaurant as any)?.tax_included ?? false}
+      restaurantSlug={restaurant?.slug ?? undefined}
       isDevice={isDevice}
       ownerPanel
       initialPausedUntil={restaurant?.orders_paused_until ?? null}
