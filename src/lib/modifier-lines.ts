@@ -122,10 +122,15 @@ export function buildModLines(selections: LineSelection[]): ModLine[] {
   // que quede sin padre (datos raros) va como línea suelta, nunca se pierde.
   let pending = sorted.filter(isConditional);
   while (pending.length > 0) {
-    const next = pending.filter((s) => !parentOf(s));
+    // Ubicar y decidir qué queda pendiente en la MISMA pasada. Antes la lista de
+    // pendientes se armaba antes de ubicar: en Deluxe → French Fries → Cheese on
+    // Fries el queso encontraba padre en esta vuelta y se ubicaba otra vez en la
+    // siguiente (línea repetida en ticket, Counter y email; ORD-261118-007).
+    const next: LineSelection[] = [];
     for (const s of pending) {
       const parent = parentOf(s);
       if (parent) place(s, parent);
+      else next.push(s);
     }
     if (next.length === pending.length) {
       for (const s of next) place(s, null);

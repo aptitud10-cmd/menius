@@ -58,6 +58,17 @@ describe('buildModLines — condicionales', () => {
     ]);
   });
 
+  it('cadena de dos niveles (Deluxe → side → queso) no repite el queso (ORD-261118-007)', () => {
+    const lines = buildModLines([
+      { group: g('Style', 0, { ticket_layout: 'inline' }), options: [o('Deluxe', 4)] },
+      { group: g('Side', 1, { depends_on_option_id: 'Deluxe' }), options: [o('French Fries')] },
+      { group: g('Cheese on Fries', 2, { depends_on_option_id: 'French Fries', ticket_layout: 'indent' }), options: [o('Cheese on Fries', 1.5)] },
+      { group: g('Cooking', 3), options: [o('Medium Rare')] },
+    ]);
+    expect(lines.filter((l) => l.text === 'Cheese on Fries')).toHaveLength(1);
+    expect(linesTotal(lines)).toBe(5.5);
+  });
+
   it('un condicional sin padre no se pierde', () => {
     const lines = buildModLines([
       { group: g('Bacon Style', 1, { depends_on_option_id: 'missing', ticket_layout: 'inline' }), options: [o('Crispy')] },
