@@ -2,9 +2,13 @@ import { ImageResponse } from 'next/og';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { demoRestaurant } from '@/lib/demo-data';
 import { grillHouseRestaurant } from '@/lib/demo-data-en';
+import { trackerBrand } from '@/lib/tracker-brand';
 
+// Edge renderer: it reads JPEG and PNG, not WebP. A .webp cover used to crash
+// the whole route ("Image size cannot be determined"); now the card skips the
+// photo and uses the store color + logo. Covers uploaded today are __lg.jpg.
 export const runtime = 'edge';
-export const alt = 'Menú digital';
+export const alt = 'Order online';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -14,94 +18,122 @@ const DEMO_MAP: Record<string, { name: string; description?: string | null }> = 
   'the-grill-house': grillHouseRestaurant,
 };
 
+/** The URL if the renderer can draw it (JPEG/PNG), otherwise null. */
+function drawable(url: string | null): string | null {
+  if (!url) return null;
+  const path = url.split('?')[0].toLowerCase();
+  return /\.(jpe?g|png)$/.test(path) ? url : null;
+}
+
+// Inter like the menu. If the font can't be fetched the card still renders
+// with the default face.
+const INTER = 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.18/files/inter-latin-';
+async function loadFonts() {
+  try {
+    const [w500, w700] = await Promise.all(
+      [500, 700].map((w) => fetch(INTER + w + '-normal.woff').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))),
+    );
+    return [
+      { name: 'Inter', data: w500, weight: 500 as const, style: 'normal' as const },
+      { name: 'Inter', data: w700, weight: 700 as const, style: 'normal' as const },
+    ];
+  } catch {
+    return undefined;
+  }
+}
+
+const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n).trimEnd() + '…' : s);
+
 export default async function Image({ params }: { params: { slug: string } }) {
   const demo = DEMO_MAP[params.slug];
-  let name = demo?.name ?? 'Restaurante';
+  let name = demo?.name ?? 'Restaurant';
   let description = demo?.description ?? '';
-  let coverImageUrl: string | null = null;
+  let coverUrl: string | null = null;
+  let logoUrl: string | null = null;
+  let locale = 'es';
+  let brandColor: string | null = null;
 
   if (!demo) {
     try {
       const supabase = createAdminClient();
       const { data } = await supabase
         .from('restaurants')
-        .select('name, description, cover_image_url')
+        .select('name, description, cover_image_url, logo_url, locale, brand_color')
         .eq('slug', params.slug)
-        .single();
+        .maybeSingle();
       if (data) {
         name = data.name;
         description = data.description ?? '';
-        coverImageUrl = data.cover_image_url ?? null;
+        coverUrl = data.cover_image_url ?? null;
+        logoUrl = data.logo_url ?? null;
+        locale = data.locale ?? 'es';
+        brandColor = data.brand_color ?? null;
       }
     } catch (err) {
       console.error('[opengraph-image] fetch restaurant failed:', err);
     }
   }
 
-  const initial = name.charAt(0).toUpperCase();
+  const en = locale === 'en';
+  const cta = en ? 'Order online' : 'Pide en línea';
+  const b = trackerBrand(brandColor);
+  // On the dark photo the store color reads; without one, a white pill.
+  const pill = b.fallback ? { bg: '#FFFFFF', fg: '#111114' } : { bg: b.brand, fg: b.ink };
 
-  // With cover photo: full-bleed image + dark overlay + name at bottom
-  if (coverImageUrl) {
+  const fonts = await loadFonts();
+  const cover = drawable(coverUrl);
+  const logo = drawable(logoUrl);
+
+  // Everything sits in the centre 600×600: WhatsApp on a computer (and some
+  // phones) crops the card to a small square from the middle, so a left-aligned
+  // layout or a line of description came out as unreadable specks. The
+  // description already travels as text next to the image (og:description).
+  const NAME_SIZE = name.length > 22 ? 56 : 72;
+
+  const logoEl = (px: number) =>
+    logo ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={logo} alt="" width={px} height={px} style={{ width: px, height: px, borderRadius: px / 2, border: '6px solid #FFFFFF' }} />
+    ) : (
+      <div style={{ width: px, height: px, borderRadius: px / 2, background: '#FFFFFF', color: b.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: px * 0.42, fontWeight: 700 }}>
+        {name.charAt(0).toUpperCase()}
+      </div>
+    );
+
+  const nameEl = (
+    <div style={{ display: 'flex', maxWidth: 600, fontSize: NAME_SIZE, fontWeight: 700, lineHeight: 1.05, textAlign: 'center', justifyContent: 'center', letterSpacing: '-0.02em' }}>
+      {clip(name, 40)}
+    </div>
+  );
+
+  if (cover) {
     return new ImageResponse(
       (
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            position: 'relative',
-            overflow: 'hidden',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          {/* Cover image */}
+        <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', fontFamily: 'Inter, sans-serif' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={coverImageUrl}
-            alt={name}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-          {/* Dark gradient overlay */}
+          <img src={cover} alt="" width={size.width} height={size.height} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
           <div
             style={{
               position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.1) 100%)',
-            }}
-          />
-          {/* Text content at bottom */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
+              top: 0,
               left: 0,
-              right: 0,
-              padding: '48px 60px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
+              width: '100%',
+              height: '100%',
+              backgroundImage: 'radial-gradient(circle at 50% 55%, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.2) 100%)',
             }}
-          >
-            <div style={{ fontSize: '56px', fontWeight: 800, color: 'white', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-              {name}
-            </div>
-            {description && (
-              <div style={{ fontSize: '22px', color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>
-                {description.length > 100 ? description.slice(0, 100) + '…' : description}
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#05c8a7' }} />
-              <span style={{ fontSize: '16px', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>MENIUS · Menú Digital</span>
-            </div>
+          />
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, color: '#FFFFFF' }}>
+            {logoEl(170)}
+            {nameEl}
+            <div style={{ display: 'flex', padding: '16px 36px', borderRadius: 999, background: pill.bg, color: pill.fg, fontSize: 32, fontWeight: 700 }}>{cta}</div>
           </div>
         </div>
       ),
-      { ...size },
+      { ...size, fonts },
     );
   }
 
-  // Fallback: branded gradient with restaurant initial
+  // No cover: the store color as the background, logo and name centered.
   return new ImageResponse(
     (
       <div
@@ -112,105 +144,17 @@ export default async function Image({ params }: { params: { slug: string } }) {
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          background: 'linear-gradient(145deg, #050505 0%, #0a0a12 50%, #0d0520 100%)',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          position: 'relative',
-          overflow: 'hidden',
+          gap: 24,
+          background: b.brand,
+          color: b.ink,
+          fontFamily: 'Inter, sans-serif',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            top: '-120px',
-            right: '-80px',
-            width: '400px',
-            height: '400px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '-100px',
-            left: '-60px',
-            width: '350px',
-            height: '350px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%)',
-          }}
-        />
-        <div
-          style={{
-            width: '88px',
-            height: '88px',
-            borderRadius: '20px',
-            background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '28px',
-            boxShadow: '0 0 60px rgba(124,58,237,0.3)',
-          }}
-        >
-          <span style={{ fontSize: '40px', color: 'white', fontWeight: 700 }}>
-            {initial}
-          </span>
-        </div>
-        <div
-          style={{
-            fontSize: '52px',
-            fontWeight: 700,
-            color: 'white',
-            textAlign: 'center',
-            maxWidth: '900px',
-            lineHeight: 1.15,
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {name}
-        </div>
-        {description && (
-          <div
-            style={{
-              fontSize: '22px',
-              color: 'rgba(255,255,255,0.55)',
-              textAlign: 'center',
-              maxWidth: '700px',
-              marginTop: '16px',
-              lineHeight: 1.4,
-            }}
-          >
-            {description.length > 120 ? description.slice(0, 120) + '…' : description}
-          </div>
-        )}
-        <div
-          style={{
-            width: '60px',
-            height: '3px',
-            borderRadius: '2px',
-            background: 'linear-gradient(90deg, #7c3aed, #38bdf8)',
-            marginTop: '32px',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '36px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-          }}
-        >
-          <span style={{ fontSize: '18px', fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '-0.02em' }}>
-            MENIUS
-          </span>
-          <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.35)' }}>
-            Menú Digital
-          </span>
-        </div>
+        {logoEl(220)}
+        {nameEl}
+        <div style={{ display: 'flex', padding: '16px 36px', borderRadius: 999, background: '#FFFFFF', color: '#111114', fontSize: 32, fontWeight: 700 }}>{cta}</div>
       </div>
     ),
-    { ...size },
+    { ...size, fonts },
   );
 }

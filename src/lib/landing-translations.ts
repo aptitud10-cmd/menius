@@ -217,13 +217,13 @@ const es = {
       { feature: 'Asistente IA', menius: 'MENIUS AI — consultor 24/7', other: 'No disponible' },
       { feature: 'Email + Push', menius: 'Integrado', other: 'No disponible' },
       { feature: 'CRM de clientes', menius: 'Integrado', other: 'No disponible' },
-      { feature: 'Costo mensual', menius: '$79/mes (Pro)', other: 'Gratis (pero 30% por pedido)' },
+      { feature: 'Costo mensual', menius: '$149/mes (Pro)', other: 'Gratis (pero 30% por pedido)' },
     ],
     mobileRows: [
       { feature: 'Comisión de intermediario', menius: '0%', other: '15% – 30%' },
       { feature: 'Control de clientes', menius: 'Tus datos', other: 'La app se los queda' },
       { feature: 'Tu marca', menius: 'Dominio propio', other: 'Junto a la competencia' },
-      { feature: 'Costo mensual', menius: '$79/mes (Pro)', other: '"Gratis" (pero 30% por pedido)' },
+      { feature: 'Costo mensual', menius: '$149/mes (Pro)', other: '"Gratis" (pero 30% por pedido)' },
     ],
     midCta: {
       text: 'Ya viste la diferencia.',
@@ -269,10 +269,10 @@ const es = {
     plans: [
       {
         name: 'Pro',
-        price: 79,
+        price: 149,
         desc: 'Todo incluido: menú, pedidos online, pagos y marketing.',
         cta: 'Empezar con Pro',
-        features: ['Productos ilimitados y QR hasta 50 mesas', 'Pedidos en mesa, para llevar y delivery', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio', 'Sin marca MENIUS en el menú', 'MENIUS AI + importar menú desde foto', 'Cocina KDS en tiempo real', 'Promociones, reseñas y lealtad', '5 usuarios', 'Soporte por chat (2h)'],
+        features: ['Productos ilimitados y QR hasta 50 mesas', 'Pedidos en mesa, para llevar y delivery', 'App Counter en tablet: suena, aceptas y sale el ticket', 'Seguimiento del pedido en vivo para tu cliente', 'App para tus repartidores', 'Cocina KDS en tiempo real', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio y sin marca MENIUS', 'MENIUS AI + importar menú desde foto', 'Promociones, reseñas y lealtad', '5 usuarios · soporte por chat (2h)'],
       },
     ],
     planComparison: {
@@ -585,13 +585,13 @@ const en: LandingT = {
       { feature: 'AI assistant', menius: 'MENIUS AI — consultant 24/7', other: 'Not available' },
       { feature: 'Email + Push', menius: 'Integrated', other: 'Not available' },
       { feature: 'Customer CRM', menius: 'Integrated', other: 'Not available' },
-      { feature: 'Monthly cost', menius: '$79/mo (Pro)', other: 'Free (but 30% per order)' },
+      { feature: 'Monthly cost', menius: '$149/mo (Pro)', other: 'Free (but 30% per order)' },
     ],
     mobileRows: [
       { feature: 'Intermediary commission', menius: '0%', other: '15% – 30%' },
       { feature: 'Customer control', menius: 'Your data', other: 'The app keeps it' },
       { feature: 'Your brand', menius: 'Own domain', other: 'Next to competitors' },
-      { feature: 'Monthly cost', menius: '$79/mo (Pro)', other: '"Free" (but 30% per order)' },
+      { feature: 'Monthly cost', menius: '$149/mo (Pro)', other: '"Free" (but 30% per order)' },
     ],
     midCta: {
       text: "You've seen the difference.",
@@ -637,10 +637,10 @@ const en: LandingT = {
     plans: [
       {
         name: 'Pro',
-        price: 79,
+        price: 149,
         desc: 'Everything included: menu, online orders, payments and marketing.',
         cta: 'Start with Pro',
-        features: ['Unlimited products and QR up to 50 tables', 'Dine-in, pickup and delivery orders', 'Online payments (0% MENIUS commission)', 'Custom domain', 'No MENIUS branding on your menu', 'MENIUS AI + import menu from photo', 'Real-time kitchen KDS', 'Promotions, reviews and loyalty', '5 users', 'Chat support (2h)'],
+        features: ['Unlimited products and QR up to 50 tables', 'Dine-in, pickup and delivery orders', 'Counter app on a tablet: it rings, you accept, the ticket prints', 'Live order tracking for your customers', 'App for your delivery drivers', 'Real-time kitchen KDS', 'Online payments (0% MENIUS commission)', 'Custom domain, no MENIUS branding', 'MENIUS AI + import menu from photo', 'Promotions, reviews and loyalty', '5 users · chat support (2h)'],
       },
     ],
     planComparison: {

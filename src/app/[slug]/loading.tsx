@@ -1,69 +1,78 @@
+/**
+ * Shown while the menu streams in. It mirrors the real layout at each width
+ * (measured on /buccaneer at 390, 820 and 1280) so nothing jumps when the
+ * menu arrives. Before, desktop got the phone skeleton stretched full width
+ * and then snapped to three columns; the phone header/cover heights were off
+ * too (h-14 + h-44 against the real overlaid header and h-48 cover).
+ */
 export default function MenuLoading() {
   return (
-    <div className="min-h-[100dvh] bg-[#f5f5f3] flex flex-col overflow-hidden">
-
-      {/* ── Header bar ── */}
-      <div className="h-14 bg-white border-b border-gray-100 px-4 flex items-center gap-3 flex-shrink-0">
-        <div className="skeleton w-8 h-8 rounded-xl" />
-        <div className="flex-1 space-y-1.5">
-          <div className="skeleton h-4 w-32 rounded-lg" />
-          <div className="skeleton h-3 w-20 rounded-lg" />
-        </div>
-        <div className="skeleton w-9 h-9 rounded-full" />
+    <div className="min-h-[100dvh] bg-[#f5f5f3] overflow-hidden" aria-busy="true">
+      {/* Desktop header: name · search · status (phone overlays it on the cover). */}
+      <div className="hidden lg:flex h-12 bg-white border-b border-gray-100 items-center gap-6 px-6">
+        <div className="skeleton h-4 w-36 rounded-md" />
+        <div className="skeleton h-9 flex-1 max-w-md mx-auto rounded-lg" />
+        <div className="skeleton h-8 w-28 rounded-full" />
       </div>
 
-      {/* ── Cover photo ── */}
-      <div className="skeleton w-full h-44 flex-shrink-0" />
-
-      {/* ── Restaurant info strip ── */}
-      <div className="bg-white px-4 pt-3 pb-4 flex-shrink-0">
-        <div className="skeleton h-5 w-40 rounded-lg mb-2" />
-        <div className="flex gap-3">
-          <div className="skeleton h-3.5 w-16 rounded" />
-          <div className="skeleton h-3.5 w-20 rounded" />
-          <div className="skeleton h-3.5 w-14 rounded" />
-        </div>
+      {/* Cover: same heights as MenuShell's banner. */}
+      <div className="skeleton relative w-full h-48 sm:h-56 lg:h-56 lg:[@media(max-height:820px)]:h-44">
+        <div className="lg:hidden absolute top-1 right-3 w-11 h-11 rounded-full bg-black/10" />
+        <div className="absolute left-4 lg:left-8 bottom-4 lg:bottom-5 h-10 w-56 lg:w-72 rounded-lg bg-black/10" />
       </div>
 
-      {/* ── Category pills bar ── */}
-      <div className="bg-[#f5f5f3] border-b border-gray-100 px-3 py-2 flex gap-2 overflow-hidden flex-shrink-0">
-        {[72, 56, 80, 64, 60, 68].map((w, i) => (
-          <div
-            key={i}
-            className="skeleton h-8 rounded-lg flex-shrink-0"
-            style={{ width: w, animationDelay: `${i * 60}ms` }}
-          />
+      {/* Phone/tablet: info row + category pills. */}
+      <div className="lg:hidden h-11 bg-white border-b border-gray-100 px-4 flex items-center gap-2">
+        <div className="skeleton h-3.5 w-52 rounded" />
+        <div className="skeleton h-3.5 w-10 rounded ml-auto" />
+      </div>
+      <div className="lg:hidden h-14 px-4 flex items-center gap-2 overflow-hidden">
+        <div className="skeleton w-6 h-5 rounded flex-shrink-0 mr-2" />
+        {[120, 96, 88, 72, 110].map((w, i) => (
+          <div key={i} className="skeleton h-11 rounded-xl flex-shrink-0" style={{ width: w }} />
         ))}
       </div>
 
-      {/* ── Section title ── */}
-      <div className="px-4 pt-5 pb-3 flex-shrink-0">
-        <div className="skeleton h-4 w-24 rounded-lg" />
-      </div>
-
-      {/* ── Product grid (2 columns — matches real layout) ── */}
-      <div className="px-3 grid grid-cols-2 gap-3">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className="bg-white rounded-2xl overflow-hidden border border-gray-100"
-            style={{ animationDelay: `${i * 40}ms` }}
-          >
-            {/* Image placeholder */}
-            <div className="skeleton w-full aspect-square" />
-            {/* Content */}
-            <div className="p-3 space-y-2">
-              <div className="skeleton h-3.5 w-full rounded" />
-              <div className="skeleton h-3 w-2/3 rounded" />
-              <div className="flex items-center justify-between pt-1">
-                <div className="skeleton h-4 w-14 rounded" />
-                <div className="skeleton w-9 h-9 rounded-full" />
-              </div>
+      <div className="lg:flex max-w-[1440px] mx-auto">
+        {/* Desktop: category sidebar. */}
+        <div className="hidden lg:block w-[224px] xl:w-[232px] flex-shrink-0 border-r border-gray-100 px-3 pt-5 space-y-2">
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i} className="flex items-center justify-between h-10 px-3">
+              <div className="skeleton h-3.5 rounded" style={{ width: 70 + ((i * 37) % 60) }} />
+              <div className="skeleton h-3 w-5 rounded" />
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
+        {/* Dishes: 2 columns on phones, 3 from md (as the real grid). */}
+        <div className="flex-1 min-w-0 px-4 lg:px-8 pt-5 lg:pt-9">
+          <div className="skeleton h-6 w-36 rounded-lg mb-4" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100">
+                <div className="skeleton w-full aspect-square lg:aspect-[16/9]" />
+                <div className="p-3 lg:p-4 space-y-2">
+                  <div className="skeleton h-4 w-4/5 rounded" />
+                  <div className="skeleton h-3 w-full rounded" />
+                  <div className="skeleton h-3 w-2/3 rounded" />
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="skeleton h-5 w-16 rounded" />
+                    <div className="skeleton w-10 h-10 lg:w-20 lg:h-9 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop xl: the cart column. */}
+        <div className="hidden xl:block w-[340px] flex-shrink-0 border-l border-gray-100 px-4 pt-6 space-y-4">
+          <div className="skeleton h-5 w-28 rounded-md" />
+          <div className="skeleton h-11 w-full rounded-full" />
+          <div className="skeleton h-3.5 w-40 rounded" />
+          <div className="skeleton h-3.5 w-56 rounded" />
+        </div>
+      </div>
     </div>
   );
 }

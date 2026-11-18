@@ -15,6 +15,8 @@ export interface Restaurant {
   locale?: 'es' | 'en';
   available_locales?: string[];
   logo_url: string | null;
+  /** Color del seguimiento del pedido (#RRGGBB). Migración 20261116. */
+  brand_color?: string | null;
   cover_image_url?: string | null;
   hero_video_url?: string | null;
   description?: string;
@@ -108,6 +110,10 @@ export interface Category {
   group_name?: string | null;
   /** Sort position of the parent group, shared by every category in it. */
   group_sort_order?: number | null;
+  /** Phone layout: 'grid' (big photos) | 'list' (108px thumbnail rows) |
+   *  null = automatic (grid on small menus, list on large catalogs).
+   *  Tablet and desktop always show a grid. */
+  display_mode?: 'grid' | 'list' | null;
 }
 
 export type DietaryTag =

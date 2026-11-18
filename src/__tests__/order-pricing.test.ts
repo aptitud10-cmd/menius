@@ -7,6 +7,10 @@ import {
   computeApplicationFeeCents,
   internationalCardSurchargeCents,
   feeModelFor,
+  tipAllowedFor,
+  tipOptions,
+  customTipAmount,
+  utensilsRequested,
   type ProductRecord,
   type VariantRecord,
   type ExtraRecord,
@@ -371,30 +375,164 @@ describe('resolveCommission', () => {
   });
 });
 
+// ── utensilsRequested: NYC "Skip the Stuff" — sin cubiertos salvo pedido ──────
+
+describe('utensilsRequested', () => {
+  it('solo `true` explícito pide cubiertos', () => {
+    expect(utensilsRequested(true)).toBe(true);
+  });
+
+  it('campo ausente, false, null o basura: sin cubiertos', () => {
+    expect(utensilsRequested(undefined)).toBe(false);
+    expect(utensilsRequested(false)).toBe(false);
+    expect(utensilsRequested(null)).toBe(false);
+    expect(utensilsRequested('true')).toBe(false);
+    expect(utensilsRequested(1)).toBe(false);
+  });
+
+  it('ningún camino del server vuelve al default "sí" (guarda de regresión)', () => {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const path = require('node:path') as typeof import('node:path');
+    for (const r of ['src/app/api/orders/route.ts', 'src/lib/orders/validate-order.ts']) {
+      const src = fs.readFileSync(path.join(process.cwd(), r), 'utf8');
+      expect(src, `${r} no puede asumir cubiertos por defecto`).not.toMatch(/include_utensils\s*!==\s*false/);
+    }
+  });
+});
+
+// ── tipOptions: botones de propina en dólares redondos ───────────────────────
+
+describe('tipOptions', () => {
+  const amounts = (s: number) => tipOptions(s).map((o) => o.amount);
+  const pcts = (s: number) => tipOptions(s).map((o) => o.pct);
+
+  it('subtotal < $10: $1 / $2 / $3', () => {
+    expect(amounts(8)).toEqual([1, 2, 3]);
+    expect(pcts(8)).toEqual([13, 25, 38]);
+  });
+
+  it('pedido típico de Buccaneer ($17.95): $2 / $3 / $4', () => {
+    expect(amounts(17.95)).toEqual([2, 3, 4]);
+    expect(pcts(17.95)).toEqual([11, 17, 22]);
+  });
+
+  it('$44.40: $5 / $7 / $9', () => {
+    expect(amounts(44.4)).toEqual([5, 7, 9]);
+    expect(pcts(44.4)).toEqual([11, 16, 20]);
+  });
+
+  it('$80: $8 / $12 / $16 (10/15/20 exactos)', () => {
+    expect(amounts(80)).toEqual([8, 12, 16]);
+    expect(pcts(80)).toEqual([10, 15, 20]);
+  });
+
+  it('$30: el 10% es $3, no $4 (sin error de coma flotante)', () => {
+    expect(amounts(30)[0]).toBe(3);
+  });
+
+  it('$10 justo: $1 / $2 / $3, siempre crecientes', () => {
+    expect(amounts(10)).toEqual([1, 2, 3]);
+  });
+
+  it('la primera opción siempre es ≥ 10% del subtotal (NYC LL 107/108)', () => {
+    for (let s = 10; s <= 300; s += 0.37) {
+      const [a] = tipOptions(s);
+      expect(a.amount * 100, `subtotal ${s}`).toBeGreaterThanOrEqual(Math.round(s * 100) / 10 - 1e-9);
+    }
+  });
+
+  it('montos enteros y estrictamente crecientes', () => {
+    for (let s = 0; s <= 300; s += 1.13) {
+      const [a, b, c] = amounts(s);
+      expect(Number.isInteger(a) && Number.isInteger(b) && Number.isInteger(c)).toBe(true);
+      expect(a < b && b < c, `subtotal ${s}`).toBe(true);
+    }
+  });
+
+  it('subtotal 0, negativo o NaN: $1 / $2 / $3 con 0%', () => {
+    expect(tipOptions(0)).toEqual([{ amount: 1, pct: 0 }, { amount: 2, pct: 0 }, { amount: 3, pct: 0 }]);
+    expect(amounts(-5)).toEqual([1, 2, 3]);
+    expect(amounts(Number.NaN)).toEqual([1, 2, 3]);
+  });
+});
+
+describe('customTipAmount', () => {
+  it('monto en dólares', () => {
+    expect(customTipAmount(5, '$', 40)).toBe(5);
+    expect(customTipAmount(2.5, '$', 40)).toBe(2.5);
+  });
+
+  it('porcentaje sobre el subtotal, redondeado al centavo', () => {
+    expect(customTipAmount(18, '%', 17.95)).toBe(3.23);
+  });
+
+  it('nunca mayor al subtotal (el server la recorta igual)', () => {
+    expect(customTipAmount(100, '$', 40)).toBe(40);
+    expect(customTipAmount(150, '%', 40)).toBe(40);
+  });
+
+  it('vacío, cero, negativo o NaN: 0', () => {
+    expect(customTipAmount(0, '$', 40)).toBe(0);
+    expect(customTipAmount(-3, '$', 40)).toBe(0);
+    expect(customTipAmount(Number.NaN, '%', 40)).toBe(0);
+    expect(customTipAmount(5, '$', 0)).toBe(0);
+  });
+});
+
 // ── computeApplicationFeeCents ────────────────────────────────────────────────
 
 describe('computeApplicationFeeCents', () => {
-  it('planes sin comisión en USD: traslada el procesamiento de Stripe (2.9% + 30¢)', () => {
+  it('planes de suscripción en USD: traslada el procesamiento de Stripe (2.9% + 30¢)', () => {
     // $30.00 → 87¢ + 30¢
-    expect(computeApplicationFeeCents(3000, 'usd', 0)).toBe(117);
-    expect(computeApplicationFeeCents(3000, 'USD', 0)).toBe(117);
+    expect(computeApplicationFeeCents(3000, 0, 'usd', 0)).toBe(117);
+    expect(computeApplicationFeeCents(3000, 0, 'USD', 0)).toBe(117);
   });
 
-  it('commission_plan: el 4% acordado, sin procesamiento aparte', () => {
-    expect(computeApplicationFeeCents(3000, 'usd', 400)).toBe(120);
+  it('planes de suscripción: el restaurante paga el Stripe de TODO, propina incluida (MENIUS en $0)', () => {
+    // $20 comida + $3 propina = $23 → Stripe le cobra a MENIUS 2.9% de 2300 + 30 = 97
+    expect(computeApplicationFeeCents(2300, 300, 'usd', 0)).toBe(97);
+    expect(computeApplicationFeeCents(2300, 300, 'usd', 0)).toBe(computeApplicationFeeCents(2300, 0, 'usd', 0));
+  });
+
+  it('commission_plan: la comisión nunca se calcula sobre la propina (NY §196-d)', () => {
+    // $50 + $5 propina → 4% de 5000 (200) + solo el 2.9% de procesamiento de la propina (15)
+    expect(computeApplicationFeeCents(5500, 500, 'usd', 400)).toBe(215);
+    expect(computeApplicationFeeCents(3000, 0, 'usd', 400)).toBe(120);
+  });
+
+  it('propina inválida (negativa, NaN) o mayor al total: no rompe la cuenta', () => {
+    expect(computeApplicationFeeCents(3000, -100, 'usd', 400)).toBe(120);
+    expect(computeApplicationFeeCents(3000, Number.NaN, 'usd', 400)).toBe(120);
+    expect(computeApplicationFeeCents(300, 500, 'usd', 400)).toBe(9);
   });
 
   it('otras monedas sin comisión: 0 (no hay tabla de tarifas por país)', () => {
-    expect(computeApplicationFeeCents(30000, 'mxn', 0)).toBe(0);
+    expect(computeApplicationFeeCents(30000, 0, 'mxn', 0)).toBe(0);
   });
 
   it('nunca supera el monto cobrado', () => {
-    expect(computeApplicationFeeCents(20, 'usd', 0)).toBe(20);
+    expect(computeApplicationFeeCents(20, 0, 'usd', 0)).toBe(20);
   });
 
   it('monto cero o negativo: 0', () => {
-    expect(computeApplicationFeeCents(0, 'usd', 0)).toBe(0);
-    expect(computeApplicationFeeCents(-100, 'usd', 400)).toBe(0);
+    expect(computeApplicationFeeCents(0, 0, 'usd', 0)).toBe(0);
+    expect(computeApplicationFeeCents(-100, 0, 'usd', 400)).toBe(0);
+  });
+
+  it('las 3 rutas que cobran pasan la propina por separado (guarda de regresión)', () => {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const path = require('node:path') as typeof import('node:path');
+    const routes = [
+      'src/app/api/orders/route.ts',
+      'src/app/api/payments/intent/route.ts',
+      'src/app/api/payments/checkout/route.ts',
+    ];
+    for (const r of routes) {
+      const src = fs.readFileSync(path.join(process.cwd(), r), 'utf8');
+      const calls = src.match(/computeApplicationFeeCents\([^;]*;/g) ?? [];
+      expect(calls.length, `${r} debería calcular el application fee`).toBeGreaterThan(0);
+      for (const c of calls) expect(c, `${r}: tiene que pasar la propina`).toMatch(/tip/i);
+    }
   });
 });
 
@@ -462,5 +600,15 @@ describe('canonicalizeModifiers', () => {
     );
     expect(r.modifiers.map((m) => m.option_id)).toEqual(['o-ranch']);
     expect(r.dropped).toBe(5);
+  });
+});
+
+describe('tipAllowedFor', () => {
+  it('propina solo si se cobra con tarjeta; en efectivo se da en mano', () => {
+    expect(tipAllowedFor('online')).toBe(true);
+    expect(tipAllowedFor('wallet')).toBe(true);
+    expect(tipAllowedFor('cash')).toBe(false);
+    expect(tipAllowedFor(null)).toBe(false);
+    expect(tipAllowedFor(undefined)).toBe(false);
   });
 });

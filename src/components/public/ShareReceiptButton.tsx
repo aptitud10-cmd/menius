@@ -53,7 +53,8 @@ export default function ShareReceiptButton({
   return (
     <button
       onClick={handleShare}
-      className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+      // Solo vive en el seguimiento, que es siempre claro (sin variantes dark:).
+      className="flex items-center justify-center gap-2 w-full min-h-[50px] px-4 rounded-2xl bg-white text-[#111114] shadow-[inset_0_0_0_1.5px_rgba(17,17,20,.16)] active:scale-[0.985] transition-transform"
       data-testid="share-receipt-btn"
     >
       <Share2 className="w-4 h-4" />

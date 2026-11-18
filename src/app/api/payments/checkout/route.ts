@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const { data: order, error } = await adminDb
       .from('orders')
       .select(`
-        id, order_number, status, total, customer_name, restaurant_id, payment_status, customer_token,
+        id, order_number, status, total, tip_amount, customer_name, restaurant_id, payment_status, customer_token,
         restaurants ( currency, stripe_account_id, stripe_onboarding_complete, name, commission_plan )
       `)
       .eq('id', order_id)
@@ -93,10 +93,12 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
     // Commission-plan restaurants pay 4% per order; all others pay Stripe's
-    // processing at cost (0% MENIUS commission).
+    // processing at cost on the full charge, tip included (0% MENIUS commission).
+    // The commission itself is never charged on the tip.
     const commissionBps = (rest as any)?.commission_plan === true ? 400 : 0;
     const applicationFeeAmount = computeApplicationFeeCents(
       Math.round(Number(order.total) * 100),
+      Math.round(Number(order.tip_amount ?? 0) * 100),
       currency,
       commissionBps,
     );

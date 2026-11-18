@@ -4,9 +4,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle, Check, Camera, Loader2, MapPin, AlertTriangle, Navigation,
-  Phone, MessageSquare, Banknote, ArrowRight, ArrowDown,
+  Phone, MessageSquare, Banknote, ArrowRight, ArrowDown, Smartphone,
 } from 'lucide-react';
-import { C, money } from '@/components/orders/counter/ui';
+import { DRIVER_C as C, money } from '@/components/orders/counter/ui';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { haversineKm } from '@/lib/orders/eta';
 import { shortOrderNumber } from '@/lib/orders/short-number';
@@ -65,7 +65,7 @@ function getT(lang: string) {
     tokenExp:    en ? 'Link expired'                : 'Enlace expirado',
     errSend:     en ? 'Error — try again'           : 'Error, intenta de nuevo',
     pocketHint:  en ? 'Black screen, GPS keeps working. Pocket the phone without locking it.' : 'Pantalla negra, el GPS sigue. Guarda el celular sin bloquearlo.',
-    pocketHold:  en ? 'Press and hold to exit'      : 'Mantén presionado para salir',
+    pocketHold:  en ? 'Press and hold to go back'   : 'Mantén presionado para volver',
     install:     en ? 'Install' : 'Instalar',
     installTitle: en ? 'Add to home screen'         : 'Agregar a la pantalla de inicio',
   };
@@ -582,6 +582,16 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
   const itemCount = info ? info.items.reduce((n, i) => n + i.qty, 0) : 0;
   const proofReady = !!photoUrl || handedInPerson;
   const phone = customerPhone?.trim() || null;
+  // El número a la vista en todos los pasos, no solo detrás de "Llamar": el
+  // repartidor lo quiere ver antes de salir y en la puerta (Pedro, 2026-11-18).
+  const phoneDigits = phone ? phone.replace(/\D/g, '') : '';
+  const us = phoneDigits.length === 11 && phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits;
+  const phoneShown = us.length === 10 ? `(${us.slice(0, 3)}) ${us.slice(3, 6)}-${us.slice(6)}` : phone;
+  const phoneLine = phone && (
+    <a href={`tel:${phone}`} className="inline-flex items-center gap-2 text-[16px] font-bold tabular-nums w-fit" style={{ color: C.ink }}>
+      <Phone className="w-4 h-4" style={{ color: C.sub }} aria-hidden /> {phoneShown}
+    </a>
+  );
 
   const cashBlock = (label: string) => info && (info.collectCash ? (
     <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: C.orangeSoft, color: C.orange }}>
@@ -725,6 +735,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
                   {t.deliverTo}{info?.customerName ? ` ${info.customerName}` : ''}
                 </p>
                 <p className="font-display text-[22px] font-extrabold leading-tight">{deliveryAddress}</p>
+                {phoneLine}
                 {notesBlock}
               </section>
             )}
@@ -748,6 +759,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
             <section className="rounded-[18px] p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
               <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>{t.deliverAt}</p>
               <p className="font-display text-[22px] font-extrabold leading-tight">{deliveryAddress}</p>
+              {phoneLine}
               {notesBlock}
             </section>
             <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(deliveryAddress)}&travelmode=driving`}
@@ -767,10 +779,14 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
                 </a>
               </div>
             )}
+            {gpsStatus === 'sharing' && (
+              <button type="button" onClick={enterPocketMode}
+                className="h-12 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-bold bg-white active:scale-[0.98] transition-transform"
+                style={{ border: `1px solid ${C.line}`, color: C.ink }}>
+                <Smartphone className="w-[18px] h-[18px]" aria-hidden /> {t.pocketBtn}
+              </button>
+            )}
             <p className="text-center text-[13px] font-semibold" style={{ color: C.sub }}>
-              {gpsStatus === 'sharing' && (
-                <><button type="button" onClick={enterPocketMode} className="underline underline-offset-4">{t.pocketBtn}</button>{' · '}</>
-              )}
               <a href={`https://waze.com/ul?q=${encodeURIComponent(deliveryAddress)}&navigate=yes`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Waze</a>
             </p>
             <p className="text-center text-[12px]" style={{ color: C.faint }}>{t.mapsHint}</p>
@@ -803,6 +819,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
         {deliveryStep === 'at_door' && (
           <>
             {cashBlock(t.collectNow)}
+            {phoneLine}
             {notesBlock}
             {photoUrl ? (
               <label className="relative block h-40 rounded-2xl overflow-hidden cursor-pointer">
@@ -963,15 +980,23 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
             {gpsStatus === 'sharing' ? t.gpsLive : t.gpsErr}
           </p>
           <p className="text-gray-600 text-[13px] mt-1">{[shortNum, info?.collectCash ? `${t.collect.toLowerCase()} ${amount}` : null].filter(Boolean).join(' · ')}</p>
-          <p className="text-gray-500 text-xs mt-8">{t.pocketHold}</p>
-          <div className="mt-3 w-32 h-1 rounded-full bg-gray-800 overflow-hidden">
-            <div
-              className="h-full bg-emerald-600 rounded-full"
-              style={{
-                width: pocketHolding ? '100%' : '0%',
-                transition: pocketHolding ? `width ${POCKET_HOLD_MS}ms linear` : 'none',
-              }}
-            />
+          {/* La salida tiene que VERSE: antes era un texto gris de 12 px sobre negro
+              y el repartidor creía que se había quedado atrapado (Pedro, 2026-11-18).
+              Sigue pidiendo mantener: tocar no alcanza, así el bolsillo no la abre. */}
+          <div
+            className="absolute inset-x-6 grid justify-items-center gap-3 rounded-2xl px-5 py-4"
+            style={{ bottom: 'max(2rem, env(safe-area-inset-bottom))', border: '1px solid rgba(255,255,255,0.28)' }}
+          >
+            <p className="text-[16px] font-bold text-white/85">{t.pocketHold}</p>
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.14)' }}>
+              <div
+                className="h-full bg-emerald-500 rounded-full"
+                style={{
+                  width: pocketHolding ? '100%' : '0%',
+                  transition: pocketHolding ? `width ${POCKET_HOLD_MS}ms linear` : 'none',
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

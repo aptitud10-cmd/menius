@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { noStoreFetch } from "./admin";
 
 /**
  * Cliente autenticado con un JWT Bearer (app nativa / Authorization header).
@@ -11,7 +12,8 @@ export function createClientFromToken(accessToken: string) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      // Fresh reads: Next would otherwise cache them forever (see admin.ts).
+      global: { headers: { Authorization: `Bearer ${accessToken}` }, fetch: noStoreFetch },
       auth: { autoRefreshToken: false, persistSession: false },
     },
   );

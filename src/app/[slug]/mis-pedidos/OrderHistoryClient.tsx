@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Search, Package, RotateCcw, Clock, CheckCircle2, XCircle, ChefHat, Truck } from 'lucide-react';
+import { ArrowLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
 import { getTranslations } from '@/lib/translations';
@@ -15,8 +15,7 @@ interface OrderItem {
   variant_name: string | null;
   quantity: number;
   unit_price: number;
-  product: any | null;
-  variant: any | null;
+  variant: { price_delta?: number | null } | null;
 }
 
 interface Order {
@@ -24,10 +23,20 @@ interface Order {
   order_number: string;
   status: string;
   order_type: string;
-  payment_method: string;
   total: number;
   created_at: string;
   order_items: OrderItem[];
+}
+
+/** What the tracker saves on this phone for every order it opened. */
+interface LocalOrder {
+  id: string;
+  number: string;
+  status: string;
+  total: number;
+  date: string;
+  items: number;
+  t: string | null;
 }
 
 interface Props {
@@ -38,57 +47,78 @@ interface Props {
   locale?: string;
 }
 
+/**
+ * "My orders" used to ask for an email and then refuse everyone without the
+ * tracking token on that same phone ("For your privacy, open My orders from
+ * the link…") — i.e. everyone on desktop, and everyone who typed an email.
+ * Now it never asks: with the email + token this phone already has (checkout
+ * and tracker save them) it loads the full history; otherwise it lists the
+ * orders this phone opened; with neither, it says where the order lives.
+ */
 export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlug, currency, locale }: Props) {
+  const en = locale === 'en';
   const t = getTranslations(locale ?? 'es');
-  const [email, setEmail] = useState('');
+  const fmtPrice = (n: number) => formatPrice(n, currency);
+  const dateLocale = en ? 'en-US' : 'es-MX';
+
   const [orders, setOrders] = useState<Order[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [localOrders, setLocalOrders] = useState<LocalOrder[]>([]);
+  const [loading, setLoading] = useState(true);
   const [reorderedId, setReorderedId] = useState<string | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    let email = '';
+    let token = '';
+    let local: LocalOrder[] = [];
+    try {
+      const saved = JSON.parse(localStorage.getItem('menius-checkout') ?? 'null');
+      email = String(saved?.state?.customer?.email ?? '').trim().toLowerCase();
+      token = localStorage.getItem(`menius-track-token-${restaurantSlug}`) ?? '';
+      const raw = JSON.parse(localStorage.getItem(`menius-history-${restaurantSlug}`) ?? '[]');
+      if (Array.isArray(raw)) local = raw.filter((o) => o && o.id && o.number);
+    } catch {}
+    setLocalOrders(local);
 
-  const fmtPrice = (n: number) => formatPrice(n, currency);
-
-  const STATUS_CONFIG: Record<string, { label: string; icon: typeof CheckCircle2; color: string }> = {
-    pending:   { label: t.statusPending,   icon: Clock,        color: 'text-gray-500' },
-    confirmed: { label: t.statusConfirmed, icon: CheckCircle2, color: 'text-blue-500' },
-    preparing: { label: t.statusPreparing, icon: ChefHat,      color: 'text-amber-500' },
-    ready:     { label: t.statusReady,     icon: CheckCircle2, color: 'text-emerald-500' },
-    delivered: { label: t.statusDelivered, icon: Truck,        color: 'text-emerald-600' },
-    cancelled: { label: t.statusCancelled, icon: XCircle,      color: 'text-red-500' },
-  };
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setError(t.orderInvalidEmail);
+    if (!email || !token) {
+      setLoading(false);
       return;
     }
-    setError('');
-    setLoading(true);
-    try {
-      // Tracking token saved by the order page (OrderTracker) — proves ownership
-      // to the API, which otherwise degrades the payload (no images/tags/payment).
-      let token = '';
-      try { token = localStorage.getItem(`menius-track-token-${restaurantSlug}`) ?? ''; } catch {}
-      const res = await fetch(
-        `/api/orders/history?restaurant_id=${encodeURIComponent(restaurantId)}&email=${encodeURIComponent(trimmed)}${token ? `&t=${encodeURIComponent(token)}` : ''}`
-      );
-      const data = await res.json();
-      if (res.status === 403 && data.code === 'NEEDS_TOKEN') { setError(t.orderHistoryNeedsToken); return; }
-      if (!res.ok) { setError(data.error ?? t.orderConnectionError); return; }
-      setOrders(data.orders);
-    } catch {
-      setError(t.orderConnectionError);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetch(
+      `/api/orders/history?restaurant_id=${encodeURIComponent(restaurantId)}&email=${encodeURIComponent(email)}&t=${encodeURIComponent(token)}`,
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.orders) setOrders(data.orders as Order[]);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId, restaurantSlug]);
 
-  // Mismo mecanismo que "Pedir lo mismo" del seguimiento: el menú vuelve a armar
-  // el carrito con los productos actuales y avisa los que tienen opciones (antes
-  // se agregaban sin el acompañante obligatorio y el checkout respondía 400).
+  const STATUS: Record<string, string> = {
+    pending: t.statusPending,
+    confirmed: t.statusConfirmed,
+    preparing: t.statusPreparing,
+    ready: t.statusReady,
+    delivered: t.statusDelivered,
+    cancelled: t.statusCancelled,
+  };
+  const statusDot = (s: string) =>
+    s === 'cancelled' ? 'bg-[#c4321b]' : s === 'delivered' ? 'bg-gray-400' : 'bg-[#05c8a7]';
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' });
+  const shortNum = (n: string) => n.split('-').pop() ?? n;
+  const trackHref = (number: string, tok?: string | null) =>
+    `/${restaurantSlug}/orden/${number}${tok ? `?t=${encodeURIComponent(tok)}` : ''}`;
+  const localTokenFor = (id: string) => localOrders.find((o) => o.id === id)?.t ?? null;
+
+  // Same mechanism as the tracker's "Order again": the menu rebuilds the cart
+  // with today's products and flags the dishes that need their options again.
   const handleReorder = (order: Order) => {
     const saved = order.order_items
       .filter((it) => it.product_id)
@@ -97,7 +127,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
         productName: it.product_name ?? '',
         variantId: it.variant_id ?? null,
         variantName: it.variant_name ?? null,
-        variantPriceDelta: (it.variant?.price_delta as number | null | undefined) ?? null,
+        variantPriceDelta: it.variant?.price_delta ?? null,
         qty: Number(it.quantity) || 1,
       }));
     if (saved.length === 0) return;
@@ -106,142 +136,130 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
     window.location.href = `/${restaurantSlug}?reorder=1`;
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+  const header = (
+    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-200 pt-[env(safe-area-inset-top)]">
+      <div className="max-w-lg mx-auto h-14 px-2 flex items-center gap-1">
         <Link
           href={`/${restaurantSlug}`}
-          className="p-2 -ml-1 rounded-xl hover:bg-gray-100 transition-colors text-gray-500"
+          aria-label={en ? 'Back to the menu' : 'Volver al menú'}
+          className="w-11 h-11 flex items-center justify-center rounded-full text-gray-800 hover:bg-gray-100 active:bg-gray-200 transition-colors"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5" aria-hidden="true" />
         </Link>
         <div className="min-w-0">
-          <p className="text-xs text-gray-400 truncate">{restaurantName}</p>
-          <h1 className="text-[15px] font-bold text-gray-900">{t.myOrders}</h1>
+          <h1 className="text-[17px] font-semibold text-gray-900 leading-tight">{t.myOrders}</h1>
+          <p className="text-[13px] text-gray-600 truncate">{restaurantName}</p>
         </div>
       </div>
+    </header>
+  );
 
-      <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
+  const card = 'bg-white rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_0_0_1px_rgba(0,0,0,0.05)]';
 
-        {/* Search form */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-          <p className="text-sm font-semibold text-gray-800 mb-1">{t.orderHistorySearch}</p>
-          <p className="text-xs text-gray-500 mb-4">{t.orderHistoryDesc}</p>
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
-              className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-colors"
-              autoComplete="email"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-3 rounded-xl bg-emerald-500 text-white flex items-center gap-2 text-sm font-semibold hover:bg-emerald-600 transition-colors disabled:opacity-50"
+  let body: React.ReactNode;
+  if (loading) {
+    body = (
+      <div className="space-y-3" aria-busy="true">
+        {[0, 1].map((i) => (
+          <div key={i} className={`${card} h-[104px] animate-pulse`} />
+        ))}
+      </div>
+    );
+  } else if (orders && orders.length > 0) {
+    body = (
+      <ul className="space-y-3">
+        {orders.map((order) => (
+          <li key={order.id} className={`${card} overflow-hidden`}>
+            <Link
+              href={trackHref(order.order_number, localTokenFor(order.id))}
+              className="flex items-center gap-3 px-4 pt-3.5 pb-3 hover:bg-gray-50 transition-colors"
             >
-              {loading ? (
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <Search className="w-4 h-4" />
-              )}
-            </button>
-          </form>
-          {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
-        </div>
-
-        {/* Results */}
-        {orders !== null && (
-          orders.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                <Package className="w-7 h-7 text-gray-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[16px] font-semibold text-gray-900">
+                  #{shortNum(order.order_number)}
+                  <span className="ml-2 text-[14px] font-normal text-gray-600">{fmtDate(order.created_at)}</span>
+                </p>
+                <p className="mt-0.5 text-[14px] text-gray-700 truncate">
+                  {order.order_items.map((it) => `${it.quantity}× ${it.product_name}`).join(', ')}
+                </p>
               </div>
-              <p className="font-semibold text-gray-700">{t.orderNotFound}</p>
-              <p className="text-sm text-gray-400 mt-1">
-                {t.orderNotFoundDesc} {restaurantName}.
-              </p>
-              <Link
-                href={`/${restaurantSlug}`}
-                className="mt-4 inline-block px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
+              <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" aria-hidden="true" />
+            </Link>
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-gray-100">
+              <span className="inline-flex items-center gap-2 text-[14px] text-gray-700">
+                <span className={`w-2 h-2 rounded-full ${statusDot(order.status)}`} aria-hidden="true" />
+                {STATUS[order.status] ?? order.status}
+                <span className="text-gray-600" aria-hidden="true">·</span>
+                <span className="font-semibold text-gray-900 tabular-nums">{fmtPrice(order.total)}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => handleReorder(order)}
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-[#05c8a7] text-[#04241E] text-[14px] font-semibold hover:bg-[#04b096] active:scale-[0.97] transition"
               >
-                {t.orderMakeOrder}
-              </Link>
+                {reorderedId === order.id ? (
+                  <Check className="w-4 h-4" aria-hidden="true" />
+                ) : (
+                  <RotateCcw className="w-4 h-4" aria-hidden="true" />
+                )}
+                {reorderedId === order.id ? t.orderReordered : t.orderReorder}
+              </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-xs text-gray-500 font-medium px-1">
-                {orders.length} {orders.length !== 1 ? t.resultPlural : t.resultSingular}
-              </p>
-              {orders.map((order) => {
-                const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
-                const StatusIcon = cfg.icon;
-                const date = new Date(order.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : 'es-MX', {
-                  day: 'numeric', month: 'short', year: 'numeric',
-                });
-
-                return (
-                  <div key={order.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                    {/* Order header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                      <div>
-                        <Link
-                          href={`/${restaurantSlug}/orden/${order.order_number}`}
-                          className="text-sm font-bold text-gray-900 hover:text-emerald-600 transition-colors"
-                        >
-                          #{order.order_number}
-                        </Link>
-                        <p className="text-xs text-gray-400 mt-0.5">{date}</p>
-                      </div>
-                      <span className={`flex items-center gap-1.5 text-xs font-semibold ${cfg.color}`}>
-                        <StatusIcon className="w-3.5 h-3.5" />
-                        {cfg.label}
-                      </span>
-                    </div>
-
-                    {/* Items */}
-                    <div className="px-4 py-3 space-y-1">
-                      {order.order_items.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-700">
-                            {item.quantity}× {item.product_name}
-                            {item.variant_name && <span className="text-gray-400 text-xs"> ({item.variant_name})</span>}
-                          </span>
-                          <span className="text-gray-500 tabular-nums text-xs">
-                            {fmtPrice(item.unit_price * item.quantity)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-100">
-                      <span className="text-sm font-bold text-gray-900">{fmtPrice(order.total)}</span>
-                      <button
-                        onClick={() => handleReorder(order)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors active:scale-95"
-                      >
-                        {reorderedId === order.id ? (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        ) : (
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        )}
-                        {reorderedId === order.id ? t.orderReordered : t.orderReorder}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )
-        )}
-
+          </li>
+        ))}
+      </ul>
+    );
+  } else if (localOrders.length > 0) {
+    body = (
+      <ul className="space-y-3">
+        {localOrders.map((o) => (
+          <li key={o.id}>
+            <Link
+              href={trackHref(o.number, o.t)}
+              className={`${card} flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors`}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-[16px] font-semibold text-gray-900">
+                  #{shortNum(o.number)}
+                  <span className="ml-2 text-[14px] font-normal text-gray-600">{fmtDate(o.date)}</span>
+                </p>
+                <p className="mt-0.5 text-[14px] text-gray-700">
+                  {o.items} {en ? (o.items === 1 ? 'item' : 'items') : o.items === 1 ? 'producto' : 'productos'}
+                  {' · '}
+                  <span className="tabular-nums">{fmtPrice(Number(o.total) || 0)}</span>
+                </p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" aria-hidden="true" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    );
+  } else {
+    body = (
+      <div className="pt-10 text-center">
+        <h2 className="font-menu text-[30px] leading-tight text-gray-900">
+          {en ? 'No orders on this phone yet' : 'Todavía no hay pedidos en este teléfono'}
+        </h2>
+        <p className="mt-3 text-[15px] leading-relaxed text-gray-600 max-w-xs mx-auto">
+          {en
+            ? 'Orders you place here will show up on this page. Ordered on another device? Open the link in your confirmation email.'
+            : 'Los pedidos que hagas aquí van a aparecer en esta página. ¿Pediste desde otro dispositivo? Abre el enlace de tu email de confirmación.'}
+        </p>
+        <Link
+          href={`/${restaurantSlug}`}
+          className="mt-7 inline-flex h-12 items-center rounded-full bg-[#05c8a7] px-6 text-[15px] font-semibold text-[#04241E] hover:bg-[#04b096] transition-colors"
+        >
+          {en ? 'Browse the menu' : 'Ver el menú'}
+        </Link>
       </div>
+    );
+  }
+
+  return (
+    <div lang={en ? 'en' : 'es'} className="min-h-[100dvh] bg-[#f5f5f3]">
+      {header}
+      <main className="max-w-lg mx-auto px-4 py-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">{body}</main>
     </div>
   );
 }

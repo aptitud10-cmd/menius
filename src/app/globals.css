@@ -1165,6 +1165,46 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   box-shadow: none;
 }
 
+/* Phone field — checkout premium (caja gris con etiqueta arriba) */
+.phone-field--ios .PhoneInput,
+.phone-field--ios.PhoneInput {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 23px 14px 8px;
+}
+.phone-field--ios .PhoneInputCountry {
+  padding-right: 10px;
+  border-right: 1px solid rgba(17, 17, 20, 0.09);
+}
+.phone-field--ios .PhoneInputCountryIcon {
+  width: 22px;
+  height: 16px;
+}
+.phone-field--ios .PhoneInputCountryIcon--border {
+  box-shadow: none;
+  background: none;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.phone-field--ios .PhoneInputCountrySelectArrow {
+  border-color: #6b6b74;
+  margin-left: 4px;
+}
+.phone-field--ios .PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  color: #111114;
+  font-size: 17px !important;
+  line-height: 1.2;
+}
+.phone-field--ios .PhoneInputInput::placeholder {
+  color: #9a9aa2;
+}
+
 /* Undo shrink bar */
 @keyframes shrink {
   from { width: 100%; }

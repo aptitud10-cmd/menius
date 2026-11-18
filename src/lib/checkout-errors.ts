@@ -104,6 +104,18 @@ export function formatOrderSubmitError(
 ): string {
   const raw = (apiError ?? '').trim();
 
+  // 500s carry internal, Spanish-only text ("Error interno", "Error guardando
+  // items") that reached English-speaking diners as-is. The server rolls the
+  // order back on every 500, so say that nothing was charged and offer a retry
+  // (the checkout shows the Retry button for these). 502/503 keep their own,
+  // already-localized messages (payment start, paused, closed).
+  if (status >= 500 && status !== 502 && status !== 503) {
+    return pick(locale, {
+      es: 'No pudimos enviar tu pedido. No se cobró nada: inténtalo de nuevo.',
+      en: "We couldn't send your order. Nothing was charged — please try again.",
+    });
+  }
+
   if (raw && ORDER_API_EXACT[raw]) return pick(locale, ORDER_API_EXACT[raw]);
   for (const { test, msg } of ORDER_SUBSTRINGS) {
     if (test(raw)) return pick(locale, msg);
@@ -190,4 +202,25 @@ export function safeParseJson<T = Record<string, unknown>>(text: string): { ok: 
   } catch {
     return { ok: false };
   }
+}
+
+/**
+ * Salida que el checkout ofrece junto a un error de /api/orders (por `code`):
+ * cambiar la dirección, programar, cambiar la hora, revisar los platos acá o
+ * editarlos en el menú (las opciones de un plato solo se editan en el carrito).
+ */
+export type OrderErrorAction = null | 'address' | 'contact' | 'schedule' | 'when' | 'items' | 'menu';
+
+const ITEMS_FIXABLE_HERE = new Set(['STOCK_LIMIT', 'PRODUCT_UNAVAILABLE', 'PRODUCT_SOLD_OUT', 'PRODUCT_OUT_OF_HOURS']);
+const ITEMS_EDIT_IN_MENU = new Set(['MODIFIERS_CHANGED', 'MODIFIER_MAX', 'MODIFIER_REQUIRED', 'OPTION_UNAVAILABLE']);
+
+export function errorActionFor(code: string | null | undefined): OrderErrorAction {
+  if (!code) return null;
+  if (code === 'OUT_OF_ZONE') return 'address';
+  if (code === 'INVALID_CONTACT') return 'contact';
+  if (code === 'CLOSED_NOW') return 'schedule';
+  if (code === 'CLOSED_AT_TIME' || code === 'SCHEDULE_TOO_SOON') return 'when';
+  if (ITEMS_FIXABLE_HERE.has(code)) return 'items';
+  if (ITEMS_EDIT_IN_MENU.has(code)) return 'menu';
+  return null;
 }

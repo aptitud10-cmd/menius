@@ -458,7 +458,7 @@ function buildTrialExpiringEmail(
       <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;line-height:1.6;font-weight:600;">${en ? `⏰ Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}` : `⏰ Tu prueba gratuita termina en ${daysLeft} día${daysLeft !== 1 ? "s" : ""}`}</p>
       <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? `Hi, your trial for <strong style="color:#f3f4f6;">${restaurantName}</strong> on MENIUS is about to end.` : `Hola, el periodo de prueba de <strong style="color:#f3f4f6;">${restaurantName}</strong> en MENIUS está por terminar.`}</p>
       <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? "If you don't subscribe, your account moves to the Free plan: your menu stays online, but you lose pickup, delivery and online payments. Subscribe to Pro to keep everything — you keep your remaining trial days." : "Si no te suscribes, tu cuenta pasa al plan Gratis: tu menú sigue en línea, pero pierdes pickup, delivery y pagos online. Suscríbete a Pro para conservar todo — mantienes los días de prueba que te quedan."}</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? 'Pro: <strong style="color:#f3f4f6;">$79/mo</strong> or $790/yr. Cancel anytime.' : 'Pro: <strong style="color:#f3f4f6;">$79/mes</strong> o $790/año. Cancela cuando quieras.'}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? 'Pro: <strong style="color:#f3f4f6;">$149/mo</strong> or $1,490/yr. Cancel anytime.' : 'Pro: <strong style="color:#f3f4f6;">$149/mes</strong> o $1,490/año. Cancela cuando quieras.'}</p>
       <a href="${billingUrl}" style="display:block;margin-top:24px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
         ${en ? "Subscribe to Pro" : "Suscribirme a Pro"}
       </a>
@@ -597,7 +597,7 @@ function buildOnboardingDay7Email(
         <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>${en ? "🎯 Promotions" : "🎯 Promociones"}</strong> — ${en ? "Create discount codes to attract customers" : "Crea códigos de descuento para atraer clientes"}</p>
       </div>
       <div style="margin:16px 0;padding:12px;background:rgba(245,158,11,0.08);border-radius:10px;border:1px solid rgba(245,158,11,0.15);">
-        <p style="margin:0;font-size:13px;color:#fbbf24;">💡 <strong>${en ? "Did you know?" : "¿Sabías?"}</strong> ${en ? "With the Pro plan ($79/mo or $790/yr) you get pickup, delivery, online card payments (0% MENIUS commission) and up to 5 users." : "Con el plan Pro ($79/mes o $790/año) tienes pickup, delivery, pagos online con tarjeta (0% de comisión de MENIUS) y hasta 5 usuarios."}</p>
+        <p style="margin:0;font-size:13px;color:#fbbf24;">💡 <strong>${en ? "Did you know?" : "¿Sabías?"}</strong> ${en ? "With the Pro plan ($149/mo or $1,490/yr) you get pickup, delivery, online card payments (0% MENIUS commission) and up to 5 users." : "Con el plan Pro ($149/mes o $1,490/año) tienes pickup, delivery, pagos online con tarjeta (0% de comisión de MENIUS) y hasta 5 usuarios."}</p>
       </div>
       <a href="${dashUrl}/billing" style="display:block;margin-top:20px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">${en ? "View Pro plan" : "Ver plan Pro"}</a>
     </div>

@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
+import { REVIEWS_MIN_FOR_RATING, hasRealPopularity } from '@/lib/social-proof';
 import type { Restaurant, Category, Product } from '@/types';
 
 const logger = createLogger('menu-data');
@@ -41,7 +42,7 @@ async function probeProductIds(
  */
 export async function fetchAllSlugs(): Promise<string[]> {
   try {
-    const db = createAdminClient();
+    const db = createAdminClient({ isr: true });
     const { data } = await db.from('restaurants').select('slug');
     return (data ?? []).map((r: { slug: string }) => r.slug).filter(Boolean);
   } catch {
@@ -55,7 +56,7 @@ export async function fetchAllSlugs(): Promise<string[]> {
  */
 export const fetchRestaurantMeta = cache(async function fetchRestaurantMeta(slug: string) {
   try {
-    const db = createAdminClient();
+    const db = createAdminClient({ isr: true });
     const { data: restaurant } = await db
       .from('restaurants')
       .select('id, name, description, cover_image_url, logo_url, slug, locale, available_locales, cuisine_type, address, country_code')
@@ -72,7 +73,33 @@ export const fetchRestaurantMeta = cache(async function fetchRestaurantMeta(slug
       .order('sort_order', { ascending: true })
       .limit(4);
 
-    return { ...restaurant, topCategoryNames: (topCategories ?? []).map((c: { name: string }) => c.name) };
+    // For the shared-link description: the same "Popular" the menu shows —
+    // real sales above the minimum (social-proof), else the owner's featured
+    // dishes. The first categories by sort order were "Juices, Fruits…" on a
+    // diner known for burgers; raw popularity_rank listed test orders.
+    const { data: candidates } = await db
+      .from('products')
+      .select('name, popularity_rank, orders_last_7d, is_featured, sort_order')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .eq('in_stock', true)
+      .or('popularity_rank.not.is.null,is_featured.eq.true')
+      .limit(60);
+    type Cand = { name: string; popularity_rank: number | null; orders_last_7d: number | null; is_featured: boolean | null; sort_order: number | null };
+    const list = (candidates ?? []) as Cand[];
+    const ranked = list
+      .filter((p) => hasRealPopularity(p))
+      .sort((a, b) => (a.popularity_rank ?? 1e9) - (b.popularity_rank ?? 1e9));
+    const featured = list
+      .filter((p) => p.is_featured)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const topDishes = (ranked.length >= 2 ? ranked : featured).slice(0, 3);
+
+    return {
+      ...restaurant,
+      topCategoryNames: (topCategories ?? []).map((c: { name: string }) => c.name),
+      topDishNames: topDishes.map((p) => p.name),
+    };
   } catch {
     return null;
   }
@@ -118,7 +145,7 @@ export interface MenuData {
 async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
   try {
     // Admin client bypasses RLS for public menu reads (server-side only, never exposed to client)
-    const db = createAdminClient();
+    const db = createAdminClient({ isr: true });
 
     const { data: restaurant, error: restaurantError } = await db
       .from('restaurants')
@@ -178,14 +205,18 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         .select('id, customer_name, rating, comment, created_at')
         .eq('restaurant_id', restaurant.id)
         .eq('is_visible', true)
+        .not('order_id', 'is', null)
         .order('created_at', { ascending: false })
         .limit(10),
-      // Aggregate query for accurate review stats across ALL visible reviews
+      // Aggregate query for accurate review stats across ALL visible reviews.
+      // Only reviews tied to an order count: one without an order was never a
+      // purchase (the owner testing, or anyone with the link).
       db
         .from('reviews')
-        .select('rating', { count: 'exact' })
+        .select('rating, comment', { count: 'exact' })
         .eq('restaurant_id', restaurant.id)
-        .eq('is_visible', true),
+        .eq('is_visible', true)
+        .not('order_id', 'is', null),
     ] as const);
 
     // Lightweight modifier presence check — runs after we have product IDs.
@@ -302,15 +333,21 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
     let reviewStats: ReviewStats | null = null;
     const reviews = (reviewRows ?? []) as any[];
     // Use all visible reviews for accurate aggregate stats
-    const allRatingRows = (reviewAggResult.data ?? []) as { rating: number }[];
+    const allRatingRows = (reviewAggResult.data ?? []) as { rating: number; comment: string | null }[];
     const totalReviews = reviewAggResult.count ?? allRatingRows.length;
-    if (totalReviews > 0) {
+    // Below the minimum a rating does more harm than good, so the cover rating,
+    // the review cards and the JSON-LD aggregateRating all stay hidden together.
+    // The minimum counts reviews WITH text: a bare tap on 5 stars is what a test
+    // order leaves behind (Buccaneer 2026-11-16: 10 order-linked 5★, 1 with text).
+    const reviewsWithText = allRatingRows.filter((r) => (r.comment ?? '').trim().length > 0).length;
+    const enoughReviews = reviewsWithText >= REVIEWS_MIN_FOR_RATING;
+    if (enoughReviews) {
       const sum = allRatingRows.reduce((s, r) => s + (r.rating ?? 0), 0);
       const avg = sum / allRatingRows.length;
       reviewStats = { average: Math.round(avg * 10) / 10, total: totalReviews };
     }
 
-    const recentReviews: ReviewItem[] = reviews
+    const recentReviews: ReviewItem[] = (enoughReviews ? reviews : [])
       .filter((r: any) => r.comment && r.comment.trim().length > 0)
       .slice(0, 10)
       .map((r: any) => ({

@@ -26,7 +26,7 @@
       "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/auto-complete-pickup",
+      "path": "/api/cron/order-timeouts",
       "schedule": "*/10 * * * *"
     },
     {

@@ -38,6 +38,9 @@ export interface ProductCardProps {
    *  Ya no altera el borde —el badge ⭐/🔥 es quien comunica la popularidad—
    *  pero se conserva porque describe el contexto de render. */
   inPopularSection?: boolean;
+  /** Last card of an odd count in the 2-column phone grid: spans both columns
+   *  with a 16:9 photo instead of sitting alone next to a hole. */
+  wide?: boolean;
 }
 
 export const ProductCard = memo(function ProductCard(props: ProductCardProps) {

@@ -8,6 +8,12 @@ interface SavedCustomer {
   lastOrderType: string;
   lastPaymentMethod: string;
   deliveryAddress?: string;
+  /** Apto / piso, aparte de la dirección de Google (elegirla no lo borra). */
+  deliveryUnit?: string;
+  /** Coordenadas de la sugerencia elegida: sin ellas, una dirección guardada
+   *  llegaba al servidor sin poder comprobar la zona de entrega. */
+  deliveryLat?: number;
+  deliveryLng?: number;
   savedAt: string;
 }
 

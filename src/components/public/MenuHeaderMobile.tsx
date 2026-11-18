@@ -11,7 +11,9 @@ import { Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { getTranslations } from '@/lib/translations';
+import { LanguageMenu } from './LanguageMenu';
 import type { MenuHeaderProps } from './MenuHeader';
+import { isRestaurantOpen } from './MenuHeader';
 
 let _sessionCache: Promise<boolean> | null = null;
 function checkIsLoggedIn(): Promise<boolean> {
@@ -34,6 +36,8 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   hasCover = false,
   locale = 'es',
   loyaltyPoints,
+  languages,
+  onLocaleChange,
 }: MenuHeaderProps) {
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {
@@ -43,6 +47,15 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   const t = getTranslations(locale);
   const showName = !hasCover || isScrolled;
   const isTransparent = hasCover && !isScrolled;
+  // Closed shows next to the name once the cover (and its strip) scroll away.
+  // After mount only: the server's clock must not decide the first render.
+  const [closed, setClosed] = useState(false);
+  useEffect(() => {
+    const check = () => setClosed(!isRestaurantOpen(restaurant.operating_hours, restaurant.timezone));
+    check();
+    const id = window.setInterval(check, 60_000);
+    return () => window.clearInterval(id);
+  }, [restaurant.operating_hours, restaurant.timezone]);
 
   return (
     <header
@@ -83,6 +96,11 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           isTransparent ? 'text-white drop-shadow' : 'text-gray-900'
         )}>
           {restaurant.name}
+          {closed && (
+            <span className="ml-2 align-[2px] text-[13px] font-semibold tracking-normal text-[#b42318]">
+              {closedLabel}
+            </span>
+          )}
         </span>
 
         {/* Right: Loyalty badge + Dashboard + Search */}
@@ -106,6 +124,15 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
             >
               <LayoutDashboard className={cn('w-4 h-4', isTransparent ? 'text-white' : 'text-gray-500')} />
             </Link>
+          )}
+          {languages && languages.length > 1 && onLocaleChange && (
+            <LanguageMenu
+              locales={languages}
+              current={locale}
+              onChange={onLocaleChange}
+              label={t.changeLanguageAriaLabel}
+              tone={isTransparent ? 'overlay' : 'light'}
+            />
           )}
           <button
             onClick={onToggleSearch}

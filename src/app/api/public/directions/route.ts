@@ -20,6 +20,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { roadTravelMinutes } from '@/lib/orders/eta';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
 const CACHE_TTL_SEC = 60;
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
   const rFromLng = roundCoord(fromLng);
   const rToLat   = roundCoord(toLat);
   const rToLng   = roundCoord(toLng);
-  const cacheKey = `dir:${rFromLng},${rFromLat};${rToLng},${rToLat}`;
+  const cacheKey = `dir2:${rFromLng},${rFromLat};${rToLng},${rToLat}`;
 
   const redis = await getRedis();
 
@@ -97,9 +98,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ etaMinutes: null, routeCoords: null });
     }
 
-    const seconds = route.duration;
+    // Minutos del repartidor (bici + entrega) sobre los km reales de la ruta, no
+    // la duración en auto de Mapbox: así coincide con la cuenta del checkout.
+    const meters = route.distance;
     const result = {
-      etaMinutes:  typeof seconds === 'number' ? Math.max(1, Math.ceil(seconds / 60)) : null,
+      etaMinutes:  typeof meters === 'number' ? roadTravelMinutes(meters / 1000) : null,
       routeCoords: (route.geometry?.coordinates ?? null) as [number, number][] | null,
     };
 

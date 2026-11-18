@@ -77,7 +77,6 @@ export interface Translations {
   createFree: string;
   // Footer
   poweredBy: string;
-  createYourMenu: string;
   // Days
   monday: string;
   tuesday: string;
@@ -160,6 +159,12 @@ export interface Translations {
   servedHours: (hours: string) => string;
   /** Badge on a required group once it is satisfied. */
   groupDone: string;
+  groupRequired: string;
+  goesWellWith: string;
+  menuSheetTitle: string;
+  searchDishes: (n: number) => string;
+  menuSections: string;
+  yourOrder: string;
   // Product card
   soldOut: string;
   unavailable: string;
@@ -178,6 +183,10 @@ export interface Translations {
   addressLabel: string;
   getDirections: string;
   open24h: string;
+  infoShort: string;
+  everyDay: string;
+  reviewsLatestNote: string;
+  seeAll: string;
   phoneLabel: string;
   sendWhatsApp: string;
   // Catalog & search
@@ -206,6 +215,8 @@ export interface Translations {
   reviewThankYou: string;
   reviewThankYouHelp: string;
   reviewThankYouAppreciate: string;
+  reviewGoogleCta: string;
+  reviewGoogleHint: string;
   starLabel1: string;
   starLabel2: string;
   starLabel3: string;
@@ -259,6 +270,8 @@ export interface Translations {
   scrollLeftAriaLabel: string;
   scrollRightAriaLabel: string;
   youreAt: string;
+  tableWord: string;
+  installIosTap: string;
   dismiss: string;
   tryDifferentKeyword: string;
   todayLabel: string;
@@ -268,6 +281,7 @@ export interface Translations {
   seeOnGoogleMaps: string;
   closeSearch: string;
   clearSearch: string;
+  searching: string;
   clearFilters: string;
   continueOrderItems: string;
   ordersPaused: string;
@@ -339,6 +353,79 @@ export interface Translations {
   havePromoCode: string;
   applyingLabel: string;
   addTipQuestion: string;
+  tipTitleTeam: string;
+  tipTitleDriver: string;
+  tipHintTeam: string;
+  tipHintDriver: string;
+  tipNone: string;
+  tipOther: string;
+  tipCustomLabel: string;
+  ckYourOrder: string;
+  ckViewDetails: string;
+  ckHideDetails: string;
+  ckDeliverTo: string;
+  ckAddAddress: string;
+  ckAddressTitle: string;
+  ckUseAddress: string;
+  ckWhen: string;
+  ckAsap: string;
+  ckReadyIn: string;
+  ckArrivesIn: string;
+  ckWhenTitle: string;
+  ckScheduleLater: string;
+  ckContact: string;
+  ckAddContact: string;
+  ckContactTitle: string;
+  ckNote: string;
+  ckPromoApplied: string;
+  ckUtensilsTitle: string;
+  ckUtensilsSub: string;
+  ckPayNow: string;
+  ckPayCash: string;
+  ckCashPickup: string;
+  ckCashDelivery: string;
+  ckCashDineIn: string;
+  ckCashTip: string;
+  ckRefunds: string;
+  cartCashOnly: string;
+  ckCashOnly: string;
+  ckChangeQuestion: string;
+  ckExact: string;
+  ckPaysWith: string;
+  ckOnlineHint: string;
+  ckContinue: string;
+  ckAddItems: string;
+  ckDone: string;
+  ckRemove: string;
+  ckLegal: string;
+  ckPrivacy: string;
+  ckCall: string;
+  ckTable: string;
+  ckTableSub: string;
+  ckTableTitle: string;
+  ckLoyalty: string;
+  ckClosedNow: string;
+  storeOpensAt: string;
+  storeOpensTomorrowAt: string;
+  storeOpensDayAt: string;
+  storeScheduleHint: string;
+  storePausedTitle: string;
+  storeBackAt: string;
+  ckClosedBanner: string;
+  ckScheduleCta: string;
+  ckClosedAtTime: string;
+  ckTimeTooSoon: string;
+  ckUnitLabel: string;
+  ckUnitPlaceholder: string;
+  ckChangeTime: string;
+  ckPaused: string;
+  ckPausedCta: string;
+  ckFixAddress: string;
+  ckFixContact: string;
+  ckPickupAt: string;
+  ckReviewItems: string;
+  ckEditInMenu: string;
+  ckDateTime: string;
   // CheckoutPageClient — CTA / footer
   retryingLabel: string;
   retryingBanner: string;
@@ -484,7 +571,6 @@ const es: Translations = {
   wantThisForYours: '¿Quieres esto para tu restaurante?',
   createFree: 'Crear gratis',
   poweredBy: 'Hecho con',
-  createYourMenu: 'Crea tu menú digital gratis',
   monday: 'Lunes',
   tuesday: 'Martes',
   wednesday: 'Miércoles',
@@ -533,7 +619,7 @@ const es: Translations = {
   peopleAlsoOrder: 'También piden con esto',
   freeDelivery: 'Gratis',
   deliveryIfSelected: 'Envío (si eliges domicilio)',
-  taxAtCheckout: '+ impuestos al pagar',
+  taxAtCheckout: 'Impuestos se suman al pagar',
   deliveryMinimum: 'Pedido mínimo para domicilio',
   deliveryMinimumMissing: 'Te falta agregar',
   maxReached: 'Máximo alcanzado',
@@ -548,6 +634,12 @@ const es: Translations = {
   optionHoursOnly: (name, hours) => `${name}: solo ${hours}`,
   servedHours: (hours) => `Se sirve ${hours}`,
   groupDone: 'Listo',
+  groupRequired: 'Obligatorio',
+  goesWellWith: 'Para acompañar',
+  menuSheetTitle: 'Menú',
+  searchDishes: (n) => `Buscar entre ${n} platos`,
+  menuSections: 'Secciones',
+  yourOrder: 'Tu pedido',
   soldOut: 'Agotado',
   unavailable: 'No disponible',
   addedShort: 'Listo',
@@ -560,7 +652,11 @@ const es: Translations = {
   customersTestimonial: 'Lo que dicen nuestros clientes',
   addressLabel: 'Dirección',
   getDirections: 'Cómo llegar',
-  open24h: 'Abierto 24 Horas',
+  open24h: 'Abierto 24 horas',
+  infoShort: 'Info',
+  everyDay: 'Todos los días',
+  reviewsLatestNote: 'Las reseñas más recientes con comentario.',
+  seeAll: 'Ver todas',
   phoneLabel: 'Teléfono',
   sendWhatsApp: 'Enviar mensaje',
   resultSingular: 'resultado',
@@ -584,6 +680,8 @@ const es: Translations = {
   reviewThankYou: '¡Gracias!',
   reviewThankYouHelp: 'Tu reseña nos ayuda a mejorar.',
   reviewThankYouAppreciate: 'Apreciamos tu opinión sobre',
+  reviewGoogleCta: 'Compártela también en Google',
+  reviewGoogleHint: 'Ayuda a que más gente encuentre {name}.',
   starLabel1: 'Muy malo',
   starLabel2: 'Malo',
   starLabel3: 'Regular',
@@ -633,6 +731,8 @@ const es: Translations = {
   scrollLeftAriaLabel: 'Desplazar izquierda',
   scrollRightAriaLabel: 'Desplazar derecha',
   youreAt: 'Estás en',
+  tableWord: 'Mesa',
+  installIosTap: 'Toca',
   dismiss: 'Cerrar',
   tryDifferentKeyword: 'Intenta con otra palabra o revisa la ortografía',
   todayLabel: 'Hoy',
@@ -642,6 +742,7 @@ const es: Translations = {
   seeOnGoogleMaps: 'Ver en Google Maps',
   closeSearch: 'Cerrar búsqueda',
   clearSearch: 'Borrar búsqueda',
+  searching: 'Buscando…',
   clearFilters: 'Limpiar filtros',
   continueOrderItems: 'Continúa tu pedido ({n} items)',
   ordersPaused: 'Los pedidos están temporalmente pausados',
@@ -650,17 +751,17 @@ const es: Translations = {
   jumpToSection: 'Ir a sección',
   itemsUpdatedAlert: 'Algunos productos fueron actualizados — agrégalos nuevamente para elegir las opciones requeridas.',
   // CheckoutPageClient — validation
-  validationNameRequired: 'El nombre es obligatorio',
-  validationNameMinLength: 'Mínimo 2 caracteres',
-  validationPhoneRequired: 'El teléfono es obligatorio',
-  validationPhoneInvalid: 'Teléfono no válido',
+  validationNameRequired: 'Escribe tu nombre',
+  validationNameMinLength: 'Escribe tu nombre completo',
+  validationPhoneRequired: 'Agrega un teléfono para que el restaurante pueda llamarte',
+  validationPhoneInvalid: 'Revisa el número, parece incompleto',
   validationEmailRequired: 'El email es obligatorio para recibir tu confirmación',
-  validationEmailInvalid: 'Email no válido',
-  validationAddressRequired: 'La dirección es obligatoria para delivery',
-  validationErrorPromo: 'Error validando código',
-  validationNamePhoneRequired: 'Nombre y teléfono son requeridos',
+  validationEmailInvalid: 'Revisa el email, parece que tiene un error',
+  validationAddressRequired: 'Agrega la dirección de entrega',
+  validationErrorPromo: 'No pudimos revisar el código. Intenta de nuevo.',
+  validationNamePhoneRequired: 'Agrega tu nombre y teléfono para hacer el pedido',
   validationEmailRequiredOrder: 'Email requerido para recibir tu confirmación de pedido',
-  validationDeliveryAddressRequired: 'Dirección de entrega requerida',
+  validationDeliveryAddressRequired: 'Agrega la dirección de entrega para hacer el pedido',
   deliveryPickFromList: 'Elegí tu dirección de la lista de sugerencias para confirmar que estás en la zona de entrega.',
   validationDineInOnlyItems: 'Algunos productos solo están disponibles para consumo en el local y no se pueden pedir para llevar ni a domicilio. Quítalos o cambia a "En mesa" para continuar.',
   dineInOnlyBadge: 'Solo en el local',
@@ -701,8 +802,8 @@ const es: Translations = {
   yourOrderSection: '1 · Tu pedido',
   yourInfoSection: '2 · Tus datos',
   infoSaved: '👋 Datos guardados',
-  emailHint: 'Te enviaremos la confirmación y actualizaciones de tu pedido.',
-  includeUtensils: 'Incluir cubiertos y servilletas',
+  emailHint: 'Para tu recibo y las novedades de tu pedido.',
+  includeUtensils: 'Incluir cubiertos, servilletas y salsas',
   scheduleForLater: 'Programar para después',
   rememberMeLabel: 'Recordar mis datos para la próxima vez',
   paymentSection: '3 · Forma de pago',
@@ -714,6 +815,79 @@ const es: Translations = {
   havePromoCode: '¿Tienes un código de descuento?',
   applyingLabel: 'Aplicando…',
   addTipQuestion: '¿Deseas dejar propina?',
+  tipTitleTeam: 'Propina para el equipo',
+  tipTitleDriver: 'Propina para tu repartidor',
+  tipHintTeam: 'Es para el personal de {name}. Calculada sobre el subtotal.',
+  tipHintDriver: 'Es para quien te lleva el pedido. Calculada sobre el subtotal.',
+  tipNone: 'Ninguna',
+  tipOther: 'Otra',
+  tipCustomLabel: 'Propina personalizada',
+  ckYourOrder: 'Tu pedido',
+  ckViewDetails: 'Ver detalle',
+  ckHideDetails: 'Ocultar detalle',
+  ckDeliverTo: 'Entregar en',
+  ckAddAddress: 'Agregar dirección',
+  ckAddressTitle: 'Dirección de entrega',
+  ckUseAddress: 'Usar esta dirección',
+  ckWhen: 'Cuándo',
+  ckAsap: 'Lo antes posible',
+  ckReadyIn: 'Listo en ~{n} min',
+  ckArrivesIn: 'Llega en ~{n} min',
+  ckWhenTitle: '¿Cuándo lo quieres?',
+  ckScheduleLater: 'Programar para más tarde',
+  ckContact: 'Contacto',
+  ckAddContact: 'Agregar nombre y teléfono',
+  ckContactTitle: 'Tus datos',
+  ckNote: 'Nota para la cocina',
+  ckPromoApplied: 'Aplicado: -{x}',
+  ckUtensilsTitle: 'Cubiertos y servilletas',
+  ckUtensilsSub: 'También salsas en sobre. Solo van si los pides.',
+  ckPayNow: 'Pagar ahora',
+  ckPayCash: 'En efectivo',
+  ckCashPickup: 'Pagas en efectivo al recoger',
+  ckCashDelivery: 'Pagas en efectivo al recibir',
+  ckCashDineIn: 'Pagas en efectivo en la mesa',
+  ckCashTip: 'Si deseas dejarle propina a tu repartidor, puedes dársela en efectivo al recibir tu pedido.',
+  ckRefunds: 'Reembolsos',
+  cartCashOnly: 'Solo efectivo · pagas al recibir tu pedido',
+  ckCashOnly: 'Este restaurante solo acepta efectivo.',
+  ckChangeQuestion: '¿Con cuánto vas a pagar? El repartidor lleva el cambio.',
+  ckExact: 'Pago exacto',
+  ckPaysWith: 'Paga con',
+  ckOnlineHint: 'Tarjeta, Apple Pay o Google Pay. Pago seguro con Stripe.',
+  ckContinue: 'Continuar',
+  ckAddItems: 'Agregar platos: faltan {x}',
+  ckDone: 'Listo',
+  ckRemove: 'Quitar',
+  ckLegal: '{name} prepara tu pedido.',
+  ckPrivacy: 'Privacidad',
+  ckCall: 'Llamar al restaurante',
+  ckTable: 'Mesa {name}',
+  ckTableSub: 'Pides desde tu mesa · te lo llevamos ahí',
+  ckTableTitle: 'Tu mesa',
+  ckLoyalty: 'Puntos de lealtad',
+  ckClosedNow: 'Cerrado ahora',
+  storeOpensAt: 'Abre a las {time}',
+  storeOpensTomorrowAt: 'Abre mañana a las {time}',
+  storeOpensDayAt: 'Abre el {day} a las {time}',
+  storeScheduleHint: 'Puedes programar tu pedido para más tarde.',
+  storePausedTitle: 'Los pedidos en línea están en pausa',
+  storeBackAt: 'Vuelve a las {time}',
+  ckClosedBanner: '{name} está cerrado ahora. Programa tu pedido para cuando abra.',
+  ckScheduleCta: 'Programar pedido',
+  ckClosedAtTime: 'El restaurante está cerrado a esa hora. Elige otra.',
+  ckUnitLabel: 'Apto, piso o local (opcional)',
+  ckUnitPlaceholder: 'Ej.: Apto 4B',
+  ckTimeTooSoon: 'Esa hora ya pasó o está muy cerca. Elige una al menos 10 minutos más tarde.',
+  ckChangeTime: 'Cambiar hora',
+  ckPaused: '{name} no está tomando pedidos en este momento. Prueba en un rato.',
+  ckPausedCta: 'Pedidos en pausa',
+  ckFixAddress: 'Cambiar dirección',
+  ckFixContact: 'Corregir contacto',
+  ckPickupAt: 'Recoges en',
+  ckReviewItems: 'Revisar pedido',
+  ckEditInMenu: 'Editar en el menú',
+  ckDateTime: 'Fecha y hora',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Reintentando…',
   retryingBanner: 'Problema de conexión — reintentando automáticamente, no salgas de esta pantalla.',
@@ -788,7 +962,7 @@ const es: Translations = {
   repeatOrderNumber: (n) => `Pedido #${n}`,
   repeatSomeUnavailable: 'Algunos productos ya no están disponibles',
   repeatPriceUpdated: 'Precio actualizado',
-  repeatAddItemsToCart: (n) => `Agregar ${n} productos al carrito`,
+  repeatAddItemsToCart: (n) => (n === 1 ? `Agregar 1 producto al carrito` : `Agregar ${n} productos al carrito`),
   repeatNeedsCustomization: 'Elegí opciones en el menú',
   repeatBrowseMenu: 'Ver el menú',
   repeatDontShowAgain: 'No volver a mostrar',
@@ -856,7 +1030,6 @@ const en: Translations = {
   wantThisForYours: 'Want this for your restaurant?',
   createFree: 'Start free',
   poweredBy: 'Powered by',
-  createYourMenu: 'Create your digital menu for free',
   monday: 'Monday',
   tuesday: 'Tuesday',
   wednesday: 'Wednesday',
@@ -905,7 +1078,7 @@ const en: Translations = {
   peopleAlsoOrder: 'People also order',
   freeDelivery: 'Free',
   deliveryIfSelected: 'Delivery (if selected)',
-  taxAtCheckout: '+ tax at checkout',
+  taxAtCheckout: 'Tax added at checkout',
   deliveryMinimum: 'Minimum order for delivery',
   deliveryMinimumMissing: 'Add',
   maxReached: 'Max reached',
@@ -920,6 +1093,12 @@ const en: Translations = {
   optionHoursOnly: (name, hours) => `${name}: ${hours} only`,
   servedHours: (hours) => `Served ${hours}`,
   groupDone: 'Done',
+  groupRequired: 'Required',
+  goesWellWith: 'Goes well with',
+  menuSheetTitle: 'Menu',
+  searchDishes: (n) => `Search ${n} dishes`,
+  menuSections: 'Sections',
+  yourOrder: 'Your order',
   soldOut: 'Sold out',
   unavailable: 'Unavailable',
   addedShort: 'Added',
@@ -933,6 +1112,10 @@ const en: Translations = {
   addressLabel: 'Address',
   getDirections: 'Get directions',
   open24h: 'Open 24 hours',
+  infoShort: 'Info',
+  everyDay: 'Every day',
+  reviewsLatestNote: 'The most recent reviews with a comment.',
+  seeAll: 'See all',
   phoneLabel: 'Phone',
   sendWhatsApp: 'Send message',
   resultSingular: 'result',
@@ -956,6 +1139,8 @@ const en: Translations = {
   reviewThankYou: 'Thank you!',
   reviewThankYouHelp: 'Your review helps us improve.',
   reviewThankYouAppreciate: 'We appreciate your feedback for',
+  reviewGoogleCta: 'Share it on Google too',
+  reviewGoogleHint: 'It helps more people find {name}.',
   starLabel1: 'Terrible',
   starLabel2: 'Bad',
   starLabel3: 'OK',
@@ -1005,6 +1190,8 @@ const en: Translations = {
   scrollLeftAriaLabel: 'Scroll left',
   scrollRightAriaLabel: 'Scroll right',
   youreAt: `You're at`,
+  tableWord: 'Table',
+  installIosTap: 'Tap',
   dismiss: 'Dismiss',
   tryDifferentKeyword: 'Try a different keyword or check the spelling',
   todayLabel: 'Today',
@@ -1014,6 +1201,7 @@ const en: Translations = {
   seeOnGoogleMaps: 'See on Google Maps',
   closeSearch: 'Close search',
   clearSearch: 'Clear search',
+  searching: 'Searching…',
   clearFilters: 'Clear filters',
   continueOrderItems: 'Continue your order ({n} items)',
   ordersPaused: 'Orders are temporarily paused',
@@ -1022,17 +1210,17 @@ const en: Translations = {
   jumpToSection: 'Jump to section',
   itemsUpdatedAlert: 'Some items were updated — please add them again to select the required options.',
   // CheckoutPageClient — validation
-  validationNameRequired: 'Name is required',
-  validationNameMinLength: 'Minimum 2 characters',
-  validationPhoneRequired: 'Phone is required',
-  validationPhoneInvalid: 'Invalid phone number',
+  validationNameRequired: 'Enter your name',
+  validationNameMinLength: 'Enter your full name',
+  validationPhoneRequired: 'Add a phone number so the restaurant can reach you',
+  validationPhoneInvalid: 'Check the number, it looks incomplete',
   validationEmailRequired: 'Email is required to receive your confirmation',
-  validationEmailInvalid: 'Invalid email',
-  validationAddressRequired: 'Delivery address is required',
-  validationErrorPromo: 'Error validating code',
-  validationNamePhoneRequired: 'Name and phone required',
+  validationEmailInvalid: 'Check the email, it doesn\'t look right',
+  validationAddressRequired: 'Add the delivery address',
+  validationErrorPromo: 'We couldn\'t check the code. Try again.',
+  validationNamePhoneRequired: 'Add your name and phone to place the order',
   validationEmailRequiredOrder: 'Email required to receive your order confirmation',
-  validationDeliveryAddressRequired: 'Delivery address required',
+  validationDeliveryAddressRequired: 'Add the delivery address to place the order',
   deliveryPickFromList: 'Pick your address from the suggestions so we can confirm it is in the delivery area.',
   validationDineInOnlyItems: 'Some items are only available for dine-in and cannot be ordered for pickup or delivery. Remove them or switch to "Dine-in" to continue.',
   dineInOnlyBadge: 'Dine-in only',
@@ -1073,8 +1261,8 @@ const en: Translations = {
   yourOrderSection: '1 · Your order',
   yourInfoSection: '2 · Your info',
   infoSaved: '👋 Info saved',
-  emailHint: "We'll send you order confirmation and updates.",
-  includeUtensils: 'Include utensils & napkins',
+  emailHint: 'For your receipt and order updates.',
+  includeUtensils: 'Include utensils, napkins & condiments',
   scheduleForLater: 'Schedule for later',
   rememberMeLabel: 'Remember my info for next time',
   paymentSection: '3 · Payment',
@@ -1086,6 +1274,79 @@ const en: Translations = {
   havePromoCode: 'Have a promo code?',
   applyingLabel: 'Applying…',
   addTipQuestion: 'Add a tip?',
+  tipTitleTeam: 'Tip for the team',
+  tipTitleDriver: 'Tip for your driver',
+  tipHintTeam: 'Goes to the staff at {name}. Based on the subtotal.',
+  tipHintDriver: 'Goes to whoever brings your order. Based on the subtotal.',
+  tipNone: 'None',
+  tipOther: 'Other',
+  tipCustomLabel: 'Custom tip',
+  ckYourOrder: 'Your order',
+  ckViewDetails: 'View details',
+  ckHideDetails: 'Hide details',
+  ckDeliverTo: 'Deliver to',
+  ckAddAddress: 'Add address',
+  ckAddressTitle: 'Delivery address',
+  ckUseAddress: 'Use this address',
+  ckWhen: 'When',
+  ckAsap: 'As soon as possible',
+  ckReadyIn: 'Ready in ~{n} min',
+  ckArrivesIn: 'Arrives in ~{n} min',
+  ckWhenTitle: 'When do you want it?',
+  ckScheduleLater: 'Schedule for later',
+  ckContact: 'Contact',
+  ckAddContact: 'Add name and phone',
+  ckContactTitle: 'Your details',
+  ckNote: 'Note for the kitchen',
+  ckPromoApplied: 'Applied: -{x}',
+  ckUtensilsTitle: 'Utensils & napkins',
+  ckUtensilsSub: 'Condiment packets too. Only if you ask.',
+  ckPayNow: 'Pay now',
+  ckPayCash: 'Cash',
+  ckCashPickup: 'Pay cash at pickup',
+  ckCashDelivery: 'Pay cash on delivery',
+  ckCashDineIn: 'Pay cash at your table',
+  ckCashTip: 'If you’d like to tip your driver, you’re welcome to do so in cash when your order arrives.',
+  ckRefunds: 'Refunds',
+  cartCashOnly: 'Cash only · you pay when you get your order',
+  ckCashOnly: 'This restaurant only takes cash.',
+  ckChangeQuestion: 'How much will you pay with? The driver brings change.',
+  ckExact: 'Exact amount',
+  ckPaysWith: 'Pays with',
+  ckOnlineHint: 'Card, Apple Pay or Google Pay. Secure payment by Stripe.',
+  ckContinue: 'Continue',
+  ckAddItems: 'Add items: {x} to go',
+  ckDone: 'Done',
+  ckRemove: 'Remove',
+  ckLegal: '{name} prepares your order.',
+  ckPrivacy: 'Privacy',
+  ckCall: 'Call the restaurant',
+  ckTable: 'Table {name}',
+  ckTableSub: 'Ordering from your table · we bring it to you',
+  ckTableTitle: 'Your table',
+  ckLoyalty: 'Loyalty points',
+  ckClosedNow: 'Closed now',
+  storeOpensAt: 'Opens at {time}',
+  storeOpensTomorrowAt: 'Opens tomorrow at {time}',
+  storeOpensDayAt: 'Opens {day} at {time}',
+  storeScheduleHint: 'You can schedule an order for later.',
+  storePausedTitle: 'Online ordering is paused',
+  storeBackAt: 'Back at {time}',
+  ckClosedBanner: '{name} is closed right now. Schedule your order for when it opens.',
+  ckScheduleCta: 'Schedule order',
+  ckClosedAtTime: 'The restaurant is closed at that time. Pick another.',
+  ckUnitLabel: 'Apt, suite or floor (optional)',
+  ckUnitPlaceholder: 'E.g. Apt 4B',
+  ckTimeTooSoon: 'That time has passed or is too soon. Pick one at least 10 minutes from now.',
+  ckChangeTime: 'Change time',
+  ckPaused: "{name} isn't taking orders right now. Try again shortly.",
+  ckPausedCta: 'Orders paused',
+  ckFixAddress: 'Change address',
+  ckFixContact: 'Edit contact',
+  ckPickupAt: 'Pick up at',
+  ckReviewItems: 'Review order',
+  ckEditInMenu: 'Edit in menu',
+  ckDateTime: 'Date & time',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Retrying…',
   retryingBanner: 'Connection issue — retrying automatically, please stay on this screen.',
@@ -1160,7 +1421,7 @@ const en: Translations = {
   repeatOrderNumber: (n) => `Order #${n}`,
   repeatSomeUnavailable: 'Some items are no longer available',
   repeatPriceUpdated: 'Price updated',
-  repeatAddItemsToCart: (n) => `Add ${n} items to cart`,
+  repeatAddItemsToCart: (n) => (n === 1 ? `Add 1 item to cart` : `Add ${n} items to cart`),
   repeatNeedsCustomization: 'Choose options on the menu',
   repeatBrowseMenu: 'Browse the menu',
   repeatDontShowAgain: "Don't show this again",

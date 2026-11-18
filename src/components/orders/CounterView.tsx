@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import Image from 'next/image';
 import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
-  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus, Ban, BellOff,
+  Wifi, WifiOff, ChevronRight, ChevronDown, User, Settings2, Calendar, Plus, Ban, BellOff, Palette, Wallet,
 } from 'lucide-react';
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
@@ -24,14 +23,23 @@ import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
 import { isRevenueStatus } from '@/lib/order-state';
-import { counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
+import { C, RAISED, counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
+import {
+  getAudioCtx, unlockWithGesture, loadTheme, setSoundTheme, setVolume as setAudioVolume, resumeAudio,
+  playRing, stopRing, playAccepted, ringKind, loopIntervalMs, msUntilNextRing,
+} from './counter/audio';
+import { CustomizePanel, type AppearancePreview } from './counter/CustomizePanel';
+import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS } from './counter/demo';
+import { useCounterSettings } from '@/hooks/use-counter-settings';
+import { DEFAULT_COUNTER_SETTINGS, type CounterSettings } from '@/lib/counter-settings';
+import { getScreenTheme, resolveThemeTokens, themeCssVars } from '@/lib/counter-themes';
 import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
 import { NewOrdersAlert } from './counter/NewOrdersAlert';
 import { OrderSheet } from './counter/OrderSheet';
 import { OwnerPanelButton } from './counter/OwnerPanelButton';
 import { shortOrderNumber } from '@/lib/orders/short-number';
 import {
-  CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast,
+  CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast, DemoBanner,
   type CounterViewMode, type StoreState,
 } from './counter/CounterChrome';
 
@@ -184,7 +192,6 @@ function getT(locale?: string) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const GREEN = '#06C167';
 const SLA_WARN_MINS = 5;
 type Tab = 'new' | 'prep' | 'ready' | 'scheduled' | 'history';
 type Locale = 'es' | 'en';
@@ -225,100 +232,8 @@ function timeAgo(createdAt: string, t: ReturnType<typeof getT>) {
 }
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
-//
-// Strategy: decode the MP3s into AudioBuffers via the Web Audio API during the
-// unlock tap (user gesture). Once an AudioContext is resumed by a gesture it
-// stays running, so BufferSource nodes created from setInterval will play
-// without any block — even on iOS Safari.
-
-let _audioCtx: AudioContext | null = null;
-let _newOrderBuffer: AudioBuffer | null = null;
-let _acceptedBuffer: AudioBuffer | null = null;
-
-function getAudioCtx(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  if (!_audioCtx) {
-    try {
-      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctx) return null;
-      _audioCtx = new Ctx();
-    } catch { return null; }
-  }
-  return _audioCtx;
-}
-
-function playBuffer(buffer: AudioBuffer | null) {
-  const ctx = getAudioCtx();
-  if (!ctx || !buffer) return;
-  try {
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(ctx.destination);
-    src.start(0);
-  } catch { /* unavailable */ }
-}
-
-function synthChime() {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  try {
-    [523, 659, 784].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      const t = ctx.currentTime + i * 0.18;
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.6, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-      osc.start(t); osc.stop(t + 0.55);
-    });
-  } catch { /* unavailable */ }
-}
-
-async function loadAudioBuffer(url: string): Promise<AudioBuffer | null> {
-  const ctx = getAudioCtx();
-  if (!ctx) return null;
-  try {
-    const res = await fetch(url);
-    const arrayBuf = await res.arrayBuffer();
-    return await ctx.decodeAudioData(arrayBuf);
-  } catch { return null; }
-}
-
-function playNewOrderSound() {
-  if (_newOrderBuffer) {
-    playBuffer(_newOrderBuffer);
-  } else {
-    synthChime();
-  }
-}
-
-function playAcceptSound() {
-  if (_acceptedBuffer) {
-    playBuffer(_acceptedBuffer);
-  } else {
-    synthChime();
-  }
-}
-
-function playUrgentSound() {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  try {
-    [880, 880, 880].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = freq; osc.type = 'square';
-      const t = ctx.currentTime + i * 0.22;
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-      osc.start(t); osc.stop(t + 0.2);
-    });
-  } catch { /* unavailable */ }
-}
+// El motor (Web Audio: temas, volumen, alerta en loop, urgente, aceptadas al
+// azar, respaldo a new-order.mp3 / order-accepted.mp3) vive en ./counter/audio.
 
 function sendPushNotification(title: string, body: string) {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
@@ -365,6 +280,12 @@ interface CounterViewProps {
   previewAlertIds?: string[];
   /** Solo para la vista previa de desarrollo: arranca mostrando este reporte Z. */
   previewShiftReport?: ShiftReport;
+  /** Solo para la vista previa de desarrollo: abre un modal que no se puede abrir sin datos reales. */
+  previewModal?: 'deliver' | 'history';
+  /** counter_settings del restaurante (sonido, colores, volumen). Sin fila → defaults. */
+  initialSettings?: CounterSettings;
+  /** false = vista previa de desarrollo: la configuración no se guarda ni se sincroniza. */
+  settingsLive?: boolean;
 }
 
 export interface ShiftReport {
@@ -382,9 +303,26 @@ export interface ShiftReport {
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
   restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false, isDevice = false,
-  initialPausedUntil = null, ownerPanel = false, previewAlertIds, previewShiftReport,
+  initialPausedUntil = null, ownerPanel = false, previewAlertIds, previewShiftReport, previewModal,
+  initialSettings = DEFAULT_COUNTER_SETTINGS, settingsLive = true,
 }: CounterViewProps) {
   const t = getT(locale);
+
+  // ── Sonido, colores y volumen (counter_settings, en vivo entre tablets) ──
+  const { settings, save: saveSettings } = useCounterSettings(restaurantId, initialSettings, settingsLive);
+  const soundThemeRef = useRef(settings.soundTheme);
+  soundThemeRef.current = settings.soundTheme;
+  useEffect(() => { setSoundTheme(settings.soundTheme); }, [settings.soundTheme]);
+  useEffect(() => { setAudioVolume(settings.soundVolume); }, [settings.soundVolume]);
+  // Vista previa de colores mientras el panel está abierto (no guardada).
+  const [appearancePreview, setAppearancePreview] = useState<AppearancePreview | null>(null);
+  const themeId = appearancePreview?.screenTheme ?? settings.screenTheme;
+  // color-scheme: checkboxes, radios, inputs y scrollbars nativos siguen a la apariencia.
+  const themeVars = useMemo(
+    () => ({ ...themeCssVars(resolveThemeTokens(themeId)), colorScheme: getScreenTheme(themeId).mode }),
+    [themeId],
+  );
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   // ── Audio unlock gate ──
   const [audioUnlocked, setAudioUnlocked] = useState(false);
@@ -394,31 +332,14 @@ export function CounterView({
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   const unlockAudio = useCallback((silent = false) => {
-    // Resume (or create) the AudioContext during the user-gesture tap.
-    // On iOS Safari this is the ONLY moment the context can be started.
-    const ctx = getAudioCtx();
-    if (ctx && ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
+    // Resume (or create) the AudioContext during the user-gesture tap + a silent
+    // buffer. On iOS Safari this is the ONLY moment the context can be started.
+    unlockWithGesture();
 
-    // Play a silent buffer immediately to fully unlock the context
-    if (ctx) {
-      try {
-        const buf = ctx.createBuffer(1, 1, 22050);
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        src.connect(ctx.destination);
-        src.start(0);
-      } catch { /* ignore */ }
-    }
-
-    // Decode both MP3s into AudioBuffers in the background.
-    // Once decoded, playBuffer() works from any timer / interval.
-    loadAudioBuffer('/sounds/new-order.mp3').then(b => {
-      if (b) { _newOrderBuffer = b; if (!silent) playBuffer(b); } // first chime confirms a manual unlock
-    });
-    loadAudioBuffer('/sounds/order-accepted.mp3').then(b => {
-      if (b) _acceptedBuffer = b;
+    // Decode the theme's 5 MP3s (+ the 2 fallbacks) in the background. Once
+    // decoded, playRing()/playAccepted() work from any timer.
+    void loadTheme(soundThemeRef.current).then(() => {
+      if (!silent) playRing('alert'); // first chime confirms a manual unlock
     });
 
     setAudioUnlocked(true);
@@ -452,6 +373,13 @@ export function CounterView({
     evs.forEach(e => window.addEventListener(e, onGesture, { capture: true }));
     return () => evs.forEach(e => window.removeEventListener(e, onGesture, { capture: true }));
   }, [audioUnlocked, inApp, unlockAudio]);
+
+  // iOS suspende el AudioContext al volver de segundo plano: se reanuda solo.
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') resumeAudio(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   // ── UI state ──
   const [activeTab, setActiveTab] = useState<Tab>('new');
@@ -520,17 +448,18 @@ export function CounterView({
   const [stockLoading, setStockLoading] = useState(false);
   const [stockUpdating, setStockUpdating] = useState<string | null>(null);
 
-  const [deliveryGuardModal, setDeliveryGuardModal] = useState<{ order: Order } | null>(null);
+  const [deliveryGuardModal, setDeliveryGuardModal] = useState<{ order: Order } | null>(() => {
+    // Vista previa: un delivery con repartidor asignado que todavía no retiró.
+    if (previewModal !== 'deliver') return null;
+    const o = initialOrders.find((x) => x.order_type === 'delivery' && ['ready', 'out_for_delivery'].includes(x.status));
+    return o ? { order: { ...o, driver_name: o.driver_name ?? 'Carlos Mendez', driver_picked_up_at: null } as Order } : null;
+  });
 
   // ── Shift management ──
   interface ActiveShift { id: string; opening_cash: number; opened_at: string }
-  const [activeShift, setActiveShift] = useState<ActiveShift | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = localStorage.getItem(`counter-shift-${restaurantId}`);
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
-  });
+  // Arranca en null y la copia local se lee después de montar: leerla en el
+  // useState hacía que el servidor y la tablet pintaran distinto (error de hidratación).
+  const [activeShift, setActiveShift] = useState<ActiveShift | null>(null);
   const [shiftModal, setShiftModal] = useState<'open' | 'close' | 'report' | null>(previewShiftReport ? 'report' : null);
   const [shiftOpenCash, setShiftOpenCash] = useState('0');
   const [shiftCloseCash, setShiftCloseCash] = useState('');
@@ -542,6 +471,10 @@ export function CounterView({
   // que abrió o cerró otra (antes cada una creía en su propia copia).
   useEffect(() => {
     let alive = true;
+    try {
+      const raw = localStorage.getItem(`counter-shift-${restaurantId}`);
+      if (raw) setActiveShift(JSON.parse(raw) as ActiveShift);
+    } catch { /* sin storage o JSON roto */ }
     const sync = () => {
       getActiveShift().then(r => {
         if (!alive || !r || ('error' in r && r.error)) return; // sin red: se queda lo que había
@@ -566,7 +499,6 @@ export function CounterView({
 
   // Edit order items
   const [editItemsModal, setEditItemsModal] = useState<{ orderId: string } | null>(null);
-  const [photoLightbox, setPhotoLightbox] = useState<string | null>(null);
   const [editSearch, setEditSearch] = useState('');
   const [editProducts, setEditProducts] = useState<{ id: string; name: string; price: number; image_url?: string; in_stock: boolean }[]>([]);
   const [editLoading, setEditLoading] = useState(false);
@@ -744,8 +676,10 @@ export function CounterView({
     // pedido de mañana) ni se imprime. Queda en la pestaña Programados.
     const scheduledMs = order.scheduled_for ? new Date(order.scheduled_for).getTime() : NaN;
     const isFutureScheduled = Number.isFinite(scheduledMs) && scheduledMs > Date.now() + SCHEDULED_SPLASH_LEAD_MS;
+    // Un pedido nuevo no se tapa: el panel de sonido y colores se cierra solo.
+    setCustomizeOpen(false);
     if (isLeaderRef.current) {
-      playNewOrderSound();
+      playRing('alert');
       try { getCounterAppBridge()?.vibrateNewOrder?.(); } catch { /* not in the app */ }
       sendPushNotification(
         `🔔 ${isFutureScheduled ? t.newScheduledOrder : t.newOrder} · ${restaurantName}`,
@@ -770,6 +704,26 @@ export function CounterView({
 
   const { orders, updateOrderLocally, rtStatus, lastSyncAt, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
+  // ── Modo demo: pedidos falsos SOLO en memoria (ver counter/demo.ts) ──
+  // Suenan y se ven como reales, pero toda acción de servidor (estado, impresión,
+  // avisos, push, reembolsos) se corta antes para los ids demo-*.
+  const onDemoArrive = useCallback((o: Order) => {
+    setCustomizeOpen(false);
+    playRing('alert');
+    setSplashQueue(q => (q.some(x => x.id === o.id) ? q : [...q, o]));
+    setRingIds(r => (r.includes(o.id) ? r : [...r, o.id]));
+  }, []);
+  const demo = useCounterDemo(locale === 'en', onDemoArrive);
+  const demoExit = demo.exit;
+  const demoUpdate = demo.update;
+  const exitDemo = useCallback(() => {
+    demoExit();
+    setSplashQueue(q => q.filter(o => !isDemoId(o.id)));
+    setRingIds(r => r.filter(id => !isDemoId(id)));
+    setSheetId(cur => (isDemoId(cur) ? null : cur));
+    stopRing();
+  }, [demoExit]);
+
   // Clientes marcados (customer-incidents): una consulta chica aparte, cruzada
   // por customer_id, en vez de sumar un join a las 6 consultas de pedidos.
   const [customerFlags, setCustomerFlags] = useState<Map<string, CustomerFlag>>(() => new Map());
@@ -785,16 +739,19 @@ export function CounterView({
     return () => window.clearInterval(id);
   }, [loadCustomerFlags]);
 
-  // Pedidos con los cambios "en espera de deshacer" aplicados, y la marca del cliente.
+  // Pedidos con los cambios "en espera de deshacer" aplicados, la marca del
+  // cliente y (en modo demo) los pedidos de prueba delante.
   const ordersView = useMemo(() => {
-    if (Object.keys(pendingStatus).length === 0 && customerFlags.size === 0) return orders;
-    return orders.map((o) => {
-      const pend = pendingStatus[o.id];
-      const flag = o.customer_id ? customerFlags.get(o.customer_id) : undefined;
-      if (!pend && !flag) return o;
-      return { ...o, ...(pend ? { status: pend } : {}), ...(flag ? { customer_flag: flag } : {}) };
-    });
-  }, [orders, pendingStatus, customerFlags]);
+    const base = (Object.keys(pendingStatus).length === 0 && customerFlags.size === 0)
+      ? orders
+      : orders.map((o) => {
+        const pend = pendingStatus[o.id];
+        const flag = o.customer_id ? customerFlags.get(o.customer_id) : undefined;
+        if (!pend && !flag) return o;
+        return { ...o, ...(pend ? { status: pend } : {}), ...(flag ? { customer_flag: flag } : {}) };
+      });
+    return demo.orders.length > 0 ? [...demo.orders, ...base] : base;
+  }, [orders, pendingStatus, customerFlags, demo.orders]);
 
   // Pickup: el cliente tocó "Ya llegué" en su seguimiento → suena y avisa.
   // La primera pasada solo registra (al abrir la tablet no suenan los viejos).
@@ -805,7 +762,7 @@ export function CounterView({
     for (const o of arrived) {
       if (arrivedSeenRef.current.has(o.id)) continue;
       arrivedSeenRef.current.add(o.id);
-      if (isLeaderRef.current) playNewOrderSound();
+      if (isLeaderRef.current) playRing('alert');
       showSuccess(T.customerArrivedToast(o.customer_name?.split(' ')[0] || T.customer, shortOrderNumber(o.order_number)));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -823,7 +780,7 @@ export function CounterView({
       const before = notesSeenRef.current.get(o.id);
       notesSeenRef.current.set(o.id, now);
       if (before === undefined || before === now) continue;
-      if (isLeaderRef.current) playNewOrderSound();
+      if (isLeaderRef.current) playRing('alert');
       showSuccess(T.notesChangedToast(shortOrderNumber(o.order_number)));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -863,7 +820,7 @@ export function CounterView({
     const fresh = due.filter(o => !promotedRef.current!.has(o.id));
     if (fresh.length === 0) return;
     fresh.forEach(o => promotedRef.current!.add(o.id));
-    if (isLeaderRef.current) playNewOrderSound();
+    if (isLeaderRef.current) playRing('alert');
     setSplashQueue(q => [...q, ...fresh.filter(o => !q.some(x => x.id === o.id))]);
     setRingIds(r => [...r, ...fresh.map(o => o.id).filter(id => !r.includes(id))]);
   }, [ordersView, isDue]);
@@ -931,13 +888,15 @@ export function CounterView({
     }
   }, [currentList, selectedId]);
 
-  // SLA urgent beep (after 5 min without response)
+  // SLA: 5 min sin respuesta → sonido urgente + push. Cubre también los pedidos
+  // que ya estaban pendientes al abrir el Counter (esos no entran al loop).
   useEffect(() => {
     newOrders.forEach(o => {
+      if (isDemoId(o.id)) return;
       if (elapsedMins(waitingSinceIso(o)) >= SLA_WARN_MINS && !urgentRef.current.has(o.id)) {
         urgentRef.current.add(o.id);
         // Solo la pestaña principal suena (con dos pestañas sonaba doble).
-        if (isLeaderRef.current) playUrgentSound();
+        if (isLeaderRef.current) playRing('urgent');
         sendPushNotification(
           `⚠️ ${t.urgent} · ${restaurantName}`,
           `#${o.order_number} — ${SLA_WARN_MINS} min ${t.en ? 'without response' : 'sin respuesta'}`
@@ -984,6 +943,18 @@ export function CounterView({
     // both target the same order in the same tick. The ref is synchronous, so the
     // second caller sees it immediately — prevents duplicate status updates and
     // printer tickets. (React state would still be stale within the same tick.)
+    if (isDemoId(order.id)) {
+      // Demo: todo local. Sin servidor, sin impresión, sin avisos.
+      if (order.status !== 'pending') return;
+      const effDemo = mins ?? eta + busyExtra;
+      setSplashQueue(q => q.filter(x => x.id !== order.id));
+      demoUpdate(order.id, { status: 'preparing', estimated_ready_minutes: effDemo, prepared_at: new Date().toISOString() } as Partial<Order>);
+      stopRing();
+      playAccepted();
+      setSheetId(prev => (prev === order.id ? null : prev));
+      showSuccess(T.accepted(shortOrderNumber(order.order_number), effDemo));
+      return;
+    }
     if (acceptingRef.current.has(order.id) || order.status !== 'pending') return;
     acceptingRef.current.add(order.id);
     setUpdatingId(order.id);
@@ -998,6 +969,9 @@ export function CounterView({
     // Optimistic update — move order to 'preparing' immediately in the UI
     // (con ETA y hora de aceptación, para que "listo en N min" salga bien ya).
     updateOrderLocally(order.id, { status: 'preparing', estimated_ready_minutes: eff, prepared_at: new Date().toISOString() } as Partial<Order>);
+    // Al aceptar se corta en seco la alerta que esté sonando (si quedan otros
+    // pendientes, el loop vuelve a sonar en la próxima vuelta).
+    stopRing();
     try {
       // Una sola escritura: estado + tiempo (antes eran 2 acciones en serie y el
       // evento realtime de la primera devolvía la tarjeta a Nuevos un instante).
@@ -1007,7 +981,7 @@ export function CounterView({
         showError(res.error);
         return;
       }
-      playAcceptSound();
+      playAccepted(); // una de las 3 del tema, sin repetir la anterior
       // Si ya salió el ticket al llegar ("imprimir al llegar"), no se imprime otro al aceptar.
       // Mesa imprime sola solo con impresora nativa (app Android); en el
       // navegador abría el diálogo de impresión en CADA pedido de mesa.
@@ -1030,7 +1004,7 @@ export function CounterView({
       acceptingRef.current.delete(order.id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally, locale, taxLabel, taxIncluded, showNotif]);
+  }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally, locale, taxLabel, taxIncluded, showNotif, demoUpdate]);
 
 
   // ── Rediseño: acción principal de cada tarjeta ──────────────────────────
@@ -1042,6 +1016,11 @@ export function CounterView({
       : (o.order_type === 'dine_in' ? 'completed' : 'delivered');
 
   const commitStatus = useCallback((order: Order, kind: PrimaryKind, bypassGuard = false) => {
+    if (isDemoId(order.id)) {
+      demoUpdate(order.id, { status: statusFor(order, kind) });
+      setSheetId(cur => (cur === order.id ? null : cur));
+      return;
+    }
     // Repartidor asignado que todavía no retiró: se mantiene el aviso de siempre.
     if (!bypassGuard && kind === 'deliver' && order.order_type === 'delivery' && order.driver_name && !order.driver_picked_up_at) {
       setDeliveryGuardModal({ order });
@@ -1087,7 +1066,53 @@ export function CounterView({
       },
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [T, t, updateOrderLocally, showNotif]);
+  }, [T, t, updateOrderLocally, showNotif, demoUpdate]);
+
+  // "No vino a buscarlo" (pickup envejecido en Listo): cancela con el incidente
+  // not_received — no cuenta como venta y marca al cliente para su próximo
+  // pedido. Mismo mecanismo que commitStatus: 5 s con "Deshacer" antes de
+  // mandarlo (una cancelación no se puede revertir después).
+  const commitNoShow = useCallback((order: Order) => {
+    if (isDemoId(order.id)) {
+      demoUpdate(order.id, { status: 'cancelled' });
+      return;
+    }
+    const previous = pendingTimers.current.get(order.id);
+    if (previous) { clearTimeout(previous.timer); previous.run(); }
+    setPendingStatus(p => ({ ...p, [order.id]: 'cancelled' }));
+    setSheetId(cur => (cur === order.id ? null : cur));
+
+    const run = async () => {
+      pendingTimers.current.delete(order.id);
+      setUpdatingId(order.id);
+      try {
+        const res = await updateOrderStatus(order.id, 'cancelled', undefined, { incident: 'not_received' });
+        if (res?.error) { showError(res.error); return; }
+        updateOrderLocally(order.id, { status: 'cancelled' });
+        void loadCustomerFlags();
+      } catch {
+        showError(t.en ? 'Unexpected error' : 'Error inesperado');
+      } finally {
+        if (!pendingTimers.current.has(order.id)) {
+          setPendingStatus(p => { const c = { ...p }; delete c[order.id]; return c; });
+        }
+        setUpdatingId(null);
+      }
+    };
+    const timer = setTimeout(run, 5000);
+    pendingTimers.current.set(order.id, { timer, run });
+
+    showSuccess(T.markedNoShow(shortOrderNumber(order.order_number)), {
+      label: T.undo,
+      run: () => {
+        const pend = pendingTimers.current.get(order.id);
+        if (pend) { clearTimeout(pend.timer); pendingTimers.current.delete(order.id); }
+        setPendingStatus(p => { const c = { ...p }; delete c[order.id]; return c; });
+        setSuccessToast(null); setToastAction(null);
+      },
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [T, t, updateOrderLocally, demoUpdate, loadCustomerFlags]);
 
   // Si la página se cierra con un cambio en espera, se envía igual.
   useEffect(() => {
@@ -1380,15 +1405,36 @@ export function CounterView({
     [splashQueue, ordersView],
   );
   // Suena mientras quede alguno sin aceptar ni rechazar (aunque se haya cerrado la alerta).
-  const ringingCount = useMemo(
-    () => ringIds.filter(id => ordersView.find(x => x.id === id)?.status === 'pending').length,
+  // UN solo loop para todos: la alerta del tema cada 3.5 s (o al terminar el clip,
+  // si dura más); pasa a la urgente cuando el pendiente más viejo supera
+  // urgent_after_seconds (10 s en el demo).
+  const ringingOrders = useMemo(
+    () => ringIds.map(id => ordersView.find(x => x.id === id)).filter((o): o is Order => o?.status === 'pending'),
     [ringIds, ordersView],
   );
+  const ringingCount = ringingOrders.length;
+  const oldestRingRef = useRef<number | null>(null);
+  oldestRingRef.current = ringingCount > 0
+    ? Math.min(...ringingOrders.map(o => waitingSince(o as Order & { updated_at?: string | null })))
+    : null;
+  const urgentAfterRef = useRef(settings.urgentAfterSeconds);
+  urgentAfterRef.current = demo.active ? DEMO_URGENT_AFTER_SECONDS : settings.urgentAfterSeconds;
+  const ringsHere = isLeader || demo.active;
   useEffect(() => {
-    if (ringingCount === 0 || !isLeader) return;
-    const id = setInterval(playNewOrderSound, 4000);
-    return () => clearInterval(id);
-  }, [ringingCount, isLeader]);
+    if (ringingCount === 0 || !ringsHere) return;
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      if (!alive) return;
+      const oldest = oldestRingRef.current;
+      const dur = playRing(ringKind(oldest == null ? null : Date.now() - oldest, urgentAfterRef.current));
+      timer = setTimeout(tick, loopIntervalMs(dur));
+    };
+    timer = setTimeout(tick, msUntilNextRing());
+    return () => { alive = false; clearTimeout(timer); };
+  }, [ringingCount, ringsHere]);
+  // Nadie esperando: se corta lo que esté sonando (aceptado en otra tablet, rechazado…).
+  useEffect(() => { if (ringingCount === 0) stopRing(); }, [ringingCount]);
   // Los que ya se resolvieron salen de la lista (que no crezca en un turno largo).
   useEffect(() => {
     setRingIds(r => {
@@ -1440,28 +1486,29 @@ export function CounterView({
     return (
       <div
         className="h-screen w-full flex flex-col items-center justify-center cursor-pointer px-6"
-        style={{ background: '#111' }}
+        data-theme={themeId}
+        style={{ ...themeVars, background: C.bg, color: C.ink } as React.CSSProperties}
         onClick={() => unlockAudio()}
       >
-        <div className="w-16 h-16 rounded-2xl bg-[#06C167]/20 flex items-center justify-center mb-6 border border-[#06C167]/30">
-          <Bell className="w-8 h-8 text-[#06C167]" />
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: C.accent, color: C.onAccent }}>
+          <Bell className="w-8 h-8" />
         </div>
 
-        <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">
+        <p className="text-[16px] font-medium mb-1" style={{ color: C.sub }}>
           {restaurantName}
         </p>
-        <h1 className="text-white text-2xl font-black mb-8">Counter</h1>
+        <h1 className="text-[34px] font-bold tracking-[-0.02em] mb-8">Counter</h1>
 
         {/* Flow steps */}
         <div className="w-full max-w-sm space-y-3 mb-10">
           {steps.map((s, i) => (
-            <div key={i} className="flex items-center gap-4 bg-white/5 rounded-2xl px-4 py-3 border border-white/10">
+            <div key={i} className="flex items-center gap-4 rounded-[22px] px-4 py-3.5" style={{ background: C.surface }}>
               <span className="text-2xl">{s.icon}</span>
               <div>
-                <p className="text-white text-sm font-bold">{s.label}</p>
-                <p className="text-white/40 text-xs">{s.desc}</p>
+                <p className="text-[16px] font-semibold">{s.label}</p>
+                <p className="text-[14px]" style={{ color: C.sub }}>{s.desc}</p>
               </div>
-              <div className="ml-auto w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center text-white/30 text-xs font-black flex-shrink-0">
+              <div className="ml-auto w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-semibold tabular-nums flex-shrink-0" style={{ background: C.fill, color: C.sub }}>
                 {i + 1}
               </div>
             </div>
@@ -1470,11 +1517,12 @@ export function CounterView({
 
         <button
           onClick={() => unlockAudio()}
-          className="w-full max-w-sm h-16 rounded-2xl text-black text-lg font-black bg-[#06C167] shadow-xl active:scale-[0.97] transition-transform"
+          className="w-full max-w-sm h-16 rounded-[20px] text-[20px] font-semibold active:scale-[0.97] transition-transform"
+          style={{ background: C.accent, color: C.onAccent }}
         >
           {t.en ? 'Start Counter →' : 'Iniciar Counter →'}
         </button>
-        <p className="text-white/20 text-xs mt-4">
+        <p className="text-[14px] mt-4" style={{ color: C.sub }}>
           {t.en ? 'Tap anywhere to activate sound' : 'Toca para activar las notificaciones de sonido'}
         </p>
       </div>
@@ -1482,7 +1530,39 @@ export function CounterView({
   }
 
   return (
-    <div className="h-full w-full bg-white flex flex-col overflow-hidden select-none">
+    <div className="h-full w-full flex flex-col overflow-hidden select-none"
+      data-theme={themeId}
+      style={{
+        ...themeVars,
+        // Con el demo activo, la banda fija ocupa arriba: todo baja (también la alerta).
+        '--demo-offset': demo.active ? 'calc(48px + env(safe-area-inset-top))' : '0px',
+        paddingTop: 'var(--demo-offset)',
+        background: C.bg, color: C.ink,
+      } as React.CSSProperties}>
+
+      {/* ── Modo demo: banda fija + resumen al terminar ── */}
+      {demo.active && <DemoBanner T={T} onExit={exitDemo} />}
+      {demo.finished && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-6" style={{ background: C.scrim }}>
+          <div role="dialog" aria-modal="true" className="w-full max-w-[460px] rounded-[28px] p-7 flex flex-col items-center gap-2 text-center" style={RAISED}>
+            <span className="w-16 h-16 rounded-2xl inline-flex items-center justify-center mb-2" style={{ background: C.accent, color: C.onAccent }}>
+              <CheckCircle className="w-9 h-9" />
+            </span>
+            <p className="text-[30px] font-bold tracking-[-0.02em] leading-tight tabular-nums">
+              {T.demoSummary(demo.orders.length, fmt(demo.orders.reduce((sum, o) => sum + Number(o.total), 0), currency))}
+            </p>
+            <p className="text-[20px] font-semibold" style={{ color: C.accentText }}>{T.demoReady}</p>
+            <div className="w-full grid grid-cols-2 gap-3 mt-5">
+              <button type="button" onClick={() => { exitDemo(); demo.start(); }} className="h-14 rounded-2xl font-semibold text-[17px]" style={{ background: C.fill, color: C.ink }}>
+                {T.demoAgain}
+              </button>
+              <button type="button" onClick={exitDemo} className="h-14 rounded-2xl font-semibold text-[17px]" style={{ background: C.fill, color: C.ink }}>
+                {T.demoExit}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Alerta de pedidos nuevos (una sola, con cola) ── */}
       {alertQueue.length > 0 && (
@@ -1495,6 +1575,7 @@ export function CounterView({
           onAccept={(o, m) => handleAccept(o, m)}
           onReject={(o) => {
             setSplashQueue(q => q.filter(x => x.id !== o.id));
+            if (isDemoId(o.id)) { demoUpdate(o.id, { status: 'cancelled' }); stopRing(); return; }
             setCancelModal({ orderId: o.id, type: 'reject' });
             setCancelReason('');
           }}
@@ -1504,7 +1585,7 @@ export function CounterView({
 
       {/* ── Sin conexión: banda fija, lo más importante que puede pasar ── */}
       {offline && (
-        <div role="alert" className="flex-none bg-red-600 text-white text-[15px] font-bold py-2.5 px-4 flex items-center justify-center gap-2 z-20">
+        <div role="alert" className="flex-none text-[16px] font-semibold py-2.5 px-4 flex items-center justify-center gap-2 z-20" style={{ background: C.critical, color: C.onCritical }}>
           <WifiOff className="w-4 h-4" />
           {t.offlineBanner}
         </div>
@@ -1515,7 +1596,8 @@ export function CounterView({
         <button
           type="button"
           onClick={() => unlockAudio()}
-          className="flex-none w-full bg-amber-400 text-[#111] text-[15px] font-bold py-2.5 px-4 flex items-center justify-center gap-2 z-20"
+          className="flex-none w-full text-[16px] font-semibold py-2.5 px-4 flex items-center justify-center gap-2 z-20"
+          style={{ background: C.warnBg, color: C.warnText, boxShadow: `inset 0 -1px 0 ${C.warnBar}` }}
         >
           <BellOff className="w-4 h-4" />
           {t.soundOffBanner}
@@ -1524,12 +1606,13 @@ export function CounterView({
 
       {/* ── Turno de caja abierto ── */}
       {activeShift && (
-        <div className="flex-none bg-[#F2F4F3] text-[#0E1412] text-[15px] font-semibold py-2 px-4 flex items-center gap-3 z-20 border-b border-[#E1E6E3]">
+        <div className="flex-none text-[15px] font-semibold py-2 px-4 flex items-center gap-3 z-20" style={{ background: C.surface, color: C.ink, boxShadow: `inset 0 -1px 0 ${C.line}` }}>
           <span>{t.shiftOpened} · {shiftDuration}</span>
-          <span className="text-[#55605C]">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</span>
+          <span className="font-medium" style={{ color: C.sub }}>{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</span>
           <button
             onClick={() => { setShiftCloseCash(''); setShiftNotes(''); setShiftModal('close'); }}
-            className="ml-auto h-10 px-4 rounded-lg bg-white border border-[#E1E6E3] font-bold"
+            className="ml-auto h-10 px-4 rounded-full font-semibold"
+            style={{ background: C.fill, color: C.ink }}
           >
             {t.shiftClose}
           </button>
@@ -1558,6 +1641,7 @@ export function CounterView({
           acceptMinsFor={defaultMinsFor}
           onOpen={(o) => setSheetId(o.id)}
           onPrimary={onPrimary}
+          onNoShow={commitNoShow}
           routeStops={routeStops}
         />
       ) : (
@@ -1574,7 +1658,27 @@ export function CounterView({
         />
       )}
 
-      {sheetOrder && (
+      {sheetOrder && isDemoId(sheetOrder.id) && (
+        <OrderSheet
+          key={sheetOrder.id}
+          order={sheetOrder}
+          T={T}
+          currency={currency}
+          taxLabel={taxLabel}
+          busy={false}
+          acceptMins={defaultMinsFor(sheetOrder)}
+          onClose={() => setSheetId(null)}
+          onPrint={() => {}}
+          onAccept={(o, m) => handleAccept(o, m)}
+          onPrimary={onPrimary}
+          onAdjustEta={(o, m) => demoUpdate(o.id, { estimated_ready_minutes: m })}
+          more={{ onCancel: ['pending', 'confirmed', 'preparing', 'almost_ready'].includes(sheetOrder.status)
+            ? () => { demoUpdate(sheetOrder.id, { status: 'cancelled' }); setSheetId(null); }
+            : undefined }}
+        />
+      )}
+
+      {sheetOrder && !isDemoId(sheetOrder.id) && (
         <OrderSheet
           key={sheetOrder.id}
           order={sheetOrder}
@@ -1607,7 +1711,22 @@ export function CounterView({
               ? () => { setCancelModal({ orderId: sheetOrder.id, type: sheetOrder.status === 'pending' ? 'reject' : 'cancel' }); setCancelReason(''); }
               : undefined,
           }}
-          historySlot={<StatusHistory orderId={sheetOrder.id} t={t} />}
+          historySlot={<StatusHistory orderId={sheetOrder.id} t={t} preview={previewModal === 'history' ? PREVIEW_HISTORY : undefined} />}
+        />
+      )}
+
+      {customizeOpen && (
+        <CustomizePanel
+          T={T}
+          lang={locale === 'en' ? 'en' : 'es'}
+          settings={settings}
+          canCustomize={!isDevice || settings.staffCanCustomize}
+          isOwner={!isDevice}
+          onPreviewAppearance={setAppearancePreview}
+          onSave={saveSettings}
+          onVolumeLive={setAudioVolume}
+          onClose={() => setCustomizeOpen(false)}
+          onStartDemo={() => { setCustomizeOpen(false); setView('board'); if (demo.active) exitDemo(); demo.start(); }}
         />
       )}
 
@@ -1627,42 +1746,40 @@ export function CounterView({
       {/* ══ SIDEBAR ══ */}
       {sidebarOpen && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setSidebarOpen(false)} />
-          <aside className="fixed left-0 top-0 bottom-0 w-[340px] max-w-[90vw] bg-white z-50 flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0]">
+          <div className="fixed inset-0 z-40" style={{ background: C.scrim }} onClick={() => setSidebarOpen(false)} />
+          <aside className="fixed left-0 top-0 bottom-0 w-[340px] max-w-[90vw] z-50 flex flex-col"
+            style={{ background: C.raised, color: C.ink, boxShadow: `1px 0 0 ${C.raisedEdge}, 24px 0 48px rgba(0,0,0,.28)`, paddingTop: 'env(safe-area-inset-top)' }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--kds-line)]">
               <div>
-                <p className="text-base font-black text-[#111]">{restaurantName}</p>
+                <p className="text-[19px] font-bold tracking-[-0.01em] text-[color:var(--kds-ink)]">{restaurantName}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className={cn('w-2 h-2 rounded-full', isPaused ? 'bg-amber-400' : 'bg-[#06C167] animate-pulse')} />
-                  <span className="text-xs font-semibold text-[#888]">
+                  <div className={cn('w-2 h-2 rounded-full', !isPaused && 'animate-pulse')} style={{ background: isPaused ? C.warnBar : C.status }} />
+                  <span className="text-[15px] font-medium text-[color:var(--kds-sub)]">
                     {isPaused ? `${t.paused_status} (${pauseLeftMins} min)` : t.online_status}
                   </span>
                 </div>
               </div>
-              <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg text-[#AAAAAA] hover:text-[#111] hover:bg-[#F5F5F5]">
+              <button onClick={() => setSidebarOpen(false)} aria-label={T.close} className="w-11 h-11 -mr-1.5 rounded-full inline-flex items-center justify-center" style={{ background: C.fill, color: C.ink }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
 
               {/* Pedidos de esta tablet */}
               <SidebarSection title={t.en ? 'Orders on this tablet' : 'Pedidos en esta tablet'} icon={<Bell className="w-4 h-4" />}>
-                <label className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] cursor-pointer">
-                  <div className="min-w-0">
-                    <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Auto-accept orders' : 'Aceptar pedidos solos'}</span>
-                    <p className="text-[13px] text-[#55605C] mt-0.5">{t.en ? 'After 30 s, with the default time. Turn on in one tablet only.' : 'A los 30 s, con el tiempo por defecto. Actívalo en una sola tablet.'}</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={autoAcceptOn}
-                    onChange={e => {
-                      setAutoAcceptOn(e.target.checked);
-                      try { localStorage.setItem('counter-auto-accept', String(e.target.checked)); } catch { /* sin storage */ }
+                <div className="px-3 rounded-xl border border-[color:var(--kds-line)]">
+                  <ToggleRow
+                    label={t.en ? 'Auto-accept orders' : 'Aceptar pedidos solos'}
+                    desc={t.en ? 'After 30 s, with the default time. Turn on in one tablet only.' : 'A los 30 s, con el tiempo por defecto. Actívalo en una sola tablet.'}
+                    on={autoAcceptOn}
+                    onChange={() => {
+                      const v = !autoAcceptOn;
+                      setAutoAcceptOn(v);
+                      try { localStorage.setItem('counter-auto-accept', String(v)); } catch { /* sin storage */ }
                     }}
-                    style={{ accentColor: '#047A67', width: 22, height: 22 }}
                   />
-                </label>
+                </div>
                 <button
                   onClick={() => {
                     const bridge = getCounterAppBridge();
@@ -1670,80 +1787,78 @@ export function CounterView({
                     else setPrinterModalOpen(true);
                     setSidebarOpen(false);
                   }}
-                  className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left"
+                  className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
                 >
-                  <Printer className="w-4 h-4 text-[#555]" />
-                  <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Printer' : 'Impresora'}</span>
+                  <Printer className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                  <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
+                </button>
+                {/* Sonido y colores: se usa poco, vive en el menú y no en la barra de arriba (Pedro 2026-11-14). */}
+                <button
+                  onClick={() => { setSidebarOpen(false); setCustomizeOpen(true); }}
+                  className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+                >
+                  <Palette className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                  <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{T.customize}</span>
                 </button>
                 {!tabletMode && !isDevice && (
-                  <a href="/app/counter/tablet" className="w-full mt-1 flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left">
-                    <Settings2 className="w-4 h-4 text-[#555]" />
-                    <span className="text-[15px] font-semibold text-[#111]">{t.en ? 'Full-screen tablet mode' : 'Modo tablet a pantalla completa'}</span>
+                  <a href="/app/counter/tablet" className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left">
+                    <Settings2 className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                    <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Full-screen tablet mode' : 'Modo tablet a pantalla completa'}</span>
                   </a>
                 )}
               </SidebarSection>
 
               {/* Auto-print */}
               <SidebarSection title={t.autoPrint} icon={<Printer className="w-4 h-4" />}>
-                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#EEEEEE] cursor-pointer">
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium text-[#111]">{t.autoPrint}</span>
-                    <p className="text-[10px] text-[#888] mt-0.5">{t.en ? 'Print when accepting' : 'Imprimir al aceptar'}</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={autoPrint}
-                    onChange={e => {
-                      setAutoPrint(e.target.checked);
-                      localStorage.setItem('counter-auto-print', String(e.target.checked));
+                <div className="px-3 rounded-xl border border-[color:var(--kds-line)]">
+                  <ToggleRow
+                    label={t.autoPrint}
+                    desc={t.en ? 'Print when accepting' : 'Imprimir al aceptar'}
+                    on={autoPrint}
+                    onChange={() => {
+                      const v = !autoPrint;
+                      setAutoPrint(v);
+                      try { localStorage.setItem('counter-auto-print', String(v)); } catch { /* sin storage */ }
                     }}
-                    style={{ accentColor: GREEN, width: 18, height: 18 }}
                   />
-                </label>
-                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#EEEEEE] cursor-pointer mt-1">
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium text-[#111]">{t.en ? 'Print on arrival' : 'Imprimir al recibir'}</span>
-                    <p className="text-[10px] text-[#888] mt-0.5">{t.en ? 'Instant print when order arrives' : 'Ticket inmediato al llegar la orden'}</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={printOnArrival}
-                    onChange={e => {
-                      setPrintOnArrival(e.target.checked);
-                      localStorage.setItem('counter-print-on-arrival', String(e.target.checked));
+                  <ToggleRow
+                    label={t.en ? 'Print on arrival' : 'Imprimir al recibir'}
+                    desc={t.en ? 'Instant print when order arrives' : 'Ticket inmediato al llegar la orden'}
+                    on={printOnArrival}
+                    onChange={() => {
+                      const v = !printOnArrival;
+                      setPrintOnArrival(v);
+                      try { localStorage.setItem('counter-print-on-arrival', String(v)); } catch { /* sin storage */ }
                     }}
-                    style={{ accentColor: GREEN, width: 18, height: 18 }}
                   />
-                </label>
+                </div>
               </SidebarSection>
 
               {/* 86 / Stock */}
               <SidebarSection title={t.en ? 'Out of stock' : 'Agotados'} icon={<Ban className="w-4 h-4" />}>
                 {stockLoading ? (
                   <div className="flex items-center justify-center py-4">
-                    <span className="w-4 h-4 border-2 border-[#DDD] border-t-[#06C167] rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-[color:var(--kds-line)] border-t-[color:var(--kds-accent)] rounded-full animate-spin" />
                   </div>
                 ) : stockProducts.length === 0 ? (
-                  <p className="text-xs text-[#AAAAAA] text-center py-2">{t.en ? 'No products found' : 'Sin productos'}</p>
+                  <p className="text-[15px] text-[color:var(--kds-sub)] text-center py-2">{t.en ? 'No products found' : 'Sin productos'}</p>
                 ) : (
-                  <div className="space-y-1 max-h-56 overflow-y-auto">
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
                     {stockProducts.map(p => (
                       <button
                         key={p.id}
                         onClick={() => toggleStock(p.id, p.in_stock)}
                         disabled={stockUpdating === p.id}
                         className={cn(
-                          'w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-colors text-left',
+                          'w-full flex items-center justify-between px-3 min-h-[48px] rounded-xl border transition-colors text-left',
                           p.in_stock
-                            ? 'border-[#EEEEEE] hover:border-[#CCCCCC]'
-                            : 'border-red-200 bg-red-50'
+                            ? 'border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)]'
+                            : 'border-[color:var(--kds-line)] bg-[var(--kds-fill)]'
                         )}
                       >
-                        <span className={cn('text-sm font-medium truncate', p.in_stock ? 'text-[#111]' : 'text-red-600 line-through')}>{p.name}</span>
-                        <span className={cn(
-                          'flex-shrink-0 ml-2 text-[10px] font-black px-1.5 py-0.5 rounded',
-                          p.in_stock ? 'bg-[#06C167]/10 text-[#06C167]' : 'bg-red-500 text-white'
-                        )}>
+                        <span className={cn('text-[16px] font-medium truncate', p.in_stock ? 'text-[color:var(--kds-ink)]' : 'line-through')} style={p.in_stock ? undefined : { color: C.destructive }}>{p.name}</span>
+                        <span className="flex-shrink-0 ml-2 text-[15px] font-bold tabular-nums"
+                          style={{ color: p.in_stock ? C.accentText : C.destructive }}>
                           {stockUpdating === p.id ? '…' : p.in_stock ? (t.en ? 'OK' : 'OK') : '86'}
                         </span>
                       </button>
@@ -1754,29 +1869,30 @@ export function CounterView({
 
               {/* Today summary */}
               <SidebarSection title={t.todaySummary} icon={<History className="w-4 h-4" />}>
-                <div className="px-3 py-3 rounded-xl bg-[#F5F5F5] space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-[#888]">{t.todayOrders}</span>
-                    <span className="font-bold text-[#111]">{todayOrdersCount}</span>
+                <div className="px-3 py-3 rounded-xl bg-[var(--kds-fill)] space-y-1">
+                  <div className="flex justify-between text-[16px]">
+                    <span className="text-[color:var(--kds-sub)]">{t.todayOrders}</span>
+                    <span className="font-bold text-[color:var(--kds-ink)]">{todayOrdersCount}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-[#888]">{t.en ? 'Sales' : 'Ventas'}</span>
-                    <span className="font-bold text-[#111]">{fmt(todayRevenue, currency)}</span>
+                  <div className="flex justify-between text-[16px]">
+                    <span className="text-[color:var(--kds-sub)]">{t.en ? 'Sales' : 'Ventas'}</span>
+                    <span className="font-bold text-[color:var(--kds-ink)]">{fmt(todayRevenue, currency)}</span>
                   </div>
                 </div>
               </SidebarSection>
 
               {/* Cash Register / Shift */}
-              <SidebarSection title={t.shiftTitle} icon={<span className="text-base">💰</span>}>
+              <SidebarSection title={t.shiftTitle} icon={<Wallet className="w-4 h-4" />}>
                 {activeShift ? (
                   <div className="space-y-2">
-                    <div className="px-3 py-3 rounded-xl bg-green-50 border border-green-200 space-y-1">
-                      <p className="text-xs font-bold text-green-700">{t.shiftOpened} · {shiftDuration}</p>
-                      <p className="text-xs text-green-600">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</p>
+                    <div className="px-3 py-3 rounded-xl bg-[var(--kds-fill)] space-y-1">
+                      <p className="text-[16px] font-semibold flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ background: C.status }} />{t.shiftOpened} · {shiftDuration}</p>
+                      <p className="text-[15px] text-[color:var(--kds-sub)]">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</p>
                     </div>
                     <button
                       onClick={() => { setShiftCloseCash(''); setShiftNotes(''); setShiftModal('close'); }}
-                      className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                      className="w-full h-[52px] rounded-xl text-[17px] font-semibold transition-colors"
+                      style={{ background: C.fill, color: C.destructive }}
                     >
                       {t.shiftClose}
                     </button>
@@ -1784,15 +1900,20 @@ export function CounterView({
                 ) : (
                   <button
                     onClick={() => { setShiftOpenCash('0'); setShiftModal('open'); }}
-                    className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-[#06C167] hover:bg-[#05a857] transition-colors"
+                    className="w-full h-[52px] rounded-xl text-[17px] font-semibold transition-colors"
+                    style={{ background: C.accent, color: C.onAccent }}
                   >
                     {t.shiftOpen}
                   </button>
                 )}
               </SidebarSection>
 
-              {/* Panel del dueño: escondido al final del menú; en la tablet pide PIN. */}
-              {(ownerPanel || tabletMode) && (
+              {/* Panel del dueño: escondido al final del menú. Apagado en la tablet
+                  vinculada (2026-11-17): dentro de la app Counter el panel quedaba
+                  sin scroll ni botones y no se pudo reproducir fuera de la tablet.
+                  El dueño entra desde su celular o computadora. El PIN y el
+                  servidor siguen ahí: para volver a encenderlo, quitar !isDevice. */}
+              {!isDevice && (ownerPanel || tabletMode) && (
                 <OwnerPanelButton needsPin={isDevice} en={t.en} />
               )}
 
@@ -1801,10 +1922,10 @@ export function CounterView({
                 <SidebarSection title={t.en ? 'This tablet' : 'Esta tablet'} icon={<Settings2 className="w-4 h-4" />}>
                   <button
                     onClick={() => getCounterAppBridge()?.openPrinterSettings?.()}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
                   >
-                    <Printer className="w-4 h-4 text-[#555]" />
-                    <span className="text-sm font-medium text-[#111]">{t.en ? 'Printer' : 'Impresora'}</span>
+                    <Printer className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                    <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
                   </button>
                   {/* Two taps instead of confirm(): JS dialogs need a WebChromeClient the
                       app doesn't install, and a stray tap must not unpair the till. */}
@@ -1822,10 +1943,8 @@ export function CounterView({
                         .catch(() => { /* offline: the local wipe still happens */ })
                         .finally(() => getCounterAppBridge()?.disconnectDevice?.());
                     }}
-                    className={cn(
-                      'w-full mt-1 py-3 rounded-xl text-sm font-bold transition-colors border',
-                      confirmDisconnect ? 'bg-red-500 text-white border-red-500' : 'text-red-600 border-red-200 hover:bg-red-50'
-                    )}
+                    className="w-full mt-2 h-[52px] rounded-xl text-[17px] font-semibold transition-colors"
+                    style={confirmDisconnect ? { background: C.critical, color: C.onCritical } : { background: C.fill, color: C.destructive }}
                   >
                     {confirmDisconnect
                       ? (t.en ? 'Tap again to disconnect' : 'Toca otra vez para desconectar')
@@ -1840,122 +1959,50 @@ export function CounterView({
 
       {/* ══ PRINTER MODAL ══ */}
       {printerModalOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setPrinterModalOpen(false)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
-                  <Printer className="w-4 h-4 text-[#555]" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-[#111]">
-                    {t.en ? 'Printer Settings' : 'Configuración de impresora'}
-                  </p>
-                  <p className="text-[11px] text-[#888]">
-                    {t.en ? 'Settings saved on this device' : 'Configuración guardada en este dispositivo'}
-                  </p>
-                </div>
-              </div>
-              <button onClick={() => setPrinterModalOpen(false)} className="p-1.5 rounded-lg hover:bg-[#F5F5F5]">
-                <X className="w-4 h-4 text-[#555]" />
-              </button>
-            </div>
-
-            {/* Toggles */}
-            <div className="px-5 py-4 space-y-4">
-              {/* Receipt toggle */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[#111]">
-                    {t.en ? 'Customer receipt' : 'Recibo del cliente'}
-                  </p>
-                  <p className="text-xs text-[#888] mt-0.5">
-                    {t.en ? 'Full ticket with prices' : 'Ticket completo con precios'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    const next = { ...printerConfig, receiptEnabled: !printerConfig.receiptEnabled };
-                    PrinterConfig.update(next);
-                    setPrinterConfig(next);
-                  }}
-                  className={cn(
-                    'relative w-12 h-6 rounded-full transition-colors',
-                    printerConfig.receiptEnabled ? 'bg-[#06C167]' : 'bg-[#DDD]'
-                  )}
-                >
-                  <span className={cn(
-                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
-                    printerConfig.receiptEnabled && 'translate-x-6'
-                  )} />
-                </button>
-              </div>
-
-              {/* Kitchen toggle */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[#111]">
-                    {t.en ? 'Kitchen ticket' : 'Ticket de cocina'}
-                  </p>
-                  <p className="text-xs text-[#888] mt-0.5">
-                    {t.en ? 'Items only, no prices' : 'Solo artículos, sin precios'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    const next = { ...printerConfig, kitchenEnabled: !printerConfig.kitchenEnabled };
-                    PrinterConfig.update(next);
-                    setPrinterConfig(next);
-                  }}
-                  className={cn(
-                    'relative w-12 h-6 rounded-full transition-colors',
-                    printerConfig.kitchenEnabled ? 'bg-[#06C167]' : 'bg-[#DDD]'
-                  )}
-                >
-                  <span className={cn(
-                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
-                    printerConfig.kitchenEnabled && 'translate-x-6'
-                  )} />
-                </button>
-              </div>
-            </div>
-
-            {/* Auto-print */}
-            <div className="px-5 pb-4 border-t border-[#F5F5F5] pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[#111]">
-                    {t.en ? 'Auto-print on accept' : 'Imprimir al aceptar'}
-                  </p>
-                  <p className="text-xs text-[#888] mt-0.5">
-                    {t.en ? 'Automatically prints when you confirm an order' : 'Imprime automáticamente al confirmar una orden'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    const next = !autoPrint;
-                    setAutoPrint(next);
-                    localStorage.setItem('counter-auto-print', String(next));
-                  }}
-                  className={cn(
-                    'relative w-12 h-6 rounded-full transition-colors',
-                    autoPrint ? 'bg-[#06C167]' : 'bg-[#DDD]'
-                  )}
-                >
-                  <span className={cn(
-                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
-                    autoPrint && 'translate-x-6'
-                  )} />
-                </button>
-              </div>
-            </div>
-
-            {/* Test print button */}
-            <div className="px-5 pb-5">
-              <button
-                onClick={() => {
+        <CounterModal label={t.en ? 'Printer settings' : 'Configuración de impresora'} onClose={() => setPrinterModalOpen(false)}>
+          <ModalHeader
+            title={t.en ? 'Printer settings' : 'Configuración de impresora'}
+            subtitle={t.en ? 'Settings saved on this device' : 'Configuración guardada en este dispositivo'}
+            onClose={() => setPrinterModalOpen(false)}
+            closeLabel={t.en ? 'Close' : 'Cerrar'}
+          />
+          <div className="px-6 flex flex-col">
+            <ToggleRow
+              label={t.en ? 'Customer receipt' : 'Recibo del cliente'}
+              desc={t.en ? 'Full ticket with prices' : 'Ticket completo con precios'}
+              on={printerConfig.receiptEnabled}
+              onChange={() => {
+                const next = { ...printerConfig, receiptEnabled: !printerConfig.receiptEnabled };
+                PrinterConfig.update(next);
+                setPrinterConfig(next);
+              }}
+            />
+            <ToggleRow
+              label={t.en ? 'Kitchen ticket' : 'Ticket de cocina'}
+              desc={t.en ? 'Items only, no prices' : 'Solo artículos, sin precios'}
+              on={printerConfig.kitchenEnabled}
+              onChange={() => {
+                const next = { ...printerConfig, kitchenEnabled: !printerConfig.kitchenEnabled };
+                PrinterConfig.update(next);
+                setPrinterConfig(next);
+              }}
+            />
+            <ToggleRow
+              label={t.en ? 'Auto-print on accept' : 'Imprimir al aceptar'}
+              desc={t.en ? 'Automatically prints when you confirm an order' : 'Imprime automáticamente al confirmar una orden'}
+              on={autoPrint}
+              onChange={() => {
+                const next = !autoPrint;
+                setAutoPrint(next);
+                localStorage.setItem('counter-auto-print', String(next));
+              }}
+            />
+          </div>
+          <div className="px-6 pt-4 pb-6">
+            <ModalButton
+              tone="fill"
+              className="w-full"
+              onClick={() => {
                   const dummyOrder: any = {
                     id: 'test',
                     order_number: 'TEST',
@@ -1973,115 +2020,105 @@ export function CounterView({
                   };
                   void printTicket(dummyOrder, 0).then(ok => { if (ok) showSuccess(t.en ? 'Test ticket sent' : 'Ticket de prueba enviado'); });
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#E8E8E8] text-sm font-semibold text-[#555] hover:bg-[#F5F5F5] transition-colors"
-              >
-                <Printer className="w-4 h-4" />
-                {t.en ? 'Print test ticket' : 'Imprimir ticket de prueba'}
-              </button>
-            </div>
+            >
+              <Printer className="w-5 h-5" />
+              {t.en ? 'Print test ticket' : 'Imprimir ticket de prueba'}
+            </ModalButton>
           </div>
-        </>
+        </CounterModal>
       )}
 
       {/* ══ EDIT ORDER ITEMS MODAL ══ */}
       {editItemsModal && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setEditItemsModal(null)} />
-          <div className="fixed inset-x-3 top-[5%] bottom-[5%] max-w-md mx-auto bg-white rounded-2xl z-50 shadow-2xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0] flex-shrink-0">
-              <p className="text-base font-bold text-[#111]">{t.en ? 'Add items to order' : 'Agregar productos a la orden'}</p>
-              <button onClick={() => setEditItemsModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#888] hover:bg-[#F5F5F5]">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="px-4 py-3 border-b border-[#F5F5F5] flex-shrink-0">
-              <input
-                type="search"
-                value={editSearch}
-                onChange={e => setEditSearch(e.target.value)}
-                placeholder={t.en ? 'Search products…' : 'Buscar productos…'}
-                className="w-full px-3 py-2 text-sm rounded-xl border border-[#E8E8E8] bg-[#F8F8F8] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/30"
-                autoFocus
-              />
-            </div>
-            <div className="flex-1 overflow-y-auto px-4 py-3">
-              {editLoading ? (
-                <div className="flex items-center justify-center h-32 text-[#AAAAAA] text-sm">{t.en ? 'Loading…' : 'Cargando…'}</div>
-              ) : (
-                <div className="space-y-2">
-                  {editProducts
-                    .filter(p => editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase()))
-                    .map(p => (
-                      <div key={p.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-white ${p.in_stock === false ? 'border-[#F5F5F5] opacity-60' : 'border-[#F0F0F0]'}`}>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-semibold text-[#111] truncate">{p.name}</p>
-                            {p.in_stock === false && (
-                              <span className="flex-shrink-0 text-[9px] font-bold uppercase tracking-wide bg-red-100 text-red-500 px-1.5 py-0.5 rounded">86</span>
-                            )}
-                          </div>
-                          <p className="text-xs text-[#888]">{fmt(Number(p.price), currency)}</p>
-                        </div>
-                        <button
-                          onClick={() => handleAddItem(editItemsModal.orderId, p.id)}
-                          disabled={editSaving}
-                          className="w-8 h-8 rounded-full bg-[#05c8a7] text-white flex items-center justify-center hover:bg-[#04b096] transition-colors disabled:opacity-40 flex-shrink-0"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  {editProducts.filter(p => editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase())).length === 0 && (
-                    <p className="text-center text-sm text-[#AAAAAA] py-8">{t.en ? 'No products found' : 'Sin resultados'}</p>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="px-4 py-3 border-t border-[#F0F0F0] flex-shrink-0">
-              <button
-                onClick={() => setEditItemsModal(null)}
-                className="w-full py-3 rounded-xl text-sm font-semibold text-[#555] border border-[#E8E8E8] hover:bg-[#F5F5F5] transition-colors"
-              >
-                {t.en ? 'Done' : 'Listo'}
-              </button>
-            </div>
+        <CounterModal label={t.en ? 'Add items to order' : 'Agregar productos a la orden'} onClose={() => setEditItemsModal(null)} tall>
+          <ModalHeader
+            title={t.en ? 'Add items to order' : 'Agregar productos a la orden'}
+            onClose={() => setEditItemsModal(null)}
+            closeLabel={t.en ? 'Close' : 'Cerrar'}
+          />
+          <div className="px-6 pb-3 flex-shrink-0">
+            <input
+              type="search"
+              value={editSearch}
+              onChange={e => setEditSearch(e.target.value)}
+              placeholder={t.en ? 'Search products…' : 'Buscar productos…'}
+              className={MODAL_INPUT}
+              style={MODAL_INPUT_STYLE}
+              autoFocus
+            />
           </div>
-        </>
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6">
+            {editLoading ? (
+              <p className="flex items-center justify-center h-32 text-[16px] font-medium" style={{ color: C.sub }}>{t.en ? 'Loading…' : 'Cargando…'}</p>
+            ) : (
+              <ul className="flex flex-col">
+                {editProducts
+                  .filter(p => editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase()))
+                  .map((p, i) => (
+                    <li key={p.id} className={cn('flex items-center gap-3 py-3', i > 0 && 'border-t')} style={{ borderColor: C.line }}>
+                      <div className="flex-1 min-w-0">
+                        <p className="flex items-center gap-2 text-[17px] font-semibold" style={p.in_stock === false ? { color: C.sub } : undefined}>
+                          <span className="truncate">{p.name}</span>
+                          {p.in_stock === false && (
+                            <span className="flex-shrink-0 text-[15px] font-bold" style={{ color: C.destructive }}>86</span>
+                          )}
+                        </p>
+                        <p className="text-[15px] tabular-nums" style={{ color: C.sub }}>{fmt(Number(p.price), currency)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddItem(editItemsModal.orderId, p.id)}
+                        disabled={editSaving}
+                        aria-label={`${t.en ? 'Add' : 'Agregar'} ${p.name}`}
+                        className="w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 flex-shrink-0"
+                        style={p.in_stock === false ? { background: C.fill, color: C.ink } : { background: C.accent, color: C.onAccent }}
+                      >
+                        <Plus className="w-5 h-5" strokeWidth={2.4} />
+                      </button>
+                    </li>
+                  ))}
+                {editProducts.filter(p => editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase())).length === 0 && (
+                  <li className="text-center text-[16px] font-medium py-8" style={{ color: C.sub }}>{t.en ? 'No products found' : 'Sin resultados'}</li>
+                )}
+              </ul>
+            )}
+          </div>
+          <div className="px-6 pt-3 pb-6 flex-shrink-0" style={{ boxShadow: `0 -1px 0 ${C.line}` }}>
+            <ModalButton tone="fill" className="w-full" onClick={() => setEditItemsModal(null)}>
+              {t.en ? 'Done' : 'Listo'}
+            </ModalButton>
+          </div>
+        </CounterModal>
       )}
 
       {/* ══ CANCEL MODAL ══ */}
       {cancelModal && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => { setCancelModal(null); setRefundRequired(false); }} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl max-h-[92dvh] overflow-y-auto">
-            <p className="text-base font-bold text-[#111] mb-1">
-              {cancelModal.type === 'reject' ? t.rejectOrder : t.cancelOrder}
-            </p>
+        <CounterModal
+          label={cancelModal.type === 'reject' ? t.rejectOrder : t.cancelOrder}
+          onClose={() => { setCancelModal(null); setRefundRequired(false); }}
+        >
+          <ModalHeader
+            title={cancelModal.type === 'reject' ? t.rejectOrder : t.cancelOrder}
+            subtitle={t.rejectReason}
+            onClose={() => { setCancelModal(null); setRefundRequired(false); }}
+            closeLabel={t.en ? 'Close' : 'Cerrar'}
+          />
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 flex flex-col gap-2">
             {refundRequired && (
-              <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
-                <p className="text-xs font-semibold text-amber-900">
-                  {isDevice
-                    ? (t.en
-                      ? 'This order was paid online. Refunds are only made from MENIUS on your phone or computer (Orders).'
-                      : 'Esta orden fue pagada online. Los reembolsos solo se hacen desde MENIUS en tu celular o computadora (Pedidos).')
-                    : (t.en
-                      ? 'This order was paid online. Cancelling it will refund the customer via Stripe.'
-                      : 'Esta orden fue pagada online. Cancelarla reembolsará al cliente vía Stripe.')}
-                </p>
-              </div>
+              <p className="mb-1 rounded-xl px-4 py-3 text-[15px] font-semibold leading-snug"
+                style={{ background: C.warnBg, color: C.warnText, boxShadow: `inset 3px 0 0 ${C.warnBar}` }}>
+                {isDevice
+                  ? (t.en
+                    ? 'This order was paid online. Refunds are only made from MENIUS on your phone or computer (Orders).'
+                    : 'Esta orden fue pagada online. Los reembolsos solo se hacen desde MENIUS en tu celular o computadora (Pedidos).')
+                  : (t.en
+                    ? 'This order was paid online. Cancelling it will refund the customer via Stripe.'
+                    : 'Esta orden fue pagada online. Cancelarla reembolsará al cliente vía Stripe.')}
+              </p>
             )}
-            <p className="text-xs text-[#888] mb-4">{t.rejectReason}</p>
-            <div className="space-y-2 mb-4">
-              {t.reasons.map(r => (
-                <label key={r} className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer text-sm transition-colors',
-                  cancelReason === r ? 'border-red-400 bg-red-50 text-red-700' : 'border-[#EEE] text-[#555] hover:border-[#CCC]'
-                )}>
-                  <input type="radio" name="cancel-reason" checked={cancelReason === r} onChange={() => setCancelReason(r)} className="accent-red-500" />
-                  {r}
-                </label>
-              ))}
-            </div>
+            {t.reasons.map(r => (
+              <ReasonOption key={r} name="cancel-reason" label={r} checked={cancelReason === r} onSelect={() => setCancelReason(r)} />
+            ))}
             {(() => {
               // Solo para llevar / delivery, y solo si no se pagó online (lo
               // pagado se reembolsa por el otro camino).
@@ -2095,172 +2132,141 @@ export function CounterView({
                 ['incident:not_paid', t.incidentNotPaid],
               ];
               return (
-                <div className="mb-4">
-                  <p className="text-xs font-semibold text-[#888] mb-2">{t.incidentTitle}</p>
-                  <div className="space-y-2">
-                    {opts.map(([value, label]) => (
-                      <label key={value} className={cn(
-                        'flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer text-sm transition-colors',
-                        cancelReason === value ? 'border-red-500 bg-red-50 text-red-800 font-semibold' : 'border-[#EEE] text-[#555] hover:border-[#CCC]'
-                      )}>
-                        <input type="radio" name="cancel-reason" checked={cancelReason === value} onChange={() => setCancelReason(value)} className="accent-red-600" />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <>
+                  <p className="mt-3 mb-0.5 text-[15px] font-semibold" style={{ color: C.sub }}>{t.incidentTitle}</p>
+                  {opts.map(([value, label]) => (
+                    <ReasonOption key={value} name="cancel-reason" label={label} checked={cancelReason === value} onSelect={() => setCancelReason(value)} />
+                  ))}
+                </>
               );
             })()}
-            <div className="flex gap-2">
-              <button onClick={() => { setCancelModal(null); setRefundRequired(false); }} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
-                {t.no}
-              </button>
-              {refundRequired && isDevice ? null : refundRequired ? (
-                <button
-                  onClick={handleRefundAndCancel}
-                  disabled={updatingId === cancelModal.orderId}
-                  className="flex-1 py-3 rounded-xl bg-amber-500 text-white text-sm font-bold disabled:opacity-50"
-                >
-                  {t.en ? '💸 Refund & cancel' : '💸 Reembolsar y cancelar'}
-                </button>
-              ) : (
-                <button
-                  onClick={handleCancel}
-                  disabled={!cancelReason || updatingId === cancelModal.orderId}
-                  className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50"
-                >
-                  {t.confirmCancel}
-                </button>
-              )}
-            </div>
           </div>
-        </>
+          <div className="px-6 pt-4 pb-6 flex gap-3 flex-shrink-0">
+            <ModalButton tone="fill" onClick={() => { setCancelModal(null); setRefundRequired(false); }} className={refundRequired && isDevice ? 'flex-1' : 'flex-none min-w-[96px]'}>
+              {t.no}
+            </ModalButton>
+            {refundRequired && isDevice ? null : refundRequired ? (
+              <ModalButton tone="destructive" className="flex-1" onClick={handleRefundAndCancel} disabled={updatingId === cancelModal.orderId}>
+                {t.en ? 'Refund & cancel' : 'Reembolsar y cancelar'}
+              </ModalButton>
+            ) : (
+              <ModalButton tone="destructive" className="flex-1" onClick={handleCancel} disabled={!cancelReason || updatingId === cancelModal.orderId}>
+                {t.confirmCancel}
+              </ModalButton>
+            )}
+          </div>
+        </CounterModal>
       )}
 
       {/* ══ DELIVERY GUARD MODAL ══ */}
       {deliveryGuardModal && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setDeliveryGuardModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#F0F0F0]">
-              <p className="text-base font-black text-[#111]">⚠️ {t.deliveryGuardTitle}</p>
-              <p className="text-xs text-[#888] mt-0.5 leading-relaxed">{t.deliveryGuardBody}</p>
-            </div>
-            <div className="px-5 py-4 flex gap-2">
-              <button
-                onClick={() => setDeliveryGuardModal(null)}
-                className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]"
-              >
-                {t.no}
-              </button>
-              <button
-                onClick={() => {
-                  const order = deliveryGuardModal.order;
-                  setDeliveryGuardModal(null);
-                  commitStatus(order, 'deliver', true);
-                }}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-black bg-amber-500 hover:bg-amber-600 transition-colors"
-              >
-                {t.deliveryGuardConfirm}
-              </button>
-            </div>
+        <CounterModal label={t.deliveryGuardTitle} onClose={() => setDeliveryGuardModal(null)}>
+          <ModalHeader
+            icon={<AlertTriangle className="w-6 h-6" strokeWidth={2.2} style={{ color: C.amber }} />}
+            title={t.deliveryGuardTitle}
+            subtitle={t.deliveryGuardBody}
+            onClose={() => setDeliveryGuardModal(null)}
+            closeLabel={t.en ? 'Close' : 'Cerrar'}
+          />
+          <div className="px-6 pt-2 pb-6 flex gap-3">
+            <ModalButton tone="fill" className="flex-none min-w-[96px]" onClick={() => setDeliveryGuardModal(null)}>{t.no}</ModalButton>
+            <ModalButton
+              tone="accent"
+              className="flex-1"
+              onClick={() => {
+                const order = deliveryGuardModal.order;
+                setDeliveryGuardModal(null);
+                commitStatus(order, 'deliver', true);
+              }}
+            >
+              {t.deliveryGuardConfirm}
+            </ModalButton>
           </div>
-        </>
+        </CounterModal>
       )}
 
       {/* ══ SHIFT MODALS ══ */}
       {shiftModal === 'open' && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShiftModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#F0F0F0]">
-              <p className="text-base font-black text-[#111]">💰 {t.shiftOpen}</p>
-              <p className="text-xs text-[#888] mt-0.5">{t.en ? 'Enter opening cash in the register' : 'Ingresa el efectivo inicial en caja'}</p>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              <div>
-                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1 block">{t.shiftOpeningCash}</label>
-                <input
-                  type="number" min="0" step="0.01"
-                  value={shiftOpenCash}
-                  onChange={e => setShiftOpenCash(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
-                  autoFocus
-                />
-              </div>
-            </div>
-            <div className="px-5 pb-5 flex gap-2">
-              <button onClick={() => setShiftModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">{t.no}</button>
-              <button
-                onClick={handleOpenShift}
-                disabled={shiftSaving}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50 bg-[#06C167]"
-              >
-                {shiftSaving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> : t.shiftOpen}
-              </button>
-            </div>
+        <CounterModal label={t.shiftOpen} onClose={() => setShiftModal(null)}>
+          <ModalHeader
+            title={t.shiftOpen}
+            subtitle={t.en ? 'Enter opening cash in the register' : 'Ingresa el efectivo inicial en caja'}
+            onClose={() => setShiftModal(null)}
+            closeLabel={t.en ? 'Close' : 'Cerrar'}
+          />
+          <div className="px-6 pb-2">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[15px] font-semibold" style={{ color: C.sub }}>{t.shiftOpeningCash}</span>
+              <input
+                type="number" min="0" step="0.01" inputMode="decimal"
+                value={shiftOpenCash}
+                onChange={e => setShiftOpenCash(e.target.value)}
+                className={`${MODAL_INPUT} ${NO_SPIN}`}
+                style={MODAL_INPUT_STYLE}
+                autoFocus
+              />
+            </label>
           </div>
-        </>
+          <div className="px-6 pt-4 pb-6 flex gap-3">
+            <ModalButton tone="fill" className="flex-none min-w-[96px]" onClick={() => setShiftModal(null)}>{t.no}</ModalButton>
+            <ModalButton tone="accent" className="flex-1" onClick={handleOpenShift} disabled={shiftSaving}>
+              {shiftSaving ? <Spinner /> : t.shiftOpen}
+            </ModalButton>
+          </div>
+        </CounterModal>
       )}
 
       {shiftModal === 'close' && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShiftModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#F0F0F0]">
-              <p className="text-base font-black text-[#111]">🔒 {t.shiftClose}</p>
-              <p className="text-xs text-[#888] mt-0.5">{t.en ? 'Count the cash in the register' : 'Cuenta el efectivo en la caja'}</p>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              <div>
-                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1 block">💵 {t.shiftClosingCash}</label>
-                <input
-                  type="number" min="0" step="0.01"
-                  value={shiftCloseCash}
-                  onChange={e => setShiftCloseCash(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1 block">{t.shiftNotes}</label>
-                <textarea
-                  value={shiftNotes}
-                  onChange={e => setShiftNotes(e.target.value)}
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white resize-none"
-                />
-              </div>
-            </div>
-            <div className="px-5 pb-5 flex gap-2">
-              <button onClick={() => setShiftModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">{t.no}</button>
-              <button
-                onClick={handleCloseShift}
-                disabled={shiftSaving}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50 bg-red-500"
-              >
-                {shiftSaving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> : t.shiftClose}
-              </button>
-            </div>
+        <CounterModal label={t.shiftClose} onClose={() => setShiftModal(null)}>
+          <ModalHeader
+            title={t.shiftClose}
+            subtitle={t.en ? 'Count the cash in the register' : 'Cuenta el efectivo en la caja'}
+            onClose={() => setShiftModal(null)}
+            closeLabel={t.en ? 'Close' : 'Cerrar'}
+          />
+          <div className="px-6 pb-2 flex flex-col gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[15px] font-semibold" style={{ color: C.sub }}>{t.shiftClosingCash}</span>
+              <input
+                type="number" min="0" step="0.01" inputMode="decimal"
+                value={shiftCloseCash}
+                onChange={e => setShiftCloseCash(e.target.value)}
+                placeholder="0.00"
+                className={`${MODAL_INPUT} ${NO_SPIN}`}
+                style={MODAL_INPUT_STYLE}
+                autoFocus
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[15px] font-semibold" style={{ color: C.sub }}>{t.shiftNotes}</span>
+              <textarea
+                value={shiftNotes}
+                onChange={e => setShiftNotes(e.target.value)}
+                rows={2}
+                className="w-full px-4 py-3 rounded-xl text-[17px] outline-none focus:ring-2 resize-none"
+                style={MODAL_INPUT_STYLE}
+              />
+            </label>
           </div>
-        </>
+          <div className="px-6 pt-4 pb-6 flex gap-3">
+            <ModalButton tone="fill" className="flex-none min-w-[96px]" onClick={() => setShiftModal(null)}>{t.no}</ModalButton>
+            <ModalButton tone="destructive" className="flex-1" onClick={handleCloseShift} disabled={shiftSaving}>
+              {shiftSaving ? <Spinner /> : t.shiftClose}
+            </ModalButton>
+          </div>
+        </CounterModal>
       )}
 
       {shiftModal === 'report' && shiftReport && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShiftModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
-            <div className="px-5 py-4 border-b border-[#F0F0F0] flex items-center justify-between flex-shrink-0">
-              <div>
-                <p className="text-base font-black text-[#111]">📋 {t.shiftReportZ}</p>
-                <p className="text-xs text-[#888] mt-0.5">
-                  {new Date(shiftReport.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} → {new Date(shiftReport.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-              <button onClick={() => setShiftModal(null)} className="p-1.5 rounded-lg hover:bg-[#F5F5F5]"><X className="w-5 h-5 text-[#AAAAAA]" /></button>
-            </div>
-            <div className="px-5 py-4 space-y-2 overflow-y-auto flex-1">
+        <CounterModal label={t.shiftReportZ} onClose={() => setShiftModal(null)} tall>
+          <ModalHeader
+            title={t.shiftReportZ}
+            subtitle={`${new Date(shiftReport.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} → ${new Date(shiftReport.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            onClose={() => setShiftModal(null)}
+            closeLabel={t.en ? 'Close' : 'Cerrar'}
+          />
+          <div className="px-6 flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            <dl className="flex flex-col">
               {[
                 { label: t.shiftOrders, value: String(shiftReport.totalOrders) },
                 { label: t.shiftRevenue, value: fmt(shiftReport.totalRevenue, currency) },
@@ -2269,108 +2275,100 @@ export function CounterView({
                 { label: t.shiftOpeningCash, value: fmt(shiftReport.openingCash, currency) },
                 { label: t.shiftExpected, value: fmt(shiftReport.expectedCash, currency) },
                 { label: t.shiftClosingCash, value: fmt(shiftReport.closingCash, currency) },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between items-center py-2 border-b border-[#F0F0F0]">
-                  <span className="text-sm text-[#888]">{label}</span>
-                  <span className="text-sm font-bold text-[#111]">{value}</span>
+              ].map(({ label, value }, i) => (
+                <div key={label} className={cn('flex justify-between items-baseline gap-4 py-3', i > 0 && 'border-t')} style={{ borderColor: C.line }}>
+                  <dt className="text-[16px]" style={{ color: C.sub }}>{label}</dt>
+                  <dd className="text-[17px] font-semibold tabular-nums">{value}</dd>
                 </div>
               ))}
-              <div className={cn('flex justify-between items-center py-2.5 px-3 rounded-xl font-bold',
-                Math.abs(shiftReport.cashDifference) < 0.01 ? 'bg-green-50 text-green-700' : shiftReport.cashDifference < 0 ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
-              )}>
-                <span className="text-sm">{t.shiftDiff}</span>
-                <span className="text-sm">{shiftReport.cashDifference >= 0 ? '+' : ''}{fmt(shiftReport.cashDifference, currency)}</span>
+            </dl>
+            <div className="mt-2 flex justify-between items-baseline gap-4 py-3 px-4 rounded-xl"
+              style={{ background: C.fill, color: Math.abs(shiftReport.cashDifference) < 0.01 ? C.accentText : shiftReport.cashDifference < 0 ? C.destructive : C.blue }}>
+              <span className="text-[17px] font-semibold">{t.shiftDiff}</span>
+              <span className="text-[19px] font-bold tabular-nums">{shiftReport.cashDifference >= 0 ? '+' : ''}{fmt(shiftReport.cashDifference, currency)}</span>
+            </div>
+            {shiftReport.cashByDriver.length > 0 && (
+              <div className="pt-5">
+                <p className="text-[15px] font-semibold mb-1" style={{ color: C.sub }}>
+                  {t.en ? 'Delivery cash by driver' : 'Efectivo de delivery por repartidor'}
+                </p>
+                {shiftReport.cashByDriver.map((d, i) => (
+                  <div key={d.name ?? '—'} className={cn('flex justify-between items-baseline gap-4 py-3', i > 0 && 'border-t')} style={{ borderColor: C.line }}>
+                    <span className="text-[16px] min-w-0">
+                      {d.name ?? (t.en ? 'No driver name' : 'Sin repartidor')}
+                      <span style={{ color: C.sub }}> · {d.orders} {d.orders === 1 ? (t.en ? 'order' : 'pedido') : (t.en ? 'orders' : 'pedidos')}</span>
+                    </span>
+                    <span className="text-[17px] font-semibold tabular-nums">{fmt(d.cash, currency)}</span>
+                  </div>
+                ))}
               </div>
-              {shiftReport.cashByDriver.length > 0 && (
-                <div className="pt-3">
-                  <p className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1">
-                    {t.en ? 'Delivery cash by driver' : 'Efectivo de delivery por repartidor'}
-                  </p>
-                  {shiftReport.cashByDriver.map((d) => (
-                    <div key={d.name ?? '—'} className="flex justify-between items-center py-2 border-b border-[#F0F0F0]">
-                      <span className="text-sm text-[#555]">
-                        {d.name ?? (t.en ? 'No driver name' : 'Sin repartidor')}
-                        <span className="text-[#AAAAAA]"> · {d.orders} {d.orders === 1 ? (t.en ? 'order' : 'pedido') : (t.en ? 'orders' : 'pedidos')}</span>
-                      </span>
-                      <span className="text-sm font-bold text-[#111] tabular-nums">{fmt(d.cash, currency)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="px-5 pb-5 flex-shrink-0">
-              <button
-                onClick={() => { window.print(); }}
-                className="w-full py-3 rounded-xl text-sm font-bold text-white bg-[#111]"
-              >
-                🖨️ {t.shiftPrint}
-              </button>
-            </div>
+            )}
           </div>
-        </>
+          <div className="px-6 pt-4 pb-6 flex-shrink-0" style={{ boxShadow: `0 -1px 0 ${C.line}` }}>
+            <ModalButton tone="fill" className="w-full" onClick={() => { window.print(); }}>
+              <Printer className="w-5 h-5" /> {t.shiftPrint}
+            </ModalButton>
+          </div>
+        </CounterModal>
       )}
 
       {/* ══ DRIVER MODAL ══ */}
       {driverModal && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setDriverModal(null)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-[#111]">🛵 {t.assignDriver}</h2>
-              <button onClick={() => setDriverModal(null)} className="p-1 text-[#AAAAAA] hover:text-[#111]"><X className="w-5 h-5" /></button>
-            </div>
+        <CounterModal label={t.assignDriver} onClose={() => setDriverModal(null)}>
+          <ModalHeader title={t.assignDriver} onClose={() => setDriverModal(null)} closeLabel={t.en ? 'Close' : 'Cerrar'} />
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 flex flex-col gap-4">
             {/* Driver pool quick-select */}
             {driverPool.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-[#888] mb-2">{t.en ? 'Select from your team:' : 'Elige de tu equipo:'}</p>
+              <div>
+                <p className="text-[15px] font-semibold mb-2" style={{ color: C.sub }}>{t.en ? 'Select from your team:' : 'Elige de tu equipo:'}</p>
                 <div className="flex flex-wrap gap-2">
-                  {driverPool.map(d => (
-                    <button key={d.id}
-                      onClick={() => { setDriverName(d.name); setDriverPhone(d.phone); setSelectedDriverId(d.id); }}
-                      className={cn(
-                        'px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors',
-                        driverName === d.name
-                          ? 'border-[#06C167] bg-[#06C167]/10 text-[#06C167]'
-                          : 'border-[#E8E8E8] text-[#555] hover:border-[#06C167]'
-                      )}
-                    >
-                      {d.name}
-                    </button>
-                  ))}
+                  {driverPool.map(d => {
+                    const on = driverName === d.name;
+                    return (
+                      <button key={d.id} type="button" aria-pressed={on}
+                        onClick={() => { setDriverName(d.name); setDriverPhone(d.phone); setSelectedDriverId(d.id); }}
+                        className="h-11 px-4 rounded-full text-[16px] font-semibold"
+                        style={on
+                          ? { background: C.fill, color: C.ink, boxShadow: `inset 0 0 0 2px ${C.accent}` }
+                          : { background: C.fill, color: C.ink }}
+                      >
+                        {d.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
-            <div className="space-y-3 mb-5">
-              <input
-                value={driverName}
-                onChange={e => { setDriverName(e.target.value); setSelectedDriverId(null); }}
-                placeholder={t.en ? 'Driver name' : 'Nombre del repartidor'}
-                className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#06C167]"
-              />
-              <input
-                value={driverPhone}
-                onChange={e => setDriverPhone(e.target.value)}
-                placeholder={t.en ? 'Phone' : 'Teléfono'}
-                type="tel"
-                className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#06C167]"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setDriverModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
-                {t.no}
-              </button>
-              <button
-                onClick={handleAssignDriver}
-                disabled={assigningDriver || !driverName.trim()}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-50"
-                style={{ background: GREEN }}
-              >
+            <input
+              value={driverName}
+              onChange={e => { setDriverName(e.target.value); setSelectedDriverId(null); }}
+              placeholder={t.en ? 'Driver name' : 'Nombre del repartidor'}
+              aria-label={t.en ? 'Driver name' : 'Nombre del repartidor'}
+              className={MODAL_INPUT}
+              style={MODAL_INPUT_STYLE}
+            />
+            <input
+              value={driverPhone}
+              onChange={e => setDriverPhone(e.target.value)}
+              placeholder={t.en ? 'Phone' : 'Teléfono'}
+              aria-label={t.en ? 'Phone' : 'Teléfono'}
+              type="tel"
+              className={MODAL_INPUT}
+              style={MODAL_INPUT_STYLE}
+            />
+          </div>
+          <div className="px-6 pt-5 pb-6 flex flex-col gap-3">
+            <div className="flex gap-3">
+              <ModalButton tone="fill" className="flex-none min-w-[96px]" onClick={() => setDriverModal(null)}>{t.no}</ModalButton>
+              <ModalButton tone="accent" className="flex-1" onClick={handleAssignDriver} disabled={assigningDriver || !driverName.trim()}>
                 {assigningDriver ? '…' : t.assignDriver}
-              </button>
+              </ModalButton>
             </div>
             {/* Print driver sheet with QR */}
             {driverModal?.trackingToken && (
-              <button
+              <ModalButton
+                tone="fill"
+                className="w-full"
                 onClick={async () => {
                   const appUrl = window.location.origin;
                   const baseToken = `${appUrl}/driver/track/${driverModal.trackingToken}`;
@@ -2399,50 +2397,13 @@ export function CounterView({
                   const w = window.open('', '_blank', 'width=320,height=480');
                   if (w) { w.document.write(html); w.document.close(); }
                 }}
-                className="mt-2 w-full py-2.5 rounded-xl text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 flex items-center justify-center gap-1.5"
               >
-                🖨️ {t.en ? 'Print driver sheet (QR)' : 'Imprimir ficha del driver (QR)'}
-              </button>
+                <Printer className="w-5 h-5" />
+                {t.en ? 'Print driver sheet (QR)' : 'Imprimir ficha del repartidor (QR)'}
+              </ModalButton>
             )}
           </div>
-        </>
-      )}
-
-      {/* ══ PHOTO LIGHTBOX ══ */}
-      {photoLightbox && (
-        <>
-          <div className="fixed inset-0 bg-black/80 z-[60] backdrop-blur-sm" onClick={() => setPhotoLightbox(null)} />
-          <div className="fixed inset-0 z-[61] flex items-center justify-center p-4" onClick={() => setPhotoLightbox(null)}>
-            <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
-              {/* Close button */}
-              <button
-                onClick={() => setPhotoLightbox(null)}
-                className="absolute -top-10 right-0 text-white/70 hover:text-white flex items-center gap-1.5 text-sm font-semibold"
-              >
-                <X className="w-5 h-5" /> {t.en ? 'Close' : 'Cerrar'}
-              </button>
-              {/* Photo — square 1:1 */}
-              <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-                <Image
-                  src={photoLightbox}
-                  alt="Delivery proof"
-                  fill
-                  className="object-contain bg-black"
-                  sizes="(max-width: 640px) 100vw, 512px"
-                />
-              </div>
-              {/* Download link */}
-              <a
-                href={photoLightbox}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 flex items-center justify-center gap-2 text-white/60 hover:text-white text-xs font-semibold transition-colors"
-              >
-                ↗ {t.en ? 'Open original' : 'Abrir original'}
-              </a>
-            </div>
-          </div>
-        </>
+        </CounterModal>
       )}
 
       {/* ══ AVISOS ══ abajo a la izquierda, nunca encima del botón principal */}
@@ -2470,10 +2431,19 @@ const STATUS_LABEL: Record<string, string> = {
   served: 'Servida', delivered: 'Entregada', completed: 'Completada', cancelled: 'Cancelada',
 };
 
-function StatusHistory({ orderId, t }: { orderId: string; t: ReturnType<typeof getT> }) {
-  const [open, setOpen] = useState(false);
+type StatusHistoryRow = { id: string; from_status: string | null; to_status: string; note: string | null; created_at: string };
+
+/** Solo para la vista previa de desarrollo (previewModal='history'). */
+const PREVIEW_HISTORY: StatusHistoryRow[] = [
+  { id: 'h1', from_status: null, to_status: 'pending', note: null, created_at: new Date(Date.now() - 20 * 60_000).toISOString() },
+  { id: 'h2', from_status: 'pending', to_status: 'confirmed', note: '15 min', created_at: new Date(Date.now() - 18 * 60_000).toISOString() },
+  { id: 'h3', from_status: 'confirmed', to_status: 'ready', note: null, created_at: new Date(Date.now() - 4 * 60_000).toISOString() },
+];
+
+function StatusHistory({ orderId, t, preview }: { orderId: string; t: ReturnType<typeof getT>; preview?: StatusHistoryRow[] }) {
+  const [open, setOpen] = useState(!!preview);
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<Array<{ id: string; from_status: string | null; to_status: string; note: string | null; created_at: string }>>([]);
+  const [history, setHistory] = useState<StatusHistoryRow[]>(preview ?? []);
 
   const load = async () => {
     if (history.length > 0) { setOpen(o => !o); return; }
@@ -2485,42 +2455,48 @@ function StatusHistory({ orderId, t }: { orderId: string; t: ReturnType<typeof g
   };
 
   return (
-    <div className="flex-none border-t border-[#F0F0F0]">
+    <section className="rounded-[22px] px-4" style={{ background: C.surface }}>
       <button
+        type="button"
         onClick={load}
-        className="w-full flex items-center justify-between px-5 py-3 text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest hover:bg-[#FAFAFA] transition-colors"
+        aria-expanded={open}
+        className="w-full min-h-[52px] flex items-center justify-between gap-3 text-[16px] font-semibold"
+        style={{ color: C.ink }}
       >
-        <span className="flex items-center gap-1.5">
-          <History className="w-3.5 h-3.5" />
+        <span className="flex items-center gap-2">
+          <History className="w-5 h-5" style={{ color: C.sub }} />
           {t.en ? 'Status history' : 'Historial de estados'}
         </span>
-        <span className={cn('transition-transform duration-200', open ? 'rotate-180' : '')}>▾</span>
+        <ChevronDown className={cn('w-5 h-5 transition-transform duration-200', open && 'rotate-180')} style={{ color: C.sub }} />
       </button>
       {open && (
-        <div className="px-5 pb-3">
+        <div className="pb-4">
           {loading ? (
             <div className="flex justify-center py-3">
-              <span className="w-4 h-4 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin" />
+              <span className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: C.line, borderTopColor: C.accent }} />
             </div>
           ) : history.length === 0 ? (
-            <p className="text-xs text-[#CCCCCC] text-center py-2">{t.en ? 'No history yet' : 'Sin historial aún'}</p>
+            <p className="text-[16px] text-center py-2" style={{ color: C.sub }}>{t.en ? 'No history yet' : 'Sin historial aún'}</p>
           ) : (
-            <ol className="space-y-2">
+            <ol className="flex flex-col">
               {history.map((row, i) => {
                 const label = t.en
                   ? row.to_status.replace(/_/g, ' ')
                   : (STATUS_LABEL[row.to_status] ?? row.to_status);
                 const ts = new Date(row.created_at).toLocaleTimeString(t.en ? 'en' : 'es', { hour: '2-digit', minute: '2-digit' });
+                const last = i === history.length - 1;
                 return (
-                  <li key={row.id} className="flex items-start gap-2.5">
-                    <div className="flex flex-col items-center flex-shrink-0 mt-0.5">
-                      <div className={cn('w-2 h-2 rounded-full', i === history.length - 1 ? 'bg-[#06C167]' : 'bg-gray-300')} />
-                      {i < history.length - 1 && <div className="w-px h-4 bg-gray-200 mt-1" />}
+                  <li key={row.id} className="flex items-stretch gap-3">
+                    <div className="flex flex-col items-center flex-shrink-0 pt-[7px]">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: last ? C.accent : C.lineStrong }} />
+                      {!last && <div className="w-px flex-1 mt-1" style={{ background: C.line }} />}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-bold text-[#333]">{label}</span>
-                      {row.note && <span className="text-xs text-[#888] ml-1.5 italic">· {row.note}</span>}
-                      <span className="block text-[10px] text-[#BBBBBB]">{ts}</span>
+                    <div className={cn('flex-1 min-w-0 flex items-baseline justify-between gap-3', !last && 'pb-3')}>
+                      <span className="min-w-0">
+                        <span className="text-[16px] font-semibold first-letter:uppercase inline-block">{label}</span>
+                        {row.note && <span className="text-[15px] ml-1.5" style={{ color: C.sub }}>· {row.note}</span>}
+                      </span>
+                      <span className="text-[15px] tabular-nums flex-shrink-0" style={{ color: C.sub }}>{ts}</span>
                     </div>
                   </li>
                 );
@@ -2529,7 +2505,7 @@ function StatusHistory({ orderId, t }: { orderId: string; t: ReturnType<typeof g
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -2551,8 +2527,8 @@ function SidebarSection({
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[#888]">{icon}</span>
-        <p className="text-xs font-bold text-[#888] uppercase tracking-wide">{title}</p>
+        <span className="text-[color:var(--kds-sub)]">{icon}</span>
+        <p className="text-[15px] font-semibold text-[color:var(--kds-sub)]">{title}</p>
       </div>
       {children}
     </div>
@@ -2561,3 +2537,101 @@ function SidebarSection({
 
 // Un programado que vence dentro de este margen se trata como pedido inmediato.
 const SCHEDULED_SPLASH_LEAD_MS = SCHEDULED_LEAD_MS;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Modales del Counter: misma escala que la hoja del pedido y la alerta
+// (título 22/700, cuerpo 16–17, botones 52 px 17/600, inputs 17 px para que iOS no haga zoom).
+// ══════════════════════════════════════════════════════════════════════════════
+
+const MODAL_INPUT = 'w-full h-[52px] px-4 rounded-xl text-[17px] outline-none focus:ring-2';
+/** Sin las flechitas del input numérico (en una tablet no sirven y ocupan lugar). */
+const NO_SPIN = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+const MODAL_INPUT_STYLE = {
+  background: C.surface,
+  color: C.ink,
+  boxShadow: `inset 0 0 0 1px ${C.lineStrong}`,
+  '--tw-ring-color': C.accent,
+} as React.CSSProperties;
+
+function CounterModal({ label, onClose, tall = false, children }: {
+  label: string; onClose: () => void; tall?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label={label}
+      style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+      <div aria-hidden className="absolute inset-0" style={{ background: C.scrim }} onClick={onClose} />
+      <div className={cn('relative w-full max-w-[480px] rounded-[28px] flex flex-col overflow-hidden', tall ? 'h-[min(720px,100%)]' : 'max-h-full')} style={RAISED}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModalHeader({ title, subtitle, icon, onClose, closeLabel }: {
+  title: string; subtitle?: string; icon?: React.ReactNode; onClose: () => void; closeLabel: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 px-6 pt-6 pb-4 flex-shrink-0">
+      {icon && <span className="flex-none pt-0.5">{icon}</span>}
+      <div className="flex-1 min-w-0">
+        <h2 className="text-[22px] font-bold tracking-[-0.015em] leading-tight">{title}</h2>
+        {subtitle && <p className="mt-1 text-[16px] leading-snug" style={{ color: C.sub }}>{subtitle}</p>}
+      </div>
+      <button type="button" onClick={onClose} aria-label={closeLabel}
+        className="flex-none w-11 h-11 -mt-1.5 -mr-2 rounded-full inline-flex items-center justify-center" style={{ background: C.fill, color: C.ink }}>
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
+function ModalButton({ tone, className, children, ...rest }: {
+  tone: 'fill' | 'accent' | 'destructive';
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  const look = tone === 'accent' ? { background: C.accent, color: C.onAccent }
+    : tone === 'destructive' ? { background: C.fill, color: C.destructive }
+    : { background: C.fill, color: C.ink };
+  return (
+    <button type="button" {...rest}
+      className={cn('min-h-[52px] px-4 py-2 rounded-2xl text-[17px] font-semibold leading-tight text-center inline-flex items-center justify-center gap-2 transition-transform active:scale-[.98] disabled:opacity-50', className)}
+      style={look}>
+      {children}
+    </button>
+  );
+}
+
+/** Interruptor estilo iOS. Apagado = riel `lineStrong` (≥ 1.5:1 contra el modal en los dos modos). */
+function ToggleRow({ label, desc, on, onChange }: { label: string; desc: string; on: boolean; onChange: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3.5 border-t first:border-t-0" style={{ borderColor: C.line }}>
+      <div className="min-w-0">
+        <p className="text-[17px] font-semibold">{label}</p>
+        <p className="text-[15px] leading-snug mt-0.5" style={{ color: C.sub }}>{desc}</p>
+      </div>
+      <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onChange}
+        className="flex-none h-11 w-[60px] -mr-1 inline-flex items-center justify-center">
+        <span className="relative block w-[52px] h-8 rounded-full transition-colors" style={{ background: on ? C.accent : C.lineStrong }}>
+          <span className={cn('absolute top-1 left-1 w-6 h-6 rounded-full bg-white transition-transform', on && 'translate-x-5')}
+            style={{ boxShadow: '0 1px 3px rgba(0,0,0,.3)' }} />
+        </span>
+      </button>
+    </div>
+  );
+}
+
+/** Motivo de rechazo / cancelación: el elegido lleva fondo rojo suave + borde. */
+function ReasonOption({ name, label, checked, onSelect }: { name: string; label: string; checked: boolean; onSelect: () => void }) {
+  return (
+    <label className="flex items-center gap-3 min-h-[52px] px-4 py-2.5 rounded-xl cursor-pointer text-[17px] leading-snug"
+      style={checked
+        ? { background: `color-mix(in srgb, ${C.destructive} 12%, ${C.raised})`, boxShadow: `inset 0 0 0 2px ${C.destructive}`, color: C.ink, fontWeight: 600 }
+        : { background: C.surface, boxShadow: `inset 0 0 0 1px ${C.line}`, color: C.ink }}>
+      <input type="radio" name={name} checked={checked} onChange={onSelect} className="w-5 h-5 flex-none" style={{ accentColor: C.destructive }} />
+      {label}
+    </label>
+  );
+}
+
+function Spinner() {
+  return <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />;
+}

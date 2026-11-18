@@ -14,7 +14,7 @@ const logger = createLogger('buccaneer-v2');
  */
 export async function getCounts(): Promise<Counts> {
   try {
-    const db = createAdminClient();
+    const db = createAdminClient({ isr: true });
     const { data: restaurant, error: rErr } = await db
       .from('restaurants')
       .select('id')

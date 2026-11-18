@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Delete, Lock, X } from 'lucide-react';
-import { C } from './ui';
+import { C, RAISED } from './ui';
 
 /**
  * "Panel del dueño" al final del menú del Counter (brief sección 7). Va escondido
@@ -18,9 +18,9 @@ export function OwnerPanelButton({ needsPin, en }: { needsPin: boolean; en: bool
 
   if (!needsPin) {
     return (
-      <a href="/app" className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left">
-        <Lock className="w-4 h-4 text-[#555]" />
-        <span className="text-[15px] font-semibold text-[#111]">{label}</span>
+      <a href="/app" className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left">
+        <Lock className="w-4 h-4 text-[color:var(--kds-sub)]" />
+        <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{label}</span>
       </a>
     );
   }
@@ -30,11 +30,11 @@ export function OwnerPanelButton({ needsPin, en }: { needsPin: boolean; en: bool
       <button
         type="button"
         onClick={() => setPadOpen(true)}
-        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[#EEEEEE] hover:border-[#CCCCCC] transition-colors text-left"
+        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
       >
-        <Lock className="w-4 h-4 text-[#555]" />
-        <span className="text-[15px] font-semibold text-[#111]">{label}</span>
-        <span className="ml-auto text-[13px] text-[#55605C]">PIN</span>
+        <Lock className="w-4 h-4 text-[color:var(--kds-sub)]" />
+        <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{label}</span>
+        <span className="ml-auto text-[13px] text-[color:var(--kds-sub)]">PIN</span>
       </button>
       {padOpen && <PinPad en={en} onClose={() => setPadOpen(false)} />}
     </>
@@ -103,35 +103,37 @@ export function PinPad({ en, onClose }: { en: boolean; onClose: () => void }) {
     : (en ? 'Enter the owner’s PIN' : 'Pon el PIN del dueño');
   const bad = state.kind === 'wrong' || locked || state.kind === 'error';
 
-  const keyBase = 'h-16 rounded-2xl font-bold flex items-center justify-center select-none active:scale-[0.97] transition-transform disabled:opacity-40';
+  const keyBase = 'h-16 rounded-2xl font-semibold flex items-center justify-center select-none active:scale-[0.97] transition-transform disabled:opacity-40';
   const key = `${keyBase} text-[26px]`;
 
+  // !mt-0: el PIN vive dentro del menú (space-y-4), que le ponía 16 px de margen
+  // arriba y dejaba una franja sin velo.
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: 'rgba(14,20,18,0.55)' }} role="dialog" aria-modal="true" aria-label={en ? 'Owner panel PIN' : 'PIN del panel del dueño'}>
-      <div className="w-full max-w-[360px] rounded-3xl p-5 shadow-2xl" style={{ background: C.bg }}>
+    <div className="fixed inset-0 !mt-0 z-[70] flex items-center justify-center p-4" style={{ background: C.scrim }} role="dialog" aria-modal="true" aria-label={en ? 'Owner panel PIN' : 'PIN del panel del dueño'}>
+      <div className="w-full max-w-[360px] rounded-[28px] p-5" style={RAISED}>
         <div className="flex items-center justify-between mb-1">
-          <p className="text-[19px] font-extrabold" style={{ color: C.ink }}>{en ? 'Owner panel' : 'Panel del dueño'}</p>
+          <p className="text-[20px] font-bold tracking-[-0.015em]" style={{ color: C.ink }}>{en ? 'Owner panel' : 'Panel del dueño'}</p>
           <button type="button" onClick={onClose} aria-label={en ? 'Close' : 'Cerrar'} className="w-11 h-11 -mr-2 rounded-xl flex items-center justify-center" style={{ color: C.sub }}>
             <X className="w-5 h-5" />
           </button>
         </div>
-        <p className="text-[15px] min-h-[44px] leading-snug" role="status" style={{ color: bad ? C.red : C.sub }}>{message}</p>
+        <p className="text-[15px] min-h-[44px] leading-snug" role="status" style={{ color: bad ? C.destructive : C.sub }}>{message}</p>
 
         <div className="flex justify-center gap-3 my-4" aria-hidden>
           {Array.from({ length: Math.max(4, pin.length) }).map((_, i) => (
-            <span key={i} className="w-4 h-4 rounded-full transition-colors" style={{ background: i < pin.length ? C.ink : C.surface2 }} />
+            <span key={i} className="w-4 h-4 rounded-full transition-colors" style={{ background: i < pin.length ? C.ink : C.fill }} />
           ))}
         </div>
 
         <div className="grid grid-cols-3 gap-2.5">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => (
-            <button key={d} type="button" onClick={() => press(d)} disabled={locked} className={key} style={{ background: C.surface, color: C.ink }}>{d}</button>
+            <button key={d} type="button" onClick={() => press(d)} disabled={locked} className={key} style={{ background: C.fill, color: C.ink }}>{d}</button>
           ))}
-          <button type="button" onClick={() => setPin(p => p.slice(0, -1))} disabled={locked || pin.length === 0} className={key} style={{ background: C.bg, color: C.sub }} aria-label={en ? 'Delete' : 'Borrar'}>
+          <button type="button" onClick={() => setPin(p => p.slice(0, -1))} disabled={locked || pin.length === 0} className={key} style={{ color: C.sub }} aria-label={en ? 'Delete' : 'Borrar'}>
             <Delete className="w-7 h-7" />
           </button>
-          <button type="button" onClick={() => press('0')} disabled={locked} className={key} style={{ background: C.surface, color: C.ink }}>0</button>
-          <button type="button" onClick={submit} disabled={locked || pin.length < 4 || state.kind === 'checking'} className={`${keyBase} text-[17px]`} style={{ background: C.black, color: '#fff' }}>
+          <button type="button" onClick={() => press('0')} disabled={locked} className={key} style={{ background: C.fill, color: C.ink }}>0</button>
+          <button type="button" onClick={submit} disabled={locked || pin.length < 4 || state.kind === 'checking'} className={`${keyBase} text-[17px]`} style={{ background: C.accent, color: C.onAccent }}>
             {state.kind === 'checking' ? '…' : en ? 'Enter' : 'Entrar'}
           </button>
         </div>

@@ -36,6 +36,7 @@ export const categorySchema = z.object({
   available_from: z.string().nullable().optional(), // "HH:MM" 24h
   available_to: z.string().nullable().optional(),   // "HH:MM" 24h
   send_to_kitchen: z.boolean().optional(),          // false = no va a la pantalla/ticket de cocina
+  display_mode: z.enum(['grid', 'list']).nullable().optional(), // formato en el teléfono; null = automático
 });
 
 export const productSchema = z.object({
@@ -169,6 +170,7 @@ export const restaurantUpdateSchema = z.object({
   currency: z.string().optional(),
   locale: z.enum(['es', 'en']).optional(),
   theme_color: z.string().max(20).optional(),
+  brand_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
   order_types: z.array(z.enum(['dine_in', 'pickup', 'delivery'])).optional(),
   tax_rate: z.number().min(0).max(100).optional(),
   tax_included: z.boolean().optional(),

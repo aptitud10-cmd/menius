@@ -7,11 +7,12 @@
 
 import { memo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard, Clock, History } from 'lucide-react';
-import { useCartStore } from '@/store/cartStore';
+import { motion } from 'framer-motion';
+import { Search, X, ArrowLeft, LayoutDashboard, Clock, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { getTranslations } from '@/lib/translations';
+import { LanguageMenu } from './LanguageMenu';
 import type { MenuHeaderProps } from './MenuHeader';
 import { isRestaurantOpen } from './MenuHeader';
 
@@ -32,16 +33,17 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
   searchQuery,
   onSearchChange,
   searchPlaceholder,
-  fmtPrice,
   openLabel,
   closedLabel,
   backUrl,
   isScrolled = false,
   hasCover = false,
+  locale = 'es',
   loyaltyPoints,
+  languages,
+  onLocaleChange,
 }: MenuHeaderProps) {
-  const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
-  const itemTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
+  const t = getTranslations(locale);
   const open = isRestaurantOpen(restaurant.operating_hours, restaurant.timezone);
 
   const [isOwner, setIsOwner] = useState(false);
@@ -68,42 +70,53 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
             className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="Back"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
           </Link>
         )}
 
-        {/* Restaurant name — fade in when banner scrolls away */}
-        <AnimatePresence mode="wait">
-          {showName && (
-            <motion.div
-              key="restaurant-name"
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="flex items-center flex-shrink-0 min-w-0"
-            >
-              <span className="font-bold text-gray-900 truncate text-base max-w-[260px]">
-                {restaurant.name}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Restaurant name — fades in when the cover (which carries it) scrolls
+            away. Always laid out, only its opacity changes: mounting it on
+            scroll pushed the search box 95px to the right mid-scroll. */}
+        <motion.div
+          initial={false}
+          animate={{ opacity: showName ? 1 : 0 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          aria-hidden={!showName}
+          className="flex items-center flex-shrink-0 min-w-0"
+        >
+          <span className="font-bold text-gray-900 truncate text-base max-w-[260px]">
+            {restaurant.name}
+          </span>
+        </motion.div>
 
         {/* Center search bar */}
-        <div className="flex flex-1 max-w-md mx-auto">
+        <div className="flex flex-1 max-w-md mx-auto" role="search">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" aria-hidden="true" />
             <input
-              type="text"
+              id="menu-search-desktop"
+              type="search"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                // Esc clears (MenuShell's "/" shortcut focuses this field).
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  onSearchChange('');
+                  e.currentTarget.blur();
+                }
+              }}
               placeholder={searchPlaceholder}
-              className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 border border-gray-200 text-base focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder-gray-400"
+              aria-label={searchPlaceholder}
+              className="w-full pl-9 pr-10 py-2 rounded-lg bg-gray-50 border border-gray-200 text-base focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder-gray-600 [&::-webkit-search-cancel-button]:hidden"
             />
             {searchQuery && (
-              <button onClick={() => onSearchChange('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X className="w-3.5 h-3.5 text-gray-400" />
+              <button
+                onClick={() => onSearchChange('')}
+                aria-label={t.clearSearch}
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100"
+              >
+                <X className="w-4 h-4 text-gray-600" />
               </button>
             )}
           </div>
@@ -114,7 +127,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
           {isOwner && (
             <Link
               href="/app"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-colors"
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Dashboard</span>
@@ -122,14 +135,14 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
           )}
 
           {restaurant.estimated_delivery_minutes && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gray-50 text-gray-500">
-              <Clock className="w-3 h-3" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-medium bg-gray-100 text-gray-700">
+              <Clock className="w-3.5 h-3.5" aria-hidden="true" />
               ~{restaurant.estimated_delivery_minutes} min
             </span>
           )}
 
           <span className={cn(
-            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
+            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-semibold',
             open ? 'bg-[#e6faf7] text-[#047a65]' : 'bg-red-50 text-red-600'
           )}>
             <span className={cn('w-1.5 h-1.5 rounded-full', open ? 'bg-[#05c8a7]' : 'bg-red-500')} />
@@ -137,42 +150,35 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
           </span>
 
           {tableName && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-gray-100 text-[11px] font-semibold text-gray-600">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-gray-100 text-[13px] font-semibold text-gray-700">
               {tableName}
             </span>
+          )}
+
+          {languages && languages.length > 1 && onLocaleChange && (
+            <LanguageMenu
+              locales={languages}
+              current={locale}
+              onChange={onLocaleChange}
+              label={t.changeLanguageAriaLabel}
+            />
           )}
 
           <Link
             href={`/${restaurant.slug}/mis-pedidos`}
             className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Mis pedidos"
-            title="Ver mis pedidos anteriores"
+            aria-label={t.myOrders}
+            title={t.myOrders}
           >
-            <History className="w-4 h-4 text-gray-500" />
+            <History className="w-[18px] h-[18px] text-gray-700" />
           </Link>
 
           {loyaltyPoints != null && loyaltyPoints > 0 && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[13px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
               ⭐ {loyaltyPoints} pts
             </span>
           )}
 
-          {/* Cart summary */}
-          <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
-            <ShoppingCart className="w-4 h-4 text-gray-400" />
-            <motion.span
-              key={itemCount}
-              initial={{ scale: 1.4 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              className={cn('text-sm font-bold tabular-nums inline-block', itemCount > 0 ? 'text-gray-900' : 'text-gray-300')}
-            >
-              {itemCount}
-            </motion.span>
-            {itemCount > 0 && (
-              <span className="text-sm font-bold text-[#047a65] tabular-nums">{fmtPrice(itemTotal)}</span>
-            )}
-          </div>
         </div>
       </div>
     </motion.header>

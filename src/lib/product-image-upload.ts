@@ -22,14 +22,20 @@ export async function uploadOptimizedProductImage(
   input: Buffer,
 ): Promise<string> {
   const sharp = (await import('sharp')).default;
+  // Lo transparente va sobre BLANCO en las dos versiones. JPEG no tiene canal
+  // alfa y sharp lo rellenaba de NEGRO: un logo redondo en PNG quedaba con
+  // esquinas negras en el favicon, el ícono del iPhone y el panel. La chica
+  // también se aplana para que las dos se vean iguales.
   const lg = await sharp(input)
     .rotate()
     .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+    .flatten({ background: '#ffffff' })
     .jpeg({ quality: 80, mozjpeg: true })
     .toBuffer();
   const sm = await sharp(input)
     .rotate()
     .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
+    .flatten({ background: '#ffffff' })
     .webp({ quality: 75 })
     .toBuffer();
 

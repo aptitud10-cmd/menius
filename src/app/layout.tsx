@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
+import { Instrument_Serif } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Suspense } from "react";
 import CookieConsent from "@/components/CookieConsent";
@@ -8,16 +9,39 @@ import { validateEnv } from "@/lib/env";
 import { SITE_URL, url } from "@/lib/site-url";
 
 validateEnv();
-const inter = Inter({
-  subsets: ["latin", "latin-ext"],
+// Inter ESTÁTICA (un archivo por peso, @fontsource/inter 5.1.0, OFL-1.1, solo
+// "latin": español e inglés viven ahí). La variable de Google (un archivo
+// 100–900 con ejes wght+opsz) se dibujaba con un solo grosor en iPhone: todo
+// el sitio salía en 400 aunque el código pidiera semibold/bold (visto en el
+// iPhone de Pedro y reproducido en WebKit; Chrome de escritorio sí variaba,
+// por eso las capturas se veían bien). Pesos: 300 cae en 400 y 900 en 800.
+const inter = localFont({
+  src: [
+    { path: "./fonts/inter-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/inter-latin-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/inter-latin-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/inter-latin-700.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/inter-latin-800.woff2", weight: "800", style: "normal" },
+  ],
   variable: "--font-inter",
   display: "swap",
 });
 
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin", "latin-ext"],
+// Bricolage ESTÁTICA por la misma razón que Inter (la variable de Google se
+// dibuja con un solo grosor en iPhone). Sin precarga: solo la usan la landing,
+// el repartidor, las pantallas de tablet y los sitios de Buccaneer; el menú,
+// el checkout y el seguimiento no la bajan. 900 cae en 800.
+const bricolage = localFont({
+  src: [
+    { path: "./fonts/bricolage-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/bricolage-latin-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/bricolage-latin-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/bricolage-latin-700.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/bricolage-latin-800.woff2", weight: "800", style: "normal" },
+  ],
   variable: "--font-display",
   display: "swap",
+  preload: false,
   adjustFontFallback: false,
 });
 
@@ -102,6 +126,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.svg",
+    // In metadata (not a hand-written <link> in <head>) so a store's own
+    // apple icon replaces it instead of shipping two.
+    apple: "/apple-icon",
   },
   // Search Console — prueba de propiedad de menius.app (requisito de Google Play
   // para pasar la cuenta de desarrollador a organización). No borrar: si
@@ -161,7 +188,6 @@ export default async function RootLayout({
           content="black-translucent"
         />
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="apple-touch-icon" href="/apple-icon" />
       </head>
       <body className="bg-white text-gray-900 antialiased font-sans">
         <script
@@ -221,8 +247,9 @@ export default async function RootLayout({
         `,
           }}
         />
+        {children}
         <Suspense fallback={null}>
-          <PostHogProvider>{children}</PostHogProvider>
+          <PostHogProvider />
         </Suspense>
         <CookieConsent />
         <ServiceWorkerRegister />

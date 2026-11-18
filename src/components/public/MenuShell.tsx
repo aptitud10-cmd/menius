@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   ShoppingCart,
-  ChevronLeft,
-  ChevronRight,
   X,
   MapPin,
   Clock,
@@ -15,16 +13,22 @@ import {
   ArrowLeft,
   ArrowUp,
   Search,
-  Globe,
   RotateCcw,
   AlertCircle,
   AlignJustify,
   Sparkles,
+  SearchX,
+  UtensilsCrossed,
+  ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { formatPrice, cn } from "@/lib/utils";
+import { hasRealPopularity } from "@/lib/social-proof";
+import { SHOW_FAVORITES } from "@/lib/menu-ui";
+import { ProductListItem } from "./ProductListItem";
 import { getTranslations, type Locale } from "@/lib/translations";
 import type {
   Restaurant,
@@ -38,7 +42,7 @@ import type {
 } from "@/types";
 import { rebuildSelections } from "@/lib/reorder";
 import { DIETARY_TAGS, getTagConfig } from "@/lib/dietary-tags";
-import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from "@/lib/i18n";
+import { tName, tDesc } from "@/lib/i18n";
 import { searchMenu, suggestedCategories } from "@/lib/menu-search";
 import { trackEvent } from "@/lib/analytics";
 
@@ -80,8 +84,14 @@ import { MenuErrorBoundary } from "./MenuErrorBoundary";
 import { ReservationWidget } from "./ReservationWidget";
 import { MenuUpdateBanner } from "./MenuUpdateBanner";
 import { CartFlyParticles } from "./CartFlyParticles";
-import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
-import { inTimeZone } from "@/lib/orders/business-hours";
+import { MenuSheet, type MenuSheetEntry } from "./MenuSheet";
+import { hasHours, isOptionAvailableAt, optionHoursLabel, hoursRangeLabel, clockLabel } from "@/lib/option-hours";
+import { inTimeZone, isOpenAt, nextOpening, type OperatingHours } from "@/lib/orders/business-hours";
+import { RestaurantInfoSheet, dayHoursText } from "./RestaurantInfoSheet";
+import { ReviewsSheet } from "./ReviewsSheet";
+import { DietIcon } from "./DietIcon";
+import { prettyPhone, telHref } from "@/lib/phone-format";
+import { usablePaymentMethods } from "@/lib/payments/online-ready";
 interface ReviewStats {
   average: number;
   total: number;
@@ -119,6 +129,14 @@ interface CustomizationTarget {
   editIndex: number | null;
 }
 
+/**
+ * Card images preloaded with high priority: only the first row, the one a phone
+ * shows on load (its photo is the LCP). 4 competed with the cover and the
+ * restaurant-name font once the menu became server-rendered (2026-11-16); 0 left
+ * the LCP photo lazy-loading late.
+ */
+const PRIORITY_CARD_IMAGES = 2;
+
 const POPULAR_ID = "__popular__";
 /** Prefijo de stockOutAlert: el texto se muestra tal cual, sin la plantilla "«X» ya no está disponible". */
 const RAW_ALERT = "\u0001";
@@ -144,7 +162,16 @@ export function MenuShell({
   const availableLocales = availableLocalesRaw ?? [initialLocale];
   const hasMultiLang = availableLocales.length > 1;
   const [locale, setLocale] = useState<Locale>(initialLocale);
-  const [showLangPicker, setShowLangPicker] = useState(false);
+  // The root layout can't know the menu's language (no cookies() there, to
+  // keep ISR) and sets <html lang> from the MENIUS UI preference, so an
+  // English menu was announced as Spanish to screen readers (WCAG 3.1.1).
+  useEffect(() => {
+    const prev = document.documentElement.lang;
+    document.documentElement.lang = locale;
+    return () => {
+      document.documentElement.lang = prev;
+    };
+  }, [locale]);
   const t = getTranslations(locale);
   const currency = restaurant.currency;
   const fmtPrice = useCallback(
@@ -193,8 +220,11 @@ export function MenuShell({
       has_modifiers: boolean;
     }>;
   } | null>(null);
-  const [cartResumeShown, setCartResumeShown] = useState(false);
   const [tableBannerDismissed, setTableBannerDismissed] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const closeInfo = useCallback(() => setShowInfo(false), []);
+  const [showReviews, setShowReviews] = useState(false);
+  const closeReviews = useCallback(() => setShowReviews(false), []);
   const [activeTableName, setActiveTableName] = useState<string | null>(null);
 
   const lastOrder = useCartStore((s) => s.lastOrder);
@@ -267,13 +297,9 @@ export function MenuShell({
       ? window.requestIdleCallback(prefetchCheckout, { timeout: 4000 })
       : window.setTimeout(prefetchCheckout, 2500);
 
-    // If returning customer has items in cart, show a brief "resume cart" toast
-    const stored = useCartStore.getState();
-    let resumeTimer: number | undefined;
-    if (stored.restaurantId === restaurant.id && stored.items.length > 0) {
-      setCartResumeShown(true);
-      resumeTimer = window.setTimeout(() => setCartResumeShown(false), 4000);
-    }
+    // No "resume your cart" pill: below xl the "My Order" bar already shows a
+    // saved cart and from xl the cart is a permanent column, so the pill was
+    // the same button twice (and covered the cart's total / checkout button).
 
     return () => {
       if (hasIdle) {
@@ -281,7 +307,6 @@ export function MenuShell({
       } else {
         window.clearTimeout(idleId as number);
       }
-      if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
     };
   }, [
     restaurant.id,
@@ -364,7 +389,18 @@ export function MenuShell({
   const [pausedUntil, setPausedUntil] = useState<string | null>(
     () => restaurant.orders_paused_until ?? null,
   );
+  const [storeClock, setStoreClock] = useState(0);
+  useEffect(() => {
+    setStoreClock(Date.now());
+    const id = window.setInterval(() => setStoreClock(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // The cart as it was before the last quick-add, for the toast's "Undo".
+  const undoCartRef = useRef<Pick<
+    ReturnType<typeof useCartStore.getState>,
+    "items" | "reorderSkipped"
+  > | null>(null);
   const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -404,23 +440,29 @@ export function MenuShell({
   const bannerVisibleRef = useRef(true);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
-  // Initialize synchronously from window so desktop users never see the mobile flash.
-  // The SSR/hydration mismatch risk is acceptable here: isDesktopView only affects JS
-  // scroll-logic, not JSX layout (layout is controlled by Tailwind `lg:` CSS classes).
-  const [isDesktopView, setIsDesktopView] = useState(
-    () => typeof window !== "undefined" && window.innerWidth >= 1024,
-  );
+  // Start false and measure after mount (the effect below). Reading window in the
+  // initializer was harmless while the menu rendered client-side only; since the
+  // menu is server-rendered (2026-11-16) it made the first desktop render differ
+  // from the server HTML (motion props, and lightMobileProductGrid swaps <div>
+  // for <motion.div>) — a hydration mismatch. Layout itself is Tailwind `lg:`.
+  const [isDesktopView, setIsDesktopView] = useState(false);
   // xl (≥1280) shows the cart as a persistent column and hides the cart sheet
   // (xl:hidden). Tracked so back-to-close never pushes a history entry for an
   // overlay that isn't on screen — back would then "close" something invisible.
-  const [isXlView, setIsXlView] = useState(
-    () => typeof window !== "undefined" && window.innerWidth >= 1280,
-  );
+  const [isXlView, setIsXlView] = useState(false);
+  // md (≥768): categories marked "list" switch back to the grid — the list exists
+  // for phone density, which a 3-column tablet grid doesn't have. Starts false
+  // and is set after mount (not in the initializer): SSR renders the phone
+  // layout, and an initializer reading window would make the first client
+  // render differ from the server HTML on tablets.
+  const [isTabletUp, setIsTabletUp] = useState(false);
   useEffect(() => {
     const check = () => {
       setIsDesktopView(window.innerWidth >= 1024);
       setIsXlView(window.innerWidth >= 1280);
+      setIsTabletUp(window.innerWidth >= 768);
     };
+    check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
@@ -662,6 +704,30 @@ export function MenuShell({
 
   const cartColRef = useRef<HTMLDivElement>(null);
 
+  // The xl cart column starts below the cover photo, so with a fixed
+  // h-[calc(100dvh-48px)] its footer (total + Checkout) sat ~180px below the
+  // fold until the diner scrolled. Fit its height to what is visible instead.
+  useEffect(() => {
+    const el = cartColRef.current;
+    if (!el) return;
+    let raf = 0;
+    const fit = () => {
+      raf = 0;
+      const top = Math.max(0, el.getBoundingClientRect().top);
+      el.style.height = `${Math.max(320, window.innerHeight - top)}px`;
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(fit); };
+    fit();
+    window.addEventListener("scroll", schedule, { passive: true, capture: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+      el.style.height = "";
+    };
+  }, []);
+
   const getBannerHeight = useCallback(
     () => bannerRef.current?.offsetHeight ?? 0,
     [],
@@ -721,8 +787,29 @@ export function MenuShell({
         // Unlock scroll-spy when the animation ends; fall back to 1.5 s.
         // (scrollend is not supported on iOS Safari < 16.4 — the timeout is the safety net.)
         // 1.5s covers long pages where iOS smooth-scroll can take > 1s.
+        // Sections off screen use content-visibility with a 900px estimate;
+        // as the smooth scroll passes them they render at their real height
+        // and the target drifts ("French Toast" landed mid-screen). Once the
+        // scroll ends, measure again and close the gap without animation —
+        // twice, since the correction can reveal one more section.
+        const correct = () => {
+          const m = mainRef.current;
+          if (!m) return;
+          const drift =
+            section.getBoundingClientRect().top -
+            m.getBoundingClientRect().top -
+            margin +
+            8;
+          if (Math.abs(drift) > 4) {
+            m.scrollTo({ top: Math.max(0, m.scrollTop + drift), behavior: "auto" });
+          }
+        };
         const unlock = () => {
-          isScrollingRef.current = false;
+          correct();
+          requestAnimationFrame(() => {
+            correct();
+            isScrollingRef.current = false;
+          });
         };
         const timer = setTimeout(unlock, 1500);
         mainRef.current.addEventListener(
@@ -742,6 +829,16 @@ export function MenuShell({
   const catListRef = useRef<HTMLDivElement>(null);
   const mobilePillsBarRef = useRef<HTMLDivElement>(null);
   const mobileDietBarRef = useRef<HTMLDivElement>(null);
+  const [mobilePillsH, setMobilePillsH] = useState(56);
+  useEffect(() => {
+    const el = mobilePillsBarRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (el.offsetHeight > 0) setMobilePillsH(el.offsetHeight);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   // Bumped on every category pick (even re-picking the same one), so the
   // effect below runs after React has committed the new list.
   const [catScrollRequest, setCatScrollRequest] = useState(0);
@@ -787,7 +884,11 @@ export function MenuShell({
     // so jumping would just hide the hero for nothing. Before this, a change
     // made with the banner scrolled away kept the old scrollTop and dropped
     // the customer in the middle of the new category.
-    if (main.scrollTop > target) {
+    // Halfway through the hero is neither: the header has already gone opaque
+    // and a sliver of cover photo (with the rating cut in half) stayed wedged
+    // between it and the pills. Once the hero is partly gone, finish the job.
+    const HERO_PARTLY_SCROLLED = 24;
+    if (main.scrollTop > target || main.scrollTop > HERO_PARTLY_SCROLLED) {
       main.scrollTo({ top: Math.max(0, target), behavior: "auto" });
     }
   }, [catScrollRequest]);
@@ -914,7 +1015,8 @@ export function MenuShell({
   const showToast = useCallback((name: string) => {
     clearTimeout(toastTimer.current);
     setToastName(name);
-    toastTimer.current = setTimeout(() => setToastName(null), 2000);
+    // 4 s: with an action in it, 2 s was too short to reach "Undo".
+    toastTimer.current = setTimeout(() => setToastName(null), 4000);
     try {
       if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
         audioCtxRef.current = new (
@@ -952,8 +1054,18 @@ export function MenuShell({
     } catch {}
   }, []);
 
+  const undoQuickAdd = useCallback(() => {
+    const prev = undoCartRef.current;
+    if (prev) useCartStore.setState(prev);
+    undoCartRef.current = null;
+    clearTimeout(toastTimer.current);
+    setToastName(null);
+  }, []);
+
   const handleQuickAdd = useCallback(
     (product: Product) => {
+      const { items, reorderSkipped } = useCartStore.getState();
+      undoCartRef.current = { items, reorderSkipped };
       addItem(product, null, [], 1, "");
       showToast(product.name);
       trackEvent("product_added_to_cart", {
@@ -1048,6 +1160,8 @@ export function MenuShell({
   useBackToClose(showSearch && !isDesktopView, closeSearch);
   useBackToClose(showCatSheet && !isDesktopView, closeCatSheet);
   useBackToClose(showSubcatSheet && !isXlView, closeSubcatSheet);
+  useBackToClose(showInfo, closeInfo);
+  useBackToClose(showReviews, closeReviews);
   useBackToClose(customization !== null, handleCloseCustomization);
 
   // Dishes served only part of the day (Oatmeal 5:30–11 AM, restaurant time).
@@ -1075,6 +1189,45 @@ export function MenuShell({
     const id = window.setInterval(() => setHoursClock(Date.now()), 60_000);
     return () => window.clearInterval(id);
   }, [anyProductHours]);
+
+  // Closed / paused, as one strip under the cover. Same rules as the checkout
+  // (paused wins; demos never pause; no hours = always open).
+  const storeNotice = useMemo<{ title: string; when?: string; hint?: string } | null>(() => {
+    if (storeClock === 0) return null;
+    const tz = restaurant.timezone || "UTC";
+    const local = inTimeZone(new Date(storeClock), tz);
+    const toMin = (d: Date) => d.getHours() * 60 + d.getMinutes();
+    if (!isDemo && pausedUntil && Date.parse(pausedUntil) > storeClock) {
+      const until = new Date(pausedUntil);
+      // "Back at 7:30 PM" only when it's within the day; a pause "until
+      // further notice" (far future) just says paused.
+      const soon = until.getTime() - storeClock < 12 * 3_600_000;
+      return {
+        title: t.storePausedTitle,
+        when: soon ? t.storeBackAt.replace("{time}", clockLabel(toMin(inTimeZone(until, tz)), locale)) : undefined,
+      };
+    }
+    const hours = restaurant.operating_hours as OperatingHours | null | undefined;
+    if (!hours || Object.keys(hours).length === 0 || isOpenAt(hours, local)) return null;
+    const next = nextOpening(hours, local);
+    let when: string | undefined;
+    if (next) {
+      const time = clockLabel(next.minutes, locale);
+      if (next.daysAhead === 0) when = t.storeOpensAt.replace("{time}", time);
+      else if (next.daysAhead === 1) when = t.storeOpensTomorrowAt.replace("{time}", time);
+      else {
+        // 2026-01-04 was a Sunday: +getDay() gives that weekday's name.
+        const day = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(
+          new Date(2026, 0, 4 + ((local.getDay() + next.daysAhead) % 7)),
+        );
+        when = t.storeOpensDayAt.replace("{day}", day).replace("{time}", time);
+      }
+    }
+    return { title: t.ckClosedNow, when, hint: t.storeScheduleHint };
+  }, [storeClock, restaurant.timezone, restaurant.operating_hours, isDemo, pausedUntil, t, locale]);
+  const storeNoticeLine = storeNotice
+    ? [storeNotice.title, storeNotice.when].filter(Boolean).join(" · ")
+    : null;
 
   // Every product as it stands right now: realtime sold-out overrides and
   // dishes outside their hours. Search, favourites and suggestions read this so
@@ -1231,8 +1384,11 @@ export function MenuShell({
     // Real sales data first — popularity_rank/orders_last_7d are filled weekly by
     // the recalc-popularity cron and until now only drove a badge on the card.
     // is_featured is the fallback: a new restaurant has no order history yet.
+    // Only products above the real-volume minimum count as "ranked": a handful
+    // of (often test) orders used to fill all 10 slots and hide every dish the
+    // owner featured.
     const ranked = inStock
-      .filter((p) => p.popularity_rank != null || (p.orders_last_7d ?? 0) > 0)
+      .filter((p) => hasRealPopularity(p))
       .sort((a, b) => {
         const ra = a.popularity_rank ?? Number.MAX_SAFE_INTEGER;
         const rb = b.popularity_rank ?? Number.MAX_SAFE_INTEGER;
@@ -1253,7 +1409,12 @@ export function MenuShell({
     (s) => new Set(s.items.map((i) => i.product.id)),
   );
 
-  // Classifier shared between suggestedProducts and the data-merge below
+  // Classifier shared between suggestedProducts and the data-merge below.
+  // Whole words only: as bare substrings "te" (tea) matched omelet-te and
+  // chocola-te, "latte" matched p-latte-r and "corn" matched corned beef, so an
+  // omelette, chocolate-chip pancakes and a seafood platter were all "drinks".
+  // No "waffle" in desserts: in a diner a Belgian waffle is breakfast, and it
+  // put an $18.95 chicken & waffle under a burger as "dessert".
   const classifyProduct = useCallback(
     (
       catName: string,
@@ -1261,19 +1422,19 @@ export function MenuShell({
     ): "drink" | "dessert" | "side" | "main" => {
       const text = `${catName} ${productName}`.toLowerCase();
       if (
-        /bebida|bebidas|drink|drinks|refresco|soda|agua\b|jugo|jugos|juice|juices|cerveza|beer|vino|wine|shake|batido|batidos|caf[eé]|coffee|t[eé]\b|smoothie|smoothies|limon|milkshake|horchata|margarita|coctel|cocktail|limonada|frapp[eé]|cappuccino|latte|espresso|gatorade|red bull|energy|agua mineral|sparkling|kombucha|infusion|chai|matcha|mojito|sangria|michelada|tepache|agua fresca|jamaica|tamarindo|hibiscus|lemonade|limeade|iced tea|naranjada|fresco|fresca|refresco|zumo|beber|brebaje/i.test(
+        /(?:^|[^a-zà-ÿ])(?:bebida|bebidas|drink|drinks|refresco|soda|agua\b|jugo|jugos|juice|juices|cerveza|beer|vino|wine|shake|batido|batidos|caf[eé]|coffee|t[eé]\b|smoothie|smoothies|limon|milkshake|horchata|margarita|coctel|cocktail|limonada|frapp[eé]|cappuccino|latte|espresso|gatorade|red bull|energy|agua mineral|sparkling|kombucha|infusion|chai|matcha|mojito|sangria|michelada|tepache|agua fresca|jamaica|tamarindo|hibiscus|lemonade|limeade|iced tea|naranjada|fresco|fresca|refresco|zumo|beber|brebaje)s?(?![a-zà-ÿ])/i.test(
           text,
         )
       )
         return "drink";
       if (
-        /postre|postres|dessert|desserts|helado|helados|ice cream|pastel|cake|brownie|dulce|sweet|cookie|tiramisú|flan|churro|cheesecake|mousse|pudding|gelato|sorbet|donut|muffin|crepe|waffle|tarta|pie|eclair|profiterole|macaron|tres leches|panna cotta|tiramisu|cannoli|semifreddo|paleta|gelatina|mazapán/i.test(
+        /(?:^|[^a-zà-ÿ])(?:postre|postres|dessert|desserts|helado|helados|ice cream|pastel|cake|brownie|dulce|sweet|cookie|tiramisú|flan|churro|cheesecake|mousse|pudding|gelato|sorbet|donut|muffin|crepe|tarta|pie|eclair|profiterole|macaron|tres leches|panna cotta|tiramisu|cannoli|semifreddo|paleta|gelatina|mazapán)s?(?![a-zà-ÿ])/i.test(
           text,
         )
       )
         return "dessert";
       if (
-        /acompañ|acompañamiento|side|sides|ensalada|salad|sopa|soup|papa|fries|chips|guarnición|arroz|rice|wings|alitas|nachos|onion ring|mozzarella stick|guacamole|dip|coleslaw|breadstick|garlic bread|pan de ajo|bastones|elote|corn|coliflor|cauliflower|brócoli|broccoli|jalapeño|poppers|tater tot|yuca|plantain|patacón|tostón|boniato|camote|edamame|dumplings|gyoza|spring roll|rollo|extras?|adicional|complemento|entrante|entrada|appetizer|starter/i.test(
+        /(?:^|[^a-zà-ÿ])(?:acompañ|acompañamiento|side|sides|ensalada|salad|sopa|soup|papa|fries|chips|guarnición|arroz|rice|wings|alitas|nachos|onion ring|mozzarella stick|guacamole|dip|coleslaw|breadstick|garlic bread|pan de ajo|bastones|elote|corn|coliflor|cauliflower|brócoli|broccoli|jalapeño|poppers|tater tot|yuca|plantain|patacón|tostón|boniato|camote|edamame|dumplings|gyoza|spring roll|rollo|extras?|adicional|complemento|entrante|entrada|appetizer|starter)s?(?![a-zà-ÿ])/i.test(
           text,
         )
       )
@@ -1289,6 +1450,24 @@ export function MenuShell({
     if (!mainProduct) return [];
 
     const productMap = new Map(liveProducts.map((p) => [p.id, p]));
+    // Candidates are typed by their CATEGORY only — "Desserts", "Side Orders",
+    // "Juices" is how the owner already sorted them. Guessing from the dish
+    // name can't be made reliable: "Crab Cakes Benedict" reads as cake. A dish
+    // whose category says nothing counts as a main.
+    const typeOf = (p: Product) =>
+      classifyProduct(
+        categories.find((c) => c.id === p.category_id)?.name ?? "",
+        "",
+      );
+    // Opening a main means the diner already chose dinner: offer what goes
+    // with it (drink, side, dessert), never another main. Co-occurrence from
+    // a few (test) orders put pancakes, an omelette and a $45.95 platter
+    // under a burger, and it outranks the rule-based fallback.
+    const mainIsMain =
+      classifyProduct(
+        categories.find((c) => c.id === mainProduct.category_id)?.name ?? "",
+        mainProduct.name,
+      ) === "main";
     // The "Pair it with" carousel is a row of photo cards: a product without a
     // visible photo renders as an empty grey square. Buccaneer has ~90 drinks
     // without photos and drinks rank first for mains, so the row was mostly
@@ -1297,7 +1476,8 @@ export function MenuShell({
       p.id !== mainProduct.id &&
       p.in_stock !== false &&
       !cartProductIds.has(p.id) &&
-      !showsAsRow(p);
+      !showsAsRow(p) &&
+      !(mainIsMain && typeOf(p) === "main");
 
     // Time-of-day context: filter alcohol before noon
     const hour = inTimeZone(new Date(), restaurant.timezone || "UTC").getHours();
@@ -1324,8 +1504,12 @@ export function MenuShell({
 
     // 2. Regex fallback to pad remaining slots
     const seen = new Set(dataProducts.map((p) => p.id));
-    const mainCat = categories.find((c) => c.id === mainProduct.category_id);
-    const mainType = classifyProduct(mainCat?.name ?? "", mainProduct.name);
+    const mainType = mainIsMain
+      ? "main"
+      : classifyProduct(
+          categories.find((c) => c.id === mainProduct.category_id)?.name ?? "",
+          mainProduct.name,
+        );
 
     const wantOrder: Array<"drink" | "dessert" | "side" | "main"> = (() => {
       if (mainType === "main") return ["drink", "side", "dessert"];
@@ -1337,26 +1521,33 @@ export function MenuShell({
 
     const remaining = MAX_SUGGESTIONS - dataProducts.length;
 
-    const fallback = liveProducts
-      .filter(
-        (p) =>
-          isEligible(p) &&
-          !seen.has(p.id) &&
-          !(isBreakfastHour && isAlcohol(p)),
-      )
-      .map((p) => {
-        const cat = categories.find((c) => c.id === p.category_id);
-        const pType = classifyProduct(cat?.name ?? "", p.name);
-        const typeRank = wantOrder.indexOf(pType);
-        // Products that don't match any wanted type get a low-priority score instead of being excluded
-        const baseRank = typeRank === -1 ? wantOrder.length + 1 : typeRank;
-        const featuredBoost = p.is_featured ? 0 : 3;
-        const score = baseRank * 10 + featuredBoost;
-        return { product: p, score };
-      })
-      .sort((a, b) => a.score - b.score)
-      .slice(0, remaining)
-      .map(({ product }) => product);
+    // One queue per wanted type (featured first), then dealt round-robin:
+    // sorting by type alone filled all 12 slots with drinks, so a burger never
+    // got fries or a slice of cake. Types outside wantOrder only fill leftovers.
+    const candidates = liveProducts.filter(
+      (p) =>
+        isEligible(p) &&
+        !seen.has(p.id) &&
+        !(isBreakfastHour && isAlcohol(p)),
+    );
+    const byFeatured = (a: Product, b: Product) =>
+      Number(!!b.is_featured) - Number(!!a.is_featured);
+    const queues = wantOrder.map((type) =>
+      candidates.filter((p) => typeOf(p) === type).sort(byFeatured),
+    );
+    const fallback: Product[] = [];
+    while (fallback.length < remaining && queues.some((q) => q.length > 0)) {
+      for (const q of queues) {
+        const next = q.shift();
+        if (next && fallback.length < remaining) fallback.push(next);
+      }
+    }
+    if (fallback.length < remaining) {
+      const rest = candidates
+        .filter((p) => !wantOrder.includes(typeOf(p)))
+        .sort(byFeatured);
+      fallback.push(...rest.slice(0, remaining - fallback.length));
+    }
 
     return [...dataProducts, ...fallback];
   }, [
@@ -1403,7 +1594,15 @@ export function MenuShell({
           p.id !== anchor.id &&
           p.in_stock !== false &&
           !cartProductIds.has(p.id) &&
-          !(isBreakfastHour && isAlcohol(p)),
+          !(isBreakfastHour && isAlcohol(p)) &&
+          // Same rule as the sheet: by category only, never another main.
+          !(
+            anchorType === "main" &&
+            classifyProduct(
+              categories.find((c) => c.id === p.category_id)?.name ?? "",
+              "",
+            ) === "main"
+          ),
       )
       .map((p) => {
         const cat = categories.find((c) => c.id === p.category_id);
@@ -1711,6 +1910,131 @@ export function MenuShell({
     [products, categories],
   );
 
+  // Section under each search result ("Burgers · 7 oz."): a flat list of
+  // names didn't say where a dish lives.
+  const categoryNameById = useMemo(
+    () => new Map(categories.map((c) => [c.id, tName(c, locale, defaultLocale)])),
+    [categories, locale, defaultLocale],
+  );
+  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Desktop: searching from far down the page left the results (and their
+  // count) above the fold, with the footer on screen. When results appear,
+  // bring their top into view once.
+  const searchResultsTopRef = useRef<HTMLDivElement | null>(null);
+  const searchShown = searchResults !== null;
+  useEffect(() => {
+    if (!searchShown || window.innerWidth < 1024) return;
+    const main = mainRef.current;
+    const el = searchResultsTopRef.current;
+    if (!main || !el) return;
+    const top = el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop - 24;
+    if (main.scrollTop > top) main.scrollTo({ top: Math.max(0, top) });
+  }, [searchShown]);
+
+  const renderSearchRow = (product: Product) => {
+    const unavailable = product.in_stock === false;
+    const section = categoryNameById.get(product.category_id);
+    const desc = tDesc(product, locale, defaultLocale);
+    return (
+      <button
+        key={product.id}
+        type="button"
+        onClick={() => openProductFromSearch(product)}
+        className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+      >
+        {!showsAsRow(product) && product.image_url && (
+          <div
+            className={cn(
+              "relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0",
+              unavailable && "opacity-50",
+            )}
+          >
+            <Image
+              src={product.image_url}
+              alt=""
+              fill
+              sizes="56px"
+              loader={
+                product.image_url.includes(".supabase.co/storage/")
+                  ? supabaseLoader
+                  : undefined
+              }
+              className="object-cover"
+            />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p
+            className={cn(
+              "text-[15px] font-semibold truncate",
+              unavailable ? "text-gray-600" : "text-gray-900",
+            )}
+          >
+            {tName(product, locale, defaultLocale)}
+          </p>
+          <p
+            className={cn(
+              "text-[13px] truncate mt-0.5",
+              unavailable ? "font-medium text-gray-700" : "text-gray-600",
+            )}
+          >
+            {unavailable
+              ? (product.unavailable_note ?? t.soldOut)
+              : [section, desc].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "text-[15px] font-semibold tabular-nums flex-shrink-0",
+            unavailable ? "text-gray-600" : "text-gray-900",
+          )}
+        >
+          {fmtPrice(Number(product.price))}
+        </span>
+      </button>
+    );
+  };
+
+  // A way out of an empty field and of "no results": real dishes with photos,
+  // not tips (Baymard: no-results pages that only give advice are dead ends).
+  const renderPopularForSearch = () => {
+    const list = popularProducts.slice(0, 5);
+    if (list.length === 0) return null;
+    return (
+      <section aria-label={t.popularItems}>
+        <h3 className="px-2 mb-1 text-[13px] font-semibold text-gray-600 uppercase tracking-wide">
+          {t.popularItems}
+        </h3>
+        {list.map(renderSearchRow)}
+      </section>
+    );
+  };
+
+  const renderNoSearchResults = (onClear: () => void) => (
+    <div>
+      <div className="pt-8 pb-8 text-center">
+        <SearchX
+          className="w-10 h-10 mx-auto text-gray-500"
+          strokeWidth={1.5}
+          aria-hidden="true"
+        />
+        <p className="mt-3 text-[17px] font-semibold text-gray-900">
+          {t.noResults}
+        </p>
+        <p className="mt-1 text-[14px] text-gray-600">{t.tryDifferentSearch}</p>
+        <button
+          type="button"
+          onClick={onClear}
+          className="mt-5 h-11 px-5 rounded-full border border-gray-300 text-[14px] font-semibold text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+        >
+          {t.clearSearch}
+        </button>
+      </div>
+      {renderPopularForSearch()}
+    </div>
+  );
+
   // Scroll-spy: disabled for large-catalog mode (one-category-at-a-time, no scroll needed)
   useEffect(() => {
     const main = mainRef.current;
@@ -1806,7 +2130,13 @@ export function MenuShell({
 
       if (e.key === "/" || (e.key === "k" && (e.metaKey || e.ctrlKey))) {
         e.preventDefault();
-        setShowSearch(true);
+        // Desktop has no overlay: the field lives in the header.
+        const desktopInput =
+          window.innerWidth >= 1024
+            ? document.getElementById("menu-search-desktop")
+            : null;
+        if (desktopInput) desktopInput.focus();
+        else setShowSearch(true);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -1954,36 +2284,6 @@ export function MenuShell({
     }
   }, [activeCategory, activeCatFilter, isLargeCatalog]);
 
-  const scrollCats = (dir: "left" | "right") => {
-    catScrollRef.current?.scrollBy({
-      left: dir === "left" ? -200 : 200,
-      behavior: "smooth",
-    });
-  };
-
-  // Shared pill renderer — desktop only
-  const categoryPill = (id: string, label: string, isActive: boolean) => (
-    <button
-      key={id}
-      data-pill-id={id}
-      onClick={() => handleCategorySelect(id)}
-      style={{ touchAction: "manipulation" }}
-      className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap",
-        id === POPULAR_ID
-          ? isActive
-            ? "bg-amber-500 text-white shadow-sm"
-            : "bg-white border border-gray-200 text-gray-600 active:bg-gray-50"
-          : isActive
-            ? "bg-[#05c8a7] text-[#04241E] shadow-sm"
-            : "bg-white border border-gray-200 text-gray-600 active:bg-gray-50",
-      )}
-    >
-      {id === POPULAR_ID && <span className="text-xs leading-none">🔥</span>}
-      {label}
-    </button>
-  );
-
   // Mobile pill renderer — modern squircle style, premium dark active state
   const mobileCategoryPill = (id: string, label: string, isActive: boolean) => (
     <button
@@ -1992,19 +2292,12 @@ export function MenuShell({
       onClick={() => handleCategorySelect(id)}
       style={{ touchAction: "manipulation" }}
       className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
-        id === POPULAR_ID
-          ? isActive
-            ? "bg-amber-500 text-white"
-            : "bg-white/70 text-gray-500 active:bg-gray-200"
-          : isActive
-            ? "bg-gray-900 text-white"
-            : "bg-white/70 text-gray-500 active:bg-gray-200",
+        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
+        isActive
+          ? "bg-gray-900 text-white"
+          : "bg-white/70 text-gray-700 active:bg-gray-200",
       )}
     >
-      {id === POPULAR_ID && (
-        <span className="text-[13px] leading-none">🔥</span>
-      )}
       {label}
     </button>
   );
@@ -2059,8 +2352,117 @@ export function MenuShell({
     [categories, products, popularProducts.length],
   );
 
+  // ── "Menu" sheet: Popular first, every group with its dish count, and the
+  // sections of groups that have 3 or more (the same threshold as the
+  // floating "Sections" button).
+  const menuSheetEntries = useMemo<MenuSheetEntry[]>(() => {
+    const entries: MenuSheetEntry[] = [];
+    if (
+      isLargeCatalog &&
+      popularProducts.length > 0 &&
+      !visibleCats.some((c) => c.id === POPULAR_ID)
+    ) {
+      entries.push({
+        id: POPULAR_ID,
+        label: t.popularItems,
+        count: popularProducts.length,
+        sections: [],
+      });
+    }
+    for (const cat of visibleCats) {
+      let sections: MenuSheetEntry["sections"] = [];
+      if (isGroupId(cat.id)) {
+        const grp = groupNameFromId(cat.id);
+        sections = categories
+          .filter((c) => c.group_name === grp)
+          .map((c) => ({
+            id: c.id,
+            label: tName(c, locale, defaultLocale),
+            count: countForSidebar(c),
+          }))
+          .filter((sec) => sec.count > 0);
+        if (sections.length < 3) sections = [];
+      }
+      entries.push({
+        id: cat.id,
+        label:
+          cat.id === POPULAR_ID ? t.popularItems : tName(cat, locale, defaultLocale),
+        count: countForSidebar(cat),
+        sections,
+      });
+    }
+    return entries;
+  }, [isLargeCatalog, popularProducts.length, visibleCats, categories, countForSidebar, locale, defaultLocale, t]);
+
+  // Desktop sidebar: Popular first. Without it, once a category was picked
+  // there was no way back to Popular on desktop (the pills bar that had it
+  // repeated the sidebar and is gone).
+  const sidebarCats = useMemo<Category[]>(() => {
+    const base = groupsActive ? visibleCats : categories;
+    if (popularProducts.length === 0 || base.some((c) => c.id === POPULAR_ID)) {
+      return base;
+    }
+    const popular = {
+      ...(base[0] ?? categories[0]),
+      id: POPULAR_ID,
+      name: t.popularItems,
+      translations: undefined,
+      group_name: null,
+      available_from: null,
+      available_to: null,
+    } as Category;
+    return [popular, ...base];
+  }, [groupsActive, visibleCats, categories, popularProducts.length, t.popularItems]);
+
+  const menuSheetActiveId = isLargeCatalog
+    ? (activeCatFilter ?? (popularProducts.length > 0 ? POPULAR_ID : null))
+    : activePillId;
+
+  const closeMenuSheet = useCallback(() => {
+    setShowCatSheet(false);
+    setShowSubcatSheet(false);
+  }, []);
+
+  const handleMenuSheetSelect = useCallback(
+    (id: string) => {
+      closeMenuSheet();
+      if (id === POPULAR_ID && isLargeCatalog) {
+        // Same as the "Popular" pill: the unfiltered view, from the top.
+        setActiveCatFilter(null);
+        setActiveCategory(null);
+        mainRef.current?.scrollTo({ top: 0, behavior: "auto" });
+        return;
+      }
+      handleCategorySelect(id);
+    },
+    [closeMenuSheet, isLargeCatalog, handleCategorySelect],
+  );
+
+  // A section of a group that isn't on screen yet: switch group, then scroll
+  // once its list has rendered.
+  const pendingSectionRef = useRef<string | null>(null);
+  const handleMenuSheetSection = useCallback(
+    (groupId: string, sectionId: string) => {
+      closeMenuSheet();
+      if (activeCatFilter === groupId) {
+        // Next frame: the sheet's exit must not fight the smooth scroll.
+        requestAnimationFrame(() => scrollToSection(sectionId));
+        return;
+      }
+      pendingSectionRef.current = sectionId;
+      handleCategorySelect(groupId);
+    },
+    [closeMenuSheet, activeCatFilter, scrollToSection, handleCategorySelect],
+  );
+  useEffect(() => {
+    const id = pendingSectionRef.current;
+    if (!id || !displayedGroups.some((g) => g.category.id === id)) return;
+    pendingSectionRef.current = null;
+    requestAnimationFrame(() => scrollToSection(id));
+  }, [displayedGroups, scrollToSection]);
+
   // Desktop fav / diet pills
-  const favPill = hasMounted && favIds.length > 0 && (
+  const favPill = SHOW_FAVORITES && hasMounted && favIds.length > 0 && (
     <button
       key="__favs__"
       data-pill-id="__favs__"
@@ -2092,10 +2494,10 @@ export function MenuShell({
       }}
       style={{ touchAction: "manipulation" }}
       className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
+        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
         showFavs
           ? "bg-gray-900 text-white"
-          : "bg-white/70 text-gray-500 active:bg-gray-200",
+          : "bg-white/70 text-gray-700 active:bg-gray-200",
       )}
     >
       <Heart className={cn("w-3.5 h-3.5", showFavs ? "fill-white" : "")} />
@@ -2131,7 +2533,7 @@ export function MenuShell({
         <button
           onClick={() => setShowCatSheet(true)}
           style={{ touchAction: "manipulation" }}
-          className="flex-shrink-0 flex items-center justify-center w-9 h-9 ml-2 rounded-lg text-gray-500 active:bg-gray-200 transition-colors"
+          className="flex-shrink-0 flex items-center justify-center w-11 h-11 ml-1 rounded-lg text-gray-600 active:bg-gray-200 transition-colors"
           aria-label={t.browseCategoriesAriaLabel}
         >
           <AlignJustify className="w-[18px] h-[18px]" />
@@ -2172,21 +2574,16 @@ export function MenuShell({
               }}
               style={{ touchAction: "manipulation" }}
               className={cn(
-                "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
+                "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
+                // One active state for every tab (2026-11-16): the amber Popular
+                // pill was a second accent competing with the menu's green.
                 !activeCatFilter && !showFavs && !activeDiet
-                  ? // Popular keeps its amber treatment (from the premium mobile pass)
-                    // so it reads as a distinct section, not one more category.
-                    popularProducts.length > 0
-                    ? "bg-amber-500 text-white"
-                    : "bg-gray-900 text-white"
-                  : "bg-white/70 text-gray-500 active:bg-gray-200",
+                  ? "bg-gray-900 text-white"
+                  : "bg-white/70 text-gray-700 active:bg-gray-200",
               )}
             >
               {popularProducts.length > 0 ? (
-                <>
-                  <span className="text-[13px] leading-none">🔥</span>
-                  {t.popularItems}
-                </>
+                t.popularItems
               ) : (
                 t.filterAll
               )}
@@ -2210,7 +2607,7 @@ export function MenuShell({
                 mainRef.current?.scrollTo({ top: 0, behavior: "smooth" })
               }
               style={{ touchAction: "manipulation" }}
-              className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-[7px] rounded-lg text-[13px] font-semibold whitespace-nowrap bg-brand-500 text-white shadow-sm active:bg-brand-600"
+              className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-[7px] rounded-lg text-[15px] font-semibold whitespace-nowrap bg-brand-500 text-[#04241E] shadow-sm active:bg-brand-600"
               aria-label={t.backToTop}
             >
               <ArrowUp className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -2234,16 +2631,6 @@ export function MenuShell({
       className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2 -mx-0"
       style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
     >
-      {activeDiet && (
-        <button
-          onClick={() => setActiveDiet(null)}
-          style={{ touchAction: "manipulation" }}
-          className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap bg-gray-900 text-white active:opacity-80 transition-opacity"
-        >
-          <X className="w-3 h-3" />
-          {t.clearFilters}
-        </button>
-      )}
       {availableDietTags.map((tag) => {
         const isActive = activeDiet === tag.id;
         return (
@@ -2252,16 +2639,18 @@ export function MenuShell({
             onClick={() =>
               setActiveDiet(isActive ? null : (tag.id as DietaryTag))
             }
+            aria-pressed={isActive}
             style={{ touchAction: "manipulation" }}
             className={cn(
-              "flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap border transition-colors",
+              "flex-shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full text-[14px] font-medium whitespace-nowrap border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]",
               isActive
-                ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E]"
-                : "bg-white border-gray-200 text-gray-600 active:bg-gray-100",
+                ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E] font-semibold"
+                : "bg-white border-gray-200 text-gray-800 hover:bg-gray-50 active:bg-gray-100",
             )}
           >
-            <span aria-hidden="true">{tag.emoji}</span>
+            <DietIcon tag={tag.id} className="w-4 h-4" />
             <span>{locale === "en" ? tag.labelEn : tag.labelEs}</span>
+            {isActive && <X className="w-3.5 h-3.5 -mr-0.5" aria-hidden="true" />}
           </button>
         );
       })}
@@ -2305,13 +2694,17 @@ export function MenuShell({
             hasCover={hasCover}
             locale={locale}
             loyaltyPoints={loyaltyData?.points ?? null}
+            languages={hasMultiLang ? availableLocales : undefined}
+            onLocaleChange={(code) => setLocale(code as Locale)}
           />
         </div>
 
         {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
         <div
           ref={mainRefCb}
-          className={`flex-1 overflow-y-auto overscroll-contain max-w-[1440px] w-full mx-auto ${cartCount > 0 ? "pb-[calc(5rem+env(safe-area-inset-bottom))] xl:pb-0" : "pb-[env(safe-area-inset-bottom)]"}`}
+          id="main-content"
+          tabIndex={-1}
+          className={`flex-1 overflow-y-auto overscroll-contain outline-none max-w-[1440px] w-full mx-auto ${cartCount > 0 ? "pb-[calc(5rem+env(safe-area-inset-bottom))] xl:pb-0" : "pb-[env(safe-area-inset-bottom)]"}`}
           style={
             {
               overscrollBehavior: "contain",
@@ -2319,11 +2712,14 @@ export function MenuShell({
             } as React.CSSProperties
           }
         >
-          {/* Cover banner — full width, scrolls away naturally with content */}
+          {/* Cover banner — full width, scrolls away naturally with content.
+              lg was 288px: on a 1024x768 iPad or a 1280x800 laptop the cover
+              plus header pushed the first dishes to y=373, half the screen.
+              224px, and 176px on screens 820px tall or less. */}
           {restaurant.cover_image_url && (
             <div
               ref={bannerRef}
-              className="relative w-full h-48 sm:h-56 lg:h-72 bg-gray-100 overflow-hidden"
+              className="relative w-full h-48 sm:h-56 lg:h-56 lg:[@media(max-height:820px)]:h-44 bg-gray-100 overflow-hidden"
             >
               {isDemo && (
                 <a
@@ -2352,6 +2748,7 @@ export function MenuShell({
                 sizes="(max-width: 1440px) 100vw, 1440px"
                 className="object-cover animate-cover-zoom"
                 priority
+                quality={60}
               />
               {/* Mobile: gradient. Multi-stop con aceleración hacia abajo (ease-in) en
                 lugar de un 2-stop transparent→negro, que produce banding gris visible
@@ -2385,15 +2782,21 @@ export function MenuShell({
                   </p>
                 )}
                 {reviewStats && reviewStats.total > 0 && (
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400 drop-shadow-sm" />
+                  <button
+                    type="button"
+                    onClick={() => setShowReviews(true)}
+                    disabled={!recentReviews?.length}
+                    aria-haspopup="dialog"
+                    className="flex items-center gap-1.5 mt-1.5 -ml-1 px-1 min-h-[32px] rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400 drop-shadow-sm" aria-hidden="true" />
                     <span className="text-sm font-bold text-white drop-shadow-sm tabular-nums">
                       {reviewStats.average}
                     </span>
-                    <span className="text-xs text-white/75">
-                      ({reviewStats.total}+)
+                    <span className="text-[13px] text-white/90 underline underline-offset-2 decoration-white/50">
+                      {reviewStats.total} {t.reviews}
                     </span>
-                  </div>
+                  </button>
                 )}
               </div>
 
@@ -2416,10 +2819,18 @@ export function MenuShell({
                     </p>
                   )}
                   {(restaurant.address || restaurant.operating_hours) && (
-                    <div className="flex items-center gap-4 mt-2 text-sm text-white/70">
+                    // White on the photo: the dark teal (#047a65) used here
+                    // vanished on a dark cover — "Open 24 hours" was unreadable.
+                    <button
+                      type="button"
+                      onClick={() => setShowInfo(true)}
+                      aria-haspopup="dialog"
+                      className="group flex items-center gap-4 mt-2 text-[15px] text-white/90 hover:text-white text-left rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                      style={{ textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}
+                    >
                       {restaurant.address && (
                         <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[#047a65]" />
+                          <MapPin className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                           <span className="truncate max-w-[240px]">
                             {restaurant.address}
                           </span>
@@ -2442,27 +2853,105 @@ export function MenuShell({
                           const is24h =
                             dh.open === "00:00" && dh.close === "23:59";
                           return (
-                            <span className="inline-flex items-center gap-1.5 text-[#047a65] font-medium">
-                              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                              {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
+                            <span className="inline-flex items-center gap-1.5 font-semibold text-white">
+                              <Clock className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                              {is24h ? t.open24h : hoursRangeLabel(dh.open, dh.close, locale)}
                             </span>
                           );
                         })()}
-                    </div>
+                      <span className="inline-flex items-center font-semibold text-white underline-offset-4 group-hover:underline">
+                        {t.infoShort}
+                        <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                      </span>
+                    </button>
                   )}
                 </div>
                 {reviewStats && reviewStats.total > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-400/20 backdrop-blur-sm border border-amber-400/30 flex-shrink-0">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <button
+                    type="button"
+                    onClick={() => setShowReviews(true)}
+                    disabled={!recentReviews?.length}
+                    aria-haspopup="dialog"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/35 backdrop-blur-sm border border-white/20 flex-shrink-0 hover:bg-black/45 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" aria-hidden="true" />
                     <span className="text-sm font-bold text-white tabular-nums">
                       {reviewStats.average}
                     </span>
-                    <span className="text-sm text-white/70">
-                      ({reviewStats.total}+)
+                    <span className="text-sm text-white/90">
+                      {reviewStats.total} {t.reviews}
                     </span>
-                  </div>
+                  </button>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Store info row (phone/tablet): today's hours + street, opens the
+              info sheet with the week, directions and the phone. */}
+          {(restaurant.address ||
+            (restaurant.operating_hours &&
+              Object.keys(restaurant.operating_hours).length > 0)) &&
+            (() => {
+              const hrs = restaurant.operating_hours;
+              const todayKey = [
+                "sunday",
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+              ][inTimeZone(new Date(), restaurant.timezone || "UTC").getDay()];
+              const today =
+                hrs && Object.keys(hrs).length > 0
+                  ? dayHoursText(hrs[todayKey], locale, t)
+                  : null;
+              const street = restaurant.address?.split(",")[0]?.trim() ?? "";
+              return (
+                <button
+                  type="button"
+                  onClick={() => setShowInfo(true)}
+                  aria-haspopup="dialog"
+                  className="lg:hidden w-full flex items-center gap-2 px-4 min-h-[44px] bg-white border-b border-gray-100 text-left text-[14px] text-gray-700 active:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#05c8a7]"
+                >
+                  <Clock
+                    className="w-4 h-4 text-[#047a65] flex-shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 truncate">
+                    {today && (
+                      <span className="font-semibold text-gray-900">{today}</span>
+                    )}
+                    {today && street && " · "}
+                    {street}
+                  </span>
+                  <span className="ml-auto flex items-center flex-shrink-0 font-semibold text-[#047a65]">
+                    {t.infoShort}
+                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                  </span>
+                </button>
+              );
+            })()}
+
+          {/* Closed / paused: a strip in the flow under the cover, every width.
+              Before, the phone showed nothing (the whole cart could be built
+              and the checkout said "closed"), desktop had only a small pill
+              while the cover still read like open hours, and the pause was a
+              floating orange pill that covered the search. */}
+          {storeNotice && (
+            <div
+              role="status"
+              className="flex items-start gap-2.5 px-4 lg:px-8 py-3 bg-[#fff6e0] border-b border-[#f1e0b6] text-[14px] leading-snug text-[#5c3a00]"
+            >
+              <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+              <p className="min-w-0">
+                <span className="font-semibold">{storeNotice.title}</span>
+                {storeNotice.when && <span> · {storeNotice.when}{storeNotice.hint ? "." : ""}</span>}
+                {storeNotice.hint && (
+                  <span className="block sm:inline text-[#7a4d00] sm:ml-1.5">{storeNotice.hint}</span>
+                )}
+              </p>
             </div>
           )}
 
@@ -2478,8 +2967,8 @@ export function MenuShell({
                 // Con cover suma header+category pills+notch; sin cover solo las
                 // category pills (40px) — el header en flujo ya consumió el notch.
                 top: hasCover
-                  ? `calc(${HEADER_HEIGHT + 40}px + env(safe-area-inset-top))`
-                  : `40px`,
+                  ? `calc(${HEADER_HEIGHT + mobilePillsH}px + env(safe-area-inset-top))`
+                  : `${mobilePillsH}px`,
               }}
             >
               {dietaryPills}
@@ -2493,19 +2982,17 @@ export function MenuShell({
               ref={(el) => {
                 sidebarRef.current = el;
               }}
-              className="hidden lg:flex flex-col w-[200px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
+              className="hidden lg:flex flex-col w-[224px] xl:w-[232px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
             >
               <CategorySidebar
-                categories={groupsActive ? visibleCats : categories}
+                categories={sidebarCats}
                 products={products}
-                activeCategory={
-                  isLargeCatalog ? (activeCatFilter ?? null) : activePillId
-                }
-                onSelect={handleCategorySelect}
+                activeCategory={searchQuery.trim() ? null : menuSheetActiveId}
+                onSelect={(id) => id && handleMenuSheetSelect(id)}
                 allLabel={t.allCategories}
                 locale={locale}
                 defaultLocale={defaultLocale}
-                countFor={groupsActive ? countForSidebar : undefined}
+                countFor={countForSidebar}
                 isAvailable={isCategoryAvailableNow}
                 hoursLabel={categoryHoursLabel}
                 subcategories={subcatsOfActiveGroup}
@@ -2515,48 +3002,18 @@ export function MenuShell({
 
             {/* Center: wrapper so sticky pills + products stack vertically */}
             <div className="flex-1 min-w-0 flex flex-col">
-              {/* Sticky category pills — desktop only, pins once banner scrolls away */}
+              {/* Desktop: the sidebar is the one category control. The pills
+                  bar that repeated it (and was the only home of "Popular")
+                  is gone; what stays is the dietary filter row, only for
+                  restaurants that tag dishes. */}
               <div
                 ref={desktopPillsRef}
-                className="hidden lg:block sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100"
-              >
-                <div className="relative px-2 py-2">
-                  <button
-                    onClick={() => scrollCats("left")}
-                    className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start"
-                    aria-label={t.scrollLeftAriaLabel}
-                  >
-                    <ChevronLeft className="w-4 h-4 text-gray-400" />
-                  </button>
-                  <div
-                    ref={catScrollRef}
-                    className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5"
-                    style={{
-                      WebkitOverflowScrolling: "touch",
-                      touchAction: "pan-x",
-                    }}
-                  >
-                    {visibleCats.map((cat) =>
-                      categoryPill(
-                        cat.id,
-                        tName(cat, locale, defaultLocale),
-                        activePillId === cat.id && !showFavs && !activeDiet,
-                      ),
-                    )}
-                    {filterDivider}
-                    {favPill}
-                  </div>
-                  <button
-                    onClick={() => scrollCats("right")}
-                    className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end"
-                    aria-label={t.scrollRightAriaLabel}
-                  >
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </button>
-                </div>
-                {availableDietTags.length > 0 && (
-                  <div className="border-t border-gray-100">{dietaryPills}</div>
+                className={cn(
+                  "hidden sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100",
+                  availableDietTags.length > 0 && "lg:block",
                 )}
+              >
+                {availableDietTags.length > 0 && dietaryPills}
               </div>
 
               {/* Center: Products — natural flow, no independent scroll */}
@@ -2575,7 +3032,7 @@ export function MenuShell({
                             {reviewStats.average}
                           </span>
                           <span className="text-xs text-gray-400">
-                            ({reviewStats.total}+)
+                            ({reviewStats.total})
                           </span>
                         </div>
                       )}
@@ -2627,18 +3084,28 @@ export function MenuShell({
 
                 {/* Table context banner — shown when customer arrives via table QR */}
                 {hasMounted && activeTableName && !tableBannerDismissed && (
-                  <div className="mx-4 lg:mx-8 mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl bg-gray-950 text-white">
-                    <span className="text-lg flex-shrink-0">🍽️</span>
-                    <p className="flex-1 text-sm font-bold">
-                      {t.youreAt}{" "}
-                      <span className="text-[#05c8a7]">{activeTableName}</span>
+                  <div className="mx-4 lg:mx-8 mt-3 lg:mt-5 flex items-center gap-3 pl-4 pr-1 py-1.5 rounded-2xl bg-[#e6faf7] border border-[#b3efe6]">
+                    <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
+                      <UtensilsCrossed
+                        className="w-4 h-4 text-[#047a65]"
+                        strokeWidth={2.25}
+                        aria-hidden="true"
+                      />
+                    </div>
+                    {/* The QR carries the bare table ("12"): say what it is. */}
+                    <p className="flex-1 min-w-0 text-sm font-semibold text-[#047a65] truncate">
+                      {/^\d+$/.test(activeTableName.trim())
+                        ? `${t.tableWord} ${activeTableName.trim()}`
+                        : activeTableName}
+                      {" · "}
+                      {t.dineIn}
                     </p>
                     <button
                       onClick={() => setTableBannerDismissed(true)}
-                      className="flex-shrink-0 p-1 text-white/50 hover:text-white transition-colors"
+                      className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl text-[#047a65] hover:bg-[#d0f7f1] transition-colors"
                       aria-label={t.dismiss}
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
                 )}
@@ -2671,13 +3138,13 @@ export function MenuShell({
                               {reviewStats.average}
                             </span>
                             <span className="text-sm text-gray-500">
-                              ({reviewStats.total}+)
+                              ({reviewStats.total})
                             </span>
                           </div>
                         )}
                       </div>
                       {(restaurant.address || restaurant.operating_hours) && (
-                        <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
+                        <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
                           {restaurant.address && (
                             <span className="inline-flex items-center gap-1.5">
                               <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
@@ -2709,7 +3176,7 @@ export function MenuShell({
                                   <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                                   {is24h
                                     ? t.open24h
-                                    : `${dh.open} – ${dh.close}`}
+                                    : hoursRangeLabel(dh.open, dh.close, locale)}
                                 </span>
                               );
                             })()}
@@ -2719,12 +3186,15 @@ export function MenuShell({
                   )}
 
                   {searchResults !== null ? (
-                    <div>
+                    <div ref={searchResultsTopRef}>
                       <motion.p
                         key={searchResults.length}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-sm text-gray-500 mb-4"
+                        className={cn(
+                          "text-sm text-gray-600 mb-4",
+                          searchResults.length === 0 && "hidden",
+                        )}
                       >
                         {searchResults.length}{" "}
                         {searchResults.length === 1
@@ -2732,58 +3202,9 @@ export function MenuShell({
                           : t.resultPlural}
                       </motion.p>
                       {searchResults.length === 0 ? (
-                        <motion.div
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.35 }}
-                          className="text-center py-20 text-gray-400 flex flex-col items-center gap-4"
-                        >
-                          <motion.svg
-                            width="64"
-                            height="64"
-                            viewBox="0 0 64 64"
-                            fill="none"
-                            aria-hidden="true"
-                            initial={{ scale: 0.7, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{
-                              type: "spring",
-                              stiffness: 260,
-                              damping: 20,
-                              delay: 0.1,
-                            }}
-                          >
-                            <circle
-                              cx="28"
-                              cy="28"
-                              r="18"
-                              stroke="#d1d5db"
-                              strokeWidth="3"
-                              fill="none"
-                            />
-                            <path
-                              d="M41 41L52 52"
-                              stroke="#d1d5db"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                            />
-                            <path
-                              d="M22 28h12M28 22v12"
-                              stroke="#d1d5db"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              opacity="0.4"
-                            />
-                          </motion.svg>
-                          <div>
-                            <p className="font-bold text-gray-700">
-                              {t.noResults}
-                            </p>
-                            <p className="text-sm text-gray-400 mt-1 leading-relaxed max-w-[180px] mx-auto">
-                              {t.tryDifferentKeyword}
-                            </p>
-                          </div>
-                        </motion.div>
+                        <div className="max-w-xl mx-auto">
+                          {renderNoSearchResults(() => setSearchQuery(""))}
+                        </div>
                       ) : (
                         <>
                           {/* Cards then rows, same as the category sections, but
@@ -2792,7 +3213,7 @@ export function MenuShell({
                               drink still leads the row list. */}
                           <motion.div
                             className={cn(
-                              "grid grid-cols-2 lg:grid-cols-3 gap-3",
+                              "grid grid-cols-2 md:grid-cols-3 gap-3",
                               searchCards.length === 0 && "hidden",
                             )}
                             initial="hidden"
@@ -2895,7 +3316,7 @@ export function MenuShell({
                           return (
                             <>
                               {favCards.length > 0 && (
-                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                   {favCards.map((product) => (
                                     <ProductCard
                                       key={product.id}
@@ -2983,21 +3404,10 @@ export function MenuShell({
                     <motion.div
                       initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-center py-20 text-gray-400 flex flex-col items-center gap-3"
+                      className="text-center py-20 flex flex-col items-center gap-3"
                     >
-                      <motion.p
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 20,
-                        }}
-                        className="text-4xl"
-                      >
-                        {DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}
-                      </motion.p>
-                      <p className="font-medium">{t.noDietMatch}</p>
+                      <DietIcon tag={activeDiet} className="w-10 h-10 text-gray-500" />
+                      <p className="text-[16px] font-semibold text-gray-900">{t.noDietMatch}</p>
                       <button
                         onClick={() => setActiveDiet(null)}
                         className="mt-1 text-sm text-[#047a65] font-semibold hover:text-[#047a65] transition-colors"
@@ -3011,15 +3421,13 @@ export function MenuShell({
                     // "N results" instead of a near-empty menu scattered over categories.
                     <div>
                       <div className="flex items-center gap-2 mb-4 py-1">
-                        <span aria-hidden="true" className="text-lg">
-                          {DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}
-                        </span>
+                        <DietIcon tag={activeDiet} className="w-5 h-5 text-[#047a65]" />
                         <h2 className="text-lg font-bold text-gray-900">
                           {locale === "en"
                             ? getTagConfig(activeDiet)?.labelEn
                             : getTagConfig(activeDiet)?.labelEs}
                         </h2>
-                        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">
+                        <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">
                           {filteredProducts.length}
                         </span>
                         <button
@@ -3029,7 +3437,7 @@ export function MenuShell({
                           {t.viewFullMenu}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {filteredProducts.map((product) => (
                           <ProductCard
                             key={product.id}
@@ -3123,7 +3531,7 @@ export function MenuShell({
                         {(() => {
                           let globalProductIdx = 0;
                           return displayedGroups.map(
-                            ({ category, items, available }) => {
+                            ({ category, items, available }, groupIdx) => {
                               const isPopular = category.id === POPULAR_ID;
                               const isLocked = !available;
                               // Photo cards first, then the photo-less items as a
@@ -3132,11 +3540,40 @@ export function MenuShell({
                               // photographed dishes read as the highlighted ones.
                               const { cards: cardItems, rows: rowItems } =
                                 splitByDisplay(items);
+                              // Phone format per category: grid where the photo is
+                              // what makes people choose (desserts), a list where the
+                              // dishes look alike and are chosen by reading (burgers).
+                              // null = automatic by menu size. Popular is always a
+                              // grid; tablets and desktops always get the grid.
+                              const showAsList =
+                                !isPopular &&
+                                !isTabletUp &&
+                                (category.display_mode ??
+                                  (isLargeCatalog ? "list" : "grid")) === "list";
+                              // An odd count in the 2-column phone grid leaves the last
+                              // card alone next to a hole: it takes the full width.
+                              const oddLastId =
+                                cardItems.length % 2 === 1
+                                  ? cardItems[cardItems.length - 1]?.id
+                                  : undefined;
                               return (
                                 <section
                                   key={category.id}
                                   data-cat-id={category.id}
-                                  style={{ contentVisibility: "auto" }}
+                                  // Never on the first section: it is on screen at
+                                  // load, and content-visibility measures it as 0 px
+                                  // for the first frame of the server-rendered HTML
+                                  // — the footer painted mid-screen and jumped
+                                  // (CLS 0.14–0.19). The rest keep the skip, with a
+                                  // reserved height so scrolling to them doesn't jump.
+                                  style={
+                                    groupIdx === 0
+                                      ? undefined
+                                      : {
+                                          contentVisibility: "auto",
+                                          containIntrinsicSize: "auto 900px",
+                                        }
+                                  }
                                   ref={(el) => {
                                     if (el)
                                       sectionRefs.current.set(category.id, el);
@@ -3145,11 +3582,6 @@ export function MenuShell({
                                   }}
                                 >
                                   <div className="flex items-center gap-2 mb-4 pt-3">
-                                    {isPopular && (
-                                      <span className="text-lg leading-none">
-                                        🔥
-                                      </span>
-                                    )}
                                     {/* Serif editorial: separa el título de sección
                                         del nombre de plato, que sigue en Inter.
                                         Sin font-extrabold (Instrument Serif solo
@@ -3164,13 +3596,13 @@ export function MenuShell({
                                           )}
                                     </h2>
                                     {isLocked && categoryHoursLabel(category) && (
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">
+                                      <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-600 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
                                         <Clock className="w-3 h-3" />
                                         {categoryHoursLabel(category)}
                                       </span>
                                     )}
                                     {!isLocked && (
-                                      <span className="text-[11px] font-medium text-gray-400 tabular-nums">
+                                      <span className="text-[13px] font-medium text-gray-600 tabular-nums">
                                         {items.length}
                                       </span>
                                     )}
@@ -3199,10 +3631,10 @@ export function MenuShell({
                                         </div>
                                       </div>
                                     )}
-                                    {lightMobileProductGrid ? (
+                                    {showAsList ? (
                                       <div
                                         className={cn(
-                                          "grid grid-cols-2 lg:grid-cols-3 gap-3",
+                                          "rounded-2xl bg-white border border-ink-100 overflow-hidden divide-y divide-ink-100",
                                           isLocked && "opacity-40",
                                           cardItems.length === 0 && "hidden",
                                         )}
@@ -3212,11 +3644,55 @@ export function MenuShell({
                                       >
                                         {cardItems.map((product) => {
                                           const isPriority =
-                                            globalProductIdx < 4;
+                                            globalProductIdx < PRIORITY_CARD_IMAGES;
                                           globalProductIdx++;
                                           return (
-                                            <div key={product.id}>
+                                            <ProductListItem
+                                              key={product.id}
+                                              product={product}
+                                              restaurantId={restaurant.id}
+                                              onSelect={handleProductSelect}
+                                              onQuickAdd={handleQuickAdd}
+                                              fmtPrice={fmtPrice}
+                                              addLabel={t.addToCart}
+                                              customizeLabel={t.customize}
+                                              popularLabel={t.popular}
+                                              soldOutLabel={t.soldOut}
+                                              unavailableLabel={t.unavailable}
+                                              addedShortLabel={t.addedShort}
+                                              locale={locale}
+                                              defaultLocale={defaultLocale}
+                                              priority={isPriority}
+                                            />
+                                          );
+                                        })}
+                                      </div>
+                                    ) : lightMobileProductGrid ? (
+                                      <div
+                                        className={cn(
+                                          "grid grid-cols-2 md:grid-cols-3 gap-3",
+                                          isLocked && "opacity-40",
+                                          cardItems.length === 0 && "hidden",
+                                        )}
+                                        {...(isLocked
+                                          ? { "aria-hidden": true }
+                                          : {})}
+                                      >
+                                        {cardItems.map((product) => {
+                                          const isPriority =
+                                            globalProductIdx < PRIORITY_CARD_IMAGES;
+                                          globalProductIdx++;
+                                          return (
+                                            <div
+                                              key={product.id}
+                                              className={
+                                                product.id === oddLastId
+                                                  ? "col-span-2 md:col-span-1"
+                                                  : undefined
+                                              }
+                                            >
                                               <ProductCard
+                                                wide={product.id === oddLastId}
                                                 product={product}
                                                 restaurantId={restaurant.id}
                                                 onSelect={handleProductSelect}
@@ -3240,7 +3716,7 @@ export function MenuShell({
                                     ) : (
                                       <motion.div
                                         className={cn(
-                                          "grid grid-cols-2 lg:grid-cols-3 gap-3",
+                                          "grid grid-cols-2 md:grid-cols-3 gap-3",
                                           isLocked && "opacity-40",
                                           cardItems.length === 0 && "hidden",
                                         )}
@@ -3277,11 +3753,16 @@ export function MenuShell({
                                           // mobile en el LCP de tiendas nuevas sin CDN
                                           // caliente; el resto carga lazy al scrollear.
                                           const isPriority =
-                                            globalProductIdx < 4;
+                                            globalProductIdx < PRIORITY_CARD_IMAGES;
                                           globalProductIdx++;
                                           return (
                                             <motion.div
                                               key={product.id}
+                                              className={
+                                                product.id === oddLastId
+                                                  ? "col-span-2 md:col-span-1"
+                                                  : undefined
+                                              }
                                               variants={
                                                 isDesktopView
                                                   ? {
@@ -3302,6 +3783,7 @@ export function MenuShell({
                                               }
                                             >
                                               <ProductCard
+                                                wide={product.id === oddLastId}
                                                 product={product}
                                                 restaurantId={restaurant.id}
                                                 onSelect={handleProductSelect}
@@ -3373,11 +3855,19 @@ export function MenuShell({
                         <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                         {t.customersTestimonial}
                         {reviewStats && reviewStats.total > 0 && (
-                          <span className="text-sm font-normal text-gray-400 ml-1">
+                          <span className="text-sm font-normal text-gray-600 ml-1">
                             ({reviewStats.average} / 5 · {reviewStats.total}{" "}
                             {t.reviews})
                           </span>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => setShowReviews(true)}
+                          aria-haspopup="dialog"
+                          className="ml-auto h-9 px-2 text-sm font-semibold text-[#047a65] hover:underline"
+                        >
+                          {t.seeAll}
+                        </button>
                       </h3>
                       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
                         {recentReviews.map((review) => {
@@ -3432,7 +3922,7 @@ export function MenuShell({
                                         />
                                       ))}
                                     </div>
-                                    <span className="text-[10px] text-gray-400">
+                                    <span className="text-[12px] text-gray-500">
                                       {relativeDate}
                                     </span>
                                   </div>
@@ -3471,7 +3961,7 @@ export function MenuShell({
                               <p className="text-sm font-semibold text-gray-900">
                                 {t.addressLabel}
                               </p>
-                              <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
+                              <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">
                                 {restaurant.address}
                               </p>
                               <a
@@ -3547,7 +4037,7 @@ export function MenuShell({
                                   <p className="text-sm font-semibold text-gray-900">
                                     {t.schedule}
                                   </p>
-                                  <p className="text-sm text-gray-500 mt-0.5">
+                                  <p className="text-sm text-gray-600 mt-0.5">
                                     <span className="font-medium text-gray-700">
                                       {dayNames[todayIdx]}:
                                     </span>{" "}
@@ -3558,7 +4048,7 @@ export function MenuShell({
                                           {t.open24h}
                                         </span>
                                       ) : (
-                                        `${todayHours.open} – ${todayHours.close}`
+                                        hoursRangeLabel(todayHours.open, todayHours.close, locale)
                                       )
                                     ) : (
                                       t.closedDay
@@ -3591,10 +4081,10 @@ export function MenuShell({
                                 {t.phoneLabel}
                               </p>
                               <a
-                                href={`tel:${restaurant.phone}`}
+                                href={telHref(restaurant.phone)}
                                 className="text-sm text-[#047a65] font-medium hover:text-[#047a65] transition-colors mt-0.5 block"
                               >
-                                {restaurant.phone}
+                                {prettyPhone(restaurant.phone)}
                               </a>
                             </div>
                           </div>
@@ -3602,29 +4092,8 @@ export function MenuShell({
 
                         {restaurant.google_business_url && (
                           <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                              <svg
-                                className="w-4 h-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                              >
-                                <path
-                                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                  fill="#4285F4"
-                                />
-                                <path
-                                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                  fill="#34A853"
-                                />
-                                <path
-                                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                                  fill="#FBBC05"
-                                />
-                                <path
-                                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                                  fill="#EA4335"
-                                />
-                              </svg>
+                            <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
+                              <ExternalLink className="w-4 h-4 text-[#047a65]" aria-hidden="true" />
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-gray-900">
@@ -3634,7 +4103,7 @@ export function MenuShell({
                                 href={restaurant.google_business_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors mt-0.5 block"
+                                className="text-sm text-[#047a65] font-medium hover:underline mt-0.5 block"
                               >
                                 {t.seeOnGoogleMaps}
                               </a>
@@ -3646,7 +4115,7 @@ export function MenuShell({
                   )}
 
                   {/* Powered by MENIUS — todas las tiendas */}
-                  <div className="mt-8 mb-4 flex flex-col items-center gap-1.5">
+                  <div className="mt-8 mb-4 flex justify-center">
                     <a
                       href="https://menius.app?ref=menu-footer"
                       target="_blank"
@@ -3656,20 +4125,12 @@ export function MenuShell({
                       <span className="flex items-center justify-center w-4 h-4 rounded-[4px] bg-gray-400 text-white text-[9px] font-black select-none">
                         M
                       </span>
-                      <span className="text-[11px] text-gray-400 font-normal">
+                      <span className="text-[12px] text-gray-500 font-normal">
                         {t.poweredBy}
                       </span>
-                      <span className="text-[11px] text-gray-500 font-semibold">
+                      <span className="text-[12px] text-gray-600 font-semibold">
                         MENIUS
                       </span>
-                    </a>
-                    <a
-                      href="https://menius.app?ref=menu-footer-cta"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-gray-400 hover:text-gray-500 transition-colors"
-                    >
-                      {t.createYourMenu} →
                     </a>
                   </div>
                 </div>
@@ -3708,6 +4169,9 @@ export function MenuShell({
                   suggestions={cartBasedSuggestions}
                   onSuggestionAdd={handleCartSuggestionAdd}
                   loyaltyData={loyaltyData}
+                  storeNotice={storeNoticeLine}
+                  orderTypes={(restaurant.order_types_enabled ?? []).filter((ot) => ot !== "dine_in")}
+                  cashOnly={!usablePaymentMethods(restaurant).includes("online")}
                 />
               </MenuErrorBoundary>
             </aside>
@@ -3741,9 +4205,7 @@ export function MenuShell({
             >
               <AlignJustify className="w-4 h-4" aria-hidden="true" />
               {groupNameFromId(activeCatFilter!)}
-              <span className="text-white/60 tabular-nums">
-                {subcatsOfActiveGroup.length}
-              </span>
+              <span className="text-white/70">· {t.menuSections}</span>
             </button>
           </div>
         )}
@@ -3813,11 +4275,14 @@ export function MenuShell({
           )
         )}
 
-        {/* ── Mobile: Cart Bottom Sheet ── */}
+        {/* ── Cart: bottom sheet on the phone, right-hand drawer on tablet ──
+            On an iPad the bottom sheet rose ~95% of the screen and hid the
+            whole menu; a 400px drawer leaves the menu in view and is where
+            Uber Eats / DoorDash put it at that width. */}
         <AnimatePresence>
           {isOpen && (
             <div
-              className="fixed inset-0 z-50 xl:hidden flex flex-col justify-end"
+              className="fixed inset-0 z-50 xl:hidden flex flex-col justify-end md:flex-row"
               role="dialog"
               aria-modal="true"
               aria-labelledby="cart-sheet-title"
@@ -3831,19 +4296,21 @@ export function MenuShell({
                 onClick={() => setOpen(false)}
               />
               <motion.div
-                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col"
-                style={{
-                  maxHeight: "calc(95dvh - env(safe-area-inset-bottom, 0px))",
-                }}
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
+                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col md:rounded-none md:w-[400px] md:h-full md:pt-[max(12px,env(safe-area-inset-top))]"
+                style={
+                  isTabletUp
+                    ? undefined
+                    : { maxHeight: "calc(95dvh - env(safe-area-inset-bottom, 0px))" }
+                }
+                initial={isTabletUp ? { x: "100%" } : { y: "100%" }}
+                animate={isTabletUp ? { x: 0 } : { y: 0 }}
+                exit={isTabletUp ? { x: "100%" } : { y: "100%" }}
                 transition={{
                   type: "tween" as const,
                   duration: 0.22,
                   ease: [0.25, 0.46, 0.45, 0.94] as const,
                 }}
-                drag="y"
+                drag={isTabletUp ? false : "y"}
                 dragControls={cartDragControls}
                 dragConstraints={{ top: 0 }}
                 dragElastic={0.15}
@@ -3855,7 +4322,7 @@ export function MenuShell({
               >
                 {/* Drag handle + hidden title for screen readers */}
                 <div
-                  className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                  className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing md:hidden"
                   onPointerDown={(e) => cartDragControls.start(e)}
                   style={{ touchAction: "none" }}
                 >
@@ -3893,6 +4360,8 @@ export function MenuShell({
                     suggestions={cartBasedSuggestions}
                     onSuggestionAdd={handleCartSuggestionAdd}
                     loyaltyData={loyaltyData}
+                  storeNotice={storeNoticeLine}
+                    cashOnly={!usablePaymentMethods(restaurant).includes("online")}
                   />
                 </div>
                 {/* No safe-area spacer here: CartPanel's footer already pads
@@ -3951,9 +4420,31 @@ export function MenuShell({
 
         {/* Reorder: floating "order again" button. Self-gates — only renders when a
             saved phone has a previous order at this restaurant. */}
+        {reviewStats && recentReviews && recentReviews.length > 0 && (
+          <ReviewsSheet
+            open={showReviews}
+            onClose={closeReviews}
+            restaurantName={restaurant.name}
+            average={reviewStats.average}
+            total={reviewStats.total}
+            reviews={recentReviews}
+            locale={locale}
+            t={t}
+          />
+        )}
+
+        <RestaurantInfoSheet
+          open={showInfo}
+          onClose={closeInfo}
+          restaurant={restaurant}
+          locale={locale}
+          t={t}
+        />
+
         <RepeatOrderButton
           restaurantId={restaurant.id}
           locale={locale as "es" | "en"}
+          currency={currency}
           suppressed={showReorderBanner || reorderDismissed}
         />
 
@@ -3975,214 +4466,128 @@ export function MenuShell({
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              <div
-                className="flex items-center gap-3 px-4 py-3 border-b border-gray-100"
-                role="search"
-              >
-                <button
-                  onClick={() => {
-                    setShowSearch(false);
-                    setSearchQuery("");
-                  }}
-                  aria-label={t.closeSearch}
-                  className="p-1.5 -ml-1 rounded-lg active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-                >
-                  <ArrowLeft
-                    className="w-5 h-5 text-gray-600"
-                    aria-hidden="true"
-                  />
-                </button>
-                <div className="relative flex-1">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                    aria-hidden="true"
-                  />
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t.searchPlaceholder}
-                    aria-label={t.searchPlaceholder}
-                    className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[16px] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder-gray-400"
-                    autoFocus
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      aria-label={t.clearSearch}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] rounded"
-                    >
-                      <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                    </button>
-                  )}
+              <div className="border-b border-gray-100" role="search">
+                <div className="max-w-[640px] mx-auto flex items-center gap-1 px-2 py-2">
+                  <button
+                    onClick={() => {
+                      setShowSearch(false);
+                      setSearchQuery("");
+                    }}
+                    aria-label={t.closeSearch}
+                    className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                  >
+                    <ArrowLeft
+                      className="w-5 h-5 text-gray-800"
+                      aria-hidden="true"
+                    />
+                  </button>
+                  <div className="relative flex-1">
+                    <Search
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600"
+                      aria-hidden="true"
+                    />
+                    <input
+                      ref={mobileSearchInputRef}
+                      type="search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={t.searchPlaceholder}
+                      aria-label={t.searchPlaceholder}
+                      className="w-full h-11 pl-9 pr-11 rounded-xl bg-gray-50 border border-gray-200 text-[16px] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder:text-gray-600 [&::-webkit-search-cancel-button]:hidden"
+                      autoFocus
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => {
+                          setSearchQuery("");
+                          mobileSearchInputRef.current?.focus();
+                        }}
+                        aria-label={t.clearSearch}
+                        className="absolute right-0 top-0 w-11 h-11 flex items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                      >
+                        <X className="w-4 h-4 text-gray-600" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-4 py-3">
-                {!searchQuery.trim() ? (
-                  <div className="pt-1">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                      {t.searchSuggestions}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {searchSuggestions.map((cat) => (
-                        <button
-                          key={cat.id}
-                          onClick={() => {
-                            setShowSearch(false);
-                            setSearchQuery("");
-                            setActiveCatFilter(cat.id);
-                            setActiveCategory(cat.id);
-                          }}
-                          className="px-3.5 py-2 rounded-full border border-gray-200 text-sm text-gray-700 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-                        >
-                          {tName(cat, locale, defaultLocale)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : searchResults && searchResults.length > 0 ? (
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                      {searchResults.length}{" "}
-                      {searchResults.length === 1
-                        ? t.resultSingular
-                        : t.resultPlural}
-                    </p>
-                    {searchResults.map((product) => (
-                      <button
-                        key={product.id}
-                        onClick={() => openProductFromSearch(product)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
-                      >
-                        {!showsAsRow(product) && product.image_url && (
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                            <Image
-                              src={product.image_url}
-                              alt={product.name}
-                              fill
-                              sizes="48px"
-                              loader={
-                                product.image_url.includes(
-                                  ".supabase.co/storage/",
-                                )
-                                  ? supabaseLoader
-                                  : undefined
-                              }
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[15px] font-semibold text-gray-900 truncate">
-                            {tName(product, locale, defaultLocale)}
-                          </p>
-                          {tDesc(product, locale, defaultLocale) && (
-                            <p className="text-xs text-gray-400 truncate mt-0.5">
-                              {tDesc(product, locale, defaultLocale)}
-                            </p>
-                          )}
+              <div className="flex-1 overflow-y-auto">
+                <div className="max-w-[640px] mx-auto px-2 py-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                  {!searchQuery.trim() ? (
+                    <div className="space-y-6 pt-1">
+                      {renderPopularForSearch()}
+                      <section>
+                        <h3 className="px-2 mb-3 text-[13px] font-semibold text-gray-600 uppercase tracking-wide">
+                          {t.searchSuggestions}
+                        </h3>
+                        <div className="flex flex-wrap gap-2 px-2">
+                          {searchSuggestions.map((cat) => (
+                            <button
+                              key={cat.id}
+                              onClick={() => {
+                                setShowSearch(false);
+                                setSearchQuery("");
+                                setActiveCatFilter(cat.id);
+                                setActiveCategory(cat.id);
+                              }}
+                              className="h-10 px-4 rounded-full border border-gray-200 text-[14px] text-gray-800 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                            >
+                              {tName(cat, locale, defaultLocale)}
+                            </button>
+                          ))}
                         </div>
-                        <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
-                          {fmtPrice(Number(product.price))}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : naturalSearch.active ? (
-                  /* El motor léxico no encontró nada, pero la interpretación de
-                     la frase sí. Se marca como sugerencia, no como coincidencia
-                     exacta, para que el comensal entienda por qué ve esto. */
-                  <div className="space-y-1">
-                    <div className="mb-3 flex items-start gap-2">
-                      <Sparkles
-                        className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5"
+                      </section>
+                    </div>
+                  ) : searchResults && searchResults.length > 0 ? (
+                    <div>
+                      <p className="px-2 mb-1 text-[13px] font-semibold text-gray-600 uppercase tracking-wide">
+                        {searchResults.length}{" "}
+                        {searchResults.length === 1
+                          ? t.resultSingular
+                          : t.resultPlural}
+                      </p>
+                      {searchResults.map(renderSearchRow)}
+                    </div>
+                  ) : naturalSearch.active ? (
+                    /* El motor léxico no encontró nada, pero la interpretación de
+                       la frase sí. Se marca como sugerencia, no como coincidencia
+                       exacta, para que el comensal entienda por qué ve esto. */
+                    <div>
+                      <div className="mb-2 px-2 flex items-start gap-2">
+                        <Sparkles
+                          className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5"
+                          aria-hidden="true"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 leading-snug">
+                            {naturalSearch.reply ?? t.searchSuggestions}
+                          </p>
+                          <p className="text-[13px] text-gray-600 mt-0.5">
+                            {naturalSearch.results.length}{" "}
+                            {naturalSearch.results.length === 1
+                              ? t.resultSingular
+                              : t.resultPlural}
+                          </p>
+                        </div>
+                      </div>
+                      {naturalSearch.results.slice(0, 20).map(renderSearchRow)}
+                    </div>
+                  ) : naturalSearch.loading ? (
+                    <div className="pt-12 flex flex-col items-center text-center" role="status">
+                      <span
+                        className="w-6 h-6 rounded-full border-2 border-gray-300 border-t-[#05c8a7] animate-spin"
                         aria-hidden="true"
                       />
-                      <div className="min-w-0">
-                        {/* Sin uppercase: es una oración, no una etiqueta. En
-                            mayúsculas una frase entera se lee como grito. */}
-                        <p className="text-sm font-semibold text-gray-900 leading-snug">
-                          {naturalSearch.reply ?? t.searchSuggestions}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {naturalSearch.results.length}{" "}
-                          {naturalSearch.results.length === 1
-                            ? t.resultSingular
-                            : t.resultPlural}
-                        </p>
-                      </div>
+                      <p className="mt-3 text-[14px] text-gray-600">{t.searching}</p>
                     </div>
-                    {naturalSearch.results.slice(0, 20).map((product) => (
-                      <button
-                        key={product.id}
-                        onClick={() => openProductFromSearch(product)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
-                      >
-                        {!showsAsRow(product) && product.image_url && (
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                            <Image
-                              src={product.image_url}
-                              alt={product.name}
-                              fill
-                              sizes="48px"
-                              loader={
-                                product.image_url.includes(".supabase.co/storage/")
-                                  ? supabaseLoader
-                                  : undefined
-                              }
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[15px] font-semibold text-gray-900 truncate">
-                            {tName(product, locale, defaultLocale)}
-                          </p>
-                          {tDesc(product, locale, defaultLocale) && (
-                            <p className="text-xs text-gray-400 truncate mt-0.5">
-                              {tDesc(product, locale, defaultLocale)}
-                            </p>
-                          )}
-                        </div>
-                        <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
-                          {fmtPrice(Number(product.price))}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : naturalSearch.loading ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center px-8 py-12">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                      <span className="w-6 h-6 rounded-full border-2 border-gray-300 border-t-[#05c8a7] animate-spin" aria-hidden="true" />
-                    </div>
-                    <p className="text-sm text-gray-400">{t.searchPlaceholder}</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center px-8 py-12">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                      <span className="text-3xl select-none" aria-hidden="true">
-                        🔍
-                      </span>
-                    </div>
-                    <p className="text-base font-bold text-gray-900 mb-1">
-                      {t.noResults}
-                    </p>
-                    <p className="text-sm text-gray-400 leading-relaxed max-w-[200px]">
-                      {t.tryDifferentSearch}
-                    </p>
-                    <button
-                      onClick={() => {
-                        setSearchQuery("");
-                        setActiveDiet(null);
-                        setShowFavs(false);
-                      }}
-                      className="mt-5 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold active:scale-95 transition-transform"
-                    >
-                      {t.clearFilters}
-                    </button>
-                  </div>
-                )}
+                  ) : (
+                    renderNoSearchResults(() => {
+                      setSearchQuery("");
+                      mobileSearchInputRef.current?.focus();
+                    })
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
@@ -4200,11 +4605,8 @@ export function MenuShell({
 
         {/* ── Toast: "X se ha agregado al carrito" — centrado en pantalla ── */}
         {toastName && (
-          <div
-            className="fixed bottom-[88px] left-0 right-0 lg:bottom-8 z-[60] flex justify-center pointer-events-none"
-            aria-hidden="true"
-          >
-            <div className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl">
+          <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] left-0 right-0 lg:bottom-8 z-[60] flex justify-center px-4 pointer-events-none">
+            <div className="pointer-events-auto flex items-center gap-2.5 max-w-full min-h-[52px] pl-4 pr-1.5 py-1.5 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl">
               <span className="w-5 h-5 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
                 <svg
                   className="w-3 h-3 text-white"
@@ -4220,7 +4622,16 @@ export function MenuShell({
                   />
                 </svg>
               </span>
-              {toastName} {t.addedCartSuffix}
+              <span className="min-w-0 truncate" aria-hidden="true">
+                {toastName} {t.addedCartSuffix}
+              </span>
+              <button
+                type="button"
+                onClick={undoQuickAdd}
+                className="flex-shrink-0 h-10 px-3 rounded-xl text-[#5BE3C9] font-semibold hover:bg-white/10 active:bg-white/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+              >
+                {t.cartUndo}
+              </button>
             </div>
           </div>
         )}
@@ -4244,36 +4655,12 @@ export function MenuShell({
           </div>
         )}
 
-        {/* ── Cart resumption toast — shown once when returning with items in cart ── */}
-        {cartResumeShown && !toastName && (
-          <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none">
-            <button
-              className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#05c8a7] text-[#04241E] text-sm font-semibold shadow-lg active:scale-95 transition-transform"
-              onClick={() => {
-                setCartResumeShown(false);
-                setOpen(true);
-              }}
-            >
-              <ShoppingCart className="w-4 h-4" aria-hidden="true" />
-              {t.continueOrderItems.replace("{n}", String(rawCartCount))}
-            </button>
-          </div>
-        )}
-
-        {/* ── Orders Paused Banner (realtime) ── */}
-        {!!pausedUntil && new Date(pausedUntil) > new Date() && (
-          <div className="fixed top-0 left-0 right-0 z-[92] flex justify-center px-4 pt-2 pointer-events-none">
-            <div className="pointer-events-none flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-orange-600 text-white shadow-xl border border-orange-400/30 text-sm font-semibold animate-in slide-in-from-top-2 duration-300 max-w-sm w-full">
-              <span className="text-base" aria-hidden="true">
-                ⏸️
-              </span>
-              <span className="flex-1">{t.ordersPaused}</span>
-            </div>
-          </div>
-        )}
-
-        {/* ── Menu Update Banner ── */}
-        <MenuUpdateBanner restaurantId={restaurant.id} locale={locale} />
+        {/* ── Menu Update Banner ── (pauses are shown by the store strip) */}
+        <MenuUpdateBanner
+          restaurantId={restaurant.id}
+          locale={locale}
+          initialPausedUntil={restaurant.orders_paused_until ?? null}
+        />
 
         {/* ── PWA Install Banner ── */}
         <InstallBanner
@@ -4284,231 +4671,25 @@ export function MenuShell({
           recurring={isRecurringVisitor}
         />
 
-        {/* ── Language Switcher (floating pill) ── */}
-        {hasMultiLang && (
-          <>
-            <AnimatePresence>
-              {showLangPicker && (
-                <motion.div
-                  className="fixed inset-0 bg-black/20 z-[70]"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setShowLangPicker(false)}
-                />
-              )}
-            </AnimatePresence>
-            <AnimatePresence>
-              {showLangPicker && (
-                <motion.div
-                  className={cn(
-                    "fixed left-4 z-[71] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden",
-                    cartCount > 0 ? "bottom-48 lg:bottom-16" : "bottom-16",
-                  )}
-                  initial={{ y: 20, opacity: 0, scale: 0.9 }}
-                  animate={{ y: 0, opacity: 1, scale: 1 }}
-                  exit={{ y: 10, opacity: 0, scale: 0.95 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 350 }}
-                >
-                  {availableLocales.map((code) => {
-                    const loc = SUPPORTED_LOCALES.find((l) => l.code === code);
-                    const active = locale === code;
-                    return (
-                      <button
-                        key={code}
-                        onClick={() => {
-                          setLocale(code);
-                          setShowLangPicker(false);
-                        }}
-                        className={cn(
-                          "flex items-center gap-2.5 w-full px-4 py-2.5 text-sm transition-colors",
-                          active
-                            ? "bg-[#e6faf7] text-[#047a65] font-semibold"
-                            : "text-gray-700 hover:bg-gray-50",
-                        )}
-                      >
-                        <span className="text-base">{loc?.flag ?? "🌐"}</span>
-                        <span>{loc?.label ?? code}</span>
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <button
-              onClick={() => setShowLangPicker((s) => !s)}
-              className={cn(
-                "fixed left-4 z-[60] flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-gray-200 shadow-lg text-sm font-medium text-gray-700 hover:shadow-xl transition-shadow active:scale-95",
-                cartCount > 0 ? "bottom-36 lg:bottom-6" : "bottom-6",
-              )}
-              aria-label={t.changeLanguageAriaLabel}
-            >
-              <Globe className="w-4 h-4 text-gray-500" />
-              <span>{getLocaleFlag(locale)}</span>
-            </button>
-          </>
-        )}
-
-        {/* ── CATEGORY BOTTOM SHEET (mobile only) ── */}
-        <AnimatePresence>
-          {showCatSheet && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                className="lg:hidden fixed inset-0 z-[80] bg-black/40"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowCatSheet(false)}
-              />
-              {/* Sheet */}
-              <motion.div
-                className="lg:hidden fixed bottom-0 left-0 right-0 z-[81] bg-white rounded-t-3xl overflow-hidden flex flex-col"
-                style={{ maxHeight: "80dvh" }}
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 320 }}
-                role="dialog"
-                aria-modal="true"
-                aria-label={t.browseCategoriesAriaLabel}
-              >
-                {/* Drag indicator pill */}
-                <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                  <div className="w-10 h-1 rounded-full bg-gray-200" />
-                </div>
-
-                {/* Restaurant name header */}
-                <div className="text-center px-6 pt-2 pb-4 flex-shrink-0">
-                  <p className="font-bold text-[18px] text-gray-900 leading-tight">
-                    {restaurant.name}
-                  </p>
-                </div>
-
-                {/* Category list — scrollable */}
-                <div className="overflow-y-auto flex-1 pb-4">
-                  <p className="px-6 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                    {t.exploreMenu}
-                  </p>
-                  {visibleCats.map((cat) => {
-                    const label = tName(cat, locale, defaultLocale);
-                    const isActive = isLargeCatalog
-                      ? activeCatFilter === cat.id
-                      : activePillId === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          handleCategorySelect(cat.id);
-                          setShowCatSheet(false);
-                        }}
-                        className={cn(
-                          "w-full text-left px-6 py-3.5 text-[15px] transition-colors flex items-center justify-between",
-                          isActive
-                            ? "font-semibold text-gray-900 bg-gray-50"
-                            : "font-normal text-gray-700 active:bg-gray-50",
-                        )}
-                      >
-                        <span>{label}</span>
-                        {isActive && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] flex-shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Dismiss button */}
-                <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t border-gray-100">
-                  <button
-                    onClick={() => setShowCatSheet(false)}
-                    className="w-full py-3 rounded-2xl border border-gray-200 bg-transparent text-gray-600 font-semibold text-[15px] active:bg-gray-50 transition-colors"
-                  >
-                    {t.dismiss}
-                  </button>
-                </div>
-                {/* Safe area spacer — decoupled to prevent reflow during slide-in animation */}
-                <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]" />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* ── SUBCATEGORY JUMP SHEET ──
-            The "section menu" NN/g prescribes for 6–15 subcategories. Item
-            counts are part of the point: "Buttermilk Pancakes 14" tells the
-            customer how much is there before jumping. */}
-        <AnimatePresence>
-          {showSubcatSheet && (
-            <>
-              <motion.div
-                className="xl:hidden fixed inset-0 z-[80] bg-black/40"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowSubcatSheet(false)}
-              />
-              <motion.div
-                className="xl:hidden fixed bottom-0 left-0 right-0 z-[81] bg-white rounded-t-3xl overflow-hidden flex flex-col"
-                style={{ maxHeight: "75dvh" }}
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 320 }}
-                role="dialog"
-                aria-modal="true"
-                aria-label={t.jumpToSection}
-              >
-                <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                  <div className="w-10 h-1 rounded-full bg-gray-200" />
-                </div>
-
-                <div className="px-6 pt-2 pb-3 flex-shrink-0">
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                    {t.jumpToSection}
-                  </p>
-                  <p className="font-bold text-[17px] text-gray-900 leading-tight mt-0.5">
-                    {activeCatFilter ? groupNameFromId(activeCatFilter) : ""}
-                  </p>
-                </div>
-
-                <div className="overflow-y-auto flex-1 pb-2">
-                  {subcatsOfActiveGroup.map(({ category, items }) => (
-                    <button
-                      key={category.id}
-                      onClick={() => {
-                        setShowSubcatSheet(false);
-                        // Next frame: the sheet's exit animation must not fight
-                        // the smooth scroll on the container underneath.
-                        requestAnimationFrame(() =>
-                          scrollToSection(category.id),
-                        );
-                      }}
-                      className="w-full text-left px-6 py-3.5 text-[15px] text-gray-700 active:bg-gray-50 transition-colors flex items-center justify-between gap-3"
-                    >
-                      <span className="truncate">
-                        {tName(category, locale, defaultLocale)}
-                      </span>
-                      <span className="text-[13px] font-medium text-gray-400 tabular-nums flex-shrink-0">
-                        {items.length}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t border-gray-100">
-                  <button
-                    onClick={() => setShowSubcatSheet(false)}
-                    className="w-full py-3 rounded-2xl border border-gray-200 bg-transparent text-gray-600 font-semibold text-[15px] active:bg-gray-50 transition-colors"
-                  >
-                    {t.dismiss}
-                  </button>
-                </div>
-                <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]" />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        {/* ── "Menu" sheet: ☰ opens it folded, the floating "Sections" button
+            opens it with the active group unfolded. ── */}
+        <MenuSheet
+          open={showCatSheet || showSubcatSheet}
+          onClose={closeMenuSheet}
+          title={t.menuSheetTitle}
+          closeLabel={t.close}
+          searchLabel={t.searchDishes(products.length)}
+          onSearch={() => {
+            closeMenuSheet();
+            setShowSearch(true);
+          }}
+          entries={menuSheetEntries}
+          activeId={menuSheetActiveId}
+          expandOnOpen={showSubcatSheet ? activeCatFilter : null}
+          onSelect={handleMenuSheetSelect}
+          onSelectSection={handleMenuSheetSection}
+          hiddenFromClass={showSubcatSheet ? "xl:hidden" : "lg:hidden"}
+        />
       </div>
     </StoreConfigProvider>
   );

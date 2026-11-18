@@ -8,9 +8,15 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  // In the store's language: it was a fixed "Mis pedidos" on English menus.
+  const { data } = await createAdminClient()
+    .from('restaurants')
+    .select('name, locale')
+    .eq('slug', params.slug)
+    .maybeSingle();
+  const label = data?.locale === 'en' ? 'My orders' : 'Mis pedidos';
   return {
-    title: `Mis pedidos`,
-    description: 'Consulta el historial de tus pedidos',
+    title: data?.name ? `${label} · ${data.name}` : label,
     robots: { index: false },
   };
 }

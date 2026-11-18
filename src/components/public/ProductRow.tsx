@@ -2,10 +2,12 @@
 
 import { memo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Check, ChevronRight, Heart, Ban } from 'lucide-react';
+import { Plus, Check, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
+import { DietIcon } from './DietIcon';
 import { useFavoritesStore } from '@/store/favoritesStore';
+import { SHOW_FAVORITES } from '@/lib/menu-ui';
 import { useCartStore } from '@/store/cartStore';
 import { tName, tDesc } from '@/lib/i18n';
 import { getTranslations } from '@/lib/translations';
@@ -121,19 +123,19 @@ export const ProductRow = memo(function ProductRow({
             </motion.span>
           )}
           {outOfStock && (
-            <span className="mt-1 text-[10px] font-bold text-ink-500 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
+            <span className="mt-1 text-[11px] font-bold text-ink-700 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
               {labelSoldOut}
             </span>
           )}
           {!outOfStock && product.is_new && (
-            <span className="mt-1 text-[10px] font-bold text-white bg-blue-500 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
+            <span className="mt-0.5 text-[12px] font-semibold text-ink-700 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
               {t.productNew}
             </span>
           )}
         </div>
 
         {displayDesc && !outOfStock && (
-          <p className="text-xs text-ink-500 truncate mt-0.5 leading-snug">{displayDesc}</p>
+          <p className="text-[14px] text-ink-600 line-clamp-2 mt-0.5 leading-snug">{displayDesc}</p>
         )}
 
         <div className="flex items-center gap-2 mt-0.5">
@@ -142,51 +144,45 @@ export const ProductRow = memo(function ProductRow({
               {product.dietary_tags!.slice(0, 3).map((tagId) => {
                 const tag = DIETARY_TAGS.find((d) => d.id === tagId);
                 if (!tag) return null;
-                return <span key={tagId} className="text-xs" aria-hidden="true">{tag.emoji}</span>;
+                const label = locale === 'en' ? tag.labelEn : tag.labelEs;
+                return (
+                  <span key={tagId} title={label} className="inline-flex">
+                    <DietIcon tag={tagId} className="w-3.5 h-3.5 text-[#047a65]" />
+                    <span className="sr-only">{label}</span>
+                  </span>
+                );
               })}
             </span>
           )}
           {!outOfStock && showDineInOnly && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-950 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-full leading-none">
-              <span aria-hidden>🍷</span>
+            <span className="inline-flex items-center text-[12px] font-semibold text-ink-700 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none">
               {t.dineInOnlyBadge}
-            </span>
-          )}
-          {hasModifiers && !outOfStock && (
-            <span className="inline-flex items-center gap-0.5 text-[11px] text-ink-400 font-medium leading-none">
-              {customizeLabel}
-              <ChevronRight className="w-3 h-3" />
             </span>
           )}
         </div>
       </div>
 
-      {/* "From" belongs directly above the number it qualifies — on its own in the
-          metadata line it read as a label for whatever followed it. */}
+      {/* "$12.95+" when there are options, like the cards — no separate "From". */}
       <div className="flex flex-col items-end flex-shrink-0 leading-none">
-        {hasModifiers && !outOfStock && (
-          <span className="text-[9px] font-semibold text-ink-400 uppercase tracking-wide leading-none mb-0.5">
-            {t.fromPrice}
-          </span>
-        )}
         <span className={cn(
           'text-[15px] font-bold tabular-nums leading-none',
           outOfStock ? 'text-ink-300 line-through' : 'text-ink-950'
         )}>
           {fmtPrice(Number(product.price))}
+          {hasModifiers && !outOfStock ? '+' : ''}
         </span>
       </div>
 
       {/* Favourite sits after the name, not before it: leading the row with a
           secondary action pushed the product name off the left edge. */}
-      <button
+      {SHOW_FAVORITES && <button
         onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
         className="w-9 h-11 -my-2 flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] rounded-full"
         aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
         aria-pressed={isFav}
       >
         <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-ink-300')} />
-      </button>
+      </button>}
 
       {outOfStock ? (
         <div className="w-8 h-8 rounded-full bg-ink-100 flex items-center justify-center flex-shrink-0">

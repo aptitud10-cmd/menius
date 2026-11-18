@@ -3,10 +3,13 @@
 import { memo, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
+import { Plus, Check, UtensilsCrossed, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { showsPopularityBadge } from '@/lib/social-proof';
+import { SHOW_FAVORITES } from '@/lib/menu-ui';
 import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
+import { DietIcon } from './DietIcon';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { useCartStore } from '@/store/cartStore';
 import { tName, tDesc } from '@/lib/i18n';
@@ -27,6 +30,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   defaultLocale = 'es',
   priority = false,
   inPopularSection = false,
+  wide = false,
 }: ProductCardProps) {
   const t = getTranslations(locale);
   // Out of its hours (Oatmeal after 11 AM) the dish says when it's served
@@ -99,15 +103,13 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         // borde de CADA card de la sección hacía que el ámbar compitiera con la
         // foto —que es lo que vende— y perdiera valor de señal. Solo el #1
         // conserva una marca, y sutil.
-        !outOfStock && product.popularity_rank === 1
-          ? 'border border-amber-300 shadow-[0_2px_14px_rgba(245,158,11,0.14)]'
-          : 'border border-ink-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)]',
+        'border border-ink-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)]',
         outOfStock ? 'opacity-60' : 'cursor-pointer active:opacity-80'
       )}
     >
 
       {/* Image */}
-      <div className="relative w-full aspect-square bg-ink-100 flex-shrink-0 overflow-hidden">
+      <div className={cn('relative w-full bg-ink-100 flex-shrink-0 overflow-hidden', wide ? 'aspect-[16/9] md:aspect-square' : 'aspect-square')}>
 
         {showImage ? (
           <>
@@ -118,7 +120,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               src={product.image_url}
               alt={imgAlt}
               fill
-              sizes="(max-width: 640px) 46vw, (max-width: 1024px) 33vw, 25vw"
+              sizes={wide ? '(max-width: 768px) 92vw, 33vw' : '(max-width: 640px) 46vw, (max-width: 1024px) 33vw, 25vw'}
               priority={priority}
               loading={priority ? undefined : 'lazy'}
               loader={!skipTransform && product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
@@ -143,17 +145,14 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </div>
         )}
         {!outOfStock && (() => {
-          const rank = product.popularity_rank;
-          const orders7d = product.orders_last_7d ?? 0;
-          if (rank === 1) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-amber-500 to-yellow-400 shadow-sm">⭐ {t.popularityTop1}</span>;
-          if (rank != null && rank <= 3) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-red-500 to-orange-400 shadow-sm">🔥 Top {rank}</span>;
-          if (orders7d >= 10) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-red-500 to-orange-400 shadow-sm">🔥 {t.popularityOrders(orders7d)}</span>;
-          if (product.is_new) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none shadow-sm">{t.productNew}</span>;
+          const rank = showsPopularityBadge(product) ? product.popularity_rank : null;
+          if (rank === 1) return <span className="absolute top-2 left-2 text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-sm">{t.popularityTop1}</span>;
+          if (rank != null && rank <= 3) return <span className="absolute top-2 left-2 text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-sm">Top {rank}</span>;
+          if (product.is_new) return <span className="absolute top-2 left-2 text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-sm">{t.productNew}</span>;
           return null;
         })()}
         {!outOfStock && showDineInOnly && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-[10px] font-bold text-amber-950 bg-amber-100/95 border border-amber-300 px-2 py-0.5 rounded-full leading-none shadow-sm backdrop-blur-sm">
-            <span aria-hidden>🍷</span>
+          <span className="absolute bottom-2 right-2 inline-flex items-center text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-sm">
             {t.dineInOnlyBadge}
           </span>
         )}
@@ -170,7 +169,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         )}
 
         {/* 44px touch target wrapping the visible 28px circle */}
-        <button
+        {SHOW_FAVORITES && <button
           onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
           className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center z-10"
           aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
@@ -179,7 +178,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           <span className="w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm">
             <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-ink-400')} />
           </span>
-        </button>
+        </button>}
       </div>
 
       {/* Content */}
@@ -188,35 +187,33 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           {displayName}
         </h3>
         {tDesc(product, locale, defaultLocale) && !outOfStock && (
-          <p className="text-xs text-ink-600 line-clamp-1 mt-0.5 leading-snug">
+          <p className="text-[14px] text-ink-600 line-clamp-2 mt-0.5 leading-snug">
             {tDesc(product, locale, defaultLocale)}
           </p>
-        )}
-        {hasModifiers && !outOfStock && (
-          <span className="inline-flex items-center gap-0.5 text-xs text-ink-500 font-medium mt-1">
-            {customizeLabel}
-            <ChevronRight className="w-3 h-3" />
-          </span>
         )}
         {(product.dietary_tags?.length ?? 0) > 0 && (
           <div className="flex items-center gap-1 mt-1 flex-wrap">
             {product.dietary_tags!.slice(0, 3).map((tagId) => {
               const tag = DIETARY_TAGS.find((t) => t.id === tagId);
               if (!tag) return null;
-              return <span key={tagId} className="text-sm" aria-hidden="true">{tag.emoji}</span>;
+              const label = locale === 'en' ? tag.labelEn : tag.labelEs;
+              return (
+                <span key={tagId} title={label} className="inline-flex">
+                  <DietIcon tag={tagId} className="w-4 h-4 text-[#047a65]" />
+                  <span className="sr-only">{label}</span>
+                </span>
+              );
             })}
           </div>
         )}
         <div className="flex items-center justify-between mt-auto pt-2.5">
           <div className="flex flex-col leading-none">
-            {hasModifiers && !outOfStock && (
-              <span className="text-[10px] font-semibold text-ink-400 uppercase tracking-wide leading-none mb-0.5">{t.fromPrice}</span>
-            )}
             <span className={cn('text-[17px] font-black tabular-nums leading-none', outOfStock ? 'text-ink-300 line-through' : 'text-ink-950')}>
               {fmtPrice(Number(product.price))}
+              {hasModifiers && !outOfStock ? '+' : ''}
             </span>
             {!outOfStock && product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price) && (
-              <span className="text-[11px] text-ink-400 line-through tabular-nums leading-none mt-0.5">
+              <span className="text-[12px] text-ink-600 line-through tabular-nums leading-none mt-1">
                 {fmtPrice(Number(product.compare_at_price))}
               </span>
             )}

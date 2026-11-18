@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { shortName } from '@/lib/pwa-short-name';
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
 
@@ -100,14 +101,17 @@ function buildManifest(
   return {
     id: startUrl,
     name,
-    short_name: name.length <= 12 ? name : name.split(' ').slice(0, 2).join(' ').slice(0, 12),
-    description: description ?? (isEn ? `Order from ${name} on your phone.` : `Pide en ${name} desde tu teléfono.`),
+    short_name: shortName(name),
+    // || not ??: an empty description ("") is not a description.
+    description: description || (isEn ? `Order from ${name} on your phone.` : `Pide en ${name} desde tu teléfono.`),
     start_url: startUrl,
     scope: startUrl,
     display: 'standalone',
     orientation: 'portrait-primary',
     background_color: '#ffffff',
-    theme_color: '#05c8a7',
+    // Same as the page's <meta name="theme-color"> (white): the store's
+    // header is white, a teal status bar clashed with it.
+    theme_color: '#ffffff',
     lang: locale,
     categories: ['food', 'lifestyle'],
     prefer_related_applications: false,

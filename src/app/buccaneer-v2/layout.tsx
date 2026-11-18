@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Besley } from 'next/font/google';
+import localFont from 'next/font/local';
 import { SITE_URL } from './data';
 import './buccaneer-v2.css';
 
@@ -8,9 +8,13 @@ import './buccaneer-v2.css';
  * Besley (serif de rótulo, AD 5.1) loads only on this route; Bricolage comes
  * from the root layout as --font-display. No blackletter is ever loaded (AD 5.3).
  */
-const besley = Besley({
-  subsets: ['latin'],
-  weight: ['600', '700'],
+// Estática (un archivo por peso): con dos pesos Google sirve la variable, que
+// en iPhone se dibuja con un solo grosor.
+const besley = localFont({
+  src: [
+    { path: '../fonts/besley-latin-600.woff2', weight: '600', style: 'normal' },
+    { path: '../fonts/besley-latin-700.woff2', weight: '700', style: 'normal' },
+  ],
   variable: '--font-besley',
   display: 'swap',
 });

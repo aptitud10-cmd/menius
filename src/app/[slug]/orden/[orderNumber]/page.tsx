@@ -27,18 +27,21 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
   const paidSuccess = searchParams.paid === 'true';
   const token = searchParams.t ?? null;
 
-  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null; phone: string | null; latitude: number | null; longitude: number | null; logo_url: string | null } | null = null;
+  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null; phone: string | null; latitude: number | null; longitude: number | null; logo_url: string | null; brand_color: string | null; google_business_url: string | null } | null = null;
   let initialOrder: any = null;
 
   try {
     const adminDb = createAdminClient();
 
-    // Fetch restaurant first so we have the UUID needed for the order RPC
-    const { data: restaurantData } = await adminDb
-      .from('restaurants')
-      .select('id, name, slug, currency, locale, address, phone, latitude, longitude, logo_url')
-      .eq('slug', params.slug)
-      .maybeSingle();
+    // Fetch restaurant first so we have the UUID needed for the order RPC.
+    // brand_color llega con la migración 20261116: si todavía no se corrió, se
+    // reintenta sin esa columna en vez de romper el seguimiento (error 42703).
+    const RESTAURANT_SELECT = 'id, name, slug, currency, locale, address, phone, latitude, longitude, logo_url, google_business_url';
+    let restRes = await adminDb.from('restaurants').select(`${RESTAURANT_SELECT}, brand_color`).eq('slug', params.slug).maybeSingle();
+    if (restRes.error && (restRes.error as { code?: string }).code === '42703') {
+      restRes = await adminDb.from('restaurants').select(RESTAURANT_SELECT).eq('slug', params.slug).maybeSingle() as typeof restRes;
+    }
+    const restaurantData = restRes.data;
 
     if (restaurantData) {
       restaurant = {
@@ -52,6 +55,8 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         latitude: (restaurantData as any).latitude ?? null,
         logo_url: (restaurantData as any).logo_url ?? null,
         longitude: (restaurantData as any).longitude ?? null,
+        brand_color: (restaurantData as any).brand_color ?? null,
+        google_business_url: (restaurantData as any).google_business_url ?? null,
       };
 
       // Fetch order server-side so the page renders with data immediately.
@@ -106,6 +111,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
           driver_phone: authorized ? safeOrder.driver_phone : null,
           authorized,
           auto_closed: (orderData as { cancellation_reason?: string | null }).cancellation_reason === 'auto_closed',
+          not_accepted: (orderData as { cancellation_reason?: string | null }).cancellation_reason === 'not_accepted',
           live_topic: authorized ? liveLocationTopic(orderData.id) : null,
           table_name: (orderData.table as any)?.name ?? null,
           order_items: ((orderData.order_items ?? []) as any[]).map((item: any) => ({
@@ -138,22 +144,22 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
   if (!restaurant) {
     if (paidSuccess) {
       return (
-        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className="min-h-[100dvh] bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
           <div className="max-w-sm w-full">
-            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
-              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            <div className="w-20 h-20 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
+              <CheckCircle2 className="w-10 h-10 text-[#047a65]" />
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
               {en ? 'Payment received!' : '¡Pago recibido!'}
             </h1>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-600 mb-6">
               {en
                 ? 'Your payment was processed successfully. The restaurant has received your order.'
                 : 'Tu pago fue procesado exitosamente. El restaurante ha recibido tu pedido.'}
             </p>
             <Link
               href={`/${params.slug}`}
-              className="block w-full py-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors"
+              className="block w-full py-3.5 rounded-2xl bg-[#05c8a7] text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
             >
               {en ? 'Back to menu' : 'Volver al menú'}
             </Link>
@@ -179,6 +185,8 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       restaurantLng={restaurant.longitude ?? null}
       restaurantPhone={restaurant.phone ?? undefined}
       restaurantLogo={restaurant.logo_url ?? null}
+      brandColor={restaurant.brand_color}
+      googleReviewUrl={restaurant.google_business_url}
       orderNumber={params.orderNumber}
       trackingToken={token ?? undefined}
       currency={restaurant.currency ?? 'MXN'}

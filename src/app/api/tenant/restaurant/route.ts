@@ -7,6 +7,7 @@ import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { revalidatePublicMenuForRestaurant } from '@/lib/revalidate-public-menu';
+import { normalizeBrandColor } from '@/lib/tracker-brand';
 
 const logger = createLogger('tenant-restaurant');
 
@@ -40,7 +41,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
 
     // Only allow specific fields to be updated
-    const allowed = ['name', 'description', 'address', 'phone', 'email', 'website', 'timezone', 'currency', 'locale', 'available_locales', 'logo_url', 'cover_image_url', 'operating_hours', 'notification_whatsapp', 'notification_email', 'notifications_enabled', 'order_types_enabled', 'payment_methods_enabled', 'custom_domain', 'fiscal_rfc', 'fiscal_razon_social', 'fiscal_regimen_fiscal', 'fiscal_lugar_expedicion', 'delivery_fee', 'estimated_delivery_minutes', 'latitude', 'longitude', 'google_business_url', 'country_code', 'state_code', 'tax_rate', 'tax_included', 'tax_label', 'delivery_radius_km', 'delivery_min_order', 'mp_access_token', 'mp_enabled', 'instagram_url'] as const;
+    const allowed = ['name', 'description', 'address', 'phone', 'email', 'website', 'timezone', 'currency', 'locale', 'available_locales', 'logo_url', 'cover_image_url', 'operating_hours', 'notification_whatsapp', 'notification_email', 'notifications_enabled', 'order_types_enabled', 'payment_methods_enabled', 'custom_domain', 'fiscal_rfc', 'fiscal_razon_social', 'fiscal_regimen_fiscal', 'fiscal_lugar_expedicion', 'delivery_fee', 'estimated_delivery_minutes', 'latitude', 'longitude', 'google_business_url', 'country_code', 'state_code', 'tax_rate', 'tax_included', 'tax_label', 'delivery_radius_km', 'delivery_min_order', 'mp_access_token', 'mp_enabled', 'instagram_url', 'brand_color'] as const;
     const updates: Record<string, any> = {};
     for (const key of allowed) {
       if (body[key] !== undefined) {
@@ -57,6 +58,16 @@ export async function PATCH(request: NextRequest) {
       // El dominio propio es del plan Pro (antes no tenía ningún control de plan).
       if (d && !(await hasPlanAccess(tenant.restaurantId, 'pro'))) {
         return NextResponse.json({ error: 'DOMAIN_REQUIRES_PRO' }, { status: 403 });
+      }
+    }
+
+    // Color del seguimiento: solo #RRGGBB o nada.
+    if (updates.brand_color !== undefined) {
+      if (updates.brand_color === null || updates.brand_color === '') updates.brand_color = null;
+      else {
+        const c = normalizeBrandColor(updates.brand_color);
+        if (!c) return NextResponse.json({ error: 'BRAND_COLOR_INVALID' }, { status: 400 });
+        updates.brand_color = c;
       }
     }
 

@@ -15,6 +15,8 @@
 import { formatPrice } from '@/lib/utils';
 import { travelMinutes, haversineKm } from '@/lib/orders/eta';
 import { shortOrderNumber } from '@/lib/orders/short-number';
+import { NOT_ACCEPTED_MINS } from '@/lib/orders/order-timeouts';
+import { trackerBrand, type TrackerBrand } from '@/lib/tracker-brand';
 
 export interface CustomerEmailItem {
   qty: number;
@@ -32,6 +34,8 @@ export interface CustomerEmailCtx {
     phone?: string | null;
     logoUrl?: string | null;
     timezone?: string | null;
+    /** restaurants.brand_color: same rule as the tracker (lib/tracker-brand). */
+    brandColor?: string | null;
   };
   orderNumber: string;
   customerName: string;
@@ -63,13 +67,15 @@ export interface BuiltEmail {
   html: string;
 }
 
-// ── Tokens (identidad del Counter) ─────────────────────────────────────────
+// ── Tokens ─────────────────────────────────────────────────────────────────
+// Same language as the tracker the email links to: the restaurant's color marks
+// the order's state (pill, hero, number, logo without image); what you tap is
+// MENIUS green. Titles in Inter. A diner going from email to tracker sees one brand.
 const T = {
   bg: '#F2F4F3', card: '#FFFFFE', ink: '#0E1412', sub: '#55605C', line: '#E1E6E3',
-  btn: '#111816', btnFg: '#FFFFFE', green: '#05C8A7', greenInk: '#04241E', link: '#047A67',
+  btn: '#05C8A7', btnFg: '#04241E', link: '#047A67',
   soft: '#F6F8F7', redBg: '#FDE8E8', red: '#B42318',
 };
-const DISPLAY = "'Bricolage Grotesque','Helvetica Neue',Helvetica,Arial,sans-serif";
 const BODY = "Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 // ── Utilidades ─────────────────────────────────────────────────────────────
@@ -152,12 +158,12 @@ function payLine(ctx: CustomerEmailCtx): string {
 
 function typeLabel(ctx: CustomerEmailCtx): string {
   const en = isEn(ctx.locale);
-  if (ctx.orderType === 'delivery') return en ? 'Delivery' : 'Delivery';
+  if (ctx.orderType === 'delivery') return en ? 'Delivery' : 'A domicilio';
   if (ctx.orderType === 'dine_in') return en ? 'Dine-in' : 'En mesa';
   return en ? 'Pickup' : 'Para recoger';
 }
 
-export type CustomerEmailKind = 'eta' | 'ready' | 'on_the_way' | 'cancelled';
+export type CustomerEmailKind = 'eta' | 'ready' | 'ready_reminder' | 'on_the_way' | 'cancelled';
 
 /**
  * Qué email (si alguno) corresponde a un cambio de estado. El resto de los
@@ -166,6 +172,8 @@ export type CustomerEmailKind = 'eta' | 'ready' | 'on_the_way' | 'cancelled';
 export function customerEmailKind(status: string, orderType?: string | null): CustomerEmailKind | null {
   if (status === 'confirmed' || status === 'preparing') return 'eta';
   if (status === 'ready') return orderType === 'pickup' ? 'ready' : null;
+  // Recordatorio del cron order-timeouts (pickup listo hace 20 min).
+  if (status === 'pickup_reminder') return orderType === 'pickup' ? 'ready_reminder' : null;
   if (status === 'out_for_delivery') return orderType === 'delivery' ? 'on_the_way' : null;
   if (status === 'cancelled') return 'cancelled';
   return null;
@@ -183,13 +191,14 @@ function para(text: string, cls = 'sub', size = 15): string {
 }
 
 function heading(text: string, align: 'left' | 'center' = 'left'): string {
-  return `<h1 class="ink" style="margin:0;font-family:${DISPLAY};font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-0.3px;color:${T.ink};text-align:${align};">${text}</h1>`;
+  return `<h1 class="ink" style="margin:0;font-family:${BODY};font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-0.5px;color:${T.ink};text-align:${align};">${text}</h1>`;
 }
 
-function pill(text: string, tone: 'green' | 'red' = 'green'): string {
-  const bg = tone === 'red' ? T.redBg : T.green;
-  const fg = tone === 'red' ? T.red : T.greenInk;
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="${tone === 'red' ? 'pillred' : ''}" style="background:${bg};color:${fg};border-radius:999px;padding:5px 10px;font-family:${BODY};font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">${esc(text)}</td></tr></table>`;
+function pill(text: string, color: TrackerBrand | 'red'): string {
+  const red = color === 'red';
+  const bg = red ? T.redBg : color.brand;
+  const fg = red ? T.red : color.ink;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="${red ? 'pillred' : ''}" style="background:${bg};color:${fg};border-radius:999px;padding:5px 10px;font-family:${BODY};font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">${esc(text)}</td></tr></table>`;
 }
 
 function button(href: string, text: string, ghost = false): string {
@@ -199,19 +208,33 @@ function button(href: string, text: string, ghost = false): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="${ghost ? 'line' : 'btn'}" style="border-radius:12px;${ghost ? '' : `background:${T.btn};`}"><a href="${esc(href)}" class="${ghost ? 'ink' : 'btnfg'}" style="${style}">${esc(text)}</a></td></tr></table>`;
 }
 
-function hero(label: string, big: string, sub: string, tone: 'green' | 'ink' = 'green'): string {
-  const bg = tone === 'ink' ? T.ink : T.green;
-  const fg = tone === 'ink' ? T.card : T.greenInk;
-  const cls = tone === 'ink' ? 'heroink' : '';
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="${cls}" style="background:${bg};color:${fg};border-radius:16px;padding:16px 18px;">
-<div class="${cls}" style="font-family:${BODY};font-size:13px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${fg};opacity:0.85;">${label}</div>
-<div class="${cls}" style="font-family:${DISPLAY};font-size:40px;line-height:1.05;font-weight:800;letter-spacing:-0.8px;color:${fg};padding:2px 0;">${big}</div>
-<div class="${cls}" style="font-family:${BODY};font-size:14px;font-weight:600;color:${fg};">${sub}</div>
+/**
+ * The big time reads like the tracker: one line, "12:25–12:35" with a small
+ * "PM". It wrapped to "12:25 y 12:35 / p.m." in Spanish and in English where
+ * the web font doesn't load (Gmail desktop, Outlook). Subjects keep "y".
+ */
+function heroBig(big: string): string {
+  const compact = big.replace(/ y (?=\d)/, '–');
+  const m = compact.match(/^(.*?)\s?(AM|PM|a\.\s?m\.|p\.\s?m\.)$/i);
+  return m
+    ? `${m[1]}<span style="font-size:18px;font-weight:700;letter-spacing:0;padding-left:4px;">${m[2]}</span>`
+    : compact;
+}
+
+/** The state block, like the tracker's "show this at the counter" card. */
+function hero(b: TrackerBrand, label: string, big: string, sub: string, opts?: { plain?: boolean }): string {
+  const fg = b.ink;
+  // plain: a name, not a time — no AM/PM split, and it may wrap.
+  const bigHtml = opts?.plain ? big : heroBig(big);
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:${b.brand};color:${fg};border-radius:16px;padding:16px 18px;">
+<div style="font-family:${BODY};font-size:13px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${fg};opacity:0.85;">${label}</div>
+<div style="font-family:${BODY};font-size:36px;line-height:1.08;font-weight:700;letter-spacing:-1px;color:${fg};padding:2px 0;white-space:${opts?.plain ? 'normal' : 'nowrap'};">${bigHtml}</div>
+<div style="font-family:${BODY};font-size:14px;font-weight:600;color:${fg};">${sub}</div>
 </td></tr></table>`;
 }
 
-function orderNumberBlock(ctx: CustomerEmailCtx): string {
-  return `<div><span class="ink" style="font-family:${DISPLAY};font-size:30px;font-weight:800;letter-spacing:-0.3px;color:${T.ink};">#${esc(shortOrderNumber(ctx.orderNumber))}</span><span class="sub" style="font-family:${BODY};font-size:12.5px;color:${T.sub};padding-left:10px;">${esc(ctx.orderNumber)}</span></div>`;
+function orderNumberBlock(ctx: CustomerEmailCtx, b: TrackerBrand): string {
+  return `<div><span style="font-family:${BODY};font-size:30px;font-weight:700;letter-spacing:-0.5px;color:${b.brand};">#${esc(shortOrderNumber(ctx.orderNumber))}</span></div>`;
 }
 
 function itemsBlock(ctx: CustomerEmailCtx): string {
@@ -296,12 +319,13 @@ function initials(name: string): string {
 
 function header(ctx: CustomerEmailCtx): string {
   const r = ctx.restaurant;
+  const b = trackerBrand(r.brandColor);
   const logo = r.logoUrl
-    ? `<img src="${esc(r.logoUrl)}" width="40" height="40" alt="" style="display:block;width:40px;height:40px;border-radius:12px;border:0;background:#FFFFFF;">`
-    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="40" height="40" align="center" valign="middle" class="mono" style="width:40px;height:40px;border-radius:12px;background:${T.ink};color:#FFFFFE;font-family:${DISPLAY};font-size:15px;font-weight:800;">${esc(initials(r.name))}</td></tr></table>`;
+    ? `<img src="${esc(r.logoUrl)}" width="40" height="40" alt="" style="display:block;width:40px;height:40px;border-radius:20px;border:0;background:#FFFFFF;">`
+    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;border-radius:20px;background:${b.brand};color:${b.ink};font-family:${BODY};font-size:15px;font-weight:700;">${esc(initials(r.name))}</td></tr></table>`;
   return `<tr><td style="padding:18px 20px 0;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
 <td valign="middle" style="padding-right:10px;">${logo}</td>
-<td valign="middle" class="ink" style="font-family:${DISPLAY};font-size:15px;font-weight:700;color:${T.ink};">${esc(r.name)}</td>
+<td valign="middle" class="ink" style="font-family:${BODY};font-size:16px;font-weight:700;letter-spacing:-0.2px;color:${T.ink};">${esc(r.name)}</td>
 </tr></table></td></tr>`;
 }
 
@@ -320,7 +344,7 @@ function layout(ctx: CustomerEmailCtx, opts: { preheader: string; title: string;
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark">
 <title>${esc(opts.title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:light dark;supported-color-schemes:light dark}
 body{margin:0;padding:0;-webkit-text-size-adjust:100%}
@@ -332,12 +356,8 @@ a{text-decoration:none}
   .sub{color:#A3ADA9 !important}
   .line{border-color:#2A322F !important}
   .soft{background:#1D2421 !important}
-  .btn{background:#F1F4F2 !important}
-  .btnfg{background:#F1F4F2 !important;color:#0E1412 !important}
   .lnk{color:#5BE3C9 !important}
   .pillred{background:#3A1717 !important;color:#FF9B91 !important}
-  .heroink{background:#F1F4F2 !important;color:#161B19 !important}
-  .mono{background:#F1F4F2 !important;color:#0E1412 !important}
 }
 [data-ogsc] .ink{color:#F1F4F2 !important}
 [data-ogsc] .sub{color:#A3ADA9 !important}
@@ -382,10 +402,11 @@ export function buildReceiptEmail(ctx: CustomerEmailCtx): BuiltEmail {
     ? (en ? "The kitchen will start on it in a moment." : 'La cocina lo empieza en un momento.')
     : (en ? `The restaurant will confirm it in a moment and we'll email you ${what}.` : `El restaurante lo confirma en un momento y te mandamos ${what} por email.`);
   const place = placeLine(ctx);
+  const b = trackerBrand(ctx.restaurant.brandColor);
   const blocks = [
-    pill(ctx.paid ? (en ? 'Paid' : 'Pagado') : (en ? 'Received' : 'Recibido')),
+    pill(ctx.paid ? (en ? 'Paid' : 'Pagado') : (en ? 'Received' : 'Recibido'), b),
     `${heading(name ? (en ? `Thanks, ${esc(name)}. We got your order.` : `Gracias, ${esc(name)}. Recibimos tu pedido.`) : (en ? 'Thanks. We got your order.' : 'Gracias. Recibimos tu pedido.'))}<div style="height:6px;line-height:6px;">&nbsp;</div>${para(esc(sub))}`,
-    orderNumberBlock(ctx),
+    orderNumberBlock(ctx, b),
     button(ctx.trackingUrl, en ? 'Track your order' : 'Seguir mi pedido'),
     itemsBlock(ctx),
     totalsBlock(ctx),
@@ -414,11 +435,13 @@ export function buildEtaEmail(ctx: CustomerEmailCtx, opts: { readyAtMs?: number 
       ? (en ? `New delivery time: ${big} — order #${n}` : `Nueva hora de entrega: ${big} — pedido #${n}`)
       : (en ? `Arrives ${big} — order #${n}` : `Llega entre ${big} — pedido #${n}`);
   } else if (opts.readyAtMs) {
-    big = fmtClock(opts.readyAtMs, ctx.locale, tz);
-    label = ctx.orderType === 'dine_in' ? (en ? 'Ready around' : 'Listo cerca de las') : (en ? 'Ready for pickup around' : 'Listo para recoger cerca de las');
+    // Same 10-minute window the tracker shows (it said "12:40 PM" here and
+    // "between 12:35–12:45" there).
+    big = windowLabel(opts.readyAtMs, ctx.locale, tz);
+    label = ctx.orderType === 'dine_in' ? (en ? 'Ready between' : 'Listo entre') : (en ? 'Ready for pickup between' : 'Listo para recoger entre');
     subject = opts.isUpdate
-      ? (en ? `New pickup time: ${big} — order #${n}` : `Nueva hora: ${big} — pedido #${n}`)
-      : (en ? `Ready around ${big} — order #${n}` : `Listo cerca de las ${big} — pedido #${n}`);
+      ? (en ? `New pickup time: ${big} — order #${n}` : `Nueva hora: entre ${big} — pedido #${n}`)
+      : (en ? `Ready ${big} — order #${n}` : `Listo entre ${big} — pedido #${n}`);
   } else {
     big = `#${n}`;
     label = en ? 'Order accepted' : 'Pedido aceptado';
@@ -427,10 +450,12 @@ export function buildEtaEmail(ctx: CustomerEmailCtx, opts: { readyAtMs?: number 
   const heroSub = opts.isUpdate
     ? (en ? 'The kitchen needs a few more minutes. Sorry for the wait.' : 'La cocina necesita unos minutos más. Perdón por la espera.')
     : (en ? "We're making your order now." : 'Ya estamos preparando tu pedido.');
-  const preheader = `${opts.isUpdate ? '' : (en ? "We're making it now · " : 'Ya lo estamos preparando · ')}${itemsTxt} · ${total}`;
+  const preheader = opts.isUpdate
+    ? (en ? 'Sorry for the wait · here is the new time' : 'Perdón por la espera · aquí está la nueva hora')
+    : `${en ? "We're making it now · " : 'Ya lo estamos preparando · '}${itemsTxt} · ${total}`;
   const place = placeLine(ctx);
   const blocks = [
-    hero(esc(label), esc(big), esc(heroSub)),
+    hero(trackerBrand(ctx.restaurant.brandColor), esc(label), esc(big), esc(heroSub)),
     button(ctx.trackingUrl, en ? 'Track your order' : 'Seguir mi pedido'),
     infoBlock([
       { v: `#${esc(n)} · ${esc(itemsTxt)} · <b>${esc(total)}</b> · ${esc(payLine(ctx))}` },
@@ -441,16 +466,28 @@ export function buildEtaEmail(ctx: CustomerEmailCtx, opts: { readyAtMs?: number 
 }
 
 // ── 3a. Listo para recoger (pickup) ───────────────────────────────────────
-export function buildReadyEmail(ctx: CustomerEmailCtx): BuiltEmail {
+export function buildReadyEmail(ctx: CustomerEmailCtx, opts?: { reminder?: boolean }): BuiltEmail {
   const en = isEn(ctx.locale);
   const n = shortOrderNumber(ctx.orderNumber);
   const total = money(ctx, ctx.total);
-  const subject = en ? `Your order #${n} is ready — ${ctx.restaurant.name}` : `Tu pedido #${n} está listo — ${ctx.restaurant.name}`;
+  const reminder = !!opts?.reminder;
+  const subject = reminder
+    ? (en ? `Your order #${n} is waiting for you — ${ctx.restaurant.name}` : `Tu pedido #${n} te espera — ${ctx.restaurant.name}`)
+    : (en ? `Your order #${n} is ready — ${ctx.restaurant.name}` : `Tu pedido #${n} está listo — ${ctx.restaurant.name}`);
   const pay = ctx.paid ? (en ? 'Already paid' : 'Ya está pagado') : `${en ? 'Pay' : 'Pagas'} ${total}${ctx.paymentMethod === 'cash' ? (en ? ' cash' : ' en efectivo') : ''}`;
   const preheader = `${en ? `Show #${n} at the counter` : `Muestra el #${n} en el mostrador`} · ${pay}`;
   const place = placeLine(ctx);
   const blocks = [
-    hero(en ? 'Ready now' : 'Listo ahora', `#${esc(n)}`, en ? 'Show this number at the counter.' : 'Muestra este número en el mostrador.', 'ink'),
+    hero(
+      trackerBrand(ctx.restaurant.brandColor),
+      reminder ? (en ? 'Waiting for you' : 'Te espera') : (en ? 'Ready now' : 'Listo ahora'),
+      // Same as the tracker and the counter: number + first name.
+      `#${esc(n)}${firstName(ctx.customerName) ? ` · ${esc(firstName(ctx.customerName))}` : ''}`,
+      reminder
+        ? (en ? 'It’s been ready for a while. Show this number at the counter.' : 'Está listo hace un rato. Muestra este número en el mostrador.')
+        : (en ? 'Show this number at the counter.' : 'Muestra este número en el mostrador.'),
+      { plain: true },
+    ),
     button(ctx.mapsUrl || ctx.trackingUrl, ctx.mapsUrl ? (en ? 'Get directions' : 'Cómo llegar') : (en ? 'View order' : 'Ver pedido')),
     infoBlock([
       ...(place ? [{ k: place.k, v: esc(ctx.restaurant.address ?? '') }] : []),
@@ -479,7 +516,7 @@ export function buildOnTheWayEmail(ctx: CustomerEmailCtx, opts: { arrivalMs: num
   const label = driver ? (en ? `${esc(driver)} is on the way · arrives` : `${esc(driver)} viene en camino · llega entre`) : (en ? 'On the way · arrives' : 'En camino · llega entre');
   const count = itemCount(ctx);
   const blocks = [
-    hero(label, esc(win), esc(heroSub)),
+    hero(trackerBrand(ctx.restaurant.brandColor), label, esc(win), esc(heroSub)),
     button(ctx.trackingUrl, en ? 'Track live' : 'Seguir en vivo'),
     infoBlock([
       ...(ctx.deliveryAddress ? [{ k: en ? 'Deliver to' : 'Entregar en', v: esc(ctx.deliveryAddress) }] : []),
@@ -503,19 +540,22 @@ export function buildCancelledEmail(ctx: CustomerEmailCtx, opts: { reason?: stri
     ? (en ? `${total} back to your card in 5–10 business days` : `${total} vuelven a tu tarjeta en 5 a 10 días hábiles`)
     : opts.refundPending
       ? (en ? `The restaurant will refund your ${total}` : `El restaurante te devolverá ${total}`)
-      : (en ? 'Call the restaurant if you have questions' : 'Llama al restaurante si tienes dudas');
+      : (en ? "You weren't charged · You can order again anytime" : 'No se te cobró nada · Puedes volver a pedir cuando quieras');
   const reason = (opts.reason ?? '').trim();
-  const showReason = reason && reason !== 'auto_closed';
+  // Motivos del sistema: nunca se muestran como "Motivo del restaurante".
+  const notAccepted = reason === 'not_accepted';
+  const showReason = reason && reason !== 'auto_closed' && !notAccepted;
   const blocks = [
     pill(en ? 'Cancelled' : 'Cancelado', 'red'),
-    `${heading(name ? (en ? `Sorry, ${esc(name)}. Your order was cancelled.` : `Lo sentimos, ${esc(name)}. Tu pedido fue cancelado.`) : (en ? 'Sorry. Your order was cancelled.' : 'Lo sentimos. Tu pedido fue cancelado.'))}${showReason ? `<div style="height:6px;line-height:6px;">&nbsp;</div>${para(`${en ? 'Reason from the restaurant' : 'Motivo del restaurante'}: “${esc(reason)}”`)}` : ''}`,
+    `${heading(name ? (en ? `Sorry, ${esc(name)}. Your order was cancelled.` : `Lo sentimos, ${esc(name)}. Tu pedido fue cancelado.`) : (en ? 'Sorry. Your order was cancelled.' : 'Lo sentimos. Tu pedido fue cancelado.'))}${notAccepted ? `<div style="height:6px;line-height:6px;">&nbsp;</div>${para(en ? `${esc(ctx.restaurant.name)} didn't accept it within ${NOT_ACCEPTED_MINS} minutes, so we cancelled it. You weren't charged.` : `${esc(ctx.restaurant.name)} no lo aceptó en ${NOT_ACCEPTED_MINS} minutos, así que lo cancelamos. No se te cobró nada.`)}` : ''}${showReason ? `<div style="height:6px;line-height:6px;">&nbsp;</div>${para(`${en ? 'Reason from the restaurant' : 'Motivo del restaurante'}: “${esc(reason)}”`)}` : ''}`,
     opts.refunded
       ? infoBlock([{ k: en ? 'Refund' : 'Reembolso', v: `<b>${esc(total)}</b> ${en ? 'back to your card' : 'vuelven a tu tarjeta'}` }, { v: en ? 'Usually arrives in 5–10 business days.' : 'Suele llegar en 5 a 10 días hábiles.' }])
       : opts.refundPending
         ? infoBlock([{ k: en ? 'Refund' : 'Reembolso', v: en ? `The restaurant will refund your <b>${esc(total)}</b>` : `El restaurante te devolverá <b>${esc(total)}</b>` }, { v: en ? 'If it hasn’t arrived in a few days, call them.' : 'Si no te llega en unos días, llámalo.' }])
         : '',
-    ctx.restaurant.phone ? button(telHref(ctx.restaurant.phone), en ? `Call ${ctx.restaurant.name}` : `Llamar a ${ctx.restaurant.name}`) : '',
-    button(ctx.menuUrl, en ? 'Order something else' : 'Pedir otra cosa', true),
+    // Ordering again is the way forward; calling is for questions.
+    button(ctx.menuUrl, en ? 'Order again' : 'Volver a pedir'),
+    ctx.restaurant.phone ? button(telHref(ctx.restaurant.phone), en ? `Call ${ctx.restaurant.name}` : `Llamar a ${ctx.restaurant.name}`, true) : '',
   ];
   return { subject, preheader, html: layout(ctx, { preheader, title: subject, blocks }) };
 }
@@ -528,10 +568,13 @@ export function buildReviewEmail(ctx: CustomerEmailCtx, opts: { reviewUrl: strin
   const preheader = en ? 'One tap to rate it · it helps the restaurant' : 'Un toque para calificar · ayuda al restaurante';
   const summary = ctx.items.slice(0, 3).map((i) => i.name).join(', ') + (ctx.items.length > 3 ? '…' : '');
   const sep = opts.reviewUrl.includes('?') ? '&' : '?';
-  const stars = [1, 2, 3, 4, 5].map((r) => `<td style="padding:0 3px;"><a href="${esc(`${opts.reviewUrl}${sep}r=${r}`)}" aria-label="${r} ${en ? (r === 1 ? 'star' : 'stars') : (r === 1 ? 'estrella' : 'estrellas')}" class="line" style="display:block;width:46px;height:46px;line-height:46px;text-align:center;border:1px solid ${T.line};border-radius:12px;font-size:22px;color:#F5A524;text-decoration:none;">&#9733;</a></td>`).join('');
+  // Five identical stars gave no scale: each one now carries its number, and
+  // the ends say what 1 and 5 mean.
+  const stars = [1, 2, 3, 4, 5].map((r) => `<td align="center" style="padding:0 3px;"><a href="${esc(`${opts.reviewUrl}${sep}r=${r}`)}" aria-label="${r} ${en ? (r === 1 ? 'star' : 'stars') : (r === 1 ? 'estrella' : 'estrellas')}" class="line" style="display:block;width:46px;height:46px;line-height:46px;text-align:center;border:1px solid ${T.line};border-radius:12px;font-size:22px;color:#F5A524;text-decoration:none;">&#9733;</a><div class="sub" style="font-family:${BODY};font-size:12px;font-weight:600;color:${T.sub};padding-top:4px;">${r}</div></td>`).join('');
+  const scale = `<tr><td colspan="5" style="padding:4px 3px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="sub" align="left" style="font-family:${BODY};font-size:12px;color:${T.sub};">${en ? 'Poor' : 'Malo'}</td><td class="sub" align="right" style="font-family:${BODY};font-size:12px;color:${T.sub};">${en ? 'Great' : 'Excelente'}</td></tr></table></td></tr>`;
   const blocks = [
     `${heading(name ? (en ? `How was your order, ${esc(name)}?` : `¿Qué tal estuvo tu pedido, ${esc(name)}?`) : (en ? 'How was your order?' : '¿Qué tal estuvo tu pedido?'), 'center')}${summary ? `<div style="height:6px;line-height:6px;">&nbsp;</div><p class="sub" style="margin:0;text-align:center;font-family:${BODY};font-size:15px;color:${T.sub};">${esc(summary)}</p>` : ''}`,
-    `<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr>${stars}</tr></table>`,
+    `<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr>${stars}</tr>${scale}</table>`,
     `<div style="text-align:center;font-family:${BODY};font-size:14px;">${link(ctx.trackingUrl, en ? 'Something wrong? Tell the restaurant privately' : '¿Algo salió mal? Díselo al restaurante en privado')}</div>`,
   ];
   const footerExtra = opts.unsubscribeUrl

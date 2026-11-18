@@ -51,7 +51,9 @@ export async function GET(request: NextRequest) {
         totals.set(row.product_id, (totals.get(row.product_id) ?? 0) + (row.qty ?? 1));
       }
 
-      if (totals.size === 0) continue;
+      // No early `continue` when there were no orders: the reset below must
+      // still run, otherwise a quiet week left last week's "#1 this week" on
+      // the menu indefinitely.
 
       // Sort by total descending, assign rank to top 10
       const sorted = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);

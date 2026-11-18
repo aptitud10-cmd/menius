@@ -387,6 +387,16 @@ describe('publicOrderSchema — request validation', () => {
     }).success).toBe(true);
   });
 
+  it('accepts order WITHOUT email (email is optional in the checkout)', () => {
+    const { customer_email: _omit, ...noEmail } = { ...validBaseOrder, customer_email: undefined };
+    expect(publicOrderSchema.safeParse(noEmail).success).toBe(true);
+    expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_email: '' }).success).toBe(true);
+  });
+
+  it('rejects a malformed email when one is sent', () => {
+    expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_email: 'ana@' }).success).toBe(false);
+  });
+
   it('rejects empty customer_name', () => {
     expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_name: '' }).success).toBe(false);
   });

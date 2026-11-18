@@ -2,6 +2,7 @@ import { publicOrderSchema } from '@/lib/validations';
 import { verifyOrderToken } from '@/lib/order-token';
 import { sanitizeText, sanitizeEmail, sanitizeMultiline } from '@/lib/sanitize';
 import { createLogger } from '@/lib/logger';
+import { utensilsRequested } from '@/lib/order-pricing';
 
 const logger = createLogger('orders:validate');
 
@@ -154,7 +155,7 @@ export function sanitizeAndValidate(body: Record<string, unknown>, ip: string): 
       locale: bodyLocale,
       en: bodyEn,
       scheduled_for: scheduledFor,
-      include_utensils: body.include_utensils !== false,
+      include_utensils: utensilsRequested(body.include_utensils),
       tip_amount: body.tip_amount !== undefined ? Number(body.tip_amount) : undefined,
     },
     parsed: parsed as ReturnType<typeof publicOrderSchema.safeParse> & { success: true },

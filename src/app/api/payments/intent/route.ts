@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const { data: order } = await adminDb
       .from("orders")
       .select(
-        "id, status, total, order_number, payment_intent_id, payment_status, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
+        "id, status, total, tip_amount, order_number, payment_intent_id, payment_status, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
       )
       .eq("id", order_id)
       .maybeSingle();
@@ -105,9 +105,11 @@ export async function POST(request: NextRequest) {
     }
 
     const commissionBps = (rest as any)?.commission_plan === true ? 400 : 0;
-    // 4% for commission_plan; Stripe's processing at cost for every other plan.
+    // Stripe's processing at cost on the full charge, tip included, for subscription
+    // plans. commission_plan: 4% only on the non-tip part.
     const applicationFeeAmount = computeApplicationFeeCents(
       amount,
+      Math.round(Number(order.tip_amount ?? 0) * 100),
       currency,
       commissionBps,
     );

@@ -702,10 +702,11 @@ function OrderCard({
         </div>
       )}
 
-      {order.include_utensils === false && (expanded || isNew) && (
-        <div className="flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 rounded-lg px-2 py-1 mb-1.5">
-          <span>🚫🍴</span>
-          <span className="font-medium">Sin cubiertos</span>
+      {/* Por defecto van SIN cubiertos (Skip the Stuff): se destaca solo cuando los pidieron */}
+      {order.include_utensils === true && (expanded || isNew) && (
+        <div className="flex items-center gap-1 text-[11px] text-gray-700 bg-amber-50 rounded-lg px-2 py-1 mb-1.5">
+          <span>🍴</span>
+          <span className="font-medium">Con cubiertos</span>
         </div>
       )}
 
@@ -923,10 +924,10 @@ function OrderDetailModal({
             </div>
           )}
 
-          {order.include_utensils === false && (
-            <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-              <span className="text-base">🚫🍴</span>
-              <span className="text-sm font-medium text-gray-600">Sin cubiertos ni servilletas</span>
+          {order.include_utensils === true && (
+            <div className="bg-amber-50 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-base">🍴</span>
+              <span className="text-sm font-medium text-gray-700">Con cubiertos, servilletas y salsas</span>
             </div>
           )}
 

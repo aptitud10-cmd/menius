@@ -23,6 +23,8 @@ import {
   resolveCommission,
   computeApplicationFeeCents,
   feeModelFor,
+  tipAllowedFor,
+  utensilsRequested,
 } from "@/lib/order-pricing";
 import { buildModLines, withTitle, type LineGroup, type LineSelection } from "@/lib/modifier-lines";
 import { dependencyIds } from "@/lib/conditional-modifiers";
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
       const adminDb = createAdminClient();
       const { data: existing } = await adminDb
         .from("orders")
-        .select("id, order_number, total, status")
+        .select("id, order_number, total, status, customer_token")
         .eq("idempotency_key", idempotencyKey)
         .maybeSingle();
       if (existing) {
@@ -102,6 +104,11 @@ export async function POST(request: NextRequest) {
             order_id: existing.id,
             order_number: existing.order_number,
             total: existing.total,
+            // Mismo token que la respuesta normal: sin él, el reintento que
+            // recupera el pedido llevaba a un seguimiento recortado (sin
+            // "I'm here", mapa ni instrucciones). La key solo la tiene quien
+            // creó el pedido.
+            tracking_token: existing.customer_token ?? undefined,
             idempotent: true,
           },
           { status: 200 },
@@ -226,8 +233,28 @@ export async function POST(request: NextRequest) {
         errors: parsed.error.errors,
         restaurant_id,
       });
+      // Mensaje en el idioma del cliente (antes salía el texto de Zod en
+      // español también en tiendas en inglés) y, si es un dato de contacto,
+      // con código para que el checkout ofrezca "Edit contact".
+      const field = String(parsed.error.errors[0].path[0] ?? "");
+      const enMsg = sentLocale === "en";
+      const contactMsg: Record<string, [string, string]> = {
+        customer_name: ["Please enter your name.", "Escribe tu nombre."],
+        customer_phone: ["Please enter a valid phone number.", "Escribe un teléfono válido."],
+        customer_email: ["That email doesn't look right. Check it or leave it blank.", "Ese email no parece correcto. Revísalo o déjalo vacío."],
+      };
+      if (contactMsg[field]) {
+        return NextResponse.json(
+          { error: contactMsg[field][enMsg ? 0 : 1], code: "INVALID_CONTACT" },
+          { status: 400 },
+        );
+      }
       return NextResponse.json(
-        { error: parsed.error.errors[0].message },
+        {
+          error: enMsg
+            ? "Something in your order isn't valid. Please review your cart."
+            : "Algo de tu pedido no es válido. Revisa tu carrito.",
+        },
         { status: 400 },
       );
     }
@@ -382,6 +409,7 @@ export async function POST(request: NextRequest) {
               error: en
                 ? "This address is outside the restaurant's delivery area."
                 : "Esta dirección está fuera del área de entrega del restaurante.",
+              code: "OUT_OF_ZONE",
             },
             { status: 400 },
           );
@@ -408,8 +436,24 @@ export async function POST(request: NextRequest) {
           error: en
             ? "This restaurant is not accepting orders right now. Please try again later."
             : "El restaurante no está aceptando órdenes en este momento. Intenta más tarde.",
+          code: "PAUSED",
         },
         { status: 503 },
+      );
+    }
+
+    // Hora programada pasada o a menos de 5 min: rechazar. Convertirla en
+    // "lo antes posible" mandaba a cocinar YA un pedido que el cliente veía
+    // como "mañana 8:00" (iOS no respeta el min del selector).
+    if (typeof body.scheduled_for === "string" && body.scheduled_for && !validScheduledFor(body.scheduled_for)) {
+      return NextResponse.json(
+        {
+          error: en
+            ? "That time has passed or is too soon. Please pick a later time."
+            : "Esa hora ya pasó o está muy cerca. Elige una más tarde.",
+          code: "SCHEDULE_TOO_SOON",
+        },
+        { status: 400 },
       );
     }
 
@@ -427,6 +471,7 @@ export async function POST(request: NextRequest) {
               error: en
                 ? "The restaurant is closed at that time. Please pick another time."
                 : "El restaurante está cerrado a esa hora. Elige otro horario.",
+              code: "CLOSED_AT_TIME",
             },
             { status: 400 },
           );
@@ -437,6 +482,7 @@ export async function POST(request: NextRequest) {
             error: en
               ? "This restaurant is currently closed. You can schedule an order for later."
               : "El restaurante está cerrado en este momento. Puedes programar tu pedido para más tarde.",
+            code: "CLOSED_NOW",
           },
           { status: 503 },
         );
@@ -798,12 +844,25 @@ export async function POST(request: NextRequest) {
       );
       if (priceResult.error === "invalid_variant") {
         return NextResponse.json(
-          { error: "Variante inválida." },
+          {
+            error: en
+              ? "One of your items changed. Please update it in the menu."
+              : "Uno de tus platos cambió. Actualízalo en el menú.",
+            code: "MODIFIERS_CHANGED",
+          },
           { status: 400 },
         );
       }
       if (priceResult.error === "invalid_extra") {
-        return NextResponse.json({ error: "Extra inválido." }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: en
+              ? "One of your items changed. Please update it in the menu."
+              : "Uno de tus platos cambió. Actualízalo en el menú.",
+            code: "MODIFIERS_CHANGED",
+          },
+          { status: 400 },
+        );
       }
       const expectedUnitPrice = priceResult.unitPrice;
 
@@ -888,7 +947,10 @@ export async function POST(request: NextRequest) {
     }
 
     const serverDeliveryFee = Number(restaurant.delivery_fee) || 0;
-    const rawTip = Math.max(0, Number(parsed.data.tip_amount) || 0);
+    // En efectivo la propina se da en mano: nunca entra al pedido (tipAllowedFor).
+    const rawTip = tipAllowedFor(parsed.data.payment_method)
+      ? Math.max(0, Number(parsed.data.tip_amount) || 0)
+      : 0;
     const subtotal = parsed.data.items.reduce(
       (sum, item) => sum + item.line_total,
       0,
@@ -1085,7 +1147,7 @@ export async function POST(request: NextRequest) {
       discount_amount: totalDiscountAmt,
       idempotency_key: idempotencyKey || null,
       scheduled_for: scheduledFor,
-      include_utensils: body.include_utensils !== false,
+      include_utensils: utensilsRequested(body.include_utensils),
       // Solo delivery lleva token de driver. En pickup/dine_in el token no tiene
       // uso y ademas nacia sin expiracion (preTokenExpiresAt = null), asi que
       // quedaba vivo para siempre: los chequeos son `if (expiry && ...)` y con
@@ -1544,10 +1606,11 @@ export async function POST(request: NextRequest) {
           },
         ];
 
-        // Application fee on the gross order total (after discounts): 4% for
-        // commission_plan, Stripe's processing at cost for every other plan.
+        // Application fee: Stripe's processing at cost on the full charge, tip
+        // included, for subscription plans. commission_plan: 4% only on the non-tip part.
         const applicationFeeAmount = computeApplicationFeeCents(
-          Math.round(total * 100), // total is in currency units
+          Math.round(total * 100), // currency units → cents
+          Math.round(tipAmt * 100),
           restaurant.currency || "usd",
           commissionBps,
         );
@@ -1699,7 +1762,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: parsed.data.payment_method || undefined,
         tableNumber: table_name || undefined,
         notes: parsed.data.notes || null,
-        includeUtensils: body.include_utensils !== false,
+        includeUtensils: utensilsRequested(body.include_utensils),
         customerToken: custToken,
         total,
         items: notifItems,

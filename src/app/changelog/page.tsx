@@ -37,6 +37,71 @@ interface Release {
 
 const releases: Release[] = [
   {
+    version: "2.10",
+    dateEs: "Noviembre 2026",
+    dateEn: "November 2026",
+    badgeEs: "Nuevo",
+    badgeEn: "New",
+    badgeColor: "bg-emerald-500",
+    highlightsEs: [
+      "Counter rediseñado",
+      "Checkout y seguimiento nuevos",
+      "Pro pasa a $149/mes",
+    ],
+    highlightsEn: [
+      "Redesigned Counter",
+      "New checkout and order tracking",
+      "Pro is now $149/mo",
+    ],
+    changes: [
+      {
+        type: "new",
+        es: "Counter rediseñado: modo claro u oscuro, 4 sonidos a elegir, la alerta de pedido nuevo suena hasta que lo aceptas o lo rechazas, y las fotos se ven sin salir de la app.",
+        en: "Redesigned Counter: light or dark mode, 4 sounds to choose from, the new-order alert rings until you accept or reject, and photos open without leaving the app.",
+      },
+      {
+        type: "new",
+        es: "Pickups sin recoger: la tarjeta cambia de color con el tiempo, opción \"No vino\" con deshacer y un recordatorio al cliente a los 20 minutos.",
+        en: "Uncollected pickups: the card changes color over time, a \"No-show\" option with undo, and a reminder to the customer after 20 minutes.",
+      },
+      {
+        type: "new",
+        es: "Marca a los clientes que no reciben o no pagan; el Counter te avisa cuando vuelven a pedir.",
+        en: "Flag customers who don't pick up or don't pay; the Counter warns you when they order again.",
+      },
+      {
+        type: "new",
+        es: "Los pedidos que nadie acepta en 15 minutos se cancelan solos, y los que quedaron olvidados se cierran.",
+        en: "Orders nobody accepts within 15 minutes are cancelled automatically, and forgotten ones are closed.",
+      },
+      {
+        type: "improved",
+        es: "Checkout nuevo: total arriba, propina en dólares redondos, email opcional, cubiertos solo si el cliente los pide y aviso de cerrado o pausado antes de confirmar.",
+        en: "New checkout: total at the top, tips in round dollars, optional email, utensils only when the customer asks, and a closed/paused notice before confirming.",
+      },
+      {
+        type: "improved",
+        es: "Seguimiento del pedido nuevo, con el color del restaurante; los emails usan el mismo estilo.",
+        en: "New order tracking page in the restaurant's color; emails use the same style.",
+      },
+      {
+        type: "improved",
+        es: "Menú: navegación en una sola hoja con Populares, grilla o lista por categoría, ficha de plato más clara, horario visible, información del restaurante, reseñas e íconos de dieta.",
+        en: "Menu: one-sheet navigation with Popular, grid or list per category, a clearer dish page, visible hours, restaurant info, reviews and diet icons.",
+      },
+      {
+        type: "improved",
+        es: "El link de tu tienda se comparte en WhatsApp con foto, nombre y \"Order online\".",
+        en: "Your store link shares on WhatsApp with a photo, name and \"Order online\".",
+      },
+      {
+        type: "improved",
+        es: "Plan Pro: ahora $149/mes o $1,490/año, con 0% de comisión de MENIUS por pedido.",
+        en: "Pro plan: now $149/mo or $1,490/yr, with 0% MENIUS commission per order.",
+      },
+    ],
+  },
+  {
     version: "2.9",
     dateEs: "Noviembre 2026",
     dateEn: "November 2026",

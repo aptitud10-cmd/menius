@@ -395,6 +395,11 @@ export async function updateCategory(id: string, data: CategoryInput) {
     payload.available_to = data.available_to || null;
   if (data.send_to_kitchen !== undefined)
     payload.send_to_kitchen = data.send_to_kitchen;
+  if (data.display_mode !== undefined) {
+    if (data.display_mode !== null && data.display_mode !== "grid" && data.display_mode !== "list")
+      return { error: "Formato inválido" };
+    payload.display_mode = data.display_mode;
+  }
 
   const { error } = await supabase
     .from("categories")
@@ -1985,7 +1990,7 @@ export async function updateOrderStatus(
   } else if (status === "cancelled" && cancellationReason) {
     updatePayload.cancellation_reason = cancellationReason;
   }
-  // Record when the order entered 'preparing' so cron/auto-complete-pickup
+  // Record when the order entered 'preparing' so cron/order-timeouts
   // measures elapsed time independently of other row updates (ETA edits, etc.)
   if (status === "preparing") {
     updatePayload.prepared_at = new Date().toISOString();

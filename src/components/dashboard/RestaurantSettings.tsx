@@ -11,6 +11,7 @@ import type { Restaurant } from '@/types';
 import { PhoneField } from '@/components/ui/PhoneField';
 import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import { normalizeBrandColor, trackerBrand } from '@/lib/tracker-brand';
 
 const DAYS = [
   { key: 'monday' },
@@ -80,6 +81,30 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
   const [logoUrl, setLogoUrl] = useState(initialData.logo_url ?? '');
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  // Color del seguimiento: se guarda solo (no viaja con "Guardar" para no
+  // romper el resto de la configuración si la columna aún no existe).
+  const [brandColor, setBrandColor] = useState<string>(normalizeBrandColor(initialData.brand_color) ?? '');
+  const [brandSaving, setBrandSaving] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const brandSavedRef = useRef<string>(brandColor);
+  useEffect(() => {
+    if (brandColor === brandSavedRef.current) return;
+    // El selector manda un valor por cada movimiento: se guarda al quedarse quieto.
+    const id = setTimeout(async () => {
+      setBrandSaving('saving');
+      try {
+        const res = await fetch('/api/tenant/restaurant', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brand_color: brandColor || null }),
+        });
+        if (res.ok) brandSavedRef.current = brandColor;
+        setBrandSaving(res.ok ? 'saved' : 'error');
+      } catch {
+        setBrandSaving('error');
+      }
+    }, 700);
+    return () => clearTimeout(id);
+  }, [brandColor]);
   const logoRef = useRef<HTMLInputElement>(null);
 
   const [coverUrl, setCoverUrl] = useState(initialData.cover_image_url ?? '');
@@ -452,6 +477,57 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             )}
           </div>
         </div>
+      </div>
+
+      {/* Color del restaurante (seguimiento del pedido) */}
+      <div id="brand-color" className="bg-white rounded-2xl border border-gray-200 p-5 scroll-mt-20">
+        <h2 className="font-semibold text-sm text-gray-900 mb-1">
+          {locale === 'en' ? 'Restaurant color' : 'Color del restaurante'}
+        </h2>
+        <p className="text-xs text-gray-500 mb-4">
+          {locale === 'en'
+            ? 'Used on the order tracking page your customers see (progress, map, pickup code). Buttons stay MENIUS green.'
+            : 'Se usa en la página de seguimiento que ve tu cliente (avance del pedido, mapa, código para recoger). Los botones siguen en verde MENIUS.'}
+        </p>
+        {(() => {
+          const preview = trackerBrand(brandColor || null);
+          return (
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="relative w-11 h-11 rounded-full overflow-hidden border border-gray-200 cursor-pointer flex-shrink-0" style={{ background: brandColor || '#ffffff' }}>
+                <span className="sr-only">{locale === 'en' ? 'Pick a color' : 'Elegir color'}</span>
+                <input
+                  type="color"
+                  value={brandColor || '#1d1d1f'}
+                  onChange={(e) => { setBrandColor(normalizeBrandColor(e.target.value) ?? ''); setBrandSaving('idle'); }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </label>
+              <span className="text-sm font-mono text-gray-700 tabular-nums">{brandColor || (locale === 'en' ? 'No color' : 'Sin color')}</span>
+              {/* Vista previa: así se ve un paso hecho y el código del mostrador */}
+              <span className="inline-flex items-center gap-2 rounded-full px-3 h-8 text-xs font-semibold" style={{ background: preview.brand, color: preview.ink }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12.5l4.2 4.2L19 7" /></svg>
+                #042
+              </span>
+              {brandColor && (
+                <button
+                  type="button"
+                  onClick={() => { setBrandColor(''); setBrandSaving('idle'); }}
+                  className="px-3 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  {t.settings_remove}
+                </button>
+              )}
+              <span className="text-xs text-gray-500 basis-full" role="status">
+                {brandSaving === 'saving' ? (locale === 'en' ? 'Saving…' : 'Guardando…')
+                  : brandSaving === 'saved' ? (locale === 'en' ? 'Saved' : 'Guardado')
+                  : brandSaving === 'error' ? (locale === 'en' ? "Couldn't save. Try again." : 'No se pudo guardar. Intenta de nuevo.')
+                  : brandColor && preview.fallback
+                    ? (locale === 'en' ? "This color is too light to read on white: we'll use dark gray instead." : 'Este color es muy claro para leerse sobre blanco: usaremos gris oscuro.')
+                    : ''}
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Cover / Banner */}

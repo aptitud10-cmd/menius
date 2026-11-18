@@ -62,11 +62,11 @@ describe('customer emails', () => {
     expect(e.html).toContain('Paid online');
   });
 
-  it('eta email uses the clock time in the restaurant timezone', () => {
-    const e = buildEtaEmail(base, { readyAtMs: T0 + 14 * 60_000 });
-    expect(e.subject).toBe('Ready around 12:45 PM — order #014');
-    const upd = buildEtaEmail(base, { readyAtMs: T0 + 24 * 60_000, isUpdate: true });
-    expect(upd.subject).toBe('New pickup time: 12:55 PM — order #014');
+  it('pickup eta uses the same 10-minute window as the tracker, in the restaurant timezone', () => {
+    const e = buildEtaEmail(base, { readyAtMs: T0 + 14 * 60_000 }); // 12:45 PM NY
+    expect(e.subject).toBe('Ready 12:40–12:50 PM — order #014');
+    const upd = buildEtaEmail(base, { readyAtMs: T0 + 24 * 60_000, isUpdate: true }); // 12:55 PM
+    expect(upd.subject).toBe('New pickup time: 12:50–1:00 PM — order #014');
   });
 
   it('delivery eta and on-the-way use a 10-minute window', () => {
@@ -93,6 +93,8 @@ describe('customer emails', () => {
     const e = buildReadyEmail(base);
     expect(e.subject).toBe('Your order #014 is ready — Buccaneer Diner');
     expect(e.html).toContain('Show this number at the counter.');
+    // Number + first name, like the tracker and the counter.
+    expect(e.html).toMatch(/#014 · [A-Z]/);
   });
 
   it('cancelled email shows the reason and the refund only when refunded', () => {

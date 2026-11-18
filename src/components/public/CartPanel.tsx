@@ -3,14 +3,15 @@
 import Image from 'next/image';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock, RotateCcw, X } from 'lucide-react';
+import { Minus, Plus, Pencil, Trash2, Clock, RotateCcw, X, Banknote } from 'lucide-react';
 import { estimateMinutes, type EtaRestaurant } from '@/lib/orders/eta';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import { showsAsRow } from '@/lib/product-display';
+import { ProductGlyph } from './ProductGlyph';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
 import type { Translations } from '@/lib/translations';
-import type { Product, CartItem } from '@/types';
+import type { Product, CartItem, OrderType } from '@/types';
 
 // How long the "Removed · Undo" toast stays actionable.
 const UNDO_WINDOW_MS = 5000;
@@ -34,6 +35,9 @@ interface CartPanelProps {
   estimatedMinutes?: number;
   /** Datos para calcular el tiempo del carrito (plato más lento + viaje). */
   etaRestaurant?: EtaRestaurant;
+  /** "Closed now · Opens tomorrow at 7 AM" / "Online ordering is paused": shown
+   *  instead of the wait, which would promise a time the kitchen can't keep. */
+  storeNotice?: string | null;
   deliveryFee?: number;
   /** El impuesto se suma recién en el checkout (tax_rate > 0 y no incluido):
    *  el carrito dice "Subtotal" + "+ tax at checkout" en vez de un "Total"
@@ -48,6 +52,13 @@ interface CartPanelProps {
   suggestions?: Product[];
   onSuggestionAdd?: (product: Product) => void;
   loyaltyData?: { points: number; config: { min_redeem_points: number; peso_per_point: number } | null } | null;
+  /** Pickup / delivery the restaurant takes (dine-in excluded). With two or
+   *  more, the empty cart lets the diner pick one up front. */
+  orderTypes?: OrderType[];
+  /** Sin tarjeta habilitada: se avisa aquí, antes del checkout, para que quien
+   *  solo tiene tarjeta no lo descubra al final (Baymard: falta del método
+   *  preferido = abandono). */
+  cashOnly?: boolean;
 }
 
 // ── Swipeable cart item ──────────────────────────────────────────────────────
@@ -92,6 +103,7 @@ export function CartPanel({
   onClose,
   estimatedMinutes,
   etaRestaurant,
+  storeNotice = null,
   deliveryFee,
   taxPending = false,
   lastOrder,
@@ -101,6 +113,8 @@ export function CartPanel({
   suggestions,
   onSuggestionAdd,
   loyaltyData,
+  orderTypes = [],
+  cashOnly = false,
 }: CartPanelProps) {
   const items = useCartStore((s) => s.items);
   const updateQty = useCartStore((s) => s.updateQty);
@@ -108,6 +122,8 @@ export function CartPanel({
   const clearCart = useCartStore((s) => s.clearCart);
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const orderType = useCartStore((s) => s.selectedOrderType);
+  const setOrderType = useCartStore((s) => s.setSelectedOrderType);
+  const tableName = useCartStore((s) => s.tableName);
   const reorderSkipped = useCartStore((s) => s.reorderSkipped);
   const reorderUnavailable = useCartStore((s) => s.reorderUnavailable);
   // Mismo cálculo que el checkout: con tiempos por plato, el del plato más
@@ -286,12 +302,52 @@ export function CartPanel({
       <div className="relative flex flex-col h-full px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
         {/* Removing the last line lands here — keep Undo reachable. */}
         {renderUndoToast('max(0.75rem, env(safe-area-inset-bottom))')}
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-4">
-            <ShoppingCart className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
-          </div>
-          <p className="font-semibold text-gray-700 text-sm mb-1">{t.cartEmpty}</p>
-          <p className="text-xs text-center text-gray-500 leading-relaxed max-w-[200px]">{t.cartEmptyDesc}</p>
+        {/* The empty column used to be 340px saying only "Your cart is
+            empty". Now it answers what a diner wants before choosing: pickup
+            or delivery (picked here, it is preselected at checkout through
+            the cart store), how long it takes, and what to do next. */}
+        <div className="flex flex-col mb-6">
+          <h2 className="text-[17px] font-semibold text-gray-900">{t.yourOrder}</h2>
+          {!tableName && orderTypes.length > 1 && (
+            <div
+              role="radiogroup"
+              aria-label={t.yourOrder}
+              className="mt-3 grid grid-cols-2 gap-1 p-1 rounded-full bg-gray-100"
+            >
+              {orderTypes.map((type) => {
+                const active = (orderType ?? orderTypes[0]) === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setOrderType(type)}
+                    className={cn(
+                      'min-h-[40px] rounded-full text-[14px] transition-colors',
+                      active
+                        ? 'bg-white text-gray-900 font-semibold shadow-sm'
+                        : 'text-gray-700 font-medium hover:bg-white/60',
+                    )}
+                  >
+                    {type === 'delivery' ? t.delivery : t.pickup}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {storeNotice ? (
+            <p className="mt-3 inline-flex items-start gap-1.5 text-[14px] font-medium text-[#7a4d00]">
+              <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+              {storeNotice}
+            </p>
+          ) : etaMinutes != null && etaMinutes > 0 && (
+            <p className="mt-3 inline-flex items-center gap-1.5 text-[14px] text-gray-700">
+              <Clock className="w-4 h-4 text-gray-600" aria-hidden="true" />
+              {t.readyInApprox} {etaMinutes} min
+            </p>
+          )}
+          <p className="mt-4 text-[14px] text-gray-600 leading-relaxed">{t.cartEmptyDesc}</p>
 
           {/* Reorder — only shown if there's a previous order from this restaurant */}
           {lastOrder && lastOrder.items.length > 0 && onReorder && (
@@ -319,7 +375,7 @@ export function CartPanel({
         {/* Popular suggestions in empty cart */}
         {emptySuggestions.length > 0 && onSuggestionAdd && (
           <div className="mt-auto pt-4 border-t border-gray-100">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            <p className="text-[14px] font-semibold text-gray-900 mb-3">
               {t.popularItems}
             </p>
             <div className="flex flex-col gap-2">
@@ -329,14 +385,16 @@ export function CartPanel({
                   onClick={() => onSuggestionAdd(p)}
                   className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white shadow-sm p-2.5 active:scale-[0.98] transition-transform text-left"
                 >
-                  {!showsAsRow(p) && p.image_url && (
+                  {!showsAsRow(p) && p.image_url ? (
                     <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       <Image src={p.image_url} alt={p.name} fill sizes="48px" className="object-cover" />
                     </div>
+                  ) : (
+                    <ProductGlyph name={p.name} className="w-12 h-12 rounded-lg" iconClassName="w-5 h-5" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-gray-800 line-clamp-1">{p.name}</p>
-                    <p className="text-[11px] font-bold text-[#047a65] tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
+                    <p className="text-[14px] font-medium text-gray-900 line-clamp-1">{p.name}</p>
+                    <p className="text-[13px] text-gray-700 tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
                   </div>
                   <div className="w-7 h-7 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
                     <Plus className="w-4 h-4 text-[#04241E]" />
@@ -354,20 +412,22 @@ export function CartPanel({
   return (
     <div className="flex flex-col h-full">
 
-      {/* ── Header: drag pill + item count + clear + close ── */}
+      {/* ── Header: "Your order" + item count + clear + close ──
+          Same title as the empty cart, so the panel never loses its name
+          (a grey "1 item" pill alone read as a tag, not a heading). */}
       <div className="px-4 pt-2 pb-2 flex-shrink-0">
         <div className="flex items-center gap-2">
-          {/* Item count pill */}
-          <div className="flex-1 flex justify-start">
+          <div className="flex-1 flex items-baseline gap-2 min-w-0">
+            <span className="text-[17px] font-semibold text-gray-900">{t.yourOrder}</span>
             {(() => {
               const totalQty = items.reduce((s, i) => s + i.qty, 0);
               return (
                 <motion.span
                   key={totalQty}
-                  initial={{ scale: 1.4 }}
+                  initial={{ scale: 1.25 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold inline-block"
+                  className="text-[14px] text-gray-600 tabular-nums inline-block"
                 >
                   {totalQty} {totalQty === 1 ? t.itemSingular : t.items}
                 </motion.span>
@@ -380,10 +440,10 @@ export function CartPanel({
             title={t.clearCart}
             aria-label={t.clearCart}
             className={cn(
-              'p-2 rounded-lg transition-all duration-150',
+              'w-10 h-10 flex items-center justify-center rounded-full transition-all duration-150',
               clearStep === 1
-                ? 'bg-red-50 text-red-500'
-                : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+                ? 'bg-red-50 text-red-600'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             )}
           >
             <Trash2 className="w-4 h-4" />
@@ -392,10 +452,10 @@ export function CartPanel({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
+              className="w-10 h-10 flex items-center justify-center rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-150"
               aria-label={t.closeCart}
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           )}
         </div>
@@ -455,10 +515,9 @@ export function CartPanel({
                     className="flex gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer active:bg-gray-50 transition-colors"
                     onClick={() => onEdit(idx)}
                   >
-                    {/* Thumbnail — omitted entirely for row-display products.
-                        A greyed-out plate icon next to real photos reads as a
-                        failed image; the line simply starts at the name instead. */}
-                    {!showsAsRow(item.product) && item.product.image_url && (
+                    {/* Thumbnail. Without a photo, a tinted tile with an icon:
+                        text alone made a cart of rolls and coffees look empty. */}
+                    {!showsAsRow(item.product) && item.product.image_url ? (
                       <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
                         <Image
                           src={item.product.image_url}
@@ -469,6 +528,8 @@ export function CartPanel({
                           onLoad={(e) => markImageLoaded(imgKey, e.currentTarget)}
                         />
                       </div>
+                    ) : (
+                      <ProductGlyph name={item.product.name} className="w-14 h-14 rounded-xl" />
                     )}
 
                     <div className="flex-1 min-w-0">
@@ -476,15 +537,15 @@ export function CartPanel({
                           opción con su recargo debajo (Pedro 2026-11-13); el total queda abajo. */}
                       <div className="flex items-start justify-between gap-1">
                         <div className="min-w-0">
-                          <h4 className="font-semibold text-sm text-gray-900 truncate leading-tight">{itemName}</h4>
+                          <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 leading-tight">{itemName}</h4>
                         </div>
                         {modLines.length > 0 && (
                           <span className="flex-shrink-0 text-sm font-semibold text-gray-900 tabular-nums leading-tight">
                             {fmtPrice(Number(item.product.price) + Number(item.variant?.price_delta ?? 0) + titlePrice)}
                           </span>
                         )}
-                        <div className="flex-shrink-0 p-1.5 -mt-1 text-gray-300" aria-hidden>
-                          <Pencil className="w-3 h-3" />
+                        <div className="flex-shrink-0 p-1.5 -mt-1 text-gray-500" aria-hidden>
+                          <Pencil className="w-3.5 h-3.5" />
                         </div>
                       </div>
 
@@ -501,7 +562,7 @@ export function CartPanel({
                           {modLines.map((line, k) => (
                             <p key={k} className={cn('basis-full flex justify-between gap-2 text-xs leading-relaxed text-gray-600', line.indent && 'pl-3')}>
                               <span className="min-w-0">{line.indent && <span className="text-gray-300">↳ </span>}{line.text}</span>
-                              {line.price > 0 && <span className="flex-shrink-0 text-gray-400 tabular-nums">+{fmtPrice(line.price)}</span>}
+                              {line.price > 0 && <span className="flex-shrink-0 text-gray-500 tabular-nums">+{fmtPrice(line.price)}</span>}
                             </p>
                           ))}
                           {(item.modifierSelections ?? []).length === 0 && item.extras.map(e => (
@@ -549,7 +610,7 @@ export function CartPanel({
                           </span>
                           <button
                             onClick={(e) => { e.stopPropagation(); removeWithUndo(idx); }}
-                            className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
                             aria-label={`${t.removeItem} ${item.product.name}`}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -608,9 +669,14 @@ export function CartPanel({
 
       {/* ── Footer: breakdown + checkout ── */}
       <div className="border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">
-        {!!etaMinutes && etaMinutes > 0 && (
-          <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-2">
-            <Clock className="w-3.5 h-3.5" />
+        {storeNotice ? (
+          <div className="flex items-start gap-1.5 text-[13px] font-medium text-[#7a4d00] mb-2">
+            <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <span>{storeNotice}</span>
+          </div>
+        ) : !!etaMinutes && etaMinutes > 0 && (
+          <div className="flex items-center gap-1.5 text-[13px] text-gray-600 mb-2">
+            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
             <span>~{etaMinutes} min</span>
           </div>
         )}
@@ -642,11 +708,6 @@ export function CartPanel({
                 </motion.span>
               </AnimatePresence>
             </div>
-            {deliveryFee > 0 && (
-              <p className="text-[11px] text-gray-400 mt-1 text-right">
-                {t.deliveryIfSelected}: +{fmtPrice(deliveryFee)}
-              </p>
-            )}
           </div>
         ) : (
           <div className="flex justify-between items-baseline mb-3">
@@ -665,8 +726,25 @@ export function CartPanel({
             </AnimatePresence>
           </div>
         )}
-        {taxPending && (
-          <p className="-mt-2 mb-3 text-[11px] text-gray-400 text-right">{t.taxAtCheckout}</p>
+        {/* Letra chica del pie en un solo bloque: mismo tamaño, misma alineación
+            (antes eran líneas de 11 y 12 px, unas a la derecha y otras a la izquierda). */}
+        {((deliveryFee ?? 0) > 0 || taxPending || cashOnly) && (
+          <div className="-mt-1.5 mb-3 grid gap-1 text-[13px] leading-snug text-gray-600">
+            {((deliveryFee ?? 0) > 0 || taxPending) && (
+              <p>
+                {[
+                  (deliveryFee ?? 0) > 0 ? `${t.deliveryIfSelected}: +${fmtPrice(deliveryFee ?? 0)}` : null,
+                  taxPending ? t.taxAtCheckout : null,
+                ].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            {cashOnly && (
+              <p className="flex items-center gap-1.5">
+                <Banknote className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                {t.cartCashOnly}
+              </p>
+            )}
+          </div>
         )}
         <motion.button
           onClick={onCheckout}

@@ -34,6 +34,9 @@ export interface MenuHeaderProps {
   hasCover?: boolean;
   locale?: string;
   loyaltyPoints?: number | null;
+  /** Menu languages (2+ shows the switch) and how to change it. */
+  languages?: string[];
+  onLocaleChange?: (code: string) => void;
 }
 
 /** Utility shared by both mobile and desktop sub-components */

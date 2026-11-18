@@ -107,7 +107,7 @@ function ContentEs() {
       <h3>4.1 Planes de Suscripción</h3>
       <p>
         MENIUS ofrece dos planes: el plan <strong>Free</strong> ($0, gratuito
-        y permanente) y el plan <strong>Pro</strong> ($79 USD al mes o $790 USD
+        y permanente) y el plan <strong>Pro</strong> ($149 USD al mes o $1,490 USD
         al año). Los detalles de cada plan, incluyendo funciones y límites,
         están disponibles en nuestra{" "}
         <a href="/#precios">página de precios</a>. Nos reservamos el derecho de
@@ -470,7 +470,7 @@ function ContentEn() {
       <h3>4.1 Subscription Plans</h3>
       <p>
         MENIUS offers two plans: the <strong>Free</strong> plan ($0, free and
-        permanent) and the <strong>Pro</strong> plan ($79 USD per month or $790
+        permanent) and the <strong>Pro</strong> plan ($149 USD per month or $1,490
         USD per year). Details of each plan, including features and limits,
         are available on our <a href="/#precios">pricing page</a>. We reserve
         the right to modify prices with 30 days&apos; prior notice.
@@ -732,12 +732,12 @@ function getHero(locale: LandingLocale) {
     return {
       badge: "Legal",
       title: "Terms & Conditions",
-      date: "Last updated: November 4, 2026",
+      date: "Last updated: November 17, 2026",
     };
   return {
     badge: "Legal",
     title: "Términos y Condiciones",
-    date: "Última actualización: 4 de noviembre de 2026",
+    date: "Última actualización: 17 de noviembre de 2026",
   };
 }
 

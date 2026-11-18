@@ -86,3 +86,17 @@ function fmtOne(totalMin: number, en: boolean): string {
   const r = fmt(totalMin, en);
   return r.ampm ? `${r.text} ${r.ampm}` : r.text;
 }
+
+/** A single time of day as the diner reads it: "7 AM", "7:30 PM" / "7:00", "19:30". */
+export function clockLabel(totalMin: number, locale: string | undefined): string {
+  return fmtOne(totalMin, !(locale ?? 'en').startsWith('es'));
+}
+
+/**
+ * A day's opening hours as the diner reads them: "7 AM–10 PM" in English,
+ * "7:00–22:00" in Spanish. The menu printed the raw "07:00 – 22:00" from the
+ * database, which an American diner has to convert in their head.
+ */
+export function hoursRangeLabel(open: string, close: string, locale: string | undefined): string {
+  return optionHoursLabel({ available_from: open, available_until: close }, locale) ?? `${open} – ${close}`;
+}

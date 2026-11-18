@@ -151,8 +151,12 @@ const t = {
         a: "Sí. Si no estás satisfecho con el setup, te devolvemos el 100% de tu dinero. Sin preguntas ni letras pequeñas.",
       },
       {
+        q: "¿Tengo que comprar equipo?",
+        a: "No es obligatorio: MENIUS funciona en cualquier tablet, celular o computadora. Si quieres una tablet para el mostrador y una impresora de tickets, te las conseguimos al costo, sin ganancia para nosotros, y son tuyas. Para imprimir tickets se usa una tablet Android con la app MENIUS Counter.",
+      },
+      {
         q: "¿Necesito una suscripción mensual también?",
-        a: "Sí, el servicio de setup es adicional a tu suscripción de MENIUS (plan Pro, $79/mes o $790/año). El setup es un pago único que cubre la configuración inicial completa.",
+        a: "Sí, el servicio de setup es adicional a tu suscripción de MENIUS (plan Pro, $149/mes o $1,490/año). El setup es un pago único que cubre la configuración inicial completa.",
       },
     ],
   },
@@ -287,8 +291,12 @@ const t = {
         a: "Yes. If you're not satisfied with the setup, we refund 100% of your money. No questions asked.",
       },
       {
+        q: "Do I need to buy equipment?",
+        a: "It's not required: MENIUS works on any tablet, phone or computer. If you want a counter tablet and a ticket printer, we get them for you at cost, with no markup, and they're yours. Ticket printing uses an Android tablet with the MENIUS Counter app.",
+      },
+      {
         q: "Do I need a monthly subscription too?",
-        a: "Yes, the setup service is in addition to your MENIUS subscription (Pro plan, $79/mo or $790/yr). The setup is a one-time payment that covers the full initial configuration.",
+        a: "Yes, the setup service is in addition to your MENIUS subscription (Pro plan, $149/mo or $1,490/yr). The setup is a one-time payment that covers the full initial configuration.",
       },
     ],
   },

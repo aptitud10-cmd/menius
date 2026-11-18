@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isOptionAvailableAt, optionHoursLabel, hasHours, normalizeHour } from '@/lib/option-hours';
+import { isOptionAvailableAt, optionHoursLabel, hasHours, normalizeHour, hoursRangeLabel } from '@/lib/option-hours';
 
 // Local clock: only getHours/getMinutes are read (see inTimeZone).
 const at = (h: number, m = 0) => new Date(2026, 10, 13, h, m);
@@ -61,5 +61,15 @@ describe('normalizeHour', () => {
     expect(normalizeHour('25:00')).toBeNull();
     expect(normalizeHour('11:75')).toBeNull();
     expect(normalizeHour("05:30'; drop table x")).toBeNull();
+  });
+});
+
+describe('hoursRangeLabel', () => {
+  it('12-hour clock in English, AM/PM once when both sides share it', () => {
+    expect(hoursRangeLabel('07:00', '22:00', 'en')).toBe('7 AM–10 PM');
+    expect(hoursRangeLabel('06:00', '11:30', 'en')).toBe('6–11:30 AM');
+  });
+  it('24-hour clock in Spanish', () => {
+    expect(hoursRangeLabel('07:00', '22:00', 'es')).toBe('7:00–22:00');
   });
 });

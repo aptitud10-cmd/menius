@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Loader2, ScanLine, X, AlertTriangle, UserRound } from 'lucide-react';
-import { C, money } from '@/components/orders/counter/ui';
+import { DRIVER_C as C, money } from '@/components/orders/counter/ui';
 import { MAX_ROUTE_ORDERS } from '@/lib/orders/driver-route';
 import { DriverTrackClient, queueStatusAction, type RouteCtx } from './DriverTrackClient';
 import { QrScanner } from './QrScanner';

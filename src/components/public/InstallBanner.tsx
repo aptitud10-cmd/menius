@@ -55,7 +55,11 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
     // On iOS there's no beforeinstallprompt — show manual hint instead
     if (isIOS() && !canInstall) {
       // Delay so the user has time to browse first
-      const timer = setTimeout(() => setIosHint(true), 8000);
+      // Both prompts sit on the bottom edge: if the "Repeat last order" pill
+      // is up, that one wins (this one would cover it).
+      const timer = setTimeout(() => {
+        if (!document.querySelector('[data-testid="repeat-order-btn"]')) setIosHint(true);
+      }, 8000);
       return () => clearTimeout(timer);
     }
   }, [DISMISS_KEY, canInstall, recurring]);
@@ -95,7 +99,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
               <p className="text-sm font-bold text-gray-900 truncate">
                 {t.installApp} {restaurantName}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-600 mt-0.5">
                 {t.installQuickAccess}
               </p>
             </div>
@@ -103,7 +107,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
             {/* Dismiss */}
             <button
               onClick={dismiss}
-              className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex-shrink-0 transition-colors"
+              className="w-11 h-11 -mr-2 -my-2 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 flex-shrink-0 transition-colors"
               aria-label={t.installClose}
             >
               <X className="w-4 h-4" />
@@ -134,15 +138,15 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
           <div className="flex items-start justify-between px-4 pt-4 pb-3 gap-3">
             <div className="flex-1">
               <p className="text-sm font-bold">
-                {t.installIosTitle} {restaurantName}
+                {t.installIosTitle}: {restaurantName}
               </p>
               <p className="text-xs text-gray-300 mt-1.5 leading-relaxed">
-                Toca <Share className="inline w-3.5 h-3.5 mx-0.5 align-middle" /> {t.installIosThen} <strong>{t.installIosAddToHome}</strong>
+                {t.installIosTap} <Share className="inline w-3.5 h-3.5 mx-0.5 align-middle" /> {t.installIosThen} <strong>{t.installIosAddToHome}</strong>
               </p>
             </div>
             <button
               onClick={dismiss}
-              className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-white flex-shrink-0 mt-0.5 transition-colors"
+              className="w-11 h-11 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-300 hover:text-white flex-shrink-0 transition-colors"
               aria-label={t.installClose}
             >
               <X className="w-4 h-4" />

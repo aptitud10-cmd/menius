@@ -137,6 +137,57 @@ export interface OrderTotals {
   total: number;
 }
 
+/**
+ * ¿El pedido puede llevar propina? Solo si se cobra con tarjeta (online / wallet).
+ * Si paga en efectivo, la propina la da en mano: meterla en el pedido hacía que
+ * el ticket y el repartidor cobraran una propina que el cliente no pensaba dar
+ * por ahí (Pedro, 2026-11-14). El checkout no la ofrece y /api/orders la ignora.
+ */
+export function tipAllowedFor(paymentMethod: string | null | undefined): boolean {
+  return paymentMethod === 'online' || paymentMethod === 'wallet';
+}
+
+export interface TipOption {
+  /** Monto en dólares enteros. */
+  amount: number;
+  /** % real que representa sobre el subtotal (redondeado, 0 si no hay subtotal). */
+  pct: number;
+}
+
+/**
+ * Los 3 botones de propina, en dólares redondos (la gente deja $1, $2, $4, $10;
+ * no $2.69). Subtotal < $10 → $1/$2/$3. Si no: A = ceil(10%), B = max(A+1,
+ * round(15%)), C = max(B+1, round(20%)). A ≥ 10% cumple el mínimo que pide NYC
+ * (LL 107/108 de 2025). Se calcula en centavos para que 10% de $30 no dé $4 por
+ * error de coma flotante.
+ */
+export function tipOptions(subtotal: number): TipOption[] {
+  const cents = Number.isFinite(subtotal) && subtotal > 0 ? Math.round(subtotal * 100) : 0;
+  let amounts: number[];
+  if (cents < 1000) {
+    amounts = [1, 2, 3];
+  } else {
+    const a = Math.ceil(cents / 1000);
+    const b = Math.max(a + 1, Math.round((cents * 15) / 10000));
+    const c = Math.max(b + 1, Math.round(cents / 500));
+    amounts = [a, b, c];
+  }
+  return amounts.map((amount) => ({
+    amount,
+    pct: cents > 0 ? Math.round((amount * 10000) / cents) : 0,
+  }));
+}
+
+/**
+ * Propina "Otra": el cliente escribe un monto o un %. Devuelve dólares con 2
+ * decimales, nunca negativa ni mayor al subtotal (el server la recorta igual).
+ */
+export function customTipAmount(value: number, mode: '$' | '%', subtotal: number): number {
+  if (!Number.isFinite(value) || value <= 0 || !Number.isFinite(subtotal) || subtotal <= 0) return 0;
+  const raw = mode === '%' ? (subtotal * value) / 100 : value;
+  return Math.round(Math.min(raw, subtotal) * 100) / 100;
+}
+
 export function computeOrderTotals(input: OrderTotalsInput): OrderTotals {
   const subtotal = input.items.reduce(
     (sum, i) => sum + i.unit_price * i.qty,
@@ -221,27 +272,46 @@ export function resolveCommission(
 export const STRIPE_US_CARD_FEE = { bps: 290, fixedCents: 30 } as const;
 
 /**
+ * Cubiertos, servilletas y salsas: solo si el cliente los pidió EXPLÍCITAMENTE.
+ * NYC "Skip the Stuff" (Local Law 17/2023) exige que el pedido online vaya sin
+ * ellos por defecto. Un campo ausente, null o cualquier cosa que no sea `true`
+ * cuenta como "no".
+ */
+export function utensilsRequested(value: unknown): boolean {
+  return value === true;
+}
+
+/**
  * Application fee de un pago online, en centavos.
- * - commission_plan (commissionBps > 0): el 4% acordado, sin procesamiento aparte.
- * - resto de planes en USD: el procesamiento de Stripe al costo (0% de MENIUS).
- * - otras monedas: 0 — la tarifa varía por país y no hay tabla todavía, así que
- *   MENIUS la sigue absorbiendo.
+ * `totalCents` es TODO lo cobrado (propina incluida); `tipCents` la parte que es propina.
+ * - Planes de suscripción en USD: el restaurante paga el procesamiento de Stripe
+ *   completo, al costo, propina incluida (2.9% + 30¢ sobre el total). MENIUS no
+ *   gana ni pierde. NY permite trasladar el costo proporcional de tarjeta de la
+ *   propina (12 NYCRR 146-2.20).
+ * - commission_plan (commissionBps > 0): la comisión se calcula SOLO sobre lo que
+ *   no es propina (Labor Law §196-d: nadie puede quedarse parte de la propina);
+ *   sobre la propina se traslada solo el % de procesamiento, al costo.
+ * - otras monedas: 0 — la tarifa varía por país y no hay tabla todavía.
  */
 export function computeApplicationFeeCents(
-  amountCents: number,
+  totalCents: number,
+  tipCents: number,
   currency: string,
   commissionBps: number,
 ): number {
-  if (amountCents <= 0) return 0;
+  if (totalCents <= 0) return 0;
+  const tip = Number.isFinite(tipCents) && tipCents > 0 ? Math.min(tipCents, totalCents) : 0;
   let fee = 0;
   if (commissionBps > 0) {
-    fee = Math.round((amountCents * commissionBps) / 10000);
+    fee =
+      Math.round(((totalCents - tip) * commissionBps) / 10000) +
+      Math.round((tip * STRIPE_US_CARD_FEE.bps) / 10000);
   } else if (currency.toLowerCase() === "usd") {
     fee =
-      Math.round((amountCents * STRIPE_US_CARD_FEE.bps) / 10000) +
+      Math.round((totalCents * STRIPE_US_CARD_FEE.bps) / 10000) +
       STRIPE_US_CARD_FEE.fixedCents;
   }
-  return Math.min(fee, amountCents);
+  return Math.min(fee, totalCents);
 }
 
 /**

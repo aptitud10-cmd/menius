@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { CheckCircle2, Check, Clock, Bell, XCircle, ArrowLeft, Star, Utensils, ShoppingBag, Truck, CreditCard, Banknote, Phone } from 'lucide-react';
+import { CheckCircle2, Check, Clock, Bell, XCircle, ArrowLeft, Star, Utensils, ShoppingBag, Truck, CreditCard, Banknote, Phone, MapPin, ChevronRight, RotateCw } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { readPendingPayment, clearPendingPayment } from '@/lib/pending-payment';
 import Link from 'next/link';
@@ -14,41 +14,48 @@ import { isAwaitingOnlinePayment } from '@/lib/order-state';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import ShareReceiptButton from './ShareReceiptButton';
 import { shortOrderNumber } from '@/lib/orders/short-number';
+import { trackerBrand } from '@/lib/tracker-brand';
+import { formatPhoneNumber, formatPhoneNumberIntl } from 'react-phone-number-input';
+import { NOT_ACCEPTED_MINS } from '@/lib/orders/order-timeouts';
 
-// Paleta del seguimiento = la de los emails al cliente, con modo oscuro
-// automático (prefers-color-scheme). Los valores claros son los del Counter.
+// Datos "de máquina" (n.º de pedido, horas de los pasos, "Actualizado…") van
+// en Inter con cifras tabulares: la DM Mono con cero tachado se leía como una
+// terminal ("#Ø42", "Updated Ø s ago"). --tk-mono queda como alias de la fuente.
+
+const phoneText = (p: string) => formatPhoneNumber(p) || formatPhoneNumberIntl(p) || p;
+
+// Paleta del seguimiento = la del checkout, SIEMPRE clara (el menú y el
+// checkout son claros: pasar a oscuro al llegar acá se sentía otra app).
+// --brand* = color del restaurante (estado del pedido); --accent = verde MENIUS
+// (lo que se toca). Los --tk-* quedan como alias para DeliveryMap.
 const K = {
   surface: 'var(--tk-surface)', card: 'var(--tk-card)', line: 'var(--tk-line)',
   ink: 'var(--tk-ink)', sub: 'var(--tk-sub)', faint: 'var(--tk-faint)',
   btn: 'var(--tk-btn)', btnFg: 'var(--tk-btn-fg)',
   green: 'var(--tk-green)', greenInk: 'var(--tk-green-ink)', greenDeep: 'var(--tk-green-deep)', greenSoft: 'var(--tk-green-soft)',
-  violet: 'var(--tk-violet)', violetSoft: 'var(--tk-violet-soft)',
-  orange: 'var(--tk-orange)', orangeSoft: 'var(--tk-orange-soft)', amber: 'var(--tk-amber)',
+  amber: 'var(--tk-amber)', amberSoft: 'var(--tk-amber-soft)',
   red: 'var(--tk-red)', redSoft: 'var(--tk-red-soft)',
-  noteBg: 'var(--tk-note-bg)', noteFg: 'var(--tk-note-fg)',
-  inkLabel: 'var(--tk-ink-label)', inkSub: 'var(--tk-ink-sub)', header: 'var(--tk-header)',
+  brand: 'var(--brand)', brandInk: 'var(--brand-ink)', brandSoft: 'var(--brand-soft)',
+  surface2: 'var(--tk-surface-2)', shadow: 'var(--tk-shadow)', mono: 'var(--tk-mono)',
 } as const;
 const TRACKER_CSS = `
-.mt-root{--tk-surface:#F2F4F3;--tk-card:#FFFFFE;--tk-line:#E1E6E3;--tk-ink:#0E1412;--tk-sub:#55605C;--tk-faint:#7A8580;
---tk-btn:#111816;--tk-btn-fg:#FFFFFE;--tk-green:#05C8A7;--tk-green-ink:#04241E;--tk-green-deep:#047A67;--tk-green-soft:#DFF7F1;
---tk-violet:#6D28D9;--tk-violet-soft:#F1E8FF;--tk-orange:#B54708;--tk-orange-soft:#FFF1E0;--tk-amber:#B45309;
---tk-red:#C81E1E;--tk-red-soft:#FDE8E8;--tk-note-bg:#FFF8E6;--tk-note-fg:#6B4A00;--tk-ink-label:#7FE3CF;--tk-ink-sub:#B7C2BE;
---tk-header:rgba(242,244,243,0.92);color-scheme:light}
-@media (prefers-color-scheme: dark){.mt-root{--tk-surface:#0B0F0E;--tk-card:#161B19;--tk-line:#2A322F;--tk-ink:#F1F4F2;--tk-sub:#A3ADA9;--tk-faint:#7F8A86;
---tk-btn:#F1F4F2;--tk-btn-fg:#0E1412;--tk-green-deep:#5BE3C9;--tk-green-soft:#12302A;
---tk-violet:#B9A4FF;--tk-violet-soft:#241D3D;--tk-orange:#FFB46B;--tk-orange-soft:#3A2410;--tk-amber:#FBBF5B;
---tk-red:#FF9B91;--tk-red-soft:#3A1717;--tk-note-bg:#3A2F12;--tk-note-fg:#FFD98A;--tk-ink-label:#047A67;--tk-ink-sub:#55605C;
---tk-header:rgba(11,15,14,0.88);color-scheme:dark}}
-.mt-root .bg-white{background-color:var(--tk-card)}
+.mt-root{--tk-surface:#F2F2F6;--tk-card:#FFFFFF;--tk-surface-2:#F5F5F8;--tk-line:rgba(17,17,20,.09);--tk-ink:#111114;--tk-sub:#4F4F57;--tk-faint:#6B6B74;
+--tk-btn:#05C8A7;--tk-btn-fg:#04241E;--tk-green:#05C8A7;--tk-green-ink:#04241E;--tk-green-deep:#047A65;--tk-green-soft:#E2F7F3;
+--tk-amber:#8A5100;--tk-amber-soft:#FFF4DC;--tk-red:#C4321B;--tk-red-soft:#FDECEA;
+--tk-shadow:0 1px 2px rgba(17,17,20,.04),0 8px 24px rgba(17,17,20,.06);
+--tk-mono:inherit;color-scheme:light}
+.mt-root .mt-ok circle{fill:var(--brand)}
+.mt-root .mt-ok path{fill:none;stroke:var(--brand-ink);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.mt-root .mt-ok.draw circle{animation:mtPop .45s cubic-bezier(.32,.72,0,1) both;transform-origin:center}
+.mt-root .mt-ok.draw path{stroke-dasharray:30;stroke-dashoffset:30;animation:mtDraw .5s .18s cubic-bezier(.32,.72,0,1) forwards}
+@keyframes mtDraw{to{stroke-dashoffset:0}}
+@keyframes mtPop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.mt-root .mt-now::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--brand);opacity:.35;animation:mtRing 1.8s ease-out 2}
+@keyframes mtRing{from{transform:scale(.7);opacity:.5}to{transform:scale(1.25);opacity:0}}
+@media (prefers-reduced-motion: reduce){.mt-root .mt-ok.draw circle,.mt-root .mt-ok.draw path,.mt-root .mt-now::after{animation:none}.mt-root .mt-ok.draw path{stroke-dashoffset:0}}
+.mt-root .mt-pretty{text-wrap:pretty}
 `;
 
-/** "1:10 PM–1:20 PM" → "1:10–1:20 PM" cuando comparten AM/PM. */
-function compactRange(a: string, b: string): string {
-  const am = /\s?(AM|PM|a\.\s?m\.|p\.\s?m\.)$/i;
-  const ma = a.match(am)?.[0]?.trim().toLowerCase();
-  const mb = b.match(am)?.[0]?.trim().toLowerCase();
-  return `${ma && ma === mb ? a.replace(am, '') : a}–${b}`;
-}
 const DeliveryMap = dynamic(
   () => import('./DeliveryMap').then((m) => m.DeliveryMap),
   { ssr: false, loading: () => <div className="w-full h-48 rounded-2xl bg-gray-100 animate-pulse" /> }
@@ -300,6 +307,10 @@ interface OrderTrackerProps {
   restaurantPhone?: string;
   /** Logo del restaurante (la misma imagen de los emails). */
   restaurantLogo?: string | null;
+  /** Color del restaurante (#RRGGBB) para el estado del pedido; sin color → tinta neutra. */
+  brandColor?: string | null;
+  /** Enlace de reseña de Google (se ofrece a todos al terminar). */
+  googleReviewUrl?: string | null;
   orderNumber: string;
   /** Opaque per-order token; required for the API to return customer/driver PII */
   trackingToken?: string;
@@ -312,22 +323,48 @@ interface OrderTrackerProps {
   initialOrder?: any;
 }
 
-export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantLat, restaurantLng, restaurantPhone, restaurantLogo, orderNumber, trackingToken, currency = 'MXN', locale, showPaidBanner = false, paidParam, initialOrder }: OrderTrackerProps) {
+export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantLat, restaurantLng, restaurantPhone, restaurantLogo, brandColor, googleReviewUrl, orderNumber, trackingToken, currency = 'MXN', locale, showPaidBanner = false, paidParam, initialOrder }: OrderTrackerProps) {
   const t = getT(locale);
   const [order, setOrder] = useState<any>(initialOrder ?? null);
   const [loading, setLoading] = useState(!initialOrder);
   const [error, setError] = useState('');
-  const [paidBannerVisible, setPaidBannerVisible] = useState(showPaidBanner);
   const [rtStatus, setRtStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('reconnecting');
   // Live GPS coords pushed directly from the broadcast 'location_update' event.
   // Updated without HTTP refetch so the map marker moves in real-time.
   const [liveDriverCoords, setLiveDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [liveDeliveryEta, setLiveDeliveryEta] = useState<number | null>(null);
+  // Minutos de la ruta y CUÁNDO se calcularon. La llegada se ancla a ese momento:
+  // si el GPS se corta (pantalla bloqueada), la cuenta sigue bajando en vez de
+  // quedarse en "5 min" para siempre.
+  const [liveDeliveryEta, setLiveDeliveryEta] = useState<{ min: number; at: number } | null>(null);
+  const onLiveEta = useCallback((m: number | null) => setLiveDeliveryEta(m == null ? null : { min: m, at: Date.now() }), []);
   // Cuándo llegó la última posición del repartidor (para "de hace N min").
   const [lastLocAt, setLastLocAt] = useState<number | null>(null);
   const [arriving, setArriving] = useState(false);
   const [arriveErr, setArriveErr] = useState(false);
   const [etaTick, setEtaTick] = useState(0);
+  // Cuándo llegó el último dato del servidor ("Actualizado hace N s").
+  const [lastFetchAt, setLastFetchAt] = useState<number | null>(() => (initialOrder ? Date.now() : null));
+  const [online, setOnline] = useState(true);
+  // Escritorio: no se puede llamar desde la computadora → número + Copiar.
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [itemsOpen, setItemsOpen] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 860px)');
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    setOnline(navigator.onLine);
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      mq.removeEventListener('change', sync);
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
 
   const hasInitialOrder = !!initialOrder;
 
@@ -357,6 +394,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       const orderData = await res.json();
       if (orderData && !orderData.error) {
         setOrder(orderData);
+        setLastFetchAt(Date.now());
         setError('');
       } else if (!hasInitialOrder) {
         setError('not_found');
@@ -477,10 +515,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F2F2F6] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-3 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm text-gray-500">{t.loading}</p>
+          <div className="w-10 h-10 border-[3px] border-gray-200 border-t-[#05c8a7] rounded-full motion-safe:animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-600">{t.loading}</p>
         </div>
       </div>
     );
@@ -489,17 +527,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   if (error || !order) {
     if (showPaidBanner) {
       return (
-        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className="min-h-[100dvh] bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
           <div className="max-w-sm w-full">
             <div className="w-20 h-20 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 className="w-10 h-10 text-[#047a65]" />
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900 mb-2">{t.paymentReceived}</h1>
-            <p className="text-sm text-gray-500 mb-6">{t.paymentReceivedDesc}</p>
+            <p className="text-sm text-gray-600 mb-6">{t.paymentReceivedDesc}</p>
             <div className="space-y-3">
               <button
                 onClick={() => { setLoading(true); setError(''); fetchOrder(); }}
-                className="w-full py-3.5 rounded-2xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors"
+                className="w-full py-3.5 rounded-2xl bg-[#05c8a7] text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
               >
                 {t.viewOrderStatus}
               </button>
@@ -512,17 +550,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       );
     }
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-[100dvh] bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
         <div className="max-w-sm w-full">
           <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
             <Clock className="w-8 h-8 text-amber-500" />
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">{t.errorTitle}</h1>
-          <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">{t.errorDesc}</p>
+          <p className="text-sm text-gray-600 mb-6 max-w-xs mx-auto">{t.errorDesc}</p>
           <div className="space-y-3">
             <button
               onClick={() => { setLoading(true); setError(''); fetchOrder(); }}
-              className="w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-sm hover:bg-gray-800 transition-colors"
+              className="w-full py-3.5 rounded-2xl bg-[#05c8a7] text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
             >
               {t.tryAgain}
             </button>
@@ -535,12 +573,16 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     );
   }
 
-  // ───────────────────────── Diseño 2026-11 ─────────────────────────
-  // Arriba siempre lo mismo: en qué va y cuándo llega. Todo lo demás debajo y
-  // plegado. Misma familia visual que el Counter y la página del repartidor.
+  // ───────────────────────── Diseño 2026-11-16 (A10) ─────────────────────────
+  // Misma superficie clara que el checkout. Un solo dato gigante por pantalla,
+  // pasos con hora, UNA tarjeta de detalle y un botón según el momento.
+  // Color del restaurante = estado del pedido; verde MENIUS = lo que se toca.
+  // Maqueta aprobada: .specify/docs/checkout-premium (A10, v4.6).
   const o = order as any;
   const en = t.en;
   const dateLocale = en ? 'en-US' : 'es-MX';
+  const R = restaurantName;
+  const brand = trackerBrand(brandColor);
   const isDelivery = o.order_type === 'delivery';
   const isPickup = o.order_type === 'pickup';
   const isDineIn = o.order_type === 'dine_in';
@@ -553,124 +595,106 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const awaitingPayment = isAwaitingOnlinePayment(o);
   const refunded = isCancelled && o.payment_status === 'refunded';
   const autoClosed = Boolean(o.auto_closed);
+  const notAccepted = isCancelled && Boolean(o.not_accepted);
   const shortNum = shortOrderNumber(o.order_number as string | null | undefined);
   const driverName = String(o.driver_name ?? '').trim().split(' ')[0] || null;
+  const customerFirst = String(o.customer_name ?? '').trim().split(' ')[0] || null;
   const fmtClock = (ms: number) => new Date(ms).toLocaleTimeString(dateLocale, { hour: 'numeric', minute: '2-digit' });
   const now = Date.now() + etaTick * 0;
   const cashDue = o.payment_method === 'cash' && o.payment_status !== 'paid';
+  const paidOnline = o.payment_status === 'paid' && o.payment_method !== 'cash';
   const amount = formatPrice(Number(o.total) || 0, currency);
+  const phoneShown = restaurantPhone ? phoneText(restaurantPhone) : '';
+  const tip = Number(o.tip_amount) || 0;
 
-  // Programado: su hora, mientras espera.
-  const scheduledLabel = o.scheduled_for && o.status === 'pending'
-    ? new Date(o.scheduled_for).toLocaleString(dateLocale, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
-    : null;
+  // "8:35 a. m." → { hm: "8:35", suf: "a. m." } (el sufijo va chico al lado del número).
+  const AMPM = /\s?(a\.\s?m\.|p\.\s?m\.|AM|PM)$/i;
+  const clock = (ms: number) => {
+    const s = fmtClock(ms);
+    const m = s.match(AMPM);
+    return { hm: m && m.index != null ? s.slice(0, m.index).trim() : s, suf: m ? m[0].trim() : '' };
+  };
+  const hm = (ms: number) => clock(ms).hm;
+  // Ventana de 10 min (estudio Booth 2025: más conforme que una hora puntual).
+  const win5 = (ms: number) => Math.floor((ms - 4 * 60_000) / 300_000) * 300_000;
+  const range = (startMs: number) => {
+    const a = clock(startMs), b = clock(startMs + 600_000);
+    return { val: a.suf && a.suf !== b.suf ? `${a.hm} ${a.suf} – ${b.hm}` : `${a.hm} – ${b.hm}`, suf: b.suf };
+  };
+  const endDot = (x: string) => (x.endsWith('.') ? x : `${x}.`);
+  const tsMs = (v: unknown) => (typeof v === 'string' ? Date.parse(v) : NaN);
+
+  const createdMs = tsMs(o.created_at);
+  const isPending = o.status === 'pending';
+  const scheduledMs = isPending ? tsMs(o.scheduled_for) : NaN;
+  const scheduled = Number.isFinite(scheduledMs);
+  const pendingMin = Number.isFinite(createdMs) ? Math.max(0, Math.floor((now - createdMs) / 60_000)) : 0;
+  const waiting = isPending && !scheduled && !awaitingPayment && pendingMin >= 5;
+  const freshOrder = isPending && Number.isFinite(createdMs) && now - createdMs < 90_000;
+  const almost = o.status === 'almost_ready';
+  const pickupReady = isPickup && isActive && o.status === 'ready';
+  const arrived = pickupReady && Boolean(o.customer_arrived_at);
+  const tableName = o.table_name ? String(o.table_name) : null;
+  const tableLabel = tableName ? (/^\d+$/.test(tableName) ? (en ? `table ${tableName}` : `la mesa ${tableName}`) : tableName) : (en ? 'your table' : 'tu mesa');
 
   // Cocina: desde que el restaurante ACEPTÓ (prepared_at), igual que el email.
-  const acceptedMs = Date.parse(o.prepared_at ?? o.updated_at ?? o.created_at);
-  const readyMs = Number(o.estimated_ready_minutes) > 0 && Number.isFinite(acceptedMs)
-    ? acceptedMs + Number(o.estimated_ready_minutes) * 60_000 : null;
+  const acceptedMs = tsMs(o.prepared_at);
+  const kitchenStartMs = Number.isFinite(acceptedMs) ? acceptedMs : Date.parse(o.updated_at ?? o.created_at);
+  const readyMs = Number(o.estimated_ready_minutes) > 0 && Number.isFinite(kitchenStartMs)
+    ? kitchenStartMs + Number(o.estimated_ready_minutes) * 60_000 : null;
   const kitchenLate = readyMs != null && ['confirmed', 'preparing'].includes(o.status) && now - readyMs > 3 * 60_000;
 
   // Delivery: cuándo LLEGA (cocina + viaje en bici, mismo cálculo del checkout).
   const dLat = Number(o.delivery_lat), dLng = Number(o.delivery_lng);
   const km = restaurantLat != null && restaurantLng != null && o.delivery_lat != null && Number.isFinite(dLat) && Number.isFinite(dLng)
     ? haversineKm(restaurantLat, restaurantLng, dLat, dLng) : 2;
+  const travelMs = travelMinutes(km) * 60_000;
   // Ruta: el repartidor entrega N pedidos antes del tuyo (solo el número llega).
   const stopsAhead = onTheWay && !atDoor ? Math.max(0, Number(o.stops_ahead) || 0) : 0;
   let arrivalMs: number | null = null;
   if (isDelivery && isActive && !atDoor) {
     if (onTheWay) {
-      if (liveDeliveryEta != null) arrivalMs = now + liveDeliveryEta * 60_000;
+      if (liveDeliveryEta != null) arrivalMs = Math.max(liveDeliveryEta.at + liveDeliveryEta.min * 60_000, now + 60_000);
       else {
         const left = Date.parse(o.driver_picked_up_at ?? o.updated_at);
-        arrivalMs = Math.max((Number.isFinite(left) ? left : now) + travelMinutes(km) * 60_000, now + 60_000);
+        arrivalMs = Math.max((Number.isFinite(left) ? left : now) + travelMs, now + 60_000);
       }
-      // El ETA del mapa va directo a tu casa: se suman las paradas de antes.
       arrivalMs += stopsAhead * MINUTES_PER_STOP_AHEAD * 60_000;
-    } else if (readyMs != null && o.status !== 'pending') {
+    } else if (readyMs != null && !isPending) {
       const leave = o.status === 'ready' ? now : Math.max(readyMs, now);
-      arrivalMs = leave + travelMinutes(km) * 60_000;
+      arrivalMs = leave + travelMs;
     }
   }
-  // Ventana de 10 min antes de salir (estudio Booth 2025: una ventana estrecha
-  // deja más conforme que una hora puntual); en camino, minutos y hora.
-  const windowStart = arrivalMs != null ? Math.floor((arrivalMs - 4 * 60_000) / 300_000) * 300_000 : null;
   const stopsAheadText = en
-    ? `Delivering ${stopsAhead} order${stopsAhead === 1 ? '' : 's'} before yours`
-    : `Entrega ${stopsAhead} pedido${stopsAhead === 1 ? '' : 's'} antes del tuyo`;
+    ? `${stopsAhead} ${stopsAhead === 1 ? 'delivery' : 'deliveries'} before yours`
+    : `${stopsAhead} entrega${stopsAhead === 1 ? '' : 's'} antes de la tuya`;
 
   // Hora del cierre (entregado / recogido / servido).
   const closedMs = Date.parse(o.driver_delivered_at ?? o.updated_at);
-
-  const headline = (() => {
-    if (isCancelled) return en ? 'Order cancelled' : 'Pedido cancelado';
-    if (isComplete) {
-      if (autoClosed) return en ? 'Order closed' : 'Pedido cerrado';
-      return isPickup ? (en ? 'Picked up' : 'Recogido') : isDineIn ? (en ? 'Served' : 'Servido') : (en ? 'Delivered' : 'Entregado');
-    }
-    if (atDoor) return driverName ? (en ? `${driverName} is at your door` : `${driverName} está en tu puerta`) : t.atDoorTitle;
-    if (onTheWay) return driverName ? (en ? `${driverName} is on the way` : `${driverName} viene en camino`) : (en ? 'Your order is on the way' : 'Tu pedido viene en camino');
-    switch (o.status) {
-      case 'pending': return scheduledLabel ? (en ? 'Order scheduled' : 'Pedido programado') : (en ? `Waiting for ${restaurantName} to confirm` : `Esperando que ${restaurantName} confirme`);
-      case 'almost_ready': return isPickup ? (en ? 'Almost ready — head over' : 'Casi listo, ya puedes salir') : (en ? 'Almost ready' : 'Casi listo');
-      case 'ready': return isPickup ? (en ? 'Your order is ready' : 'Tu pedido está listo')
-        : isDineIn ? (en ? 'On its way to your table' : 'Va camino a tu mesa')
-        : (en ? 'Ready — leaving soon' : 'Listo, sale en breve');
-      default: return en ? "We're preparing your order" : 'Estamos preparando tu pedido';
-    }
-  })();
-
-  const subline = (() => {
-    if (isCancelled) return refunded ? t.refunded(amount) : (en ? `Questions? Call ${restaurantName}.` : `¿Dudas? Llama a ${restaurantName}.`);
-    if (isComplete) {
-      const when = Number.isFinite(closedMs) ? fmtClock(closedMs) : '';
-      return [when, isDelivery && driverName ? (en ? `by ${driverName}` : `por ${driverName}`) : null].filter(Boolean).join(' · ');
-    }
-    if (atDoor) return o.notes ? String(o.notes) : (en ? 'Please head to the door' : 'Acércate a la puerta');
-    if (o.status === 'pending') return scheduledLabel ? t.scheduledFor(scheduledLabel) : (en ? "We'll let you know as soon as they accept it." : 'Te avisamos apenas lo acepte.');
-    if (isDelivery && onTheWay && stopsAhead > 0 && windowStart != null) {
-      return `${stopsAheadText} · ${en ? 'arrives' : 'llega entre'} ${compactRange(fmtClock(windowStart), fmtClock(windowStart + 600_000))}`;
-    }
-    if (isDelivery && onTheWay && arrivalMs != null) {
-      const mins = Math.max(1, Math.round((arrivalMs - now) / 60_000));
-      return en ? `Arrives in ~${mins} min · ${fmtClock(arrivalMs)}` : `Llega en ~${mins} min · ${fmtClock(arrivalMs)}`;
-    }
-    if (isDelivery && windowStart != null) {
-      if (kitchenLate) return en ? `Running a little late · arrives around ${fmtClock(arrivalMs!)}` : `Va un poco atrasado · llega aprox. a las ${fmtClock(arrivalMs!)}`;
-      return en ? `Arrives between ${fmtClock(windowStart)} and ${fmtClock(windowStart + 600_000)}` : `Llega entre ${fmtClock(windowStart)} y ${fmtClock(windowStart + 600_000)}`;
-    }
-    if (isDineIn && o.table_name) return en ? `Table ${o.table_name}` : `Mesa ${o.table_name}`;
-    if (readyMs != null && ['confirmed', 'preparing', 'almost_ready'].includes(o.status)) {
-      if (kitchenLate) return `${t.runningLate} · ${t.runningLateDesc.toLowerCase()}`;
-      return t.readyByLabel(fmtClock(readyMs));
-    }
-    return '';
-  })();
-
-  // Barra de 4 tramos por tipo de pedido.
-  const stepLabels = isDelivery
-    ? [en ? 'Received' : 'Recibido', en ? 'Preparing' : 'Preparando', en ? 'On the way' : 'En camino', en ? 'Delivered' : 'Entregado']
-    : [en ? 'Received' : 'Recibido', en ? 'Preparing' : 'Preparando', en ? 'Ready' : 'Listo', isPickup ? (en ? 'Picked up' : 'Recogido') : (en ? 'Served' : 'Servido')];
-  const stepIndex = isComplete ? 3
-    : onTheWay ? 2
-    : o.status === 'pending' ? 0
-    : o.status === 'ready' && !isDelivery ? 2
-    : 1;
 
   // Ubicación del repartidor: en vivo o "de hace N min" (sin fingir).
   const hasDriverGps = liveDriverCoords != null || (o.driver_lat != null && o.driver_lng != null);
   const locMs = lastLocAt ?? (o.driver_updated_at ? Date.parse(o.driver_updated_at) : NaN);
   const locAgeMin = Number.isFinite(locMs) ? Math.floor((now - locMs) / 60_000) : null;
-  const locLabel = locAgeMin == null || locAgeMin < 1
-    ? (en ? 'Live location' : 'Ubicación en vivo')
-    : (en ? `Location from ${locAgeMin} min ago` : `Ubicación de hace ${locAgeMin} min`);
 
-  // Aviso de efectivo en camino/en la puerta: si se muestra, "Tu pedido" no lo repite.
-  const cashRowShown = isDelivery && cashDue && (onTheWay || atDoor);
+  // Frescura del dato (lo que el cliente ve es de hace N s) y sin conexión.
+  const offline = !online;
+  const fetchAgeS = lastFetchAt != null ? Math.max(0, Math.round((now - lastFetchAt) / 1000)) : null;
+  const freshLabel = offline
+    ? (en ? `Updated at ${fmtClock(lastFetchAt ?? now)}` : `Actualizado a las ${fmtClock(lastFetchAt ?? now)}`)
+    : fetchAgeS == null || fetchAgeS < 10
+      ? (en ? 'Updated just now' : 'Actualizado ahora')
+      : fetchAgeS < 60
+      ? (en ? 'Updated a moment ago' : 'Actualizado hace un momento')
+      : (en ? `Updated ${Math.floor(fetchAgeS / 60)} min ago` : `Actualizado hace ${Math.floor(fetchAgeS / 60)} min`);
+
+  // Billete con el que paga (el checkout lo deja en las notas: "[Paga con: $100]").
+  const payWithMatch = typeof o.notes === 'string' ? o.notes.match(/\[(?:Paga con|Pays with):\s*\$?\s*([\d.,]+)\]/i) : null;
+  const payWith = payWithMatch ? Number(payWithMatch[1].replace(/,/g, '')) : NaN;
+  const changeDue = Number.isFinite(payWith) && payWith > (Number(o.total) || 0) ? payWith - (Number(o.total) || 0) : null;
+  const visibleNotes = typeof o.notes === 'string' ? o.notes.replace(/\s*\[(?:Paga con|Pays with):[^\]]*\]\s*/gi, ' ').trim() : '';
+
   const itemCount = (o.order_items ?? []).reduce((n: number, it: any) => n + (Number(it.qty) || 1), 0);
-  const payLine = isCancelled ? null
-    : cashDue ? (isDelivery ? (en ? 'Pay on delivery, in cash' : 'Pagas al recibir, en efectivo') : (en ? 'Pay in cash' : 'Pagas en efectivo'))
-    : o.payment_status === 'paid' ? (en ? 'Paid online' : 'Pagado online') : null;
 
   const reorder = () => {
     // Mismo mecanismo que "Repetir mi último pedido" del menú.
@@ -710,394 +734,630 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     }
   };
 
-  // Bloque grande como en los emails: la hora (o el número) es lo primero.
-  const hero: { tone: 'green' | 'ink'; label: string; big: string; sub: string } | null = (() => {
-    if (!isActive || atDoor || awaitingPayment) return null;
-    if (isPickup && o.status === 'ready') {
-      return {
-        tone: 'ink',
-        label: en ? 'Ready now' : 'Listo ahora',
-        big: `#${shortNum}`,
-        sub: [en ? 'Show this number at the counter' : 'Muestra este número en el mostrador',
-          cashDue ? (en ? `pay ${amount} at pickup` : `pagas ${amount} al recoger`) : null].filter(Boolean).join(' · '),
-      };
+  const copyPhone = async () => {
+    if (!restaurantPhone) return;
+    try { await navigator.clipboard.writeText(phoneText(restaurantPhone)); setCopied(true); setTimeout(() => setCopied(false), 2200); } catch { /* sin portapapeles */ }
+  };
+
+  // ── Titular + bajada ──
+  const typeLabel = isPickup ? (en ? 'Pickup' : 'Para recoger') : isDelivery ? (en ? 'Delivery' : 'A domicilio') : (tableName ? (/^\d+$/.test(tableName) ? `${en ? 'Table' : 'Mesa'} ${tableName}` : tableName) : (en ? 'Dine-in' : 'En mesa'));
+  const acceptedAt = Number.isFinite(acceptedMs) ? fmtClock(acceptedMs) : null;
+  const doorMs = tsMs(o.driver_at_door_at);
+  const [headline, lead] = ((): [string, string] => {
+    if (notAccepted) return [en ? "It wasn't confirmed in time" : 'No lo confirmaron a tiempo', en
+      ? `${R} didn't accept your order within ${NOT_ACCEPTED_MINS} minutes, so we cancelled it.`
+      : `${R} no aceptó tu pedido en ${NOT_ACCEPTED_MINS} minutos, así que lo cancelamos.`];
+    if (isCancelled) return [en ? 'Order cancelled' : 'Pedido cancelado', en ? `${R} couldn't take it this time.` : `${R} no pudo tomarlo esta vez.`];
+    if (isComplete) {
+      if (autoClosed) return [en ? 'Order closed' : 'Pedido cerrado', ''];
+      const at = Number.isFinite(closedMs) ? fmtClock(closedMs) : '';
+      if (isDineIn) return [en ? 'Served. Enjoy!' : 'Servido. ¡Buen provecho!', en ? `Thanks for ordering at ${R}.` : `Gracias por pedir en ${R}.`];
+      return [
+        isPickup ? (en ? `Picked up${at ? ` at ${at}` : ''}` : `Recogido${at ? ` a las ${at}` : ''}`) : (en ? `Delivered${at ? ` at ${at}` : ''}` : `Entregado${at ? ` a las ${at}` : ''}`),
+        en ? `Enjoy! Thanks for ordering directly from ${R}.` : `¡Buen provecho! Gracias por pedir directo a ${R}.`,
+      ];
     }
-    // Con paradas antes de la tuya la hora es menos segura: ventana, no minutos.
-    if (isDelivery && onTheWay && stopsAhead > 0 && windowStart != null) {
-      return { tone: 'green', label: headline, big: compactRange(fmtClock(windowStart), fmtClock(windowStart + 600_000)), sub: stopsAheadText };
+    if (atDoor) {
+      const who = driverName ?? (en ? 'Your driver' : 'Tu repartidor');
+      return [en ? `${who} is at your door` : `${who} está en tu puerta`,
+        `${Number.isFinite(doorMs) ? (en ? `Arrived at ${endDot(fmtClock(doorMs))} ` : `Llegó a las ${endDot(fmtClock(doorMs))} `) : ''}${restaurantPhone ? (en ? `If you can't come down, call ${R}.` : `Si no puedes bajar, llama a ${R}.`) : ''}`.trim()];
     }
-    if (isDelivery && onTheWay && arrivalMs != null) {
-      const mins = Math.max(1, Math.round((arrivalMs - now) / 60_000));
-      return { tone: 'green', label: headline, big: `~${mins} min`, sub: en ? `Arrives around ${fmtClock(arrivalMs)}` : `Llega cerca de las ${fmtClock(arrivalMs)}` };
+    if (onTheWay) return [en ? 'On the way' : 'Va en camino', driverName ? (en ? `${driverName} has your order.` : `${driverName} lleva tu pedido.`) : ''];
+    if (isPending) {
+      if (scheduled) return [en ? 'Order scheduled' : 'Pedido programado', en ? `${R} will have it ready at the time you chose.` : `${R} lo tendrá listo a la hora que elegiste.`];
+      if (waiting) return [en ? 'Not accepted yet' : 'Aún no lo aceptan', en
+        ? `We sent it to ${R} ${pendingMin} minutes ago and they haven't answered yet.${restaurantPhone ? ' Call them to make sure they got it.' : ''}`
+        : `Lo enviamos a ${R} hace ${pendingMin} minutos y todavía no responden.${restaurantPhone ? ' Llámalos para confirmar que lo recibieron.' : ''}`];
+      return [isDineIn ? (en ? 'Order sent to the kitchen' : 'Pedido enviado a la cocina') : (en ? `Order sent to ${R}` : `Pedido enviado a ${R}`),
+        isDineIn ? (en ? "We'll update this as soon as the kitchen accepts it." : 'Te avisamos aquí en cuanto la cocina lo acepte.') : (en ? `We'll update this as soon as ${R} accepts it.` : `Te avisamos aquí en cuanto ${R} lo acepte.`)];
     }
-    if (isDelivery && windowStart != null && o.status !== 'pending') {
-      return {
-        tone: 'green',
-        label: en ? 'Arrives between' : 'Llega entre',
-        big: compactRange(fmtClock(windowStart), fmtClock(windowStart + 600_000)),
-        sub: kitchenLate ? (en ? 'Running a little late' : 'Va un poco atrasado') : headline,
-      };
+    if (kitchenLate) return [en ? 'Running a little late' : 'Va con un poco de demora', isDelivery
+      ? (en ? "Sorry for the wait. We'll let you know as soon as it leaves." : 'Perdón por la espera. Te avisamos apenas salga.')
+      : (en ? "Sorry for the wait. We'll let you know as soon as it's ready." : 'Perdón por la espera. Te avisamos apenas esté listo.')];
+    if (pickupReady) {
+      if (arrived) return [en ? "They know you're here" : 'Ya saben que llegaste', en ? `If they don't see you, say "order ${shortNum}" at the counter.` : `Si no te ven, di "pedido ${shortNum}" en el mostrador.`];
+      return [en ? 'Ready for pickup' : 'Listo para recoger', cashDue ? (en ? `You pay ${amount} in cash at the counter.` : `Pagas ${amount} en efectivo en el mostrador.`) : paidOnline ? (en ? 'Already paid.' : 'Ya está pagado.') : ''];
     }
-    if (!isDelivery && readyMs != null && ['confirmed', 'preparing', 'almost_ready'].includes(o.status)) {
-      return {
-        tone: 'green',
-        label: isPickup ? (en ? 'Ready for pickup around' : 'Listo para recoger cerca de las') : (en ? 'Ready around' : 'Listo cerca de las'),
-        big: fmtClock(Math.max(readyMs, now)),
-        sub: kitchenLate ? t.runningLate : headline,
-      };
+    if (isDineIn && o.status === 'ready') return [en ? 'On its way to your table' : 'Va en camino a tu mesa', en ? `Arriving at ${tableLabel} in a moment.` : `Llega a ${tableLabel} en un momento.`];
+    if (isDelivery && o.status === 'ready') return [en ? 'Ready — leaving soon' : 'Listo, sale en breve', en ? 'It leaves with the driver in a moment.' : 'Sale con el repartidor en un momento.'];
+    if (almost) return [en ? 'Almost ready' : 'Casi listo', isPickup ? (en ? `Good time to head to ${R}.` : `Buen momento para salir hacia ${R}.`) : (en ? "It's finishing in the kitchen." : 'Está terminando en la cocina.')];
+    // confirmed / preparing
+    const acc = acceptedAt ? (en ? `${R} accepted it at ${endDot(acceptedAt)} ` : `${R} lo aceptó a las ${endDot(acceptedAt)} `) : '';
+    if (isDineIn) return [en ? 'In the kitchen' : 'En la cocina', en ? `They'll bring it to ${tableLabel}.` : `Te lo llevan a ${tableLabel}.`];
+    if (isDelivery) return [en ? 'In the kitchen' : 'En la cocina', acc + (en ? "We'll let you know when it leaves." : 'Te avisamos cuando salga.')];
+    return [en ? 'In the kitchen' : 'En la cocina', acc + (en ? "We'll let you know when it's at the counter." : 'Te avisamos cuando esté en el mostrador.')];
+  })();
+
+  // ── Un solo dato gigante ──
+  type Anchor = { lbl: string; val: string; suf?: string; ctx?: React.ReactNode; muted?: boolean; words?: boolean } | { code: true; lbl: string; val: string; ctx: string } | null;
+  const freshNode = (
+    <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ fontFamily: K.mono, color: K.faint }}>
+      {!offline && <i className="block w-[7px] h-[7px] rounded-full" style={{ background: K.brand }} aria-hidden />}
+      {freshLabel}
+    </span>
+  );
+  const lateChip = <span className="text-[12.5px] font-semibold rounded-full px-2 py-0.5" style={{ background: K.amberSoft, color: K.amber }}>{en ? 'Running late' : 'Con demora'}</span>;
+  const anchor: Anchor = (() => {
+    if (!isActive || awaitingPayment) return null;
+    if (scheduled) {
+      const c = clock(scheduledMs);
+      const sd = new Date(scheduledMs);
+      const tomorrow = new Date(now + 86_400_000);
+      const day = sd.toDateString() === new Date(now).toDateString() ? (en ? 'today' : 'hoy')
+        : sd.toDateString() === tomorrow.toDateString() ? (en ? 'tomorrow' : 'mañana')
+        : sd.toLocaleDateString(dateLocale, { weekday: 'short' });
+      const full = new Date(scheduledMs).toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' });
+      return { lbl: isDelivery ? (en ? 'Arrives' : 'Llega') : isPickup ? (en ? 'Ready for pickup' : 'Listo para recoger') : (en ? 'Ready' : 'Listo'),
+        val: `${day.charAt(0).toUpperCase()}${day.slice(1).replace('.', '')} ${c.hm}`, suf: c.suf,
+        ctx: <span>{full.charAt(0).toUpperCase() + full.slice(1)}{restaurantPhone ? (en ? ` · to change it, call ${R}` : ` · para cambiarlo, llama a ${R}`) : ''}</span> };
+    }
+    if (isPending) {
+      // Antes de aceptar: estimado en gris, nunca como hora firme.
+      const est = Number(o.estimated_ready_minutes);
+      if (!(est > 0)) return null;
+      const r = range(win5(now + est * 60_000 + (isDelivery ? travelMs : 0)));
+      if (isDineIn) return { lbl: en ? 'If accepted now, at your table in' : 'Si lo aceptan ahora, llega a tu mesa en', val: `~${est} min`, muted: true };
+      return { lbl: isDelivery ? (en ? 'If accepted now, arrives between' : 'Si lo aceptan ahora, llega entre') : (en ? 'If accepted now, ready between' : 'Si lo aceptan ahora, listo entre'),
+        val: r.val, suf: r.suf, muted: true, ctx: <span>{en ? 'Estimate · not a firm time yet' : 'Estimado · todavía no es la hora firme'}</span> };
+    }
+    if (atDoor) {
+      if (cashDue) return { lbl: en ? 'Have ready' : 'Ten listos', val: amount,
+        ctx: <span>{changeDue != null ? (en ? `Paying with ${formatPrice(payWith, currency)} · your change: ${formatPrice(changeDue, currency)}` : `Pagas con ${formatPrice(payWith, currency)} · tu cambio: ${formatPrice(changeDue, currency)}`) : (en ? 'In cash' : 'En efectivo')}</span> };
+      if (Number.isFinite(doorMs)) { const c = clock(doorMs); return { lbl: en ? `${driverName ?? 'Your driver'} arrived at` : `${driverName ?? 'Tu repartidor'} llegó a las`, val: c.hm, suf: c.suf, ctx: paidOnline ? <span>{en ? "It's paid: you don't need to give anything." : 'Ya está pagado: no tienes que darle nada.'}</span> : undefined }; }
+      return null;
+    }
+    if (pickupReady) {
+      const since = tsMs(o.updated_at);
+      return { code: true, lbl: arrived ? (en ? 'Show this at the counter' : 'Muestra esto en el mostrador') : (en ? 'When you arrive, show this' : 'Al llegar, muestra esto'), val: `#${shortNum}${customerFirst ? ` · ${customerFirst}` : ''}`,
+        ctx: arrived ? (en ? "They'll bring it out in a moment" : 'Te lo traen en un momento') : Number.isFinite(since) ? (en ? `Waiting for you since ${fmtClock(since)}` : `Te espera desde las ${fmtClock(since)}`) : '' };
+    }
+    if (isDelivery) {
+      if (onTheWay && arrivalMs != null) {
+        if (offline && lastFetchAt != null) {
+          const r = range(win5(arrivalMs));
+          return { lbl: en ? `At ${fmtClock(lastFetchAt)} it was arriving between` : `A las ${fmtClock(lastFetchAt)} llegaba entre`, val: r.val, suf: r.suf,
+            ctx: <span>{en ? 'Your order keeps moving even without signal.' : 'Tu pedido sigue en camino aunque no tengas señal.'}</span> };
+        }
+        if (stopsAhead > 0) {
+          const r = range(win5(arrivalMs));
+          return { lbl: en ? 'Arrives between' : 'Llega entre', val: r.val, suf: r.suf, ctx: <><span>{stopsAheadText}</span>{freshNode}</> };
+        }
+        const mins = Math.max(1, Math.round((arrivalMs - now) / 60_000));
+        return { lbl: en ? 'Arrives in' : 'Llega en', val: `~${mins} min`, ctx: <><span>{en ? `Around ${fmtClock(arrivalMs)}` : `Cerca de las ${fmtClock(arrivalMs)}`}</span>{freshNode}</> };
+      }
+      if (arrivalMs != null && readyMs != null) {
+        // Late: the biggest thing on screen was a time that no longer holds.
+        // Say what we know; the old window goes small and struck through.
+        if (kitchenLate) { const r = range(win5(readyMs + travelMs)); return { lbl: en ? 'Arrives' : 'Llega', val: en ? 'A little later' : 'Un poco más tarde', words: true, ctx: <>{lateChip}<span>{en ? 'Was ' : 'Era '}<s>{r.val}{r.suf ? ` ${r.suf}` : ''}</s></span>{freshNode}</> }; }
+        const r = range(win5(arrivalMs));
+        return { lbl: en ? 'Arrives between' : 'Llega entre', val: r.val, suf: r.suf, ctx: <><span>{en ? `Includes the ride from ${R}` : `Incluye el viaje desde ${R}`}</span>{freshNode}</> };
+      }
+      return null;
+    }
+    if (isPickup && readyMs != null) {
+      if (kitchenLate) { const r = range(win5(readyMs)); return { lbl: en ? 'Ready' : 'Listo', val: en ? 'In a few more minutes' : 'En unos minutos más', words: true, ctx: <>{lateChip}<span>{en ? 'Was ' : 'Era '}<s>{r.val}{r.suf ? ` ${r.suf}` : ''}</s></span>{freshNode}</> }; }
+      if (almost) { const c = clock(Math.max(readyMs, now)); return { lbl: en ? 'Ready at' : 'Estará listo a las', val: c.hm, suf: c.suf, ctx: freshNode }; }
+      const r = range(win5(readyMs));
+      return { lbl: en ? 'Ready for pickup between' : 'Listo para recoger entre', val: r.val, suf: r.suf, ctx: freshNode };
+    }
+    if (isDineIn && readyMs != null && ['confirmed', 'preparing', 'almost_ready'].includes(o.status)) {
+      const mins = Math.max(1, Math.round((readyMs - now) / 60_000));
+      return { lbl: en ? 'At your table in' : 'Llega a tu mesa en', val: `~${mins} min`, ctx: <span>{en ? 'Estimated by the kitchen' : 'Estimado por la cocina'}</span> };
     }
     return null;
   })();
 
-  const card = 'bg-white rounded-[20px] border';
-  const cardStyle = { borderColor: K.line };
-  const canArrive = isPickup && o.status === 'ready' && o.authorized && !!trackingToken;
-  const canReorder = isComplete && (o.order_items?.length ?? 0) > 0;
-  const showDock = !awaitingPayment && (canArrive || canReorder || !!restaurantPhone);
+  // ── Pasos con hora ──
+  type Step = { key: string; label: string; at: number; sub?: string };
+  const pickedMs = tsMs(o.driver_picked_up_at);
+  const deliveredMs = tsMs(o.driver_delivered_at);
+  const readyAtMs = o.status === 'ready' ? tsMs(o.updated_at) : NaN;
+  const steps: Step[] = isDelivery
+    ? [
+        { key: 'sent', label: en ? `Sent to ${R}` : `Enviado a ${R}`, at: createdMs },
+        { key: 'accepted', label: en ? 'Accepted and in the kitchen' : 'Aceptado y en la cocina', at: acceptedMs },
+        { key: 'onway', label: driverName ? (en ? `On the way with ${driverName}` : `En camino con ${driverName}`) : (en ? 'On the way' : 'En camino'), at: pickedMs },
+        { key: 'done', label: en ? 'Delivered' : 'Entregado', at: deliveredMs },
+      ]
+    : isDineIn
+      ? [
+          { key: 'sent', label: en ? 'Sent to the kitchen' : 'Enviado a la cocina', at: createdMs },
+          { key: 'accepted', label: en ? 'In the kitchen' : 'En la cocina', at: acceptedMs },
+          { key: 'ready', label: en ? `On its way to ${tableLabel}` : `En camino a ${tableLabel}`, at: readyAtMs },
+          { key: 'done', label: en ? 'Served' : 'Servido', at: NaN },
+        ]
+      : [
+          { key: 'sent', label: en ? `Sent to ${R}` : `Enviado a ${R}`, at: createdMs },
+          { key: 'accepted', label: en ? 'Accepted and in the kitchen' : 'Aceptado y en la cocina', at: acceptedMs },
+          { key: 'ready', label: en ? 'Ready at the counter' : 'Listo en el mostrador', at: readyAtMs },
+        ];
+  // Índice del paso en curso; los anteriores están hechos. 99 = todos hechos.
+  const stepNow = isComplete ? 99
+    : isDelivery ? (onTheWay ? 2 : 1)
+    : isDineIn ? (o.status === 'ready' ? 2 : 1)
+    : (o.status === 'ready' ? 99 : 1);
+  const pendingAccept = isPending;
+  const stepSub = (key: string): string | undefined => {
+    if (key === 'accepted' && waiting) return en ? `${pendingMin} min, no answer yet` : `Hace ${pendingMin} min, sin respuesta todavía`;
+    if (key === 'accepted' && almost) return en ? 'Almost ready' : 'Casi listo';
+    if (key === 'onway' && atDoor && Number.isFinite(doorMs)) return en ? `At your door since ${fmtClock(doorMs)}` : `En tu puerta desde las ${fmtClock(doorMs)}`;
+    if (key === 'ready' && arrived) { const a = tsMs(o.customer_arrived_at); return Number.isFinite(a) ? (en ? `You told them at ${fmtClock(a)}` : `Avisaste a las ${fmtClock(a)}`) : undefined; }
+    return undefined;
+  };
+  const showSteps = !isCancelled && !scheduled && !awaitingPayment;
+
+  // ── Acción principal ──
+  const callState = isActive && !awaitingPayment && (waiting || atDoor) && !!restaurantPhone;
+  const canArrive = pickupReady && o.authorized && !!trackingToken;
+  const canReorder = isComplete && !isDineIn && (o.order_items?.length ?? 0) > 0;
+  const cashStripShown = cashDue && isActive && !awaitingPayment && !pickupReady && !atDoor;
+  const cashWhere = isDelivery ? (en ? 'on delivery' : 'al recibir') : isDineIn ? (en ? 'at the table' : 'en la mesa') : (en ? 'at pickup' : 'al recoger');
+
+  // ── Piezas ──
+  const groupCls = 'rounded-[18px] overflow-hidden';
+  const groupStyle = { background: K.card, boxShadow: K.shadow };
+  const linkCls = 'inline-flex items-center min-h-[44px] text-[14px] font-semibold';
+  const ctaCls = 'w-full h-14 rounded-2xl flex items-center justify-center gap-2 text-[17px] font-semibold tracking-[-0.01em] active:scale-[0.985] transition-transform disabled:opacity-60';
+  const ctaSecondaryCls = 'w-full h-[50px] rounded-2xl flex items-center justify-center gap-2 text-[16px] font-semibold active:scale-[0.985] transition-transform';
+
+  const checkMark = (isPending && !awaitingPayment && !waiting && !scheduled) ? (
+    <svg className={`mt-ok ${freshOrder ? 'draw' : ''} w-10 h-10 mb-2.5`} viewBox="0 0 52 52" aria-hidden><circle cx="26" cy="26" r="26" /><path d="M16 27l7 7 13-15" /></svg>
+  ) : null;
+
+  const heroBlock = (
+    <section className="grid">
+      {checkMark}
+      <p className="text-[12px] uppercase tracking-[0.03em] mb-2" style={{ fontFamily: K.mono, color: K.faint }}>
+        {en ? 'Order' : 'Pedido'} <b style={{ color: K.ink, fontWeight: 600 }}>#{shortNum}</b> · {typeLabel}
+      </p>
+      <h1 className="text-[28px] min-[860px]:text-[32px] leading-[1.12] font-bold tracking-[-0.028em] outline-none" style={{ textWrap: 'balance' } as React.CSSProperties}>
+        {headline}
+      </h1>
+      {lead && <p className="mt-pretty mt-1.5 text-[15px] min-[860px]:text-[16.5px] leading-[1.45] max-w-[36ch]" style={{ color: K.sub }}>{lead}</p>}
+      {anchor && ('code' in anchor ? (
+        <div className="mt-[18px] rounded-[18px] px-[18px] py-4 grid gap-0.5" style={{ background: K.brand, color: K.brandInk }}>
+          <span className="text-[12px] uppercase tracking-[0.03em] font-medium opacity-90" style={{ fontFamily: K.mono }}>{anchor.lbl}</span>
+          <span className="text-[48px] min-[860px]:text-[56px] leading-[1.02] font-bold tracking-[-0.045em] tabular-nums">{anchor.val}</span>
+          {anchor.ctx && <span className="text-[14px] opacity-85">{anchor.ctx}</span>}
+        </div>
+      ) : (
+        <div className="mt-5 grid gap-0.5">
+          <span className="text-[14px]" style={{ color: K.sub }}>{anchor.lbl}</span>
+          <span className={anchor.words ? 'text-[32px] min-[860px]:text-[40px] leading-[1.08] font-bold tracking-[-0.03em]' : 'text-[48px] min-[860px]:text-[56px] leading-[1.02] font-bold tracking-[-0.045em] tabular-nums whitespace-nowrap'} style={{ color: anchor.muted ? K.faint : K.ink, fontWeight: anchor.muted ? 600 : 700 }}>
+            {anchor.val}{anchor.suf && <small className="text-[18px] font-semibold tracking-[-0.01em] ml-1.5" style={{ color: K.sub }}>{anchor.suf}</small>}
+          </span>
+          {anchor.ctx && <span className="mt-pretty mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13.5px]" style={{ color: K.sub }}>{anchor.ctx}</span>}
+        </div>
+      ))}
+      {isActive && !awaitingPayment && !isDineIn && !pickupReady && !onTheWay && o.authorized && trackingToken && (
+        <PushSubscriptionPrompt orderId={o.id} token={trackingToken} locale={locale} orderType={o.order_type} desktop={isDesktop} />
+      )}
+    </section>
+  );
+
+  const stepsBlock = showSteps ? (
+    <div className={groupCls} style={groupStyle}>
+      <ol className="list-none m-0 px-4 pt-4 pb-1 grid" aria-label={en ? 'Order status' : 'Estado del pedido'}>
+        {steps.map((s, i) => {
+          const state = i < stepNow ? 'done' : i === stepNow ? 'now' : 'todo';
+          const waitingAccept = state === 'now' && s.key === 'accepted' && pendingAccept;
+          const label = waitingAccept ? (isDineIn ? (en ? 'Waiting for the kitchen' : 'Esperando a la cocina') : (en ? 'Waiting to be accepted' : 'Esperando que lo acepten')) : s.label;
+          const sub = stepSub(s.key);
+          const showTime = state !== 'todo' && !waitingAccept && Number.isFinite(s.at);
+          const last = i === steps.length - 1;
+          return (
+            <li key={s.key} className="grid grid-cols-[22px_1fr_auto] gap-3 relative pb-3.5" aria-current={state === 'now' ? 'step' : undefined}>
+              {!last && <span className="absolute left-[10px] top-[22px] bottom-0 w-0.5" style={{ background: state === 'done' ? K.brand : K.line }} aria-hidden />}
+              <span className={`relative z-[1] w-[22px] h-[22px] rounded-full grid place-items-center ${state === 'now' ? 'mt-now' : ''}`}
+                style={state === 'done' ? { background: K.brand } : state === 'now' ? { background: K.card, boxShadow: `inset 0 0 0 7px ${K.brand}` } : { background: K.card, boxShadow: `inset 0 0 0 2px ${K.line}` }} aria-hidden>
+                {state === 'done' && <Check className="w-3 h-3" strokeWidth={3.4} style={{ color: K.brandInk }} />}
+              </span>
+              <span className="min-w-0">
+                <b className="block text-[15px] leading-[22px] tracking-[-0.01em]" style={{ fontWeight: state === 'todo' ? 500 : 600, color: state === 'todo' ? K.faint : K.ink }}>
+                  {label}<span className="sr-only"> ({state === 'done' ? (en ? 'done' : 'completado') : state === 'now' ? (en ? 'in progress' : 'en curso') : (en ? 'pending' : 'pendiente')})</span>
+                </b>
+                {sub && <span className="block text-[13px] mt-px" style={{ color: K.sub }}>{sub}</span>}
+              </span>
+              <time className="text-[12.5px] leading-[22px] tabular-nums" style={{ fontFamily: K.mono, color: K.faint }}>{showTime ? hm(s.at) : ''}</time>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  ) : null;
+
+  // At the door the map adds nothing (the driver pin sat on the house pin).
+  const mapBlock = isDelivery && onTheWay && !atDoor && hasDriverGps ? (
+    <section className={`relative ${groupCls}`} style={{ ...groupStyle, ['--map-h' as string]: isDesktop ? '260px' : '176px' }}>
+      <DeliveryMap
+        restaurantAddress={restaurantAddress}
+        deliveryAddress={o.delivery_address}
+        restaurantName={restaurantName}
+        driverLat={liveDriverCoords?.lat ?? o.driver_lat ?? null}
+        driverLng={liveDriverCoords?.lng ?? o.driver_lng ?? null}
+        deliveryLat={o.delivery_lat ?? null}
+        deliveryLng={o.delivery_lng ?? null}
+        restaurantLat={restaurantLat}
+        restaurantLng={restaurantLng}
+        locale={locale}
+        onEtaUpdate={onLiveEta}
+      />
+      <span className="absolute left-2.5 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: K.card, boxShadow: K.shadow }}>
+        {locAgeMin != null && locAgeMin >= 2 || offline
+          ? (en ? `Location from ${fmtClock(Number.isFinite(locMs) ? locMs : now)}` : `Ubicación de las ${fmtClock(Number.isFinite(locMs) ? locMs : now)}`)
+          : <><i className="block w-[7px] h-[7px] rounded-full" style={{ background: K.brand }} aria-hidden />{en ? 'Live' : 'En vivo'}</>}
+      </span>
+    </section>
+  ) : isDelivery && onTheWay && !atDoor ? (
+    <p className="text-[13px] px-1" style={{ color: K.faint }}>
+      {en ? 'Live location appears when the driver shares it.' : 'La ubicación en vivo aparece cuando el repartidor la comparte.'}
+    </p>
+  ) : null;
+
+  const phoneCard = restaurantPhone ? (
+    <div className={`${groupCls} grid grid-cols-[32px_1fr_auto] gap-3 items-center px-3.5 py-3`} style={groupStyle}>
+      <span className="w-8 h-8 rounded-[9px] grid place-items-center" style={{ background: K.surface2, color: K.sub }} aria-hidden><Phone className="w-[17px] h-[17px]" /></span>
+      <span className="min-w-0">
+        <span className="block text-[12.5px]" style={{ color: K.faint }}>{en ? `Call ${R} from your phone` : `Llama a ${R} desde tu teléfono`}</span>
+        <b className="block text-[20px] font-semibold tracking-[-0.02em] tabular-nums select-all">{phoneShown}</b>
+      </span>
+      <button type="button" onClick={copyPhone} className={linkCls} style={{ color: K.greenDeep }}>{copied ? (en ? 'Copied' : 'Copiado') : (en ? 'Copy' : 'Copiar')}</button>
+    </div>
+  ) : null;
+
+  const callRow = (() => {
+    if (isDineIn && isActive) return <WaiterCallButton orderId={o.id} tableName={o.table_name} locale={locale} />;
+    if (!restaurantPhone || awaitingPayment || callState) return null;
+    const q = isCancelled ? (en ? 'Questions?' : '¿Preguntas?') : (en ? 'Something wrong?' : '¿Algo no está bien?');
+    if (isDesktop) {
+      return (
+        <div className="flex items-center justify-between gap-3 px-1.5 text-[14px]" style={{ color: K.sub }}>
+          <span>{q} {en ? 'Call' : 'Llama al'} <b className="font-semibold tabular-nums select-all" style={{ color: K.ink }}>{phoneShown}</b></span>
+          <button type="button" onClick={copyPhone} className={linkCls} style={{ color: K.greenDeep }}>{copied ? (en ? 'Copied' : 'Copiado') : (en ? 'Copy' : 'Copiar')}</button>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center justify-between gap-3 px-1.5 text-[14px]" style={{ color: K.sub }}>
+        <span>{q}</span>
+        <a href={`tel:${restaurantPhone}`} className={`${linkCls} underline underline-offset-2`} style={{ color: K.greenDeep }}>{en ? `Call ${R}` : `Llamar a ${R}`}</a>
+      </div>
+    );
+  })();
+
+  const cashStrip = cashStripShown ? (
+    <div className={`${groupCls} grid grid-cols-[32px_1fr] gap-3 items-center px-3.5 py-3`} style={groupStyle}>
+      <span className="w-8 h-8 rounded-[9px] grid place-items-center" style={{ background: K.brandSoft, color: K.brand }} aria-hidden><Banknote className="w-[17px] h-[17px]" /></span>
+      <span>
+        <b className="mt-pretty block text-[15.5px] font-semibold tracking-[-0.01em]">{en ? `You pay ${amount} in cash ${cashWhere}` : `Pagas ${amount} en efectivo ${cashWhere}`}</b>
+        {isDelivery && changeDue != null && (
+          <span className="block text-[13px] mt-px" style={{ color: K.sub }}>
+            {en ? `With ${formatPrice(payWith, currency)} · ${driverName ?? 'the driver'} brings your change: ${formatPrice(changeDue, currency)}` : `Con ${formatPrice(payWith, currency)} · ${driverName ?? 'el repartidor'} lleva tu cambio: ${formatPrice(changeDue, currency)}`}
+          </span>
+        )}
+      </span>
+    </div>
+  ) : null;
+
+  const rowIcon = (node: React.ReactNode) => (
+    <span className="w-8 h-8 rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: K.surface2, color: K.sub }} aria-hidden>{node}</span>
+  );
+  const rowCls = 'grid grid-cols-[32px_1fr_auto] items-center gap-3 px-3.5 py-3 min-h-[60px] text-left';
+  const rowDivider = { borderTop: `1px solid ${K.line}` };
+  const detailRows: React.ReactNode[] = [];
+  if (isDelivery && !isCancelled && o.delivery_address) {
+    detailRows.push(
+      <DeliveryInstructions key="addr" orderId={o.id} token={o.authorized ? trackingToken : undefined} editable={isActive && !onTheWay}
+        address={o.delivery_address} notes={visibleNotes} rawNotes={o.notes ?? ''} en={en}
+        onSaved={(notes) => setOrder((prev: any) => ({ ...prev, notes }))} />,
+    );
+  }
+  if (isDelivery && onTheWay && driverName) {
+    detailRows.push(
+      <div key="driver" className={rowCls}>
+        <span className="w-8 h-8 rounded-full grid place-items-center text-[14px] font-bold" style={{ background: K.brandSoft, color: K.brand }} aria-hidden>{driverName.charAt(0).toUpperCase()}</span>
+        <span className="min-w-0"><span className="block text-[15.5px] font-medium">{driverName}</span><span className="block text-[13px]" style={{ color: K.sub }}>{en ? `${R}'s driver` : `Repartidor de ${R}`}</span></span>
+        <span />
+      </div>,
+    );
+  }
+  if (isPickup && isActive && !arrived && !awaitingPayment && restaurantAddress) {
+    detailRows.push(
+      <div key="pickup" className={rowCls}>
+        {rowIcon(<MapPin className="w-[17px] h-[17px]" />)}
+        <span className="min-w-0"><span className="block text-[12.5px]" style={{ color: K.faint }}>{en ? 'Pick up at' : 'Recoger en'}</span><span className="block text-[15.5px] font-medium tracking-[-0.01em]">{restaurantAddress}</span></span>
+        <a href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`} target="_blank" rel="noopener noreferrer" className={`${linkCls} underline underline-offset-2`} style={{ color: K.greenDeep }}>{en ? 'Directions' : 'Cómo llegar'}</a>
+      </div>,
+    );
+  }
+  if (isDineIn && tableName) {
+    detailRows.push(
+      <div key="table" className={rowCls}>
+        {rowIcon(<Utensils className="w-[17px] h-[17px]" />)}
+        <span className="min-w-0"><span className="block text-[12.5px]" style={{ color: K.faint }}>{en ? 'Your table' : 'Tu mesa'}</span><span className="block text-[15.5px] font-medium">{tableName}</span></span>
+        <span />
+      </div>,
+    );
+  }
+  if (paidOnline && !isCancelled) {
+    detailRows.push(
+      <div key="pay" className={rowCls}>
+        {rowIcon(<CreditCard className="w-[17px] h-[17px]" />)}
+        <span className="min-w-0"><span className="block text-[12.5px]" style={{ color: K.faint }}>{en ? 'Payment' : 'Pago'}</span><span className="block text-[15.5px] font-medium">{en ? `Paid · ${amount}` : `Pagado · ${amount}`}</span>
+          {tip > 0 && <span className="block text-[13px]" style={{ color: K.sub }}>{en ? `Includes ${formatPrice(tip, currency)} tip for ${isDelivery ? 'your driver' : 'the team'}` : `Incluye ${formatPrice(tip, currency)} de propina para ${isDelivery ? 'tu repartidor' : 'el equipo'}`}</span>}</span>
+        <span />
+      </div>,
+    );
+  }
+  if (cashDue && isComplete) {
+    detailRows.push(
+      <div key="paycash" className={rowCls}>
+        {rowIcon(<Banknote className="w-[17px] h-[17px]" />)}
+        <span className="min-w-0"><span className="block text-[12.5px]" style={{ color: K.faint }}>{en ? 'Payment' : 'Pago'}</span><span className="block text-[15.5px] font-medium">{en ? `${amount} in cash` : `${amount} en efectivo`}</span></span>
+        <span />
+      </div>,
+    );
+  }
+  if (isCancelled) {
+    const paidBefore = o.payment_status === 'paid';
+    detailRows.push(
+      <div key="refund" className={rowCls}>
+        {rowIcon(refunded || paidBefore ? <CreditCard className="w-[17px] h-[17px]" /> : <Banknote className="w-[17px] h-[17px]" />)}
+        <span className="min-w-0">
+          <span className="block text-[12.5px]" style={{ color: K.faint }}>{refunded || paidBefore ? (en ? 'Refund' : 'Reembolso') : (en ? 'Payment' : 'Pago')}</span>
+          <span className="block text-[15.5px] font-medium">
+            {refunded ? (en ? `${amount} refunded to your card` : `${amount} devueltos a tu tarjeta`)
+              : paidBefore ? (en ? `${amount} refund in progress` : `Reembolso de ${amount} en trámite`)
+              : (en ? "You weren't charged" : 'No se te cobró nada')}
+          </span>
+          {refunded && <span className="block text-[13px]" style={{ color: K.sub }}>{en ? 'You will see it in 5 to 10 days, depending on your bank' : 'Lo ves en 5 a 10 días, según tu banco'}</span>}
+          {paidBefore && !refunded && restaurantPhone && <span className="block text-[13px]" style={{ color: K.sub }}>{en ? `If you don't see it in 2 days, call ${R}` : `Si en 2 días no lo ves, llama a ${R}`}</span>}
+        </span>
+        <span />
+      </div>,
+    );
+  }
+  if ((o.order_items?.length ?? 0) > 0) {
+    detailRows.push(
+      <div key="items">
+        <button type="button" onClick={() => setItemsOpen((v) => !v)} aria-expanded={itemsOpen} className={`${rowCls} w-full active:bg-[var(--tk-surface-2)]`}>
+          {rowIcon(<ShoppingBag className="w-[17px] h-[17px]" />)}
+          <span className="min-w-0"><span className="block text-[12.5px]" style={{ color: K.faint }}>{t.yourOrderLabel}</span><span className="block text-[15.5px] font-medium tabular-nums">{itemCount} {itemCount === 1 ? t.itemSingular : t.itemPlural} · {amount}</span></span>
+          <ChevronRight className="w-4 h-4 transition-transform" style={{ color: K.faint, transform: itemsOpen ? 'rotate(90deg)' : undefined }} aria-hidden />
+        </button>
+        {itemsOpen && (
+          <div className="px-3.5 pb-3.5 grid gap-3" style={rowDivider}>
+            <ul className="grid gap-2.5 pt-3">
+              {(o.order_items as any[]).map((item) => (
+                <li key={item.id} className="flex items-baseline justify-between gap-3 text-[14.5px]">
+                  <span className="min-w-0 flex-1">
+                    <span className="tabular-nums mr-1" style={{ color: K.faint }}>{item.qty}×</span>{item.display_name ?? item.product_name ?? t.productFallback}
+                    {item.variant_name && <span style={{ color: K.faint }}> · {item.variant_name}</span>}
+                    {/* Una línea por cosa, como en el carrito (lib/modifier-lines). */}
+                    {Array.isArray(item.lines) ? (item.lines as { text: string; price: number; indent: boolean }[]).map((l, k) => (
+                      <span key={k} className="flex justify-between gap-3 text-[12.5px] leading-snug" style={{ color: K.sub, paddingLeft: l.indent ? 12 : 0 }}>
+                        <span>{l.indent && <span style={{ color: K.faint }}>↳ </span>}{l.text}</span>
+                        {l.price > 0 && <span className="tabular-nums flex-shrink-0" style={{ color: K.faint }}>+{formatPrice(l.price, currency)}</span>}
+                      </span>
+                    )) : Array.isArray(item.modifiers) && item.modifiers.length > 0 && (
+                      <span className="block text-[12.5px] leading-snug" style={{ color: K.sub }}>{(item.modifiers as { name: string }[]).map((m) => m.name).join(', ')}</span>
+                    )}
+                    {item.notes && <span className="block text-[12.5px]" style={{ color: K.sub }}>{item.notes}</span>}
+                  </span>
+                  <span className="tabular-nums flex-shrink-0" style={{ color: K.sub }}>{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="grid gap-1.5 pt-2.5 text-[14px] tabular-nums" style={{ borderTop: `1px dashed ${K.line}`, color: K.sub }}>
+              {Number(o.discount_amount) > 0 && <div className="flex justify-between"><span>{t.discount}</span><span>-{formatPrice(Number(o.discount_amount), currency)}</span></div>}
+              {isDelivery && Number(o.delivery_fee) > 0 && <div className="flex justify-between"><span>{t.deliveryFee}</span><span>{formatPrice(Number(o.delivery_fee), currency)}</span></div>}
+              {Number(o.tax_amount) > 0 && <div className="flex justify-between"><span>{t.taxes}</span><span>{formatPrice(Number(o.tax_amount), currency)}</span></div>}
+              {tip > 0 && <div className="flex justify-between"><span>{isDelivery ? (en ? 'Tip for your driver' : 'Propina para tu repartidor') : (en ? 'Tip for the team' : 'Propina para el equipo')}</span><span>{formatPrice(tip, currency)}</span></div>}
+              <div className="flex justify-between text-[15.5px] font-semibold" style={{ color: K.ink }}><span>{t.total}</span><span>{amount}</span></div>
+            </div>
+            {!isDelivery && visibleNotes && <p className="text-[13px]" style={{ color: K.sub }}>{t.notes}: {visibleNotes}</p>}
+          </div>
+        )}
+      </div>,
+    );
+  }
+  const detailCard = detailRows.length > 0 ? (
+    <div className={groupCls} style={groupStyle}>
+      {detailRows.map((r, i) => <div key={i} style={i > 0 ? rowDivider : undefined}>{r}</div>)}
+    </div>
+  ) : null;
+
+  const photoBlock = isComplete && o.delivery_photo_url ? (
+    <a href={o.delivery_photo_url} target="_blank" rel="noopener noreferrer" className={`relative block w-full aspect-[4/3] ${groupCls}`} style={groupStyle}>
+      <Image src={o.delivery_photo_url} alt={t.deliveryProofAlt} fill sizes="(max-width: 480px) 100vw, 450px" className="object-cover" />
+    </a>
+  ) : null;
+
+  const feedbackBlock = isComplete && !autoClosed ? (
+    <FeedbackPrompt restaurantId={restaurantId} restaurantName={R} orderId={o.id} orderType={o.order_type} customerName={o.customer_name}
+      restaurantPhone={restaurantPhone} googleReviewUrl={googleReviewUrl} desktop={isDesktop} en={en} />
+  ) : null;
+
+  const footerAction: React.ReactNode = (() => {
+    if (awaitingPayment) return null;
+    if (callState && !isDesktop) {
+      return (
+        <a href={`tel:${restaurantPhone}`} className={ctaCls} style={{ background: K.btn, color: K.btnFg }}>
+          <Phone className="w-[18px] h-[18px]" aria-hidden />{en ? `Call ${R}` : `Llamar a ${R}`}
+        </a>
+      );
+    }
+    if (canArrive) {
+      if (arrived) return <p className={ctaCls} style={{ background: K.greenSoft, color: K.greenDeep }} role="status"><Check className="w-[18px] h-[18px]" strokeWidth={3} aria-hidden />{en ? 'Notified' : 'Avisado'}</p>;
+      return (
+        <>
+          {arriveErr && (
+            <p className="text-center text-[13.5px] font-semibold" style={{ color: K.red }} role="alert">
+              {en ? "Couldn't notify the restaurant. Try again" : 'No pudimos avisar al restaurante. Intenta de nuevo'}
+              {restaurantPhone && !isDesktop && <>{' '}{en ? 'or ' : 'o '}<a href={`tel:${restaurantPhone}`} className="underline">{en ? 'call' : 'llama'}</a></>}.
+            </p>
+          )}
+          <button type="button" onClick={markArrived} disabled={arriving} className={ctaCls} style={{ background: K.btn, color: K.btnFg }}>
+            {arriving ? '…' : (en ? "I'm here" : 'Ya llegué')}
+          </button>
+          <p className="text-center text-[12.5px]" style={{ color: K.faint }}>{en ? 'Lets the counter know to bring it out.' : 'Avisa al mostrador para que te lo traigan.'}</p>
+        </>
+      );
+    }
+    if (canReorder) {
+      return <button type="button" onClick={reorder} className={ctaCls} style={{ background: K.btn, color: K.btnFg }}><RotateCw className="w-[18px] h-[18px]" aria-hidden />{en ? 'Order the same again' : 'Pedir lo mismo otra vez'}</button>;
+    }
+    if (isDineIn && isComplete) {
+      return <Link href={`/${restaurantSlug}`} className={ctaCls} style={{ background: K.btn, color: K.btnFg }}>{en ? 'Order more for the table' : 'Pedir algo más para la mesa'}</Link>;
+    }
+    if (isCancelled) {
+      return <Link href={`/${restaurantSlug}`} className={ctaCls} style={{ background: K.btn, color: K.btnFg }}>{t.backToMenu}</Link>;
+    }
+    if (isDineIn && isActive) {
+      return <Link href={`/${restaurantSlug}`} className={ctaSecondaryCls} style={{ background: K.card, color: K.ink, boxShadow: 'inset 0 0 0 1.5px rgba(17,17,20,.16)' }}>{en ? 'Order more for the table' : 'Pedir algo más para la mesa'}</Link>;
+    }
+    return null;
+  })();
+
+  const footer = footerAction ? (
+    <div className="sticky bottom-0 z-20 -mx-4 mt-auto px-4 pt-3 grid gap-2 min-[860px]:static min-[860px]:mx-0 min-[860px]:px-0 min-[860px]:pt-1"
+      style={{ background: isDesktop ? 'transparent' : K.surface, boxShadow: isDesktop ? undefined : `0 -1px 0 ${K.line}`, paddingBottom: isDesktop ? 0 : 'max(14px, env(safe-area-inset-bottom))' }}>
+      {footerAction}
+    </div>
+  ) : null;
+
+  const tailBlock = (
+    <div className="grid gap-1 pt-1">
+      {isComplete && currency === 'MXN' && <CfdiButton orderId={o.id} restaurantId={restaurantId} t={t} />}
+      {isComplete && (o.order_items?.length ?? 0) > 0 && (
+        <ShareReceiptButton orderNumber={o.order_number} restaurantName={restaurantName} restaurantSlug={restaurantSlug} total={Number(o.total)} currency={currency}
+          items={(o.order_items as any[]).map((i: any) => ({ name: i.product_name ?? 'Item', qty: i.qty }))} locale={en ? 'en' : 'es'} />
+      )}
+      {isActive && !awaitingPayment && (
+        <p className="text-[12.5px] leading-[1.6] px-1" style={{ color: K.faint }}>
+          {en ? `Keep this link: your order updates here live. ${R} ${isDelivery ? 'prepares and delivers' : 'prepares'} your order.` : `Guarda este enlace: aquí ves tu pedido en vivo. ${R} ${isDelivery ? 'prepara y entrega' : 'prepara'} tu pedido.`}
+        </p>
+      )}
+      <nav className="flex items-center gap-1 text-[13.5px] font-medium -ml-2" style={{ color: K.sub }}>
+        <Link href={`/${restaurantSlug}`} className="h-11 px-2 grid place-items-center">{t.backToMenu}</Link>
+        <span aria-hidden style={{ color: K.faint }}>·</span>
+        <Link href={`/${restaurantSlug}/mis-pedidos`} className="h-11 px-2 grid place-items-center">{t.viewPreviousOrders}</Link>
+      </nav>
+      <OrderHistorySaver order={o} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} trackingToken={trackingToken} />
+    </div>
+  );
+
+  const initials = R.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('');
+  const rootVars = { '--brand': brand.brand, '--brand-ink': brand.ink, '--brand-soft': brand.soft, background: K.surface, color: K.ink } as React.CSSProperties;
 
   return (
-    <div className="mt-root min-h-[100dvh] flex flex-col font-sans" style={{ background: K.surface, color: K.ink }}>
+    <div className={`mt-root min-h-[100dvh] flex flex-col font-sans antialiased`} style={rootVars}>
       <style>{TRACKER_CSS}</style>
-      {/* Barra superior mínima: volver · logo + restaurante · #pedido · en vivo */}
-      <header className="sticky z-40 border-b backdrop-blur-md" style={{ top: 'env(safe-area-inset-top, 0px)', background: K.header, borderColor: K.line }}>
-        <div className="max-w-md mx-auto px-2 h-14 flex items-center gap-1">
-          <Link href={`/${restaurantSlug}`} aria-label={t.backToMenu} className="w-11 h-11 rounded-xl grid place-items-center active:scale-95 transition-transform">
-            <ArrowLeft className="w-5 h-5" style={{ color: K.sub }} aria-hidden />
+      <div className="sr-only" aria-live="polite" aria-atomic="true">{headline}</div>
+
+      <header className="sticky top-0 z-30 min-[860px]:static" style={{ background: K.surface, paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
+        <div className="max-w-[1060px] mx-auto px-3 min-[860px]:px-10 h-[60px] min-[860px]:h-[76px] grid grid-cols-[44px_1fr_44px] min-[860px]:flex items-center gap-2 min-[860px]:gap-3">
+          <Link href={`/${restaurantSlug}`} aria-label={`${t.backToMenu} · ${R}`} className="w-11 h-11 grid place-items-center">
+            <span className="w-9 h-9 rounded-full grid place-items-center" style={{ background: K.card, boxShadow: K.shadow }}><ArrowLeft className="w-[18px] h-[18px]" aria-hidden /></span>
           </Link>
-          {restaurantLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={restaurantLogo} alt="" width={28} height={28} className="w-7 h-7 rounded-lg object-cover flex-shrink-0 mr-1" style={{ boxShadow: `0 0 0 1px ${K.line}` }} />
-          ) : null}
-          <p className="flex-1 min-w-0 truncate text-[14px] font-semibold" style={{ color: K.sub }}>
-            {restaurantName}{shortNum ? ` · #${shortNum}` : ''}
-          </p>
-          {isActive && !awaitingPayment && (
-            rtStatus === 'connected' ? (
-              <span className="mr-2 inline-flex items-center gap-1.5 text-[12px] font-bold" style={{ color: K.greenDeep }}>
-                <span className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse" style={{ background: K.greenDeep }} aria-hidden />
-                {t.live}
-              </span>
+          <div className="flex items-center justify-center min-[860px]:justify-start gap-2.5 min-w-0">
+            {restaurantLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={restaurantLogo} alt="" width={38} height={38} className="w-[38px] h-[38px] rounded-full object-cover flex-shrink-0" style={{ boxShadow: `0 0 0 2px ${K.card}, 0 0 0 3px ${K.line}` }} />
             ) : (
-              <span className="mr-2 text-[12px] font-bold" style={{ color: K.amber }}>{t.connecting}</span>
-            )
-          )}
+              <span className="w-[38px] h-[38px] rounded-full grid place-items-center text-[12px] font-bold flex-shrink-0" style={{ background: K.brand, color: K.brandInk }} aria-hidden>{initials}</span>
+            )}
+            <b className="truncate text-[16.5px] font-semibold tracking-[-0.015em]">{R}</b>
+          </div>
+          <span />
         </div>
+        {offline && (
+          <div className="max-w-[1060px] mx-auto px-4 min-[860px]:px-10 pb-1.5">
+            <div className="rounded-xl px-3 py-2 text-[13px] flex items-center gap-2" style={{ background: K.ink, color: K.surface }} role="status">
+              <i className="block w-[7px] h-[7px] rounded-full bg-[#ffb547]" aria-hidden />
+              {isDesktop
+                ? (en ? `No internet connection · last update at ${fmtClock(lastFetchAt ?? now)}` : `Sin conexión a internet · lo último que sabemos es de las ${fmtClock(lastFetchAt ?? now)}`)
+                : (en ? `Offline · data from ${fmtClock(lastFetchAt ?? now)}` : `Sin conexión · datos de las ${fmtClock(lastFetchAt ?? now)}`)}
+            </div>
+          </div>
+        )}
       </header>
 
-      <main className="flex-1 w-full max-w-md mx-auto px-4 pt-5 pb-6 flex flex-col gap-3">
-
-        {paidBannerVisible && !awaitingPayment && (
-          <div className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold" style={{ background: K.greenSoft, color: K.greenDeep }}>
-            <span className="flex items-center gap-2"><Check className="w-4 h-4" aria-hidden />{t.paymentConfirmed}</span>
-            <button type="button" onClick={() => setPaidBannerVisible(false)} aria-label={t.closeBanner} className="w-11 h-11 -mr-3 grid place-items-center">
-              <XCircle className="w-4 h-4" aria-hidden />
-            </button>
-          </div>
-        )}
-
-        {awaitingPayment ? (
-          <section className={card} style={cardStyle}>
+      <main className="flex-1 w-full max-w-[1060px] mx-auto px-4 min-[860px]:px-10 pt-1 min-[860px]:pt-4 pb-0 min-[860px]:pb-10 flex flex-col min-[860px]:flex-row min-[860px]:items-start gap-4 min-[860px]:gap-14">
+        <div className="px-1 min-[860px]:px-0 min-[860px]:flex-1 min-[860px]:sticky min-[860px]:top-6 grid gap-0">
+          {awaitingPayment ? (
             <PaymentPendingCard orderId={o.id} restaurantSlug={restaurantSlug} paidParam={paidParam}
               createdAt={o.created_at} paymentMethod={o.payment_method} currency={currency} t={t} />
-          </section>
-        ) : (
-          <>
-            {/* ── Estado + hora: lo único que importa de un vistazo ── */}
-            <section className="pt-1 grid gap-2" aria-live="polite">
-              {isComplete && (
-                <span className="w-14 h-14 rounded-full grid place-items-center mb-1" style={{ background: K.green, color: K.greenInk }}>
-                  <Check className="w-7 h-7" strokeWidth={3} aria-hidden />
-                </span>
-              )}
-              {isCancelled && (
-                <span className="w-14 h-14 rounded-full grid place-items-center mb-1" style={{ background: K.redSoft, color: K.red }}>
-                  <XCircle className="w-7 h-7" aria-hidden />
-                </span>
-              )}
-              {/* En la puerta lo dice la tarjeta negra de abajo; con bloque de hora, lo dice el bloque. */}
-              <h1 className={atDoor || hero ? 'sr-only' : 'font-display text-[30px] font-extrabold leading-[1.08] tracking-tight'} style={{ textWrap: 'balance' } as React.CSSProperties}>
-                {headline}
-              </h1>
-              {/* ── En la puerta: arriba de todo, en el lugar del bloque de la hora ── */}
-              {atDoor && (
-                <div className="rounded-[20px] px-5 py-5 grid gap-1" style={{ background: K.ink, color: K.card }} role="status">
-                  <p className="text-[12.5px] font-bold uppercase tracking-[0.06em]" style={{ color: K.inkLabel }}>{en ? 'Now' : 'Ahora'}</p>
-                  <p className="font-display text-[28px] font-extrabold leading-tight">{headline}</p>
-                  {o.notes && <p className="text-[14.5px]" style={{ color: K.inkSub }}>{o.notes}</p>}
-                </div>
-              )}
-              {hero && (
-                <div className="rounded-[20px] px-5 py-4 grid gap-0.5" style={hero.tone === 'ink' ? { background: K.ink, color: K.card } : { background: K.green, color: K.greenInk }}>
-                  <p className="text-[12.5px] font-bold uppercase tracking-[0.06em] opacity-85">{hero.label}</p>
-                  {/* "11:35–11:45 p.m." no entra a 44 px en un teléfono de 375: baja a 36. */}
-                  <p className={`font-display ${hero.big.length > 14 ? 'text-[36px]' : 'text-[44px]'} font-extrabold leading-[1.02] tracking-tight tabular-nums whitespace-nowrap`}>{hero.big}</p>
-                  {hero.sub && <p className="text-[14.5px] font-semibold">{hero.sub}</p>}
-                </div>
-              )}
-              {subline && !atDoor && !hero && (
-                <p className="text-[16px] font-semibold leading-snug" style={{ color: isCancelled ? K.sub : kitchenLate ? K.amber : K.ink }}>
-                  {subline}
-                </p>
-              )}
-              {!isCancelled && (
-                <div className="mt-2" aria-hidden>
-                  <div className="grid grid-cols-4 gap-1">
-                    {stepLabels.map((_, i) => (
-                      <i key={i} className="h-1.5 rounded-full" style={{ background: i <= stepIndex ? K.ink : K.line }} />
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-4 mt-1.5 text-[11.5px] font-semibold">
-                    {stepLabels.map((l, i) => (
-                      <span key={l} style={{ color: i === stepIndex ? K.ink : K.faint }}>{l}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-
-            {/* ── Efectivo: que lo tenga listo cuando llega ── */}
-            {cashRowShown && (
-              <div className={`${card} flex items-center justify-between gap-3 px-4 py-3`} style={cardStyle}>
-                <span className="text-[14px] font-semibold" style={{ color: K.sub }}>{atDoor ? (en ? 'Pay on delivery, in cash' : 'Paga al recibir, en efectivo') : (en ? 'Have the cash ready' : 'Ten listo el efectivo')}</span>
-                <span className="font-display text-[22px] font-extrabold tabular-nums" style={{ color: K.ink }}>{amount}</span>
-              </div>
-            )}
-
-            {/* ── Mapa: solo en camino ── */}
-            {onTheWay && !atDoor && hasDriverGps && (
-              <section className="relative rounded-[20px] overflow-hidden border" style={cardStyle}>
-                <DeliveryMap
-                  restaurantAddress={restaurantAddress}
-                  deliveryAddress={o.delivery_address}
-                  restaurantName={restaurantName}
-                  driverLat={liveDriverCoords?.lat ?? o.driver_lat ?? null}
-                  driverLng={liveDriverCoords?.lng ?? o.driver_lng ?? null}
-                  deliveryLat={o.delivery_lat ?? null}
-                  deliveryLng={o.delivery_lng ?? null}
-                  restaurantLat={restaurantLat}
-                  restaurantLng={restaurantLng}
-                  locale={locale}
-                  onEtaUpdate={setLiveDeliveryEta}
-                />
-                <span className="absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[12px] font-bold shadow-sm" style={{ background: K.card, color: locAgeMin != null && locAgeMin >= 2 ? K.amber : K.greenDeep }}>
-                  {locLabel}
-                </span>
-              </section>
-            )}
-            {onTheWay && !atDoor && !hasDriverGps && (
-              <p className="text-[13px] font-semibold px-1" style={{ color: K.faint }}>
-                {en ? 'Live location will appear when the driver shares it.' : 'La ubicación en vivo aparece cuando el repartidor la comparte.'}
-              </p>
-            )}
-
-            {/* ── Pickup listo: cómo llegar (el número va en el bloque de arriba) ── */}
-            {isPickup && isActive && restaurantAddress && ['almost_ready', 'ready'].includes(o.status) && (
-              <section className={`${card} px-4 py-3 flex items-center justify-between gap-3`} style={cardStyle}>
-                <p className="text-[14px] font-semibold min-w-0">{restaurantAddress}</p>
-                <a href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`} target="_blank" rel="noopener noreferrer"
-                  className="flex-shrink-0 h-11 px-3 rounded-xl grid place-items-center text-[14px] font-bold" style={{ color: K.greenDeep }}>
-                  {en ? 'Directions' : 'Cómo llegar'}
-                </a>
-              </section>
-            )}
-
-            {/* ── Mesa ── */}
-            {isDineIn && isActive && (
-              <>
-                <WaiterCallButton orderId={o.id} tableName={o.table_name} locale={locale} />
-                <Link href={`/${restaurantSlug}`} className="h-12 rounded-2xl grid place-items-center text-[15px] font-bold bg-white border" style={cardStyle}>
-                  {t.addMoreItems}
-                </Link>
-              </>
-            )}
-
-            {/* ── Dirección + instrucciones (editables hasta que sale) ── */}
-            {isDelivery && isActive && !onTheWay && o.delivery_address && (
-              <DeliveryInstructions
-                orderId={o.id}
-                token={o.authorized ? trackingToken : undefined}
-                address={o.delivery_address}
-                notes={o.notes ?? ''}
-                en={en}
-                onSaved={(notes) => setOrder((prev: any) => ({ ...prev, notes }))}
-              />
-            )}
-
-            {/* ── Entregado: foto + una sola pregunta ── */}
-            {isComplete && o.delivery_photo_url && (
-              <a href={o.delivery_photo_url} target="_blank" rel="noopener noreferrer" className="relative block w-full aspect-[4/3] rounded-[20px] overflow-hidden border" style={cardStyle}>
-                <Image src={o.delivery_photo_url} alt={t.deliveryProofAlt} fill sizes="(max-width: 480px) 100vw, 448px" className="object-cover" />
-              </a>
-            )}
-            {isComplete && !autoClosed && (
-              <FeedbackPrompt restaurantId={restaurantId} orderId={o.id} customerName={o.customer_name} restaurantPhone={restaurantPhone} en={en} />
-            )}
-
-            {isActive && o.authorized && trackingToken && (
-              <PushSubscriptionPrompt orderId={o.id} token={trackingToken} locale={locale} />
-            )}
-          </>
-        )}
-
-        {/* ── Tu pedido (plegado) ── */}
-        {!isCancelled && (o.order_items?.length ?? 0) > 0 && (
-          <details className={`${card} group`} style={cardStyle}>
-            <summary className="list-none cursor-pointer px-4 py-3.5 flex items-center justify-between gap-3 min-h-[52px]">
-              <span className="min-w-0">
-                <span className="block text-[15px] font-bold">{t.yourOrderLabel} · {itemCount} {itemCount === 1 ? t.itemSingular : t.itemPlural}</span>
-                {payLine && !cashRowShown && <span className="block text-[13px]" style={{ color: K.sub }}>{payLine}</span>}
-              </span>
-              <span className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-[15px] font-bold tabular-nums">{amount}</span>
-                <span className="text-[18px] transition-transform group-open:rotate-90" style={{ color: K.faint }} aria-hidden>›</span>
-              </span>
-            </summary>
-            <div className="px-4 pb-4 grid gap-3 border-t" style={{ borderColor: K.line }}>
-              <ul className="grid gap-2 pt-3">
-                {(o.order_items as any[]).map((item) => (
-                  <li key={item.id} className="flex items-baseline justify-between gap-3 text-[14px]">
-                    <span className="min-w-0 flex-1">
-                      <b className="tabular-nums">{item.qty}×</b> {item.display_name ?? item.product_name ?? t.productFallback}
-                      {item.variant_name && <span style={{ color: K.faint }}> · {item.variant_name}</span>}
-                      {/* Una línea por cosa, como en el carrito (lib/modifier-lines). Respuestas
-                          viejas sin "lines": los nombres sueltos. */}
-                      {Array.isArray(item.lines) ? (item.lines as { text: string; price: number; indent: boolean }[]).map((l, k) => (
-                        <span key={k} className="flex justify-between gap-3 text-[12.5px] leading-snug" style={{ color: K.sub, paddingLeft: l.indent ? 12 : 0 }}>
-                          <span>{l.indent && <span style={{ color: K.faint }}>↳ </span>}{l.text}</span>
-                          {l.price > 0 && <span className="tabular-nums flex-shrink-0" style={{ color: K.faint }}>+{formatPrice(l.price, currency)}</span>}
-                        </span>
-                      )) : Array.isArray(item.modifiers) && item.modifiers.length > 0 && (
-                        <span className="block text-[12.5px] leading-snug" style={{ color: K.sub }}>
-                          {(item.modifiers as { name: string }[]).map((m) => m.name).join(', ')}
-                        </span>
-                      )}
-                      {item.notes &&<span className="block text-[12.5px]" style={{ color: K.sub }}>{item.notes}</span>}
-                    </span>
-                    <span className="tabular-nums flex-shrink-0" style={{ color: K.sub }}>{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="grid gap-1 pt-2 border-t text-[13.5px]" style={{ borderColor: K.line, color: K.sub }}>
-                {Number(o.discount_amount) > 0 && <div className="flex justify-between"><span>{t.discount}</span><span>-{formatPrice(Number(o.discount_amount), currency)}</span></div>}
-                {isDelivery && Number(o.delivery_fee) > 0 && <div className="flex justify-between"><span>{t.deliveryFee}</span><span>{formatPrice(Number(o.delivery_fee), currency)}</span></div>}
-                {Number(o.tax_amount) > 0 && <div className="flex justify-between"><span>{t.taxes}</span><span>{formatPrice(Number(o.tax_amount), currency)}</span></div>}
-                {Number(o.tip_amount) > 0 && <div className="flex justify-between"><span>{t.tip}</span><span>{formatPrice(Number(o.tip_amount), currency)}</span></div>}
-                <div className="flex justify-between text-[15px] font-bold pt-1" style={{ color: K.ink }}><span>{t.total}</span><span className="tabular-nums">{amount}</span></div>
-              </div>
-              {!isDelivery && o.notes && <p className="text-[13px]" style={{ color: K.sub }}>{t.notes}: {o.notes}</p>}
-              {isDelivery && (() => {
-                const events: { label: string; ts: string }[] = [];
-                if (o.created_at) events.push({ label: t.timelineOrdered, ts: o.created_at });
-                if (o.driver_picked_up_at) events.push({ label: t.timelinePickedUp, ts: o.driver_picked_up_at });
-                if (o.driver_at_door_at) events.push({ label: t.timelineAtDoor, ts: o.driver_at_door_at });
-                if (o.driver_delivered_at) events.push({ label: t.timelineDelivered, ts: o.driver_delivered_at });
-                if (events.length < 2) return null;
-                return (
-                  <ol className="grid gap-1 pt-2 border-t text-[13px]" style={{ borderColor: K.line, color: K.sub }}>
-                    {events.map((ev) => (
-                      <li key={ev.label} className="flex justify-between"><span>{ev.label}</span><span className="tabular-nums">{fmtClock(Date.parse(ev.ts))}</span></li>
-                    ))}
-                  </ol>
-                );
-              })()}
+          ) : heroBlock}
+          {isDesktop && (
+            <div className="grid gap-3 mt-6">
+              {callState && phoneCard}
+              {mapBlock}
+              {stepsBlock}
+              {callRow}
             </div>
-          </details>
-        )}
-
-        {isComplete && currency === 'MXN' && (
-          <CfdiButton orderId={o.id} restaurantId={restaurantId} t={t} />
-        )}
-
-        <div className="grid gap-1 pt-1">
-          {isComplete && (o.order_items?.length ?? 0) > 0 && (
-            <ShareReceiptButton
-              orderNumber={o.order_number}
-              restaurantName={restaurantName}
-              restaurantSlug={restaurantSlug}
-              total={Number(o.total)}
-              currency={currency}
-              items={(o.order_items as any[]).map((i: any) => ({ name: i.product_name ?? 'Item', qty: i.qty }))}
-              locale={en ? 'en' : 'es'}
-            />
           )}
-          <nav className="flex items-center justify-center gap-1 text-[14px] font-semibold" style={{ color: K.sub }}>
-            <Link href={`/${restaurantSlug}`} className="h-11 px-3 grid place-items-center">
-              {t.backToMenu}
-            </Link>
-            <span aria-hidden style={{ color: K.faint }}>·</span>
-            <Link href={`/${restaurantSlug}/mis-pedidos`} className="h-11 px-3 grid place-items-center">
-              {t.viewPreviousOrders}
-            </Link>
-          </nav>
-          <OrderHistorySaver order={o} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} trackingToken={trackingToken} />
+        </div>
+        <div className="flex-1 min-[860px]:flex-none min-[860px]:w-[450px] flex flex-col gap-3.5 min-[860px]:gap-3 pt-3 min-[860px]:pt-0">
+          {!isDesktop && mapBlock}
+          {!isDesktop && stepsBlock}
+          {cashStrip}
+          {photoBlock}
+          {feedbackBlock}
+          {detailCard}
+          {!isDesktop && callRow}
+          {isDesktop ? <>{footer}{tailBlock}</> : <>{tailBlock}{footer}</>}
         </div>
       </main>
-
-      {/* ── Acción principal abajo, al alcance del pulgar ── */}
-      {showDock && (
-        <div className="sticky bottom-0 w-full border-t" style={{ background: K.surface, borderColor: K.line, paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-          <div className="max-w-md mx-auto px-4 pt-3 grid gap-2">
-            {canArrive ? (
-              o.customer_arrived_at ? (
-                <p className="h-14 rounded-2xl grid place-items-center text-[16px] font-bold" style={{ background: K.greenSoft, color: K.greenDeep }} role="status">
-                  {en ? "We told them you're here" : 'Ya avisamos que llegaste'}
-                </p>
-              ) : (
-                <>
-                  {arriveErr && (
-                    <p className="text-center text-[13.5px] font-semibold" style={{ color: K.red }} role="alert">
-                      {en ? "Couldn't notify the restaurant. Try again" : 'No pudimos avisar al restaurante. Intenta de nuevo'}
-                      {restaurantPhone && <>{' '}{en ? 'or ' : 'o '}<a href={`tel:${restaurantPhone}`} className="underline">{en ? 'call' : 'llama'}</a></>}.
-                    </p>
-                  )}
-                  <button type="button" onClick={markArrived} disabled={arriving}
-                    className="h-14 rounded-2xl text-[17px] font-extrabold active:scale-[0.98] transition-transform disabled:opacity-60"
-                    style={{ background: K.btn, color: K.btnFg }}>
-                    {arriving ? '…' : (en ? "I'm here" : 'Ya llegué')}
-                  </button>
-                </>
-              )
-            ) : canReorder ? (
-              <button type="button" onClick={reorder}
-                className="h-14 rounded-2xl text-[17px] font-extrabold active:scale-[0.98] transition-transform"
-                style={{ background: K.btn, color: K.btnFg }}>
-                {en ? 'Order the same again' : 'Pedir lo mismo otra vez'}
-              </button>
-            ) : restaurantPhone ? (
-              <a href={`tel:${restaurantPhone}`}
-                className="h-12 rounded-2xl flex items-center justify-center gap-2 text-[15px] font-bold bg-white border active:scale-[0.98] transition-transform"
-                style={cardStyle}>
-                <Phone className="w-[18px] h-[18px]" aria-hidden /> {t.callRestaurant}
-              </a>
-            ) : null}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 // Dirección + instrucciones de entrega. Editables desde el seguimiento hasta
 // que el repartidor recoge (DoorDash Drive): en edificios de Queens el timbre
-// o el apartamento hacen la diferencia.
-function DeliveryInstructions({ orderId, token, address, notes, en, onSaved }: {
-  orderId: string; token?: string; address: string; notes: string; en: boolean; onSaved: (notes: string) => void;
+// o el apartamento hacen la diferencia. Va como fila de la tarjeta de detalle.
+function DeliveryInstructions({ orderId, token, editable, address, notes, rawNotes, en, onSaved }: {
+  orderId: string; token?: string; editable: boolean; address: string; notes: string; rawNotes: string; en: boolean; onSaved: (notes: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(notes);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  // El billete con el que paga ("[Paga con: $100]") vive en las mismas notas:
+  // no se muestra en el campo, pero se conserva al guardar.
+  const payWithTag = (rawNotes.match(/\[(?:Paga con|Pays with):[^\]]*\]/i) ?? [''])[0];
   const save = async () => {
     if (!token) return;
     setSaving(true); setErr('');
+    const full = [draft.trim(), payWithTag].filter(Boolean).join(' ');
     try {
       const res = await fetch('/api/public/order-customer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId, t: token, action: 'notes', notes: draft }),
+        body: JSON.stringify({ order_id: orderId, t: token, action: 'notes', notes: full }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) { onSaved(data.notes ?? draft); setEditing(false); }
+      if (res.ok) { onSaved(data.notes ?? full); setEditing(false); }
       else setErr(res.status === 409
         ? (en ? 'The driver already has your order. Call the restaurant.' : 'El repartidor ya salió con tu pedido. Llama al restaurante.')
         : (en ? 'Could not save. Try again.' : 'No se pudo guardar. Intenta de nuevo.'));
@@ -1106,44 +1366,50 @@ function DeliveryInstructions({ orderId, token, address, notes, en, onSaved }: {
     }
     setSaving(false);
   };
+  const canEdit = editable && !!token;
   return (
-    <section className="bg-white rounded-[20px] border px-4 py-3.5 grid gap-2" style={{ borderColor: K.line }}>
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: K.faint }}>{en ? 'Deliver to' : 'Entregar en'}</p>
-      <p className="text-[16px] font-bold leading-snug">{address}</p>
-      {editing ? (
-        <>
-          <label htmlFor="delivery-notes" className="sr-only">{en ? 'Delivery instructions' : 'Instrucciones de entrega'}</label>
-          <textarea id="delivery-notes" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={500} rows={3}
-            placeholder={en ? 'Apt, buzzer, gate code…' : 'Apto, timbre, código del portón…'}
-            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: K.line }} />
-          {err && <p className="text-[13px] font-semibold" style={{ color: K.red }}>{err}</p>}
-          <div className="flex gap-2">
-            <button type="button" onClick={save} disabled={saving} className="h-11 px-4 rounded-xl text-[14px] font-bold disabled:opacity-60" style={{ background: K.btn, color: K.btnFg }}>
-              {saving ? '…' : (en ? 'Save' : 'Guardar')}
-            </button>
-            <button type="button" onClick={() => { setEditing(false); setDraft(notes); setErr(''); }} className="h-11 px-4 rounded-xl text-[14px] font-semibold" style={{ color: K.sub }}>
-              {en ? 'Cancel' : 'Cancelar'}
-            </button>
+    <div className="grid grid-cols-[32px_1fr] gap-3 px-3.5 py-3 min-h-[60px]">
+      <span className="w-8 h-8 rounded-[9px] grid place-items-center self-start mt-0.5" style={{ background: K.surface2, color: K.sub }} aria-hidden><MapPin className="w-[17px] h-[17px]" /></span>
+      <div className="min-w-0 grid">
+        <span className="text-[12.5px]" style={{ color: K.faint }}>{en ? 'Deliver to' : 'Entregar en'}</span>
+        <span className="text-[15.5px] font-medium tracking-[-0.01em] leading-snug">{address}</span>
+        {editing ? (
+          <div className="grid gap-2 mt-2">
+            <label htmlFor="delivery-notes" className="sr-only">{en ? 'Delivery instructions' : 'Instrucciones de entrega'}</label>
+            <textarea id="delivery-notes" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={480} rows={3}
+              placeholder={en ? 'Apt, buzzer, gate code…' : 'Apto, timbre, código del portón…'}
+              className="w-full rounded-xl px-3 py-2 text-[16px] outline-none" style={{ background: K.surface2, boxShadow: `inset 0 0 0 1px ${K.line}` }} />
+            {err && <p className="text-[13px] font-semibold" style={{ color: K.red }} role="alert">{err}</p>}
+            <div className="flex gap-2">
+              <button type="button" onClick={save} disabled={saving} className="h-11 px-4 rounded-xl text-[14px] font-semibold disabled:opacity-60" style={{ background: K.btn, color: K.btnFg }}>
+                {saving ? '…' : (en ? 'Save' : 'Guardar')}
+              </button>
+              <button type="button" onClick={() => { setEditing(false); setDraft(notes); setErr(''); }} className="h-11 px-4 rounded-xl text-[14px] font-medium" style={{ color: K.sub }}>
+                {en ? 'Cancel' : 'Cancelar'}
+              </button>
+            </div>
           </div>
-        </>
-      ) : (
-        <>
-          {notes && <p className="rounded-xl px-3 py-2 text-[13.5px] font-semibold" style={{ background: K.noteBg, color: K.noteFg }}>{notes}</p>}
-          {token && (
-            <button type="button" onClick={() => { setDraft(notes); setEditing(true); }} className="justify-self-start h-11 -ml-1 px-1 text-[14px] font-bold" style={{ color: K.greenDeep }}>
-              {notes ? (en ? 'Edit instructions' : 'Editar instrucciones') : (en ? 'Add instructions' : 'Agregar instrucciones')}
-            </button>
-          )}
-        </>
-      )}
-    </section>
+        ) : (
+          <>
+            {notes && <span className="text-[13px] mt-px" style={{ color: K.sub }}>{en ? 'Instructions: ' : 'Instrucciones: '}{notes}</span>}
+            {canEdit && (
+              <button type="button" onClick={() => { setDraft(notes); setEditing(true); }} className="justify-self-start min-h-[40px] -mb-2.5 text-[14px] font-semibold" style={{ color: K.greenDeep }}>
+                {notes ? (en ? 'Change instructions' : 'Cambiar instrucciones') : (en ? 'Add instructions' : 'Agregar instrucciones')}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
-// Una sola pregunta al final (peak-end). "Todo bien" lleva a la reseña
-// pública; "Hubo un problema" le llega al dueño en privado (no se publica).
-function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, en }: {
-  restaurantId: string; orderId: string; customerName: string; restaurantPhone?: string; en: boolean;
+// Una sola pregunta al final (peak-end). El reporte le llega al dueño en
+// privado. La reseña pública se ofrece a TODOS, no solo a los contentos
+// (Google prohíbe el "review gating").
+function FeedbackPrompt({ restaurantId, restaurantName, orderId, orderType, customerName, restaurantPhone, googleReviewUrl, desktop, en }: {
+  restaurantId: string; restaurantName: string; orderId: string; orderType: string; customerName: string; restaurantPhone?: string;
+  googleReviewUrl?: string | null; desktop: boolean; en: boolean;
 }) {
   const [mode, setMode] = useState<'ask' | 'good' | 'issue' | 'done'>('ask');
   const [rating, setRating] = useState(5);
@@ -1151,9 +1417,12 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
   const [sendErr, setSendErr] = useState(false);
-  const reasons = en
-    ? ['Something was missing', 'It arrived cold', 'It arrived late', 'Other']
-    : ['Faltó algo', 'Llegó frío', 'Llegó tarde', 'Otro'];
+  const delivery = orderType === 'delivery';
+  // "Llegó frío" solo tiene sentido si viajó hasta la casa.
+  const reasons = delivery
+    ? (en ? ['Something was missing', 'It arrived cold', 'It arrived late', 'Other'] : ['Faltó algo', 'Llegó frío', 'Llegó tarde', 'Otra cosa'])
+    : (en ? ['Something was missing', "It wasn't what I ordered", 'Other'] : ['Faltó algo', 'No era lo que pedí', 'Otra cosa']);
+  const question = delivery ? (en ? 'Did everything arrive OK?' : '¿Llegó todo bien?') : (en ? 'Was everything OK?' : '¿Estuvo todo bien?');
 
   const send = async () => {
     setSending(true);
@@ -1176,57 +1445,65 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
     setSending(false);
   };
 
-  if (mode === 'done') {
-    return (
-      <p className="rounded-2xl px-4 py-3 text-[14px] font-semibold" style={{ background: K.greenSoft, color: K.greenDeep }} role="status">
-        {en ? 'Thanks for letting us know.' : 'Gracias por contarnos.'}
-      </p>
-    );
-  }
+  const chip = 'min-h-[44px] px-4 rounded-full text-[14.5px] font-medium';
+  const review = googleReviewUrl ? (
+    <p className="text-[12.5px] leading-[1.6]" style={{ color: K.faint }}>
+      {en ? 'Want to say it in public? ' : '¿Quieres contarlo en público? '}
+      <a href={googleReviewUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: K.sub }}>{en ? 'Leave a Google review' : 'Deja una reseña en Google'}</a>
+    </p>
+  ) : null;
+  const errLine = sendErr ? <p className="text-[13px] font-semibold" style={{ color: K.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p> : null;
+
   return (
-    <section className="bg-white rounded-[20px] border px-4 py-4 grid gap-3" style={{ borderColor: K.line }}>
+    <section className="rounded-[18px] px-3.5 py-3.5 grid gap-2.5" style={{ background: K.card, boxShadow: K.shadow }}>
+      {mode === 'done' ? (
+        <p className="rounded-[14px] px-3.5 py-3 text-[13.5px] leading-[1.45]" style={{ background: K.brandSoft, color: K.ink }} role="status">
+          {reason
+            ? <>{en ? `${restaurantName} got your report ("${reason}").` : `${restaurantName} recibió tu reporte ("${reason}").`}{' '}
+                {orderType === 'dine_in'
+                  ? (en ? 'Let a server know to fix it now.' : 'Avísale a un mesero para resolverlo ya.')
+                  : restaurantPhone
+                    ? (desktop
+                      ? <>{en ? 'To fix it now, call ' : 'Para resolverlo ya, llama al '}<b className="tabular-nums">{phoneText(restaurantPhone)}</b>.</>
+                      : <>{en ? 'To fix it now, call ' : 'Para resolverlo ya, llama al '}<a href={`tel:${restaurantPhone}`} className="underline font-semibold" style={{ color: K.greenDeep }}>{phoneText(restaurantPhone)}</a>.</>)
+                    : null}</>
+            : (en ? `Thanks! We'll tell ${restaurantName}.` : `¡Gracias! Se lo decimos a ${restaurantName}.`)}
+        </p>
+      ) : (
+        <b className="text-[15.5px] font-semibold">{mode === 'issue' ? (en ? 'What happened?' : '¿Qué pasó?') : mode === 'good' ? (en ? 'How would you rate it?' : '¿Cómo lo calificas?') : question}</b>
+      )}
       {mode === 'ask' && (
-        <>
-          <p className="text-[16px] font-bold">{en ? 'Did everything arrive OK?' : '¿Llegó todo bien?'}</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setMode('good')} className="h-12 rounded-2xl border text-[15px] font-bold" style={{ borderColor: K.line }}>
-              {en ? 'Yes, all good' : 'Sí, todo bien'}
-            </button>
-            <button type="button" onClick={() => setMode('issue')} className="h-12 rounded-2xl border text-[15px] font-bold" style={{ borderColor: K.line }}>
-              {en ? 'There was a problem' : 'Hubo un problema'}
-            </button>
-          </div>
-        </>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setMode('good')} className={chip} style={{ background: K.surface2 }}>{en ? 'Yes, all good' : 'Sí, todo bien'}</button>
+          <button type="button" onClick={() => setMode('issue')} className={chip} style={{ background: K.surface2 }}>{en ? 'There was a problem' : 'Hubo un problema'}</button>
+        </div>
       )}
       {mode === 'good' && (
         <>
-          <p className="text-[16px] font-bold">{en ? 'How would you rate it?' : '¿Cómo lo calificas?'}</p>
           <div className="flex gap-1" role="radiogroup" aria-label={en ? 'Rating' : 'Calificación'}>
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={en ? `${n} star${n > 1 ? 's' : ''}` : `${n} estrella${n > 1 ? 's' : ''}`}
                 onClick={() => setRating(n)} className="w-11 h-11 grid place-items-center">
-                <Star className="w-7 h-7" style={{ color: n <= rating ? '#F5A524' : K.line }} fill={n <= rating ? '#F5A524' : 'none'} aria-hidden />
+                <Star className="w-7 h-7" style={{ color: n <= rating ? '#F5A524' : 'rgba(17,17,20,.18)' }} fill={n <= rating ? '#F5A524' : 'none'} aria-hidden />
               </button>
             ))}
           </div>
           <label htmlFor="review-comment" className="sr-only">{en ? 'Comment' : 'Comentario'}</label>
           <textarea id="review-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} rows={2}
             placeholder={en ? 'Anything to add? (optional)' : '¿Algo que agregar? (opcional)'}
-            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: K.line }} />
-          {sendErr && <p className="text-[13px] font-semibold" style={{ color: K.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p>}
-          <button type="button" onClick={send} disabled={sending} className="h-12 rounded-2xl text-[15px] font-bold disabled:opacity-60" style={{ background: K.btn, color: K.btnFg }}>
+            className="w-full rounded-xl px-3 py-2 text-[16px] outline-none" style={{ background: K.surface2, boxShadow: `inset 0 0 0 1px ${K.line}` }} />
+          {errLine}
+          <button type="button" onClick={send} disabled={sending} className="h-12 rounded-2xl text-[15px] font-semibold disabled:opacity-60" style={{ background: K.btn, color: K.btnFg }}>
             {sending ? '…' : (en ? 'Send' : 'Enviar')}
           </button>
         </>
       )}
       {mode === 'issue' && (
         <>
-          <p className="text-[16px] font-bold">{en ? 'What happened?' : '¿Qué pasó?'}</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label={en ? 'What happened' : 'Qué pasó'}>
             {reasons.map((r) => (
-              <button key={r} type="button" onClick={() => setReason(r)} aria-pressed={reason === r}
-                className="h-11 px-4 rounded-full border text-[14px] font-semibold"
-                style={reason === r ? { background: K.ink, color: K.card, borderColor: K.ink } : { borderColor: K.line }}>
+              <button key={r} type="button" onClick={() => setReason(r)} aria-pressed={reason === r} className={chip}
+                style={reason === r ? { background: K.surface2, boxShadow: `inset 0 0 0 1.5px ${K.ink}` } : { boxShadow: `inset 0 0 0 1.5px ${K.line}` }}>
                 {r}
               </button>
             ))}
@@ -1234,27 +1511,25 @@ function FeedbackPrompt({ restaurantId, orderId, customerName, restaurantPhone, 
           <label htmlFor="issue-comment" className="sr-only">{en ? 'Details' : 'Detalles'}</label>
           <textarea id="issue-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={400} rows={2}
             placeholder={en ? 'Tell us a bit more (optional)' : 'Cuéntanos un poco más (opcional)'}
-            className="w-full rounded-xl border px-3 py-2 text-[16px]" style={{ borderColor: K.line }} />
-          {sendErr && <p className="text-[13px] font-semibold" style={{ color: K.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p>}
-          <button type="button" onClick={send} disabled={sending || !reason} className="h-12 rounded-2xl text-[15px] font-bold disabled:opacity-50" style={{ background: K.btn, color: K.btnFg }}>
-            {sending ? '…' : (en ? 'Send to the restaurant' : 'Enviar al restaurante')}
+            className="w-full rounded-xl px-3 py-2 text-[16px] outline-none" style={{ background: K.surface2, boxShadow: `inset 0 0 0 1px ${K.line}` }} />
+          {errLine}
+          <button type="button" onClick={send} disabled={sending || !reason} className="h-12 rounded-2xl text-[15px] font-semibold disabled:opacity-50" style={{ background: K.btn, color: K.btnFg }}>
+            {sending ? '…' : (en ? `Send to ${restaurantName}` : `Enviar a ${restaurantName}`)}
           </button>
-          {restaurantPhone && (
-            <a href={`tel:${restaurantPhone}`} className="text-center text-[14px] font-semibold h-11 grid place-items-center" style={{ color: K.sub }}>
-              {en ? 'Or call the restaurant' : 'O llama al restaurante'}
-            </a>
-          )}
         </>
       )}
+      {review}
     </section>
   );
 }
 
+// Mesa: avisar al personal desde el teléfono (el cliente está adentro, no llama).
 function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tableName?: string | null; locale?: string }) {
   const t = getT(locale);
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [cooldown, setCooldown] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   const handlePress = async () => {
     if (state !== 'idle' || cooldown > 0) return;
@@ -1267,48 +1542,36 @@ function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tab
       });
     } catch { /* silent */ }
     setState('sent');
-    // 3-minute cooldown to avoid spamming
+    // 3 minutos entre avisos para no saturar al personal.
     let secs = 180;
     setCooldown(secs);
     timerRef.current = setInterval(() => {
       secs -= 1;
       setCooldown(secs);
       if (secs <= 0) {
-        clearInterval(timerRef.current!);
+        if (timerRef.current) clearInterval(timerRef.current);
         setState('idle');
         setCooldown(0);
       }
     }, 1000);
   };
 
-  const label = t.waiterCallLabel(tableName);
-
-  if (state === 'sent' && cooldown > 0) {
-    const mins = Math.floor(cooldown / 60);
-    const secs = cooldown % 60;
-    const timeStr = mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`;
-    return (
-      <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-violet-50 border border-violet-200">
-        <p className="text-sm font-semibold text-violet-700">
-          {t.staffNotified}
-        </p>
-        <p className="text-xs text-violet-400">{t.callAgainIn(timeStr)}</p>
-      </div>
-    );
-  }
-
+  const sent = state === 'sent' && cooldown > 0;
+  const mins = Math.floor(cooldown / 60);
+  const secs = cooldown % 60;
+  const timeStr = mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`;
   return (
-    <button
-      onClick={handlePress}
-      disabled={state === 'sending' || cooldown > 0}
-      aria-label={label}
-      className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-violet-50 border border-violet-200 text-violet-700 font-semibold text-sm hover:bg-violet-100 active:scale-[0.98] transition-all disabled:opacity-50"
-    >
-      <span className="text-base">🙋</span>
-      {state === 'sending'
-        ? t.notifyingStaff
-        : t.callWaiter}
-    </button>
+    <div className="flex items-center justify-between gap-3 px-1.5 text-[14px]" style={{ color: K.sub }}>
+      <span role="status">{sent ? t.staffNotified : (t.en ? 'Need something?' : '¿Necesitas algo?')}</span>
+      {sent ? (
+        <span className="text-[12.5px]" style={{ color: K.faint }}>{t.callAgainIn(timeStr)}</span>
+      ) : (
+        <button type="button" onClick={handlePress} disabled={state === 'sending'} aria-label={t.waiterCallLabel(tableName)}
+          className="inline-flex items-center min-h-[44px] text-[14px] font-semibold disabled:opacity-60" style={{ color: K.greenDeep }}>
+          {state === 'sending' ? t.notifyingStaff : t.callWaiter}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -1340,19 +1603,19 @@ function PaymentPendingCard({ orderId, restaurantSlug, paidParam, createdAt, pay
 
   if (confirming) {
     return (
-      <div className="text-center py-10 px-6" role="status" aria-live="polite">
-        <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-gray-200 border-t-[#05c8a7] motion-safe:animate-spin" aria-hidden />
-        <h2 className="text-xl font-black text-gray-900">
+      <section className="grid pt-2" role="status" aria-live="polite">
+        <span className="w-10 h-10 mb-3 rounded-full border-[3px] motion-safe:animate-spin" style={{ borderColor: 'rgba(17,17,20,.1)', borderTopColor: K.brand }} aria-hidden />
+        <h1 className="text-[28px] leading-[1.12] font-bold tracking-[-0.028em]">
           {paidParam === 'pending'
             ? (t.en ? 'Your payment is pending' : 'Tu pago está pendiente')
             : (t.en ? 'Confirming your payment…' : 'Confirmando tu pago…')}
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        </h1>
+        <p className="mt-1.5 text-[15px]" style={{ color: K.sub }}>
           {paidParam === 'pending'
             ? (t.en ? 'We will let you know as soon as it is confirmed.' : 'Te avisamos apenas se confirme.')
             : (t.en ? 'This takes a few seconds.' : 'Tarda unos segundos.')}
         </p>
-      </div>
+      </section>
     );
   }
 
@@ -1376,20 +1639,17 @@ function PaymentPendingCard({ orderId, restaurantSlug, paidParam, createdAt, pay
     setBusy(false);
   };
   return (
-    <div className="py-8 px-6 text-center" role="alert">
-      <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
-        <CreditCard className="w-8 h-8 text-red-600" aria-hidden />
-      </div>
-      <h2 className="text-2xl font-black text-gray-900 mb-1">{t.payFailedTitle}</h2>
-      <p className="text-sm text-gray-600 max-w-xs mx-auto">{t.payFailedDesc}</p>
+    <section className="grid pt-2" role="alert">
+      <h1 className="text-[28px] leading-[1.12] font-bold tracking-[-0.028em]">{t.payFailedTitle}</h1>
+      <p className="mt-1.5 text-[15px] max-w-[36ch]" style={{ color: K.sub }}>{t.payFailedDesc}</p>
       {canRetry && (
         <button type="button" onClick={retry} disabled={busy}
-          className="mt-5 w-full h-12 rounded-2xl bg-gray-900 text-white font-bold text-[15px] active:scale-[0.98] transition-transform disabled:opacity-60">
+          className="mt-5 w-full h-14 rounded-2xl text-[17px] font-semibold active:scale-[0.985] transition-transform disabled:opacity-60" style={{ background: K.btn, color: K.btnFg }}>
           {busy ? '…' : t.payRetry}
         </button>
       )}
-      {err && <p className="mt-3 text-sm font-semibold text-red-600">{err}</p>}
-    </div>
+      {err && <p className="mt-3 text-[14px] font-semibold" style={{ color: K.red }}>{err}</p>}
+    </section>
   );
 }
 
@@ -1406,8 +1666,11 @@ function readPushOrders(): string[] {
   }
 }
 
-function PushSubscriptionPrompt({ orderId, token, locale }: { orderId: string; token: string; locale?: string }) {
-  const t = getT(locale);
+// "Avisarme cuando…": enlace discreto bajo la hora (pide permiso solo al
+// tocarlo, con el pedido ya hecho). En iPhone sin la app instalada no hay push:
+// el aviso no se ofrece (llega el email, si lo dejó).
+function PushSubscriptionPrompt({ orderId, token, locale, orderType, desktop }: { orderId: string; token: string; locale?: string; orderType?: string; desktop: boolean }) {
+  const en = locale === 'en';
   const [state, setState] = useState<'idle' | 'subscribed' | 'denied' | 'unsupported'>('idle');
 
   // Suscribe ESTE pedido. Con permiso ya dado (de un pedido anterior) se hace
@@ -1442,9 +1705,7 @@ function PushSubscriptionPrompt({ orderId, token, locale }: { orderId: string; t
       return;
     }
     if (Notification.permission === 'denied') { setState('denied'); return; }
-    let done = false;
-    done = readPushOrders().includes(orderId);
-    if (done) { setState('subscribed'); return; }
+    if (readPushOrders().includes(orderId)) { setState('subscribed'); return; }
     if (Notification.permission === 'granted') {
       setState('subscribed');
       subscribe().catch(() => { /* sin push: el seguimiento sigue funcionando */ });
@@ -1461,28 +1722,20 @@ function PushSubscriptionPrompt({ orderId, token, locale }: { orderId: string; t
     }
   };
 
-  if (state === 'subscribed' || state === 'unsupported' || state === 'denied') return null;
-
+  if (state === 'unsupported' || state === 'denied') return null;
+  if (state === 'subscribed') {
+    return (
+      <p className="mt-3.5 inline-flex items-center gap-2 min-h-[44px] text-[14px]" style={{ color: K.sub }}>
+        <Check className="w-[17px] h-[17px]" strokeWidth={3} aria-hidden />
+        {desktop ? (en ? "We'll notify you in this browser" : 'Te avisamos en este navegador') : (en ? "We'll notify you here" : 'Te avisamos aquí')}
+      </p>
+    );
+  }
   return (
-    <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-violet-50 border border-violet-200">
-      <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
-        <Bell className="w-4 h-4 text-violet-600" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-violet-800">
-          {t.getOrderUpdates}
-        </p>
-        <p className="text-xs text-violet-600 mt-0.5">
-          {t.notifyWhenStatusChanges}
-        </p>
-      </div>
-      <button
-        onClick={handleSubscribe}
-        className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition-colors"
-      >
-        {t.notifyMe}
-      </button>
-    </div>
+    <button type="button" onClick={handleSubscribe} className="mt-3.5 justify-self-start inline-flex items-center gap-2 min-h-[44px] text-[14px] font-semibold" style={{ color: K.greenDeep }}>
+      <Bell className="w-[17px] h-[17px]" aria-hidden />
+      {orderType === 'pickup' ? (en ? "Notify me when it's ready" : 'Avisarme cuando esté listo') : (en ? 'Notify me when it leaves' : 'Avisarme cuando salga')}
+    </button>
   );
 }
 
@@ -1535,7 +1788,7 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, curr
 
   return (
     <div className="mt-2">
-      <button onClick={() => setShowHistory(!showHistory)} className="w-full text-center text-xs text-gray-400 hover:text-gray-600 py-2">
+      <button onClick={() => setShowHistory(!showHistory)} className="w-full text-center text-[13px] text-gray-600 hover:text-gray-900 py-2.5">
         {toggleLabel}
       </button>
       {showHistory && (
@@ -1545,7 +1798,7 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, curr
               className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
               <div>
                 <p className="text-sm font-medium">#{h.number}</p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-600">
                   {new Date(h.date).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {h.items} items
                 </p>
               </div>

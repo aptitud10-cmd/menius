@@ -26,6 +26,10 @@ export interface CustomerEmailOrder {
   preparedAt: string | null;
   createdAt: string | null;
   driverName: string | null;
+  /** Multi-stop route: same fields the tracker uses to count stops ahead. */
+  batchId: string | null;
+  batchSeq: number | null;
+  driverAtDoorAt: string | null;
   cancellationReason: string | null;
   restaurantCoords: { lat: number | null; lng: number | null };
   deliveryCoords: { lat: number | null; lng: number | null };
@@ -35,9 +39,9 @@ const ORDER_SELECT = `
   id, restaurant_id, order_number, status, customer_name, customer_email, customer_locale, customer_token, customer_id,
   order_type, payment_method, payment_status, total, tax_amount, tip_amount, delivery_fee, discount_amount,
   delivery_address, delivery_lat, delivery_lng, table_name, estimated_ready_minutes, prepared_at, created_at,
-  driver_name, cancellation_reason,
+  driver_name, cancellation_reason, batch_id, batch_seq, driver_at_door_at,
   restaurants ( name, slug, address, phone, logo_url, email, notifications_enabled, timezone, currency, locale,
-    tax_label, tax_rate, tax_included, latitude, longitude )
+    tax_label, tax_rate, tax_included, latitude, longitude, brand_color )
 `;
 
 interface ItemRow {
@@ -114,6 +118,7 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
       phone: (r.phone as string | null) ?? null,
       logoUrl: (r.logo_url as string | null) ?? null,
       timezone: (r.timezone as string | null) ?? null,
+      brandColor: (r.brand_color as string | null) ?? null,
     },
     orderNumber: String(o.order_number ?? ''),
     customerName: String(o.customer_name ?? ''),
@@ -153,6 +158,9 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
     preparedAt: (o.prepared_at as string | null) ?? null,
     createdAt: (o.created_at as string | null) ?? null,
     driverName: (o.driver_name as string | null) ?? null,
+    batchId: (o.batch_id as string | null) ?? null,
+    batchSeq: o.batch_seq != null ? Number(o.batch_seq) : null,
+    driverAtDoorAt: (o.driver_at_door_at as string | null) ?? null,
     cancellationReason: (o.cancellation_reason as string | null) ?? null,
     restaurantCoords: { lat: coord(r.latitude), lng: coord(r.longitude) },
     deliveryCoords: { lat: coord(o.delivery_lat), lng: coord(o.delivery_lng) },

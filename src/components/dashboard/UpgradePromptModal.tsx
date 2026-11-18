@@ -16,7 +16,7 @@ interface UpgradePromptModalProps {
   suggestedPlan?: 'starter' | 'pro' | 'business';
 }
 
-const PLAN = { name: 'Pro', price: '$79' };
+const PLAN = { name: 'Pro', price: '$149' };
 
 export function UpgradePromptModal({ open, onClose, reason }: UpgradePromptModalProps) {
   const { locale } = useDashboardLocale();

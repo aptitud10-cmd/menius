@@ -1,22 +1,76 @@
-// Sistema visual y textos del Counter (rediseño 2026-11). Referencia: Uber Eats
-// Orders — fondo blanco, tarjetas grises sin borde, botones negros, verde solo
-// para "nuevo" y "recibiendo pedidos". Los colores de estado nunca decoran.
+// Sistema visual y textos del Counter (rediseño 2026-11-14, dirección "Apple"
+// aprobada por Pedro). La jerarquía se arma con tipografía y superficies: fondo
+// gris, tarjetas que se elevan, tres grises para el texto. El color queda para
+// cuatro cosas: nuevo (accent: Aceptar y el contador de Nuevos), tipo de pedido
+// (ícono + palabra), tiempo (amber/red) y peligro (critical: la alergia, el único
+// relleno rojo). Pesos 500/600/700, nunca 800.
 import { orderItemModLines, linesTotal, withTitle, type ModLine } from '@/lib/modifier-lines';
 import type { Order, OrderItem } from '@/types';
 import { PREP_CHOICES, nearestChoice, kitchenMinutes } from '@/lib/orders/eta';
+import { LIGHT_TOKENS, cssVarName, type ThemeToken } from '@/lib/counter-themes';
+
+// Cada color es una variable CSS de la apariencia (lib/counter-themes.ts), con el
+// valor de Claro como respaldo.
+const v = (k: ThemeToken) => `var(${cssVarName(k)}, ${LIGHT_TOKENS[k]})`;
 
 export const C = {
+  bg: v('bg'),
+  surface: v('surface'),
+  fill: v('fill'),
+  thumb: v('thumb'),
+  thumbShadow: v('thumbShadow'),
+  line: v('line'),
+  lineStrong: v('lineStrong'),
+  ink: v('ink'),
+  sub: v('sub'),
+  faint: v('faint'),
+  accent: v('accent'),
+  onAccent: v('onAccent'),
+  accentText: v('accentText'),
+  status: v('status'),
+  blue: v('blue'),
+  violet: v('violet'),
+  amber: v('amber'),
+  red: v('red'),
+  destructive: v('destructive'),
+  critical: v('critical'),
+  onCritical: v('onCritical'),
+  warnBg: v('warnBg'),
+  warnText: v('warnText'),
+  warnBar: v('warnBar'),
+  inverse: v('inverse'),
+  onInverse: v('onInverse'),
+  raised: v('raised'),
+  raisedEdge: v('raisedEdge'),
+  scrim: v('scrim'),
+} as const;
+
+/** Estilo de un modal u hoja: superficie elevada + borde (solo se ve en Oscuro) + sombra. */
+export const RAISED = {
+  background: C.raised,
+  color: C.ink,
+  boxShadow: `0 0 0 1px ${C.raisedEdge}, 0 24px 48px rgba(0,0,0,.28)`,
+} as const;
+
+/**
+ * Paleta de las páginas del repartidor (driver/track/[token]). No tienen
+ * apariencia: son EXACTAMENTE los colores que el Counter usaba antes del
+ * rediseño (los respaldos de las variables --kds-* de entonces). No cambiar sin
+ * revisar esas dos páginas.
+ */
+export const DRIVER_C = {
   bg: '#FFFFFF',
-  surface: '#F2F4F3',      // tarjetas
-  surface2: '#E8ECEA',     // hover / pulsado
+  surface: '#F2F4F3',
+  surface2: '#E8ECEA',
   line: '#E1E6E3',
   ink: '#0E1412',
-  sub: '#55605C',          // texto secundario (7:1 sobre blanco)
+  sub: '#55605C',
   faint: '#7A8580',
-  black: '#111816',        // botón principal
-  green: '#05C8A7',        // verde MENIUS — solo fondos, con texto oscuro encima
-  greenInk: '#04241E',     // texto sobre verde (≈10:1)
-  greenDeep: '#047A67',    // verde para texto sobre blanco (≥4.5:1)
+  black: '#111816',
+  onBlack: '#FFFFFF',
+  green: '#05C8A7',
+  greenInk: '#04241E',
+  greenDeep: '#047A67',
   greenSoft: '#DFF7F1',
   blue: '#1D4ED8', blueSoft: '#E8EFFF',
   violet: '#6D28D9', violetSoft: '#F1E8FF',
@@ -61,10 +115,10 @@ const ES = {
   waiting: (m: number) => `esperando ${m} min`,
   paidOnline: 'Pagado online',
   cash: 'Efectivo',
-  delivery: 'DELIVERY',
-  pickup: 'RECOGER',
-  dineIn: 'MESA',
-  allergy: 'ALERGIA',
+  delivery: 'Delivery',
+  pickup: 'Recoger',
+  dineIn: 'Mesa',
+  allergy: 'Alergia',
   note: 'Nota',
   orderNote: 'Nota del pedido',
   utensilsYes: 'Con cubiertos',
@@ -113,6 +167,9 @@ const ES = {
   markedDelivered: (n: string) => `#${n} entregado`,
   markedDispatched: (n: string) => `#${n} salió`,
   markedServed: (n: string) => `#${n} servido`,
+  // Pickup que nadie vino a buscar (cancela + marca al cliente; con Deshacer).
+  noShow: 'No vino a buscarlo',
+  markedNoShow: (n: string) => `#${n}: no vino · cliente marcado`,
   accepted: (n: string, m: number) => `#${n} aceptado · listo en ${m} min`,
   undo: 'Deshacer',
   noticeFailed: 'No se pudo enviar el email al cliente.',
@@ -130,6 +187,30 @@ const ES = {
   hours: (h: number) => (h === 1 ? '1 hora' : `${h} horas`),
   // Vistas
   backToBoard: 'Volver a pedidos',
+  // Personalización (sonido, colores, volumen) y modo demo
+  customize: 'Sonido y colores',
+  tabSound: 'Sonido',
+  tabColors: 'Pantalla',
+  tabVolume: 'Volumen',
+  official: 'Oficial',
+  useThis: 'Usar este',
+  inUse: 'En uso',
+  listen: 'Escuchar',
+  volume: 'Volumen de las alertas',
+  urgentAfter: 'Pasar a sonido urgente después de',
+  seconds: (n: number) => `${n} s`,
+  staffCanCustomize: 'Permitir a las tablets cambiar sonido y colores',
+  staffCanCustomizeHelp: 'Si lo apagas, solo tú (con tu sesión) puedes cambiarlos.',
+  locked: 'El dueño bloqueó los cambios de sonido y colores en esta tablet.',
+  saveFailed: 'No se pudo guardar. Revisa la conexión e intenta de nuevo.',
+  demoMode: 'Modo demo',
+  demoModeHelp: 'Pedidos de prueba solo en esta pantalla, para mostrar el Counter. No se guarda nada.',
+  startDemo: 'Iniciar demo',
+  demoBanner: 'Modo demo · pedidos de prueba',
+  demoExit: 'Salir',
+  demoSummary: (n: number, total: string) => `${n} órdenes · ${total}`,
+  demoReady: 'Lista para tu restaurante',
+  demoAgain: 'Repetir demo',
   search: 'Buscar por nombre o número',
   noScheduled: 'No hay pedidos programados',
   noHistory: 'Todavía no hay pedidos cerrados hoy',
@@ -171,10 +252,10 @@ const EN: Dict = {
   waiting: (m) => `waiting ${m} min`,
   paidOnline: 'Paid online',
   cash: 'Cash',
-  delivery: 'DELIVERY',
-  pickup: 'PICKUP',
-  dineIn: 'TABLE',
-  allergy: 'ALLERGY',
+  delivery: 'Delivery',
+  pickup: 'Pickup',
+  dineIn: 'Table',
+  allergy: 'Allergy',
   note: 'Note',
   orderNote: 'Order note',
   utensilsYes: 'Utensils requested',
@@ -221,6 +302,8 @@ const EN: Dict = {
   markedDelivered: (n) => `#${n} delivered`,
   markedDispatched: (n) => `#${n} sent out`,
   markedServed: (n) => `#${n} served`,
+  noShow: 'Never picked it up',
+  markedNoShow: (n) => `#${n}: no-show · customer flagged`,
   accepted: (n, m) => `#${n} accepted · ready in ${m} min`,
   undo: 'Undo',
   noticeFailed: "Couldn't email the customer.",
@@ -236,6 +319,29 @@ const EN: Dict = {
   min: (m) => `${m} min`,
   hours: (h) => (h === 1 ? '1 hour' : `${h} hours`),
   backToBoard: 'Back to orders',
+  customize: 'Sound & colors',
+  tabSound: 'Sound',
+  tabColors: 'Display',
+  tabVolume: 'Volume',
+  official: 'Official',
+  useThis: 'Use this',
+  inUse: 'In use',
+  listen: 'Listen',
+  volume: 'Alert volume',
+  urgentAfter: 'Switch to urgent sound after',
+  seconds: (n: number) => `${n} s`,
+  staffCanCustomize: 'Let tablets change sound and colors',
+  staffCanCustomizeHelp: 'If off, only you (signed in) can change them.',
+  locked: 'The owner locked sound and color changes on this tablet.',
+  saveFailed: "Couldn't save. Check the connection and try again.",
+  demoMode: 'Demo mode',
+  demoModeHelp: 'Test orders on this screen only, to show the Counter. Nothing is saved.',
+  startDemo: 'Start demo',
+  demoBanner: 'Demo mode · test orders',
+  demoExit: 'Exit',
+  demoSummary: (n: number, total: string) => `${n} orders · ${total}`,
+  demoReady: 'Ready for your restaurant',
+  demoAgain: 'Run demo again',
   search: 'Search by name or number',
   noScheduled: 'No scheduled orders',
   noHistory: 'No closed orders yet today',
@@ -273,9 +379,10 @@ export function shortName(name: string | null | undefined, fallback: string) {
 
 export function orderKind(order: Order) {
   const t = order.order_type ?? 'dine_in';
+  // color: el del ícono y la palabra (sin relleno).
   if (t === 'delivery') return { key: 'delivery' as const, color: C.blue };
   if (t === 'pickup') return { key: 'pickup' as const, color: C.violet };
-  return { key: 'dine_in' as const, color: C.black };
+  return { key: 'dine_in' as const, color: C.ink };
 }
 
 export function kindLabel(order: Order, T: CounterText) {
@@ -373,6 +480,14 @@ export function minsLeft(order: Order): number | null {
 
 /** Margen con que un programado pasa a Nuevos antes de su hora. */
 export const SCHEDULED_LEAD_MS = 30 * 60_000;
+
+/**
+ * Pickup en Listo: el contador pasa a ámbar a los 30 min y a rojo a los 60, como
+ * el envejecimiento de tickets de Toast/Square/Aloha. Desde el ámbar aparece
+ * "No vino a buscarlo". (Delivery listo sigue en ámbar a los 10: espera repartidor.)
+ */
+export const PICKUP_WAIT_WARN_MINS = 30;
+export const PICKUP_WAIT_LATE_MINS = 60;
 
 /**
  * Desde cuándo un pedido NUEVO espera respuesta: su llegada; para un programado,

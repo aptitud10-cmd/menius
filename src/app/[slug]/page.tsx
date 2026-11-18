@@ -146,28 +146,38 @@ export async function generateMetadata({
     };
 
   const isEn = (restaurant.locale ?? "es") === "en";
-  // Sin la marca: el layout raíz la agrega vía template '%s | MENIUS'.
-  // fullTitle es para openGraph/twitter, que no pasan por el template.
-  const title = `${restaurant.name} — ${isEn ? "Digital Menu" : "Menú Digital"}`;
-  const fullTitle = `${title} | MENIUS`;
+  // The restaurant's own link: name the action ("Order Online", like its
+  // peers) and skip the platform brand — absolute bypasses the root
+  // '%s | MENIUS' template. Same string in the tab and the shared card.
+  const fullTitle = `${restaurant.name} — ${isEn ? "Order Online" : "Pide en línea"}`;
+  const title = { absolute: fullTitle };
 
   // Build a rich description when the restaurant hasn't set one.
   // Include top category names so Google can show relevant snippets.
   const topCats: string[] = (restaurant as any).topCategoryNames ?? [];
+  const topDishes: string[] = (restaurant as any).topDishNames ?? [];
   const autoDescription = isEn
-    ? topCats.length > 0
+    ? topDishes.length >= 2
+      ? `Order online from ${restaurant.name}. Popular: ${topDishes.join(" · ")}.`
+      : topCats.length > 0
       ? `Order online from ${restaurant.name}. Menu includes: ${topCats.join(", ")}. Fast and easy digital ordering.`
       : `Order online from ${restaurant.name}. Browse the full menu and place your order in seconds.`
-    : topCats.length > 0
+    : topDishes.length >= 2
+      ? `Pide en línea en ${restaurant.name}. Lo más pedido: ${topDishes.join(" · ")}.`
+      : topCats.length > 0
       ? `Pide en línea en ${restaurant.name}. Menú con: ${topCats.join(", ")}. Ordena fácil y rápido desde tu celular.`
       : `Pide en línea en ${restaurant.name}. Explora el menú completo y ordena en segundos desde tu celular.`;
   const description = restaurant.description || autoDescription;
 
   const url = `${APP_URL}/${restaurant.slug}`;
-  const image =
-    restaurant.cover_image_url ||
-    restaurant.logo_url ||
-    `${APP_URL}/opengraph-image`;
+  // The shared card is generated (opengraph-image.tsx): photo + name + "Order
+  // online", always a 1200×630 PNG. Before, the raw cover went out
+  // (a .webp of any size, which WhatsApp doesn't always preview). `v` changes
+  // when what the card shows changes, so WhatsApp/iMessage don't keep the old one.
+  const cardKey = [restaurant.name, restaurant.description, restaurant.cover_image_url, restaurant.logo_url].join("|");
+  let cardHash = 0;
+  for (let i = 0; i < cardKey.length; i++) cardHash = (cardHash * 31 + cardKey.charCodeAt(i)) | 0;
+  const image = `${url}/opengraph-image?v=${(cardHash >>> 0).toString(36)}`;
   const logoUrl = restaurant.logo_url ?? undefined;
 
   const availableLocales: string[] = restaurant.available_locales ?? [
@@ -185,7 +195,12 @@ export async function generateMetadata({
     title,
     description,
     manifest: `/${restaurant.slug}/manifest.webmanifest`,
-    icons: { apple: logoUrl || "/icons/icon-192.svg" },
+    // Both keys: Next merges metadata shallowly, so an icons object with only
+    // `apple` replaced the root's favicon and the store tab had none.
+    icons: {
+      icon: logoUrl || "/favicon.svg",
+      apple: logoUrl || "/icons/icon-192.svg",
+    },
     appleWebApp: {
       title: restaurant.name,
       statusBarStyle: "default",
@@ -195,14 +210,14 @@ export async function generateMetadata({
       title: fullTitle,
       description,
       url,
-      siteName: "MENIUS",
+      siteName: restaurant.name,
       type: "website",
       images: [{ url: image, width: 1200, height: 630, alt: restaurant.name }],
       locale: isEn ? "en_US" : "es_MX",
     },
     twitter: {
       card: "summary_large_image",
-      title: restaurant.name,
+      title: fullTitle,
       description,
       images: [image],
     },
@@ -210,7 +225,9 @@ export async function generateMetadata({
       canonical: url,
       ...(langAlternates ? { languages: langAlternates } : {}),
     },
-    robots: { index: true, follow: true },
+    robots: getStoreOverrides(restaurant.slug).noindex
+      ? { index: false, follow: false }
+      : { index: true, follow: true },
   };
 }
 
@@ -477,7 +494,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
           slug={params.slug}
           categories={demoConfig.categories}
           products={demoConfig.products}
-          reviewStats={{ average: 4.7, total: 128 }}
+          reviewStats={null}
         />
         <MenuShell
           restaurant={demoConfig.restaurant}
@@ -485,7 +502,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
           products={demoConfig.products}
           tableName={null}
           locale={demoConfig.locale}
-          reviewStats={{ average: 4.7, total: 128 }}
+          reviewStats={null}
           backUrl="/demo"
         />
       </>
