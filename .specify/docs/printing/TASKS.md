@@ -68,10 +68,10 @@
 
 ## Sprint 4 — UI + convivencia con la impresión existente [M]
 - [x] Merge de main en la rama (84 commits atrás): bb4c8fce
-- [ ] QR del repartidor en el ticket (v3.2): `TicketData.driverUrl` + render PNG + ESC/POS
-- [ ] Panel: impresoras (crear, URL una vez, rotar, toggles de v3, prueba)
+- [x] QR del repartidor en el PNG (v3.2): bc1b83c2, verificado decodificando. Falta el lado ESC/POS (Android)
+- [x] Panel: impresoras (crear, URL una vez, rotar, toggles de v3, prueba): d7ad16aa (acciones 6b6cb89c)
 - [ ] Counter app: online/offline + banner rojo (F5) + botón Reimprimir (F2)
-- [ ] `GET /api/tenant/printers/status` (al montar + cada 2 min)
+- [x] `GET /api/tenant/printers/status`: 6b6cb89c (el Counter lo consulta al montar + cada 2 min: pendiente)
 - [ ] Con CloudPRNT activo: desactivar y ocultar las 4 impresiones locales (`counter-auto-print`, `counter-print-on-arrival`, la regla de mesa con bridge nativo, `menius-auto-print`); "Imprimir" → job `reprint` (CA-17)
 - [ ] Camino Bluetooth/red con el layout nuevo, opción (b): `ReceiptEscPosBuilder.kt` lee `ticket` (`ticketVersion: 2`) con `GS !` + `GS B`. El JSON mantiene `ReceiptData` para los APKs viejos (CA-18)
 - [ ] Si se toca la app Android: rebuild del APK y prueba en la tablet
