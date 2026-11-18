@@ -66,10 +66,10 @@ function Inverted({ children, size, center }: { children: ReactNode; size: numbe
   );
 }
 
-function Boxed({ children, size, thick }: { children: ReactNode; size: number; thick?: boolean }) {
+function Boxed({ children, size, thick, indent = 0 }: { children: ReactNode; size: number; thick?: boolean; indent?: number }) {
   return (
     <div style={{
-      display: 'flex', border: `${thick ? 6 : 3}px solid ${BLACK}`, margin: `8px ${PAD}px`,
+      display: 'flex', border: `${thick ? 6 : 3}px solid ${BLACK}`, margin: `8px ${PAD}px 8px ${PAD + indent}px`,
       padding: '6px 12px', fontSize: size, fontWeight: 900, lineHeight: 1.2,
     }}>
       {children}
@@ -105,7 +105,8 @@ function Item({ item, t, currency }: { item: TicketItem; t: TicketStrings; curre
       {item.lines.map((l, i) => (
         <Row key={i} left={l.text} right={l.price > 0 ? amount(l.price, currency) : undefined} size={22} indent={l.indent ? 56 : 32} />
       ))}
-      {item.notes ? <Boxed size={22}>{`${t.note}: ${item.notes}`}</Boxed> : null}
+      {/* La nota cuelga del plato (con sangría): entre dos platos iguales no se sabe de cuál es. */}
+      {item.notes ? <Boxed size={22} indent={32}>{`${t.note}: ${item.notes}`}</Boxed> : null}
     </div>
   );
 }
@@ -156,7 +157,13 @@ function OrderTicket({ d }: { d: TicketData }) {
       <div style={{ display: 'flex', fontSize: 24, fontWeight: 700, padding: `8px ${PAD}px 0` }}>{t.utensils(d.includeUtensils)}</div>
 
       <Rule />
-      {d.items.map((item, i) => <Item key={i} item={item} t={t} currency={c} />)}
+      {/* Línea fina entre platos: dos Cheeseburger Deluxe distintas se leen como dos (Pedro 2026-11-18). */}
+      {d.items.map((item, i) => (
+        <div key={i} style={{ display: 'flex', flexDirection: 'column' }}>
+          {i > 0 ? <div style={{ display: 'flex', height: 2, background: BLACK, margin: `2px ${PAD}px 8px` }} /> : null}
+          <Item item={item} t={t} currency={c} />
+        </div>
+      ))}
       {d.orderNotes ? <Boxed size={24}>{`${t.note}: ${d.orderNotes}`}</Boxed> : null}
       <div style={{ display: 'flex', fontSize: 26, fontWeight: 900, padding: `6px ${PAD}px 0` }}>{t.itemsCheckBag(d.itemCount)}</div>
 

@@ -43,7 +43,7 @@ export function qrSvg(text: string): string {
 const ALERT_ICON = `<svg class="alert" viewBox="0 0 24 24"><path d="M12 2 L23 21 L1 21 Z" fill="#fff"/><rect x="10.8" y="8" width="2.4" height="7" fill="#000"/><rect x="10.8" y="16.6" width="2.4" height="2.4" fill="#000"/></svg>`;
 
 function row(left: string, right: string | undefined, cls: string, indentPx = 0): string {
-  const style = indentPx ? ` style="padding-left:${mm(indentPx)}"` : '';
+  const style = indentPx ? ` style="padding-left:${mm(10 + indentPx)}"` : '';
   return `<div class="row ${cls}"${style}><span class="l">${esc(left)}</span>${right ? `<span class="r">${esc(right)}</span>` : ''}</div>`;
 }
 
@@ -51,7 +51,7 @@ function itemHtml(item: TicketItem, note: string, currency: string): string {
   return `<div class="item">
     ${row(`${item.qty}x ${item.name}`, ticketAmount(item.lineTotal, currency), 'item-head')}
     ${item.lines.map((l) => row(l.text, l.price > 0 ? ticketAmount(l.price, currency) : undefined, 'item-line', l.indent ? 56 : 32)).join('')}
-    ${item.notes ? `<div class="boxed note">${esc(`${note}: ${item.notes}`)}</div>` : ''}
+    ${item.notes ? `<div class="boxed note item-note">${esc(`${note}: ${item.notes}`)}</div>` : ''}
   </div>`;
 }
 
@@ -116,6 +116,9 @@ export function buildTicketHTML(d: TicketData): string {
   .item-head { font-size: ${mm(26)}; font-weight: 900; }
   .item-line { font-size: ${mm(22)}; }
   .note { font-size: ${mm(22)}; }
+  /* La nota cuelga del plato; línea fina entre platos (dos Deluxe distintas se leen como dos). */
+  .item-note { margin-left: ${mm(42)}; }
+  .item-sep { height: ${mm(2)}; background: #000; margin: ${mm(2)} ${mm(10)} ${mm(8)}; }
   .check-bag { font-size: ${mm(26)}; font-weight: 900; padding: ${mm(6)} ${mm(10)} 0; }
   .totals { font-size: ${mm(22)}; padding: 0 ${mm(10)}; line-height: 1.25; }
   .total { font-size: ${mm(30)}; font-weight: 900; }
@@ -145,7 +148,7 @@ export function buildTicketHTML(d: TicketData): string {
   ${d.scheduledFor ? `<div class="scheduled">${esc(`${t.scheduled} ${d.scheduledFor}`)}</div>` : ''}
   <div class="utensils">${esc(t.utensils(d.includeUtensils))}</div>
   <div class="rule"></div>
-  ${d.items.map((i) => itemHtml(i, t.note, c)).join('')}
+  ${d.items.map((i, n) => (n > 0 ? '<div class="item-sep"></div>' : '') + itemHtml(i, t.note, c)).join('')}
   ${d.orderNotes ? `<div class="boxed note">${esc(`${t.note}: ${d.orderNotes}`)}</div>` : ''}
   <div class="check-bag">${esc(t.itemsCheckBag(d.itemCount))}</div>
   <div class="rule"></div>

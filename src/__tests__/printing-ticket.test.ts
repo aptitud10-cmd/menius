@@ -72,6 +72,24 @@ const CASES: Record<string, ToTicketDataInput> = {
     restaurant: { ...BUCCANEER, name: 'Taquería El Niño', locale: 'es', currency: 'MXN', timezone: 'America/Mexico_City' },
     items: [{ qty: 1, line_total: 120, products: { name: 'Jalapeños rellenos de camarón' }, modifier_lines: [{ text: 'Salsa de piña', price: 0, indent: false }] }],
   }),
+  // Pedro 2026-11-18: dos Cheeseburger Deluxe distintas + una cantidad 2 idéntica.
+  'two-burgers': input({ order_type: 'delivery', delivery_address: '45-12 102nd St', total: 79.22 }, {
+    items: [
+      { qty: 1, line_total: 19.45, notes: 'No tomato', products: { name: 'Cheeseburger' }, modifier_lines: [
+        { text: 'Deluxe', price: 4, indent: false, title: true },
+        { text: 'French Fries', price: 0, indent: false },
+        { text: 'with American cheese', price: 1.5, indent: true },
+        { text: 'Well Done', price: 0, indent: false },
+      ] },
+      { qty: 1, line_total: 21.25, products: { name: 'Cheeseburger' }, modifier_lines: [
+        { text: 'Deluxe', price: 4, indent: false, title: true },
+        { text: 'Sweet Potato Fries', price: 1.8, indent: false },
+        { text: 'with American cheese', price: 1.5, indent: true },
+        { text: 'Medium Rare', price: 0, indent: false },
+      ] },
+      WINGS,
+    ],
+  }),
   'long-note': input({}, {
     items: [{ ...BURGER, notes: 'No onions, no pickles, extra crispy bacon, sauce on the side, cut in half and wrap each half separately please — it is for two kids' }, SODA],
   }),
