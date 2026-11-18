@@ -37,7 +37,9 @@ const ANGLE = `The camera is at a 35-degree THREE-QUARTER angle looking ACROSS t
 const SLICE = (what, extra = '') =>
   `ONE single wedge-shaped slice of ${what} standing upright on the plate with its CUT FACE turned toward the camera so every layer is clearly visible in cross-section. Only one slice — NOT a whole cake, NOT multiple slices.${extra ? ' ' + extra : ''} Nothing else on the plate — NO ice cream, NO extra sauce, NO mint sprig, NO powdered sugar, NO fork, NO ramekin. ${ANGLE}`;
 
-const build = ({ subject, plate, styling, lighting, aperture }) => `NOT CGI, NOT 3D render, NOT illustration — this is a REAL photograph. NO cooking equipment visible, NO text or logos, NO human hands.
+const DINER_PLATING = `Classic American diner presentation — a generous slice cut from a tall display-case cake, served plainly. No fine-dining plating, no smears or dots of sauce, no microgreens, no edible flowers, no artistic drizzle patterns.`;
+
+const build = ({ subject, plate, styling, lighting, aperture, plating = DINER_PLATING }) => `NOT CGI, NOT 3D render, NOT illustration — this is a REAL photograph. NO cooking equipment visible, NO text or logos, NO human hands.
 
 This is an award-winning commercial food photograph in the style of Lyan van Furth — the world's best food photographer. Every element is deliberate and masterfully composed.
 
@@ -48,7 +50,7 @@ PLATE COMPOSITION (critical): ${plate}
 INGREDIENT FIDELITY (critical): show ONLY the components named above. Do NOT add any other topping, sauce, garnish or side.
 
 SERVED IN/ON: one single plain white ceramic plate. Nothing else in frame.
-PLATING IDENTITY: Classic American diner presentation — a generous slice cut from a tall display-case cake, served plainly. No fine-dining plating, no smears or dots of sauce, no microgreens, no edible flowers, no artistic drizzle patterns.
+PLATING IDENTITY: ${plating}
 CAMERA: 50mm or 85mm prime lens, ${aperture}, ISO 400 — authentic DSLR photograph with natural film grain.
 ANGLE: 35-degree hero angle — the universal professional food photography standard.
 COMPOSITION: Square 1:1 frame. The plate is CENTERED and fills 75-80% of the frame. SAFE ZONE: all food within the central 80%. DO NOT shift the plate left or right.
@@ -87,11 +89,16 @@ const ITEMS = {
     plate: SLICE('New York cheesecake', 'The slice is tall and dense with a golden graham cracker crust at the base.'),
     styling: `Dense pale ivory cheesecake, smooth on top with a faintly browned surface, tall and straight-sided, on a golden-brown crumb crust. The cut face is smooth and creamy.`,
     lighting: SOFT, aperture: 'f/4.0 — the cut face and crust tack sharp' },
+  // Plated as the kitchen actually sends it (real photo, visit 2026-11-18): a
+  // chocolate-syrup loop around the slice, little cream rosettes and halved
+  // strawberries at the rim. The first AI version drew the syrup as letters
+  // ("WDe") and added a parsley leaf the diner never uses.
   'fruit-cheesecake': {
-    subject: `"Fruit Cheesecake" — a slice of cheesecake topped with fruit.`,
-    plate: SLICE('cheesecake topped with glossy strawberry topping', 'The slice is tall and dense with a golden graham cracker crust, crowned with red glazed strawberries.'),
-    styling: `Dense pale cheesecake on a golden crumb crust, topped with whole glazed strawberries in a glossy red glaze that runs slightly down the cut face.`,
-    lighting: SOFT, aperture: 'f/4.0 — the fruit topping and cut face tack sharp' },
+    subject: `"Fruit Cheesecake" — a slice of New York cheesecake topped with glazed strawberries, plated diner-style.`,
+    plate: `ONE single tall wedge of New York cheesecake standing upright on its base in the centre of the plate, its CUT FACE turned toward the camera so the full height of the cheesecake is visible. Only one slice. The top of the slice is completely covered with large whole and halved fresh strawberries coated in a glossy red strawberry glaze, the glaze running a little down the cut face. A thin edge of golden graham-cracker crumb along the back curved side. AROUND the slice, on the plate: (1) ONE thin line of dark chocolate syrup forming a LARGE IRREGULAR RING that goes all the way around the slice, close to the rim of the plate, like a wobbly hand-drawn oval fence — smooth gentle bends only, with at most two small hooks where it touches a cream rosette. NO coils, NO repeated loops, NO spirals, NO cursive handwriting shapes — it must NOT look like letters, words, numbers or symbols; (2) FOUR or FIVE generous piped rosettes of white whipped cream, each about the size of a walnut, spaced around the rim ON the chocolate ring; (3) beside each rosette, ONE halved strawberry lying cut-side up, glistening with red sauce; (4) a few small drops of red strawberry sauce on the plate. NOTHING else — NO mint, NO parsley, NO leaves of any kind, NO fork, NO powdered sugar. ${ANGLE}`,
+    styling: `Dense pale-ivory cheesecake with a smooth creamy cut face, a faint pink streak where the glaze has seeped in. Bright red glossy strawberries piled on top. Small neat whipped cream rosettes, crisp white. The chocolate line is thin and glossy, almost black.`,
+    plating: `Classic American diner dessert plating, generous and a little homemade: the chocolate syrup loop, the cream rosettes and the halved strawberries around the rim are exactly how this diner serves it. No fine-dining smears, no microgreens, no edible flowers, no herbs.`,
+    lighting: SOFT, aperture: 'f/4.0 — the strawberries and the cut face tack sharp' },
   'chocolate-cheesecake': {
     subject: `"Chocolate Cheesecake" — a slice of rich chocolate cheesecake.`,
     plate: SLICE('chocolate cheesecake', 'The slice is tall and dense with a dark chocolate crumb crust at the base.'),
@@ -107,13 +114,16 @@ const ITEMS = {
     plate: SLICE('apple pie', 'The slice shows a golden top and bottom crust with sliced apple filling visible between them.'),
     styling: `Golden flaky pastry top and bottom, filling of soft cinnamon-brown apple slices clearly visible on the cut face, slightly spilling.`,
     lighting: HARD, aperture: 'f/4.0 — the crust and filling tack sharp' },
-  // Buccaneer bakes this one in a sheet pan and cuts it into squares, so it is
-  // never the wedge the rest of the case is cut into.
+  // Buccaneer bakes this one in a sheet pan and cuts it into bars, so it is never
+  // the wedge the rest of the case is cut into. Real piece (visit 2026-11-18): a
+  // LONG LOW bar about twice as long as wide, fine sandy crumb (no oat clusters),
+  // a thin apple layer and a heavy snow of powdered sugar. The first AI version was
+  // a tall cube of oat streusel — another product.
   'apple-crumb-pie': {
-    subject: `"Apple Crumb Pie" — a square-cut piece of apple crumb pie.`,
-    plate: `ONE single SQUARE piece of apple crumb pie standing on the plate with a straight CUT SIDE turned toward the camera so the layers are visible. It is a RECTANGULAR square-cut piece with four straight sides and sharp corners — NOT a wedge, NOT a triangle, NOT a slice from a round pie. Only one piece. Nothing else on the plate — NO ice cream, NO sauce, NO cream, NO powdered sugar, NO fork. ${ANGLE}`,
-    styling: `A square slab with a pastry base, a thick layer of cinnamon-brown apple filling, and a craggy golden streusel crumb topping. The cut sides are straight and clean, showing all three layers. NO smooth top crust — the top is loose crumb.`,
-    lighting: HARD, aperture: 'f/4.0 — the crumb topping and the cut side tack sharp' },
+    subject: `"Apple Crumb Pie" — one rectangular bar of apple crumb pie, dusted with powdered sugar.`,
+    plate: `ONE single RECTANGULAR bar of apple crumb pie lying flat in the centre of the plate, set at a slight diagonal. It is LONG and LOW: about twice as long as it is wide, and only about 3-4 cm tall — NOT a cube, NOT a tall square, NOT a wedge, NOT a slice from a round pie. One long straight CUT SIDE faces the camera so the layers are visible. Only one piece. Nothing else on the plate — NO ice cream, NO sauce, NO cream, NO fork. ${ANGLE}`,
+    styling: `From bottom to top: a thin golden shortcrust pastry base, a THIN layer of soft cinnamon-brown apple filling, then a thick layer of FINE, SANDY, buttery golden crumb topping made of small crumbs — NO oats, NO large clumps. The whole top is HEAVILY dusted with white powdered sugar, like a light snowfall, so the top reads pale and white-speckled; a little powdered sugar has fallen on the plate right around the bar. The cut side is slightly rough and homemade, showing the three layers.`,
+    lighting: SOFT, aperture: 'f/4.0 — the powdered sugar and the cut side tack sharp' },
 
   'brownie-all-the-way': {
     subject: `"Brownie All The Way" — a hot fudge brownie with ice cream, walnuts and whipped cream.`,
