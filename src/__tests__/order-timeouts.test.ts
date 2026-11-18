@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyTimeout, needsPickupReminder, type TimeoutOrder } from '@/lib/orders/order-timeouts';
+import { classifyTimeout, needsPickupReminder, needsRefundRetry, type TimeoutOrder } from '@/lib/orders/order-timeouts';
 
 const NOW = Date.parse('2026-11-17T18:00:00Z');
 const ago = (min: number) => new Date(NOW - min * 60_000).toISOString();
@@ -80,5 +80,43 @@ describe('recordatorio de pickup', () => {
   it('no si el cliente ya avisó que llegó, ni en delivery', () => {
     expect(needsPickupReminder(ready(30, { customer_arrived_at: ago(2) }), NOW)).toBe(false);
     expect(needsPickupReminder(ready(30, { order_type: 'delivery' }), NOW)).toBe(false);
+  });
+});
+
+describe('sin aceptar y ya pagado (Fase C)', () => {
+  const paid = (p: Partial<TimeoutOrder> = {}) => order({ payment_method: 'online', payment_status: 'paid', payment_intent_id: 'pi_123', ...p });
+
+  it('pagado con Stripe: a los 15 min se reembolsa y se cancela', () => {
+    expect(classifyTimeout(paid({ created_at: ago(15), updated_at: ago(15) }), NOW)).toEqual({ kind: 'refund_not_accepted', notify: true });
+    expect(classifyTimeout(paid({ created_at: ago(14), updated_at: ago(14) }), NOW)).toBeNull();
+  });
+
+  it('cuenta desde que se confirmó el pago (updated_at), no desde el carrito', () => {
+    expect(classifyTimeout(paid({ created_at: ago(30), updated_at: ago(10) }), NOW)).toBeNull();
+  });
+
+  it('pagado con Wompi o Mercado Pago no se toca: no hay reembolso automático', () => {
+    expect(classifyTimeout(paid({ payment_intent_id: '12345678' }), NOW)).toBeNull();
+    expect(classifyTimeout(paid({ payment_intent_id: 'wompi-abc' }), NOW)).toBeNull();
+    expect(classifyTimeout(paid({ payment_intent_id: null }), NOW)).toBeNull();
+  });
+
+  it('online sin cobrar sigue sin tocarse (lo cierra monitor-orders)', () => {
+    expect(classifyTimeout(order({ payment_method: 'online', payment_status: 'pending', payment_intent_id: 'pi_1' }), NOW)).toBeNull();
+  });
+
+  it('programado pagado todavía no activado no se toca', () => {
+    expect(classifyTimeout(paid({ scheduled_for: ago(-60) }), NOW)).toBeNull();
+  });
+});
+
+describe('reintento de reembolso', () => {
+  const base = { status: 'cancelled', payment_status: 'paid', cancellation_reason: 'not_accepted', payment_intent_id: 'pi_1' };
+  it('solo cancelado por no aceptado, todavía cobrado y con Stripe', () => {
+    expect(needsRefundRetry(base)).toBe(true);
+    expect(needsRefundRetry({ ...base, payment_status: 'refunded' })).toBe(false);
+    expect(needsRefundRetry({ ...base, cancellation_reason: 'customer' })).toBe(false);
+    expect(needsRefundRetry({ ...base, payment_intent_id: '999' })).toBe(false);
+    expect(needsRefundRetry({ ...base, status: 'pending' })).toBe(false);
   });
 });

@@ -6,6 +6,10 @@
  * - Sin aceptar 15 min → cancelado ('not_accepted') + aviso al cliente
  *   (seguimiento en vivo, push y email). El stock y los puntos vuelven solos
  *   (triggers de cancelación en la base).
+ * - Sin aceptar 15 min y YA PAGADO con Stripe → cancelado + reembolso total
+ *   (Fase C). Primero se cancela con guarda de estado (si el mostrador lo
+ *   acepta en ese mismo segundo, no se toca) y después se reembolsa. Si Stripe
+ *   falla, el pedido queda cancelado y pagado: se reintenta en cada vuelta.
  * - Aceptado y olvidado → cerrado en silencio ('auto_closed').
  * - Pickup listo hace 20 min → recordatorio al cliente (push + email), una vez.
  *
@@ -20,9 +24,12 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 import { OPEN_ORDER_STATUSES } from '@/lib/order-state';
+import { captureError } from '@/lib/error-reporting';
+import { refundStripePayment, isAlreadyRefundedError } from '@/lib/payments/stripe-refund';
 import {
   classifyTimeout,
   needsPickupReminder,
+  needsRefundRetry,
   PICKUP_REMINDER_EVENT,
   NOT_ACCEPTED_REASON,
   AUTO_CLOSED_REASON,
@@ -39,7 +46,47 @@ type Row = TimeoutOrder & {
   customer_email: string | null;
   customer_phone: string | null;
   driver_tracking_token: string | null;
+  payment_intent_id: string | null;
 };
+
+type Db = ReturnType<typeof createAdminClient>;
+
+/**
+ * Reembolso total de un pedido no aceptado. Idempotente: misma clave por
+ * PaymentIntent, y "ya reembolsado" cuenta como éxito. Devuelve true si el
+ * pedido quedó marcado 'refunded'.
+ */
+async function refundNotAccepted(db: Db, o: { id: string; order_number: string; payment_intent_id: string }): Promise<boolean> {
+  try {
+    const refund = await refundStripePayment(o.payment_intent_id, {
+      reason: 'requested_by_customer',
+      idempotencyKey: `not-accepted-refund:${o.payment_intent_id}`,
+      metadata: { order_id: o.id, reason: NOT_ACCEPTED_REASON },
+    });
+    if (refund.status === 'failed' || refund.status === 'canceled') {
+      throw new Error(`refund ${refund.id} ${refund.status}`);
+    }
+  } catch (err) {
+    if (!isAlreadyRefundedError(err)) {
+      logger.error('not-accepted refund FAILED: customer paid, order cancelled, money not returned yet', {
+        orderId: o.id, orderNumber: o.order_number, error: err instanceof Error ? err.message : String(err),
+      });
+      captureError(err, { route: '/api/cron/order-timeouts', orderId: o.id, step: 'not-accepted-refund' });
+      return false;
+    }
+  }
+  const { error } = await db
+    .from('orders')
+    .update({ payment_status: 'refunded', updated_at: new Date().toISOString() })
+    .eq('id', o.id)
+    .eq('payment_status', 'paid');
+  if (error) {
+    // El dinero ya volvió; la próxima vuelta lo reintenta y Stripe dirá "ya reembolsado".
+    logger.error('refund ok but DB update failed', { orderId: o.id, error: error.message });
+    return false;
+  }
+  return true;
+}
 
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
@@ -52,7 +99,7 @@ export async function GET(req: Request) {
 
   const { data, error } = await db
     .from('orders')
-    .select('id, order_number, restaurant_id, status, order_type, payment_method, payment_status, scheduled_for, created_at, updated_at, prepared_at, customer_arrived_at, customer_name, customer_email, customer_phone, driver_tracking_token')
+    .select('id, order_number, restaurant_id, status, order_type, payment_method, payment_status, payment_intent_id, scheduled_for, created_at, updated_at, prepared_at, customer_arrived_at, customer_name, customer_email, customer_phone, driver_tracking_token')
     .in('status', OPEN_ORDER_STATUSES)
     .order('created_at', { ascending: true })
     .limit(500);
@@ -66,6 +113,24 @@ export async function GET(req: Request) {
   const closed: string[] = [];
   const failed: string[] = [];
   const reminded: string[] = [];
+  const refunded: string[] = [];
+  const refundFailed: string[] = [];
+
+  // Reintentos: cancelados por no aceptados que siguen cobrados (Stripe falló
+  // en una vuelta anterior). Ventana de 30 días: más atrás ya es caso manual.
+  const { data: stuck } = await db
+    .from('orders')
+    .select('id, order_number, status, payment_status, cancellation_reason, payment_intent_id')
+    .eq('status', 'cancelled')
+    .eq('payment_status', 'paid')
+    .eq('cancellation_reason', NOT_ACCEPTED_REASON)
+    .gte('updated_at', new Date(now - 30 * 24 * 60 * 60_000).toISOString())
+    .limit(50);
+  for (const o of stuck ?? []) {
+    if (!needsRefundRetry(o)) continue;
+    const ok = await refundNotAccepted(db, { id: o.id, order_number: o.order_number, payment_intent_id: o.payment_intent_id as string });
+    (ok ? refunded : refundFailed).push(o.order_number);
+  }
 
   // Recordatorio "tu pedido te espera" (pickup listo hace 20 min). Una sola vez
   // por pedido: cuenta cualquier fila del log, no solo las exitosas — un cliente
@@ -103,19 +168,22 @@ export async function GET(req: Request) {
     const action = classifyTimeout(o, now);
     if (!action) continue;
 
-    const to = action.kind === 'cancel_not_accepted' ? 'cancelled' : action.to;
-    const reason = action.kind === 'cancel_not_accepted' ? NOT_ACCEPTED_REASON : AUTO_CLOSED_REASON;
+    const cancels = action.kind === 'cancel_not_accepted' || action.kind === 'refund_not_accepted';
+    const to = cancels ? 'cancelled' : action.to;
+    const reason = cancels ? NOT_ACCEPTED_REASON : AUTO_CLOSED_REASON;
     const stamp = new Date().toISOString();
 
     // Cambio de sistema, fuera de la máquina de estados del personal (como el
     // cron anterior): p. ej. 'almost_ready' → 'delivered' no es un botón del
-    // Counter. El .eq('status') evita pisar un cambio hecho mientras tanto.
-    const { data: rows, error: upErr } = await db
+    // Counter. El .eq('status') evita pisar un cambio hecho mientras tanto; en
+    // un pedido pagado también exige que siga pagado (no reembolsado a mano).
+    let update = db
       .from('orders')
       .update({ status: to, updated_at: stamp, cancellation_reason: reason })
       .eq('id', o.id)
-      .eq('status', o.status)
-      .select('id');
+      .eq('status', o.status);
+    if (action.kind === 'refund_not_accepted') update = update.eq('payment_status', 'paid');
+    const { data: rows, error: upErr } = await update.select('id');
 
     if (upErr) {
       failed.push(o.order_number);
@@ -124,7 +192,14 @@ export async function GET(req: Request) {
     }
     if (!rows?.length) continue; // el mostrador lo movió justo ahora
 
-    (action.kind === 'cancel_not_accepted' ? cancelled : closed).push(o.order_number);
+    (cancels ? cancelled : closed).push(o.order_number);
+
+    // Reembolso antes del aviso: el email lee payment_status y dice
+    // "reembolsado" o "reembolso en camino" según cómo quedó.
+    if (action.kind === 'refund_not_accepted' && o.payment_intent_id) {
+      const ok = await refundNotAccepted(db, { id: o.id, order_number: o.order_number, payment_intent_id: o.payment_intent_id });
+      (ok ? refunded : refundFailed).push(o.order_number);
+    }
 
     const { error: histErr } = await db.from('order_status_history').insert({
       order_id: o.id,
@@ -141,7 +216,7 @@ export async function GET(req: Request) {
       await evictTokenCache(o.driver_tracking_token.slice(0, 16)).catch(() => {});
     }
 
-    if (action.kind === 'cancel_not_accepted' && action.notify) {
+    if (cancels && action.notify) {
       try {
         const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
         await notifyStatusChange({
@@ -166,8 +241,11 @@ export async function GET(req: Request) {
     closed: closed.length,
     failed: failed.length,
     reminded: reminded.length,
+    refunded: refunded.length,
+    refundFailed: refundFailed.length,
+    ...(refundFailed.length ? { refundFailedOrders: refundFailed } : {}),
     ...(cancelled.length ? { cancelledOrders: cancelled } : {}),
     ...(closed.length ? { closedOrders: closed } : {}),
   });
-  return NextResponse.json({ cancelled, closed, failed, reminded });
+  return NextResponse.json({ cancelled, closed, failed, reminded, refunded, refundFailed });
 }
