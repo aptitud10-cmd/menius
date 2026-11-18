@@ -8,8 +8,7 @@ import java.util.Locale
  * CloudPRNT, en texto ESC/POS. La web manda `ticket` (TicketData, ya resuelto)
  * y `ticketText` (los textos en el idioma del restaurante); acá solo se dibuja.
  *
- * Invertidos (GS B): franja de canal, bloque #003, alergia, COLLECT CASH y el
- * #003 de abajo. Tamaños con GS !. Si algo falta, devuelve null y el builder
+ * Invertidos (GS B): franja de canal, bloque #003, alergia y COLLECT CASH. Tamaños con GS !. Si algo falta, devuelve null y el builder
  * imprime el formato anterior.
  */
 object TicketV2 {
@@ -60,17 +59,36 @@ object TicketV2 {
             e.bold(false)
         }
 
+        // Delivery: dirección, teléfono e instrucciones arriba (Pedro 2026-11-18)
+        val delivery = d.optJSONObject("delivery")
+        if (delivery != null) {
+            e.feed(1).bold(true).size(1, 2)
+            wrap(s(delivery, "address"), w).forEach { e.text(it).newline() }
+            e.size(1, 1)
+            val phone = prettyPhone(s(delivery, "phone"))
+            if (phone.isNotEmpty()) e.text(phone).newline()
+            e.bold(false)
+            val instr = s(delivery, "instructions")
+            if (instr.isNotEmpty()) {
+                e.line('.', w)
+                wrap(instr, w).forEach { e.text(it).newline() }
+                e.line('.', w)
+            }
+        }
+
         val scheduled = s(d, "scheduledFor")
         if (scheduled.isNotEmpty()) {
             e.bold(true).size(1, 2).text("${s(tx, "scheduled")} $scheduled").newline().size(1, 1).bold(false)
         }
         e.text(s(tx, "utensils")).newline()
-        e.line('-', w)
+        e.bold(true).text(s(tx, "itemCount")).newline().bold(false)
+        e.line('=', w)
 
         // Ítems
         val items = d.optJSONArray("items")
         if (items != null) for (i in 0 until items.length()) {
             val it = items.getJSONObject(i)
+            if (i > 0) e.line('-', w)
             e.bold(true)
             e.row("${it.optInt("qty", 1)}x ${it.optString("name", "Item")}".take(w - 9), amt(it.optDouble("lineTotal", 0.0)), w)
             e.bold(false)
@@ -87,8 +105,7 @@ object TicketV2 {
         }
         val orderNotes = s(d, "orderNotes")
         if (orderNotes.isNotEmpty()) wrap("${s(tx, "note")}: $orderNotes", w).forEach { e.text(it).newline() }
-        e.bold(true).text(s(tx, "itemsCheckBag")).newline().bold(false)
-        e.line('-', w)
+        e.line('=', w)
 
         // Totales (los guardados en el pedido, nunca recalculados)
         val t = d.optJSONObject("totals") ?: JSONObject()
@@ -109,39 +126,27 @@ object TicketV2 {
             else -> { e.bold(true).line('#', w); e.alignCenter().text(payText).newline().alignLeft(); e.line('#', w).bold(false) }
         }
 
-        // Delivery
-        val delivery = d.optJSONObject("delivery")
-        if (delivery != null) {
-            e.line('-', w)
-            e.bold(true).size(1, 2)
-            wrap(s(delivery, "address"), w).forEach { e.text(it).newline() }
-            e.size(1, 1)
-            val phone = prettyPhone(s(delivery, "phone"))
-            if (phone.isNotEmpty()) e.text(phone).newline()
-            e.bold(false)
-            val instr = s(delivery, "instructions")
-            if (instr.isNotEmpty()) {
-                e.line('.', w)
-                wrap(instr, w).forEach { e.text(it).newline() }
-                e.line('.', w)
-            }
-            val driverUrl = s(delivery, "driverUrl")
-            if (driverUrl.startsWith("http")) {
-                e.feed(1).alignCenter().bold(true).text(s(tx, "driverScan")).newline().bold(false)
-                e.qr(driverUrl, 7)
-                e.alignLeft()
-            }
+        // QR del repartidor (solo delivery)
+        val driverUrl = delivery?.let { s(it, "driverUrl") } ?: ""
+        if (driverUrl.startsWith("http")) {
+            e.line('=', w)
+            e.alignCenter().bold(true).text(s(tx, "driverScan")).newline().bold(false)
+            e.qr(driverUrl, 7)
+            e.alignLeft()
         }
 
-        // #003 abajo (por si la grapa tapa el de arriba)
+        // Pie como el de Uber (Pedro 2026-11-18): cuándo entró, para cuándo y las gracias
+        e.line('=', w)
+        wrap(s(tx, "placedLine"), w).forEach { e.text(it).newline() }
+        val due = s(tx, "dueLine")
+        if (due.isNotEmpty()) { e.bold(true); wrap(due, w).forEach { e.text(it).newline() }; e.bold(false) }
         e.line('-', w)
-        e.bold(true)
-        inverted(e, centered("#$short", w / 2), w, 2)
-        e.bold(false)
-        e.text("${s(d, "orderNumber")} · ${s(tx, "placed")} ${s(d, "placedAt")}").newline()
+        e.alignCenter()
+        wrap(s(tx, "thanks"), w).forEach { e.text(it).newline() }
         val direct = s(d.optJSONObject("restaurant") ?: JSONObject(), "orderDirectUrl")
         if (direct.isNotEmpty()) e.text("${s(tx, "orderDirect")}: $direct").newline()
-        e.text(s(tx, "poweredBy")).newline()
+        e.text("${s(d, "orderNumber")} · ${s(tx, "poweredBy")}").newline()
+        e.alignLeft()
         e.cutPartial()
         return e.toByteArray()
     }
@@ -151,11 +156,6 @@ object TicketV2 {
         val cols = (w / mul).coerceAtLeast(1)
         val line = text.take(cols).padEnd(cols)
         e.reverse(true).size(mul, mul).text(line).size(1, 1).reverse(false).newline()
-    }
-
-    private fun centered(text: String, cols: Int): String {
-        val pad = ((cols - text.length) / 2).coerceAtLeast(0)
-        return " ".repeat(pad) + text
     }
 
     private fun prettyPhone(raw: String): String {
