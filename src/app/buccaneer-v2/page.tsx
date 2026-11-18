@@ -140,7 +140,7 @@ function Fig({ slot, cls, sizes, note }: { slot: SlotId; cls: string; sizes?: st
 
 /**
  * Restaurant structured data (schema.org) for Google and AI answers. Only facts
- * from AD section 0. Add `image` when S01 is in, and `sameAs` (Google, Yelp,
+ * from AD section 0. Add `sameAs` (Google, Yelp,
  * Tripadvisor, Facebook) once the owner confirms which profiles are his.
  */
 const RESTAURANT_LD = {
@@ -148,6 +148,7 @@ const RESTAURANT_LD = {
   '@type': 'Restaurant',
   name: 'Buccaneer Diner',
   url: SITE_URL,
+  image: new URL('/buccaneer/v2/fachada-noche.webp', SITE_URL).href,
   telephone: '+1-718-429-5188',
   servesCuisine: ['American', 'Diner', 'Breakfast'],
   address: {

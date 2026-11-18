@@ -32,6 +32,7 @@ export default function Photo({
         sizes={sizes}
         priority={priority}
         loading={priority ? undefined : 'lazy'}
+        style={s.position ? { objectPosition: s.position } : undefined}
       />
     );
   }

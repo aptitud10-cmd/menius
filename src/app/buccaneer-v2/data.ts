@@ -42,21 +42,22 @@ export type SlotId =
   | 'D01' | 'D04' | 'D06' | 'S01' | 'S02' | 'D02' | 'S05a' | 'D05' | 'D09'
   | 'S06' | 'S03' | 'S04' | 'S05b' | 'S11' | 'S10';
 
-export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; alt: string }> = {
+/** `position`: CSS object-position when the subject isn't centred (default `center`). */
+export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; alt: string; position?: string }> = {
   D01: { src: null, label: 'D01 · Buttermilk pancakes, Morning hero', alt: 'A stack of buttermilk pancakes' },
   D04: { src: null, label: 'D04 · 7 oz burger, Midday hero', alt: 'A 7 oz Angus burger' },
   D06: { src: null, label: 'D06 · Seafood plate, Evening hero', alt: 'A seafood dinner plate' },
-  S01: { src: null, label: 'S01 · Facade at night, sign on', alt: 'Buccaneer Diner sign lit at night' },
-  S02: { src: null, label: 'S02 · Facade video poster (video pending)', alt: 'Buccaneer Diner facade at night' },
+  S01: { src: '/buccaneer/v2/fachada-noche-vertical.webp', label: 'S01 · Facade at night, sign on', alt: 'Buccaneer Diner at night, the red neon sign lit over a wet parking lot', position: 'center 28%' },
+  S02: { src: '/buccaneer/v2/fachada-noche.webp', label: 'S02 · Facade video poster (video pending)', alt: 'Buccaneer Diner facade at night, red and blue neon along the roof', position: 'center 70%' },
   D02: { src: null, label: 'D02 · Eggs and hash browns, at the counter', alt: 'Eggs with hash browns at the counter' },
   S05a: { src: null, label: 'S05a · Counter and stools, diagonal', alt: 'The counter and stools' },
   D05: { src: null, label: 'D05 · Dinner plate to share, booth', alt: 'A dinner plate to share' },
-  D09: { src: null, label: 'D09 · Slice from the case, served', alt: 'A slice of cake from the dessert case' },
+  D09: { src: '/buccaneer/v2/apple-crumb.webp', label: 'D09 · Slice from the case, served', alt: 'A slice of apple crumb pie with a cup of coffee at the counter' },
   S06: { src: null, label: 'S06 · Bake Shop dessert case, night', alt: 'The dessert case' },
   S03: { src: null, label: 'S03 · Facade by day', alt: 'Buccaneer Diner by day' },
-  S04: { src: null, label: 'S04 · Dining room, wide', alt: 'The dining room' },
+  S04: { src: '/buccaneer/v2/salon.webp', label: 'S04 · Dining room, wide', alt: 'The counter stools and orange booths of the dining room' },
   S05b: { src: null, label: 'S05b · Counter detail, head-on', alt: 'The counter, up close' },
-  S11: { src: null, label: 'S11 · Tabletop jukebox, booth', alt: 'A tabletop jukebox in a booth' },
+  S11: { src: '/buccaneer/v2/jukebox.webp', label: 'S11 · Tabletop jukebox, booth', alt: 'A tabletop jukebox in a booth' },
   S10: { src: null, label: 'S10 · Dining room wheel clock', alt: 'The clock on the dining room wall' },
 };
 
