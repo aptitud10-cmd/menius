@@ -157,6 +157,11 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
     covers: ["settings/api-keys", "settings/data"],
   },
   {
+    path: "settings/printers",
+    label: "Printers",
+    what: "Connect a Star CloudPRNT receipt printer: add it, copy its one-time server URL into the printer, choose when tickets print (when an order is created or accepted), copies and order types, see if it is online, and print a test ticket.",
+  },
+  {
     path: "billing",
     label: "Billing",
     what: "Current plan, invoices and payment method. Plan changes and cancellation happen here.",
