@@ -272,7 +272,7 @@ const es = {
         price: 149,
         desc: 'Todo incluido: menú, pedidos online, pagos y marketing.',
         cta: 'Empezar con Pro',
-        features: ['Productos ilimitados y QR hasta 50 mesas', 'Pedidos en mesa, para llevar y delivery', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio', 'Sin marca MENIUS en el menú', 'MENIUS AI + importar menú desde foto', 'Cocina KDS en tiempo real', 'Promociones, reseñas y lealtad', '5 usuarios', 'Soporte por chat (2h)'],
+        features: ['Productos ilimitados y QR hasta 50 mesas', 'Pedidos en mesa, para llevar y delivery', 'App Counter en tablet: suena, aceptas y sale el ticket', 'Seguimiento del pedido en vivo para tu cliente', 'App para tus repartidores', 'Cocina KDS en tiempo real', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio y sin marca MENIUS', 'MENIUS AI + importar menú desde foto', 'Promociones, reseñas y lealtad', '5 usuarios · soporte por chat (2h)'],
       },
     ],
     planComparison: {
@@ -640,7 +640,7 @@ const en: LandingT = {
         price: 149,
         desc: 'Everything included: menu, online orders, payments and marketing.',
         cta: 'Start with Pro',
-        features: ['Unlimited products and QR up to 50 tables', 'Dine-in, pickup and delivery orders', 'Online payments (0% MENIUS commission)', 'Custom domain', 'No MENIUS branding on your menu', 'MENIUS AI + import menu from photo', 'Real-time kitchen KDS', 'Promotions, reviews and loyalty', '5 users', 'Chat support (2h)'],
+        features: ['Unlimited products and QR up to 50 tables', 'Dine-in, pickup and delivery orders', 'Counter app on a tablet: it rings, you accept, the ticket prints', 'Live order tracking for your customers', 'App for your delivery drivers', 'Real-time kitchen KDS', 'Online payments (0% MENIUS commission)', 'Custom domain, no MENIUS branding', 'MENIUS AI + import menu from photo', 'Promotions, reviews and loyalty', '5 users · chat support (2h)'],
       },
     ],
     planComparison: {
