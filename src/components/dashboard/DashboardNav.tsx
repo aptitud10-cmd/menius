@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy, CalendarDays, Globe, Lock, Sparkles,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy, CalendarDays, Globe, Lock, Sparkles, Printer,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -72,6 +72,7 @@ function buildNavSections(t: DashboardTranslations, locale: string): { title: st
         { href: '/app/branches', label: t.nav_branches, icon: Building2, hiddenUnlessPlan: 'business' },
         { href: '/app/billing', label: t.nav_billing, icon: CreditCard },
         { href: '/app/settings', label: t.nav_settings, icon: Settings },
+        { href: '/app/settings/printers', label: locale === 'es' ? 'Impresoras' : 'Printers', icon: Printer },
         { href: '/app/settings/api-keys', label: 'API Keys', icon: Key, hiddenUnlessPlan: 'business' },
         { href: '/app/settings/data', label: t.nav_dataPrivacy, icon: Shield },
       ],
