@@ -36,6 +36,17 @@ export function travelMinutes(km: number): number {
   return Math.ceil(((km * ROAD_FACTOR) / COURIER_AVG_KMH) * 60) + HANDOFF_MIN;
 }
 
+/**
+ * Lo mismo con la distancia real por calle (km de la ruta de Mapbox). El
+ * seguimiento usaba el tiempo de Mapbox en AUTO y sin la entrega: el cliente
+ * veía "14 min" con la cuenta de la bici y saltaba a "5 min" cuando llegaba el
+ * GPS (Pedro, 2026-11-18). Un solo modelo: bici + entrega en la puerta.
+ */
+export function roadTravelMinutes(roadKm: number): number {
+  if (!Number.isFinite(roadKm) || roadKm <= 0) return HANDOFF_MIN;
+  return Math.ceil((roadKm / COURIER_AVG_KMH) * 60) + HANDOFF_MIN;
+}
+
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;

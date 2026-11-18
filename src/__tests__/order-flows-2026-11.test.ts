@@ -165,7 +165,7 @@ describe('nearestChoice (no prometer menos de lo que tarda)', () => {
   });
 });
 
-import { estimateMinutes, travelMinutes, kitchenMinutes } from '@/lib/orders/eta';
+import { estimateMinutes, travelMinutes, roadTravelMinutes, kitchenMinutes } from '@/lib/orders/eta';
 
 describe('estimateMinutes (tiempo prometido por pedido)', () => {
   const rest = { latitude: 40.76322, longitude: -73.87624, delivery_radius_km: 4, estimated_delivery_minutes: 30 };
@@ -195,5 +195,13 @@ describe('estimateMinutes (tiempo prometido por pedido)', () => {
   it('viaje', () => {
     expect(travelMinutes(0)).toBe(4);
     expect(travelMinutes(4)).toBe(Math.ceil((4 * 1.3) / 24 * 60) + 4);
+  });
+
+  // Seguimiento en vivo: la ruta real de Mapbox con la MISMA cuenta de la bici.
+  // Antes era la duración en auto sin la entrega (14 min → 5 min de golpe).
+  it('viaje por calle = misma cuenta que el estimado', () => {
+    expect(roadTravelMinutes(0)).toBe(4);
+    expect(roadTravelMinutes(4 * 1.3)).toBe(travelMinutes(4));
+    expect(roadTravelMinutes(2)).toBe(Math.ceil(2 / 24 * 60) + 4);
   });
 });

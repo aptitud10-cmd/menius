@@ -331,7 +331,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Live GPS coords pushed directly from the broadcast 'location_update' event.
   // Updated without HTTP refetch so the map marker moves in real-time.
   const [liveDriverCoords, setLiveDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [liveDeliveryEta, setLiveDeliveryEta] = useState<number | null>(null);
+  // Minutos de la ruta y CUÁNDO se calcularon. La llegada se ancla a ese momento:
+  // si el GPS se corta (pantalla bloqueada), la cuenta sigue bajando en vez de
+  // quedarse en "5 min" para siempre.
+  const [liveDeliveryEta, setLiveDeliveryEta] = useState<{ min: number; at: number } | null>(null);
+  const onLiveEta = useCallback((m: number | null) => setLiveDeliveryEta(m == null ? null : { min: m, at: Date.now() }), []);
   // Cuándo llegó la última posición del repartidor (para "de hace N min").
   const [lastLocAt, setLastLocAt] = useState<number | null>(null);
   const [arriving, setArriving] = useState(false);
@@ -649,7 +653,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   let arrivalMs: number | null = null;
   if (isDelivery && isActive && !atDoor) {
     if (onTheWay) {
-      if (liveDeliveryEta != null) arrivalMs = now + liveDeliveryEta * 60_000;
+      if (liveDeliveryEta != null) arrivalMs = Math.max(liveDeliveryEta.at + liveDeliveryEta.min * 60_000, now + 60_000);
       else {
         const left = Date.parse(o.driver_picked_up_at ?? o.updated_at);
         arrivalMs = Math.max((Number.isFinite(left) ? left : now) + travelMs, now + 60_000);
@@ -995,7 +999,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         restaurantLat={restaurantLat}
         restaurantLng={restaurantLng}
         locale={locale}
-        onEtaUpdate={setLiveDeliveryEta}
+        onEtaUpdate={onLiveEta}
       />
       <span className="absolute left-2.5 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: K.card, boxShadow: K.shadow }}>
         {locAgeMin != null && locAgeMin >= 2 || offline
