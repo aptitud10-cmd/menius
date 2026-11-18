@@ -24,7 +24,7 @@
 - [x] William: aprobar v3.1
 - [x] Impresora actual de Buccaneer: no se puede usar (cada una está atada a la tablet de otra plataforma). MENIUS va con impresora propia
 - [x] William: hay un cable de red cerca del counter (confirmado 2026-11-15)
-- [ ] William: comprar 1 mC-Print3 MCP31L (para pruebas en casa compró una impresora Bluetooth, que sirve para el camino Android del Sprint 4, no para CloudPRNT)
+- [x] William: impresora = **Star TSP143IVUE** (v3.2, 2026-11-18; reemplaza a la mC-Print3 MCP31L). Comprándola. Lo de abajo era el plan anterior: (para pruebas en casa compró una impresora Bluetooth, que sirve para el camino Android del Sprint 4, no para CloudPRNT)
 
 ## Sprint 1 — Datos [S] ✅ (en prod desde 2026-11-14)
 - [x] Migración `supabase/migrations/20261114_printing_cloudprnt.sql`: `printers`, `print_jobs`, índice único `orders (id, restaurant_id)`, FKs compuestas, índices
@@ -67,6 +67,8 @@
   - POST y DELETE contra prod no se pudieron probar (la herramienta de preview solo hace GET). Cubiertos por tests; se prueban con la impresora real en el Sprint 5
 
 ## Sprint 4 — UI + convivencia con la impresión existente [M]
+- [x] Merge de main en la rama (84 commits atrás): bb4c8fce
+- [ ] QR del repartidor en el ticket (v3.2): `TicketData.driverUrl` + render PNG + ESC/POS
 - [ ] Panel: impresoras (crear, URL una vez, rotar, toggles de v3, prueba)
 - [ ] Counter app: online/offline + banner rojo (F5) + botón Reimprimir (F2)
 - [ ] `GET /api/tenant/printers/status` (al montar + cada 2 min)
@@ -75,7 +77,7 @@
 - [ ] Si se toca la app Android: rebuild del APK y prueba en la tablet
 
 ## Sprint 5 — Prueba física en Buccaneer [S]
-- [ ] Configurar la mC-Print3 (CloudPRNT, URL, poll interval)
+- [ ] Configurar la TSP143IVUE (CloudPRNT, URL, poll interval)
 - [ ] Correr CA-1 a CA-16 y anotar resultados
 - [ ] CA-9 (velocidad del PNG): si falla, decidir el plan B StarPRNT
 - [ ] CA-13: ticket engrapado, leer `#003` desde 1 m
@@ -87,4 +89,4 @@
 - [ ] Marcar o limpiar los pedidos de prueba (`is_test`)
 
 ## Fase 2
-Ticket CANCELLED · programados diferidos · `kitchen_name` · `font_size` · 58 mm · QR repartidor (cuando la app esté en uso) · cliente frecuente · ASB sin papel/tapa · alerta SMS si un job lleva 3 min sin imprimirse · auto-imprimir si nadie acepta · métricas en el panel · día de operación que cambie a las 5 AM · Epson / imprimir desde la tablet · pedidos por teléfono
+Ticket CANCELLED · programados diferidos · `kitchen_name` · `font_size` · 58 mm · cliente frecuente · ASB sin papel/tapa · alerta SMS si un job lleva 3 min sin imprimirse · auto-imprimir si nadie acepta · métricas en el panel · día de operación que cambie a las 5 AM · Epson / imprimir desde la tablet · pedidos por teléfono

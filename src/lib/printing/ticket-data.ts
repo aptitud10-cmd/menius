@@ -62,7 +62,8 @@ export interface TicketData {
   orderNotes?: string;
   totals: { subtotal: number; tax: number; deliveryFee: number; discount: number; tip: number; total: number };
   payment: { kind: 'paid' | 'collect_cash' | 'verify'; amount: number };
-  delivery?: { address: string; phone?: string; instructions?: string };
+  /** driverUrl (v3.2): la página web del repartidor, para el QR. Solo delivery. */
+  delivery?: { address: string; phone?: string; instructions?: string; driverUrl?: string };
   /** Hora en que entró el pedido ("2:43 AM"). */
   placedAt: string;
 }
@@ -82,6 +83,7 @@ export interface TicketOrderRow {
   tip_amount?: number | string | null;
   delivery_address?: string | null;
   delivery_instructions?: string | null;
+  driver_tracking_token?: string | null;
   table_name?: string | null;
   include_utensils?: boolean | null;
   scheduled_for?: string | null;
@@ -241,6 +243,11 @@ export function toTicketData(input: ToTicketDataInput): TicketData {
           address: String(o.delivery_address).trim(),
           phone: clean(o.customer_phone),
           instructions: clean(o.delivery_instructions),
+          // Mismo enlace que el ticket viejo (PrinterService): token de acción,
+          // por eso solo en delivery.
+          driverUrl: clean(o.driver_tracking_token)
+            ? `${input.appUrl.replace(/\/$/, '')}/driver/track/${String(o.driver_tracking_token).trim()}`
+            : undefined,
         }
       : undefined,
     placedAt: formatTime(created, locale, timeZone),

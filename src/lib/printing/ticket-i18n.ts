@@ -30,6 +30,7 @@ export interface TicketStrings {
   verifyPayment: string;
   placed: string;
   orderDirect: string;
+  driverScan: string;
   poweredBy: string;
 }
 
@@ -56,6 +57,7 @@ const en: TicketStrings = {
   verifyPayment: 'VERIFY PAYMENT ON TABLET',
   placed: 'Placed',
   orderDirect: 'Order direct',
+  driverScan: 'DRIVER: SCAN TO START',
   poweredBy: 'Online ordering by MENIUS',
 };
 
@@ -82,6 +84,7 @@ const es: TicketStrings = {
   verifyPayment: 'VERIFICAR PAGO EN LA TABLET',
   placed: 'Hecho',
   orderDirect: 'Pide directo',
+  driverScan: 'REPARTIDOR: ESCANEA',
   poweredBy: 'Pedidos online con MENIUS',
 };
 

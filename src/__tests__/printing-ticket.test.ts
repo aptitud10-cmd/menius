@@ -57,6 +57,7 @@ const CASES: Record<string, ToTicketDataInput> = {
   'delivery-cash': input({
     order_type: 'delivery', delivery_fee: 3.99, tip_amount: 5, total: 70.85, customer_phone: '+17185550123',
     delivery_address: '45-12 102nd St, Apt 3B, East Elmhurst, NY 11369', delivery_instructions: 'Ring bell 2, leave at door',
+    driver_tracking_token: 'd9b68aef-0000-4000-8000-000000000000',
   }),
   'delivery-paid': input({ order_type: 'delivery', payment_method: 'online', payment_status: 'paid', delivery_address: '45-12 102nd St', customer_phone: '7185550123' }),
   'online-unpaid-verify': input({ payment_method: 'online', payment_status: 'pending' }),
@@ -123,6 +124,14 @@ describe('toTicketData', () => {
     expect(toTicketData(CASES['dine-in']).tableName).toBe('7');
     expect(toTicketData(CASES['pickup-cash']).delivery).toBeUndefined();
     expect(toTicketData(CASES['delivery-cash']).delivery?.instructions).toBe('Ring bell 2, leave at door');
+  });
+
+  // v3.2: el QR del repartidor (mismo enlace que el ticket viejo), solo delivery.
+  it('QR del repartidor: solo delivery y solo con token', () => {
+    expect(toTicketData(CASES['delivery-cash']).delivery?.driverUrl).toBe('https://menius.app/driver/track/d9b68aef-0000-4000-8000-000000000000');
+    expect(toTicketData(CASES['delivery-paid']).delivery?.driverUrl).toBeUndefined();
+    const pickupWithToken = input({ driver_tracking_token: 'x' });
+    expect(toTicketData(pickupWithToken).delivery).toBeUndefined();
   });
 
   it('Order direct: dominio verificado o menius.app/<slug>', () => {

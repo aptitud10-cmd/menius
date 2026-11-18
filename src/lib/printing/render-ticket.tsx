@@ -9,6 +9,7 @@
  */
 import 'server-only';
 import type { ReactNode } from 'react';
+import qrcode from 'qrcode-generator';
 import { formatPrice } from '@/lib/utils';
 import { prettyPhone } from '@/lib/notifications/customer-email';
 import { renderToPng, TICKET_WIDTH } from './render-png';
@@ -22,6 +23,35 @@ const PAD = 10;
 function amount(n: number, currency: string): string {
   const digits = new Intl.NumberFormat('en-US', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 2;
   return n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+/**
+ * QR como SVG de módulos negros, en data URI para el <img> de satori (resvg lo
+ * rasteriza nítido). Corrección M y 8 px por módulo: ~30 mm impreso, se escanea
+ * con el celular desde la bolsa.
+ */
+function qrDataUri(text: string): { uri: string; size: number } {
+  const qr = qrcode(0, 'M');
+  qr.addData(text);
+  qr.make();
+  const n = qr.getModuleCount();
+  const quiet = 2;
+  let path = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) path += `M${c + quiet} ${r + quiet}h1v1h-1z`;
+  const vb = n + quiet * 2;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vb} ${vb}" shape-rendering="crispEdges"><rect width="${vb}" height="${vb}" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
+  return { uri: `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`, size: vb * 6 };
+}
+
+function DriverQr({ url, label }: { url: string; label: string }) {
+  const { uri, size } = qrDataUri(url);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 14 }}>
+      <div style={{ display: 'flex', fontSize: 26, fontWeight: 900 }}>{label}</div>
+      {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
+      <img src={uri} width={size} height={size} style={{ marginTop: 6 }} />
+    </div>
+  );
 }
 
 function Rule() {
@@ -151,6 +181,7 @@ function OrderTicket({ d }: { d: TicketData }) {
           <div style={{ display: 'flex', fontSize: 36, fontWeight: 900, padding: `0 ${PAD}px`, lineHeight: 1.15 }}>{d.delivery.address}</div>
           {d.delivery.phone ? <div style={{ display: 'flex', fontSize: 28, fontWeight: 700, padding: `4px ${PAD}px 0` }}>{prettyPhone(d.delivery.phone)}</div> : null}
           {d.delivery.instructions ? <Boxed size={24}>{d.delivery.instructions}</Boxed> : null}
+          {d.delivery.driverUrl ? <DriverQr url={d.delivery.driverUrl} label={t.driverScan} /> : null}
         </div>
       ) : null}
 

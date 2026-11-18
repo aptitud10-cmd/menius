@@ -1,9 +1,13 @@
 # SPEC — Impresión automática de tickets (CloudPRNT) · v3.1 (MVP)
 
 > Ubicación en repo: `.specify/specs/in-progress/printing-spec.md`
-> Estado: **APROBADO v3.1** por William (2026-11-14)
+> Estado: **APROBADO v3.2** por William (v3.1 2026-11-14 · v3.2 2026-11-18)
 > Fecha: 2026-11-14
 > Docs relacionados: `.specify/docs/printing/DATA_MODEL.md`, `API.md`, `TASKS.md`
+>
+> **Cambios v3.2 (2026-11-18, decisiones de William):**
+> - Impresora: **Star TSP143IVUE** (TSP100IV, USB-C + Ethernet, part 39473010) en vez de la mC-Print3. La Protocol Guide 2.6.0 lista TSP100IV fw ≥ 1.0 con `image/png`: el endpoint no cambia. Confirmar los mediaTypes del primer poll real (Sprint 5).
+> - **QR del repartidor entra al MVP (Sprint 4).** Ya existe en el ticket viejo (PrinterService / ReceiptEscPosBuilder) y apunta a la página web `/driver/track/<driver_tracking_token>`, que funciona sin la app nativa. Pasar a CloudPRNT sin él era perder algo que hoy existe.
 >
 > **Cambios v3.1 (resultado del Sprint 0, aprobados por William):**
 > - Unificación del ticket: se eligió la opción **(b)** (§1b).
@@ -121,7 +125,6 @@ Si el pedido pasa a `cancelled`, sus jobs `queued` pasan a `cancelled` y nunca s
 - Ticket impreso de CANCELLED (void).
 - Programados: aviso al aceptar e impresión diferida (hoy hay 0 en prod). En v3, un programado imprime al aceptar, con la línea "SCHEDULED <fecha hora>" grande.
 - `kitchen_name`, `font_size` S/M/L, papel de 58 mm, logo.
-- QR → app del repartidor. La app todavía no está en uso real. Se activa cuando lo esté.
 - "Cliente frecuente (N pedidos)". Hoy todos los datos son de prueba.
 - Sin papel o tapa abierta (ASB); alerta por SMS/WhatsApp si un job lleva 3 min sin imprimirse; auto-imprimir con "NOT ACCEPTED" si nadie acepta en 3 min.
 - Métricas en el panel (los datos sí quedan guardados en `print_jobs`; ver §8).
@@ -138,8 +141,8 @@ Si el pedido pasa a `cancelled`, sus jobs `queued` pasan a `cancelled` y nunca s
   - `@resvg/resvg-js` es un binario nativo (~4.4 MB en Linux) y necesita `experimental.serverComponentsExternalPackages` en Next 14.
   - ⚠️ Los 6 usos de `next/og` del repo corren en edge, y uno anota que el render en Node tiraba el dev server en Windows. **La primera tarea del Sprint 2 es una prueba mínima en un preview de Vercel.**
 - **Sin emojis** en el ticket (Inter no los tiene). Los íconos van en SVG inline.
-- QR: no hay en v3.
-- Hardware: Star mC-Print3. `image/png` es un media type **nativo** en mC-Print2/3 (Protocol Guide 2.6.0, tabla Content Media Types). Sin confirmar: el límite de tamaño del PNG. Se mide en el Sprint 5 (CA-9). Plan B: `application/vnd.star.starprnt`.
+- QR (v3.2): solo en delivery con `driver_tracking_token`. En el PNG se dibuja como SVG de módulos (librería `qrcode`); en ESC/POS se usa el comando QR nativo (`e.qr`, como hoy).
+- Hardware: Star TSP143IVUE (v3.2; antes mC-Print3). `image/png` es un media type **nativo** en mC-Print2/3 (Protocol Guide 2.6.0, tabla Content Media Types). Sin confirmar: el límite de tamaño del PNG. Se mide en el Sprint 5 (CA-9). Plan B: `application/vnd.star.starprnt`.
 
 ## 6. Diseño del ticket (80 mm)
 
@@ -173,6 +176,8 @@ Diseño aprobado por William (2026-11-14). Van **invertidos** (fondo negro): la 
   45-12 102nd St, Apt 3B                  ← solo delivery, 36 px
   (718) 555-0123                          ← 28 px
  ┌ Ring bell 2, leave at door ────────┐  ← instrucciones con borde
+       DRIVER: SCAN TO START              ← v3.2, solo delivery con token
+            [ QR ]                        ← /driver/track/<token>
  ─────────────────────────────────────
  ████████████  #003  ███████████████████  ← INVERTIDO, 72 px (por si la grapa tapa el de arriba)
   ORD-261113-003 · Placed 2:43 AM         ← 18 px
