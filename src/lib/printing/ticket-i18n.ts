@@ -150,3 +150,9 @@ export function ticketTextFor(
 export function ticketStrings(locale: TicketLocale): TicketStrings {
   return locale === 'en' ? en : es;
 }
+
+/** Monto sin símbolo, con los decimales de la moneda ("9.70"; COP sin centavos). */
+export function ticketAmount(n: number, currency: string): string {
+  const digits = new Intl.NumberFormat('en-US', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 2;
+  return n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}

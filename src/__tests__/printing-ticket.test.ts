@@ -9,6 +9,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { toTicketData, orderDirectUrl, type ToTicketDataInput, type TicketItemRow } from '@/lib/printing/ticket-data';
 import { renderTicketPng } from '@/lib/printing/render-ticket';
+import { buildTicketHTML } from '@/lib/printing/ticket-html';
+import { orderToTicketData } from '@/lib/printing/order-to-ticket';
+import type { Order } from '@/types';
 import { detectAllergy } from '@/lib/printing/allergy';
 import { shortOrderNumber } from '@/lib/orders/short-number';
 import { shortOrderNumber as kitchenShort } from '@/lib/kitchen';
@@ -180,5 +183,59 @@ describe('renderTicketPng', () => {
     const png = await renderTicketPng({ ...toTicketData(CASES['pickup-cash']), kind: 'test' });
     expect(png.readUInt32BE(16)).toBe(576);
     if (outDir) writeFileSync(path.join(outDir, 'test-print.png'), png);
+  });
+});
+
+// Impresión desde el navegador: el mismo diseño, en HTML. Para mirarlos:
+// TICKET_PREVIEW_DIR=/carpeta → escribe <caso>.html (abrir e imprimir a 80 mm).
+describe('buildTicketHTML (navegador)', () => {
+  const outDir = process.env.TICKET_PREVIEW_DIR;
+  if (outDir) mkdirSync(outDir, { recursive: true });
+
+  for (const [name, c] of Object.entries(CASES)) {
+    it(`html: ${name}`, () => {
+      const d = toTicketData(c);
+      const html = buildTicketHTML(d);
+      expect(html).toContain(`>#${d.shortNumber}<`);
+      expect(html).toContain('print-color-adjust: exact');
+      if (outDir) writeFileSync(path.join(outDir, `${name}.html`), html);
+    });
+  }
+
+  it('delivery en efectivo: COLLECT, dirección y QR del repartidor', () => {
+    const html = buildTicketHTML(toTicketData(CASES['delivery-cash']));
+    expect(html).toContain('COLLECT $70.85 CASH');
+    expect(html).toContain('45-12 102nd St, Apt 3B');
+    expect(html).toContain('(718) 555-0123');
+    expect(html).toContain('DRIVER: SCAN TO START');
+    expect(html).toMatch(/<svg class="qr"/);
+  });
+
+  it('pickup: sin QR', () => {
+    expect(buildTicketHTML(toTicketData(CASES['pickup-cash']))).not.toMatch(/<svg class="qr"/);
+  });
+
+  it('escapa el HTML que escribe el cliente', () => {
+    const html = buildTicketHTML(toTicketData(input({ customer_name: '<img src=x onerror=alert(1)>', notes: 'a & b' })));
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+  });
+});
+
+describe('orderToTicketData: minutos al aceptar', () => {
+  const order = {
+    id: 'o1', order_number: 'ORD-261118-006', customer_name: 'Leo', order_type: 'pickup',
+    payment_method: 'cash', payment_status: 'pending', total: 10, created_at: '2026-11-18T09:00:00Z', items: [],
+  } as unknown as Order;
+  const opts = { restaurantName: 'Buccaneer Diner', currency: 'USD', locale: 'en', timeZone: 'America/New_York', appUrl: 'https://menius.app' };
+
+  it('sin minutos guardados usa los que eligió el cajero (si no, el ticket sale sin READY)', () => {
+    expect(orderToTicketData(order, opts).ticket.readyAt).toBeUndefined();
+    expect(orderToTicketData(order, { ...opts, etaMinutes: 10 }).ticket.readyAt).toMatch(/^\d{1,2}:\d{2} [AP]M$/);
+  });
+
+  it('si el pedido ya tiene minutos, mandan los del pedido', () => {
+    const saved = { ...order, estimated_ready_minutes: 20, prepared_at: '2026-11-18T09:00:00Z' } as unknown as Order;
+    expect(orderToTicketData(saved, { ...opts, etaMinutes: 5 }).ticket.readyAt).toBe('4:20 AM');
   });
 });

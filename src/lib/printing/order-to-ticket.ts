@@ -20,10 +20,14 @@ export interface OrderToTicketOpts {
   timeZone?: string;
   appUrl: string;
   kind?: 'order' | 'reprint';
+  /** Minutos que eligió el cajero al aceptar. Al imprimir en ese momento el
+   *  pedido todavía no los tiene guardados: sin esto, el ticket sale sin "LISTO". */
+  etaMinutes?: number;
 }
 
 export function orderToTicketData(order: Order, opts: OrderToTicketOpts): { ticket: TicketData; ticketText: TicketText } {
   const raw = order as unknown as Record<string, unknown> & TicketOrderRow;
+  const fillEta = !raw.estimated_ready_minutes && opts.etaMinutes != null && opts.etaMinutes > 0;
   const items: TicketItemRow[] = (order.items ?? []).map((it: OrderItem) => {
     const r = it as unknown as Record<string, unknown>;
     const extras = (it.extras ?? (r.order_item_extras as unknown[]) ?? []) as Array<{ price?: number | string | null; extra?: { name?: string | null } | null; product_extras?: { name?: string | null } | null }>;
@@ -41,7 +45,11 @@ export function orderToTicketData(order: Order, opts: OrderToTicketOpts): { tick
 
   const ticket = toTicketData({
     kind: opts.kind ?? 'order',
-    order: { ...raw, order_number: order.order_number },
+    order: {
+      ...raw,
+      order_number: order.order_number,
+      ...(fillEta ? { estimated_ready_minutes: opts.etaMinutes, prepared_at: raw.prepared_at ?? new Date().toISOString() } : {}),
+    },
     items,
     restaurant: {
       name: opts.restaurantName,

@@ -13,17 +13,14 @@ import qrcode from 'qrcode-generator';
 import { formatPrice } from '@/lib/utils';
 import { prettyPhone } from '@/lib/notifications/customer-email';
 import { renderToPng, TICKET_WIDTH } from './render-png';
-import { ticketStrings, type TicketStrings } from './ticket-i18n';
+import { ticketAmount, ticketStrings, type TicketStrings } from './ticket-i18n';
 import type { TicketData, TicketItem } from './ticket-data';
 
 const BLACK = '#000';
 const WHITE = '#fff';
 const PAD = 10;
 
-function amount(n: number, currency: string): string {
-  const digits = new Intl.NumberFormat('en-US', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 2;
-  return n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-}
+const amount = ticketAmount;
 
 /**
  * QR como SVG de módulos negros, en data URI para el <img> de satori (resvg lo

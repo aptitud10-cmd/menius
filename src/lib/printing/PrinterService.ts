@@ -17,6 +17,7 @@
 import type { Order, OrderItem } from '@/types';
 import type { PrintJob, PrintState, ReceiptData, ReceiptLineItem } from './types';
 import { buildReceiptHTML, buildKitchenHTML, formatCurrency } from './receipt-formatter';
+import { buildTicketHTML } from './ticket-html';
 import { PrinterConfig } from './PrinterConfig';
 import { isMeniusNativePrintAvailable, nativePrintReceipt } from './native-bridge';
 import { orderItemModLines, linesTotal, ticketModifierStrings, withTitle } from '@/lib/modifier-lines';
@@ -297,12 +298,12 @@ class PrinterServiceImpl {
         } catch { /* non-critical — will fall back to external URL in the HTML template */ }
       }
 
-      // Ticket v2 para la app Android (mismo diseño que CloudPRNT). Si falla,
-      // imprime igual con el formato de siempre.
+      // Ticket v2 (mismo diseño que CloudPRNT) para la app Android y para el
+      // navegador. Si falla, imprime igual con el formato de siempre.
       try {
         const { orderToTicketData } = await import('./order-to-ticket');
         Object.assign(receiptData, orderToTicketData(order, {
-          restaurantName, currency, locale, taxLabel,
+          restaurantName, currency, locale, taxLabel, etaMinutes,
           appUrl: typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'),
         }));
       } catch { /* sin ticket v2 */ }
@@ -319,11 +320,12 @@ class PrinterServiceImpl {
         return this.transition(current, 'printed');
       }
 
-      // Print receipt and/or kitchen ticket based on device config
-      if (cfg.receiptEnabled) await executePrint(buildReceiptHTML(receiptData));
+      // Navegador: el recibo sale con el diseño nuevo; el de cocina sigue igual.
+      const receiptHTML = () => (receiptData.ticket ? buildTicketHTML(receiptData.ticket) : buildReceiptHTML(receiptData));
+      if (cfg.receiptEnabled) await executePrint(receiptHTML());
       if (cfg.kitchenEnabled) await executePrint(buildKitchenHTML(receiptData));
       // If both disabled, fall back to receipt to avoid silent no-print
-      if (!cfg.receiptEnabled && !cfg.kitchenEnabled) await executePrint(buildReceiptHTML(receiptData));
+      if (!cfg.receiptEnabled && !cfg.kitchenEnabled) await executePrint(receiptHTML());
       return this.transition(current, 'printed');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown printer error';
