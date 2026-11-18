@@ -26,6 +26,9 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
   // Un evento tardío (session.expired, un intento fallido previo reintentado)
   // no puede pasar a 'failed' un pedido que ya se cobró.
   if (status === 'failed') q = q.neq('payment_status', 'paid');
+  // Ni un reintento tardío de Stripe puede volver a 'paid' un pedido ya
+  // reembolsado (Fase C): mandaría "pago confirmado" de un pedido cancelado.
+  q = q.neq('payment_status', 'refunded');
   const { data, error } = await q.select('id').maybeSingle();
 
   if (error) {
@@ -60,7 +63,9 @@ async function refundIfDuplicatePayment(orderId: string, paymentIntentId: string
     .eq('id', orderId)
     .maybeSingle();
   const kept = (ord as { payment_status?: string; payment_intent_id?: string | null } | null);
-  if (!kept || kept.payment_status !== 'paid' || !kept.payment_intent_id || kept.payment_intent_id === paymentIntentId) return;
+  // 'refunded' también: el pedido ya se canceló y devolvió (Fase C), así que un
+  // segundo cobro con otro PaymentIntent no tiene pedido que lo respalde.
+  if (!kept || !['paid', 'refunded'].includes(kept.payment_status ?? '') || !kept.payment_intent_id || kept.payment_intent_id === paymentIntentId) return;
   try {
     const refund = await getStripe().refunds.create(
       {
@@ -295,6 +300,25 @@ export async function POST(request: NextRequest) {
             await updateOrderPayment(orderId, 'failed', session.id ?? '');
             logger.warn('PaymentIntent failed', { orderId });
           }
+          break;
+        }
+
+        case 'refund.failed': {
+          // Un reembolso aceptado por Stripe que después falla (cuenta del
+          // cliente cerrada, etc.): el pedido figuraba 'refunded' y el cliente
+          // sigue cobrado. Vuelve a 'paid' para que el cron lo reintente si fue
+          // un no-aceptado, y siempre se avisa: puede necesitar mano.
+          const refund = event.data.object as unknown as { id: string; payment_intent?: string | { id: string } | null; metadata?: Record<string, string> | null; failure_reason?: string | null };
+          const refundOrderId = refund.metadata?.order_id ?? null;
+          if (refundOrderId) {
+            await adminDb
+              .from('orders')
+              .update({ payment_status: 'paid', updated_at: new Date().toISOString() })
+              .eq('id', refundOrderId)
+              .eq('payment_status', 'refunded');
+          }
+          logger.error('Stripe refund failed after being accepted', { refundId: refund.id, orderId: refundOrderId, reason: refund.failure_reason ?? null });
+          captureError(new Error('Stripe refund failed'), { refundId: refund.id, orderId: refundOrderId, paymentIntent: idOf(refund.payment_intent), reason: refund.failure_reason ?? null });
           break;
         }
 

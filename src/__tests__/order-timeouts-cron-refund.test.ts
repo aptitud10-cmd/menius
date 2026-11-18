@@ -82,7 +82,7 @@ describe('cron order-timeouts: pagado y no aceptado', () => {
     expect(statusWhenRefunded).toBe('cancelled'); // primero se cancela, después se cobra la devolución
     expect(mockRefundCreate).toHaveBeenCalledWith(
       expect.objectContaining({ payment_intent: 'pi_123', reverse_transfer: true, refund_application_fee: false }),
-      { idempotencyKey: 'not-accepted-refund:pi_123' },
+      { idempotencyKey: `not-accepted-refund:pi_123:${new Date().toISOString().slice(0, 10)}` },
     );
     expect(orders[0]).toMatchObject({ status: 'cancelled', payment_status: 'refunded', cancellation_reason: 'not_accepted' });
     expect(paymentWhenNotified).toBe('refunded'); // el email dice "reembolsado"

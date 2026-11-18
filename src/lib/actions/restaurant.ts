@@ -1860,6 +1860,9 @@ export async function deleteTable(id: string) {
  * Deliberately skips customer notifications — undoing a mis-tap should not
  * email anyone.
  */
+/** El pedido cambió entre leerlo y escribirlo (cron de tiempos límite u otra tablet). */
+const ORDER_CHANGED_ERROR = "Este pedido cambió mientras tanto (por ejemplo, se canceló por tiempo). Actualiza la pantalla.";
+
 export async function undoOrderStatus(orderId: string, toStatus: string) {
   const {
     supabase,
@@ -1873,7 +1876,7 @@ export async function undoOrderStatus(orderId: string, toStatus: string) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, status, driver_tracking_token")
+    .select("id, status, payment_status, driver_tracking_token")
     .eq("id", orderId)
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
@@ -1885,14 +1888,23 @@ export async function undoOrderStatus(orderId: string, toStatus: string) {
   if (!canTransition(toStatus as never, current as never)) {
     return { error: `No se puede deshacer: ${current} → ${toStatus}` };
   }
+  // Un pedido ya reembolsado no vuelve a abrirse: se cocinaría sin cobrar.
+  if ((order as { payment_status?: string | null }).payment_status === "refunded") {
+    return { error: "No se puede deshacer: el pago ya se devolvió al cliente." };
+  }
 
-  const { error } = await supabase
+  // Guarda de estado: si otro (el cron de tiempos límite, otra tablet) lo
+  // cambió desde la lectura de arriba, no se pisa.
+  const { data: undone, error } = await supabase
     .from("orders")
     .update({ status: toStatus })
     .eq("id", orderId)
-    .eq("restaurant_id", restaurantId);
+    .eq("restaurant_id", restaurantId)
+    .eq("status", current)
+    .select("id");
 
   if (error) return { error: error.message };
+  if (!undone?.length) return { error: ORDER_CHANGED_ERROR };
 
   void broadcastOrderUpdate(orderId, toStatus);
 
@@ -2007,13 +2019,20 @@ export async function updateOrderStatus(
   const driverToken = (order as { driver_tracking_token?: string | null }).driver_tracking_token ?? null;
   const isFinal = ["delivered", "completed", "cancelled"].includes(status);
 
-  const { error } = await supabase
+  // Guarda de estado (Fase C): entre la lectura de arriba y esta escritura el
+  // cron puede haber cancelado y reembolsado un pedido pagado sin aceptar. Sin
+  // el .eq('status') el "Aceptar" lo pisaba y la cocina preparaba un pedido
+  // ya devuelto al cliente.
+  const { data: changed, error } = await supabase
     .from("orders")
     .update(updatePayload)
     .eq("id", orderId)
-    .eq("restaurant_id", restaurantId);
+    .eq("restaurant_id", restaurantId)
+    .eq("status", currentStatus)
+    .select("id");
 
   if (error) return { error: error.message };
+  if (!changed?.length) return { error: ORDER_CHANGED_ERROR };
 
   // El cliente queda marcado desde el primer incidente (decisión de Pedro).
   const customerId = (order as { customer_id?: string | null }).customer_id ?? null;

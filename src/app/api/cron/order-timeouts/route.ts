@@ -60,7 +60,11 @@ async function refundNotAccepted(db: Db, o: { id: string; order_number: string; 
   try {
     const refund = await refundStripePayment(o.payment_intent_id, {
       reason: 'requested_by_customer',
-      idempotencyKey: `not-accepted-refund:${o.payment_intent_id}`,
+      // Clave por día (UTC): Stripe guarda la respuesta de una clave 24 h,
+      // errores incluidos, así que con una clave fija un rechazo de negocio
+      // (saldo del restaurante) se repetiría sin intentarlo de verdad. Un
+      // reembolso total no se puede duplicar: el segundo da charge_already_refunded.
+      idempotencyKey: `not-accepted-refund:${o.payment_intent_id}:${new Date().toISOString().slice(0, 10)}`,
       metadata: { order_id: o.id, reason: NOT_ACCEPTED_REASON },
     });
     if (refund.status === 'failed' || refund.status === 'canceled') {
@@ -118,14 +122,16 @@ export async function GET(req: Request) {
 
   // Reintentos: cancelados por no aceptados que siguen cobrados (Stripe falló
   // en una vuelta anterior). Ventana de 30 días: más atrás ya es caso manual.
-  const { data: stuck } = await db
+  const { data: stuck, error: stuckErr } = await db
     .from('orders')
     .select('id, order_number, status, payment_status, cancellation_reason, payment_intent_id')
     .eq('status', 'cancelled')
     .eq('payment_status', 'paid')
     .eq('cancellation_reason', NOT_ACCEPTED_REASON)
     .gte('updated_at', new Date(now - 30 * 24 * 60 * 60_000).toISOString())
+    .order('updated_at', { ascending: false })
     .limit(50);
+  if (stuckErr) logger.error('refund retry fetch failed', { error: stuckErr.message });
   for (const o of stuck ?? []) {
     if (!needsRefundRetry(o)) continue;
     const ok = await refundNotAccepted(db, { id: o.id, order_number: o.order_number, payment_intent_id: o.payment_intent_id as string });
