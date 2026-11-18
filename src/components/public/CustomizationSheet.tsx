@@ -33,6 +33,23 @@ const COMPACT_HEADER_PX = 52;
 
 const DIETARY_TAGS_MAP = Object.fromEntries(DIETARY_TAGS.map((t) => [t.id, t]));
 
+/**
+ * A label that turns semibold when chosen without changing size. Bold text is
+ * wider: on a phone the chip grew a few pixels, the row re-wrapped and every
+ * button below jumped. An invisible semibold copy in the same grid cell keeps
+ * the box at its bold size in both states.
+ */
+function StableWeightLabel({ text, bold, block }: { text: string; bold: boolean; block?: boolean }) {
+  return (
+    <span className={block ? "grid" : "inline-grid"}>
+      <span className={cn("[grid-area:1/1]", bold ? "font-semibold" : "font-medium")}>{text}</span>
+      <span aria-hidden="true" className="[grid-area:1/1] font-semibold invisible">
+        {text}
+      </span>
+    </span>
+  );
+}
+
 interface CustomizationSheetProps {
   product: Product;
   editIndex: number | null;
@@ -742,12 +759,12 @@ export function CustomizationSheet({
         className={cn(
           "inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-full border text-[15px] leading-tight text-left transition-colors duration-150",
           isSelected
-            ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E] font-semibold"
+            ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E]"
             : isDisabled
               ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
               : isOffHours
                 ? "bg-gray-50 border-dashed border-gray-200 text-gray-500"
-                : "bg-white border-gray-200 text-gray-800 font-medium hover:border-gray-300 active:border-gray-400",
+                : "bg-white border-gray-200 text-gray-800 hover:border-gray-300 active:border-gray-400",
         )}
       >
         {/* The tick is not decoration: colour alone must not carry the
@@ -763,7 +780,7 @@ export function CustomizationSheet({
             <Plus className="w-4 h-4 opacity-60" />
           )}
         </span>
-        <span>{tName(opt, locale, defaultLocale)}</span>
+        <StableWeightLabel text={tName(opt, locale, defaultLocale)} bold={isSelected} />
         {price !== 0 ? (
           <span className={cn("text-[13px] font-medium tabular-nums", isSelected ? "text-[#04241E]/80" : "text-gray-600")}>
             {priceLabel(price)}
@@ -889,9 +906,9 @@ export function CustomizationSheet({
               <Check className="w-3.5 h-3.5 text-[#04241E]" strokeWidth={3} />
             ))}
         </span>
-        <span className={cn("flex-1 min-w-0 text-[15px] leading-snug", isSelected ? "font-semibold" : "font-medium")}>
-          {tName(opt, locale, defaultLocale)}
-          {hours && <span className="block text-[13px] font-medium text-gray-600">{hours}</span>}
+        <span className="flex-1 min-w-0 text-[15px] leading-snug">
+          <StableWeightLabel text={tName(opt, locale, defaultLocale)} bold={isSelected} block />
+          {hours &&<span className="block text-[13px] font-medium text-gray-600">{hours}</span>}
         </span>
         {price !== 0 ? (
           <span className="text-[15px] text-gray-700 tabular-nums flex-shrink-0">{priceLabel(price)}</span>
@@ -1177,7 +1194,7 @@ export function CustomizationSheet({
                 >
                   {groupTitle}
                 </h4>
-                <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                <div className="mt-1.5 min-h-[24px] flex items-center gap-2 flex-wrap">
                   {/* Pending required groups read as a quiet grey "Required" — red
                       only once the diner tried to add without answering (the same
                       moment the ring turns red). Answered ones become a tick in the
@@ -1193,7 +1210,7 @@ export function CustomizationSheet({
                   ) : minRequired > 0 ? (
                     <span
                       className={cn(
-                        "text-[13px] font-medium px-2 py-0.5 rounded-full",
+                        "text-[13px] leading-5 font-medium px-2 py-0.5 rounded-full",
                         isHighlighted ? "text-red-700 bg-red-50" : "text-gray-700 bg-gray-100",
                       )}
                     >
@@ -1207,7 +1224,7 @@ export function CustomizationSheet({
                     </span>
                   )}
                   {atMax && (
-                    <span className="text-[13px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
+                    <span className="text-[13px] leading-5 text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
                       {t.maxReached}
                     </span>
                   )}
