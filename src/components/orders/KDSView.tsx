@@ -18,6 +18,7 @@ import {
 } from '@/lib/kitchen';
 import { OrderReceipt } from './OrderReceipt';
 import type { Order, OrderStatus } from '@/types';
+import { useCloudPrnt } from '@/hooks/use-cloudprnt';
 
 /*
  * Pantalla de cocina (rediseño 2026-11-13, investigación Toast/Square/Fresh/Oracle):
@@ -224,6 +225,10 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const recalled = useRef<Set<string>>(new Set());
   const [cancelledShown, setCancelledShown] = useState<{ order: Order; ts: number }[]>([]);
   const isLeaderRef = useRef(isLeader); isLeaderRef.current = isLeader;
+  // Con impresora CloudPRNT activa no se imprime desde acá (SPEC impresión §1b regla 3).
+  const cloud = useCloudPrnt();
+  const cloudRef = useRef(false);
+  cloudRef.current = cloud.active;
   const printCfg = useRef({ autoPrint, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale });
   printCfg.current = { autoPrint, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale };
   useEffect(() => {
@@ -237,7 +242,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       if (isLeaderRef.current) {
         playSound(fresh.some((o) => o.order_type === 'delivery') ? 'urgent' : 'normal');
         const c = printCfg.current;
-        if (c.autoPrint) {
+        if (c.autoPrint && !cloudRef.current) {
           void import('./OrderReceipt').then(({ quickPrintOrder }) => {
             for (const o of fresh) quickPrintOrder(o, c.restaurantName, c.restaurantPhone, c.restaurantAddress, c.currency, c.taxLabel, c.taxIncluded, c.locale);
           });
@@ -555,8 +560,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       {sheet === 'menu' && (
         <Sheet onClose={() => setSheet(null)}>
           <MenuRow icon={<History className="w-5 h-5" />} label={T.history} onClick={() => setSheet('history')} />
-          <MenuRow icon={<Printer className="w-5 h-5" />} label={T.autoPrint} toggle={autoPrint}
-            onClick={() => { const v = !autoPrint; setAutoPrint(v); localStorage.setItem('menius-auto-print', String(v)); }} />
+          {!cloud.active && <MenuRow icon={<Printer className="w-5 h-5" />} label={T.autoPrint} toggle={autoPrint}
+            onClick={() => { const v = !autoPrint; setAutoPrint(v); localStorage.setItem('menius-auto-print', String(v)); }} />}
           <MenuRow icon={<Flame className="w-5 h-5" />} label={T.busy} value={busyExtra ? `+${busyExtra} min` : undefined} onClick={() => setSheet('busy')} />
           <MenuRow icon={<Pause className="w-5 h-5" />} label={T.pause} value={pausedUntil ? `${pauseLeft} min` : undefined} onClick={() => (pausedUntil ? void doUnpause() : setSheet('pause'))} />
           {kdsStations.length > 0 && (

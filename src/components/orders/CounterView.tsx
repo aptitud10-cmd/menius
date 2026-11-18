@@ -14,6 +14,8 @@ import {
   sendOrderNotification, openShift, closeShift, getActiveShift, getTodaySummary,
   fetchOrderStatusHistory, getFlaggedCustomers,
 } from '@/lib/actions/restaurant';
+import { reprintOrder } from '@/lib/actions/printers';
+import { useCloudPrnt } from '@/hooks/use-cloudprnt';
 import { isOrderIncident, type CustomerFlag } from '@/lib/customer-incidents';
 import { PrinterService } from '@/lib/printing/PrinterService';
 import { getCounterAppBridge, isMeniusNativePrintAvailable } from '@/lib/printing/native-bridge';
@@ -413,6 +415,12 @@ export function CounterView({
   );
   const printOnArrivalRef = useRef(printOnArrival);
   printOnArrivalRef.current = printOnArrival;
+  // ── Impresora CloudPRNT (SPEC impresión §1b regla 3) ──
+  // Con una impresora del mostrador activa, la tablet NO imprime por su cuenta:
+  // el ticket lo saca la impresora sola al aceptar. Si no, saldría doble (CA-17).
+  const cloud = useCloudPrnt();
+  const cloudRef = useRef(false);
+  cloudRef.current = cloud.active;
 
   // One tab per restaurant owns sound/push/print side effects (see handleNewOrder)
   const isLeader = useLeaderTab(`menius-counter-leader:${restaurantId}`);
@@ -587,6 +595,16 @@ export function CounterView({
     }
     return false;
   };
+  // F2: con CloudPRNT, "Imprimir" encola una reimpresión en la impresora del
+  // mostrador (sale con la franja REPRINT), no imprime desde la tablet.
+  const reprintOnPrinter = async (order: Order) => {
+    const num = shortOrderNumber(order.order_number);
+    try {
+      const r = await reprintOrder({ orderId: order.id });
+      if (r.ok) { showSuccess(t.en ? `Reprinting #${num}` : `Reimprimiendo #${num}`); void cloud.refresh(); return; }
+    } catch { /* abajo */ }
+    showError(t.en ? `Could not reprint #${num}. Try again.` : `No se pudo reimprimir el #${num}. Intenta de nuevo.`);
+  };
   // Los avisos al cliente son automáticos y silenciosos (como en Uber). Antes
   // cada "Casi listo"/"Servir" mostraba "Notificación fallida" aunque nada
   // fallara (channel 'none') y cada pedido sin email, "Sin datos de contacto".
@@ -686,7 +704,7 @@ export function CounterView({
         `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`
       );
       // Print immediately on arrival if enabled
-      if (printOnArrivalRef.current && !isFutureScheduled) {
+      if (printOnArrivalRef.current && !cloudRef.current && !isFutureScheduled) {
         // Se marca solo si salió: si la impresora falló al llegar, aceptar reimprime.
         void printTicket(order).then(ok => { if (ok) printedOnArrivalRef.current.add(order.id); });
       }
@@ -985,7 +1003,8 @@ export function CounterView({
       // Si ya salió el ticket al llegar ("imprimir al llegar"), no se imprime otro al aceptar.
       // Mesa imprime sola solo con impresora nativa (app Android); en el
       // navegador abría el diálogo de impresión en CADA pedido de mesa.
-      const shouldPrint = (autoPrint || (order.order_type === 'dine_in' && isMeniusNativePrintAvailable()))
+      const shouldPrint = !cloudRef.current
+        && (autoPrint || (order.order_type === 'dine_in' && isMeniusNativePrintAvailable()))
         && !printedOnArrivalRef.current.has(order.id);
       if (shouldPrint) void printTicket(order, eff);
       // Se queda donde estaba: la tarjeta pasa sola a "Preparando".
@@ -1591,6 +1610,16 @@ export function CounterView({
         </div>
       )}
 
+      {/* ── Impresora del mostrador (CloudPRNT, F5): pedidos que no salieron ── */}
+      {cloud.active && (cloud.failed > 0 || (cloud.offline && cloud.queued > 0)) && (
+        <a href="/app/settings/printers" role="alert" className="flex-none text-[16px] font-semibold py-2.5 px-4 flex items-center justify-center gap-2 z-20" style={{ background: C.critical, color: C.onCritical }}>
+          <Printer className="w-4 h-4" />
+          {cloud.offline && cloud.queued > 0
+            ? (t.en ? `Printer disconnected — ${cloud.queued} ${cloud.queued === 1 ? 'order' : 'orders'} not printed` : `Impresora desconectada — ${cloud.queued} ${cloud.queued === 1 ? 'pedido' : 'pedidos'} sin imprimir`)
+            : (t.en ? `${cloud.failed} ${cloud.failed === 1 ? 'ticket' : 'tickets'} failed to print — reprint from the order` : `${cloud.failed} ${cloud.failed === 1 ? 'ticket no salió' : 'tickets no salieron'} — reimprime desde el pedido`)}
+        </a>
+      )}
+
       {/* ── Sonido bloqueado por el navegador (tras recargar) ── */}
       {!audioUnlocked && !inApp && (
         <button
@@ -1688,7 +1717,10 @@ export function CounterView({
           busy={updatingId === sheetOrder.id}
           acceptMins={defaultMinsFor(sheetOrder)}
           onClose={() => setSheetId(null)}
-          onPrint={() => { void printTicket(sheetOrder, sheetOrder.estimated_ready_minutes ?? effectiveEta); }}
+          onPrint={() => {
+            if (cloud.active) void reprintOnPrinter(sheetOrder);
+            else void printTicket(sheetOrder, sheetOrder.estimated_ready_minutes ?? effectiveEta);
+          }}
           onAccept={(o, m) => handleAccept(o, m)}
           onPrimary={onPrimary}
           onAdjustEta={(o, m) => { updateOrderLocally(o.id, { estimated_ready_minutes: m }); void handleAdjustEta(o, m); }}
@@ -1810,6 +1842,19 @@ export function CounterView({
 
               {/* Auto-print */}
               <SidebarSection title={t.autoPrint} icon={<Printer className="w-4 h-4" />}>
+                {cloud.active ? (
+                  <div className="px-3 py-3 rounded-xl border border-[color:var(--kds-line)] flex items-start gap-3">
+                    <span className="mt-1.5 w-2.5 h-2.5 rounded-full flex-none" style={{ background: cloud.offline ? C.critical : C.accent }} />
+                    <span className="min-w-0">
+                      <span className="block text-[16px] font-semibold text-[color:var(--kds-ink)]">
+                        {cloud.offline ? (t.en ? 'Counter printer disconnected' : 'Impresora del mostrador desconectada') : (t.en ? 'Counter printer online' : 'Impresora del mostrador en línea')}
+                      </span>
+                      <span className="block text-[14px] text-[color:var(--kds-sub)]">
+                        {t.en ? 'Tickets print by themselves on accept. Print from an order to reprint.' : 'El ticket sale solo al aceptar. "Imprimir" en un pedido lo reimprime.'}
+                      </span>
+                    </span>
+                  </div>
+                ) : (
                 <div className="px-3 rounded-xl border border-[color:var(--kds-line)]">
                   <ToggleRow
                     label={t.autoPrint}
@@ -1832,6 +1877,7 @@ export function CounterView({
                     }}
                   />
                 </div>
+                )}
               </SidebarSection>
 
               {/* 86 / Stock */}
@@ -1987,7 +2033,7 @@ export function CounterView({
                 setPrinterConfig(next);
               }}
             />
-            <ToggleRow
+            {!cloud.active && <ToggleRow
               label={t.en ? 'Auto-print on accept' : 'Imprimir al aceptar'}
               desc={t.en ? 'Automatically prints when you confirm an order' : 'Imprime automáticamente al confirmar una orden'}
               on={autoPrint}
@@ -1996,7 +2042,7 @@ export function CounterView({
                 setAutoPrint(next);
                 localStorage.setItem('counter-auto-print', String(next));
               }}
-            />
+            />}
           </div>
           <div className="px-6 pt-4 pb-6">
             <ModalButton

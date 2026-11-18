@@ -19,6 +19,7 @@ import { orderItemModLines, withTitle } from '@/lib/modifier-lines';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { DashboardTranslations } from '@/lib/dashboard-translations';
 import type { Order, OrderStatus } from '@/types';
+import { useCloudPrnt } from '@/hooks/use-cloudprnt';
 
 const COLUMNS: { status: OrderStatus; icon: typeof Clock }[] = [
   { status: 'pending', icon: Clock },
@@ -116,6 +117,12 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
     updateTabTitle,
   } = useNotifications({ defaultTitle: `${t.orders_title} — MENIUS` });
 
+  // Con impresora CloudPRNT activa, el ticket lo saca ella al aceptar: este
+  // auto-print local se apaga y se oculta (SPEC impresión §1b regla 3).
+  const cloud = useCloudPrnt();
+  const cloudRef = useRef(false);
+  cloudRef.current = cloud.active;
+
   const toggleAutoPrint = useCallback((on: boolean) => {
     setAutoPrint(on);
     localStorage.setItem('menius-auto-print', String(on));
@@ -135,7 +142,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       if (isLeaderRef.current) {
         const total = formatPrice(Number(order.total), currency);
         notifyNewOrder(order.order_number, total);
-        if (localStorage.getItem('menius-auto-print') === 'true') {
+        if (!cloudRef.current && localStorage.getItem('menius-auto-print') === 'true') {
           import('./OrderReceipt').then(({ quickPrintOrder }) => {
             quickPrintOrder(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale);
           });
@@ -293,14 +300,14 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
               <BellRing className="w-3.5 h-3.5" />
             </button>
           )}
-          <button
+          {!cloud.active && <button
             onClick={() => toggleAutoPrint(!autoPrint)}
             className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
               autoPrint ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-gray-50 text-gray-500 border border-gray-200'
             )}
           >
             <Printer className="w-3.5 h-3.5" />
-          </button>
+          </button>}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
