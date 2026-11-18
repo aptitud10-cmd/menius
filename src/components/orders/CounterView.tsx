@@ -6,6 +6,7 @@ import {
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
   Wifi, WifiOff, ChevronRight, ChevronDown, User, Settings2, Calendar, Plus, Ban, BellOff, Palette, Wallet,
+  LifeBuoy, Languages,
 } from 'lucide-react';
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
@@ -39,6 +40,7 @@ import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
 import { NewOrdersAlert } from './counter/NewOrdersAlert';
 import { OrderSheet } from './counter/OrderSheet';
 import { OwnerPanelButton } from './counter/OwnerPanelButton';
+import { HelpSheet } from './counter/HelpSheet';
 import { shortOrderNumber } from '@/lib/orders/short-number';
 import {
   CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast, DemoBanner,
@@ -308,7 +310,17 @@ export function CounterView({
   initialPausedUntil = null, ownerPanel = false, previewAlertIds, previewShiftReport, previewModal,
   initialSettings = DEFAULT_COUNTER_SETTINGS, settingsLive = true,
 }: CounterViewProps) {
-  const t = getT(locale);
+  // Idioma de la pantalla, por tablet: el cocinero lee español aunque la tienda
+  // esté en inglés (el selector de idioma del Uber Eats tablet). Tickets, avisos
+  // al cliente y link de seguimiento siguen en el idioma de la tienda (`locale`).
+  const [screenLang, setScreenLang] = useState<'es' | 'en'>(locale === 'en' ? 'en' : 'es');
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('counter-screen-lang');
+      if (v === 'es' || v === 'en') setScreenLang(v);
+    } catch { /* sin storage */ }
+  }, []);
+  const t = getT(screenLang);
 
   // ── Sonido, colores y volumen (counter_settings, en vivo entre tablets) ──
   const { settings, save: saveSettings } = useCounterSettings(restaurantId, initialSettings, settingsLive);
@@ -520,10 +532,13 @@ export function CounterView({
     previewAlertIds ? initialOrders.filter(o => previewAlertIds.includes(o.id)) : []);
 
   // ── Rediseño 2026-11: tablero, hoja de detalle, estado de la tienda ──
-  const T = counterText(locale === 'en' ? 'en' : 'es');
+  const T = counterText(screenLang);
   const [view, setView] = useState<CounterViewMode>('board');
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
+  // Ayuda: null = cerrada; orderNumber cuando se abre desde un pedido.
+  const [help, setHelp] = useState<{ orderNumber: string | null } | null>(null);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   // Pedidos que suenan: la alerta NO se calla tocando la pantalla ni cerrándola con
   // "Ver todos" — suena hasta que cada uno se acepta o se rechaza (como Uber Eats;
   // Pedro 2026-11-13). Antes un toque la callaba y el pedido podía quedar 5 min mudo.
@@ -731,7 +746,7 @@ export function CounterView({
     setSplashQueue(q => (q.some(x => x.id === o.id) ? q : [...q, o]));
     setRingIds(r => (r.includes(o.id) ? r : [...r, o.id]));
   }, []);
-  const demo = useCounterDemo(locale === 'en', onDemoArrive);
+  const demo = useCounterDemo(screenLang === 'en', onDemoArrive);
   const demoExit = demo.exit;
   const demoUpdate = demo.update;
   const exitDemo = useCallback(() => {
@@ -1738,6 +1753,10 @@ export function CounterView({
                   setSelectedDriverId(o.driver_id ?? null);
                 }
               : undefined,
+            onHelp: () => {
+              setAppVersion(getCounterAppBridge()?.getAppVersion?.() ?? null);
+              setHelp({ orderNumber: shortOrderNumber(sheetOrder.order_number) });
+            },
             // served no se puede cancelar (transición inválida): la mesa ya comió.
             onCancel: !['delivered', 'completed', 'cancelled', 'served'].includes(sheetOrder.status)
               ? () => { setCancelModal({ orderId: sheetOrder.id, type: sheetOrder.status === 'pending' ? 'reject' : 'cancel' }); setCancelReason(''); }
@@ -1750,7 +1769,7 @@ export function CounterView({
       {customizeOpen && (
         <CustomizePanel
           T={T}
-          lang={locale === 'en' ? 'en' : 'es'}
+          lang={screenLang}
           settings={settings}
           canCustomize={!isDevice || settings.staffCanCustomize}
           isOwner={!isDevice}
@@ -1759,6 +1778,18 @@ export function CounterView({
           onVolumeLive={setAudioVolume}
           onClose={() => setCustomizeOpen(false)}
           onStartDemo={() => { setCustomizeOpen(false); setView('board'); if (demo.active) exitDemo(); demo.start(); }}
+        />
+      )}
+
+      {help && (
+        <HelpSheet
+          lang={screenLang}
+          restaurantName={restaurantName}
+          offline={offline}
+          inApp={inApp}
+          appVersion={appVersion}
+          orderNumber={help.orderNumber}
+          onClose={() => setHelp(null)}
         />
       )}
 
@@ -1953,6 +1984,45 @@ export function CounterView({
                   </button>
                 )}
               </SidebarSection>
+
+              {/* Idioma de esta pantalla */}
+              <SidebarSection title={t.en ? 'Screen language' : 'Idioma de la pantalla'} icon={<Languages className="w-4 h-4" />}>
+                <div role="radiogroup" aria-label={t.en ? 'Screen language' : 'Idioma de la pantalla'} className="grid grid-cols-2 gap-0.5 p-1 rounded-2xl" style={{ background: C.fill }}>
+                  {([['es', 'Español'], ['en', 'English']] as const).map(([v, label]) => (
+                    <button key={v} type="button" role="radio" aria-checked={screenLang === v} lang={v}
+                      onClick={() => {
+                        setScreenLang(v);
+                        try { localStorage.setItem('counter-screen-lang', v); } catch { /* sin storage */ }
+                      }}
+                      className="h-12 rounded-xl text-[17px]"
+                      style={screenLang === v
+                        ? { background: C.thumb, color: C.ink, boxShadow: C.thumbShadow, fontWeight: 700 }
+                        : { color: C.ink, fontWeight: 500 }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-[14px] text-[color:var(--kds-sub)]">
+                  {t.en ? 'Only this tablet. Tickets and customer messages stay in the store language.' : 'Solo en esta tablet. Los tickets y los avisos al cliente siguen en el idioma de la tienda.'}
+                </p>
+              </SidebarSection>
+
+              {/* Ayuda y soporte */}
+              <button
+                onClick={() => {
+                  setAppVersion(getCounterAppBridge()?.getAppVersion?.() ?? null);
+                  setSidebarOpen(false);
+                  setHelp({ orderNumber: null });
+                }}
+                className="w-full flex items-center gap-3 px-3 min-h-[56px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+              >
+                <LifeBuoy className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Help and support' : 'Ayuda y soporte'}</span>
+                  <span className="block text-[14px] text-[color:var(--kds-sub)]">{t.en ? 'Guides, WhatsApp and email' : 'Guías, WhatsApp y email'}</span>
+                </span>
+                <ChevronRight className="w-5 h-5 text-[color:var(--kds-sub)]" />
+              </button>
 
               {/* Panel del dueño: escondido al final del menú. Apagado en la tablet
                   vinculada (2026-11-17): dentro de la app Counter el panel quedaba

@@ -160,6 +160,7 @@ const ES = {
   editItems: 'Editar productos',
   assignDriver: 'Asignar repartidor',
   statusHistory: 'Historial de estados',
+  orderHelp: 'Ayuda de MENIUS',
   cancelOrder: 'Cancelar pedido',
   rejectOrder: 'Rechazar pedido',
   // Avisos
@@ -296,6 +297,7 @@ const EN: Dict = {
   editItems: 'Edit items',
   assignDriver: 'Assign driver',
   statusHistory: 'Status history',
+  orderHelp: 'MENIUS help',
   cancelOrder: 'Cancel order',
   rejectOrder: 'Reject order',
   markedReady: (n) => `#${n} marked ready`,

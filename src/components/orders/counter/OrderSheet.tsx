@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { Printer, MoreHorizontal, X, Phone, Send, Pencil, Bike, History, Ban, MapPin } from 'lucide-react';
+import { Printer, MoreHorizontal, X, Phone, Send, Pencil, Bike, History, Ban, MapPin, LifeBuoy } from 'lucide-react';
 import type { Order } from '@/types';
 import {
   C, RAISED, type CounterText, PREP_CHOICES, money, parseItem, isAllergyText, stripNoteLabel,
@@ -16,6 +16,8 @@ export interface SheetMoreActions {
   onResendNotice?: () => void;
   onEditItems?: () => void;
   onAssignDriver?: () => void;
+  /** Abre Ayuda de MENIUS con el número de este pedido. */
+  onHelp?: () => void;
   onCancel?: () => void;
 }
 
@@ -54,6 +56,7 @@ export function OrderSheet({
   if (more.onEditItems) moreItems.push({ label: T.editItems, icon: <Pencil className="w-5 h-5" />, onClick: more.onEditItems });
   if (more.onAssignDriver) moreItems.push({ label: T.assignDriver, icon: <Bike className="w-5 h-5" />, onClick: more.onAssignDriver });
   if (historySlot) moreItems.push({ label: T.statusHistory, icon: <History className="w-5 h-5" />, onClick: () => setShowHistory((v) => !v) });
+  if (more.onHelp) moreItems.push({ label: T.orderHelp, icon: <LifeBuoy className="w-5 h-5" />, onClick: more.onHelp });
   if (more.onCancel) moreItems.push({ label: order.status === 'pending' ? T.rejectOrder : T.cancelOrder, icon: <Ban className="w-5 h-5" />, onClick: more.onCancel, danger: true });
 
   return (
