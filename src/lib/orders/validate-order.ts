@@ -94,7 +94,7 @@ export function sanitizeAndValidate(body: Record<string, unknown>, ip: string): 
 
   // Demo mode
   if (String(restaurant_id).startsWith('demo')) {
-    if (!customer_name || !customer_phone) {
+    if (!customer_name || (!customer_phone && order_type !== 'dine_in')) {
       return {
         success: false,
         error: bodyEn ? 'Name and phone required' : 'Nombre y teléfono requeridos',

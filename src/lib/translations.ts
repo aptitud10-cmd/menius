@@ -298,6 +298,7 @@ export interface Translations {
   validationAddressRequired: string;
   validationErrorPromo: string;
   validationNamePhoneRequired: string;
+  validationNameOnlyRequired: string;
   validationEmailRequiredOrder: string;
   validationDeliveryAddressRequired: string;
   deliveryPickFromList: string;
@@ -374,6 +375,8 @@ export interface Translations {
   ckScheduleLater: string;
   ckContact: string;
   ckAddContact: string;
+  /** En mesa no se pide teléfono (2026-11-19). */
+  ckAddName: string;
   ckContactTitle: string;
   ckNote: string;
   ckPromoApplied: string;
@@ -758,6 +761,7 @@ const es: Translations = {
   validationAddressRequired: 'Agrega la dirección de entrega',
   validationErrorPromo: 'No pudimos revisar el código. Intenta de nuevo.',
   validationNamePhoneRequired: 'Agrega tu nombre y teléfono para hacer el pedido',
+  validationNameOnlyRequired: 'Agrega tu nombre para hacer el pedido',
   validationEmailRequiredOrder: 'Email requerido para recibir tu confirmación de pedido',
   validationDeliveryAddressRequired: 'Agrega la dirección de entrega para hacer el pedido',
   deliveryPickFromList: 'Elegí tu dirección de la lista de sugerencias para confirmar que estás en la zona de entrega.',
@@ -835,6 +839,7 @@ const es: Translations = {
   ckScheduleLater: 'Programar para más tarde',
   ckContact: 'Contacto',
   ckAddContact: 'Agregar nombre y teléfono',
+  ckAddName: 'Agregar tu nombre',
   ckContactTitle: 'Tus datos',
   ckNote: 'Nota para la cocina',
   ckPromoApplied: 'Aplicado: -{x}',
@@ -1216,6 +1221,7 @@ const en: Translations = {
   validationAddressRequired: 'Add the delivery address',
   validationErrorPromo: 'We couldn\'t check the code. Try again.',
   validationNamePhoneRequired: 'Add your name and phone to place the order',
+  validationNameOnlyRequired: 'Add your name to place the order',
   validationEmailRequiredOrder: 'Email required to receive your order confirmation',
   validationDeliveryAddressRequired: 'Add the delivery address to place the order',
   deliveryPickFromList: 'Pick your address from the suggestions so we can confirm it is in the delivery area.',
@@ -1293,6 +1299,7 @@ const en: Translations = {
   ckScheduleLater: 'Schedule for later',
   ckContact: 'Contact',
   ckAddContact: 'Add name and phone',
+  ckAddName: 'Add your name',
   ckContactTitle: 'Your details',
   ckNote: 'Note for the kitchen',
   ckPromoApplied: 'Applied: -{x}',

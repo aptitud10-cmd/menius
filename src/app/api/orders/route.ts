@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (String(restaurant_id).startsWith("demo")) {
-      if (!customer_name || !customer_phone) {
+      if (!customer_name || (!customer_phone && order_type !== "dine_in")) {
         return NextResponse.json(
           {
             error: bodyEn
@@ -1060,9 +1060,10 @@ export async function POST(request: NextRequest) {
         // Verify the account belongs to the phone number on this order
         // — prevents someone using a known account_id to steal another customer's points
         const accountPhone = account?.customer_phone?.replace(/\D/g, "") ?? "";
+        // Sin teléfono en el pedido (mesa) NO hay canje: antes un teléfono
+        // vacío "coincidía" con cualquier cuenta.
         const phoneMatches =
-          !normalizedOrderPhone ||
-          !accountPhone ||
+          normalizedOrderPhone !== "" &&
           accountPhone === normalizedOrderPhone;
         if (account && !phoneMatches) {
           logger.warn("Loyalty account phone mismatch — skipping redemption", {

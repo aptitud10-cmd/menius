@@ -159,7 +159,7 @@ describe('Order Flow — publicOrderSchema', () => {
   });
 
   it('rejects missing customer_phone', () => {
-    const order = { ...validOrder, customer_phone: '' };
+    const order = { ...validOrder, customer_phone: '', order_type: 'pickup' };
     expect(publicOrderSchema.safeParse(order).success).toBe(false);
   });
 

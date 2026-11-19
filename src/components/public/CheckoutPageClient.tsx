@@ -474,10 +474,15 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     typeof window !== 'undefined' &&
     !!window.google?.maps?.places;
 
+  // En mesa no se pide teléfono (Pedro 2026-11-19): el pedido llega a la mesa.
+  const phoneNeeded = orderType !== 'dine_in';
+  const phoneOk = !phoneNeeded || phoneLooksValid(customerPhone);
+  const phoneForOrder = phoneNeeded || phoneLooksValid(customerPhone) ? customerPhone.trim() : '';
+
   // Reactive form validation — drives CTA disabled state
   const isFormReady = Boolean(
     customerName.trim().length >= 2 &&
-    phoneLooksValid(customerPhone) &&
+    phoneOk &&
     // Email opcional: si viene, tiene que tener formato válido.
     (!customerEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) &&
     (orderType !== 'delivery' || deliveryAddress.trim().length > 0) &&
@@ -565,6 +570,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         else if (value.trim().length < 2) error = t.validationNameMinLength;
         break;
       case 'customer_phone':
+        if (orderType === 'dine_in') break;
         if (!value.trim()) error = t.validationPhoneRequired;
         else if (!phoneLooksValid(value)) error = t.validationPhoneInvalid;
         break;
@@ -667,7 +673,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           _ot: orderToken,
           _hp: honeypot,
           customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim(),
+          customer_phone: phoneForOrder,
           customer_email: customerEmail.trim() || undefined,
           notes: (() => {
             const arrival = orderType === 'dine_in' && !tableName && arrivalTime
@@ -702,7 +708,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     } catch {
       return { error: t.noConnectionRetry };
     }
-  }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, customerEmail, orderNotes, arrivalTime, orderType, deliveryAddress, deliveryUnit, deliveryCoords, fullDeliveryAddress, deliveryCoords, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
+  }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, phoneForOrder, customerEmail, orderNotes, arrivalTime, orderType, deliveryAddress, deliveryUnit, deliveryCoords, fullDeliveryAddress, deliveryCoords, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
 
   // B2 — la Idempotency-Key se renueva cuando cambia lo que se va a pedir.
   // Antes era una por sesión de checkout: si el cliente volvía de Stripe con
@@ -721,13 +727,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         fullDeliveryAddress,
         scheduleEnabled ? scheduledFor : '',
         customerName.trim(),
-        customerPhone.trim(),
+        phoneForOrder,
         customerEmail.trim(),
         orderNotes.trim(),
         includeUtensils,
         tableName || manualTableName.trim(),
       ]),
-    [buildOrderItemsPayload, orderType, paymentMethod, tipAmount, promoResult, promoCode, loyaltyPointsToRedeem, fullDeliveryAddress, scheduleEnabled, scheduledFor, customerName, customerPhone, customerEmail, orderNotes, includeUtensils, tableName, manualTableName],
+    [buildOrderItemsPayload, orderType, paymentMethod, tipAmount, promoResult, promoCode, loyaltyPointsToRedeem, fullDeliveryAddress, scheduleEnabled, scheduledFor, customerName, phoneForOrder, customerEmail, orderNotes, includeUtensils, tableName, manualTableName],
   );
   const firstPayloadSigRef = useRef(true);
   useEffect(() => {
@@ -782,8 +788,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const handleSubmitOrder = async () => {
     if (submittingRef.current) return;
     setOrderErrorAction(null);
-    if (customerName.trim().length < 2 || !phoneLooksValid(customerPhone)) {
-      setOrderError(t.validationNamePhoneRequired);
+    if (customerName.trim().length < 2 || !phoneOk) {
+      setOrderError(phoneNeeded ? t.validationNamePhoneRequired : t.validationNameOnlyRequired);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'name_or_phone', order_type: orderType });
       // Trigger shake + scroll to first invalid field
       setCtaShake(true);
@@ -867,7 +873,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           _ot: orderToken,
           _hp: honeypot,
           customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim(),
+          customer_phone: phoneForOrder,
           customer_email: customerEmail.trim() || undefined,
           notes: (() => {
             const arrival = orderType === 'dine_in' && !tableName && arrivalTime
@@ -1524,7 +1530,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             {/* Back link */}
             <button
               onClick={() => setStep('form')}
-              className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-[#6b6b74] hover:text-[#111114] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               {t.backToForm}
@@ -1532,24 +1538,24 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
             {/* Powered by Stripe footer */}
             <div className="flex flex-col items-center gap-2 pt-2 pb-4">
-              <div className="flex items-center gap-1.5 text-gray-400">
-                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+              <div className="flex items-center gap-1.5 text-[#6b6b74]">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 12 12" fill="none">
                   <path fillRule="evenodd" clipRule="evenodd" d="M6 1a5 5 0 100 10A5 5 0 006 1zM5 4a1 1 0 112 0v3a1 1 0 11-2 0V4zm1 5.5a.75.75 0 100-1.5.75.75 0 000 1.5z" fill="currentColor"/>
                 </svg>
-                <span className="text-[11px]">
+                <span className="text-[13px]">
                   {t.secureEncryptedPayment}
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-gray-400">
-                <span className="text-[11px]">Powered by</span>
+              <div className="flex items-center gap-1 text-[#6b6b74]">
+                <span className="text-[13px]">Powered by</span>
                 <svg className="h-[14px] w-auto" viewBox="0 0 60 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a8.33 8.33 0 01-4.56 1.1c-4.01 0-6.83-2.5-6.83-7.48 0-4.19 2.39-7.52 6.3-7.52 3.92 0 5.96 3.28 5.96 7.5 0 .4-.04 1.26-.06 1.48zm-5.92-5.62c-1.03 0-2.17.73-2.17 2.58h4.25c0-1.85-1.07-2.58-2.08-2.58zM40.95 20.3c-1.44 0-2.32-.6-2.9-1.04l-.02 4.63-4.44.94V5.2h3.94l.14 1.07c.6-.72 1.7-1.33 3.29-1.33 3.01 0 5.7 2.68 5.7 7.5-.02 5.29-2.67 7.86-5.71 7.86zm-.95-11.64c-.95 0-1.55.35-1.97.8l.05 5.99c.42.47 1.01.8 1.92.8 1.51 0 2.54-1.65 2.54-3.81-.01-2.22-.99-3.78-2.54-3.78zM28.24 5.2h4.44v14.83h-4.44V5.2zm0-4.75l4.44-.94v3.56l-4.44.94V.45zM19.69 20.03c-1.87 0-3.49-.75-3.49-3.83V8.43h-1.89V5.2h1.89V1.51l4.42-.93V5.2h2.56v3.23h-2.56v6.82c0 1.14.49 1.63 1.55 1.63.36 0 .74-.07 1.01-.15v3.2c-.43.12-1.16.1-1.49.1zM12.06 6.01l-.17-1.15c-.62-.56-1.72-1.1-3.07-1.1C5.49 3.76 3.01 6.24 3.01 10c0 4.01 2.61 6.26 5.81 6.26 1.35 0 2.45-.52 3.07-1.07l.17-1.14v1.99H16V5.2h-3.94v.81zm-3.07 8.08c-1.51 0-2.62-1.24-2.62-3.11 0-1.87 1.11-3.11 2.62-3.11 1.5 0 2.63 1.24 2.63 3.11 0 1.87-1.13 3.11-2.63 3.11z" fill="#6772E5"/>
                 </svg>
               </div>
-              <div className="flex items-center gap-3 text-[10px] text-gray-400">
-                <a href={`/${slug}/legal/refunds`} target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{t.ckRefunds}</a>
-                <span>·</span>
-                <a href={`/${slug}/legal/privacy`} target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{t.privacyLabel}</a>
+              <div className="flex items-center gap-3 text-[13px] text-[#6b6b74]">
+                <a href={`/${slug}/legal/refunds`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-[44px] underline underline-offset-2 hover:text-[#111114] transition-colors">{t.ckRefunds}</a>
+                <span aria-hidden="true">·</span>
+                <a href={`/${slug}/legal/privacy`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-[44px] underline underline-offset-2 hover:text-[#111114] transition-colors">{t.privacyLabel}</a>
               </div>
             </div>
 
@@ -1593,7 +1599,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <div key={i} className="flex justify-between items-baseline gap-3">
                   <span className="text-sm text-gray-700 leading-snug">
                     <span className="font-semibold text-gray-900">{item.qty}×</span>{' '}
-                    {item.name}{item.variant ? <span className="text-gray-400"> ({item.variant})</span> : ''}
+                    {item.name}{item.variant ? <span className="text-[#6b6b74]"> ({item.variant})</span> : ''}
                   </span>
                   <span className="text-sm font-semibold text-gray-900 tabular-nums flex-shrink-0">{fmtPrice(item.lineTotal)}</span>
                 </div>
@@ -1607,7 +1613,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
           {/* Auto-redirect hint — shown for non-online, non-demo orders */}
           {orderId && orderId !== 'demo-order-id' && !awaitingPayment && (
-            <p className="text-xs text-gray-400 mb-2 animate-pulse">
+            <p className="text-[13px] text-[#6b6b74] mb-2 animate-pulse">
               {t.redirectingToTracking}
             </p>
           )}
@@ -1713,7 +1719,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </button>
             )}
             {paymentMethod === 'cash' && (
-              <button onClick={goBack} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={goBack} className="w-full py-2 text-[15px] text-[#4f4f57] hover:text-[#111114] transition-colors">
                 {t.backToMenu}
               </button>
             )}
@@ -1747,7 +1753,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   // ── Checkout premium (SPEC §4): total como ancla + filas agrupadas + un botón ──
   const emailOk = !customerEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim());
-  const contactReady = customerName.trim().length >= 2 && phoneLooksValid(customerPhone) && emailOk;
+  const contactReady = customerName.trim().length >= 2 && phoneOk && emailOk;
   const addressReady = orderType !== 'delivery' || (deliveryAddress.trim().length > 0 && !addressNeedsPick());
   const itemCount = items.reduce((s, i) => s + i.qty, 0);
   const optLabel = t.optional.charAt(0).toUpperCase() + t.optional.slice(1);
@@ -1822,7 +1828,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     : belowDeliveryMin ? { label: t.ckAddItems.replace('{x}', fmtPrice(Math.max(0, deliveryMinOrder - cartTotal))), run: goBack }
     : dineInOnlyBlocked ? { label: t.confirmOrder, run: handleSubmitOrder }
     : !addressReady ? { label: t.ckAddAddress, run: () => setActiveSheet('address') }
-    : !contactReady ? { label: t.ckAddContact, run: () => setActiveSheet('contact') }
+    : !contactReady ? { label: phoneNeeded ? t.ckAddContact : t.ckAddName, run: () => setActiveSheet('contact') }
     : {
         label: paymentMethod === 'online' ? `${t.payLabel} ${fmtPrice(displayTotal)}` : `${t.confirmOrder} · ${fmtPrice(displayTotal)}`,
         run: handleSubmitOrder,
@@ -2004,7 +2010,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             )}
           >
             <span className="text-[15px] font-semibold tabular-nums leading-tight text-[#111114]">{opt.label}</span>
-            {opt.sub && <span className={cn('text-[11.5px] tabular-nums leading-tight', opt.active ? 'text-[#047a65]' : 'text-[#6b6b74]')}>{opt.sub}</span>}
+            {opt.sub && <span className={cn('text-[12.5px] tabular-nums leading-tight', opt.active ? 'text-[#047a65]' : 'text-[#6b6b74]')}>{opt.sub}</span>}
           </button>
         ))}
       </div>
@@ -2106,7 +2112,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           />
           <div className="flex items-center gap-3 py-0.5" aria-hidden="true">
             <div className="flex-1 h-px bg-black/[0.09]" />
-            <span className="text-[11px] text-[#6b6b74] font-medium uppercase tracking-wide">{locale === 'en' ? 'or' : 'o'}</span>
+            <span className="text-[12.5px] text-[#6b6b74] font-medium uppercase tracking-wide">{locale === 'en' ? 'or' : 'o'}</span>
             <div className="flex-1 h-px bg-black/[0.09]" />
           </div>
         </div>
@@ -2378,7 +2384,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <CkRow
                 icon={<User />}
                 label={t.ckContact}
-                value={contactReady ? `${customerName.trim()} · ${phoneDisplay(customerPhone)}` : t.ckAddContact}
+                value={contactReady ? [customerName.trim(), phoneForOrder && phoneDisplay(phoneForOrder)].filter(Boolean).join(' · ') : phoneNeeded ? t.ckAddContact : t.ckAddName}
                 need={!contactReady}
                 sub={contactReady && customerEmail.trim() ? customerEmail.trim() : undefined}
                 onClick={() => setActiveSheet('contact')}
@@ -2470,6 +2476,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </label>
         </CkFields>
         {fieldErrors.customer_name && <CkError id="checkout-name-error">{fieldErrors.customer_name}</CkError>}
+        {phoneNeeded && (<>
         <div id="checkout-phone-wrapper" className="mt-2">
           <PhoneField
             ios
@@ -2488,6 +2495,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           />
         </div>
         {fieldErrors.customer_phone && <CkError>{fieldErrors.customer_phone}</CkError>}
+        </>)}
         <div className="mt-2">
           <CkFields error={!!fieldErrors.customer_email}>
             <label className="relative block">

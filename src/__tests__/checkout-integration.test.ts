@@ -393,6 +393,18 @@ describe('publicOrderSchema — request validation', () => {
     expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_email: '' }).success).toBe(true);
   });
 
+  it('teléfono: opcional SOLO en mesa (Pedro 2026-11-19)', () => {
+    const noPhone = { ...validBaseOrder, customer_phone: '' };
+    expect(publicOrderSchema.safeParse({ ...noPhone, order_type: 'dine_in' }).success).toBe(true);
+    expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_phone: undefined, order_type: 'dine_in' }).success).toBe(true);
+    expect(publicOrderSchema.safeParse({ ...noPhone, order_type: 'pickup' }).success).toBe(false);
+    expect(publicOrderSchema.safeParse({ ...noPhone, order_type: 'delivery' }).success).toBe(false);
+    // Si en mesa lo escribe, igual tiene que ser válido.
+    expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_phone: 'abc', order_type: 'dine_in' }).success).toBe(false);
+    const bad = publicOrderSchema.safeParse({ ...noPhone, order_type: 'pickup' });
+    expect(!bad.success && bad.error.errors[0].path[0]).toBe('customer_phone');
+  });
+
   it('rejects a malformed email when one is sent', () => {
     expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_email: 'ana@' }).success).toBe(false);
   });
@@ -410,7 +422,7 @@ describe('publicOrderSchema — request validation', () => {
   });
 
   it('rejects empty customer_phone', () => {
-    expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_phone: '' }).success).toBe(false);
+    expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_phone: '', order_type: 'pickup' }).success).toBe(false);
   });
 
   it('rejects order with empty items array', () => {

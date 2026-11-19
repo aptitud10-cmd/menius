@@ -67,9 +67,13 @@ const uuidOrNull = z.preprocess(
   z.string().uuid().nullable()
 );
 
+const PHONE_RE = /^[+\d\s\-().]+$/;
+
+// En mesa el teléfono es opcional (Pedro 2026-11-19): el pedido llega a la mesa,
+// nadie llama. En pickup y delivery sigue siendo obligatorio.
 export const publicOrderSchema = z.object({
   customer_name: z.string().min(1, 'Nombre requerido'),
-  customer_phone: z.string().min(7, 'Teléfono requerido').regex(/^[+\d\s\-().]+$/, 'Teléfono inválido'),
+  customer_phone: z.string().default(''),
   customer_email: z.string().email('Email inválido').optional().or(z.literal('')),
   order_type: z.enum(['dine_in', 'pickup', 'delivery']).default('dine_in'),
   payment_method: z.enum(['cash', 'online', 'wallet']).default('cash'),
@@ -95,6 +99,11 @@ export const publicOrderSchema = z.object({
       price_delta: z.number().optional().default(0), // server recalculates from DB
     })).default([]),
   })).min(1, 'Agrega al menos un producto').max(50, 'Máximo 50 productos por orden'),
+}).superRefine((d, ctx) => {
+  const phone = d.customer_phone.trim();
+  if (d.order_type === 'dine_in' && phone === '') return;
+  if (phone.length < 7) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['customer_phone'], message: 'Teléfono requerido' });
+  else if (!PHONE_RE.test(phone)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['customer_phone'], message: 'Teléfono inválido' });
 });
 
 // ── Billing schemas ──
