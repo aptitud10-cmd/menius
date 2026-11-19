@@ -1,7 +1,18 @@
 import Link from 'next/link';
+import { Instrument_Serif } from 'next/font/google';
 import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
 import { PhoneMockup } from './PhoneMockup';
 import { HeroScrollCue } from './HeroScrollCue';
+
+// Cursiva del título: solo la landing la usa, por eso se carga aquí y no en
+// el layout raíz (si no, el menú de cada tienda la precargaba sin usarla).
+const serifItalic = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: 'italic',
+  variable: '--font-serif-italic',
+  display: 'swap',
+});
 
 function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.0', '')}k+`;
@@ -13,7 +24,7 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
   const h = getLandingT(locale).hero;
 
   return (
-    <section className="relative min-h-[640px] xl:min-h-[100dvh] flex items-start xl:items-center overflow-clip">
+    <section className={`${serifItalic.variable} relative min-h-[640px] xl:min-h-[100dvh] flex items-start xl:items-center overflow-clip`}>
       <div className="hero-gradient" />
 
       <div className="relative z-30 max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 w-full pt-28 pb-16 xl:py-0">

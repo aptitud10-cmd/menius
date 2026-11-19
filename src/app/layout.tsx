@@ -45,12 +45,14 @@ const bricolage = localFont({
   adjustFontFallback: false,
 });
 
-// Editorial serif for display headings — 2026 serif/sans contrast trend.
-// Trial: applied via .font-serif-display utility, not globally.
+// Instrument Serif NORMAL: la usa la tienda (`font-menu`: nombre del
+// restaurante en la portada, reseñas, mis pedidos). La CURSIVA solo la usa el
+// título de la landing y se carga allá (LandingHero.tsx): así el menú no
+// precarga un archivo que nunca dibuja (Lighthouse 2026-11-19).
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
-  style: ["normal", "italic"],
+  style: "normal",
   variable: "--font-serif",
   display: "swap",
 });
