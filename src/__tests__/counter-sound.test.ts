@@ -4,7 +4,7 @@ import path from 'path';
 import { loopIntervalMs, ringKind, pickAcceptedIndex, RING_EVERY_MS, eventForChange, enqueueEvent, ARRIVAL_REPEAT_MS, ARRIVAL_MAX_PLAYS } from '@/components/orders/counter/audio';
 import { SOUND_THEMES, SOUND_THEME_IDS, soundUrls, FALLBACK_SOUNDS, COUNTER_EVENTS } from '@/lib/sound-themes';
 import { rowToSettings, counterSettingsPatchSchema, patchToRow, DEFAULT_COUNTER_SETTINGS } from '@/lib/counter-settings';
-import { demoScript, isDemoId } from '@/components/orders/counter/demo';
+import { demoScript, isDemoId, testOrder, testOrderNote, DEMO_MAX_MS } from '@/components/orders/counter/demo';
 
 describe('motor de audio del Counter', () => {
   it('la alerta se repite cada 3.5 s, o al terminar el clip si dura más', () => {
@@ -135,5 +135,23 @@ describe('sonidos de evento (2026-11-19)', () => {
   it('el cliente que llegó suena cada 30 s, 3 veces como máximo', () => {
     expect(ARRIVAL_REPEAT_MS).toBe(30_000);
     expect(ARRIVAL_MAX_PLAYS).toBe(3);
+  });
+});
+
+describe('pedido de prueba (2026-11-19)', () => {
+  it('es un pickup falso, a nombre de Prueba, que dice NO PREPARAR en el ticket', () => {
+    for (const en of [false, true]) {
+      const o = testOrder(en);
+      expect(isDemoId(o.id)).toBe(true);
+      expect(o.order_type).toBe('pickup');
+      expect(o.customer_name).toBe(en ? 'Test' : 'Prueba');
+      expect(o.notes).toBe(testOrderNote(en));
+    }
+    expect(testOrderNote(false)).toContain('NO PREPARAR');
+    expect(testOrderNote(true)).toContain('DO NOT MAKE');
+  });
+
+  it('se cierra sola a los 10 minutos', () => {
+    expect(DEMO_MAX_MS).toBe(600_000);
   });
 });

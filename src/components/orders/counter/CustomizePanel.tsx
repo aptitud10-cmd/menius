@@ -31,7 +31,7 @@ export function CustomizePanel({
   onSave: (patch: CounterSettingsPatch) => Promise<SaveCounterSettingsResult>;
   onVolumeLive: (v: number) => void;
   onClose: () => void;
-  onStartDemo?: () => void;
+  onStartDemo?: (mode: 'test' | 'sales') => void;
 }) {
   const [tab, setTab] = useState<Tab>('sound');
   const [error, setError] = useState<string | null>(null);
@@ -208,8 +208,11 @@ export function CustomizePanel({
             <div className="rounded-2xl px-4 py-4 flex flex-col gap-3" style={{ background: C.surface }}>
               <p className="flex items-center gap-2 text-[16px] font-semibold"><Sparkles className="w-5 h-5" /> {T.demoMode}</p>
               <p className="text-[14px] -mt-1" style={{ color: C.sub }}>{T.demoModeHelp}</p>
-              <button type="button" onClick={onStartDemo} className="h-12 rounded-xl font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
+              <button type="button" onClick={() => onStartDemo('test')} className="h-12 rounded-xl font-semibold text-[16px]" style={{ background: C.fill, color: C.ink }}>
                 {T.startDemo}
+              </button>
+              <button type="button" onClick={() => onStartDemo('sales')} className="h-11 rounded-xl font-medium text-[15px]" style={{ color: C.sub }}>
+                {T.salesDemo}
               </button>
             </div>
           )}

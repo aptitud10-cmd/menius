@@ -34,7 +34,7 @@ import {
 } from './counter/audio';
 import { markCustomerArrived } from '@/lib/actions/customer-arrival';
 import { CustomizePanel, type AppearancePreview } from './counter/CustomizePanel';
-import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS } from './counter/demo';
+import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS, DEMO_MAX_MS } from './counter/demo';
 import { useCounterSettings } from '@/hooks/use-counter-settings';
 import { DEFAULT_COUNTER_SETTINGS, type CounterSettings } from '@/lib/counter-settings';
 import { getScreenTheme, resolveThemeTokens, themeCssVars } from '@/lib/counter-themes';
@@ -709,10 +709,16 @@ export function CounterView({
   }, []);
 
   // ── New order handler ──
+  /** Cierra el pedido de prueba si está abierto (lo asigna el bloque del demo, más abajo). */
+  const exitDemoRef = useRef<(() => void) | null>(null);
+  const demoModeRef = useRef<'test' | 'sales'>('test');
   // Sound/push/print are gated to the LEADER tab only: every open Counter tab
   // receives the realtime INSERT, so two tabs meant two printed tickets and a
   // double chime per order. The splash stays per-tab (it's visual context).
   const handleNewOrder = useCallback((order: Order) => {
+    // Entra un pedido REAL con una prueba abierta: la prueba se cierra en el
+    // acto, para que nadie confunda los dos (Toast avisa "you risk losing orders").
+    exitDemoRef.current?.();
     // Programado para más adelante: se avisa, pero NO entra al splash (que lo
     // auto-aceptaba a los 30 s → "preparando", email e impresión para un
     // pedido de mañana) ni se imprime. Queda en la pestaña Programados.
@@ -765,6 +771,20 @@ export function CounterView({
     setSheetId(cur => (isDemoId(cur) ? null : cur));
     stopRing();
   }, [demoExit]);
+  exitDemoRef.current = demo.active ? exitDemo : null;
+  demoModeRef.current = demo.mode;
+  // Tope de 10 min (DEMO_MAX_MS): nadie deja una prueba abierta en pleno servicio.
+  useEffect(() => {
+    if (!demo.active) return;
+    const id = setTimeout(exitDemo, DEMO_MAX_MS);
+    return () => clearTimeout(id);
+  }, [demo.active, exitDemo]);
+  // El resumen se cierra solo a los 20 s: una prueba no queda abierta en servicio.
+  useEffect(() => {
+    if (!demo.finished) return;
+    const id = setTimeout(exitDemo, 20_000);
+    return () => clearTimeout(id);
+  }, [demo.finished, exitDemo]);
 
   // Clientes marcados (customer-incidents): una consulta chica aparte, cruzada
   // por customer_id, en vez de sumar un join a las 6 consultas de pedidos.
@@ -1081,6 +1101,11 @@ export function CounterView({
       playAccepted();
       setSheetId(prev => (prev === order.id ? null : prev));
       showSuccess(T.accepted(shortOrderNumber(order.order_number), effDemo));
+      // Pedido de prueba: el ticket sale por la impresora de la tablet con
+      // "PEDIDO DE PRUEBA - NO PREPARAR" en las notas, para probarla. Con
+      // CloudPRNT no: esa impresora solo imprime pedidos guardados en la base
+      // (su prueba vive en Menú → Impresora).
+      if (demoModeRef.current === 'test' && !cloudRef.current) void printTicket({ ...order, estimated_ready_minutes: effDemo } as Order, effDemo);
       return;
     }
     if (acceptingRef.current.has(order.id) || order.status !== 'pending') return;
@@ -1691,7 +1716,7 @@ export function CounterView({
             </p>
             <p className="text-[20px] font-semibold" style={{ color: C.accentText }}>{T.demoReady}</p>
             <div className="w-full grid grid-cols-2 gap-3 mt-5">
-              <button type="button" onClick={() => { exitDemo(); demo.start(); }} className="h-14 rounded-2xl font-semibold text-[17px]" style={{ background: C.fill, color: C.ink }}>
+              <button type="button" onClick={() => { const m = demo.mode; exitDemo(); demo.start(m); }} className="h-14 rounded-2xl font-semibold text-[17px]" style={{ background: C.fill, color: C.ink }}>
                 {T.demoAgain}
               </button>
               <button type="button" onClick={exitDemo} className="h-14 rounded-2xl font-semibold text-[17px]" style={{ background: C.fill, color: C.ink }}>
@@ -1885,7 +1910,7 @@ export function CounterView({
           onSave={saveSettings}
           onVolumeLive={setAudioVolume}
           onClose={() => setCustomizeOpen(false)}
-          onStartDemo={() => { setCustomizeOpen(false); setView('board'); if (demo.active) exitDemo(); demo.start(); }}
+          onStartDemo={(m) => { setCustomizeOpen(false); setView('board'); if (demo.active) exitDemo(); demo.start(m); }}
         />
       )}
 

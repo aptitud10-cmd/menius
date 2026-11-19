@@ -23,6 +23,18 @@ const KITCHEN_READY_AFTER_ACCEPT_MS = 6000;
 const CUSTOMER_ARRIVES_AFTER_READY_MS = 6000;
 const CUSTOMER_CANCELS_AFTER_ACCEPT_MS = 9000;
 const DONE_STATUSES = ['delivered', 'completed', 'served', 'cancelled'];
+/** Nadie deja una prueba abierta en pleno servicio: a los 10 min se cierra sola. */
+export const DEMO_MAX_MS = 10 * 60_000;
+
+/**
+ * 'test': UN pedido de prueba (pickup), como el "test order" de DoorDash o
+ * Grubhub — para entrenar al personal y probar sonido e impresora.
+ * 'sales': la tanda de 3 para mostrarle el Counter a un dueño.
+ */
+export type DemoMode = 'test' | 'sales';
+
+/** Lo que el ticket de un pedido de prueba dice en grande (va en las notas: sale en cualquier impresora). */
+export const testOrderNote = (en: boolean) => (en ? '*** TEST ORDER - DO NOT MAKE ***' : '*** PEDIDO DE PRUEBA - NO PREPARAR ***');
 
 type Line = [text: string, price?: number, indent?: boolean];
 
@@ -79,12 +91,19 @@ export function demoScript(en: boolean): Order[] {
   ];
 }
 
+/** El pedido de prueba: el pickup del guion, a nombre de "Prueba" y con la nota NO PREPARAR. */
+export function testOrder(en: boolean): Order {
+  const base = demoScript(en)[1];
+  return { ...base, customer_name: en ? 'Test' : 'Prueba', notes: testOrderNote(en) } as Order;
+}
+
 export interface DemoState {
   active: boolean;
+  mode: DemoMode;
   orders: Order[];
-  /** Las 3 llegaron y ninguna sigue pendiente. */
+  /** Llegaron todos y ninguno sigue pendiente (ni con el cliente esperando). */
   finished: boolean;
-  start: () => void;
+  start: (mode?: DemoMode) => void;
   exit: () => void;
   update: (id: string, patch: Partial<Order>) => void;
 }
@@ -96,6 +115,7 @@ export interface DemoState {
  */
 export function useCounterDemo(en: boolean, onArrive: (o: Order) => void): DemoState {
   const [active, setActive] = useState(false);
+  const [mode, setMode] = useState<DemoMode>('test');
   const [orders, setOrders] = useState<Order[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const onArriveRef = useRef(onArrive);
@@ -114,14 +134,15 @@ export function useCounterDemo(en: boolean, onArrive: (o: Order) => void): DemoS
     onArriveRef.current(fresh);
   }, []);
 
-  const start = useCallback(() => {
+  const start = useCallback((m: DemoMode = 'test') => {
     clearTimers();
-    queuedSecond.current = false;
+    queuedSecond.current = m === 'test'; // la prueba es un solo pedido: no entran más
     scripted.current = new Set();
     setScriptPending(0);
     setOrders([]);
+    setMode(m);
     setActive(true);
-    const [first] = demoScript(en);
+    const first = m === 'test' ? testOrder(en) : demoScript(en)[0];
     timers.current.push(setTimeout(() => arrive(first), FIRST_ORDER_MS));
   }, [en, arrive]);
 
@@ -183,8 +204,8 @@ export function useCounterDemo(en: boolean, onArrive: (o: Order) => void): DemoS
 
   // El resumen sale cuando ya ocurrió todo el guion y nadie quedó esperando en
   // el mostrador: si el cliente "llegó", hay que entregarle el pedido (como en vivo).
-  const finished = active && orders.length === 3 && scriptPending === 0
+  const finished = active && orders.length === (mode === 'test' ? 1 : 3) && scriptPending === 0
     && orders.every((o) => o.status !== 'pending')
     && !orders.some((o) => o.order_type === 'pickup' && o.customer_arrived_at && !DONE_STATUSES.includes(o.status));
-  return { active, orders, finished, start, exit, update };
+  return { active, mode, orders, finished, start, exit, update };
 }
