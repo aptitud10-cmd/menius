@@ -35,24 +35,28 @@ const CATEGORY_ANCHOR_MAP: Array<{ category_name: string; anchor_key: keyof type
   { category_name: 'Desayunos',         anchor_key: 'breakfast'  },
   { category_name: 'Almuerzos',         anchor_key: 'lunch'      },
   { category_name: 'Cenas',             anchor_key: 'dinner'     },
-  { category_name: 'Aperitivos',        anchor_key: 'appetizers' },
+  { category_name: 'Entradas',          anchor_key: 'appetizers' },
   { category_name: 'Bebidas',           anchor_key: 'beverages'  },
-  { category_name: 'Licores',           anchor_key: 'cocktails'  },
+  { category_name: 'Bar',               anchor_key: 'cocktails'  }, // ES y EN
   { category_name: 'Postres',           anchor_key: 'desserts'   },
+  // Nombres de la plantilla anterior (hasta 2026-11-19): tiendas creadas antes
+  // los siguen teniendo.
+  { category_name: 'Aperitivos',        anchor_key: 'appetizers' },
+  { category_name: 'Licores',           anchor_key: 'cocktails'  },
   // ── English (seed-restaurant.ts SEED_CATEGORIES_EN) ──────────────────────
   { category_name: 'Breakfast',         anchor_key: 'breakfast'  },
   { category_name: 'Lunch',             anchor_key: 'lunch'      },
   { category_name: 'Dinner',            anchor_key: 'dinner'     },
   { category_name: 'Appetizers',        anchor_key: 'appetizers' },
   { category_name: 'Beverages',         anchor_key: 'beverages'  },
-  { category_name: 'Cocktails',         anchor_key: 'cocktails'  },
   { category_name: 'Desserts',          anchor_key: 'desserts'   },
+  // Plantilla EN anterior (hasta 2026-11-19).
+  { category_name: 'Cocktails',         anchor_key: 'cocktails'  },
   // ── Extra common names ────────────────────────────────────────────────────
   { category_name: 'Drinks',            anchor_key: 'cocktails'  },
   { category_name: 'Beverage',          anchor_key: 'beverages'  },
   { category_name: 'Appetizer',         anchor_key: 'appetizers' },
   { category_name: 'Starters',          anchor_key: 'appetizers' },
-  { category_name: 'Entradas',          anchor_key: 'appetizers' },
   { category_name: 'Platos principales',anchor_key: 'dinner'     },
   { category_name: 'Platos Principales',anchor_key: 'dinner'     },
   { category_name: 'Especialidades',    anchor_key: 'dinner'     },

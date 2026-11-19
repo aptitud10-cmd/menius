@@ -125,6 +125,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
       restaurant.slug,
       appUrl,
       locale,
+      restaurant.currency ?? data.currency,
     );
   } catch {
     // Seed failure should not block onboarding
@@ -259,8 +260,9 @@ export async function reseedMyRestaurant() {
 
   const { seedRestaurant } = await import("@/lib/seed-restaurant");
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";
-  const locale = inferLocale(restaurant.currency ?? "MXN");
-  await seedRestaurant(supabase, restaurantId, restaurant.slug, appUrl, locale);
+  const currency = restaurant.currency ?? "MXN";
+  const locale = inferLocale(currency);
+  await seedRestaurant(supabase, restaurantId, restaurant.slug, appUrl, locale, currency);
 
   revalidatePath("/app");
   revalidatePublicMenu(restaurant.slug);
