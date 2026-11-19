@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'fs';
 import path from 'path';
-import { loopIntervalMs, ringKind, pickAcceptedIndex, RING_EVERY_MS } from '@/components/orders/counter/audio';
-import { SOUND_THEMES, SOUND_THEME_IDS, soundUrls, FALLBACK_SOUNDS } from '@/lib/sound-themes';
+import { loopIntervalMs, ringKind, pickAcceptedIndex, RING_EVERY_MS, eventForChange, enqueueEvent, ARRIVAL_REPEAT_MS, ARRIVAL_MAX_PLAYS } from '@/components/orders/counter/audio';
+import { SOUND_THEMES, SOUND_THEME_IDS, soundUrls, FALLBACK_SOUNDS, COUNTER_EVENTS } from '@/lib/sound-themes';
 import { rowToSettings, counterSettingsPatchSchema, patchToRow, DEFAULT_COUNTER_SETTINGS } from '@/lib/counter-settings';
 import { demoScript, isDemoId } from '@/components/orders/counter/demo';
 
@@ -98,5 +98,42 @@ describe('modo demo', () => {
   it('un id real nunca se toma por demo', () => {
     expect(isDemoId('8f1c2a4e-0000-4000-8000-000000000000')).toBe(false);
     expect(isDemoId(null)).toBe(false);
+  });
+});
+
+describe('sonidos de evento (2026-11-19)', () => {
+  it('cada tema tiene sus 3 avisos en public/sounds', () => {
+    const pub = path.join(process.cwd(), 'public');
+    for (const id of SOUND_THEME_IDS) {
+      for (const e of COUNTER_EVENTS) expect(existsSync(path.join(pub, soundUrls(id).events[e])), `${id}/${e}`).toBe(true);
+    }
+  });
+
+  it('solo 3 eventos: nada de tap, preparing ni picked-up', () => {
+    expect([...COUNTER_EVENTS].sort()).toEqual(['cancelled', 'customer-arrived', 'ready']);
+  });
+
+  it('qué cambio de estado suena', () => {
+    expect(eventForChange({ status: 'preparing' }, { status: 'ready' })).toBe('ready');
+    expect(eventForChange({ status: 'ready' }, { status: 'ready' })).toBeNull();
+    expect(eventForChange({ status: 'preparing' }, { status: 'cancelled' })).toBe('cancelled');
+    expect(eventForChange({ status: 'pending' }, { status: 'cancelled' })).toBe('cancelled'); // cron: nadie lo aceptó
+    expect(eventForChange({ status: 'preparing', payment_status: 'pending' }, { status: 'preparing', payment_status: 'failed' })).toBe('cancelled');
+    // Aceptar, despachar o entregar no suenan como evento (la aceptada ya suena).
+    expect(eventForChange({ status: 'pending' }, { status: 'preparing' })).toBeNull();
+    expect(eventForChange({ status: 'ready' }, { status: 'delivered' })).toBeNull();
+    // Pedido que aparece por primera vez: no es un cambio.
+    expect(eventForChange(undefined, { status: 'ready' })).toBeNull();
+  });
+
+  it('la cola no repite un aviso que ya espera', () => {
+    expect(enqueueEvent([], 'ready')).toEqual(['ready']);
+    expect(enqueueEvent(['ready'], 'ready')).toEqual(['ready']);
+    expect(enqueueEvent(['ready'], 'customer-arrived')).toEqual(['ready', 'customer-arrived']);
+  });
+
+  it('el cliente que llegó suena cada 30 s, 3 veces como máximo', () => {
+    expect(ARRIVAL_REPEAT_MS).toBe(30_000);
+    expect(ARRIVAL_MAX_PLAYS).toBe(3);
   });
 });

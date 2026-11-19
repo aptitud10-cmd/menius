@@ -157,10 +157,12 @@ export function AllergyBlock({ T, text, size = 'md' }: { T: CounterText; text: s
 }
 
 export function OrderCard({
-  order, T, currency, acceptMins, busy, onOpen, onPrimary, onNoShow, routeStop,
+  order, T, currency, acceptMins, busy, onOpen, onPrimary, onNoShow, routeStop, arrivalWaiting,
 }: {
   order: Order; T: CounterText; currency: string; acceptMins: number; busy: boolean;
   onOpen: () => void; onPrimary: (kind: PrimaryKind) => void;
+  /** El cliente llegó y nadie abrió el pedido todavía: el borde late. */
+  arrivalWaiting?: boolean;
   /** Solo en el tablero: "No vino a buscarlo" en un pickup envejecido. */
   onNoShow?: () => void;
   routeStop?: { stop: number; of: number };
@@ -182,9 +184,10 @@ export function OrderCard({
         // las tarjetas a ~28 px y el botón quedaba encima de la siguiente.
         'relative shrink-0 rounded-[22px] px-5 pt-[18px] pb-5 flex flex-col gap-3 text-left cursor-pointer outline-none',
         'focus-visible:ring-4 focus-visible:ring-black/20',
+        arrivalWaiting && 'counter-arrival-pulse',
       )}
       // Siempre la misma superficie: lo "nuevo" lo dicen el botón Aceptar y el contador de la columna.
-      style={{ background: C.surface }}
+      style={{ background: C.surface, ...(arrivalWaiting ? { ['--arrival' as string]: C.violet } : {}) }}
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-bold text-[22px] leading-tight tracking-[-0.015em] truncate" style={{ color: C.ink }}>
@@ -253,7 +256,7 @@ export function OrderCard({
 type ColKey = 'new' | 'prep' | 'ready';
 
 export function CounterBoard({
-  T, currency, newOrders, prepOrders, readyOrders, busyIds, acceptMinsFor, onOpen, onPrimary, onNoShow, routeStops,
+  T, currency, newOrders, prepOrders, readyOrders, busyIds, acceptMinsFor, onOpen, onPrimary, onNoShow, routeStops, arrivalWaitingIds,
 }: {
   T: CounterText; currency: string;
   newOrders: Order[]; prepOrders: Order[]; readyOrders: Order[];
@@ -263,6 +266,8 @@ export function CounterBoard({
   onPrimary: (o: Order, kind: PrimaryKind) => void;
   onNoShow?: (o: Order) => void;
   routeStops?: Map<string, { stop: number; of: number }>;
+  /** Pickups cuyo cliente llegó y nadie abrió todavía. */
+  arrivalWaitingIds?: string[];
 }) {
   // En pantallas angostas (tablet vertical, celular) se ve una columna a la vez.
   const [mobileCol, setMobileCol] = useState<ColKey>('new');
@@ -338,6 +343,7 @@ export function CounterBoard({
                     onPrimary={(kind) => onPrimary(o, kind)}
                     onNoShow={onNoShow ? () => onNoShow(o) : undefined}
                     routeStop={routeStops?.get(o.id)}
+                    arrivalWaiting={arrivalWaitingIds?.includes(o.id)}
                   />
                 ))
               )}

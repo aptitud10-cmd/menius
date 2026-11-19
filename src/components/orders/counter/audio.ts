@@ -7,7 +7,7 @@
 // En la app Android el WebView permite sonar sin gesto
 // (mediaPlaybackRequiresUserGesture = false), así que ahí se desbloquea solo.
 
-import { soundUrls, FALLBACK_SOUNDS, type SoundThemeId } from '@/lib/sound-themes';
+import { soundUrls, FALLBACK_SOUNDS, COUNTER_EVENTS, type SoundThemeId, type CounterEvent } from '@/lib/sound-themes';
 
 // ─── Lógica pura (testeable) ─────────────────────────────────────────────────
 
@@ -30,6 +30,34 @@ export function pickAcceptedIndex(available: number[], previous: number | null, 
   return pool[Math.min(pool.length - 1, Math.floor(rand() * pool.length))];
 }
 
+/** Cada cuánto vuelve a sonar "el cliente llegó" si nadie lo atiende, y cuántas veces en total. */
+export const ARRIVAL_REPEAT_MS = 30_000;
+export const ARRIVAL_MAX_PLAYS = 3;
+
+/** Pausa entre dos sonidos de evento seguidos (que no se encimen). */
+const EVENT_GAP_S = 0.3;
+
+/**
+ * Qué evento suena por un cambio de estado que llegó DE OTRO LADO (KDS, otra
+ * tablet, el cliente, el cron). Los cambios hechos en esta misma tablet no
+ * pasan por aquí: quien tocó ya está mirando.
+ */
+export function eventForChange(
+  prev: { status: string; payment_status?: string | null } | undefined,
+  next: { status: string; payment_status?: string | null },
+): CounterEvent | null {
+  if (!prev) return null;
+  if (next.status === 'cancelled' && prev.status !== 'cancelled') return 'cancelled';
+  if (next.status === 'ready' && prev.status !== 'ready') return 'ready';
+  if (next.payment_status === 'failed' && prev.payment_status !== 'failed' && next.status !== 'cancelled') return 'cancelled';
+  return null;
+}
+
+/** Cola de eventos: entra todo, sin repetir uno que ya espera. */
+export function enqueueEvent(queue: CounterEvent[], ev: CounterEvent): CounterEvent[] {
+  return queue.includes(ev) ? queue : [...queue, ev];
+}
+
 // ─── Estado del motor (uno por página) ───────────────────────────────────────
 
 let _ctx: AudioContext | null = null;
@@ -43,6 +71,12 @@ const _loading = new Map<string, Promise<AudioBuffer | null>>();
 const _ringing = new Set<AudioBufferSourceNode>();
 let _lastRingAt = 0;
 let _lastRingDur = 0;
+/** La alerta de pedido nuevo está activa (incluye el silencio entre repeticiones). */
+let _alertActive = false;
+/** Eventos que esperan a que termine la alerta. */
+let _eventQueue: CounterEvent[] = [];
+/** Hasta cuándo (ctx.currentTime) está ocupado el canal de eventos. */
+let _eventBusyUntil = 0;
 
 export function getAudioCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -111,10 +145,12 @@ export function loadBuffer(url: string): Promise<AudioBuffer | null> {
   return p;
 }
 
-/** Precarga los 5 archivos de un tema + los 2 de respaldo. */
+/** Precarga los archivos de un tema (alerta primero; los eventos después) + los 2 de respaldo. */
 export function loadTheme(id: SoundThemeId): Promise<void> {
   const u = soundUrls(id);
-  return Promise.all([u.alert, u.urgent, ...u.accepted, FALLBACK_SOUNDS.alert, FALLBACK_SOUNDS.accepted].map(loadBuffer)).then(() => {});
+  return Promise.all([u.alert, u.urgent, ...u.accepted, FALLBACK_SOUNDS.alert, FALLBACK_SOUNDS.accepted].map(loadBuffer))
+    .then(() => Promise.all(COUNTER_EVENTS.map((e) => loadBuffer(u.events[e]))))
+    .then(() => {});
 }
 
 /** Tema activo de las alertas (precarga en segundo plano). */
@@ -187,6 +223,57 @@ export function msUntilNextRing(now = Date.now()): number {
 export function stopRing() {
   _ringing.forEach((s) => { try { s.stop(); } catch { /* ya terminó */ } });
   _ringing.clear();
+}
+
+/**
+ * La alerta de pedido nuevo manda: mientras está activa, ningún evento suena
+ * encima. Los que lleguen esperan en cola y suenan, en orden, cuando se apaga.
+ */
+export function setAlertActive(active: boolean) {
+  if (_alertActive === active) return;
+  _alertActive = active;
+  if (!active && _eventQueue.length) {
+    const pending = _eventQueue;
+    _eventQueue = [];
+    pending.forEach((e) => { void playEvent(e); });
+  }
+}
+
+/**
+ * Suena un evento del tema activo, una vez (nunca en loop). Si la alerta de
+ * pedido nuevo está sonando, queda en cola. Si otro evento está sonando, este
+ * entra justo después. Devuelve true si sonó o quedó programado.
+ */
+export async function playEvent(kind: CounterEvent): Promise<boolean> {
+  if (_alertActive || _ringing.size > 0) {
+    _eventQueue = enqueueEvent(_eventQueue, kind);
+    return true;
+  }
+  const buf = await loadBuffer(soundUrls(_theme).events[kind]);
+  const ctx = getAudioCtx();
+  if (!ctx || !buf) return false;
+  // Pudo entrar una alerta mientras se descargaba el archivo.
+  if (_alertActive || _ringing.size > 0) { _eventQueue = enqueueEvent(_eventQueue, kind); return true; }
+  try {
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(out(ctx));
+    const at = Math.max(ctx.currentTime, _eventBusyUntil);
+    src.start(at);
+    _eventBusyUntil = at + buf.duration + EVENT_GAP_S;
+    return true;
+  } catch { return false; }
+}
+
+/** Vista previa de un evento de cualquier tema (panel de sonido). No cambia el tema activo. */
+export async function previewEvent(id: SoundThemeId, kind: CounterEvent): Promise<() => void> {
+  resumeAudio();
+  const buf = await loadBuffer(soundUrls(id).events[kind]);
+  const ctx = getAudioCtx();
+  if (!ctx || !buf) return () => {};
+  const s = ctx.createBufferSource();
+  s.buffer = buf; s.connect(out(ctx)); s.start(0);
+  return () => { try { s.stop(); } catch { /* ya terminó */ } };
 }
 
 /** Una aceptada del tema al azar, sin repetir la anterior. Respaldo: order-accepted.mp3. */

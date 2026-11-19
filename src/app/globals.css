@@ -1361,3 +1361,14 @@ input[type="search"]::-webkit-search-decoration {
   -webkit-appearance: none;
   appearance: none;
 }
+
+/* Counter: el cliente llegó y nadie abrió el pedido (CounterBoard). */
+@keyframes counterArrivalPulse {
+  /* Inset: la columna tiene scroll y recorta lo que sobresale de la tarjeta. */
+  0%, 100% { box-shadow: inset 0 0 0 3px var(--arrival); }
+  50% { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--arrival) 25%, transparent); }
+}
+.counter-arrival-pulse { animation: counterArrivalPulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .counter-arrival-pulse { animation: none; box-shadow: inset 0 0 0 3px var(--arrival); }
+}

@@ -1,5 +1,6 @@
 // MENIUS — catálogo de temas de sonido para la tablet de órdenes (Counter).
 // Archivos en /public/sounds/<id>/{alert,urgent,accepted-1,accepted-2,accepted-3}.mp3
+// + eventos (2026-11-19): {customer-arrived,ready,cancelled}.mp3
 // Los ids viven también en el CHECK de counter_settings.sound_theme
 // (migración 20261113g): agregar un tema = migración nueva + entrada aquí.
 
@@ -38,8 +39,19 @@ export const FALLBACK_SOUNDS = {
   accepted: '/sounds/order-accepted.mp3',
 } as const;
 
+/**
+ * Eventos con sonido propio, además de la alerta y las aceptadas. Solo los que
+ * piden que ALGUIEN QUE NO ESTÁ MIRANDO haga algo (investigación 2026-11-19:
+ * Uber/DoorDash/Toast/Square usan 1–3 sonidos; los de cierre o de feedback
+ * del propio toque entrenan al personal a ignorar la tablet). Por eso no hay
+ * tap, preparing ni picked-up aunque Pedro tenga los archivos.
+ */
+export type CounterEvent = 'customer-arrived' | 'ready' | 'cancelled';
+export const COUNTER_EVENTS: CounterEvent[] = ['customer-arrived', 'ready', 'cancelled'];
+
 export const soundUrls = (id: SoundThemeId) => ({
   alert: `/sounds/${id}/alert.mp3`,
   urgent: `/sounds/${id}/urgent.mp3`,
   accepted: [1, 2, 3].map((n) => `/sounds/${id}/accepted-${n}.mp3`),
+  events: Object.fromEntries(COUNTER_EVENTS.map((e) => [e, `/sounds/${id}/${e}.mp3`])) as Record<CounterEvent, string>,
 });

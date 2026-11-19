@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Lock, Play, Sparkles, X } from 'lucide-react';
 import { C, type CounterText } from './ui';
-import { previewTheme, previewVolume } from './audio';
-import { SOUND_THEMES, type SoundTheme, type SoundThemeId } from '@/lib/sound-themes';
+import { previewTheme, previewVolume, previewEvent } from './audio';
+import { SOUND_THEMES, type SoundTheme, type SoundThemeId, type CounterEvent } from '@/lib/sound-themes';
 import { SCREEN_THEMES, type ScreenTheme, type ScreenThemeId } from '@/lib/counter-themes';
 import { URGENT_CHOICES, type CounterSettings, type CounterSettingsPatch } from '@/lib/counter-settings';
 import type { SaveCounterSettingsResult } from '@/lib/actions/counter-settings';
@@ -67,6 +67,10 @@ export function CustomizePanel({
     stopPreview.current?.();
     stopPreview.current = await previewTheme(id);
   };
+  const listenEvent = async (kind: CounterEvent) => {
+    stopPreview.current?.();
+    stopPreview.current = await previewEvent(sound, kind);
+  };
 
   // Volumen: suena y se guarda al dejar de mover (no en cada paso del slider).
   const volTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -128,6 +132,26 @@ export function CustomizePanel({
                 <SoundCard key={st.id} theme={st} lang={lang} T={T} featured={i === 0} selected={sound === st.id} inUse={settings.soundTheme === st.id}
                   onPick={() => { setSound(st.id); void listen(st.id); }} />
               ))}
+              {/* Los avisos del tema elegido: suenan una vez y solo cuando algo
+                  pasa sin que lo toquen aquí (cliente llegó, cocina, cancelado). */}
+              <div className="flex flex-col gap-2.5 pt-1">
+                <div>
+                  <p className="text-[16px] font-semibold">{T.eventSoundsTitle}</p>
+                  <p className="text-[14px] leading-snug mt-0.5" style={{ color: C.sub }}>{T.eventSoundsHint}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([['customer-arrived', T.eventArrived], ['ready', T.eventReady], ['cancelled', T.eventCancelled]] as [CounterEvent, string][]).map(([kind, label]) => (
+                    <button key={kind} type="button" onClick={() => void listenEvent(kind)}
+                      className="rounded-2xl px-2 py-3 flex flex-col items-center gap-1.5 text-center"
+                      style={{ background: C.surface }}>
+                      <span className="w-9 h-9 rounded-xl inline-flex items-center justify-center" style={{ background: C.fill, color: C.ink }}>
+                        <Play className="w-4 h-4" fill="currentColor" aria-hidden />
+                      </span>
+                      <span className="text-[14px] font-medium leading-tight">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </>
           )}
 

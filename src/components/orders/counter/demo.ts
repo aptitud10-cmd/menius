@@ -16,6 +16,13 @@ export const DEMO_URGENT_AFTER_SECONDS = 10;
 const FIRST_ORDER_MS = 2000;
 const SECOND_ORDER_AFTER_ACCEPT_MS = 4000;
 const THIRD_ORDER_AFTER_SECOND_MS = 5000;
+// Eventos con sonido (2026-11-19), para que se oigan en el demo como en vivo:
+// la cocina marca listo el pickup, después el cliente toca "I'm here", y el
+// cliente del delivery cancela.
+const KITCHEN_READY_AFTER_ACCEPT_MS = 6000;
+const CUSTOMER_ARRIVES_AFTER_READY_MS = 6000;
+const CUSTOMER_CANCELS_AFTER_ACCEPT_MS = 9000;
+const DONE_STATUSES = ['delivered', 'completed', 'served', 'cancelled'];
 
 type Line = [text: string, price?: number, indent?: boolean];
 
@@ -94,6 +101,10 @@ export function useCounterDemo(en: boolean, onArrive: (o: Order) => void): DemoS
   const onArriveRef = useRef(onArrive);
   onArriveRef.current = onArrive;
   const queuedSecond = useRef(false);
+  /** Guion de eventos ya programado por pedido (que no se programe dos veces). */
+  const scripted = useRef<Set<string>>(new Set());
+  /** Pasos del guion que todavía no ocurrieron: el resumen espera a que terminen. */
+  const [scriptPending, setScriptPending] = useState(0);
 
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
 
@@ -106,6 +117,8 @@ export function useCounterDemo(en: boolean, onArrive: (o: Order) => void): DemoS
   const start = useCallback(() => {
     clearTimers();
     queuedSecond.current = false;
+    scripted.current = new Set();
+    setScriptPending(0);
     setOrders([]);
     setActive(true);
     const [first] = demoScript(en);
@@ -115,6 +128,8 @@ export function useCounterDemo(en: boolean, onArrive: (o: Order) => void): DemoS
   const exit = useCallback(() => {
     clearTimers();
     queuedSecond.current = false;
+    scripted.current = new Set();
+    setScriptPending(0);
     setOrders([]);
     setActive(false);
   }, []);
@@ -134,8 +149,42 @@ export function useCounterDemo(en: boolean, onArrive: (o: Order) => void): DemoS
     timers.current.push(setTimeout(() => arrive(third), SECOND_ORDER_AFTER_ACCEPT_MS + THIRD_ORDER_AFTER_SECOND_MS));
   }, [active, orders, en, arrive]);
 
+  // Un paso del guion: espera, y aplica el cambio solo si el pedido sigue en
+  // un estado donde tiene sentido (si el usuario ya lo entregó o lo rechazó, no).
+  const step = useCallback((ms: number, id: string, ok: (o: Order) => boolean, patch: () => Partial<Order>) => {
+    setScriptPending((n) => n + 1);
+    timers.current.push(setTimeout(() => {
+      setOrders((prev) => prev.map((o) => (o.id === id && ok(o) ? ({ ...o, ...patch() } as Order) : o)));
+      setScriptPending((n) => Math.max(0, n - 1));
+    }, ms));
+  }, []);
+
+  // Pickup aceptado → la cocina lo marca listo → el cliente llega.
+  // Delivery aceptado → el cliente cancela.
+  useEffect(() => {
+    if (!active) return;
+    for (const o of orders) {
+      if (o.status === 'pending' || DONE_STATUSES.includes(o.status) || scripted.current.has(o.id)) continue;
+      if (o.order_type === 'pickup') {
+        scripted.current.add(o.id);
+        step(KITCHEN_READY_AFTER_ACCEPT_MS, o.id, (x) => !DONE_STATUSES.includes(x.status), () => ({ status: 'ready' }));
+        step(KITCHEN_READY_AFTER_ACCEPT_MS + CUSTOMER_ARRIVES_AFTER_READY_MS, o.id,
+          (x) => !DONE_STATUSES.includes(x.status) && !x.customer_arrived_at,
+          () => ({ customer_arrived_at: new Date().toISOString() }));
+      } else if (o.order_type === 'delivery') {
+        scripted.current.add(o.id);
+        step(CUSTOMER_CANCELS_AFTER_ACCEPT_MS, o.id, (x) => !DONE_STATUSES.includes(x.status) && x.status !== 'out_for_delivery',
+          () => ({ status: 'cancelled' }));
+      }
+    }
+  }, [active, orders, step]);
+
   useEffect(() => () => clearTimers(), []);
 
-  const finished = active && orders.length === 3 && orders.every((o) => o.status !== 'pending');
+  // El resumen sale cuando ya ocurrió todo el guion y nadie quedó esperando en
+  // el mostrador: si el cliente "llegó", hay que entregarle el pedido (como en vivo).
+  const finished = active && orders.length === 3 && scriptPending === 0
+    && orders.every((o) => o.status !== 'pending')
+    && !orders.some((o) => o.order_type === 'pickup' && o.customer_arrived_at && !DONE_STATUSES.includes(o.status));
   return { active, orders, finished, start, exit, update };
 }
