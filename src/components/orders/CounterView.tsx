@@ -916,8 +916,14 @@ export function CounterView({
     [ordersView]);
 
   const readyOrders = useMemo(() =>
+    // Primero lo que espera en el mostrador (el que más lleva esperando arriba),
+    // después las mesas servidas y al final lo que ya va en camino.
     ordersView.filter(o => ['ready', 'out_for_delivery', 'served'].includes(o.status))
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+      .sort((a, b) => {
+        const rank = (o: Order) => (o.status === 'ready' ? 0 : o.status === 'served' ? 1 : 2);
+        const since = (o: Order) => new Date((o.updated_at as string | undefined) ?? o.created_at).getTime();
+        return rank(a) - rank(b) || since(a) - since(b);
+      }),
     [ordersView]);
 
   // Ruta del repartidor: "parada 2 de 3" (los pedidos del mismo batch_id).

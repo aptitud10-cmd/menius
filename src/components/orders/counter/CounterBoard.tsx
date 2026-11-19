@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AlertOctagon, AlertTriangle, CheckCircle2, Navigation } from 'lucide-react';
 import type { Order } from '@/types';
 import { cn } from '@/lib/utils';
@@ -86,7 +86,7 @@ export function canMarkNoShow(order: Order): boolean {
  * "Listo" y "En camino" se veían iguales y un toque cerraba el pedido con el
  * repartidor todavía en ruta.
  */
-function DriverLine({ order, T, routeStop }: { order: Order; T: CounterText; routeStop?: { stop: number; of: number } }) {
+function driverInfo(order: Order, T: CounterText, routeStop?: { stop: number; of: number }): { text: string; moving: boolean } | null {
   if (order.order_type !== 'delivery') return null;
   if (['delivered', 'completed', 'cancelled'].includes(order.status)) return null;
   const o = order as Order & { driver_picked_up_at?: string | null; driver_at_door_at?: string | null };
@@ -99,6 +99,13 @@ function DriverLine({ order, T, routeStop }: { order: Order; T: CounterText; rou
     : T.driverWaiting(name);
   const text = routeStop ? `${base} · ${T.routeStop(routeStop.stop, routeStop.of)}` : base;
   const moving = !!(o.driver_at_door_at || o.driver_picked_up_at || order.status === 'out_for_delivery');
+  return { text, moving };
+}
+
+function DriverLine({ order, T, routeStop }: { order: Order; T: CounterText; routeStop?: { stop: number; of: number } }) {
+  const info = driverInfo(order, T, routeStop);
+  if (!info) return null;
+  const { text, moving } = info;
   // Sin relleno: en camino / en la puerta en azul con ícono; esperando, en gris.
   return (
     <p className="flex items-center gap-2 text-[16px] font-semibold leading-snug" style={{ color: moving ? C.blue : C.sub }}>
@@ -237,9 +244,24 @@ export function OrderCard({
 
 type ColKey = 'new' | 'prep' | 'ready';
 
-export function CounterBoard({
-  T, currency, newOrders, prepOrders, readyOrders, busyIds, acceptMinsFor, onOpen, onPrimary, onNoShow, routeStops,
-}: {
+/** Ancho de las 3 columnas. Por debajo (tablet parada, celular) va la lista "Ahora". */
+const WIDE_QUERY = '(min-width: 880px)';
+function subscribeWide(cb: () => void) {
+  const mq = window.matchMedia(WIDE_QUERY);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+}
+function useWide(): boolean {
+  return useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE_QUERY).matches, () => true);
+}
+
+/** Pickup en efectivo sin pagar: el mostrador cobra al entregar. */
+function collectsAtCounter(order: Order): boolean {
+  return order.order_type === 'pickup' && order.payment_method === 'cash'
+    && (order as { payment_status?: string }).payment_status !== 'paid';
+}
+
+type BoardProps = {
   T: CounterText; currency: string;
   newOrders: Order[]; prepOrders: Order[]; readyOrders: Order[];
   busyIds: Set<string>;
@@ -248,9 +270,233 @@ export function CounterBoard({
   onPrimary: (o: Order, kind: PrimaryKind) => void;
   onNoShow?: (o: Order) => void;
   routeStops?: Map<string, { stop: number; of: number }>;
+};
+
+/**
+ * Fila de la lista "Ahora": un pedido que ya se aceptó. Nombre y tiempo arriba;
+ * tipo, número y lo que no se puede pasar (alergia, cobrar, repartidor) abajo;
+ * el botón de siempre a la derecha (gris: el verde es solo para Aceptar).
+ */
+function CompactRow({ order, T, currency, busy, fresh, tight, onOpen, onPrimary, onNoShow, routeStop }: {
+  order: Order; T: CounterText; currency: string; busy: boolean; fresh?: string;
+  /** Columna de la tablet acostada (~400 px): botón más angosto para que el nombre no se corte. */
+  tight?: boolean;
+  onOpen: () => void; onPrimary: (kind: PrimaryKind) => void; onNoShow?: () => void;
+  routeStop?: { stop: number; of: number };
 }) {
-  // En pantallas angostas (tablet vertical, celular) se ve una columna a la vez.
-  const [mobileCol, setMobileCol] = useState<ColKey>('new');
+  const action = primaryAction(order, T, 0);
+  const allergies = orderAllergies(order);
+  const driver = driverInfo(order, T, routeStop);
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      data-order-id={order.id}
+      onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+      className={cn('flex items-center pr-3 py-3 min-h-[80px] cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-black/20',
+        tight ? 'gap-2.5 pl-4' : 'gap-3.5 max-[479px]:gap-2.5 pl-5 max-[479px]:pl-4')}
+      style={{ background: fresh ? `color-mix(in srgb, ${C.accent} 12%, ${C.surface})` : C.surface, transition: 'background-color .6s' }}
+    >
+      <div className="flex-1 min-w-0">
+        {fresh && (
+          <p className="mb-0.5 text-[12px] font-bold uppercase tracking-[.06em]" style={{ color: C.accentText }}>✓ {fresh}</p>
+        )}
+        <div className="flex items-baseline gap-3">
+          <span className="min-w-0 truncate font-bold text-[20px] max-[479px]:text-[18px] leading-tight tracking-[-0.015em]" style={{ color: C.ink }}>
+            {shortName(order.customer_name, '—')}
+          </span>
+          <span className="ml-auto shrink-0"><TimeBadge order={order} T={T} /></span>
+        </div>
+        <div className="mt-1 flex items-center gap-x-2.5 gap-y-1 flex-wrap text-[16px] font-medium" style={{ color: C.sub }}>
+          <KindTag order={order} T={T} />
+          <span className="tabular-nums">#{shortOrderNumber(order.order_number)}</span>
+          {allergies.length > 0 && (
+            // La alergia no se apaga al aceptar: sigue en rojo sólido.
+            <span className="max-w-full truncate rounded-lg px-2 py-0.5 text-[15px] font-bold" style={{ background: C.critical, color: C.onCritical }}>
+              {T.allergy}: {stripNoteLabel(allergies[0])}
+            </span>
+          )}
+          {collectsAtCounter(order) && order.status === 'ready' && (
+            <span className="rounded-lg px-2 py-px text-[15px] font-bold whitespace-nowrap" style={{ color: C.ink, boxShadow: `inset 0 0 0 2px ${C.ink}` }}>
+              {T.collect(money(Number(order.total), currency))}
+            </span>
+          )}
+          {driver && (
+            <span className="min-w-0 truncate font-semibold" style={{ color: driver.moving ? C.blue : C.sub }}>{driver.text}</span>
+          )}
+        </div>
+        {onNoShow && canMarkNoShow(order) && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={(e) => { e.stopPropagation(); onNoShow(); }}
+            className="mt-1 h-9 -ml-1 px-1 text-[15px] font-medium underline underline-offset-4 decoration-1 disabled:opacity-50"
+            style={{ color: C.sub }}
+          >
+            {T.noShow}
+          </button>
+        )}
+      </div>
+      {action && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={(e) => { e.stopPropagation(); onPrimary(action.kind); }}
+          className={cn('flex-none h-14 rounded-[14px] font-semibold transition-transform active:scale-[.97] disabled:opacity-50',
+            tight ? 'w-[104px] text-[16px]' : 'w-[128px] max-[479px]:w-[104px] text-[17px] max-[479px]:text-[16px]')}
+          style={{ background: C.fill, color: C.ink }}
+        >
+          {action.label}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Lista "Ahora" (tablet parada y celular, Pedro 2026-11-19): antes se veía UNA
+ * pestaña y lo aceptado "se escondía" en Preparando/Listos. Ahora todo a la
+ * vista, en el orden del trabajo: Nuevos (tarjeta completa) → Preparando →
+ * Listos (filas). Lo que acaba de cambiar de sección queda resaltado 3 s.
+ * Un pedido nuevo con la lista bajada no la mueve (scroll anchoring del
+ * navegador): aparece la píldora "↑ 1 nuevo".
+ */
+function NarrowList({ T, currency, newOrders, prepOrders, readyOrders, busyIds, acceptMinsFor, onOpen, onPrimary, onNoShow, routeStops }: BoardProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Resaltado de lo que cambió de sección (aceptado → Preparando, listo → Listos).
+  const [fresh, setFresh] = useState<Record<string, 'prep' | 'ready'>>({});
+  const sectionOf = useRef<Map<string, ColKey> | null>(null);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => {
+    const pending = timers.current;
+    return () => pending.forEach(clearTimeout);
+  }, []);
+  useEffect(() => {
+    const now = new Map<string, ColKey>();
+    newOrders.forEach((o) => now.set(o.id, 'new'));
+    prepOrders.forEach((o) => now.set(o.id, 'prep'));
+    readyOrders.forEach((o) => now.set(o.id, 'ready'));
+    const prev = sectionOf.current;
+    sectionOf.current = now;
+    if (!prev) return;
+    const moved: [string, 'prep' | 'ready'][] = [];
+    now.forEach((sec, id) => {
+      const before = prev.get(id);
+      if (before && before !== sec && sec !== 'new') moved.push([id, sec]);
+    });
+    if (moved.length === 0) return;
+    setFresh((f) => ({ ...f, ...Object.fromEntries(moved) }));
+    timers.current.push(setTimeout(() => setFresh((f) => {
+      const n = { ...f };
+      moved.forEach(([id]) => { delete n[id]; });
+      return n;
+    }), 3000));
+    // Si quedó fuera de la vista, llevarla a la vista (no se mueve si ya se ve).
+    requestAnimationFrame(() => {
+      const el = scrollRef.current?.querySelector(`[data-order-id="${moved[0][0]}"]`);
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }, [newOrders, prepOrders, readyOrders]);
+
+  // "↑ 1 nuevo": pedido que entró mientras la lista estaba bajada.
+  const [unseen, setUnseen] = useState(0);
+  const seenNew = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const ids = newOrders.map((o) => o.id);
+    if (!seenNew.current) { seenNew.current = new Set(ids); return; }
+    const seen = seenNew.current;
+    const added = ids.filter((id) => !seen.has(id));
+    ids.forEach((id) => seen.add(id));
+    if (added.length > 0 && (scrollRef.current?.scrollTop ?? 0) > 40) setUnseen((u) => u + added.length);
+  }, [newOrders]);
+
+  const sections: { key: ColKey; title: string; orders: Order[] }[] = [
+    { key: 'new', title: T.colNew, orders: newOrders },
+    { key: 'prep', title: T.colPrep, orders: prepOrders },
+    { key: 'ready', title: T.colReady, orders: readyOrders },
+  ];
+  const empty = sections.every((sec) => sec.orders.length === 0);
+
+  return (
+    <div className="relative flex-1 min-h-0 flex flex-col" style={{ background: C.bg }}>
+      <div
+        ref={scrollRef}
+        onScroll={(e) => { if (unseen && e.currentTarget.scrollTop < 40) setUnseen(0); }}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 max-[479px]:px-3 pb-6"
+      >
+        {empty ? (
+          <p className="px-4 py-16 text-center text-[17px] font-medium" style={{ color: C.sub }}>{T.emptyAll}</p>
+        ) : sections.map((sec) => sec.orders.length === 0 ? null : (
+          <section key={sec.key} aria-label={sec.title}>
+            <h2 className="flex items-center gap-2 px-1.5 pt-4 pb-2.5 text-[14px] font-bold uppercase tracking-[.07em]" style={{ color: C.sub }}>
+              {sec.title}
+              {sec.key === 'new' ? (
+                <span className="tabular-nums min-w-[24px] h-[24px] px-1.5 rounded-full text-[14px] font-semibold inline-flex items-center justify-center"
+                  style={{ background: C.accent, color: C.onAccent }}>{sec.orders.length}</span>
+              ) : (
+                <span className="tabular-nums" style={{ color: C.ink }}>{sec.orders.length}</span>
+              )}
+            </h2>
+            {sec.key === 'new' ? (
+              <div className="flex flex-col gap-3">
+                {sec.orders.map((o) => (
+                  <OrderCard
+                    key={o.id}
+                    order={o}
+                    T={T}
+                    currency={currency}
+                    acceptMins={acceptMinsFor(o)}
+                    busy={busyIds.has(o.id)}
+                    onOpen={() => onOpen(o)}
+                    onPrimary={(kind) => onPrimary(o, kind)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[22px] overflow-hidden flex flex-col gap-px" style={{ background: C.line }}>
+                {sec.orders.map((o) => (
+                  <CompactRow
+                    key={o.id}
+                    order={o}
+                    T={T}
+                    currency={currency}
+                    busy={busyIds.has(o.id)}
+                    fresh={fresh[o.id] === 'prep' ? T.justAccepted : fresh[o.id] === 'ready' ? T.justReady : undefined}
+                    onOpen={() => onOpen(o)}
+                    onPrimary={(kind) => onPrimary(o, kind)}
+                    onNoShow={onNoShow ? () => onNoShow(o) : undefined}
+                    routeStop={routeStops?.get(o.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        ))}
+      </div>
+      {unseen > 0 && (
+        <button
+          type="button"
+          onClick={() => { scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); setUnseen(0); }}
+          className="absolute left-1/2 -translate-x-1/2 top-3 h-11 px-5 rounded-full text-[16px] font-bold shadow-lg"
+          style={{ background: C.accent, color: C.onAccent }}
+        >
+          ↑ {T.newAbove(unseen)}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function CounterBoard(props: BoardProps) {
+  const wide = useWide();
+  if (!wide) return <NarrowList {...props} />;
+  return <WideBoard {...props} />;
+}
+
+/** Tablet acostada (≥880 px): las 3 columnas de siempre. */
+function WideBoard({ T, currency, newOrders, prepOrders, readyOrders, busyIds, acceptMinsFor, onOpen, onPrimary, onNoShow, routeStops }: BoardProps) {
   const cols: { key: ColKey; title: string; empty: string; orders: Order[] }[] = [
     { key: 'new', title: T.colNew, empty: T.emptyNew, orders: newOrders },
     { key: 'prep', title: T.colPrep, empty: T.emptyPrep, orders: prepOrders },
@@ -259,42 +505,10 @@ export function CounterBoard({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col" style={{ background: C.bg }}>
-      {/* Selector de columna (solo angosto): control segmentado */}
-      <div className="min-[880px]:hidden px-4 pt-2">
-        <div role="tablist" className="flex gap-0.5 p-1 rounded-2xl" style={{ background: C.fill }}>
-          {cols.map((c) => {
-            const on = mobileCol === c.key;
-            return (
-              <button
-                key={c.key}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => setMobileCol(c.key)}
-                className="flex-auto min-w-0 h-11 px-2 max-[379px]:px-1 rounded-xl text-[16px] max-[379px]:text-[15px] flex items-center justify-center gap-1.5 max-[379px]:gap-1"
-                style={on
-                  ? { background: C.thumb, color: C.ink, boxShadow: C.thumbShadow, fontWeight: 700 }
-                  : { color: C.ink, fontWeight: 500 }}
-              >
-                <span className="truncate">{c.title}</span>
-                {c.key === 'new' && c.orders.length > 0 ? (
-                  <span className="flex-none tabular-nums min-w-[24px] h-[24px] px-1.5 rounded-full text-[14px] font-semibold inline-flex items-center justify-center"
-                    style={{ background: C.accent, color: C.onAccent }}>
-                    {c.orders.length}
-                  </span>
-                ) : (
-                  <span className="flex-none tabular-nums font-medium" style={{ color: C.sub }}>{c.orders.length}</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0 grid grid-cols-1 min-[880px]:grid-cols-3 gap-5 px-4 min-[880px]:px-5 pt-3 min-[880px]:pt-2">
+      <div className="flex-1 min-h-0 grid grid-cols-3 gap-5 px-5 pt-2">
         {cols.map((c) => (
-          <section key={c.key} aria-label={c.title} className={cn('min-h-0 flex-col', mobileCol === c.key ? 'flex' : 'hidden min-[880px]:flex')}>
-            <header className="hidden min-[880px]:flex items-baseline gap-2.5 px-1 pb-3.5">
+          <section key={c.key} aria-label={c.title} className="min-h-0 flex flex-col">
+            <header className="flex items-baseline gap-2.5 px-1 pb-3.5">
               <h2 className="text-[24px] font-bold tracking-[-0.02em]" style={{ color: C.ink }}>{c.title}</h2>
               {c.key === 'new' && c.orders.length > 0 ? (
                 <span className="self-center tabular-nums min-w-[26px] h-[26px] px-2 rounded-full text-[16px] font-semibold inline-flex items-center justify-center"
@@ -310,7 +524,7 @@ export function CounterBoard({
                 <p className="px-4 py-10 text-center text-[17px] font-medium" style={{ color: C.sub }}>
                   {c.empty}
                 </p>
-              ) : (
+              ) : c.key === 'new' ? (
                 c.orders.map((o) => (
                   <OrderCard
                     key={o.id}
@@ -321,10 +535,26 @@ export function CounterBoard({
                     busy={busyIds.has(o.id)}
                     onOpen={() => onOpen(o)}
                     onPrimary={(kind) => onPrimary(o, kind)}
-                    onNoShow={onNoShow ? () => onNoShow(o) : undefined}
-                    routeStop={routeStops?.get(o.id)}
                   />
                 ))
+              ) : (
+                // Mismas filas que la tablet parada: Preparando y Listos se leen igual en las dos posiciones.
+                <div className="shrink-0 rounded-[22px] overflow-hidden flex flex-col gap-px" style={{ background: C.line }}>
+                  {c.orders.map((o) => (
+                    <CompactRow
+                      key={o.id}
+                      order={o}
+                      T={T}
+                      currency={currency}
+                      busy={busyIds.has(o.id)}
+                      tight
+                      onOpen={() => onOpen(o)}
+                      onPrimary={(kind) => onPrimary(o, kind)}
+                      onNoShow={onNoShow ? () => onNoShow(o) : undefined}
+                      routeStop={routeStops?.get(o.id)}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           </section>
