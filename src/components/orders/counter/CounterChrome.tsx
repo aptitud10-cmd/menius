@@ -105,7 +105,9 @@ function Clock({ locale }: { locale: string }) {
   }, []);
   if (!now) return null;
   return (
-    <span className="flex-none flex items-baseline gap-2 mr-1 sm:mr-2 tabular-nums whitespace-nowrap" style={{ color: C.ink }}>
+    // Debajo de 380 px no entra junto a la píldora y los 3 botones (se montaba
+    // sobre "Open"); en un celular tan angosto la hora ya está en la barra del sistema.
+    <span className="hidden min-[380px]:flex flex-none items-baseline gap-2 mr-1 sm:mr-2 tabular-nums whitespace-nowrap" style={{ color: C.ink }}>
       <span className="font-bold text-[20px] sm:text-[22px] tracking-[-0.015em]">
         {now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}
       </span>

@@ -117,7 +117,8 @@ const ORDERS: Order[] = [
   }),
 ];
 
-export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; owner?: string; panel?: string; modal?: string } }) {
+export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; owner?: string; panel?: string; modal?: string; name?: string } }) {
+  // ?name=... cambia el nombre del local (capturas públicas para Google Play sin un restaurante real).
   // ?theme=midnight (oscuro; los ids viejos se mapean) · ?owner=1 (muestra el modo demo y el permiso de tablets)
   // · ?panel=1 (botón "Panel del dueño" al final del menú; sin owner=1 pide el PIN)
   // · ?modal=deliver (aviso "el repartidor no retiró") · ?modal=history (historial con datos, se abre en Más)
@@ -127,7 +128,7 @@ export default function PreviewCounterPage({ searchParams }: { searchParams: { e
     <CounterView
       initialOrders={searchParams.empty ? [] : ORDERS}
       restaurantId={RID}
-      restaurantName="Buccaneer Diner"
+      restaurantName={searchParams.name?.slice(0, 40) || 'Buccaneer Diner'}
       currency="USD"
       locale={searchParams.lang === 'es' ? 'es' : 'en'}
       restaurantLat={null}
