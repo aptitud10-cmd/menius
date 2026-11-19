@@ -423,7 +423,7 @@ export default function AnalyticsPage() {
                 const pct = summary.totalOrders > 0 ? (count / summary.totalOrders) * 100 : 0;
                 const labels: Record<string, string> = locale === 'en'
                   ? { dine_in: '🍽️ Dine-in', pickup: '🛍️ Pickup', delivery: '🛵 Delivery' }
-                  : { dine_in: '🍽️ Mesa', pickup: '🛍️ Para llevar', delivery: '🛵 Delivery' };
+                  : { dine_in: '🍽️ Mesa', pickup: '🛍️ Para recoger', delivery: '🛵 Delivery' };
                 const colors: Record<string, string> = { dine_in: 'bg-violet-500', pickup: 'bg-blue-500', delivery: 'bg-amber-500' };
                 return (
                   <div key={type}>

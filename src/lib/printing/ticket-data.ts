@@ -53,6 +53,9 @@ export interface TicketData {
   readyAt?: string;
   /** "Sat 11/15 7:30 PM". */
   scheduledFor?: string;
+  /** Ticket v4: el programado partido para el bloque de arriba ("SAT NOV 15" + "7:30 PM"). */
+  scheduledDay?: string;
+  scheduledTime?: string;
   tableName?: string;
   includeUtensils: boolean;
   /** Fragmento de la nota que menciona la alergia. */
@@ -68,6 +71,8 @@ export interface TicketData {
   placedAt: string;
   /** Pie como Uber (Pedro 2026-11-18): "November 13, 2:43 AM". */
   placedFull: string;
+  /** Pie del ticket v4: "Nov 13, 2:43 AM" / "13 nov, 2:43 a.m.". */
+  placedShort: string;
   /** Para cuándo: la hora programada o la estimada de listo. */
   dueFull?: string;
 }
@@ -154,6 +159,30 @@ function formatDateTime(d: Date, locale: TicketLocale, timeZone: string): string
   return `${day}, ${formatTime(d, locale, timeZone)}`;
 }
 
+/** "SAT NOV 15" / "SÁB 15 NOV": va en mayúsculas en el bloque negro. */
+function formatDayShort(d: Date, locale: TicketLocale, timeZone: string): string {
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-MX', { timeZone, weekday: 'short', month: 'short', day: 'numeric' })
+    .format(d).replace(/[.,]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+}
+
+/** "Nov 13, 2:43 AM" / "13 nov, 2:43 a.m." */
+function formatDateShort(d: Date, locale: TicketLocale, timeZone: string): string {
+  const day = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-MX', { timeZone, month: 'short', day: 'numeric' })
+    .format(d).replace(/\./g, '');
+  return `${day}, ${formatTime(d, locale, timeZone)}`;
+}
+
+/**
+ * "leo" → "Leo", "MEGAN MORALES" → "Megan Morales". Solo si el cliente lo
+ * escribió todo en minúscula o todo en mayúscula: "McDonald" o "de la Cruz"
+ * escritos a propósito se respetan tal cual.
+ */
+export function displayCustomerName(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  if (name !== name.toLowerCase() && name !== name.toUpperCase()) return name;
+  return name.toLowerCase().replace(/(^|[\s'-])(\S)/g, (_, sep: string, ch: string) => sep + ch.toUpperCase());
+}
+
 function parseDate(v: string | null | undefined): Date | null {
   if (!v) return null;
   const d = new Date(v);
@@ -232,9 +261,11 @@ export function toTicketData(input: ToTicketDataInput): TicketData {
     orderType,
     shortNumber: shortOrderNumber(o.order_number),
     orderNumber: o.order_number,
-    customerName: clean(o.customer_name),
+    customerName: displayCustomerName(clean(o.customer_name)),
     readyAt,
     scheduledFor: scheduled ? formatDayTime(scheduled, locale, timeZone) : undefined,
+    scheduledDay: scheduled ? formatDayShort(scheduled, locale, timeZone) : undefined,
+    scheduledTime: scheduled ? formatTime(scheduled, locale, timeZone) : undefined,
     tableName: orderType === 'dine_in' ? clean(o.table_name) : undefined,
     includeUtensils: o.include_utensils !== false,
     allergy,
@@ -264,6 +295,7 @@ export function toTicketData(input: ToTicketDataInput): TicketData {
       : undefined,
     placedAt: formatTime(created, locale, timeZone),
     placedFull: formatDateTime(created, locale, timeZone),
+    placedShort: formatDateShort(created, locale, timeZone),
     dueFull: due ? formatDateTime(due, locale, timeZone) : undefined,
   };
 }

@@ -62,7 +62,7 @@ const PRICING_PLANS = [
     name: 'Pro',
     price: 149,
     desc: 'Todo incluido · 14 días gratis',
-    features: ['Generación de fotos con IA', 'Importar menú desde foto con IA', 'Pedidos en mesa, para llevar y delivery', 'Pagos online (0% comisión de MENIUS)', 'Promociones, reseñas y lealtad', 'Soporte por chat (respuesta en 2 h)'],
+    features: ['Generación de fotos con IA', 'Importar menú desde foto con IA', 'Pedidos en mesa, para recoger y delivery', 'Pagos online (0% comisión de MENIUS)', 'Promociones, reseñas y lealtad', 'Soporte por chat (respuesta en 2 h)'],
     cta: 'Probar Pro gratis',
     href: '/signup',
     popular: true,

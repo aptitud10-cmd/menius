@@ -144,7 +144,7 @@ const es = {
         tab: 'Menú Digital',
         title: 'Menú con QR y pedidos directos',
         desc: 'Tus clientes escanean el QR, ven el menú con fotos y precios, y ordenan desde su celular. Sin descargar apps.',
-        details: ['QR elegantes por mesa, listos para imprimir', 'Sube tus fotos reales fácilmente', 'En mesa, para llevar y delivery con tus repartidores', 'Tamaños, extras y opciones por plato'],
+        details: ['QR elegantes por mesa, listos para imprimir', 'Sube tus fotos reales fácilmente', 'En mesa, para recoger y delivery con tus repartidores', 'Tamaños, extras y opciones por plato'],
         visualItems: [
           { label: 'Escanea QR', value: 'Mesa 5' },
           { label: 'Tacos al Pastor', value: '$12.99' },
@@ -273,7 +273,7 @@ const es = {
         price: 149,
         desc: 'Todo incluido: menú, pedidos online, pagos y marketing.',
         cta: 'Probar Pro gratis 14 días',
-        features: ['Productos ilimitados · QR para hasta 50 mesas', 'Pedidos en mesa, para llevar y delivery', 'App Counter en tablet: suena, aceptas y sale el ticket', 'Seguimiento del pedido en vivo para tu cliente', 'App para tus repartidores', 'Pantalla de cocina (KDS) en tiempo real', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio y sin marca MENIUS', 'MENIUS AI + importar menú desde foto', 'Promociones, reseñas y lealtad', '5 usuarios · soporte por chat (respuesta en 2 h)'],
+        features: ['Productos ilimitados · QR para hasta 50 mesas', 'Pedidos en mesa, para recoger y delivery', 'App Counter en tablet: suena, aceptas y sale el ticket', 'Seguimiento del pedido en vivo para tu cliente', 'App para tus repartidores', 'Pantalla de cocina (KDS) en tiempo real', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio y sin marca MENIUS', 'MENIUS AI + importar menú desde foto', 'Promociones, reseñas y lealtad', '5 usuarios · soporte por chat (respuesta en 2 h)'],
       },
     ],
     planComparison: {
@@ -286,7 +286,7 @@ const es = {
       rows: [
         { feature: 'Mesas', free: '5', pro: '50' },
         { feature: 'En mesa', free: '✓', pro: '✓' },
-        { feature: 'Para llevar', free: '—', pro: '✓' },
+        { feature: 'Para recoger', free: '—', pro: '✓' },
         { feature: 'Delivery', free: '—', pro: '✓' },
         { feature: 'Pagos online', free: '—', pro: '0% comisión de MENIUS' },
         { feature: 'Dominio propio', free: '—', pro: '✓' },

@@ -36,6 +36,25 @@ export interface TicketStrings {
   orderDirect: string;
   driverScan: string;
   poweredBy: string;
+  // ── Ticket v4 (Pedro 2026-11-19): textos del diseño nuevo (PNG y navegador).
+  // Los de arriba se quedan: la app Android 1.0.5 los sigue leyendo vía TicketText.
+  /** Línea chica de arriba, al lado del restaurante: "Website order". */
+  orderVia: Record<TicketChannel, string>;
+  readyBy: string;
+  deliverTo: string;
+  instructions: string;
+  driverTitle: string;
+  driverHint: string;
+  noteLabel: string;
+  orderNote: string;
+  utensilsLabel: string;
+  yes: string;
+  no: string;
+  collectCashTitle: string;
+  /** Quién cobra, debajo de COLLECT CASH (según el tipo de pedido). */
+  cashWho: Record<'delivery' | 'pickup' | 'dine_in', string>;
+  paidTitle: string;
+  doNotCharge: string;
 }
 
 const en: TicketStrings = {
@@ -66,11 +85,26 @@ const en: TicketStrings = {
   orderDirect: 'Order direct',
   driverScan: 'DRIVER: SCAN TO START',
   poweredBy: 'Online ordering by MENIUS',
+  orderVia: { website: 'Website order' },
+  readyBy: 'READY BY',
+  deliverTo: 'DELIVER TO',
+  instructions: 'INSTRUCTIONS',
+  driverTitle: 'DRIVER',
+  driverHint: 'Scan to start the delivery',
+  noteLabel: 'NOTE',
+  orderNote: 'ORDER NOTE',
+  utensilsLabel: 'Utensils & napkins',
+  yes: 'YES',
+  no: 'NO',
+  collectCashTitle: 'COLLECT CASH',
+  cashWho: { delivery: 'Driver collects at the door', pickup: 'Customer pays at pickup', dine_in: 'Customer pays at the table' },
+  paidTitle: 'PAID ONLINE',
+  doNotCharge: 'Do not charge the customer',
 };
 
 const es: TicketStrings = {
   channel: { website: 'WEB' },
-  orderType: { delivery: 'DOMICILIO', pickup: 'PARA LLEVAR', dine_in: 'EN MESA' },
+  orderType: { delivery: 'DOMICILIO', pickup: 'PARA RECOGER', dine_in: 'EN MESA' },
   table: 'MESA',
   ready: 'LISTO',
   reprint: 'REIMPRESIÓN — NO ES PEDIDO NUEVO',
@@ -89,13 +123,28 @@ const es: TicketStrings = {
   paid: 'PAGADO — NO COBRAR',
   collectCash: (amount) => `COBRAR ${amount} EFECTIVO`,
   verifyPayment: 'VERIFICAR PAGO EN LA TABLET',
-  placed: 'Hecho',
+  placed: 'Pedido',
   placedAt: 'Pedido:',
   dueAt: 'Para:',
   thanks: (r) => `Gracias por pedir en ${r}`,
   orderDirect: 'Pide directo',
   driverScan: 'REPARTIDOR: ESCANEA',
   poweredBy: 'Pedidos online con MENIUS',
+  orderVia: { website: 'Pedido web' },
+  readyBy: 'LISTO A LAS',
+  deliverTo: 'ENTREGAR EN',
+  instructions: 'INDICACIONES',
+  driverTitle: 'REPARTIDOR',
+  driverHint: 'Escanea para iniciar la entrega',
+  noteLabel: 'NOTA',
+  orderNote: 'NOTA DEL PEDIDO',
+  utensilsLabel: 'Cubiertos y servilletas',
+  yes: 'SÍ',
+  no: 'NO',
+  collectCashTitle: 'COBRAR EFECTIVO',
+  cashWho: { delivery: 'Cobra el repartidor', pickup: 'Paga al recoger', dine_in: 'Paga en la mesa' },
+  paidTitle: 'PAGADO EN LÍNEA',
+  doNotCharge: 'No cobrar al cliente',
 };
 
 /**

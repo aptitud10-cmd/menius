@@ -42,7 +42,7 @@ function useT(en: boolean) {
     onAcceptHint: en ? 'Recommended: rejected orders never print.' : 'Recomendado: lo rechazado no se imprime.',
     copies: en ? 'Copies' : 'Copias',
     types: en ? 'Orders' : 'Pedidos',
-    typeLabel: { delivery: 'Delivery', pickup: en ? 'Pickup' : 'Para llevar', dine_in: en ? 'Dine-in' : 'En mesa' } as Record<OrderType, string>,
+    typeLabel: { delivery: 'Delivery', pickup: en ? 'Pickup' : 'Para recoger', dine_in: en ? 'Dine-in' : 'En mesa' } as Record<OrderType, string>,
     test: en ? 'Print test' : 'Imprimir prueba',
     testSent: en ? 'Test sent — it prints in a few seconds' : 'Prueba enviada — sale en unos segundos',
     rotate: en ? 'New URL' : 'Nueva URL',

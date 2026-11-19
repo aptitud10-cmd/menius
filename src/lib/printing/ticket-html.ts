@@ -1,19 +1,19 @@
 /**
- * El ticket nuevo para imprimir desde el navegador (window.print → impresora de
- * la computadora). Es el MISMO diseño que el PNG de CloudPRNT (render-ticket.tsx)
- * y que la app Android (TicketV2.kt): un solo ticket, tres caminos.
+ * El ticket para imprimir desde el navegador (window.print → impresora de la
+ * computadora). Es el MISMO diseño v4 que el PNG de CloudPRNT (render-ticket.tsx,
+ * aprobado por Pedro 2026-11-19): si tocás uno, tocá el otro.
  *
  * Medidas: el PNG mide 576 px sobre 72 mm imprimibles → 1 px = 0.125 mm. Acá se
  * usan los mismos números del PNG pasados a mm, así las proporciones no se
  * separan si alguien toca uno de los dos.
  *
  * Los fondos negros necesitan print-color-adjust: exact (sin eso el navegador
- * no imprime fondos y la franja saldría en blanco).
+ * no imprime fondos y el bloque saldría en blanco).
  */
 import qrcode from 'qrcode-generator';
 import { formatPrice } from '@/lib/utils';
-import { ticketAmount, ticketStrings } from './ticket-i18n';
-import type { TicketData, TicketItem } from './ticket-data';
+import { ticketStrings, type TicketStrings } from './ticket-i18n';
+import type { TicketData, TicketItem, TicketLine } from './ticket-data';
 
 const mm = (px: number) => `${(px * 0.125).toFixed(2)}mm`;
 
@@ -42,46 +42,56 @@ export function qrSvg(text: string): string {
 
 const ALERT_ICON = `<svg class="alert" viewBox="0 0 24 24"><path d="M12 2 L23 21 L1 21 Z" fill="#fff"/><rect x="10.8" y="8" width="2.4" height="7" fill="#000"/><rect x="10.8" y="16.6" width="2.4" height="2.4" fill="#000"/></svg>`;
 
-function row(left: string, right: string | undefined, cls: string, indentPx = 0): string {
-  const style = indentPx ? ` style="padding-left:${mm(10 + indentPx)}"` : '';
-  return `<div class="row ${cls}"${style}><span class="l">${esc(left)}</span>${right ? `<span class="r">${esc(right)}</span>` : ''}</div>`;
+/** "No onions" / "Sin cebolla": la palabra que quita va en negrita (igual que el PNG). */
+const REMOVAL = /^(no|sin)\s+/i;
+
+function modLine(l: TicketLine, money: (n: number) => string): string {
+  const m = REMOVAL.exec(l.text);
+  const text = m ? `<b>${esc(m[1].toUpperCase())}</b> ${esc(l.text.slice(m[0].length))}` : esc(l.text);
+  return `<div class="mod${l.indent ? ' sub' : ''}"><span class="l">${l.indent ? '<b>›</b> ' : ''}${text}</span>${l.price > 0 ? `<span class="r">+${esc(money(l.price))}</span>` : ''}</div>`;
 }
 
-function itemHtml(item: TicketItem, note: string, currency: string): string {
+function itemHtml(item: TicketItem, t: TicketStrings, money: (n: number) => string, first: boolean): string {
   return `<div class="item">
-    ${row(`${item.qty}x ${item.name}`, ticketAmount(item.lineTotal, currency), 'item-head')}
-    ${item.lines.map((l) => row(l.text, l.price > 0 ? ticketAmount(l.price, currency) : undefined, 'item-line', l.indent ? 56 : 32)).join('')}
-    ${item.notes ? `<div class="boxed note item-note">${esc(`${note}: ${item.notes}`)}</div>` : ''}
+    ${first ? '' : '<div class="item-sep"></div>'}
+    <div class="item-head"><span class="qty${item.qty > 1 ? ' many' : ''}">${item.qty}</span><span class="item-name">${esc(item.name)}</span><span class="item-price">${esc(money(item.lineTotal))}</span></div>
+    ${item.lines.length ? `<div class="mods">${item.lines.map((l) => modLine(l, money)).join('')}</div>` : ''}
+    ${item.notes ? `<div class="box item-note"><span class="lbl">${esc(t.noteLabel)}</span> ${esc(item.notes)}</div>` : ''}
   </div>`;
 }
 
 export function buildTicketHTML(d: TicketData): string {
   const t = ticketStrings(d.locale);
-  const c = d.restaurant.currency;
-  // Una fila por concepto, con el monto en la columna de los precios (como el PNG).
+  const money = (n: number) => formatPrice(n, d.restaurant.currency);
+  // Una fila por concepto; envío, descuento y propina solo si el pedido los tiene.
   const totalRows: [string, string][] = [
-    [t.subtotal, ticketAmount(d.totals.subtotal, c)],
-    ...(d.totals.tax > 0 ? [[d.restaurant.taxLabel, ticketAmount(d.totals.tax, c)] as [string, string]] : []),
-    ...(d.totals.deliveryFee > 0 ? [[t.delivery, ticketAmount(d.totals.deliveryFee, c)] as [string, string]] : []),
-    ...(d.totals.discount > 0 ? [[t.discount, `-${ticketAmount(d.totals.discount, c)}`] as [string, string]] : []),
-    ...(d.totals.tip > 0 ? [[t.tip, ticketAmount(d.totals.tip, c)] as [string, string]] : []),
+    [t.subtotal, money(d.totals.subtotal)],
+    ...(d.totals.tax > 0 ? [[d.restaurant.taxLabel, money(d.totals.tax)] as [string, string]] : []),
+    ...(d.totals.deliveryFee > 0 ? [[t.delivery, money(d.totals.deliveryFee)] as [string, string]] : []),
+    ...(d.totals.discount > 0 ? [[t.discount, `-${money(d.totals.discount)}`] as [string, string]] : []),
+    ...(d.totals.tip > 0 ? [[t.tip, money(d.totals.tip)] as [string, string]] : []),
   ];
-  // Etiqueta arriba y valor abajo: en una sola línea no entra al lado del número.
-  const sideOfNumber = d.tableName ? [t.table, d.tableName] : d.readyAt ? [t.ready, d.readyAt] : null;
+  // A la derecha del bloque negro: mesa, programado o la hora de listo.
+  const side = d.tableName ? [t.table, d.tableName]
+    : d.scheduledDay && d.scheduledTime ? [d.scheduledDay, d.scheduledTime]
+    : d.readyAt ? [t.readyBy, d.readyAt] : null;
 
+  // Cobro: caja gruesa = cobrar; fina = ya está pago.
   const payment =
-    d.payment.kind === 'paid' ? `<div class="boxed pay">${esc(t.paid)}</div>`
-    : d.payment.kind === 'collect_cash' ? `<div class="inv pay-cash">${esc(t.collectCash(formatPrice(d.payment.amount, c)))}</div>`
-    : `<div class="boxed thick pay">${esc(t.verifyPayment)}</div>`;
+    d.payment.kind === 'collect_cash'
+      ? `<div class="pay cash"><div class="pay-l"><div class="pay-title nowrap">${esc(t.collectCashTitle)}</div><div class="pay-sub">${esc(t.cashWho[d.orderType])}</div></div><div class="pay-amount">${esc(money(d.payment.amount))}</div></div>`
+      : d.payment.kind === 'paid'
+        ? `<div class="pay paid"><div class="pay-title">${esc(t.paidTitle)}</div><div class="pay-sub">${esc(t.doNotCharge)}</div></div>`
+        : `<div class="pay verify"><div class="pay-title">${esc(t.verifyPayment)}</div></div>`;
 
-  // Delivery: dirección y teléfono arriba, debajo del número (Pedro 2026-11-18);
-  // abajo queda solo el QR del repartidor.
-  const delivery = d.delivery ? `
+  // Delivery: dirección, teléfono, indicaciones y QR arriba (Pedro 2026-11-18).
+  const delivery = d.delivery ? `<div class="delivery">
+    <div class="lbl big">${esc(t.deliverTo)}</div>
     <div class="address">${esc(d.delivery.address)}</div>
     ${d.delivery.phone ? `<div class="phone">${esc(prettyPhone(d.delivery.phone))}</div>` : ''}
-    ${d.delivery.instructions ? `<div class="boxed note">${esc(d.delivery.instructions)}</div>` : ''}` : '';
-  const driverQr = d.delivery?.driverUrl
-    ? `<div class="rule"></div><div class="driver"><div class="driver-label">${esc(t.driverScan)}</div>${qrSvg(d.delivery.driverUrl)}</div>` : '';
+    ${d.delivery.instructions ? `<div class="box"><div class="lbl">${esc(t.instructions)}</div><div class="box-text">${esc(d.delivery.instructions)}</div></div>` : ''}
+    ${d.delivery.driverUrl ? `<div class="driver">${qrSvg(d.delivery.driverUrl)}<div class="driver-text"><div class="driver-title">${esc(t.driverTitle)}</div><div class="driver-hint">${esc(t.driverHint)}</div></div></div>` : ''}
+  </div>` : '';
 
   return `<!DOCTYPE html>
 <html lang="${d.locale}">
@@ -93,83 +103,116 @@ export function buildTicketHTML(d: TicketData): string {
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { background: #fff; color: #000; }
   /* La térmica imprime pálido lo fino: lo grande va en Arial Black (Windows y Mac la traen). */
-  .name, .inv, .num, .side, .customer, .allergy, .scheduled, .item-head, .item-count, .total, .pay, .address, .driver-label { font-family: 'Arial Black', 'Arial Bold', Arial, Helvetica, sans-serif; }
-  body { width: 72mm; font-family: Arial, Helvetica, sans-serif; font-weight: 700; padding: ${mm(8)} 0 ${mm(48)}; }
-  .name { text-align: center; font-size: ${mm(40)}; font-weight: 900; line-height: 1.1; padding: 0 ${mm(10)} ${mm(10)}; }
-  .inv { background: #000; color: #fff; font-weight: 900; padding: ${mm(4)} ${mm(16)}; line-height: 1.15; }
-  .channel { font-size: ${mm(30)}; }
-  .boxed { border: ${mm(3)} solid #000; margin: ${mm(8)} ${mm(10)}; padding: ${mm(6)} ${mm(12)}; font-weight: 900; line-height: 1.2; }
-  .boxed.thick { border-width: ${mm(6)}; }
-  .reprint { font-size: ${mm(26)}; }
-  .num-block { background: #000; color: #fff; padding: ${mm(6)} ${mm(16)} ${mm(10)}; margin-top: ${mm(8)}; }
-  .num-block.after-reprint { margin-top: 0; }
-  .num-row { display: flex; align-items: center; }
-  .num { flex: 1; font-size: ${mm(128)}; font-weight: 900; line-height: 1; }
-  .side { font-size: ${mm(32)}; font-weight: 900; white-space: nowrap; text-align: right; line-height: 1.15; padding-left: ${mm(10)}; }
-  .customer { font-size: ${mm(44)}; font-weight: 900; line-height: 1.1; }
-  .allergy { display: flex; align-items: center; background: #000; color: #fff; font-size: ${mm(30)}; font-weight: 900; padding: ${mm(6)} ${mm(16)}; margin-top: ${mm(6)}; }
-  .alert { width: ${mm(34)}; height: ${mm(34)}; margin-right: ${mm(10)}; flex: none; }
-  .scheduled { font-size: ${mm(32)}; font-weight: 900; padding: ${mm(8)} ${mm(10)} 0; }
-  .utensils { font-size: ${mm(24)}; padding: ${mm(8)} ${mm(10)} 0; }
-  .rule { height: ${mm(3)}; background: #000; margin: ${mm(14)} ${mm(10)}; }
-  .row { display: flex; padding: ${mm(1)} ${mm(10)}; line-height: 1.2; }
-  .row .l { flex: 1; padding-right: ${mm(12)}; }
-  .row .r { white-space: nowrap; }
-  .item { margin-bottom: ${mm(6)}; break-inside: avoid; }
-  .item-head { font-size: ${mm(26)}; font-weight: 900; }
-  .item-line { font-size: ${mm(22)}; }
-  .note { font-size: ${mm(22)}; }
-  /* La nota cuelga del plato; línea fina entre platos (dos Deluxe distintas se leen como dos). */
-  .item-note { margin-left: ${mm(42)}; }
-  .item-sep { height: ${mm(2)}; background: #000; margin: ${mm(2)} ${mm(10)} ${mm(8)}; }
-  .item-count { font-size: ${mm(26)}; font-weight: 900; padding: ${mm(4)} ${mm(10)} 0; }
-  .totals { font-size: ${mm(24)}; }
-  .total { font-size: ${mm(30)}; font-weight: 900; }
-  .pay { font-size: ${mm(30)}; }
-  .pay-cash { font-size: ${mm(34)}; margin-top: ${mm(8)}; }
-  .address { font-size: ${mm(36)}; font-weight: 900; padding: ${mm(10)} ${mm(10)} 0; line-height: 1.15; }
-  .phone { font-size: ${mm(30)}; font-family: 'Arial Black', Arial, Helvetica, sans-serif; padding: ${mm(4)} ${mm(10)} 0; }
-  .driver { display: flex; flex-direction: column; align-items: center; margin-top: ${mm(14)}; break-inside: avoid; }
-  .driver-label { font-size: ${mm(26)}; font-weight: 900; }
-  .qr { width: 30mm; height: 30mm; margin-top: ${mm(6)}; }
-  /* Pie como Uber: cuándo entró, para cuándo y las gracias. */
-  .placed { font-size: ${mm(24)}; padding: 0 ${mm(10)}; }
-  .due { font-size: ${mm(26)}; font-family: 'Arial Black', Arial, Helvetica, sans-serif; padding: ${mm(4)} ${mm(10)} 0; }
-  .foot-sep { margin-top: ${mm(14)}; margin-bottom: ${mm(14)}; }
-  .thanks { font-size: ${mm(24)}; text-align: center; padding: 0 ${mm(10)}; }
-  .foot { text-align: center; padding: ${mm(6)} ${mm(10)} 0; }
-  .foot.direct { font-size: ${mm(20)}; }
-  .foot.powered { font-size: ${mm(16)}; padding-top: ${mm(10)}; }
+  .meta-name, .type, .side, .sched, .num, .customer, .allergy, .lbl, .address, .box-text, .item-note, .driver-title, .count, .item-name, .qty, .mod .r, .tot-total, .pay-title, .pay-amount, .direct, b, .yes, .no, .reprint {
+    font-family: 'Arial Black', 'Arial Bold', Arial, Helvetica, sans-serif; font-weight: 900;
+  }
+  body { width: 72mm; font-family: Arial, Helvetica, sans-serif; font-weight: 700; padding: ${mm(12)} 0 ${mm(40)}; line-height: 1.15; }
+  .nowrap { white-space: nowrap; }
+  .meta { display: flex; align-items: flex-end; justify-content: space-between; padding: 0 ${mm(14)} ${mm(10)}; }
+  .meta-name { font-size: ${mm(26)}; flex: 1; padding-right: ${mm(12)}; }
+  .meta-via { font-size: ${mm(22)}; white-space: nowrap; }
+  .reprint { border: ${mm(6)} solid #000; margin: 0 ${mm(8)} ${mm(8)}; padding: ${mm(6)} ${mm(12)}; font-size: ${mm(26)}; }
+  .hero { background: #000; color: #fff; padding: ${mm(10)} ${mm(18)} ${mm(12)}; margin: 0 ${mm(8)}; }
+  .hero-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .type { font-size: ${mm(42)}; letter-spacing: ${mm(1)}; }
+  .sched { display: inline-block; margin-top: ${mm(6)}; border: ${mm(3)} solid #fff; padding: ${mm(2)} ${mm(8)}; font-size: ${mm(22)}; }
+  .side { text-align: right; white-space: nowrap; padding-left: ${mm(12)}; }
+  .side-k { font-size: ${mm(22)}; }
+  .side-v { font-size: ${mm(42)}; }
+  .num { font-size: ${mm(140)}; line-height: 1; margin-top: ${mm(4)}; letter-spacing: ${mm(-2)}; }
+  .customer { font-size: ${mm(56)}; line-height: 1.05; padding: ${mm(12)} ${mm(14)} 0; }
+  .allergy { display: flex; align-items: center; background: #000; color: #fff; padding: ${mm(8)} ${mm(18)}; margin: ${mm(12)} ${mm(8)} 0; }
+  .allergy .k { font-size: ${mm(22)}; letter-spacing: ${mm(1)}; }
+  .allergy .v { font-size: ${mm(30)}; }
+  .alert { width: ${mm(38)}; height: ${mm(38)}; margin-right: ${mm(12)}; flex: none; }
+  .lbl { font-size: ${mm(20)}; letter-spacing: ${mm(1)}; }
+  .lbl.big { font-size: ${mm(22)}; }
+  .delivery { margin: ${mm(14)} ${mm(14)} 0; }
+  .address { font-size: ${mm(34)}; margin-top: ${mm(2)}; }
+  .phone { font-size: ${mm(30)}; margin-top: ${mm(4)}; }
+  .box { border: ${mm(3)} solid #000; padding: ${mm(6)} ${mm(10)}; margin-top: ${mm(10)}; }
+  .box-text { font-size: ${mm(26)}; }
+  .driver { display: flex; align-items: center; margin-top: ${mm(12)}; break-inside: avoid; }
+  .qr { width: 22mm; height: 22mm; flex: none; }
+  .driver-text { margin-left: ${mm(14)}; }
+  .driver-title { font-size: ${mm(30)}; }
+  .driver-hint { font-size: ${mm(24)}; margin-top: ${mm(4)}; }
+  .count { font-size: ${mm(32)}; padding: ${mm(18)} ${mm(14)} 0; }
+  .rule { height: ${mm(3)}; background: #000; margin: ${mm(10)} ${mm(14)}; }
+  .rule.mid { margin: ${mm(14)} ${mm(14)}; }
+  .rule.thin { height: ${mm(2)}; margin: ${mm(16)} ${mm(14)}; }
+  .item { break-inside: avoid; }
+  .item-sep { height: ${mm(2)}; background: #000; margin: ${mm(10)} ${mm(14)} ${mm(10)} ${mm(76)}; }
+  .item-head { display: flex; align-items: flex-start; padding: 0 ${mm(14)}; }
+  .qty { display: flex; align-items: center; flex: none; width: ${mm(46)}; height: ${mm(42)}; margin-right: ${mm(16)}; font-size: ${mm(32)}; }
+  .qty.many { background: #000; color: #fff; justify-content: center; }
+  .item-name { flex: 1; font-size: ${mm(30)}; padding: ${mm(4)} ${mm(12)} 0 0; }
+  .item-price { font-size: ${mm(26)}; padding-top: ${mm(6)}; white-space: nowrap; }
+  .mods { margin-top: ${mm(4)}; }
+  .mod { display: flex; font-size: ${mm(24)}; line-height: 1.2; padding: ${mm(2)} ${mm(14)} ${mm(2)} ${mm(76)}; }
+  .mod.sub { padding-left: ${mm(102)}; }
+  .mod .l { flex: 1; padding-right: ${mm(12)}; }
+  .mod .r { white-space: nowrap; }
+  .item-note { margin: ${mm(8)} ${mm(14)} 0 ${mm(76)}; font-size: ${mm(26)}; }
+  .order-note { margin: ${mm(14)} ${mm(14)} 0; }
+  .utensils { display: flex; align-items: center; justify-content: space-between; padding: 0 ${mm(14)}; font-size: ${mm(26)}; }
+  .yes { background: #000; color: #fff; padding: ${mm(2)} ${mm(14)}; font-size: ${mm(30)}; }
+  .no { font-size: ${mm(30)}; padding-right: ${mm(14)}; }
+  .totals { display: flex; flex-direction: column; align-items: flex-end; padding: 0 ${mm(14)}; margin-top: ${mm(4)}; }
+  .totals .sep { align-self: stretch; height: ${mm(2)}; background: #000; margin: ${mm(14)} 0 ${mm(12)}; }
+  .tot { display: flex; width: ${mm(330)}; justify-content: space-between; font-size: ${mm(24)}; padding: ${mm(1)} 0; }
+  .tot-line { width: ${mm(330)}; height: ${mm(3)}; background: #000; margin: ${mm(8)} 0; }
+  .tot-total { display: flex; width: ${mm(330)}; justify-content: space-between; align-items: baseline; font-size: ${mm(30)}; }
+  .tot-total .v { font-size: ${mm(36)}; }
+  .pay { margin: ${mm(16)} ${mm(14)} 0; padding: ${mm(8)} ${mm(14)}; break-inside: avoid; }
+  .pay.cash { display: flex; align-items: center; justify-content: space-between; border: ${mm(6)} solid #000; }
+  .pay.paid { border: ${mm(3)} solid #000; }
+  .pay.verify { border: ${mm(6)} solid #000; }
+  .pay-l { flex: 1; }
+  .pay-title { font-size: ${mm(30)}; }
+  .pay.paid .pay-title { font-size: ${mm(34)}; }
+  .pay-sub { font-size: ${mm(22)}; margin-top: ${mm(2)}; }
+  .pay-amount { font-size: ${mm(46)}; white-space: nowrap; margin-left: ${mm(12)}; }
+  .placed { display: flex; justify-content: space-between; padding: 0 ${mm(14)}; font-size: ${mm(22)}; }
+  .foot { text-align: center; padding: 0 ${mm(14)}; margin-top: ${mm(22)}; }
+  .thanks { font-size: ${mm(24)}; }
+  .direct { font-size: ${mm(26)}; margin-top: ${mm(6)}; }
+  .powered { font-size: ${mm(20)}; margin-top: ${mm(12)}; }
 </style>
 </head>
 <body>
-  <div class="name">${esc(d.restaurant.name.toUpperCase())}</div>
-  <div class="inv channel">${esc(`${t.channel[d.channel]} · ${t.orderType[d.orderType]}`)}</div>
-  ${d.kind === 'reprint' ? `<div class="boxed thick reprint">${esc(`${t.reprint}  ${d.reprintedAt ?? ''}`)}</div>` : ''}
-  <div class="num-block${d.kind === 'reprint' ? ' after-reprint' : ''}">
-    <div class="num-row"><div class="num">#${esc(d.shortNumber)}</div>${sideOfNumber ? `<div class="side"><div>${esc(sideOfNumber[0])}</div><div>${esc(sideOfNumber[1])}</div></div>` : ''}</div>
-    ${d.customerName ? `<div class="customer">${esc(d.customerName)}</div>` : ''}
+  <div class="meta"><div class="meta-name">${esc(d.restaurant.name.toUpperCase())}</div><div class="meta-via">${esc(t.orderVia[d.channel])}</div></div>
+  ${d.kind === 'reprint' ? `<div class="reprint">${esc(`${t.reprint}  ${d.reprintedAt ?? ''}`)}</div>` : ''}
+  <div class="hero">
+    <div class="hero-top">
+      <div><div class="type">${esc(t.orderType[d.orderType])}</div>${d.scheduledDay ? `<div class="sched">${esc(t.scheduled)}</div>` : ''}</div>
+      ${side ? `<div class="side"><div class="side-k">${esc(side[0])}</div><div class="side-v">${esc(side[1])}</div></div>` : ''}
+    </div>
+    <div class="num">#${esc(d.shortNumber)}</div>
   </div>
-  ${d.allergy ? `<div class="allergy">${ALERT_ICON}<div>${esc(`${t.allergy}: ${d.allergy}`)}</div></div>` : ''}
+  ${d.customerName ? `<div class="customer">${esc(d.customerName)}</div>` : ''}
+  ${d.allergy ? `<div class="allergy">${ALERT_ICON}<div><div class="k">${esc(t.allergy)}</div><div class="v">${esc(d.allergy)}</div></div></div>` : ''}
   ${delivery}
-  ${d.scheduledFor ? `<div class="scheduled">${esc(`${t.scheduled} ${d.scheduledFor}`)}</div>` : ''}
-  <div class="utensils">${esc(t.utensils(d.includeUtensils))}</div>
-  <div class="item-count">${esc(t.itemCount(d.itemCount))}</div>
+  <div class="count">${esc(t.itemCount(d.itemCount))}</div>
   <div class="rule"></div>
-  ${d.items.map((i, n) => (n > 0 ? '<div class="item-sep"></div>' : '') + itemHtml(i, t.note, c)).join('')}
-  ${d.orderNotes ? `<div class="boxed note">${esc(`${t.note}: ${d.orderNotes}`)}</div>` : ''}
-  <div class="rule"></div>
-  ${totalRows.map(([label, value]) => row(label, value, 'totals')).join('')}
-  ${row(t.total, ticketAmount(d.totals.total, c), 'total')}
+  ${d.items.map((i, n) => itemHtml(i, t, money, n === 0)).join('')}
+  ${d.orderNotes ? `<div class="box order-note"><div class="lbl">${esc(t.orderNote)}</div><div class="box-text">${esc(d.orderNotes)}</div></div>` : ''}
+  <div class="rule mid"></div>
+  <div class="utensils"><span>${esc(t.utensilsLabel)}</span>${d.includeUtensils ? `<span class="yes">${esc(t.yes)}</span>` : `<span class="no">${esc(t.no)}</span>`}</div>
+  <div class="totals">
+    <div class="sep"></div>
+    ${totalRows.map(([label, value]) => `<div class="tot"><span>${esc(label)}</span><span>${esc(value)}</span></div>`).join('')}
+    <div class="tot-line"></div>
+    <div class="tot-total"><span>${esc(t.total)}</span><span class="v">${esc(money(d.totals.total))}</span></div>
+  </div>
   ${payment}
-  ${driverQr}
-  <div class="rule"></div>
-  <div class="placed">${esc(`${t.placedAt} ${d.placedFull}`)}</div>
-  ${d.dueFull ? `<div class="due">${esc(`${t.dueAt} ${d.dueFull}`)}</div>` : ''}
-  <div class="item-sep foot-sep"></div>
-  <div class="thanks">${esc(t.thanks(d.restaurant.name))}</div>
-  ${d.restaurant.orderDirectUrl ? `<div class="foot direct">${esc(`${t.orderDirect}: ${d.restaurant.orderDirectUrl}`)}</div>` : ''}
-  <div class="foot powered">${esc(`${d.orderNumber} · ${t.poweredBy}`)}</div>
+  <div class="rule thin"></div>
+  <div class="placed"><span>${esc(`${t.placed} ${d.placedShort}`)}</span><span>${esc(d.orderNumber)}</span></div>
+  <div class="foot">
+    <div class="thanks">${esc(t.thanks(d.restaurant.name))}</div>
+    ${d.restaurant.orderDirectUrl ? `<div class="direct">${esc(`${t.orderDirect}: ${d.restaurant.orderDirectUrl}`)}</div>` : ''}
+    <div class="powered">${esc(t.poweredBy)}</div>
+  </div>
 </body>
 </html>`;
 }

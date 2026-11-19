@@ -185,7 +185,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     features: [
       'Productos y categorías ilimitados',
       'Menú digital con fotos y QR (hasta 50 mesas)',
-      'Pedidos online: en mesa, para llevar y delivery',
+      'Pedidos online: en mesa, para recoger y delivery',
       'Pagos online con tarjeta (0% comisión de MENIUS)',
       'Dominio propio',
       'Sin marca MENIUS en el menú',

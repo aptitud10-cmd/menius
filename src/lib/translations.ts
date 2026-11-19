@@ -761,7 +761,7 @@ const es: Translations = {
   validationEmailRequiredOrder: 'Email requerido para recibir tu confirmación de pedido',
   validationDeliveryAddressRequired: 'Agrega la dirección de entrega para hacer el pedido',
   deliveryPickFromList: 'Elegí tu dirección de la lista de sugerencias para confirmar que estás en la zona de entrega.',
-  validationDineInOnlyItems: 'Algunos productos solo están disponibles para consumo en el local y no se pueden pedir para llevar ni a domicilio. Quítalos o cambia a "En mesa" para continuar.',
+  validationDineInOnlyItems: 'Algunos productos solo están disponibles para consumo en el local y no se pueden pedir para recoger ni a domicilio. Quítalos o cambia a "En mesa" para continuar.',
   dineInOnlyBadge: 'Solo en el local',
   // CheckoutPageClient — network errors
   noConnectionRetry: 'Sin conexión. Revisa tu red e inténtalo de nuevo.',

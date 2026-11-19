@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { toTicketData, orderDirectUrl, type ToTicketDataInput, type TicketItemRow } from '@/lib/printing/ticket-data';
+import { toTicketData, orderDirectUrl, displayCustomerName, type ToTicketDataInput, type TicketItemRow } from '@/lib/printing/ticket-data';
 import { renderTicketPng } from '@/lib/printing/render-ticket';
 import { buildTicketHTML } from '@/lib/printing/ticket-html';
 import { orderToTicketData } from '@/lib/printing/order-to-ticket';
@@ -148,6 +148,24 @@ describe('toTicketData', () => {
     expect(toTicketData(CASES['scheduled']).scheduledFor).toBe('Sat 11/14 7:30 PM');
   });
 
+  it('ticket v4: programado partido en día y hora, pie corto', () => {
+    const sch = toTicketData(CASES['scheduled']);
+    expect(sch.scheduledDay).toBe('SAT NOV 14');
+    expect(sch.scheduledTime).toBe('7:30 PM');
+    expect(toTicketData(CASES['pickup-cash']).placedShort).toBe('Nov 14, 2:43 PM');
+  });
+
+  it('nombre del cliente: capitaliza solo si vino todo en minúscula o todo en mayúscula', () => {
+    expect(displayCustomerName('leo')).toBe('Leo');
+    expect(displayCustomerName('MEGAN MORALES')).toBe('Megan Morales');
+    expect(displayCustomerName("mary-jane o'neil")).toBe("Mary-Jane O'Neil");
+    expect(displayCustomerName('ana lucía')).toBe('Ana Lucía');
+    // Escrito a propósito: se respeta.
+    expect(displayCustomerName('McDonald')).toBe('McDonald');
+    expect(displayCustomerName('Juan de la Cruz')).toBe('Juan de la Cruz');
+    expect(displayCustomerName(undefined)).toBeUndefined();
+  });
+
   it('mesa solo en dine-in; delivery solo en delivery', () => {
     expect(toTicketData(CASES['dine-in']).tableName).toBe('7');
     expect(toTicketData(CASES['pickup-cash']).delivery).toBeUndefined();
@@ -229,12 +247,26 @@ describe('buildTicketHTML (navegador)', () => {
 
   it('delivery en efectivo: COLLECT, dirección y QR del repartidor', () => {
     const html = buildTicketHTML(toTicketData(CASES['delivery-cash']));
-    expect(html).toContain('COLLECT $61.86 CASH');
+    expect(html).toContain('>COLLECT CASH<');
+    expect(html).toContain('>$61.86<');
+    // Delivery en efectivo: cobra el repartidor, no el mostrador.
+    expect(html).toContain('Driver collects at the door');
     expect(html).not.toContain('>Tip<');
     expect(html).toContain('45-12 102nd St, Apt 3B');
     expect(html).toContain('(718) 555-0123');
-    expect(html).toContain('DRIVER: SCAN TO START');
+    expect(html).toContain('>DRIVER<');
     expect(html).toMatch(/<svg class="qr"/);
+  });
+
+  it('ticket v4: un solo bloque negro arriba, cantidad >1 en caja, NO en negrita, cubiertos', () => {
+    const html = buildTicketHTML(toTicketData(CASES['pickup-cash']));
+    expect(html).toContain('class="hero"');
+    expect(html).toContain('>READY BY<');
+    expect(html).toContain('class="qty many">2<');
+    expect(html).toContain('>Utensils &amp; napkins<');
+    expect(html).toContain('Customer pays at pickup');
+    // La hora de listo sale una sola vez: ya no hay "Due at" en el pie.
+    expect(html).not.toContain('Due at');
   });
 
   it('pickup: sin QR', () => {
@@ -243,8 +275,9 @@ describe('buildTicketHTML (navegador)', () => {
 
   it('escapa el HTML que escribe el cliente', () => {
     const html = buildTicketHTML(toTicketData(input({ customer_name: '<img src=x onerror=alert(1)>', notes: 'a & b' })));
-    expect(html).not.toContain('<img src=x');
-    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(html).not.toMatch(/<img/i);
+    // El nombre sale capitalizado ("<Img Src=X…"), pero siempre escapado.
+    expect(html).toMatch(/&lt;img src=x onerror=alert\(1\)&gt;/i);
   });
 });
 
