@@ -19,9 +19,9 @@ const besley = localFont({
   display: 'swap',
 });
 
-const TITLE = 'Buccaneer Diner — Open 24 Hours on Astoria Blvd, East Elmhurst, Queens';
+const TITLE = 'Buccaneer Diner — Open 24 Hours on Astoria Blvd, Queens';
 const DESCRIPTION =
-  'Open 24/7 at 9301 Astoria Boulevard, East Elmhurst, NY. Breakfast all day. Dine in, pickup or delivery. Order online or call (718) 429-5188.';
+  'Open 24/7 at 9301 Astoria Boulevard, East Elmhurst, NY. Breakfast all day. Dine-in, pickup, or delivery. Order online or call (718) 429-5188.';
 
 /**
  * Everything the root layout sets for MENIUS is overridden here: the "| MENIUS"

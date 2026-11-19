@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import Behavior from './Behavior';
-import Photo from './Photo';
+import Photo, { hasPhoto } from './Photo';
 import { getCounts } from './counts';
 import { MapPin, PhoneIcon, WordmarkA, WordmarkB } from './Wordmark';
 import {
@@ -118,8 +118,6 @@ function Head({ title, lede }: { title: string; lede: string }) {
   );
 }
 
-const PICKS = 'Our picks for this part of the day.';
-
 /** Framed AI composition — small, square, 1.5px ink frame (AD 6). Never animated. */
 function Thumb({ src, size }: { src: string; size: 'sm' | 'md' | 'lg' }) {
   return (
@@ -130,10 +128,10 @@ function Thumb({ src, size }: { src: string; size: 'sm' | 'md' | 'lg' }) {
   );
 }
 
-function Fig({ slot, cls, sizes, note }: { slot: SlotId; cls: string; sizes?: string; note?: string }) {
+function Fig({ slot, cls, sizes }: { slot: SlotId; cls: string; sizes?: string }) {
   return (
     <figure className={`b2-fig ${cls}`}>
-      <Photo slot={slot} sizes={sizes} note={note} />
+      <Photo slot={slot} sizes={sizes} />
     </figure>
   );
 }
@@ -168,7 +166,7 @@ const RESTAURANT_LD = {
     },
   ],
   hasMenu: MENU_URL,
-  acceptsReservations: false,
+  // No `acceptsReservations` until the owner confirms it (AD section 0).
   potentialAction: {
     '@type': 'OrderAction',
     target: MENU_URL,
@@ -209,7 +207,7 @@ export default async function BuccaneerV2Page() {
       </header>
 
       {/* -------------------------------------------- sticky bar (phones only) */}
-      <nav className="b2-bar" aria-label="Order or call">
+      <nav className="b2-bar" aria-label="Order, get directions, or call">
         {STATES.map((s) => (
           <a key={s} className={`b2-sv b2-sv--${s} b2-btn b2-btn--solid`} href={STATE_COPY[s].href}>
             Order online <span aria-hidden="true">→</span>
@@ -228,14 +226,10 @@ export default async function BuccaneerV2Page() {
         <section className="b2-hero" id="top">
           <span id="b2-top-sentinel" className="b2-sentinel" aria-hidden="true" />
           <div className="b2-hero__photo">
+            {/* Night on mobile (AD 7.2): close crop of the word "Buccaneer" + LED line. */}
             {STATES.map((s) => (
               <div key={s} className={`b2-sv b2-sv--${s} b2-fill`}>
-                <Photo
-                  slot={HERO_SLOT[s]}
-                  priority={s === state}
-                  sizes="(max-width: 1023px) 100vw, 60vw"
-                  note={s === 'night' ? 'mobile: close crop of the word “Buccaneer” + LED line' : undefined}
-                />
+                <Photo slot={HERO_SLOT[s]} priority={s === state} sizes="(max-width: 1023px) 100vw, 60vw" />
               </div>
             ))}
           </div>
@@ -280,7 +274,7 @@ export default async function BuccaneerV2Page() {
                 All {COUNTS.breakfast} breakfast dishes →
               </a>
               <a className="b2-row b2-lnk" href={LINKS.beverage}>
-                Beverage ({COUNTS.beverage}) →
+                Coffee &amp; drinks ({COUNTS.beverage}) →
               </a>
             </div>
           </div>
@@ -291,7 +285,7 @@ export default async function BuccaneerV2Page() {
         <section className="b2-ch b2-mid" data-pal="day" id="midday">
           <div className="b2-mid__l">
             <Hour s="midday" />
-            <Head title="Middle of the day." lede={PICKS} />
+            <Head title="Lunchtime." lede="Burgers, sandwiches, salads, and soups." />
             <div className="b2-mid__dishes">
               <a className="b2-prin" href={LINKS.burgers}>
                 <Thumb src={THUMBS.burgers} size="md" />
@@ -308,7 +302,7 @@ export default async function BuccaneerV2Page() {
                 </span>
               </a>
               <p className="b2-side b2-lg">
-                <span className="b2-side__lead">On the side:</span>
+                <span className="b2-side__lead">Also:</span>
                 <a href={LINKS.salads}>Salads &amp; Soups ({COUNTS.salads})</a>
                 <i aria-hidden="true">·</i>
                 <a href={LINKS.sides}>Sides ({COUNTS.sides})</a>
@@ -324,7 +318,7 @@ export default async function BuccaneerV2Page() {
         <section className="b2-ch b2-eve" data-pal="yolk" id="evening">
           <div className="b2-eve__l">
             <Hour s="evening" />
-            <Head title="Dinner." lede={PICKS} />
+            <Head title="Dinner." lede="A few picks from the dinner menu." />
             <div className="b2-dinner">
               <Thumb src={THUMBS.dinner} size="lg" />
               <ul className="b2-dishes">
@@ -378,14 +372,13 @@ export default async function BuccaneerV2Page() {
             </div>
             <Fig slot="D05" cls="b2-eve__ph b2-reveal" sizes="(max-width: 1023px) 100vw, 40vw" />
           </div>
-          <p className="b2-meta b2-disc">{DISCLOSURE}</p>
         </section>
 
         {/* ---------------------------------------------------- Night — Par */}
         <section className="b2-ch b2-night" data-pal="sign" id="night">
           <div className="b2-night__hd">
             <Hour s="night" />
-            <Head title="After dark." lede={PICKS} />
+            <Head title="After dark." lede="Something sweet." />
           </div>
           <div className="b2-pair">
             <a className="b2-pair__a" href={LINKS.desserts}>
@@ -407,18 +400,19 @@ export default async function BuccaneerV2Page() {
         {/* ----------------------------------------------------- Una frase */}
         <section className="b2-ch b2-phrase" data-pal="day">
           <p className="b2-d2">
-            {COUNTS.total}&nbsp;dishes, breakfast all day, open&nbsp;24/7. Dine in, pickup or delivery.
+            {COUNTS.total}&nbsp;dishes, breakfast all day, open&nbsp;24/7. Dine-in, pickup, or delivery.
           </p>
         </section>
 
         {/* ------------------------------------------------------------ Visit */}
         <section className="b2-ch b2-visit" data-pal="sign" id="visit">
           <div className="b2-visit__video">
-            <Photo slot="S02" sizes="100vw" note="video: muted loop, 6 s — mobile 4:5 · tablet/desktop 21:9" />
+            {/* S02 becomes a video (AD 9): muted 6 s loop, mobile 4:5 · tablet/desktop 21:9. */}
+            <Photo slot="S02" sizes="100vw" />
           </div>
           <div className="b2-visit__by">
             <Fig slot="S03" cls="b2-visit__bypic" sizes="140px" />
-            <p className="b2-meta">By day.</p>
+            {hasPhoto('S03') ? <p className="b2-meta">By day.</p> : null}
           </div>
           <div className="b2-visit__info">
             <h2 className="b2-d2">9301 Astoria Boulevard.</h2>
@@ -445,7 +439,7 @@ export default async function BuccaneerV2Page() {
               </div>
               <div>
                 <dt className="b2-meta">Service</dt>
-                <dd className="b2-lg">Dine in, pickup, delivery</dd>
+                <dd className="b2-lg">Dine-in, pickup, or delivery</dd>
               </div>
             </dl>
             <div className="b2-btns">
@@ -458,15 +452,12 @@ export default async function BuccaneerV2Page() {
             </div>
           </div>
           <div className="b2-visit__map">
-            <a className="b2-map" href={DIRECTIONS_URL} target="_blank" rel="noopener noreferrer" aria-label="Map: 9301 Astoria Boulevard">
+            <a className="b2-map" href={DIRECTIONS_URL} target="_blank" rel="noopener noreferrer" aria-label="Open 9301 Astoria Boulevard in Google Maps">
               <span className="b2-map__grid" aria-hidden="true" />
               <MapPin />
-              <span className="b2-map__tag" aria-hidden="true">
-                MAP · static OpenStreetMap render pending
-              </span>
             </a>
+            {/* Add "© OpenStreetMap contributors" (ODbL, AD 7.5) here when the real OSM map image goes in. */}
             <p className="b2-map__src">
-              <span className="b2-meta">© OpenStreetMap contributors</span>
               <a className="b2-lnk" href={DIRECTIONS_URL} target="_blank" rel="noopener noreferrer">
                 Open in Google Maps →
               </a>
@@ -477,19 +468,19 @@ export default async function BuccaneerV2Page() {
               <div className="b2-trip__ph b2-reveal">
                 <Photo slot="S04" sizes="(max-width: 1023px) 100vw, 60vw" />
               </div>
-              <figcaption className="b2-meta">The dining room.</figcaption>
+              {hasPhoto('S04') ? <figcaption className="b2-meta">The dining room.</figcaption> : null}
             </figure>
             <figure className="b2-trip__b">
               <div className="b2-trip__ph b2-reveal">
                 <Photo slot="S05b" sizes="(max-width: 1023px) 50vw, 30vw" />
               </div>
-              <figcaption className="b2-meta">The counter.</figcaption>
+              {hasPhoto('S05b') ? <figcaption className="b2-meta">The counter.</figcaption> : null}
             </figure>
             <figure className="b2-trip__c">
               <div className="b2-trip__ph b2-reveal">
                 <Photo slot="S11" sizes="(max-width: 1023px) 50vw, 30vw" />
               </div>
-              <figcaption className="b2-meta">The booth.</figcaption>
+              {hasPhoto('S11') ? <figcaption className="b2-meta">The booth.</figcaption> : null}
             </figure>
           </div>
         </section>
@@ -497,7 +488,7 @@ export default async function BuccaneerV2Page() {
         {/* ------------------------------------------------------------ Close */}
         <section className="b2-close" id="close">
           <Fig slot="S10" cls="b2-close__ph b2-reveal" sizes="(max-width: 1023px) 100vw, 30vw" />
-          <p className="b2-meta b2-close__cap">The dining room clock.</p>
+          {hasPhoto('S10') ? <p className="b2-meta b2-close__cap">The dining room clock.</p> : null}
           <div className="b2-close__txt">
             <div className="b2-close__clock">
               <Clock />
@@ -532,7 +523,6 @@ export default async function BuccaneerV2Page() {
           <p className="b2-meta">{DISCLOSURE}</p>
           <p className="b2-meta">Powered by MENIUS</p>
           <p className="b2-meta">© 2026 Buccaneer Diner</p>
-          <p className="b2-meta b2-struct">Structure only — real photography and wordmark v1 pending.</p>
         </div>
       </footer>
     </div>

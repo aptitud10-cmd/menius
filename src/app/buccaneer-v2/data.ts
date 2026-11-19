@@ -45,7 +45,7 @@ export type SlotId =
 /** `position`: CSS object-position when the subject isn't centred (default `center`). */
 export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; alt: string; position?: string }> = {
   D01: { src: null, label: 'D01 · Buttermilk pancakes, Morning hero', alt: 'A stack of buttermilk pancakes' },
-  D04: { src: null, label: 'D04 · 7 oz burger, Midday hero', alt: 'A 7 oz Angus burger' },
+  D04: { src: null, label: 'D04 · 7 oz burger, Midday hero', alt: 'A 7 oz. Angus burger' },
   D06: { src: null, label: 'D06 · Seafood plate, Evening hero', alt: 'A seafood dinner plate' },
   S01: { src: '/buccaneer/v2/fachada-noche-vertical.webp', label: 'S01 · Facade at night, sign on', alt: 'Buccaneer Diner at night, the red neon sign lit over a wet parking lot', position: 'center 28%' },
   S02: { src: '/buccaneer/v2/fachada-noche.webp', label: 'S02 · Facade video poster (video pending)', alt: 'Buccaneer Diner facade at night, red and blue neon along the roof', position: 'center 70%' },
@@ -130,14 +130,14 @@ export const STATE_COPY: Record<
   morning: {
     phrase: 'Breakfast time.',
     orderTitle: 'Order breakfast',
-    orderMeta: 'Breakfast all day — pancakes, the Benedict',
+    orderMeta: 'Breakfast all day — pancakes, omelettes',
     href: cat('Buttermilk Pancakes'),
     hourLabel: '5 a.m.',
   },
   midday: {
     phrase: 'Lunch hour.',
     orderTitle: 'Order lunch',
-    orderMeta: 'Beef Burger, Cheeseburger',
+    orderMeta: 'Cheeseburger, Turkey & Bacon Club',
     href: cat('7 oz. Certified Angus Beef Burgers'),
     hourLabel: '11 a.m.',
   },
@@ -151,8 +151,10 @@ export const STATE_COPY: Record<
   night: {
     phrase: 'Up late? So are we.',
     orderTitle: 'Order now',
-    orderMeta: 'Burgers, disco fries',
-    href: cat('9 oz. Specialty Steak Burgers'),
+    // Not "Burgers, disco fries" (or a category link) until the owner confirms
+    // what the kitchen serves overnight (AD 17, Q1 + Q4).
+    orderMeta: 'Pickup or delivery',
+    href: MENU_URL,
     hourLabel: '10 p.m.',
   },
 };
@@ -214,4 +216,5 @@ export const LINKS = {
   smoothies: cat('Smoothies'),
 };
 
-export const DISCLOSURE = 'Framed thumbnails are styled product compositions.';
+/** Shown under Midday (first framed thumbnails) and in the footer. */
+export const DISCLOSURE = 'The small framed pictures are illustrations, not photos of our food.';
