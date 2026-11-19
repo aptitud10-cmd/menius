@@ -26,7 +26,7 @@ export const grillHouseRestaurant: Restaurant = {
   address: '350 W 42nd St, New York, NY 10036',
   latitude: 40.7580,
   longitude: -73.9935,
-  phone: '+1 (760) 555-0147',
+  phone: '+1 (212) 555-0147',
   email: 'hello@thegrillhouse.com',
   website: 'https://menius.app',
   is_active: true,
@@ -55,9 +55,9 @@ export const grillHouseCategories: Category[] = [
   { id: CAT_BREAKFAST, restaurant_id: RID, name: 'Breakfast', sort_order: 1, is_active: true, created_at: now },
   { id: CAT_LUNCH, restaurant_id: RID, name: 'Lunch', sort_order: 2, is_active: true, created_at: now },
   { id: CAT_DINNER, restaurant_id: RID, name: 'Dinner', sort_order: 3, is_active: true, created_at: now },
-  { id: CAT_APPETIZER, restaurant_id: RID, name: 'Appetizer', sort_order: 4, is_active: true, created_at: now },
-  { id: CAT_BEVERAGE, restaurant_id: RID, name: 'Beverage', sort_order: 5, is_active: true, created_at: now },
-  { id: CAT_DRINKS, restaurant_id: RID, name: 'Drinks', sort_order: 6, is_active: true, created_at: now },
+  { id: CAT_APPETIZER, restaurant_id: RID, name: 'Appetizers', sort_order: 4, is_active: true, created_at: now },
+  { id: CAT_BEVERAGE, restaurant_id: RID, name: 'Beverages', sort_order: 5, is_active: true, created_at: now },
+  { id: CAT_DRINKS, restaurant_id: RID, name: 'Bar', sort_order: 6, is_active: true, created_at: now },
   { id: CAT_DESSERTS, restaurant_id: RID, name: 'Desserts', sort_order: 7, is_active: true, created_at: now },
 ];
 
@@ -74,12 +74,19 @@ export const grillHouseProducts: Product[] = [
   {
     id: P_PANCAKES, restaurant_id: RID, category_id: CAT_BREAKFAST,
     name: 'Classic Pancakes',
-    description: 'Three fluffy buttermilk pancakes with maple syrup, butter, and fresh berries.',
+    description: 'Fluffy buttermilk pancakes with maple syrup, butter, and fresh berries.',
     price: 10.99, image_url: '/seed/en/pancakes.webp',
     is_active: true, is_featured: true, sort_order: 1, created_at: older,
-    variants: [
-      { id: 'buc-v-pan-reg', product_id: P_PANCAKES, name: 'Regular (3 pcs)', price_delta: 0, sort_order: 1 },
-      { id: 'buc-v-pan-lg', product_id: P_PANCAKES, name: 'Stack (5 pcs)', price_delta: 4, sort_order: 2 },
+    variants: [],
+    modifier_groups: [
+      {
+        id: 'buc-mg-pan-stack', product_id: P_PANCAKES, name: 'Short or full stack?', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'buc-mo-pan-short', group_id: 'buc-mg-pan-stack', name: 'Short Stack (3)', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'buc-mo-pan-full', group_id: 'buc-mg-pan-stack', name: 'Full Stack (5)', price_delta: 4, is_default: false, sort_order: 1 },
+        ],
+      },
     ],
     extras: [
       { id: 'buc-e-pan-nutella', product_id: P_PANCAKES, name: 'Nutella drizzle', price: 1.99, sort_order: 1 },
@@ -126,17 +133,25 @@ export const grillHouseProducts: Product[] = [
   {
     id: P_BURGER, restaurant_id: RID, category_id: CAT_LUNCH,
     name: 'The Classic Burger',
-    description: '8oz Angus beef patty, lettuce, tomato, onion, pickles on a brioche bun. Served with fries.',
+    description: '8 oz Angus beef patty with lettuce, tomato, onion, and pickles on a brioche bun. Served with fries.',
     price: 14.99, image_url: '/seed/en/burger.webp',
     is_active: true, is_featured: true, sort_order: 1, created_at: older,
-    variants: [
-      { id: 'buc-v-burger-s', product_id: P_BURGER, name: 'Single Patty', price_delta: 0, sort_order: 1 },
-      { id: 'buc-v-burger-d', product_id: P_BURGER, name: 'Double Patty', price_delta: 4.50, sort_order: 2 },
+    variants: [],
+    modifier_groups: [
+      {
+        id: 'buc-mg-burger-patty', product_id: P_BURGER, name: 'Single or double?', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'buc-mo-burger-s', group_id: 'buc-mg-burger-patty', name: 'Single', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'buc-mo-burger-d', group_id: 'buc-mg-burger-patty', name: 'Double', price_delta: 4.50, is_default: false, sort_order: 1 },
+        ],
+      },
     ],
+    // Legacy extras render under "Add-ons", so the option names drop the "Add".
     extras: [
-      { id: 'buc-e-burger-bacon', product_id: P_BURGER, name: 'Add Bacon', price: 2.49, sort_order: 1 },
-      { id: 'buc-e-burger-cheese', product_id: P_BURGER, name: 'Add Cheddar', price: 1.49, sort_order: 2 },
-      { id: 'buc-e-burger-avo', product_id: P_BURGER, name: 'Add Avocado', price: 2.49, sort_order: 3 },
+      { id: 'buc-e-burger-bacon', product_id: P_BURGER, name: 'Bacon', price: 2.49, sort_order: 1 },
+      { id: 'buc-e-burger-cheese', product_id: P_BURGER, name: 'Cheddar', price: 1.49, sort_order: 2 },
+      { id: 'buc-e-burger-avo', product_id: P_BURGER, name: 'Avocado', price: 2.49, sort_order: 3 },
     ],
   },
   {
@@ -179,15 +194,22 @@ export const grillHouseProducts: Product[] = [
   {
     id: P_STEAK, restaurant_id: RID, category_id: CAT_DINNER,
     name: 'NY Strip Steak',
-    description: '12oz USDA Choice strip steak grilled to perfection with mashed potatoes and seasonal vegetables.',
+    description: '12 oz USDA Choice strip steak grilled to perfection with mashed potatoes and seasonal vegetables.',
     price: 28.99, image_url: '/seed/en/steak.webp',
     is_active: true, is_featured: true, sort_order: 1, created_at: older,
-    variants: [
-      { id: 'buc-v-steak-mr', product_id: P_STEAK, name: 'Medium Rare', price_delta: 0, sort_order: 1 },
-      { id: 'buc-v-steak-med', product_id: P_STEAK, name: 'Medium', price_delta: 0, sort_order: 2 },
-      { id: 'buc-v-steak-well', product_id: P_STEAK, name: 'Well Done', price_delta: 0, sort_order: 3 },
-    ],
+    variants: [],
     extras: [],
+    modifier_groups: [
+      {
+        id: 'buc-mg-steak-temp', product_id: P_STEAK, name: 'How would you like it cooked?', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'buc-mo-steak-mr', group_id: 'buc-mg-steak-temp', name: 'Medium Rare', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'buc-mo-steak-med', group_id: 'buc-mg-steak-temp', name: 'Medium', price_delta: 0, is_default: false, sort_order: 1 },
+          { id: 'buc-mo-steak-well', group_id: 'buc-mg-steak-temp', name: 'Well Done', price_delta: 0, is_default: false, sort_order: 2 },
+        ],
+      },
+    ],
   },
   {
     id: 'buc-p-salmon', restaurant_id: RID, category_id: CAT_DINNER,
@@ -225,16 +247,23 @@ export const grillHouseProducts: Product[] = [
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
-  // ── Appetizer ──
+  // ── Appetizers ──
   {
     id: P_WINGS, restaurant_id: RID, category_id: CAT_APPETIZER,
     name: 'Buffalo Wings',
-    description: 'Crispy wings tossed in your choice of sauce, served with celery and blue cheese dip.',
+    description: 'Crispy wings tossed in classic Buffalo sauce, served with celery and blue cheese dip.',
     price: 12.99, image_url: '/seed/en/wings.webp',
     is_active: true, is_featured: true, sort_order: 1, created_at: older,
-    variants: [
-      { id: 'buc-v-wings-6', product_id: P_WINGS, name: '6 Pieces', price_delta: 0, sort_order: 1 },
-      { id: 'buc-v-wings-12', product_id: P_WINGS, name: '12 Pieces', price_delta: 6, sort_order: 2 },
+    variants: [],
+    modifier_groups: [
+      {
+        id: 'buc-mg-wings-count', product_id: P_WINGS, name: 'How many?', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'buc-mo-wings-6', group_id: 'buc-mg-wings-count', name: '6 Pieces', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'buc-mo-wings-12', group_id: 'buc-mg-wings-count', name: '12 Pieces', price_delta: 6, is_default: false, sort_order: 1 },
+        ],
+      },
     ],
     extras: [
       { id: 'buc-e-wings-ranch', product_id: P_WINGS, name: 'Extra Ranch Dip', price: 1.50, sort_order: 1 },
@@ -276,23 +305,30 @@ export const grillHouseProducts: Product[] = [
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
-  // ── Beverage ──
+  // ── Beverages ──
   {
     id: P_LEMONADE, restaurant_id: RID, category_id: CAT_BEVERAGE,
-    name: 'Fresh Squeezed Lemonade',
+    name: 'Fresh-Squeezed Lemonade',
     description: 'House-made lemonade with real lemons, lightly sweetened. Served ice cold.',
     price: 4.49, image_url: '/seed/en/lemonade.webp',
     is_active: true, sort_order: 1, created_at: older,
-    variants: [
-      { id: 'buc-v-lemon-reg', product_id: P_LEMONADE, name: 'Regular', price_delta: 0, sort_order: 1 },
-      { id: 'buc-v-lemon-lg', product_id: P_LEMONADE, name: 'Large', price_delta: 1.50, sort_order: 2 },
-    ],
+    variants: [],
     extras: [],
+    modifier_groups: [
+      {
+        id: 'buc-mg-lemon-size', product_id: P_LEMONADE, name: 'Size', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'buc-mo-lemon-reg', group_id: 'buc-mg-lemon-size', name: 'Regular', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'buc-mo-lemon-lg', group_id: 'buc-mg-lemon-size', name: 'Large', price_delta: 1.50, is_default: false, sort_order: 1 },
+        ],
+      },
+    ],
   },
   {
     id: 'buc-p-icedcoffee', restaurant_id: RID, category_id: CAT_BEVERAGE,
     name: 'Iced Coffee',
-    description: 'Cold-brewed coffee served over ice with your choice of milk. Rich and smooth.',
+    description: 'Cold-brewed coffee served over ice. Rich and smooth.',
     price: 4.99, image_url: '/seed/en/coffee.webp',
     is_active: true, sort_order: 2, created_at: older, variants: [], extras: [],
   },
@@ -306,7 +342,7 @@ export const grillHouseProducts: Product[] = [
   {
     id: 'buc-p-sparkling', restaurant_id: RID, category_id: CAT_BEVERAGE,
     name: 'Sparkling Water',
-    description: 'San Pellegrino sparkling mineral water, 500ml bottle.',
+    description: 'S.Pellegrino sparkling mineral water, 500 ml bottle.',
     price: 3.49, image_url: '/seed/en/water.webp',
     is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
@@ -325,24 +361,31 @@ export const grillHouseProducts: Product[] = [
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
-  // ── Drinks (Alcoholic) ──
+  // ── Bar ──
   {
     id: P_MARGARITA, restaurant_id: RID, category_id: CAT_DRINKS,
     name: 'Classic Margarita',
-    description: 'Tequila, triple sec, fresh lime juice, salt rim. Shaken and served on the rocks.',
+    description: 'Tequila, triple sec, and fresh lime juice with a salted rim. Shaken and served on the rocks.',
     price: 11.99, image_url: '/seed/en/margarita.webp',
     is_active: true, is_featured: true, sort_order: 1, created_at: older,
-    variants: [
-      { id: 'buc-v-marg-classic', product_id: P_MARGARITA, name: 'Classic', price_delta: 0, sort_order: 1 },
-      { id: 'buc-v-marg-mango', product_id: P_MARGARITA, name: 'Mango', price_delta: 1.50, sort_order: 2 },
-      { id: 'buc-v-marg-straw', product_id: P_MARGARITA, name: 'Strawberry', price_delta: 1.50, sort_order: 3 },
-    ],
+    variants: [],
     extras: [],
+    modifier_groups: [
+      {
+        id: 'buc-mg-marg-flavor', product_id: P_MARGARITA, name: 'Flavor', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'buc-mo-marg-classic', group_id: 'buc-mg-marg-flavor', name: 'Classic', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'buc-mo-marg-mango', group_id: 'buc-mg-marg-flavor', name: 'Mango', price_delta: 1.50, is_default: false, sort_order: 1 },
+          { id: 'buc-mo-marg-straw', group_id: 'buc-mg-marg-flavor', name: 'Strawberry', price_delta: 1.50, is_default: false, sort_order: 2 },
+        ],
+      },
+    ],
   },
   {
     id: 'buc-p-craftbeer', restaurant_id: RID, category_id: CAT_DRINKS,
     name: 'Craft Beer',
-    description: 'Rotating selection of local craft beers on tap. Ask your server for today\'s picks.',
+    description: 'Local craft beer on tap, rotating with the season.',
     price: 7.99, image_url: '/seed/en/beer.webp',
     is_active: true, sort_order: 2, created_at: older, variants: [], extras: [],
   },
@@ -363,7 +406,7 @@ export const grillHouseProducts: Product[] = [
   {
     id: 'buc-p-redwine', restaurant_id: RID, category_id: CAT_DRINKS,
     name: 'Red Wine',
-    description: 'House selection Cabernet Sauvignon from Napa Valley. Rich, full-bodied.',
+    description: 'Our house Cabernet Sauvignon from Napa Valley. Rich and full-bodied.',
     price: 9.99, image_url: '/seed/en/wine.webp',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
@@ -386,7 +429,7 @@ export const grillHouseProducts: Product[] = [
   {
     id: P_BROWNIE, restaurant_id: RID, category_id: CAT_DESSERTS,
     name: 'Brownie Sundae',
-    description: 'Warm chocolate brownie topped with vanilla ice cream, hot fudge, whipped cream.',
+    description: 'Warm chocolate brownie topped with vanilla ice cream, hot fudge, and whipped cream.',
     price: 9.49, image_url: '/seed/en/brownie.webp',
     is_active: true, sort_order: 2, created_at: older,
     variants: [],

@@ -106,9 +106,13 @@ export async function generateMetadata({
     // El layout raíz aplica template '%s | MENIUS', así que el title de la
     // página NO lleva la marca — si la lleva sale "MENIUS | MENIUS".
     // openGraph/twitter ignoran el template, ahí sí va el título completo.
-    const title = `${r.name} — Menú Digital`;
+    // Same suffix and fallback as real stores (below), in the demo's language.
+    const isEnDemo = demoConfig.locale === "en";
+    const title = `${r.name} — ${isEnDemo ? "Order Online" : "Pide en línea"}`;
     const fullTitle = `${title} | MENIUS`;
-    const description = r.description ?? `Pide online en ${r.name}`;
+    const description =
+      r.description ||
+      (isEnDemo ? `Order online from ${r.name}.` : `Pide en línea en ${r.name}.`);
     const url = `${APP_URL}/${params.slug}`;
     const image = r.cover_image_url || `${APP_URL}/icons/icon-512.svg`;
     return {

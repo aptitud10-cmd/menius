@@ -7,10 +7,10 @@ const older = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 const CAT_DESAYUNOS = 'demo-cat-desayunos';
 const CAT_ALMUERZOS = 'demo-cat-almuerzos';
 const CAT_CENAS = 'demo-cat-cenas';
-const CAT_APERITIVOS = 'demo-cat-aperitivos';
+const CAT_ENTRADAS = 'demo-cat-entradas';
 const CAT_BEBIDAS = 'demo-cat-bebidas';
-const CAT_LICORES = 'demo-cat-licores';
-const CAT_TORTAS = 'demo-cat-tortas';
+const CAT_BAR = 'demo-cat-bar';
+const CAT_POSTRES = 'demo-cat-postres';
 
 export const demoRestaurant: Restaurant = {
   id: RID,
@@ -53,10 +53,10 @@ export const demoCategories: Category[] = [
   { id: CAT_DESAYUNOS, restaurant_id: RID, name: 'Desayunos', sort_order: 1, is_active: true, created_at: now },
   { id: CAT_ALMUERZOS, restaurant_id: RID, name: 'Almuerzos', sort_order: 2, is_active: true, created_at: now },
   { id: CAT_CENAS, restaurant_id: RID, name: 'Cenas', sort_order: 3, is_active: true, created_at: now },
-  { id: CAT_APERITIVOS, restaurant_id: RID, name: 'Aperitivos', sort_order: 4, is_active: true, created_at: now },
+  { id: CAT_ENTRADAS, restaurant_id: RID, name: 'Entradas', sort_order: 4, is_active: true, created_at: now },
   { id: CAT_BEBIDAS, restaurant_id: RID, name: 'Bebidas', sort_order: 5, is_active: true, created_at: now },
-  { id: CAT_LICORES, restaurant_id: RID, name: 'Licores', sort_order: 6, is_active: true, created_at: now },
-  { id: CAT_TORTAS, restaurant_id: RID, name: 'Tortas', sort_order: 7, is_active: true, created_at: now },
+  { id: CAT_BAR, restaurant_id: RID, name: 'Bar', sort_order: 6, is_active: true, created_at: now },
+  { id: CAT_POSTRES, restaurant_id: RID, name: 'Postres', sort_order: 7, is_active: true, created_at: now },
 ];
 
 const P_CHILAQUILES = 'demo-p-chilaquiles';
@@ -72,7 +72,7 @@ export const demoProducts: Product[] = [
   {
     id: P_CHILAQUILES, restaurant_id: RID, category_id: CAT_DESAYUNOS,
     name: 'Chilaquiles Verdes',
-    description: 'Totopos bañados en salsa verde con crema, queso fresco, cebolla y huevo estrellado.',
+    description: 'Totopos bañados en salsa verde con crema, queso fresco y cebolla. Con huevo estrellado o pollo deshebrado.',
     price: 9.99, image_url: '/seed/es/chilaquiles.webp',
     is_active: true, is_featured: true, sort_order: 1, created_at: older, dietary_tags: ['vegetarian'],
     variants: [
@@ -82,7 +82,7 @@ export const demoProducts: Product[] = [
     extras: [],
     modifier_groups: [
       {
-        id: 'mg-chil-proteina', product_id: P_CHILAQUILES, name: 'Proteina', selection_type: 'single' as const,
+        id: 'mg-chil-proteina', product_id: P_CHILAQUILES, name: '¿Con qué los quieres?', selection_type: 'single' as const,
         min_select: 1, max_select: 1, is_required: true, sort_order: 0,
         options: [
           { id: 'mo-chil-huevo', group_id: 'mg-chil-proteina', name: 'Con huevo estrellado', price_delta: 0, is_default: false, sort_order: 0 },
@@ -124,14 +124,14 @@ export const demoProducts: Product[] = [
     name: 'Avena con Frutas',
     description: 'Avena caliente con leche, miel, granola, fresas y arándanos.',
     price: 6.99, image_url: '/seed/es/avena.webp',
-    is_active: true, sort_order: 6, created_at: older, dietary_tags: ['vegetarian', 'dairy_free'], variants: [], extras: [],
+    is_active: true, sort_order: 6, created_at: older, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
 
   // ── Almuerzos ──
   {
     id: P_BURGER, restaurant_id: RID, category_id: CAT_ALMUERZOS,
     name: 'Hamburguesa MENIUS',
-    description: 'Carne Angus 200g, queso cheddar, lechuga, tomate, cebolla caramelizada y salsa secreta.',
+    description: 'Carne Angus de 200 g, queso cheddar, lechuga, tomate, cebolla caramelizada y salsa secreta.',
     price: 14.99, image_url: '/seed/es/hamburguesa.webp',
     is_active: true, is_featured: true, sort_order: 1, created_at: older,
     variants: [
@@ -145,15 +145,15 @@ export const demoProducts: Product[] = [
     ],
     modifier_groups: [
       {
-        id: 'mg-burger-tamano', product_id: P_BURGER, name: 'Tamano', selection_type: 'single' as const,
+        id: 'mg-burger-tamano', product_id: P_BURGER, name: '¿Sencilla o doble?', selection_type: 'single' as const,
         min_select: 1, max_select: 1, is_required: true, sort_order: 0,
         options: [
           { id: 'mo-burger-s', group_id: 'mg-burger-tamano', name: 'Sencilla', price_delta: 0, is_default: false, sort_order: 0 },
-          { id: 'mo-burger-d', group_id: 'mg-burger-tamano', name: 'Doble carne', price_delta: 4.50, is_default: false, sort_order: 1 },
+          { id: 'mo-burger-d', group_id: 'mg-burger-tamano', name: 'Doble', price_delta: 4.50, is_default: false, sort_order: 1 },
         ],
       },
       {
-        id: 'mg-burger-extras', product_id: P_BURGER, name: 'Extras', selection_type: 'multi' as const,
+        id: 'mg-burger-extras', product_id: P_BURGER, name: 'Adicionales', selection_type: 'multi' as const,
         min_select: 0, max_select: 5, is_required: false, sort_order: 1,
         options: [
           { id: 'mo-burger-tocino', group_id: 'mg-burger-extras', name: 'Tocino', price_delta: 2.49, is_default: false, sort_order: 0 },
@@ -173,9 +173,10 @@ export const demoProducts: Product[] = [
   {
     id: 'demo-p-cesar', restaurant_id: RID, category_id: CAT_ALMUERZOS,
     name: 'Ensalada César',
-    description: 'Lechuga romana, crutones, parmesano y aderezo césar casero.',
+    description: 'Lechuga romana, crutones, parmesano y aderezo César casero.',
     price: 11.49, image_url: '/seed/es/ensalada.webp',
-    is_active: true, sort_order: 3, created_at: older, dietary_tags: ['vegetarian', 'gluten_free'], variants: [], extras: [],
+    // Sin etiquetas: los crutones llevan gluten y el aderezo César clásico, anchoa.
+    is_active: true, sort_order: 3, created_at: older, dietary_tags: [], variants: [], extras: [],
   },
   {
     id: 'demo-p-tacos', restaurant_id: RID, category_id: CAT_ALMUERZOS,
@@ -187,7 +188,7 @@ export const demoProducts: Product[] = [
   {
     id: 'demo-p-pasta', restaurant_id: RID, category_id: CAT_ALMUERZOS,
     name: 'Pasta Alfredo',
-    description: 'Fettuccine en cremosa salsa alfredo con parmesano, acompañado de pan de ajo.',
+    description: 'Fettuccine en salsa Alfredo cremosa con parmesano, acompañado de pan de ajo.',
     price: 13.99, image_url: '/seed/es/pasta.webp',
     is_active: true, sort_order: 5, created_at: now, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
@@ -213,10 +214,17 @@ export const demoProducts: Product[] = [
     description: 'Masa artesanal, salsa de tomate San Marzano, mozzarella fresca y albahaca.',
     price: 15.99, image_url: '/seed/es/pizza.webp',
     is_active: true, sort_order: 2, created_at: older, dietary_tags: ['vegetarian'],
-    variants: [
-      { id: 'v-pizza-ind', product_id: P_PIZZA, name: 'Individual (20 cm)', price_delta: 0, sort_order: 1 },
-      { id: 'v-pizza-med', product_id: P_PIZZA, name: 'Mediana (30 cm)', price_delta: 5.00, sort_order: 2 },
-      { id: 'v-pizza-fam', product_id: P_PIZZA, name: 'Familiar (40 cm)', price_delta: 10.00, sort_order: 3 },
+    variants: [],
+    modifier_groups: [
+      {
+        id: 'mg-pizza-tamano', product_id: P_PIZZA, name: 'Tamaño', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'mo-pizza-ind', group_id: 'mg-pizza-tamano', name: 'Individual (20 cm)', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'mo-pizza-med', group_id: 'mg-pizza-tamano', name: 'Mediana (30 cm)', price_delta: 5.00, is_default: false, sort_order: 1 },
+          { id: 'mo-pizza-fam', group_id: 'mg-pizza-tamano', name: 'Familiar (40 cm)', price_delta: 10.00, is_default: false, sort_order: 2 },
+        ],
+      },
     ],
     extras: [
       { id: 'e-pizza-pepp', product_id: P_PIZZA, name: 'Pepperoni', price: 2.49, sort_order: 1 },
@@ -252,53 +260,60 @@ export const demoProducts: Product[] = [
     is_active: true, sort_order: 6, created_at: now, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
 
-  // ── Aperitivos ──
+  // ── Entradas ──
   {
-    id: 'demo-p-guacamole', restaurant_id: RID, category_id: CAT_APERITIVOS,
+    id: 'demo-p-guacamole', restaurant_id: RID, category_id: CAT_ENTRADAS,
     name: 'Guacamole Fresco',
     description: 'Aguacate machacado con cebolla, cilantro, chile serrano y limón. Servido con totopos.',
     price: 8.50, image_url: '/seed/es/guacamole.webp',
     is_active: true, is_featured: true, sort_order: 1, created_at: older, dietary_tags: ['vegan', 'gluten_free'], variants: [], extras: [],
   },
   {
-    id: 'demo-p-ceviche', restaurant_id: RID, category_id: CAT_APERITIVOS,
+    id: 'demo-p-ceviche', restaurant_id: RID, category_id: CAT_ENTRADAS,
     name: 'Ceviche de Camarón',
     description: 'Camarones frescos marinados en limón con pepino, cebolla morada y aguacate.',
     price: 12.99, image_url: '/seed/es/ceviche.webp',
     is_active: true, sort_order: 2, created_at: now, dietary_tags: ['gluten_free'], variants: [], extras: [],
   },
   {
-    id: 'demo-p-nachos', restaurant_id: RID, category_id: CAT_APERITIVOS,
+    id: 'demo-p-nachos', restaurant_id: RID, category_id: CAT_ENTRADAS,
     name: 'Nachos Supremos',
     description: 'Totopos con queso fundido, jalapeños, crema, guacamole y pico de gallo.',
     price: 11.99, image_url: '/seed/es/nachos.webp',
     is_active: true, sort_order: 3, created_at: older, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
   {
-    id: 'demo-p-empanadas', restaurant_id: RID, category_id: CAT_APERITIVOS,
+    id: 'demo-p-empanadas', restaurant_id: RID, category_id: CAT_ENTRADAS,
     name: 'Empanadas de Queso',
     description: 'Tres empanadas crujientes rellenas de queso con salsa ranchera.',
     price: 7.99, image_url: '/seed/es/empanadas.webp',
     is_active: true, sort_order: 4, created_at: older, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
   {
-    id: 'demo-p-aros', restaurant_id: RID, category_id: CAT_APERITIVOS,
+    id: 'demo-p-aros', restaurant_id: RID, category_id: CAT_ENTRADAS,
     name: 'Aros de Cebolla',
     description: 'Aros de cebolla empanizados y crujientes con dip de chipotle.',
     price: 6.99, image_url: '/seed/es/aros-cebolla.webp',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
-    id: P_ALITAS, restaurant_id: RID, category_id: CAT_APERITIVOS,
+    id: P_ALITAS, restaurant_id: RID, category_id: CAT_ENTRADAS,
     name: 'Alitas BBQ',
     description: 'Alitas de pollo bañadas en salsa barbecue, servidas con apio y aderezo ranch.',
     price: 12.99, image_url: '/seed/es/alitas.webp',
     is_active: true, sort_order: 6, created_at: older,
-    variants: [
-      { id: 'v-alitas-6', product_id: P_ALITAS, name: '6 piezas', price_delta: 0, sort_order: 1 },
-      { id: 'v-alitas-12', product_id: P_ALITAS, name: '12 piezas', price_delta: 6.00, sort_order: 2 },
-    ],
+    variants: [],
     extras: [],
+    modifier_groups: [
+      {
+        id: 'mg-alitas-piezas', product_id: P_ALITAS, name: '¿Cuántas piezas?', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'mo-alitas-6', group_id: 'mg-alitas-piezas', name: '6 piezas', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'mo-alitas-12', group_id: 'mg-alitas-piezas', name: '12 piezas', price_delta: 6.00, is_default: false, sort_order: 1 },
+        ],
+      },
+    ],
   },
 
   // ── Bebidas ──
@@ -308,11 +323,18 @@ export const demoProducts: Product[] = [
     description: 'Limonada recién exprimida con hierbabuena y hielo.',
     price: 3.99, image_url: '/seed/es/limonada.webp',
     is_active: true, sort_order: 1, created_at: older,
-    variants: [
-      { id: 'v-lim-ch', product_id: P_LIMONADA, name: 'Chica (350 ml)', price_delta: 0, sort_order: 1 },
-      { id: 'v-lim-gr', product_id: P_LIMONADA, name: 'Grande (500 ml)', price_delta: 1.50, sort_order: 2 },
-    ],
+    variants: [],
     extras: [],
+    modifier_groups: [
+      {
+        id: 'mg-lim-tamano', product_id: P_LIMONADA, name: 'Tamaño', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'mo-lim-ch', group_id: 'mg-lim-tamano', name: 'Chica (350 ml)', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'mo-lim-gr', group_id: 'mg-lim-tamano', name: 'Grande (500 ml)', price_delta: 1.50, is_default: false, sort_order: 1 },
+        ],
+      },
+    ],
   },
   {
     id: 'demo-p-cafe', restaurant_id: RID, category_id: CAT_BEBIDAS,
@@ -334,110 +356,128 @@ export const demoProducts: Product[] = [
     description: 'Jugo recién exprimido de naranja, zanahoria o verde.',
     price: 5.49, image_url: '/seed/es/jugo.webp',
     is_active: true, sort_order: 4, created_at: older, dietary_tags: ['vegan', 'gluten_free'], variants: [], extras: [],
+    modifier_groups: [
+      {
+        id: 'mg-jugo-sabor', product_id: 'demo-p-jugo', name: 'Elige tu jugo', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'mo-jugo-naranja', group_id: 'mg-jugo-sabor', name: 'Naranja', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'mo-jugo-zanahoria', group_id: 'mg-jugo-sabor', name: 'Zanahoria', price_delta: 0, is_default: false, sort_order: 1 },
+          { id: 'mo-jugo-verde', group_id: 'mg-jugo-sabor', name: 'Verde', price_delta: 0, is_default: false, sort_order: 2 },
+        ],
+      },
+    ],
   },
   {
     id: 'demo-p-pepsi', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Pepsi',
-    description: 'Refresco de cola bien frío. Lata 355 ml.',
+    description: 'Refresco de cola bien frío. Lata de 355 ml.',
     price: 2.99, image_url: '/seed/es/pepsi.webp',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-sprite', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Sprite',
-    description: 'Refresco de limón con gas, refrescante y sin cafeína. Lata 355 ml.',
+    description: 'Refresco de lima-limón, sin cafeína. Lata de 355 ml.',
     price: 2.99, image_url: '/seed/es/sprite.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-ginger-ale', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Ginger Ale',
-    description: 'Refresco de jengibre suave con burbujas finas. Lata 355 ml.',
+    description: 'Refresco de jengibre suave con burbujas finas. Lata de 355 ml.',
     price: 2.99, image_url: '/seed/es/ginger-ale.webp',
     is_active: true, sort_order: 7, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-orange-soda', restaurant_id: RID, category_id: CAT_BEBIDAS,
-    name: 'Orange Soda',
-    description: 'Refresco de naranja, dulce y con mucho gas. Lata 355 ml.',
+    name: 'Refresco de Naranja',
+    description: 'Dulce y con mucho gas. Lata de 355 ml.',
     price: 2.99, image_url: '/seed/es/orange-soda.webp',
     is_active: true, sort_order: 8, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-seltzer', restaurant_id: RID, category_id: CAT_BEBIDAS,
-    name: 'Seltzer Water',
-    description: 'Agua mineral con gas, sin calorías ni azúcar. Botella 500 ml.',
+    name: 'Agua Mineral',
+    description: 'Agua mineral con gas, sin calorías ni azúcar. Botella de 500 ml.',
     price: 2.49, image_url: '/seed/es/seltzer.webp',
     is_active: true, sort_order: 9, created_at: older, dietary_tags: ['vegan', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-agua', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Agua Natural',
-    description: 'Botella de agua purificada sin gas, 500 ml.',
+    description: 'Agua purificada sin gas. Botella de 500 ml.',
     price: 1.99, image_url: '/seed/es/agua.webp',
     is_active: true, sort_order: 10, created_at: older, dietary_tags: ['vegan', 'gluten_free'], variants: [], extras: [],
   },
 
-  // ── Licores ──
+  // ── Bar ──
   {
-    id: P_MARGARITA, restaurant_id: RID, category_id: CAT_LICORES,
+    id: P_MARGARITA, restaurant_id: RID, category_id: CAT_BAR,
     name: 'Margarita Clásica',
-    description: 'Tequila, triple sec, jugo de limón y sal en el borde. Refrescante y vibrante.',
+    description: 'Tequila, triple sec, jugo de limón y sal en el borde.',
     price: 11.99, image_url: '/seed/es/margarita.webp',
     is_active: true, is_featured: true, sort_order: 1, created_at: older,
-    variants: [
-      { id: 'v-marg-nat', product_id: P_MARGARITA, name: 'Natural', price_delta: 0, sort_order: 1 },
-      { id: 'v-marg-mango', product_id: P_MARGARITA, name: 'De mango', price_delta: 1.50, sort_order: 2 },
-      { id: 'v-marg-tam', product_id: P_MARGARITA, name: 'De tamarindo', price_delta: 1.50, sort_order: 3 },
-    ],
+    variants: [],
     extras: [],
+    modifier_groups: [
+      {
+        id: 'mg-marg-sabor', product_id: P_MARGARITA, name: 'Sabor', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'mo-marg-clasica', group_id: 'mg-marg-sabor', name: 'Clásica', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'mo-marg-mango', group_id: 'mg-marg-sabor', name: 'De mango', price_delta: 1.50, is_default: false, sort_order: 1 },
+          { id: 'mo-marg-tam', group_id: 'mg-marg-sabor', name: 'De tamarindo', price_delta: 1.50, is_default: false, sort_order: 2 },
+        ],
+      },
+    ],
   },
   {
-    id: 'demo-p-cerveza', restaurant_id: RID, category_id: CAT_LICORES,
+    id: 'demo-p-cerveza', restaurant_id: RID, category_id: CAT_BAR,
     name: 'Cerveza Artesanal',
-    description: 'Selección de cervezas artesanales locales. Pregunta por la carta del día.',
+    description: 'Cerveza artesanal local de temporada.',
     price: 7.99, image_url: '/seed/es/cerveza.webp',
     is_active: true, sort_order: 2, created_at: older, variants: [], extras: [],
   },
   {
-    id: 'demo-p-mezcal', restaurant_id: RID, category_id: CAT_LICORES,
+    id: 'demo-p-mezcal', restaurant_id: RID, category_id: CAT_BAR,
     name: 'Mezcal Oaxaqueño',
     description: 'Mezcal joven artesanal servido con naranja y sal de gusano.',
     price: 9.99, image_url: '/seed/es/mezcal.webp',
     is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
   },
   {
-    id: 'demo-p-mojito', restaurant_id: RID, category_id: CAT_LICORES,
+    id: 'demo-p-mojito', restaurant_id: RID, category_id: CAT_BAR,
     name: 'Mojito',
     description: 'Ron blanco, hierbabuena fresca, limón, azúcar y soda.',
     price: 11.49, image_url: '/seed/es/mojito.webp',
     is_active: true, sort_order: 4, created_at: now, variants: [], extras: [],
   },
   {
-    id: 'demo-p-vino', restaurant_id: RID, category_id: CAT_LICORES,
+    id: 'demo-p-vino', restaurant_id: RID, category_id: CAT_BAR,
     name: 'Copa de Vino Tinto',
-    description: 'Selección de vino tinto de casa del Valle de Guadalupe.',
+    description: 'Vino tinto de la casa, del Valle de Guadalupe.',
     price: 9.99, image_url: '/seed/es/vino.webp',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
-    id: 'demo-p-michelada', restaurant_id: RID, category_id: CAT_LICORES,
+    id: 'demo-p-michelada', restaurant_id: RID, category_id: CAT_BAR,
     name: 'Michelada Clásica',
     description: 'Cerveza con jugo de limón, sal, salsa picante y chamoy.',
     price: 7.49, image_url: '/seed/es/michelada.webp',
     is_active: true, sort_order: 6, created_at: older, dietary_tags: ['spicy'], variants: [], extras: [],
   },
 
-  // ── Tortas (Postres) ──
+  // ── Postres ──
   {
-    id: 'demo-p-flan', restaurant_id: RID, category_id: CAT_TORTAS,
+    id: 'demo-p-flan', restaurant_id: RID, category_id: CAT_POSTRES,
     name: 'Flan Napolitano',
     description: 'Flan cremoso de vainilla con caramelo casero.',
     price: 6.99, image_url: '/seed/es/flan.webp',
     is_active: true, sort_order: 1, created_at: older, dietary_tags: ['vegetarian', 'gluten_free'], variants: [], extras: [],
   },
   {
-    id: P_CHURROS, restaurant_id: RID, category_id: CAT_TORTAS,
+    id: P_CHURROS, restaurant_id: RID, category_id: CAT_POSTRES,
     name: 'Churros con Chocolate',
     description: 'Churros crujientes espolvoreados con azúcar y canela, con salsa de chocolate belga.',
     price: 7.49, image_url: '/seed/es/churros.webp',
@@ -449,28 +489,40 @@ export const demoProducts: Product[] = [
     ],
   },
   {
-    id: 'demo-p-tresleches', restaurant_id: RID, category_id: CAT_TORTAS,
+    id: 'demo-p-tresleches', restaurant_id: RID, category_id: CAT_POSTRES,
     name: 'Pastel de Tres Leches',
     description: 'Bizcocho empapado en leche condensada, evaporada y crema, decorado con fresas.',
     price: 8.49, image_url: '/seed/es/tres-leches.webp',
     is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
   },
   {
-    id: 'demo-p-brownie', restaurant_id: RID, category_id: CAT_TORTAS,
+    id: 'demo-p-brownie', restaurant_id: RID, category_id: CAT_POSTRES,
     name: 'Brownie con Helado',
     description: 'Brownie de chocolate caliente con helado de vainilla y salsa de chocolate.',
     price: 9.49, image_url: '/seed/es/brownie.webp',
     is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
-    id: 'demo-p-helado', restaurant_id: RID, category_id: CAT_TORTAS,
+    id: 'demo-p-helado', restaurant_id: RID, category_id: CAT_POSTRES,
     name: 'Helado Artesanal',
     description: 'Dos bolas de helado artesanal. Sabores: vainilla, chocolate, fresa o mango.',
     price: 5.99, image_url: '/seed/es/helado.webp',
     is_active: true, sort_order: 5, created_at: older, dietary_tags: ['vegetarian', 'gluten_free'], variants: [], extras: [],
+    modifier_groups: [
+      {
+        id: 'mg-helado-sabores', product_id: 'demo-p-helado', name: 'Elige hasta 2 sabores', selection_type: 'multi' as const,
+        min_select: 1, max_select: 2, is_required: true, sort_order: 0,
+        options: [
+          { id: 'mo-helado-vainilla', group_id: 'mg-helado-sabores', name: 'Vainilla', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'mo-helado-chocolate', group_id: 'mg-helado-sabores', name: 'Chocolate', price_delta: 0, is_default: false, sort_order: 1 },
+          { id: 'mo-helado-fresa', group_id: 'mg-helado-sabores', name: 'Fresa', price_delta: 0, is_default: false, sort_order: 2 },
+          { id: 'mo-helado-mango', group_id: 'mg-helado-sabores', name: 'Mango', price_delta: 0, is_default: false, sort_order: 3 },
+        ],
+      },
+    ],
   },
   {
-    id: 'demo-p-pay', restaurant_id: RID, category_id: CAT_TORTAS,
+    id: 'demo-p-pay', restaurant_id: RID, category_id: CAT_POSTRES,
     name: 'Pay de Queso',
     description: 'Pay de queso estilo New York con base de galleta y mermelada de frutos rojos.',
     price: 7.99, image_url: '/seed/es/pay-queso.webp',
