@@ -77,7 +77,7 @@ export function LandingStickyCta({ locale }: { locale: LandingLocale }) {
           href="/signup"
           className="flex-1 text-center py-3.5 rounded-xl bg-white text-black font-bold text-[15px] active:bg-gray-100 transition-colors"
         >
-          {locale === 'es' ? 'Empezar gratis — sin tarjeta →' : 'Start free — no card needed →'}
+          {locale === 'es' ? 'Prueba gratis 14 días →' : 'Start free 14-day trial →'}
         </Link>
         <button
           type="button"

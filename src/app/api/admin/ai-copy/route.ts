@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 - Restaurantes activos (pagando): ${activeRestaurants ?? 0}
 - Restaurantes en trial: ${trialingRestaurants ?? 0}
 - Últimos registros: ${(recentSignups ?? []).map(r => r.name).join(', ') || 'N/A'}
-- Planes (los ÚNICOS que existen; no menciones otros): Free $0 (menú digital + QR hasta 5 mesas, hasta 15 productos, solo pedidos en mesa en efectivo) y Pro $149/mes o $1,490/año (2 meses gratis). Colombia: 179.000 COP/mes o 1.790.000 COP/año
+- Planes (los ÚNICOS que existen; no menciones otros): Free $0 (menú digital + QR hasta 5 mesas, hasta 15 productos, solo pedidos en mesa en efectivo) y Pro $149/mes o $1,490/año (2 meses gratis). En Colombia se cobra igual, en dólares: $149 USD/mes o $1,490 USD/año (no des precios en COP)
 - Trial: 14 días de Pro gratis, sin tarjeta. Si no se suscribe, el día 15 baja a Free (el menú sigue visible; pierde pickup, delivery y pagos online)
 - Pro incluye: productos ilimitados, QR hasta 50 mesas, pedidos en mesa + pickup + delivery, pagos online con tarjeta, dominio propio, sin marca MENIUS, IA (importar menú desde foto, generar imágenes, asistente MENIUS AI), analytics, cocina KDS, promociones y cupones, reseñas, lealtad, 5 usuarios, reportes PDF/CSV
 - Comisión: 0% de comisión de MENIUS por pedido. El procesamiento de Stripe (2.9% + 30¢ por pago con tarjeta) lo paga el restaurante y se descuenta de cada pago. El dinero va a la cuenta Stripe del propio restaurante; MENIUS solo cobra la suscripción

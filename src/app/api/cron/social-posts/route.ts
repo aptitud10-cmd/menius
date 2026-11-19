@@ -87,7 +87,7 @@ function buildMasterPrompt(
 
 CONTEXT — ABOUT MENIUS:
 - All-in-one digital platform for restaurants: QR digital menu, real-time online ordering, kitchen display system (KDS), AI assistant, customer CRM, analytics, marketing automation
-- Pricing (the ONLY plans — never mention others): Free $0 (digital menu + QR up to 5 tables, up to 15 products, dine-in cash orders only) and Pro $149/mo or $1,490/yr (2 months free). Colombia: 179.000 COP/mo or 1.790.000 COP/yr
+- Pricing (the ONLY plans — never mention others): Free $0 (digital menu + QR up to 5 tables, up to 15 products, dine-in cash orders only) and Pro $149/mo or $1,490/yr (2 months free). Colombia pays the same, in US dollars: $149 USD/mo or $1,490 USD/yr (never quote COP prices)
 - CRITICAL DIFFERENTIATOR: 0% MENIUS commission per order. Delivery marketplaces like Rappi, UberEats or DoorDash take a percentage of every order; MENIUS charges a flat monthly subscription. Card payments go to the restaurant's own Stripe account and Stripe's processing (2.9% + 30¢ per card payment) is paid by the restaurant — never say "no fees" or a bare "0% commission".
 - 14 days of Pro free, no credit card required. If they don't subscribe, on day 15 the account moves to the Free plan (menu stays online; pickup, delivery and online payments are lost)
 - Delivery is done with the restaurant's own drivers (MENIUS does not provide drivers)

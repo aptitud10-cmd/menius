@@ -62,7 +62,7 @@ const PRICING_PLANS = [
     name: 'Pro',
     price: 149,
     desc: 'Todo incluido · 14 días gratis',
-    features: ['Generación de fotos con IA', 'Importar menú desde foto con IA', 'Pedidos en mesa, para llevar y delivery', 'Pagos online (0% comisión de MENIUS)', 'Promociones, reseñas y lealtad', 'Soporte por chat (2h)'],
+    features: ['Generación de fotos con IA', 'Importar menú desde foto con IA', 'Pedidos en mesa, para llevar y delivery', 'Pagos online (0% comisión de MENIUS)', 'Promociones, reseñas y lealtad', 'Soporte por chat (respuesta en 2 h)'],
     cta: 'Probar Pro gratis',
     href: '/signup',
     popular: true,
@@ -324,9 +324,9 @@ export default function AIFotosPage() {
           </p>
           <div className="flex items-center justify-center gap-10 text-center">
             {[
-              { value: '+35%', label: 'más pedidos' },
               { value: '30s', label: 'por imagen' },
-              { value: '95%', label: 'más barato' },
+              { value: '3', label: 'modos de IA' },
+              { value: '$0', label: 'extra en Pro' },
             ].map(s => (
               <div key={s.label}>
                 <p className="text-3xl font-black text-gray-900">{s.value}</p>
@@ -342,7 +342,7 @@ export default function AIFotosPage() {
             before="https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=800&h=600&fit=crop&q=60&sat=-80"
             after="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&h=600&fit=crop&q=90"
           />
-          <p className="text-center text-xs text-gray-400 mt-2">← Arrastra para comparar · Ejemplo de transformación IA</p>
+          <p className="text-center text-xs text-gray-400 mt-2">← Arrastra para comparar · Imagen ilustrativa, no es un resultado real de la herramienta</p>
         </div>
       </section>
 
@@ -564,7 +564,7 @@ export default function AIFotosPage() {
                       </div>
                     )}
                     <Link href="/app/menu/products" className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-orange-500 hover:bg-orange-600 text-sm font-bold text-white transition-all">
-                      Aplicar a un producto en Menius <ArrowRight className="w-4 h-4" />
+                      Aplicar a un producto en MENIUS <ArrowRight className="w-4 h-4" />
                     </Link>
                   </div>
                 </div>
@@ -610,8 +610,8 @@ export default function AIFotosPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { icon: Zap, color: 'text-orange-500 bg-orange-50', title: 'Resultados en 30 segundos', desc: 'Sin esperas largas. La IA procesa tu foto en segundos y devuelve una imagen lista para publicar.' },
-            { icon: Shield, color: 'text-emerald-500 bg-emerald-50', title: 'Tu comida, mejorada', desc: 'No generamos comida falsa. Mejoramos tu foto real — iluminación, fondo y presentación — sin alterar el plato.' },
-            { icon: ArrowRight, color: 'text-blue-500 bg-blue-50', title: 'Directo a tu menú', desc: 'Aplica la imagen mejorada directamente a un producto de tu menú Menius sin descargar ni cargar nada.' },
+            { icon: Shield, color: 'text-emerald-500 bg-emerald-50', title: 'Tu comida, mejorada', desc: 'Sube tu foto y la IA mejora la luz, el fondo y la presentación sin cambiar el plato. ¿Todavía no tienes foto? Crea una desde cero con el nombre del plato y úsala mientras tomas la tuya.' },
+            { icon: ArrowRight, color: 'text-blue-500 bg-blue-50', title: 'Directo a tu menú', desc: 'Aplica la imagen directamente a un producto de tu menú MENIUS, sin descargar ni subir nada.' },
           ].map(f => (
             <div key={f.title} className="bg-white rounded-2xl border border-gray-100 p-6">
               <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${f.color}`}>
@@ -639,7 +639,7 @@ export default function AIFotosPage() {
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-orange-500 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Más popular</span>
+                    <span className="bg-orange-500 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Recomendado</span>
                   </div>
                 )}
                 <div className="mb-5">
@@ -678,7 +678,7 @@ export default function AIFotosPage() {
             Empieza gratis hoy
           </h2>
           <p className="text-orange-100 mb-8">
-            Incluido en el plan Pro de Menius, con 14 días gratis. Sin costo adicional.
+            Incluido en el plan Pro de MENIUS, con 14 días gratis. Sin costo adicional.
           </p>
           <Link
             href="/signup"

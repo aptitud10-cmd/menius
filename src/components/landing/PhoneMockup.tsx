@@ -196,7 +196,7 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
 
   const items = [
     { name: 'Tacos al Pastor',    price: '$12.99', desc: isEs ? 'Piña, cilantro, cebolla'       : 'Pineapple, cilantro, onion',     popular: true  },
-    { name: 'Fresh Guacamole',    price: '$8.50',  desc: isEs ? 'Aguacate, jitomate, limón'      : 'Avocado, tomato, lime',          popular: false },
+    { name: isEs ? 'Guacamole fresco' : 'Fresh Guacamole', price: '$8.50',  desc: isEs ? 'Aguacate, tomate, limón' : 'Avocado, tomato, lime', popular: false },
     { name: 'Enchiladas Suizas',  price: '$14.99', desc: isEs ? 'Pollo, salsa verde, queso'      : 'Chicken, green salsa, cheese',   popular: false },
     { name: 'Horchata',           price: '$4.00',  desc: isEs ? 'Arroz, canela, vainilla'        : 'Rice, cinnamon, vanilla',        popular: false },
   ];

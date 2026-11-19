@@ -294,6 +294,7 @@ function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
         </p>
         <p className="text-lg text-[#05c8a7] font-semibold mt-1">{t.perYear}</p>
       </div>
+      <p className="mt-4 text-xs text-gray-300 text-center leading-relaxed max-w-md mx-auto">{t.footnote}</p>
     </div>
   );
 }
@@ -321,13 +322,8 @@ function MidCta({ text, highlight, cta }: { text: string; highlight: string; cta
 // Un solo plan a la venta (Pro). El índice coincide con t.pricing.plans.
 const PLAN_IDS = ['pro'] as const;
 
-const COP_PRICES: Record<typeof PLAN_IDS[number], { monthly: number; annual: number }> = {
-  pro: { monthly: 179_000, annual: 1_790_000 },
-};
-
-function formatCOP(amount: number): string {
-  return amount.toLocaleString('es-CO');
-}
+// Colombia ve el mismo precio que se cobra: Stripe factura la suscripción en USD
+// en todos los países (un solo price id por intervalo). Allá solo se aclara "USD".
 
 type ColKey = 'free' | 'pro';
 
@@ -380,9 +376,7 @@ function PlanAccordionMobile({
         const isOpen = open === i;
         const isPro = i === proIdx;
         const label = colLabels[i];
-        const price = isColombia
-          ? (key === 'free' ? '$0' : `$${formatCOP(COP_PRICES[key as typeof PLAN_IDS[number]].monthly)}`)
-          : COL_PRICES[key];
+        const price = COL_PRICES[key];
         const suffix = getSuffix(key);
 
         return (
@@ -404,7 +398,7 @@ function PlanAccordionMobile({
               <span className="flex items-center gap-3">
                 <span className={`text-base font-bold ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>
                   {price}
-                  {isColombia && key !== 'free' && <span className="text-xs text-gray-500"> COP</span>}
+                  {isColombia && key !== 'free' && <span className="text-xs text-gray-500"> USD</span>}
                   {suffix && <span className="text-xs text-gray-500 font-normal">{suffix}</span>}
                 </span>
                 <span className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
@@ -476,9 +470,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
             {colLabels.map((label, i) => {
               const key = colKeys[i];
               const isPro = i === proIdx;
-              const price = isColombia
-                ? (key === 'free' ? '$0' : `$${formatCOP(COP_PRICES[key as typeof PLAN_IDS[number]].monthly)}`)
-                : COL_PRICES[key];
+              const price = COL_PRICES[key];
               const suffix = getSuffix(key);
               return (
                 <div
@@ -488,7 +480,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
                   <span className={`text-sm font-bold whitespace-nowrap ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>{label}</span>
                   <span className="text-xs text-gray-500 whitespace-nowrap">
                     <span className={`font-semibold ${isPro ? 'text-[#05c8a7]/80' : 'text-gray-400'}`}>{price}</span>
-                    {isColombia && key !== 'free' && <span className="text-gray-600"> COP</span>}
+                    {isColombia && key !== 'free' && <span className="text-gray-600"> USD</span>}
                     {suffix && <span className="text-gray-600">{suffix}</span>}
                   </span>
                 </div>
@@ -534,14 +526,11 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
    numbered index, own vertical rhythm. Desktop keeps PricingSection untouched. */
 function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boolean; annual: boolean }) {
   const tp = t.pricing;
-  const formatPrice = (n: number) => (isColombia ? formatCOP(n) : String(n));
 
   const priceFor = (idx: number) => {
     const planId = PLAN_IDS[idx];
-    const monthly = isColombia ? COP_PRICES[planId].monthly : PLANS[planId].price.monthly;
-    const perMonthAnnual = isColombia
-      ? Math.floor(COP_PRICES[planId].annual / 12)
-      : Math.floor(PLANS[planId].price.annual / 12);
+    const monthly = PLANS[planId].price.monthly;
+    const perMonthAnnual = Math.floor(PLANS[planId].price.annual / 12);
     return annual ? perMonthAnnual : monthly;
   };
 
@@ -556,17 +545,16 @@ function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boo
           <h3 className="font-display text-3xl font-extrabold tracking-tight text-white">{hero.name}</h3>
           <p className="mt-1.5 text-sm text-gray-300/80 max-w-[26ch]">{hero.desc}</p>
 
-          {/* Protagonist price — smaller scale factor for COP's long numbers so
-              it never overflows 375px. */}
+          {/* Protagonist price */}
           <div className="mt-7 flex flex-wrap items-end gap-x-2 gap-y-1">
             <span
               className="font-display font-black tracking-tight text-white leading-[0.9] break-all"
-              style={{ fontSize: isColombia ? 'clamp(2.5rem, 11vw, 3.5rem)' : 'clamp(3.5rem, 18vw, 5rem)' }}
+              style={{ fontSize: 'clamp(3.5rem, 18vw, 5rem)' }}
             >
-              ${formatPrice(priceFor(heroIdx))}
+              ${priceFor(heroIdx)}
             </span>
             <span className="mb-2 text-sm text-gray-400">
-              {isColombia ? 'COP' : ''}{annual ? tp.annualPerMonth : tp.perMonth}
+              {isColombia ? 'USD' : ''}{annual ? tp.annualPerMonth : tp.perMonth}
             </span>
           </div>
 
@@ -648,15 +636,13 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
             const planId = PLAN_IDS[idx];
             const planConfig = PLANS[planId];
 
-            const monthlyPrice = isColombia ? COP_PRICES[planId].monthly : planConfig.price.monthly;
-            const annualTotal  = isColombia ? COP_PRICES[planId].annual  : planConfig.price.annual;
-            const annualPerMonth = isColombia
-              ? Math.floor(COP_PRICES[planId].annual / 12)
-              : Math.floor(planConfig.price.annual / 12);
+            const monthlyPrice = planConfig.price.monthly;
+            const annualTotal  = planConfig.price.annual;
+            const annualPerMonth = Math.floor(planConfig.price.annual / 12);
             const displayPrice = annual ? annualPerMonth : monthlyPrice;
 
             const currencySymbol = '$';
-            const formatPrice = (n: number) => isColombia ? formatCOP(n) : String(n);
+            const formatPrice = (n: number) => n.toLocaleString('en-US');
 
             return (
               <div
@@ -682,7 +668,7 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
                       {currencySymbol}{formatPrice(displayPrice)}
                     </span>
                     <span className="text-sm text-gray-400 mb-1.5 leading-tight">
-                      {isColombia ? 'COP' : ''}{annual ? tp.annualPerMonth : tp.perMonth}
+                      {isColombia ? 'USD' : ''}{annual ? tp.annualPerMonth : tp.perMonth}
                     </span>
                   </div>
                   {annual && (
@@ -766,7 +752,6 @@ function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
               {item.name}
             </span>
             <p className="mt-4 text-[15px] text-gray-200 leading-relaxed">{item.quote}</p>
-            <p className="mt-3 text-xs text-gray-500 tracking-wide">— {item.role}</p>
           </div>
         ))}
       </div>
@@ -784,12 +769,6 @@ function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
               </span>
             </div>
             <p className="text-sm text-gray-300 leading-relaxed flex-1">{item.quote}</p>
-            <div className="flex items-center gap-2 pt-3 border-t border-white/[0.06]">
-              <svg className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="text-[11px] text-gray-600 leading-tight">{item.role}</span>
-            </div>
           </div>
         ))}
       </div>
@@ -800,21 +779,21 @@ function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
 /* ─── FAQ SECTION ─── */
 
 const FAQ_ES = [
-  { q: '¿Qué es MENIUS?', a: 'MENIUS es una plataforma todo-en-uno para restaurantes: menú digital con QR, pedidos en tiempo real, cocina KDS, asistente IA, analytics, CRM y pagos integrados. Todos los planes de suscripción tienen 0% de comisión.' },
+  { q: '¿Qué es MENIUS?', a: 'MENIUS es una plataforma todo-en-uno para restaurantes: menú digital con QR, pedidos en tiempo real, cocina KDS, asistente IA, analytics, CRM y pagos integrados. El plan Pro tiene 0% de comisión de MENIUS en pagos online.' },
   { q: '¿Mis clientes necesitan descargar una app?', a: 'No. El menú funciona directo en el navegador del celular. El cliente escanea el QR y ve tu menú al instante, sin descargar nada ni registrarse.' },
-  { q: '¿Cuánto tiempo toma configurar el menú?', a: 'La configuración básica toma entre 15 y 30 minutos. Al crear tu restaurante se genera un menú de ejemplo que solo tienes que editar con tus datos.' },
-  { q: '¿MENIUS cobra comisión por pedido?', a: 'Los pedidos en efectivo no tienen comisión en ningún plan. Los pagos online con Stripe tienen 0% de comisión en todos los planes de suscripción. El plan Free no incluye pagos online. Wompi (Colombia) tampoco tiene comisión de MENIUS.' },
-  { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí. Sin contratos ni penalidades. Cancelas cuando quieras desde tu dashboard y vuelves automáticamente al plan Free — tu cuenta y menú permanecen intactos.' },
+  { q: '¿Cuánto tiempo toma configurar el menú?', a: 'La configuración básica toma unos 30 minutos. Al crear tu restaurante se genera un menú de ejemplo que solo tienes que editar con tus datos.' },
+  { q: '¿MENIUS cobra comisión por pedido?', a: 'No. Los pedidos en efectivo no tienen comisión. En el plan Pro, los pagos online con Stripe tienen 0% de comisión de MENIUS; solo pagas el procesamiento de Stripe (2.9% + 30¢ por pago con tarjeta). El plan Free no incluye pagos online. Con Wompi (Colombia) MENIUS tampoco cobra comisión.' },
+  { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí. Sin contratos ni penalidades. Cancelas cuando quieras desde tu dashboard: sigues en Pro hasta el final del período que ya pagaste y luego pasas automáticamente al plan Free. Tu cuenta, tu menú y tus datos quedan intactos.' },
   { q: '¿Es seguro?', a: 'Sí. Todos los pagos se procesan a través de Stripe o Wompi (PCI DSS Level 1). Tu menú usa HTTPS con certificado SSL. No almacenamos datos de tarjetas de crédito.' },
   { q: '¿Funciona con mi tipo de restaurante?', a: 'Sí. MENIUS funciona para restaurantes de mesa, comida para llevar (pickup), delivery propio, food trucks, dark kitchens, cafeterías, bares, heladerías y cualquier negocio de alimentos. Si vendes comida, MENIUS funciona.' },
 ];
 
 const FAQ_EN = [
-  { q: 'What is MENIUS?', a: 'MENIUS is an all-in-one platform for restaurants: digital menu with QR, real-time orders, kitchen KDS, AI assistant, analytics, CRM, and integrated payments. All subscription plans have 0% commission.' },
+  { q: 'What is MENIUS?', a: 'MENIUS is an all-in-one platform for restaurants: digital menu with QR, real-time orders, kitchen KDS, AI assistant, analytics, CRM, and built-in payments. The Pro plan has 0% MENIUS commission on online payments.' },
   { q: 'Do my customers need to download an app?', a: 'No. The menu works directly in the phone browser. Customers scan the QR code and see your menu instantly — no downloads, no sign-up required.' },
-  { q: 'How long does it take to set up the menu?', a: 'Basic setup takes 15–30 minutes. When you create your restaurant, a sample menu is generated automatically. Just replace the example data with yours.' },
-  { q: 'Does MENIUS charge a commission per order?', a: 'Cash orders have zero commission on any plan. Online payments via Stripe have 0% commission on all subscription plans. The Free plan does not include online payments. Wompi (Colombia) also has no MENIUS commission.' },
-  { q: 'Can I cancel anytime?', a: 'Yes. No contracts or penalties. Cancel anytime from your dashboard and you automatically return to the Free plan — your account, menu, and data stay intact.' },
+  { q: 'How long does it take to set up the menu?', a: 'Basic setup takes about 30 minutes. When you create your restaurant, we generate a sample menu for you. Just swap in your own items.' },
+  { q: 'Does MENIUS charge a commission per order?', a: 'No. Cash orders carry no commission. On the Pro plan, online payments through Stripe have 0% MENIUS commission; you only pay Stripe processing (2.9% + 30¢ per card payment). The Free plan doesn’t include online payments. With Wompi (Colombia), MENIUS doesn’t charge a commission either.' },
+  { q: 'Can I cancel anytime?', a: 'Yes. No contracts, no penalties. Cancel anytime from your dashboard: you keep Pro until the end of the period you’ve already paid for, then automatically move to the Free plan. Your account, menu and data stay intact.' },
   { q: 'Is it secure?', a: 'Yes. All payments are processed through Stripe or Wompi (PCI DSS Level 1). Your menu uses HTTPS with SSL. We never store credit card data.' },
   { q: 'Does it work for my type of restaurant?', a: 'Yes. MENIUS works for dine-in restaurants, takeout (pickup), in-house delivery, food trucks, dark kitchens, cafés, bars, ice cream shops, and any food business. If you sell food, MENIUS works.' },
 ];

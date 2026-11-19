@@ -56,7 +56,7 @@ const formT = {
     restaurantLabel: 'Restaurant name *',
     restaurantPlaceholder: 'My Restaurant',
     phoneLabel: 'Phone (optional)',
-    menuLabel: 'How do you currently have your menu?',
+    menuLabel: 'Where does your menu live today?',
     menuDefault: 'Select an option',
     menuOptions: [
       { value: 'printed', label: 'Printed / physical menu' },

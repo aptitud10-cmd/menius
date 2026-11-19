@@ -30,7 +30,7 @@ const t = {
     processSteps: [
       {
         title: "Solicitud",
-        desc: "Llena el formulario con la información de tu restaurante y elige el plan que necesitas.",
+        desc: "Llena el formulario con la información de tu restaurante y elige el paquete que necesitas.",
       },
       {
         title: "Confirmación",
@@ -45,7 +45,7 @@ const t = {
         desc: "Revisamos contigo el resultado, hacemos ajustes y tu restaurante queda online.",
       },
     ],
-    packagesTitle: "Elige tu plan de servicio",
+    packagesTitle: "Elige tu paquete",
     packagesDesc:
       "Pago único por setup. Sin sorpresas. Garantía de satisfacción o te devolvemos el dinero.",
     packages: [
@@ -93,7 +93,7 @@ const t = {
         price: 699,
         tag: "Concierge",
         tagHighlight: false,
-        desc: "Experiencia concierge completa.",
+        desc: "Lo hacemos todo, con acompañamiento personal.",
         includes: [
           "Todo lo de Setup Premium",
           "Productos ilimitados",
@@ -115,7 +115,7 @@ const t = {
         tagHighlight: false,
         desc: "Nos encargamos de todo por ti.",
         includes: [
-          "Respuesta en menos de 4 horas",
+          "Tus solicitudes, primero en la fila",
           "Cambios ilimitados al menú",
           "Actualización de precios y productos",
           "Soporte directo con el equipo",
@@ -126,7 +126,7 @@ const t = {
         monthly: true,
       },
     ],
-    priceOneTime: "USD one-time",
+    priceOneTime: "USD · pago único",
     priceMonthly: "USD/mes",
     ctaPrefix: "Solicitar",
     formTitle: "Solicitar Setup Profesional",
@@ -140,7 +140,7 @@ const t = {
       },
       {
         q: "¿Cómo generan las fotos de los platos?",
-        a: "Usamos Google Gemini AI para generar fotos profesionales de cada plato. El resultado es una imagen de alta calidad que se ve como fotografía profesional de comida.",
+        a: "Usamos inteligencia artificial de generación de imágenes para crear una foto profesional de cada plato. El resultado es una imagen de alta calidad, con el estilo de una sesión de fotografía gastronómica.",
       },
       {
         q: "¿Puedo hacer cambios después?",
@@ -163,14 +163,14 @@ const t = {
   en: {
     badge: "Professional service",
     heroLine1: "You cook.",
-    heroLine2: "We digitalize.",
+    heroLine2: "We handle the tech.",
     heroDesc:
       "Our team creates your digital menu, uploads all your products with AI-generated professional photos, and gets your restaurant ready to receive online orders.",
     processTitle: "How does it work?",
     processSteps: [
       {
         title: "Request",
-        desc: "Fill out the form with your restaurant info and choose the plan you need.",
+        desc: "Fill out the form with your restaurant's details and pick the package you need.",
       },
       {
         title: "Confirmation",
@@ -185,7 +185,7 @@ const t = {
         desc: "We review the result with you, make adjustments, and your restaurant goes live.",
       },
     ],
-    packagesTitle: "Choose your service plan",
+    packagesTitle: "Choose your package",
     packagesDesc:
       "One-time setup fee. No surprises. Satisfaction guaranteed or your money back.",
     packages: [
@@ -233,7 +233,7 @@ const t = {
         price: 699,
         tag: "Concierge",
         tagHighlight: false,
-        desc: "Full concierge experience.",
+        desc: "We do it all, with hands-on guidance.",
         includes: [
           "Everything in Premium Setup",
           "Unlimited products",
@@ -255,7 +255,7 @@ const t = {
         tagHighlight: false,
         desc: "We take care of everything for you.",
         includes: [
-          "Response in less than 4 hours",
+          "Your requests go to the front of the line",
           "Unlimited menu changes",
           "Price and product updates",
           "Direct support with the team",
@@ -266,7 +266,7 @@ const t = {
         monthly: true,
       },
     ],
-    priceOneTime: "USD one-time",
+    priceOneTime: "USD · one-time",
     priceMonthly: "USD/mo",
     ctaPrefix: "Request",
     formTitle: "Request Professional Setup",
@@ -280,10 +280,10 @@ const t = {
       },
       {
         q: "How do you generate the food photos?",
-        a: "We use Google Gemini AI to generate professional photos of each dish. The result is a high-quality image that looks like professional food photography.",
+        a: "We use AI image generation to create a professional photo of every dish. The result is a high-quality image in the style of a professional food shoot.",
       },
       {
-        q: "Can I make changes after?",
+        q: "Can I make changes later?",
         a: "Yes. Once set up, you have full access to your dashboard to edit anything. If you have Priority Support, we do it for you.",
       },
       {

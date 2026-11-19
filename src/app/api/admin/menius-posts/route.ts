@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
 ABOUT MENIUS:
 - All-in-one SaaS for restaurants: digital QR menu, real-time orders, kitchen display (KDS), AI assistant, CRM, analytics, marketing tools
-- Pricing (the ONLY plans — never mention others): Free $0 (digital menu + QR up to 5 tables, up to 15 products, dine-in cash orders only) and Pro $149/mo or $1,490/yr (2 months free). Colombia: 179.000 COP/mo or 1.790.000 COP/yr
+- Pricing (the ONLY plans — never mention others): Free $0 (digital menu + QR up to 5 tables, up to 15 products, dine-in cash orders only) and Pro $149/mo or $1,490/yr (2 months free). Colombia pays the same, in US dollars: $149 USD/mo or $1,490 USD/yr (never quote COP prices)
 - Pro includes: unlimited products, QR up to 50 tables, dine-in + pickup + delivery, online card payments, custom domain, no MENIUS branding, AI (menu import from photo, image generation, MENIUS AI assistant), analytics, KDS, promotions & coupons, reviews, loyalty, 5 users, PDF/CSV reports
 - Trial: 14 days of Pro free, no credit card. If they don't subscribe, on day 15 the account moves to Free (menu stays online; pickup, delivery and online payments are lost)
 - Commission: 0% MENIUS commission per order. Stripe card processing (2.9% + 30¢ per card payment) is paid by the restaurant and deducted from each payment. The money goes to the restaurant's own Stripe account; MENIUS only charges the subscription

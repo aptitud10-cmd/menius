@@ -74,7 +74,9 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
                 const value = isDynamic ? formatCount(ordersCount!) : headlineStat.value;
                 const label = isDynamic
                   ? (locale === 'es' ? 'pedidos sin comisión' : 'orders, zero commission')
-                  : headlineStat.label.toLowerCase();
+                  : /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]/.test(headlineStat.label)
+                    ? headlineStat.label.charAt(0).toLowerCase() + headlineStat.label.slice(1)
+                    : headlineStat.label;
                 return (
                   <span className="inline-flex items-baseline gap-1.5">
                     <span className="text-2xl font-bold text-white tracking-tight">{value}</span>
