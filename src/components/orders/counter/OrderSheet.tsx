@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { Printer, MoreHorizontal, X, Phone, Send, Pencil, Bike, History, Ban, LifeBuoy, MapPin } from 'lucide-react';
+import { Printer, MoreHorizontal, X, Phone, Send, Pencil, Bike, History, Ban, LifeBuoy } from 'lucide-react';
 import { prettyPhone } from '@/lib/phone-format';
 import type { Order } from '@/types';
 import {
@@ -20,7 +20,6 @@ export interface SheetMoreActions {
   /** Abre Ayuda de MENIUS con el número de este pedido. */
   onHelp?: () => void;
   /** Pickup en curso sin "I'm here": el cliente llegó al mostrador o llamó desde afuera. */
-  onCustomerHere?: () => void;
   onCancel?: () => void;
 }
 
@@ -57,7 +56,6 @@ export function OrderSheet({
   // Android, un enlace tel: tumba la página del WebView. El número va a la
   // vista, grande, para marcarlo desde el teléfono del local.
   const moreItems: { label: string; icon: ReactNode; onClick?: () => void; href?: string; danger?: boolean }[] = [];
-  if (more.onCustomerHere) moreItems.push({ label: T.markCustomerHere, icon: <MapPin className="w-5 h-5" />, onClick: more.onCustomerHere });
   if (more.onResendNotice) moreItems.push({ label: T.resendNotice, icon: <Send className="w-5 h-5" />, onClick: more.onResendNotice });
   if (more.onEditItems) moreItems.push({ label: T.editItems, icon: <Pencil className="w-5 h-5" />, onClick: more.onEditItems });
   if (more.onAssignDriver) moreItems.push({ label: T.assignDriver, icon: <Bike className="w-5 h-5" />, onClick: more.onAssignDriver });

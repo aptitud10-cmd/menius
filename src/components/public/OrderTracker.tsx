@@ -339,8 +339,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const onLiveEta = useCallback((m: number | null) => setLiveDeliveryEta(m == null ? null : { min: m, at: Date.now() }), []);
   // Cuándo llegó la última posición del repartidor (para "de hace N min").
   const [lastLocAt, setLastLocAt] = useState<number | null>(null);
-  const [arriving, setArriving] = useState(false);
-  const [arriveErr, setArriveErr] = useState(false);
   const [etaTick, setEtaTick] = useState(0);
   // Cuándo llegó el último dato del servidor ("Actualizado hace N s").
   const [lastFetchAt, setLastFetchAt] = useState<number | null>(() => (initialOrder ? Date.now() : null));
@@ -633,7 +631,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const freshOrder = isPending && Number.isFinite(createdMs) && now - createdMs < 90_000;
   const almost = o.status === 'almost_ready';
   const pickupReady = isPickup && isActive && o.status === 'ready';
-  const arrived = pickupReady && Boolean(o.customer_arrived_at);
   const tableName = o.table_name ? String(o.table_name) : null;
   const tableLabel = tableName ? (/^\d+$/.test(tableName) ? (en ? `table ${tableName}` : `la mesa ${tableName}`) : tableName) : (en ? 'your table' : 'tu mesa');
 
@@ -713,26 +710,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     window.location.href = `/${restaurantSlug}?reorder=1`;
   };
 
-  const markArrived = async () => {
-    if (!trackingToken || arriving) return;
-    setArriving(true);
-    setArriveErr(false);
-    try {
-      const res = await fetch('/api/public/order-customer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: o.id, t: trackingToken, action: 'arrived' }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) setOrder((prev: any) => ({ ...prev, customer_arrived_at: data.arrived_at ?? new Date().toISOString() }));
-      else setArriveErr(true);
-    } catch {
-      // Sin señal: que el cliente sepa que el mostrador NO se enteró.
-      setArriveErr(true);
-    } finally {
-      setArriving(false);
-    }
-  };
 
   const copyPhone = async () => {
     if (!restaurantPhone) return;
@@ -775,7 +752,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       ? (en ? "Sorry for the wait. We'll let you know as soon as it leaves." : 'Perdón por la espera. Te avisamos apenas salga.')
       : (en ? "Sorry for the wait. We'll let you know as soon as it's ready." : 'Perdón por la espera. Te avisamos apenas esté listo.')];
     if (pickupReady) {
-      if (arrived) return [en ? "They know you're here" : 'Ya saben que llegaste', en ? `If they don't see you, say "order ${shortNum}" at the counter.` : `Si no te ven, di "pedido ${shortNum}" en el mostrador.`];
       return [en ? 'Ready for pickup' : 'Listo para recoger', cashDue ? (en ? `You pay ${amount} in cash at the counter.` : `Pagas ${amount} en efectivo en el mostrador.`) : paidOnline ? (en ? 'Already paid.' : 'Ya está pagado.') : ''];
     }
     if (isDineIn && o.status === 'ready') return [en ? 'On its way to your table' : 'Va en camino a tu mesa', en ? `Arriving at ${tableLabel} in a moment.` : `Llega a ${tableLabel} en un momento.`];
@@ -828,8 +804,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     }
     if (pickupReady) {
       const since = tsMs(o.updated_at);
-      return { code: true, lbl: arrived ? (en ? 'Show this at the counter' : 'Muestra esto en el mostrador') : (en ? 'When you arrive, show this' : 'Al llegar, muestra esto'), val: `#${shortNum}${customerFirst ? ` · ${customerFirst}` : ''}`,
-        ctx: arrived ? (en ? "They'll bring it out in a moment" : 'Te lo traen en un momento') : Number.isFinite(since) ? (en ? `Waiting for you since ${fmtClock(since)}` : `Te espera desde las ${fmtClock(since)}`) : '' };
+      return { code: true, lbl: en ? 'When you arrive, show this' : 'Al llegar, muestra esto', val: `#${shortNum}${customerFirst ? ` · ${customerFirst}` : ''}`,
+        ctx: Number.isFinite(since) ? (en ? `Waiting for you since ${fmtClock(since)}` : `Te espera desde las ${fmtClock(since)}`) : '' };
     }
     if (isDelivery) {
       if (onTheWay && arrivalMs != null) {
@@ -901,14 +877,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     if (key === 'accepted' && waiting) return en ? `${pendingMin} min, no answer yet` : `Hace ${pendingMin} min, sin respuesta todavía`;
     if (key === 'accepted' && almost) return en ? 'Almost ready' : 'Casi listo';
     if (key === 'onway' && atDoor && Number.isFinite(doorMs)) return en ? `At your door since ${fmtClock(doorMs)}` : `En tu puerta desde las ${fmtClock(doorMs)}`;
-    if (key === 'ready' && arrived) { const a = tsMs(o.customer_arrived_at); return Number.isFinite(a) ? (en ? `You told them at ${fmtClock(a)}` : `Avisaste a las ${fmtClock(a)}`) : undefined; }
     return undefined;
   };
   const showSteps = !isCancelled && !scheduled && !awaitingPayment;
 
   // ── Acción principal ──
   const callState = isActive && !awaitingPayment && (waiting || atDoor) && !!restaurantPhone;
-  const canArrive = pickupReady && o.authorized && !!trackingToken;
   const canReorder = isComplete && !isDineIn && (o.order_items?.length ?? 0) > 0;
   const cashStripShown = cashDue && isActive && !awaitingPayment && !pickupReady && !atDoor;
   const cashWhere = isDelivery ? (en ? 'on delivery' : 'al recibir') : isDineIn ? (en ? 'at the table' : 'en la mesa') : (en ? 'at pickup' : 'al recoger');
@@ -1081,7 +1055,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       </div>,
     );
   }
-  if (isPickup && isActive && !arrived && !awaitingPayment && restaurantAddress) {
+  if (isPickup && isActive && !awaitingPayment && restaurantAddress) {
     detailRows.push(
       <div key="pickup" className={rowCls}>
         {rowIcon(<MapPin className="w-[17px] h-[17px]" />)}
@@ -1205,23 +1179,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         <a href={`tel:${restaurantPhone}`} className={ctaCls} style={{ background: K.btn, color: K.btnFg }}>
           <Phone className="w-[18px] h-[18px]" aria-hidden />{en ? `Call ${R}` : `Llamar a ${R}`}
         </a>
-      );
-    }
-    if (canArrive) {
-      if (arrived) return <p className={ctaCls} style={{ background: K.greenSoft, color: K.greenDeep }} role="status"><Check className="w-[18px] h-[18px]" strokeWidth={3} aria-hidden />{en ? 'Notified' : 'Avisado'}</p>;
-      return (
-        <>
-          {arriveErr && (
-            <p className="text-center text-[13.5px] font-semibold" style={{ color: K.red }} role="alert">
-              {en ? "Couldn't notify the restaurant. Try again" : 'No pudimos avisar al restaurante. Intenta de nuevo'}
-              {restaurantPhone && !isDesktop && <>{' '}{en ? 'or ' : 'o '}<a href={`tel:${restaurantPhone}`} className="underline">{en ? 'call' : 'llama'}</a></>}.
-            </p>
-          )}
-          <button type="button" onClick={markArrived} disabled={arriving} className={ctaCls} style={{ background: K.btn, color: K.btnFg }}>
-            {arriving ? '…' : (en ? "I'm here" : 'Ya llegué')}
-          </button>
-          <p className="text-center text-[12.5px]" style={{ color: K.faint }}>{en ? 'Lets the counter know to bring it out.' : 'Avisa al mostrador para que te lo traigan.'}</p>
-        </>
       );
     }
     if (canReorder) {

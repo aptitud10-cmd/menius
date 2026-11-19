@@ -30,10 +30,6 @@ export function pickAcceptedIndex(available: number[], previous: number | null, 
   return pool[Math.min(pool.length - 1, Math.floor(rand() * pool.length))];
 }
 
-/** Cada cuánto vuelve a sonar "el cliente llegó" si nadie lo atiende, y cuántas veces en total. */
-export const ARRIVAL_REPEAT_MS = 30_000;
-export const ARRIVAL_MAX_PLAYS = 3;
-
 /** Pausa entre dos sonidos de evento seguidos (que no se encimen). */
 const EVENT_GAP_S = 0.3;
 

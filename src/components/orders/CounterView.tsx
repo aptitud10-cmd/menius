@@ -30,9 +30,8 @@ import { C, RAISED, counterText, nearestChoice, suggestedPrep, waitingSince, SCH
 import {
   getAudioCtx, unlockWithGesture, loadTheme, setSoundTheme, setVolume as setAudioVolume, resumeAudio,
   playRing, stopRing, playAccepted, ringKind, loopIntervalMs, msUntilNextRing,
-  setAlertActive, playEvent, eventForChange, ARRIVAL_REPEAT_MS, ARRIVAL_MAX_PLAYS,
+  setAlertActive, playEvent, eventForChange,
 } from './counter/audio';
-import { markCustomerArrived } from '@/lib/actions/customer-arrival';
 import { CustomizePanel, type AppearancePreview } from './counter/CustomizePanel';
 import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS, DEMO_MAX_MS } from './counter/demo';
 import { useCounterSettings } from '@/hooks/use-counter-settings';
@@ -841,72 +840,6 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ordersView]);
 
-  // Pickup: el cliente tocó "Ya llegué" (o se marcó a mano en otra tablet).
-  // Suena su propio sonido, la tarjeta late y se repite cada 30 s (máx. 3
-  // veces) hasta que alguien abre el pedido o lo entrega. La primera pasada
-  // solo registra (al abrir la tablet no suenan los viejos).
-  const arrivedSeenRef = useRef<Set<string> | null>(null);
-  const arrivalPlaysRef = useRef(new Map<string, number>());
-  const [arrivalWaiting, setArrivalWaiting] = useState<string[]>([]);
-  const ackArrival = useCallback((id: string) => {
-    arrivalPlaysRef.current.delete(id);
-    setArrivalWaiting(w => (w.includes(id) ? w.filter(x => x !== id) : w));
-  }, []);
-  useEffect(() => {
-    const arrived = ordersView.filter(o => o.order_type === 'pickup' && o.customer_arrived_at && !['delivered', 'completed', 'cancelled'].includes(o.status));
-    if (!arrivedSeenRef.current) { arrivedSeenRef.current = new Set(arrived.map(o => o.id)); return; }
-    // Entregado o cancelado: deja de esperar.
-    setArrivalWaiting(w => {
-      const keep = w.filter(id => arrived.some(o => o.id === id));
-      return keep.length === w.length ? w : keep;
-    });
-    for (const o of arrived) {
-      if (arrivedSeenRef.current.has(o.id)) continue;
-      arrivedSeenRef.current.add(o.id);
-      const mine = selfChangeRef.current.get(o.id);
-      if (mine && mine.status === 'arrived') { selfChangeRef.current.delete(o.id); continue; } // lo marcó esta tablet
-      setArrivalWaiting(w => (w.includes(o.id) ? w : [...w, o.id]));
-      arrivalPlaysRef.current.set(o.id, 1);
-      if (soundsHere()) void playEvent('customer-arrived');
-      showSuccess(T.customerArrivedToast(o.customer_name?.split(' ')[0] || T.customer, shortOrderNumber(o.order_number)));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ordersView]);
-  // Repetición: un solo reloj para todos los que esperan; suena una vez por vuelta.
-  useEffect(() => {
-    if (arrivalWaiting.length === 0) return;
-    const id = setInterval(() => {
-      let due = false;
-      for (const oid of arrivalWaiting) {
-        const n = arrivalPlaysRef.current.get(oid) ?? ARRIVAL_MAX_PLAYS;
-        if (n < ARRIVAL_MAX_PLAYS) { arrivalPlaysRef.current.set(oid, n + 1); due = true; }
-      }
-      if (due && soundsHere()) void playEvent('customer-arrived');
-    }, ARRIVAL_REPEAT_MS);
-    return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [arrivalWaiting]);
-
-  // "Customer here" a mano (el cliente llegó sin tocar "I'm here"): misma
-  // columna que el botón del cliente. Aquí no suena (quien lo marca ya lo sabe);
-  // en las otras tablets sí.
-  const canMarkHere = (o: Order) =>
-    o.order_type === 'pickup' && !o.customer_arrived_at && ['confirmed', 'preparing', 'almost_ready', 'ready'].includes(o.status);
-  const customerHere = useCallback(async (order: Order) => {
-    markSelf(order.id, 'arrived');
-    const now = new Date().toISOString();
-    if (isDemoId(order.id)) { demoUpdate(order.id, { customer_arrived_at: now } as Partial<Order>); return; }
-    updateOrderLocally(order.id, { customer_arrived_at: now } as Partial<Order>);
-    try {
-      const res = await markCustomerArrived(order.id);
-      if ('error' in res) { updateOrderLocally(order.id, { customer_arrived_at: null } as Partial<Order>); showError(res.error); }
-    } catch {
-      updateOrderLocally(order.id, { customer_arrived_at: null } as Partial<Order>);
-      showError(t.en ? 'Unexpected error' : 'Error inesperado');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [markSelf, demoUpdate, updateOrderLocally, t]);
-
   // CloudPRNT: si un ticket más no salió, el mismo sonido de "problema".
   const cloudFailedRef = useRef<number | null>(null);
   useEffect(() => {
@@ -1596,8 +1529,6 @@ export function CounterView({
   useEffect(() => { if (ringingCount === 0) stopRing(); }, [ringingCount]);
   // Mientras suena un pedido nuevo, ningún sonido de evento va encima: esperan.
   useEffect(() => { setAlertActive(ringingCount > 0 && ringsHere); }, [ringingCount, ringsHere]);
-  // Abrir el pedido cuenta como "lo atiendo": la llegada deja de repetir.
-  useEffect(() => { if (sheetId) ackArrival(sheetId); }, [sheetId, ackArrival]);
   // Los que ya se resolvieron salen de la lista (que no crezca en un turno largo).
   useEffect(() => {
     setRingIds(r => {
@@ -1816,7 +1747,6 @@ export function CounterView({
           onPrimary={onPrimary}
           onNoShow={commitNoShow}
           routeStops={routeStops}
-          arrivalWaitingIds={arrivalWaiting}
         />
       ) : (
         <OrdersListView
@@ -1847,7 +1777,6 @@ export function CounterView({
           onPrimary={onPrimary}
           onAdjustEta={(o, m) => demoUpdate(o.id, { estimated_ready_minutes: m })}
           more={{
-            onCustomerHere: canMarkHere(sheetOrder) ? () => { void customerHere(sheetOrder); setSheetId(null); } : undefined,
             onCancel: ['pending', 'confirmed', 'preparing', 'almost_ready'].includes(sheetOrder.status)
             ? () => { markSelf(sheetOrder.id, 'cancelled'); demoUpdate(sheetOrder.id, { status: 'cancelled' }); setSheetId(null); }
             : undefined }}
@@ -1872,7 +1801,6 @@ export function CounterView({
           onPrimary={onPrimary}
           onAdjustEta={(o, m) => { updateOrderLocally(o.id, { estimated_ready_minutes: m }); void handleAdjustEta(o, m); }}
           more={{
-            onCustomerHere: canMarkHere(sheetOrder) ? () => { void customerHere(sheetOrder); setSheetId(null); } : undefined,
             onResendNotice: sheetOrder.customer_email && ['confirmed', 'preparing', 'almost_ready', 'ready', 'out_for_delivery'].includes(sheetOrder.status)
               ? () => resendNotice(sheetOrder) : undefined,
             onEditItems: !['delivered', 'completed', 'cancelled'].includes(sheetOrder.status)

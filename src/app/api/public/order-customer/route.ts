@@ -1,9 +1,11 @@
 /**
  * POST /api/public/order-customer
  * Acciones del cliente desde su seguimiento, solo con la llave del pedido (?t=):
- *  - action 'arrived': pickup listo → "Ya llegué" (la tablet del mostrador avisa).
- *  - action 'notes':   editar las instrucciones de entrega mientras el
- *                      repartidor todavía no recogió el pedido.
+ *  - action 'notes': editar las instrucciones de entrega mientras el
+ *                    repartidor todavía no recogió el pedido.
+ *
+ * "Ya llegué" (action 'arrived') se quitó el 2026-11-19: en un mostrador el
+ * cliente entra y dice su número; el aviso solo tiene sentido en curbside.
  */
 export const dynamic = 'force-dynamic';
 
@@ -30,12 +32,11 @@ export async function POST(req: NextRequest) {
   const orderId = typeof body?.order_id === 'string' ? body.order_id : '';
   const token = typeof body?.t === 'string' ? body.t : '';
   const action = body?.action;
-  if (!UUID_RE.test(orderId) || !token || token.length > 200 || (action !== 'arrived' && action !== 'notes')) {
+  if (!UUID_RE.test(orderId) || !token || token.length > 200 || action !== 'notes') {
     return NextResponse.json({ error: 'invalid' }, { status: 400 });
   }
 
   const db = createAdminClient();
-  // Sin customer_arrived_at en el select: así editar notas no depende de esa columna.
   const { data: order, error: readErr } = await db
     .from('orders')
     .select('id, status, order_type, customer_token, driver_tracking_token, driver_picked_up_at')
@@ -51,26 +52,6 @@ export async function POST(req: NextRequest) {
   } | null;
   const authorized = !!o && (token === String(o.customer_token ?? '') || token === String(o.driver_tracking_token ?? ''));
   if (!o || !authorized) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-
-  if (action === 'arrived') {
-    if (o.order_type !== 'pickup' || CLOSED.includes(o.status)) {
-      return NextResponse.json({ error: 'not_allowed' }, { status: 409 });
-    }
-    // Idempotente y atómico: solo marca si todavía no estaba marcado, así
-    // tocar dos veces no vuelve a sonar en la tablet.
-    const now = new Date().toISOString();
-    const { data: rows, error } = await db.from('orders')
-      .update({ customer_arrived_at: now, updated_at: now })
-      .eq('id', o.id)
-      .is('customer_arrived_at', null)
-      .select('id');
-    if (error) {
-      logger.error('arrived update failed', { orderId: o.id, code: error.code });
-      return NextResponse.json({ error: 'server_error' }, { status: 500 });
-    }
-    if (rows && rows.length > 0) void broadcastOrderUpdate(o.id, o.status);
-    return NextResponse.json({ ok: true, arrived_at: now });
-  }
 
   // action === 'notes'
   if (o.order_type !== 'delivery' || CLOSED.includes(o.status) || o.status === 'out_for_delivery' || o.driver_picked_up_at) {

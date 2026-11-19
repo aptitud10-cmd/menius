@@ -140,7 +140,7 @@ export function CustomizePanel({
                   <p className="text-[14px] leading-snug mt-0.5" style={{ color: C.sub }}>{T.eventSoundsHint}</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  {([['customer-arrived', T.eventArrived], ['ready', T.eventReady], ['cancelled', T.eventCancelled]] as [CounterEvent, string][]).map(([kind, label]) => (
+                  {([['ready', T.eventReady], ['cancelled', T.eventCancelled]] as [CounterEvent, string][]).map(([kind, label]) => (
                     <button key={kind} type="button" onClick={() => void listenEvent(kind)}
                       className="rounded-2xl px-2 py-3 flex flex-col items-center gap-1.5 text-center"
                       style={{ background: C.surface }}>

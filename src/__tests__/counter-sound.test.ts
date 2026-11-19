@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'fs';
 import path from 'path';
-import { loopIntervalMs, ringKind, pickAcceptedIndex, RING_EVERY_MS, eventForChange, enqueueEvent, ARRIVAL_REPEAT_MS, ARRIVAL_MAX_PLAYS } from '@/components/orders/counter/audio';
+import { loopIntervalMs, ringKind, pickAcceptedIndex, RING_EVERY_MS, eventForChange, enqueueEvent } from '@/components/orders/counter/audio';
 import { SOUND_THEMES, SOUND_THEME_IDS, soundUrls, FALLBACK_SOUNDS, COUNTER_EVENTS } from '@/lib/sound-themes';
 import { rowToSettings, counterSettingsPatchSchema, patchToRow, DEFAULT_COUNTER_SETTINGS } from '@/lib/counter-settings';
 import { demoScript, isDemoId, testOrder, testOrderNote, DEMO_MAX_MS } from '@/components/orders/counter/demo';
@@ -109,8 +109,8 @@ describe('sonidos de evento (2026-11-19)', () => {
     }
   });
 
-  it('solo 3 eventos: nada de tap, preparing ni picked-up', () => {
-    expect([...COUNTER_EVENTS].sort()).toEqual(['cancelled', 'customer-arrived', 'ready']);
+  it('solo 2 eventos: nada de tap, preparing, picked-up ni "cliente llegó"', () => {
+    expect([...COUNTER_EVENTS].sort()).toEqual(['cancelled', 'ready']);
   });
 
   it('qué cambio de estado suena', () => {
@@ -129,12 +129,7 @@ describe('sonidos de evento (2026-11-19)', () => {
   it('la cola no repite un aviso que ya espera', () => {
     expect(enqueueEvent([], 'ready')).toEqual(['ready']);
     expect(enqueueEvent(['ready'], 'ready')).toEqual(['ready']);
-    expect(enqueueEvent(['ready'], 'customer-arrived')).toEqual(['ready', 'customer-arrived']);
-  });
-
-  it('el cliente que llegó suena cada 30 s, 3 veces como máximo', () => {
-    expect(ARRIVAL_REPEAT_MS).toBe(30_000);
-    expect(ARRIVAL_MAX_PLAYS).toBe(3);
+    expect(enqueueEvent(['ready'], 'cancelled')).toEqual(['ready', 'cancelled']);
   });
 });
 

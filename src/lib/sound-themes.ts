@@ -1,6 +1,7 @@
 // MENIUS — catálogo de temas de sonido para la tablet de órdenes (Counter).
 // Archivos en /public/sounds/<id>/{alert,urgent,accepted-1,accepted-2,accepted-3}.mp3
-// + eventos (2026-11-19): {customer-arrived,ready,cancelled}.mp3
+// + eventos (2026-11-19): {ready,cancelled}.mp3 ("cliente llegó" se quitó el mismo día:
+// en un mostrador el cliente entra y dice su número)
 // Los ids viven también en el CHECK de counter_settings.sound_theme
 // (migración 20261113g): agregar un tema = migración nueva + entrada aquí.
 
@@ -46,8 +47,8 @@ export const FALLBACK_SOUNDS = {
  * del propio toque entrenan al personal a ignorar la tablet). Por eso no hay
  * tap, preparing ni picked-up aunque Pedro tenga los archivos.
  */
-export type CounterEvent = 'customer-arrived' | 'ready' | 'cancelled';
-export const COUNTER_EVENTS: CounterEvent[] = ['customer-arrived', 'ready', 'cancelled'];
+export type CounterEvent = 'ready' | 'cancelled';
+export const COUNTER_EVENTS: CounterEvent[] = ['ready', 'cancelled'];
 
 export const soundUrls = (id: SoundThemeId) => ({
   alert: `/sounds/${id}/alert.mp3`,
