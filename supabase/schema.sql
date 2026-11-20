@@ -645,7 +645,11 @@ CREATE TABLE public.products (
   hide_image boolean NOT NULL DEFAULT false,
   dine_in_only boolean NOT NULL DEFAULT false,
   available_from time without time zone,
-  available_until time without time zone
+  available_until time without time zone,
+  daily_kind text,
+  daily_always boolean NOT NULL DEFAULT false,
+  daily_label text,
+  daily_last_on date
 );
 
 CREATE TABLE public.profiles (
@@ -775,7 +779,9 @@ CREATE TABLE public.restaurants (
   wompi_integrity_secret_enc text,
   wompi_events_secret_enc text,
   wompi_connected boolean NOT NULL DEFAULT false,
-  brand_color text
+  brand_color text,
+  day_cutoff time without time zone NOT NULL DEFAULT '05:00:00'::time without time zone,
+  daily_reset_on date
 );
 
 CREATE TABLE public.reviews (

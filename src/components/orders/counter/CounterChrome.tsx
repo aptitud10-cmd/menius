@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CalendarClock, History, Menu as MenuIcon, Palette, X } from 'lucide-react';
+import { ArrowLeft, CalendarClock, History, Menu as MenuIcon, Palette, Sun, X } from 'lucide-react';
 import type { Order } from '@/types';
 import { C, RAISED, type CounterText } from './ui';
 import { OrderCard, type PrimaryKind } from './CounterBoard';
@@ -40,15 +40,17 @@ export function StatusPill({ state, T, onClick }: { state: StoreState; T: Counte
   );
 }
 
-export type CounterViewMode = 'board' | 'scheduled' | 'history';
+export type CounterViewMode = 'board' | 'scheduled' | 'history' | 'today';
 
 export function CounterTopBar({
-  T, restaurantName, state, view, scheduledCount, onStatus, onView, onMenu, onCustomize,
+  T, restaurantName, state, view, scheduledCount, onStatus, onView, onMenu, onCustomize, showToday,
 }: {
   T: CounterText; restaurantName: string; state: StoreState; view: CounterViewMode; scheduledCount: number;
   onStatus: () => void; onView: (v: CounterViewMode) => void; onMenu: () => void;
   /** Sonido, colores y volumen (panel lateral). */
   onCustomize?: () => void;
+  /** Pestaña "Hoy" (sopas y especiales del día): solo si la tienda tiene platos del día. */
+  showToday?: boolean;
 }) {
   // En celular y tablet vertical los botones son solo ícono (48 px); el nombre
   // de la tienda sale desde 768 px: antes no cabían y "Menú" quedaba cortado fuera de la pantalla.
@@ -73,6 +75,12 @@ export function CounterTopBar({
           <CalendarClock className="w-5 h-5" strokeWidth={2.2} />
           <span className="hidden lg:inline">{T.scheduled}</span>
           <span className="tabular-nums">{scheduledCount}</span>
+        </button>
+      )}
+      {showToday && (
+        <button type="button" onClick={() => onView('today')} className={btn} aria-label={T.locale.startsWith('en') ? 'Today' : 'Hoy'}
+          style={view === 'today' ? active : idle}>
+          <Sun className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.locale.startsWith('en') ? 'Today' : 'Hoy'}</span>
         </button>
       )}
       <button type="button" onClick={() => onView('history')} className={btn} aria-label={T.history}

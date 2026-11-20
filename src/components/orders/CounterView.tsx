@@ -42,6 +42,7 @@ import { NewOrdersAlert } from './counter/NewOrdersAlert';
 import { OrderSheet } from './counter/OrderSheet';
 import { OwnerPanelButton } from './counter/OwnerPanelButton';
 import { HelpSheet } from './counter/HelpSheet';
+import { TodayView } from './counter/TodayView';
 import { shortOrderNumber } from '@/lib/orders/short-number';
 import {
   CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast, DemoBanner,
@@ -540,6 +541,16 @@ export function CounterView({
   // ── Rediseño 2026-11: tablero, hoja de detalle, estado de la tienda ──
   const T = counterText(screenLang);
   const [view, setView] = useState<CounterViewMode>('board');
+  // Pestaña "Hoy": solo si la tienda tiene sopas o especiales del día cargados.
+  const [hasDaily, setHasDaily] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/counter/today', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { items?: unknown[] } | null) => { if (alive) setHasDaily((d?.items?.length ?? 0) > 0); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
   const [sheetId, setSheetId] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
   // Ayuda: null = cerrada; orderNumber cuando se abre desde un pedido.
@@ -1738,9 +1749,12 @@ export function CounterView({
         onStatus={() => setStatusOpen(true)}
         onView={setView}
         onMenu={() => setSidebarOpen(true)}
+        showToday={hasDaily}
       />
 
-      {view === 'board' ? (
+      {view === 'today' ? (
+        <TodayView en={t.en} restaurantName={restaurantName} />
+      ) : view === 'board' ? (
         <CounterBoard
           T={T}
           currency={currency}
