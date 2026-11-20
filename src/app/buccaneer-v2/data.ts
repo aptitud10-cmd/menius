@@ -58,7 +58,7 @@ export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; al
   S04: { src: '/buccaneer/v2/salon.webp', label: 'S04 · Dining room, wide', alt: 'The counter stools and orange booths of the dining room' },
   S05b: { src: null, label: 'S05b · Counter detail, head-on', alt: 'The counter, up close' },
   S11: { src: '/buccaneer/v2/jukebox.webp', label: 'S11 · Tabletop jukebox, booth', alt: 'A tabletop jukebox in a booth' },
-  S10: { src: null, label: 'S10 · Dining room wheel clock', alt: 'The clock on the dining room wall' },
+  S10: { src: '/buccaneer/v2/reloj-timon.webp', label: 'S10 · Dining room wheel clock', alt: 'A ship’s-wheel clock with an anchor on the dining room wall, between two windows over the booths' },
 };
 
 /**
