@@ -2178,6 +2178,15 @@
   }
 }
 
+/* Desktop 1280–1339: the hero cards are 217–228px; "Order breakfast →" at 22px
+   needs 189px of the 185px inside and wraps, pushing the meta out of the fixed
+   96px card. 21px (the tablet size) fits with room for font-rendering drift. */
+@media (min-width: 1280px) and (max-width: 1339px) {
+  .b2-root {
+    --t-card: 21px;
+  }
+}
+
 /* ------------------------------------------------------- reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .b2-bar {
