@@ -112,14 +112,15 @@ export function buildTicketHTML(d: TicketData): string {
   .meta-name { font-size: ${mm(26)}; flex: 1; padding-right: ${mm(12)}; }
   .meta-via { font-size: ${mm(22)}; white-space: nowrap; }
   .reprint { border: ${mm(6)} solid #000; margin: 0 ${mm(8)} ${mm(8)}; padding: ${mm(6)} ${mm(12)}; font-size: ${mm(26)}; }
-  .hero { background: #000; color: #fff; padding: ${mm(10)} ${mm(18)} ${mm(12)}; margin: 0 ${mm(8)}; }
-  .hero-top { display: flex; justify-content: space-between; align-items: flex-start; }
-  .type { font-size: ${mm(42)}; letter-spacing: ${mm(1)}; }
-  .sched { display: inline-block; margin-top: ${mm(6)}; border: ${mm(3)} solid #fff; padding: ${mm(2)} ${mm(8)}; font-size: ${mm(22)}; }
-  .side { text-align: right; white-space: nowrap; padding-left: ${mm(12)}; }
-  .side-k { font-size: ${mm(22)}; }
-  .side-v { font-size: ${mm(42)}; }
-  .num { font-size: ${mm(140)}; line-height: 1; margin-top: ${mm(4)}; letter-spacing: ${mm(-2)}; }
+  /* v5: franja negra fina arriba (tipo + hora) y abajo (pide directo); el número en negro sobre blanco. */
+  .hero { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #000; color: #fff; padding: ${mm(6)} ${mm(18)}; margin: 0 ${mm(8)}; }
+  .hero-l { display: flex; align-items: center; }
+  .type { font-size: ${mm(38)}; letter-spacing: ${mm(1)}; }
+  .sched { margin-left: ${mm(12)}; border: ${mm(3)} solid #fff; padding: 0 ${mm(8)}; font-size: ${mm(20)}; }
+  .side { display: flex; align-items: baseline; white-space: nowrap; margin-left: auto; padding-left: ${mm(12)}; }
+  .side-k { font-size: ${mm(20)}; margin-right: ${mm(10)}; }
+  .side-v { font-size: ${mm(38)}; }
+  .num { font-size: ${mm(130)}; line-height: 1; padding: ${mm(6)} ${mm(14)} 0; letter-spacing: ${mm(-2)}; }
   .customer { font-size: ${mm(56)}; line-height: 1.05; padding: ${mm(12)} ${mm(14)} 0; }
   .allergy { display: flex; align-items: center; background: #000; color: #fff; padding: ${mm(8)} ${mm(18)}; margin: ${mm(12)} ${mm(8)} 0; }
   .allergy .k { font-size: ${mm(22)}; letter-spacing: ${mm(1)}; }
@@ -174,22 +175,20 @@ export function buildTicketHTML(d: TicketData): string {
   .pay-sub { font-size: ${mm(22)}; margin-top: ${mm(2)}; }
   .pay-amount { font-size: ${mm(46)}; white-space: nowrap; margin-left: ${mm(12)}; }
   .placed { display: flex; justify-content: space-between; padding: 0 ${mm(14)}; font-size: ${mm(22)}; }
-  .foot { text-align: center; padding: 0 ${mm(14)}; margin-top: ${mm(22)}; }
+  .foot { text-align: center; padding: 0 ${mm(14)}; margin-top: ${mm(20)}; }
   .thanks { font-size: ${mm(24)}; }
-  .direct { font-size: ${mm(26)}; margin-top: ${mm(6)}; }
-  .powered { font-size: ${mm(20)}; margin-top: ${mm(12)}; }
+  .powered { font-size: ${mm(20)}; margin-top: ${mm(6)}; }
+  .direct { text-align: center; background: #000; color: #fff; font-size: ${mm(28)}; margin: ${mm(14)} ${mm(8)} 0; padding: ${mm(8)} ${mm(14)}; }
 </style>
 </head>
 <body>
   <div class="meta"><div class="meta-name">${esc(d.restaurant.name.toUpperCase())}</div><div class="meta-via">${esc(t.orderVia[d.channel])}</div></div>
   ${d.kind === 'reprint' ? `<div class="reprint">${esc(`${t.reprint}  ${d.reprintedAt ?? ''}`)}</div>` : ''}
   <div class="hero">
-    <div class="hero-top">
-      <div><div class="type">${esc(t.orderType[d.orderType])}</div>${d.scheduledDay ? `<div class="sched">${esc(t.scheduled)}</div>` : ''}</div>
-      ${side ? `<div class="side"><div class="side-k">${esc(side[0])}</div><div class="side-v">${esc(side[1])}</div></div>` : ''}
-    </div>
-    <div class="num">#${esc(d.shortNumber)}</div>
+    <div class="hero-l"><span class="type">${esc(t.orderType[d.orderType])}</span>${d.scheduledDay ? `<span class="sched">${esc(t.scheduled)}</span>` : ''}</div>
+    ${side ? `<div class="side"><span class="side-k">${esc(side[0])}</span><span class="side-v">${esc(side[1])}</span></div>` : ''}
   </div>
+  <div class="num">#${esc(d.shortNumber)}</div>
   ${d.customerName ? `<div class="customer">${esc(d.customerName)}</div>` : ''}
   ${d.allergy ? `<div class="allergy">${ALERT_ICON}<div><div class="k">${esc(t.allergy)}</div><div class="v">${esc(d.allergy)}</div></div></div>` : ''}
   ${delivery}
@@ -210,9 +209,9 @@ export function buildTicketHTML(d: TicketData): string {
   <div class="placed"><span>${esc(`${t.placed} ${d.placedShort}`)}</span><span>${esc(d.orderNumber)}</span></div>
   <div class="foot">
     <div class="thanks">${esc(t.thanks(d.restaurant.name))}</div>
-    ${d.restaurant.orderDirectUrl ? `<div class="direct">${esc(`${t.orderDirect}: ${d.restaurant.orderDirectUrl}`)}</div>` : ''}
     <div class="powered">${esc(t.poweredBy)}</div>
   </div>
+  ${d.restaurant.orderDirectUrl ? `<div class="direct">${esc(`${t.orderDirect}: ${d.restaurant.orderDirectUrl}`)}</div>` : ''}
 </body>
 </html>`;
 }

@@ -3,9 +3,13 @@
  * Layout del ticket de 80 mm — v4, APROBADO por Pedro 2026-11-19 tras compararlo
  * con los tickets de Grubhub y Uber Eats de Buccaneer (maquetas y porqués en
  * .specify/docs/impresion/ticket-v2/). No se cambia por cuenta propia.
+ * v5 (Pedro 2026-11-20, maquetas en ticket-v5/): arriba el bloque negro entero
+ * pesaba demasiado y abajo el pie centrado terminaba "en punta". Ahora el ticket
+ * va enmarcado entre dos franjas negras finas: arriba tipo + hora, abajo "pide
+ * directo". El #número va grande en negro sobre blanco.
  *
- * Jerarquía por tamaño y aire, no por negro. Invertidos SOLO: el bloque de arriba
- * (tipo + hora + #número) y la alergia. Cobro en caja: gruesa = hay que cobrar,
+ * Jerarquía por tamaño y aire, no por negro. Invertidos SOLO: las dos franjas y la
+ * alergia (el único bloque negro grande). Cobro en caja: gruesa = hay que cobrar,
  * fina = ya está pago. Tamaños en px sobre 576 px de ancho (203 dpi: 8 px ≈ 1 mm).
  * Satori: todo div con más de un hijo lleva display:flex. Solo Inter 700 y 900.
  *
@@ -148,24 +152,23 @@ function OrderTicket({ d }: { d: TicketData }) {
         </div>
       ) : null}
 
-      {/* 2. UN bloque invertido: lo que se lee a 2 m. */}
-      <div style={{ display: 'flex', flexDirection: 'column', background: BLACK, color: WHITE, padding: `10px ${PAD + 4}px 12px`, margin: `0 ${PAD - 6}px` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <Txt size={42} weight={900} style={{ letterSpacing: 1 }}>{t.orderType[d.orderType]}</Txt>
-            {d.scheduledDay ? (
-              <div style={{ display: 'flex', alignSelf: 'flex-start', marginTop: 6, border: `3px solid ${WHITE}`, padding: '2px 8px', fontSize: 22, fontWeight: 900 }}>{t.scheduled}</div>
-            ) : null}
-          </div>
-          {side ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0, marginLeft: 12 }}>
-              <Txt size={22} weight={900}>{side[0]}</Txt>
-              <Txt size={42} weight={900} style={{ whiteSpace: 'nowrap' }}>{side[1]}</Txt>
-            </div>
+      {/* 2. Franja negra fina: tipo + hora. Si no entra en una línea (español, programado),
+          la hora baja a la segunda línea y sigue pegada a la derecha. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', background: BLACK, color: WHITE, padding: `6px ${PAD + 4}px`, margin: `0 ${PAD - 6}px` }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Txt size={38} weight={900} style={{ letterSpacing: 1 }}>{t.orderType[d.orderType]}</Txt>
+          {d.scheduledDay ? (
+            <div style={{ display: 'flex', marginLeft: 12, border: `3px solid ${WHITE}`, padding: '0 8px', fontSize: 20, fontWeight: 900 }}>{t.scheduled}</div>
           ) : null}
         </div>
-        <Txt size={140} weight={900} style={{ lineHeight: 1, marginTop: 4, letterSpacing: -2 }}>{`#${d.shortNumber}`}</Txt>
+        {side ? (
+          <div style={{ display: 'flex', alignItems: 'baseline', marginLeft: 'auto', paddingLeft: 12 }}>
+            <Txt size={20} weight={900} style={{ marginRight: 10, whiteSpace: 'nowrap' }}>{side[0]}</Txt>
+            <Txt size={38} weight={900} style={{ whiteSpace: 'nowrap' }}>{side[1]}</Txt>
+          </div>
+        ) : null}
       </div>
+      <Txt size={130} weight={900} style={{ lineHeight: 1, letterSpacing: -2, padding: `6px ${PAD}px 0` }}>{`#${d.shortNumber}`}</Txt>
 
       {/* 3. El nombre se dice en voz alta: grande y fuera del negro. */}
       {d.customerName ? (
@@ -273,11 +276,16 @@ function OrderTicket({ d }: { d: TicketData }) {
         <Txt size={22}>{`${t.placed} ${d.placedShort}`}</Txt>
         <Txt size={22} style={{ marginLeft: 12 }}>{d.orderNumber}</Txt>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 22, padding: `0 ${PAD}px` }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 20, padding: `0 ${PAD}px` }}>
         <Txt size={24} style={{ textAlign: 'center' }}>{t.thanks(d.restaurant.name)}</Txt>
-        {d.restaurant.orderDirectUrl ? <Txt size={26} weight={900} style={{ marginTop: 6 }}>{`${t.orderDirect}: ${d.restaurant.orderDirectUrl}`}</Txt> : null}
-        <Txt size={20} style={{ marginTop: 12 }}>{t.poweredBy}</Txt>
+        <Txt size={20} style={{ marginTop: 6 }}>{t.poweredBy}</Txt>
       </div>
+      {/* 11. Franja de cierre, igual de fina que la de arriba: base plana, no "en punta". */}
+      {d.restaurant.orderDirectUrl ? (
+        <div style={{ display: 'flex', justifyContent: 'center', background: BLACK, color: WHITE, margin: `14px ${PAD - 6}px 0`, padding: `8px ${PAD}px` }}>
+          <Txt size={28} weight={900} style={{ textAlign: 'center' }}>{`${t.orderDirect}: ${d.restaurant.orderDirectUrl}`}</Txt>
+        </div>
+      ) : null}
     </div>
   );
 }
