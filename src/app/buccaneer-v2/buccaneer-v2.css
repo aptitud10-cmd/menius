@@ -1545,6 +1545,15 @@
   }
 }
 
+/* Tablet T1 (720–1023): the Close text column is half the width, so two
+   cards side by side are ~145–200px and a two-line title pushes the meta out
+   of the fixed 88px card. Stacked, each card gets the full column. */
+@media (min-width: 720px) and (max-width: 1023px) and (min-height: 501px) {
+  .b2-close__cta .b2-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===========================================================================
    WIDE: tablet T2 split (1024–1279) + desktop (1280+)
    Hero, Morning and Midday are shared and driven by variables.
