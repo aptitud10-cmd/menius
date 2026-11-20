@@ -584,6 +584,9 @@ export async function POST(request: NextRequest) {
     const modOptionMap = new Map((dbModOptions ?? []).map((o) => [o.id, o]));
     const modGroupIdSet = new Set((dbModGroups ?? []).map((g) => g.id));
     const modGroupById = new Map((dbModGroups ?? []).map((g) => [g.id, g]));
+    /** Nombres de todas las opciones de cada pregunta: el ticket nombra el plato por la elegida. */
+    const optionNamesByGroup = new Map<string, string[]>();
+    for (const o of dbModOptions ?? []) optionNamesByGroup.set(o.group_id, [...(optionNamesByGroup.get(o.group_id) ?? []), o.name]);
     /** Modificadores canónicos de un ítem → líneas del ticket (null si no tiene). */
     const ticketLinesFor = (
       mods: ReadonlyArray<{ group_id?: string | null; option_id?: string | null; option_name?: string; price_delta?: number }>,
@@ -593,7 +596,7 @@ export async function POST(request: NextRequest) {
         const g = m.group_id ? modGroupById.get(m.group_id) : undefined;
         const o = m.option_id ? modOptionMap.get(m.option_id) : undefined;
         if (!g || !o) continue;
-        const sel: LineSelection = byGroup.get(g.id) ?? { group: g as LineGroup, options: [] };
+        const sel: LineSelection = byGroup.get(g.id) ?? { group: g as LineGroup, options: [], allOptions: optionNamesByGroup.get(g.id) };
         sel.options.push({ id: o.id, name: o.name, price_delta: o.price_delta });
         byGroup.set(g.id, sel);
       }

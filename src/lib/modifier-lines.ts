@@ -28,6 +28,12 @@ export interface ModLine {
   indent: boolean;
   /** Va pegada al nombre del plato ("Cheeseburger" + "Deluxe"), no como línea. */
   title?: boolean;
+  /**
+   * La opción elegida de una pregunta cuyas alternativas están en el nombre del plato
+   * ("Pastrami or Corned Beef Omelette" → Pastrami). withTitle la usa para nombrar el
+   * plato por lo que se pidió ("Pastrami Omelette") en vez de dejarla como línea chica.
+   */
+  choice?: { option: string; of: string[] };
 }
 
 export interface LineGroup {
@@ -49,6 +55,8 @@ export interface LineOption {
 export interface LineSelection {
   group: LineGroup;
   options: LineOption[];
+  /** Todas las opciones de la pregunta (no solo las elegidas), para ver si el nombre del plato las lista. */
+  allOptions?: string[];
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -68,6 +76,7 @@ interface Node {
   price: number;
   indent: boolean;
   children: Node[];
+  choice?: ModLine['choice'];
 }
 
 export function buildModLines(selections: LineSelection[]): ModLine[] {
@@ -99,6 +108,10 @@ export function buildModLines(selections: LineSelection[]): ModLine[] {
         continue;
       }
       const node: Node = { text, price, indent: layout === 'indent', children: [] };
+      // Una sola elección, en una pregunta que no depende de otra, con 2+ alternativas.
+      if (top && sel.options.length === 1 && (sel.allOptions?.length ?? 0) >= 2) {
+        node.choice = { option: o.name, of: sel.allOptions as string[] };
+      }
       (parent ? parent.children : roots).push(node);
       nodeByOption.set(o.id, node);
     }
@@ -141,7 +154,7 @@ export function buildModLines(selections: LineSelection[]): ModLine[] {
 
   const out: ModLine[] = [];
   const walk = (n: Node, depth: number) => {
-    out.push({ text: n.text, price: n.price, indent: depth > 0 || n.indent });
+    out.push({ text: n.text, price: n.price, indent: depth > 0 || n.indent, ...(n.choice && depth === 0 ? { choice: n.choice } : {}) });
     for (const c of n.children) walk(c, depth + 1);
   };
   for (const t of titles) out.push({ text: t.text, price: t.price, indent: false, title: true });
@@ -153,7 +166,9 @@ export function buildModLines(selections: LineSelection[]): ModLine[] {
 /** Líneas de un ítem del carrito (los grupos vienen completos de /api/product-modifiers). */
 export function cartModLines(selections: ModifierSelection[] | undefined): ModLine[] {
   return buildModLines(
-    (selections ?? []).map((ms) => ({ group: ms.group, options: ms.selectedOptions })),
+    (selections ?? []).map((ms) => ({
+      group: ms.group, options: ms.selectedOptions, allOptions: ms.group.options?.map((o) => o.name),
+    })),
   );
 }
 
@@ -171,6 +186,7 @@ export function orderItemModLines(item: {
       .map((l) => ({
         text: l.text as string, price: Number(l.price) || 0, indent: !!l.indent,
         ...(l.title ? { title: true } : {}),
+        ...(isChoice(l.choice) ? { choice: l.choice } : {}),
       }));
   }
   return (item.order_item_modifiers ?? [])
@@ -183,13 +199,70 @@ export function orderItemModLines(item: {
  * El recargo de lo que va al título se suma al precio del plato (sale de las líneas).
  */
 export function withTitle(name: string, lines: ModLine[]): { name: string; lines: ModLine[]; price: number } {
+  // "Pastrami or Corned Beef Omelette" + Pastrami → "Pastrami Omelette" (Pedro 2026-11-20:
+  // la elección quedaba como línea chica debajo y no se notaba qué carne era).
+  let base = name;
+  let chosen: ModLine | undefined;
+  for (const l of lines) {
+    if (!l.choice) continue;
+    const renamed = nameWithChoice(name, l.choice.option, l.choice.of);
+    if (renamed) { base = renamed; chosen = l; break; }
+  }
   const parts = lines.filter((l) => l.title);
-  if (parts.length === 0) return { name, lines, price: 0 };
+  if (parts.length === 0 && !chosen) return { name, lines, price: 0 };
   return {
-    name: [name, ...parts.map((p) => p.text)].join(' '),
-    lines: lines.filter((l) => !l.title),
-    price: linesTotal(parts),
+    name: [base, ...parts.map((p) => p.text)].join(' '),
+    lines: lines.filter((l) => !l.title && l !== chosen),
+    price: linesTotal(chosen ? [...parts, chosen] : parts),
   };
+}
+
+function isChoice(c: unknown): c is { option: string; of: string[] } {
+  if (!c || typeof c !== 'object') return false;
+  const { option, of } = c as { option?: unknown; of?: unknown };
+  return typeof option === 'string' && Array.isArray(of) && of.every((x) => typeof x === 'string');
+}
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** Lo que puede haber entre dos alternativas del nombre: ", ", " or ", ", or ", " o ", " / ". */
+const SEPARATOR = /^(\s*,\s*|\s*,?\s+(or|o)\s+|\s*\/\s*)$/i;
+
+/**
+ * Si el nombre del plato lista las alternativas de la pregunta, lo reescribe con la elegida:
+ *   "Pastrami or Corned Beef Omelette", Pastrami               → "Pastrami Omelette"
+ *   "Tomato or V8 Juice", Tomato Juice                         → "Tomato Juice"
+ *   "Bacon, Sausage, Ham or Turkey Sausage", Ham               → "Ham"
+ *   "Cereal with Seasonal Berries or Fruit Salad", Fruit Salad → "Cereal with Fruit Salad"
+ * Cada alternativa tiene que estar en el nombre (entera, o sus primeras palabras: "Tomato"
+ * de "Tomato Juice") y entre una y otra solo puede haber comas, "or"/"o" o "/". Si algo no
+ * cuadra devuelve null y el plato se muestra como siempre: nombre + línea.
+ */
+export function nameWithChoice(name: string, chosen: string, alternatives: string[]): string | null {
+  if (alternatives.length < 2 || !alternatives.includes(chosen)) return null;
+  const spans: { start: number; end: number }[] = [];
+  for (const alt of alternatives) {
+    const words = alt.split(' — ')[0].trim().split(/\s+/);
+    let span: { start: number; end: number } | null = null;
+    for (let k = words.length; k >= 1 && !span; k--) {
+      // Sin lookbehind: Safari de iOS < 16.4 no lo soporta y esto corre también en el carrito.
+      const m = new RegExp(`(^|[^\\p{L}\\p{N}])(${escapeRe(words.slice(0, k).join(' '))})(?=$|[^\\p{L}\\p{N}])`, 'iu').exec(name);
+      if (m) span = { start: m.index + m[1].length, end: m.index + m[1].length + m[2].length };
+    }
+    if (!span) return null;
+    spans.push(span);
+  }
+  spans.sort((a, b) => a.start - b.start);
+  for (let i = 1; i < spans.length; i++) {
+    if (spans[i].start < spans[i - 1].end) return null;
+    if (!SEPARATOR.test(name.slice(spans[i - 1].end, spans[i].start))) return null;
+  }
+  const option = chosen.split(' — ')[0].trim();
+  const out = `${name.slice(0, spans[0].start)}${option}${name.slice(spans[spans.length - 1].end)}`
+    // "Tomato or V8 Juice" + "V8 Juice" no deja "V8 Juice Juice".
+    .replace(new RegExp('(^|[^\\p{L}\\p{N}])([\\p{L}\\p{N}]+)\\s+\\2(?=$|[^\\p{L}\\p{N}])', 'giu'), '$1$2')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return out || null;
 }
 
 /**

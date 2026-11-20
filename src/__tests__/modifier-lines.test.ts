@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildModLines, renderTicketLabel, orderItemModLines, linesTotal, ticketModifierStrings, withTitle, customerItemLines,
+  buildModLines, renderTicketLabel, orderItemModLines, linesTotal, ticketModifierStrings, withTitle, customerItemLines, nameWithChoice,
   type LineSelection,
 } from '@/lib/modifier-lines';
 
@@ -160,5 +160,56 @@ describe('buildModLines — dependencia "cualquiera de estas"', () => {
       { text: 'with Swiss cheese', price: 1.5, indent: true },
       { text: 'Side Canadian Bacon / Crispy', price: 8.45, indent: false },
     ]);
+  });
+});
+
+// Pedro 2026-11-20: "Pastrami or Corned Beef Omelette" + Pastrami salía con "Pastrami" chico
+// debajo; el plato tiene que llamarse por lo que se pidió. Los 10 casos reales de Buccaneer.
+describe('nameWithChoice — el plato se llama por la alternativa elegida', () => {
+  const cases: [string, string, string[], string][] = [
+    ['Pastrami or Corned Beef Omelette', 'Pastrami', ['Pastrami', 'Corned Beef'], 'Pastrami Omelette'],
+    ['Pastrami or Corned Beef Omelette', 'Corned Beef', ['Pastrami', 'Corned Beef'], 'Corned Beef Omelette'],
+    ['Corned Beef or Pastrami Sandwich', 'Pastrami', ['Corned Beef', 'Pastrami'], 'Pastrami Sandwich'],
+    ['Ham, Bacon or Sausage Omelette', 'Bacon', ['Ham', 'Bacon', 'Sausage'], 'Bacon Omelette'],
+    ['Cereal with Seasonal Berries or Fruit Salad', 'Fruit Salad', ['Seasonal Berries', 'Fruit Salad'], 'Cereal with Fruit Salad'],
+    ['Iced Coffee or Iced Tea', 'Iced Tea', ['Iced Coffee', 'Iced Tea'], 'Iced Tea'],
+    ['Danish Pastry or Apple Turnover', 'Apple Turnover', ['Danish Pastry', 'Apple Turnover'], 'Apple Turnover'],
+    ['Sundae with Nuts or Fruit', 'Fruit', ['Nuts', 'Fruit'], 'Sundae with Fruit'],
+    ['Tomato or V8 Juice', 'Tomato Juice', ['Tomato Juice', 'V8 Juice'], 'Tomato Juice'],
+    ['Tomato or V8 Juice', 'V8 Juice', ['Tomato Juice', 'V8 Juice'], 'V8 Juice'],
+    ['Bacon, Sausage, Ham or Turkey Sausage', 'Ham', ['Bacon', 'Sausage', 'Ham', 'Turkey Sausage'], 'Ham'],
+    ['Bacon, Sausage, Ham or Turkey Sausage', 'Turkey Sausage', ['Bacon', 'Sausage', 'Ham', 'Turkey Sausage'], 'Turkey Sausage'],
+    ['Turkey Bacon or Canadian Bacon', 'Canadian Bacon', ['Turkey Bacon', 'Canadian Bacon'], 'Canadian Bacon'],
+    ['Tacos de pollo o res', 'Res', ['Pollo', 'Res'], 'Tacos de Res'],
+  ];
+  for (const [name, chosen, alts, want] of cases) {
+    it(`${name} + ${chosen} → ${want}`, () => expect(nameWithChoice(name, chosen, alts)).toBe(want));
+  }
+
+  it('si las opciones no están en el nombre, no toca nada', () => {
+    expect(nameWithChoice('Corned Beef or Pastrami Sandwich', 'Rye', ['White', 'Whole Wheat', 'Rye'])).toBeNull();
+    expect(nameWithChoice('Cheeseburger', 'Deluxe — lettuce, tomato & choice of side', ['Regular', 'Deluxe — lettuce, tomato & choice of side'])).toBeNull();
+    // Están en el nombre pero no como lista de alternativas.
+    expect(nameWithChoice('Bacon Egg and Cheese with Ham', 'Ham', ['Bacon', 'Ham'])).toBeNull();
+  });
+
+  it('de punta a punta: la línea sale del ticket y el nombre cambia; el recargo no se pierde', () => {
+    const lines = buildModLines([
+      { group: g('Which meat would you like?', 0), options: [o('Pastrami', 1)], allOptions: ['Pastrami', 'Corned Beef'] },
+      { group: g('Would you like extra eggs?', 1), options: [o('Add 1 Egg', 1.25)], allOptions: ['Add 1 Egg', 'Add 2 Eggs'] },
+    ]);
+    // Guardado en order_items.modifier_lines y leído de vuelta (Counter, ticket, KDS, mails).
+    const stored = orderItemModLines({ modifier_lines: JSON.parse(JSON.stringify(lines)) });
+    expect(withTitle('Pastrami or Corned Beef Omelette', stored)).toEqual({
+      name: 'Pastrami Omelette',
+      lines: [expect.objectContaining({ text: 'Add 1 Egg', price: 1.25 })],
+      price: 1,
+    });
+  });
+
+  it('pedidos viejos sin la marca: igual que antes', () => {
+    const r = withTitle('Pastrami or Corned Beef Omelette', [{ text: 'Pastrami', price: 0, indent: false }]);
+    expect(r.name).toBe('Pastrami or Corned Beef Omelette');
+    expect(r.lines).toHaveLength(1);
   });
 });

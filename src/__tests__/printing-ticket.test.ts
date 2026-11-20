@@ -92,6 +92,19 @@ const CASES: Record<string, ToTicketDataInput> = {
       WINGS,
     ],
   }),
+  // Pedro 2026-11-20: la carne elegida va en el nombre, no chica debajo.
+  'name-choice': input({}, {
+    items: [
+      { qty: 1, line_total: 16.95, products: { name: 'Pastrami or Corned Beef Omelette' }, modifier_lines: [
+        { text: 'Pastrami', price: 0, indent: false, choice: { option: 'Pastrami', of: ['Pastrami', 'Corned Beef'] } },
+        { text: 'Add 1 Egg', price: 1.25, indent: false },
+      ] },
+      { qty: 1, line_total: 4.95, products: { name: 'Tomato or V8 Juice' }, modifier_lines: [
+        { text: 'V8 Juice', price: 0, indent: false, choice: { option: 'V8 Juice', of: ['Tomato Juice', 'V8 Juice'] } },
+        { text: 'Large', price: 0, indent: false },
+      ] },
+    ],
+  }),
   'long-note': input({}, {
     items: [{ ...BURGER, notes: 'No onions, no pickles, extra crispy bacon, sauce on the side, cut in half and wrap each half separately please — it is for two kids' }, SODA],
   }),
