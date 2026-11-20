@@ -186,7 +186,9 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         .select('*')
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
-        .order('sort_order', { ascending: true }),
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
+        .order('id', { ascending: true }),
       // Fetch products with all columns (select('*') is required — see CLAUDE.md
       // rule #11 about explicit column select breaking on missing migrations).
       // The JOINs to product_variants and product_extras have been removed:
@@ -198,7 +200,12 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         .select('*')
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
-        .order('sort_order', { ascending: true }),
+        // Con el mismo sort_order Postgres devuelve el empate en cualquier orden y el
+        // menú "bailaba" entre cargas (4 Quesadillas de Buccaneer en la 15): desempata
+        // el nombre, y el id si hasta el nombre se repite.
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
+        .order('id', { ascending: true }),
       // Most recent 10 reviews for display cards
       db
         .from('reviews')
