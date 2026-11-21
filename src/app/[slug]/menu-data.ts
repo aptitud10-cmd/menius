@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { REVIEWS_MIN_FOR_RATING, hasRealPopularity } from '@/lib/social-proof';
+import { businessDay } from '@/lib/daily-menu';
 import type { Restaurant, Category, Product } from '@/types';
 
 const logger = createLogger('menu-data');
@@ -137,6 +138,8 @@ export interface MenuData {
   subscriptionExpired?: boolean;
   limitedMode?: LimitedMode | null;
   isFreePlan?: boolean;
+  /** Hoja del día: solo si hay sopas o especiales puestos (pestaña "Hoy" del Counter). */
+  today: { day: string; soupSizes: { name: string; price: number }[] | null } | null;
 }
 
 /**
@@ -337,6 +340,37 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       };
     });
 
+    // Hoja del día: el día de trabajo (corte 5 AM en la zona del restaurante) y los
+    // tamaños de la sopa ("Cup $5.45 · Bowl $7.15"), que el patrón slim no manda.
+    // El cron del corte revalida la página, así que la fecha no queda vieja.
+    let today: MenuData['today'] = null;
+    const dailyOn = ((products ?? []) as { id: string; price: number; daily_kind?: string | null }[]).filter((p) => p.daily_kind);
+    if (dailyOn.length > 0) {
+      const soup = dailyOn.find((p) => p.daily_kind === 'soup');
+      let soupSizes: { name: string; price: number }[] | null = null;
+      if (soup) {
+        const { data: grp, error: grpErr } = await db
+          .from('modifier_groups')
+          .select('id, modifier_options(name, price_delta, sort_order)')
+          .eq('product_id', soup.id)
+          .eq('is_required', true)
+          .eq('selection_type', 'single')
+          .is('depends_on_option_id', null)
+          .order('sort_order', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (grpErr) logger.error('soup sizes query failed', { error: grpErr.message });
+        const opts = ((grp as { modifier_options?: { name: string; price_delta: number | string | null; sort_order: number | null }[] } | null)?.modifier_options ?? [])
+          .slice()
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        if (opts.length > 1) {
+          soupSizes = opts.map((o) => ({ name: o.name, price: Math.round((Number(soup.price) + Number(o.price_delta ?? 0)) * 100) / 100 }));
+        }
+      }
+      const r = restaurant as { timezone?: string | null; day_cutoff?: string | null };
+      today = { day: businessDay(new Date(), r.timezone ?? null, r.day_cutoff ?? null), soupSizes };
+    }
+
     let reviewStats: ReviewStats | null = null;
     const reviews = (reviewRows ?? []) as any[];
     // Use all visible reviews for accurate aggregate stats
@@ -406,6 +440,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       subscriptionExpired,
       limitedMode,
       isFreePlan,
+      today,
     };
   } catch (err) {
     logger.error('Unexpected error in fetchMenuData', {

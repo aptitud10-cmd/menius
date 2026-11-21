@@ -164,6 +164,12 @@ export interface Product {
    *  5:30–11 AM). Both NULL = always. See lib/option-hours. */
   available_from?: string | null;
   available_until?: string | null;
+  /** Sopa o especial del día (pestaña "Hoy" del Counter). null = plato normal. */
+  daily_kind?: 'soup' | 'special' | null;
+  /** Cartelito de la tarjeta ("Chef's Special"). */
+  daily_label?: string | null;
+  /** Sopa fija: está todos los días. */
+  daily_always?: boolean;
   /** Client-only: set by MenuShell when the dish is outside its hours
    *  ("Served 5:30–11 AM"); cards show it instead of "Sold out". */
   unavailable_note?: string | null;

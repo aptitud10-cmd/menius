@@ -85,6 +85,7 @@ import { ReservationWidget } from "./ReservationWidget";
 import { MenuUpdateBanner } from "./MenuUpdateBanner";
 import { CartFlyParticles } from "./CartFlyParticles";
 import { MenuSheet, type MenuSheetEntry } from "./MenuSheet";
+import { TodaySheet, todayItemCount, type SoupSize } from "./TodaySheet";
 import { hasHours, isOptionAvailableAt, optionHoursLabel, hoursRangeLabel, clockLabel } from "@/lib/option-hours";
 import { inTimeZone, isOpenAt, nextOpening, type OperatingHours } from "@/lib/orders/business-hours";
 import { RestaurantInfoSheet, dayHoursText } from "./RestaurantInfoSheet";
@@ -122,6 +123,8 @@ interface MenuShellProps {
   recentReviews?: ReviewItem[];
   limitedMode?: LimitedMode | null;
   isFreePlan?: boolean;
+  /** Hoja del día (sopas y especiales puestos desde el Counter). */
+  today?: { day: string; soupSizes: SoupSize[] | null } | null;
 }
 
 interface CustomizationTarget {
@@ -138,6 +141,8 @@ interface CustomizationTarget {
 const PRIORITY_CARD_IMAGES = 2;
 
 const POPULAR_ID = "__popular__";
+/** Hoja del día (TodaySheet): botón "Today" de la barra, la hoja "Menu" y la columna de escritorio. */
+const TODAY_ID = "__today__";
 /** Prefijo de stockOutAlert: el texto se muestra tal cual, sin la plantilla "«X» ya no está disponible". */
 const RAW_ALERT = "\u0001";
 // A remembered menu position older than this is a different visit, not a
@@ -156,6 +161,7 @@ export function MenuShell({
   recentReviews,
   limitedMode,
   isFreePlan = false,
+  today = null,
 }: MenuShellProps) {
   const router = useRouter();
   const defaultLocale = initialLocale;
@@ -1708,6 +1714,62 @@ export function MenuShell({
     return popular ? [popular] : itemsByCategory;
   }, [isLargeCatalog, activeCatFilter, itemsByCategory]);
 
+  // ── Hoja del día: botón "Today" (barra, hoja "Menu" y columna de escritorio).
+  // Solo existe los días que hay hoja, y está marcado mientras la hoja se ve.
+  const todayCount = useMemo(() => (today ? todayItemCount(products) : 0), [today, products]);
+  const hasToday = todayCount > 0;
+  const todayLabel = locale === "es" ? "Hoy" : "Today";
+  const onHome = !activeCatFilter || activeCatFilter === POPULAR_ID;
+  const [todayInView, setTodayInView] = useState(true);
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main || !hasToday) return;
+    const onScroll = () => {
+      const el = sectionRefs.current.get(TODAY_ID);
+      if (!el) return;
+      const covered =
+        window.innerWidth >= 1024
+          ? (desktopPillsRef.current?.offsetHeight ?? 44)
+          : HEADER_HEIGHT + (mobilePillsRef.current?.offsetHeight ?? 52);
+      // Marcado hasta que la hoja termina de pasar por debajo de la barra.
+      setTodayInView(el.getBoundingClientRect().bottom > main.getBoundingClientRect().top + covered + 24);
+    };
+    main.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => main.removeEventListener("scroll", onScroll);
+  }, [hasToday, mainMounted, activeCatFilter]);
+  const todayActive = hasToday && onHome && todayInView && !showFavs && !activeDiet && !searchQuery.trim();
+
+  // Desde otra categoría, primero vuelve a la portada y después baja a la hoja,
+  // cuando ya está dibujada.
+  // Con hoja, "Popular items" ya no es "el principio": baja a su sección, debajo
+  // de la hoja (si no, el botón marcado pasaba a ser "Today").
+  const pendingHomeScrollRef = useRef<string | null>(null);
+  const goToHomeSection = useCallback(
+    (id: typeof TODAY_ID | typeof POPULAR_ID) => {
+      setSearchQuery("");
+      setShowSearch(false);
+      setShowFavs(false);
+      setActiveDiet(null);
+      categoryClickedRef.current = true;
+      if (isLargeCatalog && activeCatFilter && activeCatFilter !== POPULAR_ID) {
+        pendingHomeScrollRef.current = id;
+        setActiveCatFilter(null);
+        setActiveCategory(null);
+        return;
+      }
+      scrollToSection(id);
+    },
+    [isLargeCatalog, activeCatFilter, scrollToSection],
+  );
+  const goToToday = useCallback(() => goToHomeSection(TODAY_ID), [goToHomeSection]);
+  useEffect(() => {
+    const id = pendingHomeScrollRef.current;
+    if (!id || !sectionRefs.current.get(id)) return;
+    pendingHomeScrollRef.current = null;
+    requestAnimationFrame(() => scrollToSection(id));
+  }, [displayedGroups, scrollToSection]);
+
   // ── Menu position restore (pairs with saveMenuPosition above) ──
   // Deep links that position the menu themselves win over the memory. Read on
   // the very first commit: the ?reorder handler strips the param from the URL
@@ -2340,6 +2402,7 @@ export function MenuShell({
   const countForSidebar = useCallback(
     (cat: Category) => {
       if (cat.id === POPULAR_ID) return popularProducts.length;
+      if (cat.id === TODAY_ID) return todayCount;
       if (isGroupId(cat.id)) {
         const grp = groupNameFromId(cat.id);
         const ids = new Set(
@@ -2349,7 +2412,7 @@ export function MenuShell({
       }
       return products.filter((p) => p.category_id === cat.id).length;
     },
-    [categories, products, popularProducts.length],
+    [categories, products, popularProducts.length, todayCount],
   );
 
   // ── "Menu" sheet: Popular first, every group with its dish count, and the
@@ -2357,6 +2420,9 @@ export function MenuShell({
   // floating "Sections" button).
   const menuSheetEntries = useMemo<MenuSheetEntry[]>(() => {
     const entries: MenuSheetEntry[] = [];
+    if (hasToday) {
+      entries.push({ id: TODAY_ID, label: todayLabel, count: todayCount, sections: [] });
+    }
     if (
       isLargeCatalog &&
       popularProducts.length > 0 &&
@@ -2392,31 +2458,36 @@ export function MenuShell({
       });
     }
     return entries;
-  }, [isLargeCatalog, popularProducts.length, visibleCats, categories, countForSidebar, locale, defaultLocale, t]);
+  }, [isLargeCatalog, popularProducts.length, visibleCats, categories, countForSidebar, locale, defaultLocale, t, hasToday, todayLabel, todayCount]);
 
   // Desktop sidebar: Popular first. Without it, once a category was picked
   // there was no way back to Popular on desktop (the pills bar that had it
   // repeated the sidebar and is gone).
   const sidebarCats = useMemo<Category[]>(() => {
     const base = groupsActive ? visibleCats : categories;
-    if (popularProducts.length === 0 || base.some((c) => c.id === POPULAR_ID)) {
-      return base;
+    const pseudo = (id: string, name: string) =>
+      ({
+        ...(base[0] ?? categories[0]),
+        id,
+        name,
+        translations: undefined,
+        group_name: null,
+        available_from: null,
+        available_to: null,
+      }) as Category;
+    const head: Category[] = [];
+    if (hasToday) head.push(pseudo(TODAY_ID, todayLabel));
+    if (popularProducts.length > 0 && !base.some((c) => c.id === POPULAR_ID)) {
+      head.push(pseudo(POPULAR_ID, t.popularItems));
     }
-    const popular = {
-      ...(base[0] ?? categories[0]),
-      id: POPULAR_ID,
-      name: t.popularItems,
-      translations: undefined,
-      group_name: null,
-      available_from: null,
-      available_to: null,
-    } as Category;
-    return [popular, ...base];
-  }, [groupsActive, visibleCats, categories, popularProducts.length, t.popularItems]);
+    return head.length ? [...head, ...base] : base;
+  }, [groupsActive, visibleCats, categories, popularProducts.length, t.popularItems, hasToday, todayLabel]);
 
-  const menuSheetActiveId = isLargeCatalog
-    ? (activeCatFilter ?? (popularProducts.length > 0 ? POPULAR_ID : null))
-    : activePillId;
+  const menuSheetActiveId = todayActive
+    ? TODAY_ID
+    : isLargeCatalog
+      ? (activeCatFilter ?? (popularProducts.length > 0 ? POPULAR_ID : null))
+      : activePillId;
 
   const closeMenuSheet = useCallback(() => {
     setShowCatSheet(false);
@@ -2426,6 +2497,14 @@ export function MenuShell({
   const handleMenuSheetSelect = useCallback(
     (id: string) => {
       closeMenuSheet();
+      if (id === TODAY_ID) {
+        goToToday();
+        return;
+      }
+      if (id === POPULAR_ID && hasToday) {
+        goToHomeSection(POPULAR_ID);
+        return;
+      }
       if (id === POPULAR_ID && isLargeCatalog) {
         // Same as the "Popular" pill: the unfiltered view, from the top.
         setActiveCatFilter(null);
@@ -2435,7 +2514,7 @@ export function MenuShell({
       }
       handleCategorySelect(id);
     },
-    [closeMenuSheet, isLargeCatalog, handleCategorySelect],
+    [closeMenuSheet, isLargeCatalog, handleCategorySelect, goToToday, hasToday, goToHomeSection],
   );
 
   // A section of a group that isn't on screen yet: switch group, then scroll
@@ -2562,12 +2641,31 @@ export function MenuShell({
             pillsTouchActiveRef.current = false;
           }}
         >
+          {/* Hoja del día: primero, solo los días que hay hoja. */}
+          {hasToday && (
+            <button
+              data-pill-id={TODAY_ID}
+              onClick={goToToday}
+              aria-current={todayActive ? "true" : undefined}
+              style={{ touchAction: "manipulation" }}
+              className={cn(
+                "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
+                todayActive ? "bg-gray-900 text-white" : "bg-white/70 text-gray-700 active:bg-gray-200",
+              )}
+            >
+              {todayLabel}
+            </button>
+          )}
           {/* Large catalog: home pill. Labelled "Popular" because that's what the
               unfiltered view now shows — calling it "All" would be a lie. */}
           {isLargeCatalog && (
             <button
               data-pill-id="__all__"
               onClick={() => {
+                if (hasToday && popularProducts.length > 0) {
+                  goToHomeSection(POPULAR_ID);
+                  return;
+                }
                 setActiveCatFilter(null);
                 setActiveCategory(null);
                 mainRef.current?.scrollTo({ top: 0, behavior: "auto" });
@@ -2577,7 +2675,7 @@ export function MenuShell({
                 "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
                 // One active state for every tab (2026-11-16): the amber Popular
                 // pill was a second accent competing with the menu's green.
-                !activeCatFilter && !showFavs && !activeDiet
+                !activeCatFilter && !showFavs && !activeDiet && !todayActive
                   ? "bg-gray-900 text-white"
                   : "bg-white/70 text-gray-700 active:bg-gray-200",
               )}
@@ -2595,7 +2693,7 @@ export function MenuShell({
               tName(cat, locale, defaultLocale),
               isLargeCatalog
                 ? activeCatFilter === cat.id && !showFavs && !activeDiet
-                : activePillId === cat.id && !showFavs && !activeDiet,
+                : activePillId === cat.id && !showFavs && !activeDiet && !todayActive,
             ),
           )}
           {filterDivider}
@@ -3465,6 +3563,26 @@ export function MenuShell({
                         ref={catListRef}
                         className="space-y-8 menu-cat-fade"
                       >
+                        {/* Hoja del día: primero en la portada, antes de "Pedir de
+                            nuevo" y de Popular. Es lo único del menú que cambia cada día. */}
+                        {today && hasToday && onHome && (
+                          <div
+                            ref={(el) => {
+                              if (el) sectionRefs.current.set(TODAY_ID, el);
+                              else sectionRefs.current.delete(TODAY_ID);
+                            }}
+                          >
+                            <TodaySheet
+                              products={liveProducts}
+                              day={today.day}
+                              soupSizes={today.soupSizes}
+                              locale={locale}
+                              defaultLocale={defaultLocale}
+                              fmtPrice={fmtPrice}
+                              onOpen={handleProductSelect}
+                            />
+                          </div>
+                        )}
                         {/* "Pedir de nuevo" (Pedro 2026-11-11): solo el último plato
                             pedido, solo en la portada (Popular). Antes salía en TODAS
                             las categorías —incluso dentro de Burgers— con sugerencias

@@ -554,6 +554,9 @@ export default async function SlugMenuPage({ params }: PageProps) {
     popularity_rank: p.popularity_rank ?? null,
     orders_last_7d: p.orders_last_7d ?? null,
     has_modifiers: p.has_modifiers,
+    daily_kind: p.daily_kind ?? null,
+    daily_label: p.daily_label ?? null,
+    daily_always: p.daily_always ?? false,
     variants: [],
     extras: [],
     modifier_groups: [],
@@ -610,6 +613,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
         recentReviews={data.recentReviews}
         limitedMode={data.limitedMode ?? null}
         isFreePlan={data.isFreePlan ?? true}
+        today={data.today}
       />
     </>
   );
