@@ -16,7 +16,7 @@ export default async function CounterPage() {
   const [{ data: restaurant }, { data: orders }, { data: oldScheduled }, isDevice, counterSettings] = await Promise.all([
     supabase
       .from('restaurants')
-      .select('name, currency, slug, locale, latitude, longitude, tax_label, tax_included, orders_paused_until')
+      .select('name, currency, slug, locale, latitude, longitude, tax_label, tax_included, orders_paused_until, busy_extra_minutes, busy_until')
       .eq('id', restaurantId)
       .maybeSingle(),
     supabase
@@ -92,6 +92,7 @@ export default async function CounterPage() {
       isDevice={isDevice}
       ownerPanel
       initialPausedUntil={restaurant?.orders_paused_until ?? null}
+        initialBusy={{ extra: Number(restaurant?.busy_extra_minutes) || 0, until: restaurant?.busy_until ?? null }}
       initialSettings={counterSettings}
     />
   );

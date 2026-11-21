@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, CalendarClock, History, Palette, Settings, Sun, X } from 'lucide-react';
 import type { Order } from '@/types';
 import { C, RAISED, type CounterText } from './ui';
+import { BUSY_CHOICES } from '@/lib/busy-mode';
 import { OrderCard, type PrimaryKind } from './CounterBoard';
 
 export type StoreState =
@@ -150,9 +151,11 @@ export function DemoBanner({ T, onExit }: { T: CounterText; onExit: () => void }
 
 /** Estado de la tienda (como la píldora "Open" de Uber): Ocupado y Pausar en un solo lugar. */
 export function StoreStatusSheet({
-  T, isPaused, pauseLeft, busyExtra, onBusy, onPause, onResume, onClose,
+  T, isPaused, pauseLeft, busyExtra, busyUntil, onBusy, onPause, onResume, onClose,
 }: {
   T: CounterText; isPaused: boolean; pauseLeft: number; busyExtra: number;
+  /** ms epoch en que se apaga solo el modo ocupado (null si está en normal). */
+  busyUntil?: number | null;
   onBusy: (m: number) => void; onPause: (mins: number) => void; onResume: () => void; onClose: () => void;
 }) {
   const opt = 'h-14 rounded-xl font-semibold text-[17px]';
@@ -164,7 +167,10 @@ export function StoreStatusSheet({
           <div>
             <h2 className="text-[24px] font-bold tracking-[-0.02em]">{T.storeStatus}</h2>
             <p className="text-[16px] font-medium mt-0.5" style={{ color: isPaused ? C.amber : C.sub }}>
-              {isPaused ? T.paused(pauseLeft) : busyExtra > 0 ? T.busy(busyExtra) : T.storeOpen}
+              {isPaused ? T.paused(pauseLeft)
+                : busyExtra > 0
+                  ? (busyUntil ? `${T.busy(busyExtra)} · ${T.busyEnds(new Date(busyUntil).toLocaleTimeString(T.locale, { hour: 'numeric', minute: '2-digit' }))}` : T.busy(busyExtra))
+                  : T.storeOpen}
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label={T.close} className="w-12 h-12 rounded-full inline-flex items-center justify-center" style={{ background: C.fill, color: C.ink }}>
@@ -175,17 +181,18 @@ export function StoreStatusSheet({
         <section className="flex flex-col gap-2">
           <h3 className="text-[15px] font-semibold" style={{ color: C.sub }}>{T.busyMode}</h3>
           {/* Control segmentado: pista gris, el elegido "levantado". */}
-          <div role="radiogroup" aria-label={T.busyMode} className="grid grid-cols-3 gap-0.5 p-1 rounded-2xl" style={{ background: C.fill }}>
-            {[0, 10, 20].map((m) => (
+          <div role="radiogroup" aria-label={T.busyMode} className="grid grid-cols-5 gap-0.5 p-1 rounded-2xl" style={{ background: C.fill }}>
+            {BUSY_CHOICES.map((m) => (
               <button key={m} type="button" role="radio" aria-checked={busyExtra === m} onClick={() => onBusy(m)}
                 className="h-12 rounded-xl text-[17px] tabular-nums"
                 style={busyExtra === m
                   ? { background: C.thumb, color: C.ink, boxShadow: C.thumbShadow, fontWeight: 700 }
                   : { color: C.ink, fontWeight: 500 }}>
-                {m === 0 ? T.normal : `+${m} min`}
+                {m === 0 ? T.normal : `+${m}`}
               </button>
             ))}
           </div>
+          <p className="text-[15px]" style={{ color: C.sub }}>{T.busyHint}</p>
         </section>
 
         <section className="flex flex-col gap-2">

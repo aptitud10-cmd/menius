@@ -11,7 +11,7 @@ import {
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
 import {
-  updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
+  updateOrderStatus, updateOrderETA, setPauseOrders, setBusyMode, assignDriver, updateOrderTip,
   sendOrderNotification, openShift, closeShift, getActiveShift, getTodaySummary,
   fetchOrderStatusHistory, getFlaggedCustomers,
 } from '@/lib/actions/restaurant';
@@ -34,6 +34,7 @@ import {
 } from './counter/audio';
 import { CustomizePanel, type AppearancePreview } from './counter/CustomizePanel';
 import { usePauseSync } from '@/hooks/use-pause-sync';
+import { BUSY_DURATION_MIN, BUSY_OFF, busyExtraAt, busyFromRow, type BusyState } from '@/lib/busy-mode';
 import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS, DEMO_MAX_MS } from './counter/demo';
 import { useCounterSettings } from '@/hooks/use-counter-settings';
 import { DEFAULT_COUNTER_SETTINGS, type CounterSettings } from '@/lib/counter-settings';
@@ -287,6 +288,8 @@ interface CounterViewProps {
   isDevice?: boolean;
   /** restaurants.orders_paused_until al cargar — la pausa vive en la DB, no en el aparato. */
   initialPausedUntil?: string | null;
+  /** Modo ocupado guardado (restaurants.busy_extra_minutes / busy_until). */
+  initialBusy?: { extra: number; until: string | null };
   /** Counter a pantalla completa (/counter): muestra "Panel del dueño" al final del menú. */
   ownerPanel?: boolean;
   /** Solo para la vista previa de desarrollo: pedidos que arrancan en la alerta. */
@@ -316,7 +319,7 @@ export interface ShiftReport {
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
   restaurantLat, restaurantLng, taxLabel, taxIncluded, restaurantSlug, tabletMode = false, isDevice = false,
-  initialPausedUntil = null, ownerPanel = false, previewAlertIds, previewShiftReport, previewModal,
+  initialPausedUntil = null, initialBusy, ownerPanel = false, previewAlertIds, previewShiftReport, previewModal,
   initialSettings = DEFAULT_COUNTER_SETTINGS, settingsLive = true,
 }: CounterViewProps) {
   // Idioma de la pantalla, por tablet: el cocinero lee español aunque la tienda
@@ -417,7 +420,16 @@ export function CounterView({
   // that React state can't (auto-accept + manual tap firing in the same tick).
   const acceptingRef = useRef<Set<string>>(new Set());
   const [eta, setEta] = useState(15);
-  const [busyExtra, setBusyExtra] = useState(0);
+  // Modo ocupado compartido con las otras pantallas (lib/busy-mode.ts): se apaga solo.
+  const [busy, setBusy] = useState<BusyState>(() => (initialBusy ? busyFromRow(initialBusy.extra, initialBusy.until) : BUSY_OFF));
+  useEffect(() => {
+    if (!busy.until) return;
+    const ms = busy.until - Date.now();
+    if (ms <= 0) { setBusy(BUSY_OFF); return; }
+    const id = setTimeout(() => setBusy(BUSY_OFF), ms);
+    return () => clearTimeout(id);
+  }, [busy.until]);
+  const busyExtra = busyExtraAt(busy, Date.now());
 
   // ── Pause state ──
   const [pausedUntil, setPausedUntil] = useState<number | null>(() => {
@@ -425,7 +437,7 @@ export function CounterView({
     return Number.isFinite(ms) && ms > Date.now() ? ms : null;
   });
   const [pauseModalOpen, setPauseModalOpen] = useState(false);
-  const pauseSync = usePauseSync(setPausedUntil);
+  const pauseSync = usePauseSync(setPausedUntil, setBusy);
 
   // ── Auto-print on accept ──
   const [autoPrint, setAutoPrint] = useState(() =>
@@ -1425,6 +1437,16 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pausedUntil, t]);
 
+  const doBusy = useCallback(async (m: number) => {
+    const prev = busy;
+    pauseSync.touch();
+    setBusy(m > 0 ? { extra: m, until: Date.now() + BUSY_DURATION_MIN * 60_000 } : BUSY_OFF);
+    const res: { error?: string; busyUntil?: string | null } = await setBusyMode(m).catch(() => ({ error: 'network' }));
+    if (res?.error) { setBusy(prev); showError(T.busyFailed); return; }
+    if (res?.busyUntil) setBusy({ extra: m, until: new Date(res.busyUntil).getTime() });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, T]);
+
   const doUnpause = useCallback(async () => {
     const prev = pausedUntil;
     pauseSync.touch();
@@ -1874,7 +1896,8 @@ export function CounterView({
           isPaused={isPaused}
           pauseLeft={pauseLeftMins}
           busyExtra={busyExtra}
-          onBusy={(m) => setBusyExtra(m)}
+          busyUntil={busyExtra > 0 ? busy.until : null}
+          onBusy={(m) => { void doBusy(m); }}
           onPause={(m) => { void doPause(m); setStatusOpen(false); }}
           onResume={() => { void doUnpause(); setStatusOpen(false); }}
           onClose={() => setStatusOpen(false)}

@@ -117,7 +117,7 @@ const ORDERS: Order[] = [
   }),
 ];
 
-export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; owner?: string; panel?: string; modal?: string; name?: string } }) {
+export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; owner?: string; panel?: string; modal?: string; name?: string; busy?: string } }) {
   // ?name=... cambia el nombre del local (capturas públicas para Google Play sin un restaurante real).
   // ?theme=midnight (oscuro; los ids viejos se mapean) · ?owner=1 (muestra el modo demo y el permiso de tablets)
   // · ?panel=1 (botón "Panel del dueño" al final del menú; sin owner=1 pide el PIN)
@@ -138,6 +138,8 @@ export default function PreviewCounterPage({ searchParams }: { searchParams: { e
       previewModal={searchParams.modal === 'deliver' || searchParams.modal === 'history' ? searchParams.modal : undefined}
       initialSettings={{ ...DEFAULT_COUNTER_SETTINGS, screenTheme: theme }}
       settingsLive={false}
+      // ?busy=15: arranca en modo ocupado (para ver la hoja de estado con el modo prendido).
+      initialBusy={searchParams.busy ? { extra: Number(searchParams.busy) || 0, until: new Date(Date.now() + 45 * 60_000).toISOString() } : undefined}
       previewAlertIds={searchParams.alert ? ['o1', 'o2'] : undefined}
       previewShiftReport={searchParams.z ? {
         totalOrders: 23, totalRevenue: 612.4, totalCash: 401.15, totalCard: 211.25,

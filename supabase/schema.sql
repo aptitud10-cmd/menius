@@ -745,6 +745,8 @@ CREATE TABLE public.restaurants (
   stripe_onboarding_complete boolean DEFAULT false,
   delivery_fee numeric DEFAULT 0,
   orders_paused_until timestamp with time zone,
+  busy_extra_minutes smallint NOT NULL DEFAULT 0,
+  busy_until timestamp with time zone,
   latitude double precision,
   longitude double precision,
   fiscal_rfc text,

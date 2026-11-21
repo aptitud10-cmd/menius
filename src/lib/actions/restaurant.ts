@@ -31,6 +31,7 @@ import {
 import { getStartOfDayUTC } from "@/lib/date-utils";
 import { broadcastOrderUpdate } from "@/lib/realtime/broadcast-order";
 import { nextCutoffInstant } from "@/lib/daily-menu";
+import { BUSY_CHOICES, BUSY_DURATION_MIN } from "@/lib/busy-mode";
 
 /**
  * order_status_history solo tiene política de LECTURA para el dueño: con el
@@ -2362,6 +2363,29 @@ export async function setPauseOrders(pausedUntil: string | null | "next_day") {
 
   if (error) return { error: error.message };
   return { success: true, pausedUntil: until };
+}
+
+/**
+ * Modo ocupado compartido (Counter y KDS): minutos extra al aceptar, durante
+ * BUSY_DURATION_MIN; después se apaga solo. 0 = normal.
+ */
+export async function setBusyMode(extra: number) {
+  if (!(BUSY_CHOICES as readonly number[]).includes(extra)) return { error: "invalid" };
+  const {
+    supabase,
+    restaurantId,
+    error: authErr,
+  } = await getAuthenticatedRestaurant({ allowDevice: true });
+  if (authErr) return { error: authErr };
+
+  const until = extra > 0 ? new Date(Date.now() + BUSY_DURATION_MIN * 60_000).toISOString() : null;
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ busy_extra_minutes: extra, busy_until: until })
+    .eq("id", restaurantId);
+
+  if (error) return { error: error.message };
+  return { success: true, busyExtra: extra, busyUntil: until };
 }
 
 export async function assignDriver(

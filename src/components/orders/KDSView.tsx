@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Printer, Volume2, VolumeX, MoreVertical, X, History, Pause, Flame, LogOut, Check, Undo2, AlertTriangle, WifiOff,
 } from 'lucide-react';
-import { updateOrderStatus, undoOrderStatus, setPauseOrders } from '@/lib/actions/restaurant';
+import { updateOrderStatus, undoOrderStatus, setPauseOrders, setBusyMode } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -20,6 +20,7 @@ import { OrderReceipt } from './OrderReceipt';
 import type { Order, OrderStatus } from '@/types';
 import { useCloudPrnt } from '@/hooks/use-cloudprnt';
 import { usePauseSync } from '@/hooks/use-pause-sync';
+import { BUSY_CHOICES, BUSY_DURATION_MIN, BUSY_OFF, busyExtraAt, busyFromRow, type BusyState } from '@/lib/busy-mode';
 
 /*
  * Pantalla de cocina (rediseño 2026-11-13, investigación Toast/Square/Fresh/Oracle):
@@ -54,7 +55,8 @@ const TXT = {
     undone: 'Deshacer', markedReady: 'listo', cancelled: 'CANCELADO', ok: 'OK', history: 'Historial',
     historyDesc: 'Pedidos que salieron de la cocina en las últimas 6 horas.', noHistory: 'Todavía no salió ningún pedido.',
     autoPrint: 'Imprimir al entrar a cocina', sound: 'Sonido', pause: 'Pausar pedidos online', busy: 'Modo ocupado',
-    busyDesc: 'Suma minutos al tiempo prometido para que los tickets no se pongan rojos en un pico.',
+    busyDesc: 'Suma minutos al tiempo prometido para que los tickets no se pongan rojos en un pico. Dura 1 hora y se apaga solo; se ve también en el mostrador.',
+    busyFailed: 'No se pudo cambiar el modo ocupado. Revisá la conexión.',
     stations: 'Estación', all: 'Todas', exit: 'Salir de la cocina', paused: 'Pausado', resume: 'Reanudar',
     oosTitle: (n: string) => `¿Marcar "${n}" como agotado?`, oosDesc: 'Se oculta del menú online hasta que lo vuelvas a activar.',
     oosOk: 'Agotado (86)', cancel: 'Cancelar', oosDone: 'Marcado como agotado', oosErr: 'No se pudo marcar como agotado',
@@ -74,7 +76,8 @@ const TXT = {
     undone: 'Undo', markedReady: 'ready', cancelled: 'CANCELLED', ok: 'OK', history: 'History',
     historyDesc: 'Orders that left the kitchen in the last 6 hours.', noHistory: 'No orders have left the kitchen yet.',
     autoPrint: 'Print when it reaches the kitchen', sound: 'Sound', pause: 'Pause online orders', busy: 'Busy mode',
-    busyDesc: 'Adds minutes to the promised time so tickets don’t turn red during a rush.',
+    busyDesc: 'Adds minutes to the promised time so tickets don’t turn red during a rush. Lasts 1 hour and turns off on its own; the counter sees it too.',
+    busyFailed: 'Couldn’t change busy mode. Check the connection.',
     stations: 'Station', all: 'All', exit: 'Leave kitchen', paused: 'Paused', resume: 'Resume',
     oosTitle: (n: string) => `Mark "${n}" as sold out?`, oosDesc: 'It’s hidden from the online menu until you turn it back on.',
     oosOk: 'Sold out (86)', cancel: 'Cancel', oosDone: 'Marked as sold out', oosErr: 'Couldn’t mark it as sold out',
@@ -102,6 +105,7 @@ interface Props {
   kdsStations?: KDSStation[];
   /** restaurants.orders_paused_until al cargar — la pausa vive en la DB. */
   initialPausedUntil?: string | null;
+  initialBusy?: { extra: number; until: string | null };
 }
 
 interface Bumped { orderId: string; num: string; prev: OrderStatus; ts: number }
@@ -125,7 +129,7 @@ const startOf = (o: Order, eta: number) => {
   return ((o as unknown as { prepared_at?: string | null }).prepared_at) || o.created_at;
 };
 
-export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, taxLabel, taxIncluded, kdsStations = [], initialPausedUntil = null }: Props) {
+export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, taxLabel, taxIncluded, kdsStations = [], initialPausedUntil = null, initialBusy }: Props) {
   const { locale } = useDashboardLocale();
   const isEn = locale === 'en';
   const T: T = isEn ? TXT.en : TXT.es;
@@ -139,7 +143,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const undoTimer = useRef<NodeJS.Timeout | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [kbUsed, setKbUsed] = useState(false);
-  const [busyExtra, setBusyExtra] = useState(0);
+  // Modo ocupado compartido con el Counter (lib/busy-mode.ts): se apaga solo.
+  const [busy, setBusy] = useState<BusyState>(() => (initialBusy ? busyFromRow(initialBusy.extra, initialBusy.until) : BUSY_OFF));
   const [sheet, setSheet] = useState<null | 'menu' | 'history' | 'pause' | 'busy'>(null);
   const [oos, setOos] = useState<{ productId: string; name: string } | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -161,7 +166,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
   useEffect(() => { if (pausedUntil && now >= pausedUntil) setPausedUntil(null); }, [now, pausedUntil]);
-  const pauseSync = usePauseSync(setPausedUntil);
+  const busyExtra = busyExtraAt(busy, now);
+  const pauseSync = usePauseSync(setPausedUntil, setBusy);
 
   /* Conexión */
   const [online, setOnline] = useState(true);
@@ -401,6 +407,15 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     if (res?.error) { setPausedUntil(prev); showToast(T.pauseFailed, false); return; }
     if (res?.pausedUntil) setPausedUntil(new Date(res.pausedUntil).getTime());
   };
+  const doBusy = async (m: number) => {
+    const prev = busy;
+    pauseSync.touch();
+    setBusy(m > 0 ? { extra: m, until: Date.now() + BUSY_DURATION_MIN * 60000 } : BUSY_OFF);
+    setSheet(null);
+    const res: { error?: string; busyUntil?: string | null } = await setBusyMode(m).catch(() => ({ error: 'network' }));
+    if (res?.error) { setBusy(prev); showToast(T.busyFailed, false); return; }
+    if (res?.busyUntil) setBusy({ extra: m, until: new Date(res.busyUntil).getTime() });
+  };
   const doUnpause = async () => {
     const prev = pausedUntil;
     pauseSync.touch();
@@ -592,9 +607,9 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       {sheet === 'busy' && (
         <Sheet onClose={() => setSheet(null)} title={T.busy}>
           <p className="text-[14px] mb-4" style={{ color: C.sub }}>{T.busyDesc}</p>
-          <div className="grid grid-cols-4 gap-2">
-            {[0, 10, 20, 30].map((v) => (
-              <button key={v} onClick={() => { setBusyExtra(v); setSheet(null); }} className="h-16 rounded-2xl text-[20px] font-extrabold"
+          <div className="grid grid-cols-5 gap-2">
+            {BUSY_CHOICES.map((v) => (
+              <button key={v} onClick={() => void doBusy(v)} className="h-16 rounded-2xl text-[20px] font-extrabold"
                 style={busyExtra === v ? { background: C.ink, color: C.bg } : { background: '#23262b', color: C.ink }}>
                 {v === 0 ? '—' : `+${v}`}
               </button>
