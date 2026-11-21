@@ -277,6 +277,31 @@ export function MenuShell({
     }
   }, [lastOrder, reorderDismissKey]);
 
+  // Tarjeta "Lo que pediste" (Pedro 2026-11-16): sale de la base (último pedido
+  // del cliente reconocido por teléfono/email), no del lastOrder local, así que
+  // aparecía con el carrito lleno o en otro dispositivo — donde el banner de
+  // arriba no existe — y no tenía X. Su "no" se recuerda atado a ESE plato:
+  // si el próximo pedido trae otro, vuelve a ofrecerse.
+  const lastDishDismissKey = `menius_lastdish_dismissed_${restaurant.id}`;
+  const lastDishId = recommendations?.last_order?.product_id ?? null;
+  const [lastDishDismissed, setLastDishDismissed] = useState(false);
+  useEffect(() => {
+    if (!lastDishId) return;
+    try {
+      setLastDishDismissed(localStorage.getItem(lastDishDismissKey) === lastDishId);
+    } catch {
+      // Modo privado: se cierra igual, solo que no se recuerda.
+    }
+  }, [lastDishId, lastDishDismissKey]);
+  const dismissLastDish = useCallback(() => {
+    setLastDishDismissed(true);
+    try {
+      if (lastDishId) localStorage.setItem(lastDishDismissKey, lastDishId);
+    } catch {
+      // idem
+    }
+  }, [lastDishId, lastDishDismissKey]);
+
   const enabledOrderTypes: OrderType[] = restaurant.order_types_enabled?.length
     ? restaurant.order_types_enabled
     : ["dine_in", "pickup", "delivery"];
@@ -3593,7 +3618,7 @@ export function MenuShell({
                           const item = recommendations?.last_order;
                           // Cerró el banner = no quiere lo de la vez anterior: no
                           // se lo ofrecemos de nuevo con otra forma.
-                          if (!item || showReorderBanner || reorderDismissed) return null;
+                          if (!item || showReorderBanner || reorderDismissed || lastDishDismissed) return null;
                           if (activeCatFilter && activeCatFilter !== POPULAR_ID) return null;
                           const product = liveProducts.find((p) => p.id === item.product_id);
                           // Sold out or outside its hours: nothing to offer again right now.
@@ -3615,9 +3640,10 @@ export function MenuShell({
                               <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                                 {t.forYouLastOrder}
                               </p>
+                              <div className="flex items-center rounded-2xl border border-gray-100 bg-white shadow-sm">
                               <button
                                 onClick={handleClick}
-                                className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 bg-white shadow-sm p-2.5 active:scale-[0.98] transition-transform text-left"
+                                className="min-w-0 flex-1 flex items-center gap-3 p-2.5 active:scale-[0.98] transition-transform text-left"
                               >
                                 {src && (
                                   <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
@@ -3643,6 +3669,14 @@ export function MenuShell({
                                   {t.orderReorder}
                                 </span>
                               </button>
+                              <button
+                                onClick={dismissLastDish}
+                                className="flex-shrink-0 mr-1 w-11 h-11 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+                                aria-label={t.dismiss}
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                              </div>
                             </section>
                           );
                         })()}
