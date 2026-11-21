@@ -31,6 +31,9 @@ describe('orderToTicketData (Android v2 = mismo diseño que CloudPRNT)', () => {
     expect(ticket.items[0]).toMatchObject({ qty: 2, name: 'Bacon Cheeseburger', lineTotal: 29 });
     expect(ticket.items[0].lines[0].text).toBe('Medium');
     expect(ticketText.itemCount).toBe('2 items');
+    // v5 para la app 1.0.6: textos de las franjas, sin romper las claves que lee la 1.0.5.
+    expect(ticketText.v5).toMatchObject({ orderType: 'DELIVERY', readyBy: 'READY BY', currencySymbol: '$', cashWho: expect.any(String) });
+    expect(ticketText.v5.placedLine).toMatch(/^Placed /);
     expect(ticketText.channelLine).toBe('WEBSITE · DELIVERY');
   });
 

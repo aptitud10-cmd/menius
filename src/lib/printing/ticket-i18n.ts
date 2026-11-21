@@ -177,12 +177,43 @@ export interface TicketText {
   orderDirect: string;
   driverScan: string;
   poweredBy: string;
+  /**
+   * Ticket v5 para la app Android ≥ 1.0.6 (versionCode 7): los textos del diseño de las
+   * franjas, ya resueltos. Las claves de arriba se quedan para la 1.0.5, que dibuja el v3.
+   */
+  v5: TicketTextV5;
+}
+
+export interface TicketTextV5 {
+  orderVia: string;
+  orderType: string;
+  readyBy: string;
+  table: string;
+  scheduled: string;
+  deliverTo: string;
+  instructions: string;
+  driverTitle: string;
+  driverHint: string;
+  noteLabel: string;
+  orderNote: string;
+  utensilsLabel: string;
+  yes: string;
+  no: string;
+  collectCashTitle: string;
+  cashWho: string;
+  paidTitle: string;
+  doNotCharge: string;
+  verifyPayment: string;
+  /** "Placed Nov 13, 2:43 AM". */
+  placedLine: string;
+  /** Símbolo de la moneda para los montos ("$", "€"); la térmica no recibe el formato entero. */
+  currencySymbol: string;
 }
 
 export function ticketTextFor(
   d: { locale: TicketLocale; channel: TicketChannel; orderType: 'delivery' | 'pickup' | 'dine_in'; includeUtensils: boolean; itemCount: number;
-       payment: { kind: 'paid' | 'collect_cash' | 'verify' }; restaurant: { taxLabel: string; name: string };
-       placedFull: string; dueFull?: string },
+       payment: { kind: 'paid' | 'collect_cash' | 'verify' }; restaurant: { taxLabel: string; name: string; currency?: string };
+       placedFull: string; dueFull?: string; placedShort?: string },
   paymentAmount: string,
 ): TicketText {
   const t = ticketStrings(d.locale);
@@ -211,7 +242,42 @@ export function ticketTextFor(
     orderDirect: t.orderDirect,
     driverScan: t.driverScan,
     poweredBy: t.poweredBy,
+    v5: {
+      orderVia: t.orderVia[d.channel],
+      orderType: t.orderType[d.orderType],
+      readyBy: t.readyBy,
+      table: t.table,
+      scheduled: t.scheduled,
+      deliverTo: t.deliverTo,
+      instructions: t.instructions,
+      driverTitle: t.driverTitle,
+      driverHint: t.driverHint,
+      noteLabel: t.noteLabel,
+      orderNote: t.orderNote,
+      utensilsLabel: t.utensilsLabel,
+      yes: t.yes,
+      no: t.no,
+      collectCashTitle: t.collectCashTitle,
+      cashWho: t.cashWho[d.orderType],
+      paidTitle: t.paidTitle,
+      doNotCharge: t.doNotCharge,
+      verifyPayment: ascii(t.verifyPayment),
+      placedLine: `${t.placed} ${d.placedShort ?? d.placedFull}`,
+      currencySymbol: currencySymbol(d.restaurant.currency),
+    },
   };
+}
+
+/** "$" para USD/MXN/COP, "€" para EUR. Vacío si la moneda no se reconoce. */
+function currencySymbol(currency: string | undefined): string {
+  if (!currency) return '$';
+  try {
+    const part = new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' })
+      .formatToParts(0).find((x) => x.type === 'currency');
+    return part?.value ?? '';
+  } catch {
+    return '';
+  }
 }
 
 export function ticketStrings(locale: TicketLocale): TicketStrings {
