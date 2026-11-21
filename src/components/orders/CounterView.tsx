@@ -44,6 +44,7 @@ import { OrderSheet } from './counter/OrderSheet';
 import { OwnerPanelButton } from './counter/OwnerPanelButton';
 import { HelpSheet } from './counter/HelpSheet';
 import { TodayView } from './counter/TodayView';
+import { MenuView } from './counter/MenuView';
 import { shortOrderNumber } from '@/lib/orders/short-number';
 import {
   CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast, DemoBanner,
@@ -472,10 +473,6 @@ export function CounterView({
     typeof window !== 'undefined' ? PrinterConfig.config : { receiptEnabled: true, kitchenEnabled: false }
   );
 
-  // ── 86 / Stock panel ──
-  const [stockProducts, setStockProducts] = useState<{ id: string; name: string; in_stock: boolean }[]>([]);
-  const [stockLoading, setStockLoading] = useState(false);
-  const [stockUpdating, setStockUpdating] = useState<string | null>(null);
 
   const [deliveryGuardModal, setDeliveryGuardModal] = useState<{ order: Order } | null>(() => {
     // Vista previa: un delivery con repartidor asignado que todavía no retiró.
@@ -1029,16 +1026,6 @@ export function CounterView({
   // ── Derived ──
   const selectedOrder = orders.find(o => o.id === selectedId) ?? null;
 
-  // Load products for 86 / stock panel when sidebar opens
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    setStockLoading(true);
-    fetch('/api/products/stock')
-      .then(r => r.json())
-      .then(data => setStockProducts(data.products ?? []))
-      .catch(() => {})
-      .finally(() => setStockLoading(false));
-  }, [sidebarOpen]);
 
   const isPaused = !!pausedUntil && Date.now() < pausedUntil;
   const pauseLeftMins = pausedUntil ? Math.max(0, Math.ceil((pausedUntil - Date.now()) / 60_000)) : 0;
@@ -1447,28 +1434,6 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pausedUntil, t]);
 
-  const toggleStock = useCallback(async (productId: string, currentInStock: boolean) => {
-    setStockUpdating(productId);
-    try {
-      const res = await fetch('/api/products/stock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: productId, in_stock: !currentInStock }),
-      });
-      if (res.ok) {
-        setStockProducts(prev => prev.map(p => p.id === productId ? { ...p, in_stock: !currentInStock } : p));
-      } else {
-        // Antes fallaba en silencio: el cajero creía que el plato quedó agotado
-        // y la tienda lo seguía vendiendo.
-        showError(t.en ? 'Could not update the item. Try again.' : 'No se pudo cambiar el plato. Intenta de nuevo.');
-      }
-    } catch {
-      showError(t.en ? 'No connection — the item was not updated.' : 'Sin conexión: el plato no se cambió.');
-    }
-    finally { setStockUpdating(null); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t]);
-
   // ── Shift handlers ──
   const handleOpenShift = useCallback(async () => {
     setShiftSaving(true);
@@ -1781,6 +1746,8 @@ export function CounterView({
 
       {view === 'today' ? (
         <TodayView en={t.en} restaurantName={restaurantName} />
+      ) : view === 'menu' ? (
+        <MenuView T={T} currency={currency} onGoToday={hasDaily ? () => setView('today') : undefined} />
       ) : view === 'board' ? (
         <CounterBoard
           T={T}
@@ -2019,37 +1986,16 @@ export function CounterView({
                 )}
               </SidebarSection>
 
-              {/* 86 / Stock */}
+              {/* 86 / Stock: ahora es la pestaña "Menú" a pantalla completa (antes, una caja de 256 px acá). */}
               <SidebarSection title={t.en ? 'Out of stock' : 'Agotados'} icon={<Ban className="w-4 h-4" />}>
-                {stockLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <span className="w-4 h-4 border-2 border-[color:var(--kds-line)] border-t-[color:var(--kds-accent)] rounded-full animate-spin" />
-                  </div>
-                ) : stockProducts.length === 0 ? (
-                  <p className="text-[15px] text-[color:var(--kds-sub)] text-center py-2">{t.en ? 'No products found' : 'Sin productos'}</p>
-                ) : (
-                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                    {stockProducts.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => toggleStock(p.id, p.in_stock)}
-                        disabled={stockUpdating === p.id}
-                        className={cn(
-                          'w-full flex items-center justify-between px-3 min-h-[48px] rounded-xl border transition-colors text-left',
-                          p.in_stock
-                            ? 'border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)]'
-                            : 'border-[color:var(--kds-line)] bg-[var(--kds-fill)]'
-                        )}
-                      >
-                        <span className={cn('text-[16px] font-medium truncate', p.in_stock ? 'text-[color:var(--kds-ink)]' : 'line-through')} style={p.in_stock ? undefined : { color: C.destructive }}>{p.name}</span>
-                        <span className="flex-shrink-0 ml-2 text-[15px] font-bold tabular-nums"
-                          style={{ color: p.in_stock ? C.accentText : C.destructive }}>
-                          {stockUpdating === p.id ? '…' : p.in_stock ? (t.en ? 'OK' : 'OK') : '86'}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => { setSidebarOpen(false); setView('menu'); }}
+                  className="w-full flex items-center justify-between px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] text-left text-[16px] font-semibold text-[color:var(--kds-ink)]"
+                >
+                  {t.en ? 'Mark items sold out in Menu' : 'Marcar platos agotados en Menú'}
+                  <ChevronRight className="w-5 h-5 flex-shrink-0 text-[color:var(--kds-sub)]" />
+                </button>
               </SidebarSection>
 
               {/* Today summary */}

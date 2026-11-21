@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CalendarClock, History, Menu as MenuIcon, Palette, Sun, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, History, Palette, Settings, Sun, X } from 'lucide-react';
 import type { Order } from '@/types';
 import { C, RAISED, type CounterText } from './ui';
 import { OrderCard, type PrimaryKind } from './CounterBoard';
@@ -25,7 +25,7 @@ export function StatusPill({ state, T, onClick }: { state: StoreState; T: Counte
   }[state.kind];
   return (
     <button type="button" onClick={onClick}
-      className="h-11 min-w-0 pl-4 pr-[18px] rounded-full inline-flex items-center gap-2.5 font-semibold text-[16px] whitespace-nowrap"
+      className="h-11 flex-none sm:flex-initial min-w-0 pl-4 pr-[18px] rounded-full inline-flex items-center gap-2.5 font-semibold text-[16px] whitespace-nowrap"
       style={{ background: look.bg, color: look.fg }}>
       <span className="flex-none w-2.5 h-2.5 rounded-full" style={{ background: look.dot }} />
       {state.kind === 'open' ? (
@@ -40,7 +40,7 @@ export function StatusPill({ state, T, onClick }: { state: StoreState; T: Counte
   );
 }
 
-export type CounterViewMode = 'board' | 'scheduled' | 'history' | 'today';
+export type CounterViewMode = 'board' | 'scheduled' | 'history' | 'today' | 'menu';
 
 export function CounterTopBar({
   T, restaurantName, state, view, scheduledCount, onStatus, onView, onMenu, onCustomize, showToday,
@@ -58,7 +58,9 @@ export function CounterTopBar({
   const idle = { background: C.fill, color: C.ink };
   const active = { background: C.inverse, color: C.onInverse };
   return (
-    <header className="flex-none flex items-center gap-2 sm:gap-3 px-3 sm:px-5 min-h-[72px]" style={{ background: C.bg, paddingTop: 'env(safe-area-inset-top)' }}>
+    // Bajo 640 px, si los botones no entran (pestaña abierta + Programados + Hoy), la barra se desliza
+    // de costado en vez de encimar la píldora con los botones.
+    <header className="flex-none flex items-center gap-2 sm:gap-3 px-3 sm:px-5 min-h-[72px] max-sm:overflow-x-auto [scrollbar-width:none]" style={{ background: C.bg, paddingTop: 'env(safe-area-inset-top)' }}>
       {view !== 'board' ? (
         <button type="button" onClick={() => onView('board')} className={btn} style={idle} aria-label={T.backToBoard}>
           <ArrowLeft className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden md:inline">{T.backToBoard}</span>
@@ -83,6 +85,11 @@ export function CounterTopBar({
           <Sun className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.locale.startsWith('en') ? 'Today' : 'Hoy'}</span>
         </button>
       )}
+      {/* Menú: marcar "se acabó" a pantalla completa (antes era una caja de 256 px en el panel lateral). */}
+      <button type="button" onClick={() => onView('menu')} className={btn} aria-label={T.menuTab}
+        style={view === 'menu' ? active : idle}>
+        <BookOpen className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.menuTab}</span>
+      </button>
       <button type="button" onClick={() => onView('history')} className={btn} aria-label={T.history}
         style={view === 'history' ? active : idle}>
         <History className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.history}</span>
@@ -92,8 +99,9 @@ export function CounterTopBar({
           <Palette className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.customize}</span>
         </button>
       )}
-      <button type="button" onClick={onMenu} className={btn} style={idle} aria-label={T.menu}>
-        <MenuIcon className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.menu}</span>
+      {/* Era "Menú" con hamburguesa; ahora "Menú" es la carta, y esto es el panel de ajustes. */}
+      <button type="button" onClick={onMenu} className={btn} style={idle} aria-label={T.settings}>
+        <Settings className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.settings}</span>
       </button>
     </header>
   );
@@ -113,9 +121,9 @@ function Clock({ locale }: { locale: string }) {
   }, []);
   if (!now) return null;
   return (
-    // Debajo de 380 px no entra junto a la píldora y los 3 botones (se montaba
-    // sobre "Open"); en un celular tan angosto la hora ya está en la barra del sistema.
-    <span className="hidden min-[380px]:flex flex-none items-baseline gap-2 mr-1 sm:mr-2 tabular-nums whitespace-nowrap" style={{ color: C.ink }}>
+    // En celular no entra junto a la píldora y los botones (se montaba sobre "Open").
+    // Desde 600 px sí: una tablet Android de 8" en vertical, donde el APK corre sin la barra del sistema.
+    <span className="hidden min-[600px]:flex flex-none items-baseline gap-2 mr-1 sm:mr-2 tabular-nums whitespace-nowrap" style={{ color: C.ink }}>
       <span className="font-bold text-[20px] sm:text-[22px] tracking-[-0.015em]">
         {now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })}
       </span>
