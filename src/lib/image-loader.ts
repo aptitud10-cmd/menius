@@ -18,15 +18,21 @@ interface LoaderParams {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 
-// Fotos ya optimizadas al subirlas (product-images/opt/…): existen en dos
-// archivos, `-lg.jpg` (≤1200px, el que guarda image_url) y `-sm.webp` (640px).
+// Fotos ya optimizadas al subirlas (product-images/opt/…): existen en tres
+// archivos, `-lg.jpg` (el que guarda image_url; hasta 1820px en las 16:9),
+// `-md.webp` (≤1200px) y `-sm.webp` (640px).
 // Se sirven directo desde el CDN, sin pasar por /render/image/: la
 // transformación al vuelo tardaba ~1 s por foto la primera vez (medido
 // 2026-11-11: 0.96 s en frío vs 0.09 s el archivo estático) y las fotos del
 // menú aparecían de a una. Además cada transformación se factura.
 //   - `opt/…-lg.jpg` / `-sm.webp`: el lote de Buccaneer (scripts/.product-output/opt).
-//   - `…__lg.jpg` / `__sm.webp`: lo que sube uploadOptimizedProductImage desde
-//     el dashboard y las rutas de IA, en cualquier carpeta del bucket.
+//   - `…__lg.jpg` / `__md.webp` / `__sm.webp`: lo que sube
+//     uploadOptimizedProductImage desde el dashboard y las rutas de IA, en
+//     cualquier carpeta del bucket.
+// La intermedia existe porque sin ella una pantalla con zoom 150 % o retina
+// saltaba de la chica al JPEG grande en CADA tarjeta (medido 2026-11-21:
+// 1,4–1,9 MB por categoría, contra ~0,6 MB). Las fotos anteriores a esa fecha
+// la recibieron con scripts/backfill-md-webp.mjs.
 const OPTIMIZED_LG = /\/product-images\/(?:opt\/.+-lg|.+__lg)\.jpg$/;
 
 export function supabaseLoader({ src, width, quality }: LoaderParams): string {
@@ -36,10 +42,11 @@ export function supabaseLoader({ src, width, quality }: LoaderParams): string {
   if (!isSupabaseUrl) return src;
 
   if (OPTIMIZED_LG.test(src)) {
-    if (width > 640) return src;
+    if (width > 1200) return src;
+    const size = width > 640 ? 'md' : 'sm';
     return src.endsWith('__lg.jpg')
-      ? src.replace(/__lg\.jpg$/, '__sm.webp')
-      : src.replace(/-lg\.jpg$/, '-sm.webp');
+      ? src.replace(/__lg\.jpg$/, `__${size}.webp`)
+      : src.replace(/-lg\.jpg$/, `-${size}.webp`);
   }
 
   // Antes acá se servían sin transformar las imágenes bajo /ai- y /admin-regen/,

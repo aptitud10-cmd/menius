@@ -22,12 +22,24 @@ const png = () =>
   sharp({ create: { width: 2000, height: 1500, channels: 3, background: '#c33' } }).png().toBuffer();
 
 describe('uploadOptimizedProductImage', () => {
-  it('sube __sm.webp + __lg.jpg y devuelve la URL de la grande', async () => {
+  it('sube __sm.webp + __md.webp + __lg.jpg y devuelve la URL de la grande', async () => {
     const { db, uploaded } = fakeDb();
     const url = await uploadOptimizedProductImage(db, 'u/burger-1', await png());
     expect(url).toMatch(/\/u\/burger-1__lg\.jpg$/);
     expect(uploaded['u/burger-1__sm.webp']?.contentType).toBe('image/webp');
     expect(uploaded['u/burger-1__lg.jpg']?.contentType).toBe('image/jpeg');
+    expect(uploaded['u/burger-1__md.webp']?.contentType).toBe('image/webp');
+    // La intermedia: mismos píxeles que la grande (≤1200) y bastante más liviana.
+    const md = await sharp(uploaded['u/burger-1__md.webp'].buf).metadata();
+    expect(md.width).toBe(1200);
+    expect(uploaded['u/burger-1__md.webp'].size).toBeLessThan(uploaded['u/burger-1__lg.jpg'].size);
+  });
+
+  it('si la intermedia falla, tampoco deja una __lg sin gemelas: sube un .jpg normal', async () => {
+    const { db, uploaded } = fakeDb((p) => p.endsWith('__md.webp'));
+    const url = await uploadOptimizedProductImage(db, 'u/burger-3', await png());
+    expect(url).toMatch(/\/u\/burger-3\.jpg$/);
+    expect(Object.keys(uploaded).some((p) => p.endsWith('__lg.jpg'))).toBe(false);
   });
 
   it('si la chica falla, NO deja una __lg huérfana: sube un .jpg normal', async () => {
@@ -44,7 +56,7 @@ describe('uploadOptimizedProductImage', () => {
     const logo = await sharp(circle).png().toBuffer();
     const { db, uploaded } = fakeDb();
     await uploadOptimizedProductImage(db, 'u/logo', logo);
-    for (const path of ['u/logo__lg.jpg', 'u/logo__sm.webp']) {
+    for (const path of ['u/logo__lg.jpg', 'u/logo__md.webp', 'u/logo__sm.webp']) {
       const { data, info } = await sharp(uploaded[path].buf).raw().toBuffer({ resolveWithObject: true });
       const corner = [data[0], data[1], data[2]];
       expect(corner.every((v) => v > 245), `${path} esquina ${corner}`).toBe(true);

@@ -20,9 +20,10 @@ export async function GET() {
 
     const images = (files ?? [])
       .filter(f => !f.id?.startsWith('.') && f.name !== '.emptyFolderPlaceholder')
-      // La versión chica (`__sm.webp`) es la gemela de `__lg.jpg`: la pide el
-      // menú, pero en la galería es la MISMA foto dos veces.
-      .filter(f => !f.name.endsWith('__sm.webp'))
+      // Las versiones chica e intermedia (`__sm.webp`, `__md.webp`) son gemelas
+      // de `__lg.jpg`: las pide el menú, pero en la galería serían la MISMA foto
+      // repetida.
+      .filter(f => !f.name.endsWith('__sm.webp') && !f.name.endsWith('__md.webp'))
       .map(f => {
         const path = `${tenant.userId}/${f.name}`;
         const { data } = supabase.storage.from('product-images').getPublicUrl(path);
@@ -57,9 +58,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    // Borrar la grande borra también su gemela chica (ver product-image-upload.ts).
+    // Borrar la grande borra también sus gemelas chica e intermedia (ver product-image-upload.ts).
     const paths = filePath.endsWith('__lg.jpg')
-      ? [filePath, filePath.replace(/__lg\.jpg$/, '__sm.webp')]
+      ? [filePath, filePath.replace(/__lg\.jpg$/, '__sm.webp'), filePath.replace(/__lg\.jpg$/, '__md.webp')]
       : [filePath];
     const { error } = await supabase.storage
       .from('product-images')

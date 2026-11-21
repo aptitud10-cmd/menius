@@ -64,8 +64,14 @@ describe('supabaseLoader', () => {
       }
     });
 
-    it('anchos grandes usan el -lg.jpg tal cual', () => {
-      expect(supabaseLoader({ src: lg, width: 1080 })).toBe(lg);
+    it('anchos medios (641–1200: zoom 150 %, retina) piden la intermedia -md.webp, no el JPEG', () => {
+      for (const width of [750, 828, 1080, 1200]) {
+        expect(supabaseLoader({ src: lg, width })).toBe(`${STORAGE}/opt/rest-id/bbq-burger-123-md.webp`);
+      }
+    });
+
+    it('solo más de 1200 usa el -lg.jpg tal cual', () => {
+      expect(supabaseLoader({ src: lg, width: 1920 })).toBe(lg);
     });
 
     it('nunca pasan por la transformación al vuelo', () => {
@@ -74,10 +80,11 @@ describe('supabaseLoader', () => {
       }
     });
 
-    it('lo subido desde el dashboard (__lg.jpg) pide su gemela __sm.webp', () => {
+    it('lo subido desde el dashboard (__lg.jpg) pide sus gemelas __sm / __md', () => {
       const up = `${STORAGE}/user-id/burger-123__lg.jpg`;
       expect(supabaseLoader({ src: up, width: 640 })).toBe(`${STORAGE}/user-id/burger-123__sm.webp`);
-      expect(supabaseLoader({ src: up, width: 1080 })).toBe(up);
+      expect(supabaseLoader({ src: up, width: 1080 })).toBe(`${STORAGE}/user-id/burger-123__md.webp`);
+      expect(supabaseLoader({ src: up, width: 1920 })).toBe(up);
       expect(supabaseLoader({ src: up, width: 384 })).not.toContain('/render/image/');
     });
 
