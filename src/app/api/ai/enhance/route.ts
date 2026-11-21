@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
+import { GEMINI_IMAGE_PRO } from '@/lib/ai/gemini-models';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
@@ -147,7 +148,7 @@ OUTPUT: A photorealistic, award-winning food photograph. NOT CGI, NOT illustrati
     // Try primary model
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
+        model: GEMINI_IMAGE_PRO,
         contents: [{
           role: 'user',
           parts: [

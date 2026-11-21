@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
+import { GEMINI_FAST } from '@/lib/ai/gemini-models';
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -262,7 +263,7 @@ Responde SOLO con JSON válido:
 }`;
 
           const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          const model = genAI.getGenerativeModel({ model: GEMINI_FAST });
 
           const result = await model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }] }],

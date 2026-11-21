@@ -1,3 +1,5 @@
+import { GEMINI_FAST } from '@/lib/ai/gemini-models';
+
 /**
  * Shared food photography prompt builder.
  * Used by the regular generate-image route and the admin bulk-regenerate endpoint.
@@ -480,7 +482,7 @@ export async function analyzeIngredients(
     const ai = new GoogleGenAI({ apiKey: geminiKey });
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: GEMINI_FAST,
       contents: [
         {
           role: "user",
@@ -582,7 +584,7 @@ export async function checkPromptCoherence(
     const ai = new GoogleGenAI({ apiKey: geminiKey });
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: GEMINI_FAST,
       contents: [
         {
           role: "user",

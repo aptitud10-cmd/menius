@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { GEMINI_SMART } from '@/lib/ai/gemini-models';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { hasPlanAccess } from '@/lib/auth/check-plan';
@@ -126,7 +127,7 @@ Example output:
 }`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: GEMINI_SMART,
       generationConfig: {
         maxOutputTokens: 65536,
         thinkingConfig: { thinkingBudget: 0 },

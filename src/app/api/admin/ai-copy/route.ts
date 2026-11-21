@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { GEMINI_FAST } from '@/lib/ai/gemini-models';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
@@ -226,7 +227,7 @@ FORMATO JSON estricto (sin markdown):
     }
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FAST}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,7 +237,7 @@ FORMATO JSON estricto (sin markdown):
             temperature: 0.95,
             maxOutputTokens: 2048,
             responseMimeType: 'application/json',
-            thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: { thinkingLevel: 'minimal' },
           },
         }),
       },

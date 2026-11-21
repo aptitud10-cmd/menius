@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
+import { GEMINI_IMAGE_PRO } from '@/lib/ai/gemini-models';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
 
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-3-pro-image-preview',
+          model: GEMINI_IMAGE_PRO,
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           config: {
             responseModalities: ['TEXT', 'IMAGE'] as any,

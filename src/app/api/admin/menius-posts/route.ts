@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { GEMINI_FAST } from '@/lib/ai/gemini-models';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
@@ -110,7 +111,7 @@ RESPOND IN THIS EXACT JSON FORMAT:
 }`;
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FAST}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { GEMINI_FAST } from '@/lib/ai/gemini-models';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
@@ -154,7 +155,7 @@ Responde SOLO con JSON válido:
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_FAST });
 
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],

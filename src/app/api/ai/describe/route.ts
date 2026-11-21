@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
+import { GEMINI_FAST } from '@/lib/ai/gemini-models';
 import { NextRequest, NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { getTenant } from '@/lib/auth/get-tenant';
@@ -135,7 +136,7 @@ Reglas:
     const ai = new GoogleGenAI({ apiKey });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: GEMINI_FAST,
       contents: [{
         role: 'user',
         parts: [

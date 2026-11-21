@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
 
+import { GEMINI_IMAGE_PRO } from '@/lib/ai/gemini-models';
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenant } from "@/lib/auth/get-tenant";
@@ -358,7 +359,7 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones â€
           : [{ role: "user", parts: [{ text: finalPrompt }] }];
 
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-image-preview",
+          model: GEMINI_IMAGE_PRO,
           contents,
           config: {
             responseModalities: ["TEXT", "IMAGE"] as any,
@@ -374,7 +375,7 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones â€
           }
         }
       } catch (primaryErr) {
-        logger.warn("gemini-3-pro-image-preview failed", {
+        logger.warn("gemini-3-pro-image failed", {
           error:
             primaryErr instanceof Error
               ? primaryErr.message

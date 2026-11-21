@@ -5,13 +5,14 @@
  *   const { text } = await callTextAI(prompt, { maxTokens: 2048, temperature: 1.0 });
  *
  * Providers tried in order:
- *   1. Google Gemini (gemini-2.5-flash) via REST — primary
+ *   1. Google Gemini (GEMINI_FAST, lib/ai/gemini-models.ts) via REST — primary
  *   2. OpenRouter (gpt-4o-mini) via OpenAI-compatible API — fallback if Gemini fails
  *
  * Returns the raw text string. JSON parsing is the caller's responsibility.
  */
 
 import { createLogger } from './logger';
+import { GEMINI_FAST } from './ai/gemini-models';
 
 export interface TextAIOptions {
   maxTokens?: number;
@@ -43,7 +44,7 @@ export async function callTextAI(
   if (geminiKey) {
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FAST}:generateContent?key=${geminiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -53,7 +54,7 @@ export async function callTextAI(
               temperature,
               maxOutputTokens: maxTokens,
               ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
-              thinkingConfig: { thinkingBudget: 0 },
+              thinkingConfig: { thinkingLevel: 'minimal' },
             },
           }),
         },

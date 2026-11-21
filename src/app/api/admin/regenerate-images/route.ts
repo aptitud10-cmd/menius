@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
+import { GEMINI_IMAGE_PRO } from '@/lib/ai/gemini-models';
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
@@ -223,7 +224,7 @@ export async function POST(request: NextRequest) {
               if (part.inlineData?.data) return part.inlineData.data;
             }
           } catch (flashErr) {
-            logger.warn('gemini-2.5-flash-image failed, trying gemini-3-pro-image-preview', {
+            logger.warn('gemini-2.5-flash-image failed, trying gemini-3-pro-image', {
               productId,
               error: flashErr instanceof Error ? flashErr.message : String(flashErr),
             });
@@ -231,7 +232,7 @@ export async function POST(request: NextRequest) {
 
           try {
             const response = await ai.models.generateContent({
-              model: 'gemini-3-pro-image-preview',
+              model: GEMINI_IMAGE_PRO,
               contents: [{ role: 'user', parts: [{ text: prompt }] }],
               config: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
             });
@@ -240,7 +241,7 @@ export async function POST(request: NextRequest) {
               if (part.inlineData?.data) return part.inlineData.data;
             }
           } catch (proErr) {
-            logger.warn('gemini-3-pro-image-preview fallback also failed', {
+            logger.warn('gemini-3-pro-image fallback also failed', {
               productId,
               error: proErr instanceof Error ? proErr.message : String(proErr),
             });
