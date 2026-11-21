@@ -975,3 +975,69 @@ export function buildMenuOptimizerAlertEmail(
 
   return shell("#7c3aed", header, body, footer);
 }
+
+// ---------- Counter desconectado (MENIUS → dueño) ----------
+
+/**
+ * La tablet del Counter dejó de dar señal con la tienda abierta
+ * (cron counter-offline). Uno por corte.
+ */
+export function buildCounterOfflineEmail(params: {
+  restaurantName: string;
+  since: string; // hora local ya formateada
+  ordersUrl: string;
+  locale: string;
+}): { subject: string; html: string } {
+  const { restaurantName, since, ordersUrl, locale } = params;
+  const en = locale === "en";
+  const font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const p = (html: string) =>
+    `<p style="margin:0 0 16px;font-size:15px;color:#374151;font-family:${font};line-height:1.6;">${html}</p>`;
+  const checks = en
+    ? ["The tablet has Wi-Fi or internet", "The MENIUS Counter app is open", "The tablet is plugged in"]
+    : ["La tablet tiene Wi-Fi o internet", "La app MENIUS Counter está abierta", "La tablet está enchufada"];
+
+  const header =
+    meniusLogoHeader() +
+    `
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td style="padding:32px 32px 24px;text-align:center;border-bottom:1px solid #f0f0f0;">
+        <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:#111827;font-family:${font};letter-spacing:-0.02em;">
+          ${en ? "Your Counter tablet is offline" : "La tablet del Counter está desconectada"}
+        </p>
+        <p style="margin:4px 0 0;font-size:13px;color:#b91c1c;font-weight:600;font-family:${font};">
+          ${esc(restaurantName)}
+        </p>
+      </td>
+    </tr>
+  </table>`;
+
+  const body =
+    p(
+      en
+        ? `The Counter at <strong>${esc(restaurantName)}</strong> stopped connecting at <strong>${esc(since)}</strong>.`
+        : `El Counter de <strong>${esc(restaurantName)}</strong> dejó de conectarse a las <strong>${esc(since)}</strong>.`,
+    ) +
+    p(
+      en
+        ? "Orders are still coming in, but they won't ring at the restaurant. Orders that aren't accepted within 15 minutes are cancelled automatically."
+        : "Los pedidos siguen entrando, pero en el local no suenan. Un pedido que no se acepta en 15 minutos se cancela solo.",
+    ) +
+    p(en ? "<strong>Check that:</strong>" : "<strong>Revisa que:</strong>") +
+    `<ul style="margin:0 0 8px;padding-left:20px;font-size:15px;color:#374151;font-family:${font};line-height:1.7;">${checks
+      .map((c) => `<li>${c}</li>`)
+      .join("")}</ul>` +
+    p(en ? "Meanwhile, you can accept orders from your phone:" : "Mientras tanto, puedes aceptar los pedidos desde el teléfono:") +
+    ctaButton(ordersUrl, en ? "Open orders" : "Ver pedidos", "#b91c1c") +
+    `<div style="height:28px;line-height:28px;font-size:0;">&nbsp;</div>`;
+
+  const footer = en
+    ? "We send this once per outage, only while your store is open."
+    : "Te lo mandamos una vez por corte y solo con la tienda abierta.";
+
+  return {
+    subject: en ? `Your Counter tablet is offline · ${restaurantName}` : `La tablet del Counter está desconectada · ${restaurantName}`,
+    html: shell("#b91c1c", header, body, footer),
+  };
+}

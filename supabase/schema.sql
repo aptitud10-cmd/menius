@@ -747,6 +747,8 @@ CREATE TABLE public.restaurants (
   orders_paused_until timestamp with time zone,
   busy_extra_minutes smallint NOT NULL DEFAULT 0,
   busy_until timestamp with time zone,
+  counter_seen_at timestamp with time zone,
+  counter_offline_alerted_at timestamp with time zone,
   latitude double precision,
   longitude double precision,
   fiscal_rfc text,

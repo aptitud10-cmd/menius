@@ -10,8 +10,15 @@ import type { BusyState } from '@/lib/busy-mode';
  * `touch()` marca un cambio local: durante 10 s no se pisa con lo del servidor,
  * para que la respuesta de una pausa recién tocada no la "deshaga" a la vista.
  * También trae el modo ocupado (setBusy), que vive al lado en restaurants.
+ * heartbeat: la consulta además avisa "esta tablet del Counter sigue conectada"
+ * (si deja de llegar con la tienda abierta, el dueño recibe un email).
  */
-export function usePauseSync(setPausedUntil: (ms: number | null) => void, setBusy?: (b: BusyState) => void) {
+export function usePauseSync(
+  setPausedUntil: (ms: number | null) => void,
+  setBusy?: (b: BusyState) => void,
+  opts?: { heartbeat?: boolean },
+) {
+  const url = opts?.heartbeat ? '/api/counter/pause?counter=1' : '/api/counter/pause';
   const lastLocal = useRef(0);
   const setRef = useRef(setPausedUntil);
   setRef.current = setPausedUntil;
@@ -21,9 +28,11 @@ export function usePauseSync(setPausedUntil: (ms: number | null) => void, setBus
   useEffect(() => {
     let alive = true;
     const pull = async () => {
-      if (Date.now() - lastLocal.current < 10_000) return;
+      // La señal tiene que salir aunque se acabe de tocar la pausa; lo que se
+      // salta en esos 10 s es pisar el estado local con la respuesta.
+      if (!opts?.heartbeat && Date.now() - lastLocal.current < 10_000) return;
       try {
-        const r = await fetch('/api/counter/pause', { cache: 'no-store' });
+        const r = await fetch(url, { cache: 'no-store' });
         if (!r.ok) return;
         const d = (await r.json()) as { pausedUntil?: string | null; busyExtra?: number; busyUntil?: string | null };
         if (!alive || Date.now() - lastLocal.current < 10_000) return;
@@ -33,6 +42,7 @@ export function usePauseSync(setPausedUntil: (ms: number | null) => void, setBus
         // Sin red: se queda lo que hay; el siguiente intento lo corrige.
       }
     };
+    if (opts?.heartbeat) void pull();
     const timer = setInterval(pull, 30_000);
     const onVisible = () => { if (document.visibilityState === 'visible') void pull(); };
     document.addEventListener('visibilitychange', onVisible);
@@ -41,7 +51,8 @@ export function usePauseSync(setPausedUntil: (ms: number | null) => void, setBus
       clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
 
   return { touch: () => { lastLocal.current = Date.now(); } };
 }

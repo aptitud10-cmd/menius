@@ -26,6 +26,10 @@
       "schedule": "*/10 * * * *"
     },
     {
+      "path": "/api/cron/counter-offline",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/auto-cancel-reservations",
       "schedule": "0 * * * *"
     },

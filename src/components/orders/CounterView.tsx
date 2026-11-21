@@ -437,7 +437,7 @@ export function CounterView({
     return Number.isFinite(ms) && ms > Date.now() ? ms : null;
   });
   const [pauseModalOpen, setPauseModalOpen] = useState(false);
-  const pauseSync = usePauseSync(setPausedUntil, setBusy);
+  const pauseSync = usePauseSync(setPausedUntil, setBusy, { heartbeat: true });
 
   // ── Auto-print on accept ──
   const [autoPrint, setAutoPrint] = useState(() =>
