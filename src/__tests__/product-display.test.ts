@@ -74,6 +74,44 @@ describe('splitByDisplay', () => {
     expect(rows).toEqual([]);
   });
 
+  it('lists the whole category when a photo is a lone exception', () => {
+    // 1 pictured cocktail out of 32: the card sat alone over a long list.
+    const items = [
+      p({ id: 'pina', image_url: 'https://x/p.jpg' }),
+      ...Array.from({ length: 31 }, (_, i) => p({ id: `r${i}` })),
+    ];
+    const { cards, rows } = splitByDisplay(items);
+    expect(cards).toEqual([]);
+    expect(rows.map((r) => r.id)).toEqual(items.map((i) => i.id));
+  });
+
+  it('keeps photo cards when they are a real share of the category', () => {
+    // Bake Shop: 3 pictured out of 7 stays as cards + rows.
+    const { cards, rows } = splitByDisplay([
+      p({ id: 'c1', image_url: 'https://x/1.jpg' }),
+      p({ id: 'c2', image_url: 'https://x/2.jpg' }),
+      p({ id: 'c3', image_url: 'https://x/3.jpg' }),
+      p({ id: 'r1' }),
+      p({ id: 'r2' }),
+      p({ id: 'r3' }),
+      p({ id: 'r4' }),
+    ]);
+    expect(cards).toHaveLength(3);
+    expect(rows).toHaveLength(4);
+  });
+
+  it('keeps a single photo in a short category', () => {
+    // 1 of 5 sits exactly on the threshold: still a card.
+    const { cards } = splitByDisplay([
+      p({ id: 'c', image_url: 'https://x/c.jpg' }),
+      p({ id: 'r1' }),
+      p({ id: 'r2' }),
+      p({ id: 'r3' }),
+      p({ id: 'r4' }),
+    ]);
+    expect(cards).toHaveLength(1);
+  });
+
   it('handles an empty list', () => {
     expect(splitByDisplay([])).toEqual({ cards: [], rows: [] });
   });

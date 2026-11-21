@@ -42,5 +42,15 @@ export function splitByDisplay<T extends { image_url?: string | null; hide_image
   for (const p of products) {
     (showsAsRow(p) ? rows : cards).push(p);
   }
+  // A lone photo on top of a long list (1 cocktail pictured out of 32) doesn't
+  // read as a highlight: it reads as a card that wandered in, with two thirds of
+  // its row left empty. Below MIN_PHOTO_SHARE the whole category is a list —
+  // the product sheet still shows the photo when it's opened.
+  if (cards.length > 0 && cards.length < products.length * MIN_PHOTO_SHARE) {
+    return { cards: [], rows: [...products] };
+  }
   return { cards, rows };
 }
+
+/** Share of a category that needs a photo before photo cards are worth showing. */
+export const MIN_PHOTO_SHARE = 0.2;
