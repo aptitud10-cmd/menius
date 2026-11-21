@@ -70,3 +70,29 @@ export function cutoffLabel(cutoff: string | null | undefined, en: boolean): str
 
 /** Máximos por día (lo que entra en el tablero de la tablet). */
 export const DAILY_LIMITS: Record<DailyKind, number> = { special: 5, soup: 4 };
+
+/** Instante UTC de la hora local `minutes` del día 'YYYY-MM-DD' en `timeZone` (dos pasadas: cubre el cambio de horario). */
+function zonedToUtc(date: string, minutes: number, timeZone: string): Date {
+  const [y, m, d] = date.split('-').map(Number);
+  const target = Date.UTC(y, m - 1, d, 0, minutes);
+  let t = target;
+  for (let i = 0; i < 2; i++) {
+    const p = localParts(new Date(t), timeZone);
+    t += target - Date.UTC(p.y, p.m - 1, p.d, 0, p.minutes);
+  }
+  return new Date(t);
+}
+
+/**
+ * Cuándo empieza el próximo día de trabajo: "hasta mañana" para un restaurante.
+ * Buccaneer (24 h, corte 5:00 NY): pausar a las 23:00 dura hasta las 5:00, no una hora.
+ */
+export function nextCutoffInstant(instant: Date, timeZone: string | null | undefined, cutoff: string | null | undefined): Date {
+  let tz = timeZone || 'America/New_York';
+  try {
+    localParts(instant, tz);
+  } catch {
+    tz = 'America/New_York';
+  }
+  return zonedToUtc(addDays(businessDay(instant, tz, cutoff), 1), cutoffMinutes(cutoff), tz);
+}

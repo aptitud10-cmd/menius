@@ -53,7 +53,7 @@ export function NewOrdersAlert({
       role="dialog"
       aria-modal="true"
       aria-label={T.newOrders(queue.length)}
-      className="fixed inset-0 z-50 flex flex-col"
+      className="fixed inset-0 z-[60] flex flex-col"
       style={{
         background: flash.on ? C.accent : C.bg,
         color: C.ink,

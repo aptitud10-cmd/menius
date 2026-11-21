@@ -33,6 +33,7 @@ import {
   setAlertActive, playEvent, eventForChange,
 } from './counter/audio';
 import { CustomizePanel, type AppearancePreview } from './counter/CustomizePanel';
+import { usePauseSync } from '@/hooks/use-pause-sync';
 import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS, DEMO_MAX_MS } from './counter/demo';
 import { useCounterSettings } from '@/hooks/use-counter-settings';
 import { DEFAULT_COUNTER_SETTINGS, type CounterSettings } from '@/lib/counter-settings';
@@ -423,6 +424,7 @@ export function CounterView({
     return Number.isFinite(ms) && ms > Date.now() ? ms : null;
   });
   const [pauseModalOpen, setPauseModalOpen] = useState(false);
+  const pauseSync = usePauseSync(setPausedUntil);
 
   // ── Auto-print on accept ──
   const [autoPrint, setAutoPrint] = useState(() =>
@@ -734,8 +736,9 @@ export function CounterView({
     // pedido de mañana) ni se imprime. Queda en la pestaña Programados.
     const scheduledMs = order.scheduled_for ? new Date(order.scheduled_for).getTime() : NaN;
     const isFutureScheduled = Number.isFinite(scheduledMs) && scheduledMs > Date.now() + SCHEDULED_SPLASH_LEAD_MS;
-    // Un pedido nuevo no se tapa: el panel de sonido y colores se cierra solo.
+    // Un pedido nuevo no se tapa: el panel de sonido y colores y el menú lateral se cierran solos.
     setCustomizeOpen(false);
+    setSidebarOpen(false);
     if (isLeaderRef.current) {
       playRing('alert');
       try { getCounterAppBridge()?.vibrateNewOrder?.(); } catch { /* not in the app */ }
@@ -767,6 +770,7 @@ export function CounterView({
   // avisos, push, reembolsos) se corta antes para los ids demo-*.
   const onDemoArrive = useCallback((o: Order) => {
     setCustomizeOpen(false);
+    setSidebarOpen(false);
     playRing('alert');
     setSplashQueue(q => (q.some(x => x.id === o.id) ? q : [...q, o]));
     setRingIds(r => (r.includes(o.id) ? r : [...r, o.id]));
@@ -917,6 +921,25 @@ export function CounterView({
     setRingIds(r => [...r, ...fresh.map(o => o.id).filter(id => !r.includes(id))]);
   }, [ordersView, isDue]);
 
+  // Al abrir (o recargar) el Counter, lo que ya estaba esperando vuelve a la
+  // alerta y al loop. Antes quedaba mudo: el WebView se reiniciaba, el pedido
+  // pendiente sonaba UNA vez a los 5 min y el cron lo cancelaba a los 15
+  // (auditoría 2026-11-21, §2.2). Una sola vez, con los pedidos del primer render.
+  const seededAlertRef = useRef(false);
+  /** Pedidos que volvieron a la alerta por una recarga: no se auto-aceptan (alguien tiene que mirarlos). */
+  const seededIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (seededAlertRef.current) return;
+    seededAlertRef.current = true;
+    if (previewAlertIds) return;
+    const waiting = newOrders.filter(o => !isDemoId(o.id));
+    if (waiting.length === 0) return;
+    waiting.forEach(o => { promotedRef.current?.add(o.id); seededIdsRef.current.add(o.id); });
+    setSplashQueue(q => [...q, ...waiting.filter(o => !q.some(x => x.id === o.id))]);
+    setRingIds(r => [...r, ...waiting.map(o => o.id).filter(id => !r.includes(id))]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newOrders]);
+
   const overdueCount = useMemo(() =>
     newOrders.filter(o => elapsedMins(waitingSinceIso(o)) >= SLA_WARN_MINS).length,
     [newOrders]);
@@ -986,8 +1009,8 @@ export function CounterView({
     }
   }, [currentList, selectedId]);
 
-  // SLA: 5 min sin respuesta → sonido urgente + push. Cubre también los pedidos
-  // que ya estaban pendientes al abrir el Counter (esos no entran al loop).
+  // SLA: 5 min sin respuesta → sonido urgente + push (también los que ya estaban
+  // pendientes al abrir el Counter, que desde 2026-11-21 entran al loop).
   useEffect(() => {
     newOrders.forEach(o => {
       if (isDemoId(o.id)) return;
@@ -1285,11 +1308,12 @@ export function CounterView({
       const existingOrder = orders.find(o => o.id === orderId);
       if (existingOrder) {
         const newItem = { ...data.item, product: data.item.product };
-        updateOrderLocally(orderId, { items: [...(existingOrder.items ?? []), newItem as any], total: data.newTotal });
+        updateOrderLocally(orderId, { items: [...(existingOrder.items ?? []), newItem as any], total: data.newTotal, tax_amount: data.newTax });
       }
       setSuccessToast(t.en ? 'Item added' : 'Producto agregado');
     } catch { setErrorToast(t.en ? 'Error adding item' : 'Error al agregar'); }
-    setEditSaving(false);
+    // finally: con un error el return de arriba dejaba el botón trabado en "guardando".
+    finally { setEditSaving(false); }
   }, [t.en, orders, updateOrderLocally]);
 
   const handleRemoveItem = useCallback(async (orderId: string, itemId: string) => {
@@ -1304,10 +1328,10 @@ export function CounterView({
       if (!res.ok) { setErrorToast(data.error ?? 'Error'); return; }
       const existingOrder = orders.find(o => o.id === orderId);
       if (existingOrder) {
-        updateOrderLocally(orderId, { items: (existingOrder.items ?? []).filter(i => i.id !== itemId), total: data.newTotal });
+        updateOrderLocally(orderId, { items: (existingOrder.items ?? []).filter(i => i.id !== itemId), total: data.newTotal, tax_amount: data.newTax });
       }
     } catch { setErrorToast(t.en ? 'Error removing item' : 'Error al eliminar'); }
-    setEditSaving(false);
+    finally { setEditSaving(false); }
   }, [t.en, orders, updateOrderLocally]);
 
   const handleAdjustEta = useCallback(async (order: Order, newEta: number) => {
@@ -1397,23 +1421,26 @@ export function CounterView({
   }, [driverModal, driverName, driverPhone, selectedDriverId, t]);
 
   const doPause = useCallback(async (mins: number) => {
-    let ms = mins * 60_000;
-    if (mins === 9999) {
-      const n = new Date();
-      ms = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime();
-    }
-    const until = Date.now() + ms;
+    // 9999 = "Hasta mañana": lo calcula el servidor con el corte del restaurante
+    // (5:00 en Buccaneer), no la medianoche de la tablet.
+    const nextDay = mins === 9999;
+    const until = nextDay ? Date.now() + 60 * 60_000 : Date.now() + mins * 60_000;
     const prev = pausedUntil;
+    pauseSync.touch();
     setPausedUntil(until);
     setPauseModalOpen(false);
     // Si no se guarda, la tienda sigue recibiendo pedidos: no mostrar "Pausado".
-    const res = await setPauseOrders(new Date(until).toISOString()).catch(() => ({ error: 'network' }));
-    if (res?.error) { setPausedUntil(prev); showError(t.pauseFailed); }
+    const res: { error?: string; pausedUntil?: string | null } = await setPauseOrders(
+      nextDay ? 'next_day' : new Date(until).toISOString(),
+    ).catch(() => ({ error: 'network' }));
+    if (res?.error) { setPausedUntil(prev); showError(t.pauseFailed); return; }
+    if (res?.pausedUntil) setPausedUntil(new Date(res.pausedUntil).getTime());
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pausedUntil, t]);
 
   const doUnpause = useCallback(async () => {
     const prev = pausedUntil;
+    pauseSync.touch();
     setPausedUntil(null);
     const res = await setPauseOrders(null).catch(() => ({ error: 'network' }));
     if (res?.error) { setPausedUntil(prev); showError(t.pauseFailed); }
@@ -1682,7 +1709,7 @@ export function CounterView({
           T={T}
           currency={currency}
           defaultMins={defaultMinsFor}
-          autoAcceptSecs={autoAcceptOn ? 30 : null}
+          autoAcceptSecs={autoAcceptOn && !seededIdsRef.current.has(alertQueue[0].id) ? 30 : null}
           onAccept={(o, m) => handleAccept(o, m)}
           onReject={(o) => {
             setSplashQueue(q => q.filter(x => x.id !== o.id));
@@ -2757,7 +2784,9 @@ function CounterModal({ label, onClose, tall = false, children }: {
   label: string; onClose: () => void; tall?: boolean; children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label={label}
+    // z-[65]: por encima de la alerta de pedidos nuevos (z-[60]); si no, "Rechazar" desde la
+    // alerta con otro pedido en cola abría el motivo DEBAJO y el rechazo no se podía confirmar.
+    <div className="fixed inset-0 z-[65] flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label={label}
       style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
       <div aria-hidden className="absolute inset-0" style={{ background: C.scrim }} onClick={onClose} />
       <div className={cn('relative w-full max-w-[480px] rounded-[28px] flex flex-col overflow-hidden', tall ? 'h-[min(720px,100%)]' : 'max-h-full')} style={RAISED}>

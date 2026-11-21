@@ -19,6 +19,7 @@ import {
 import { OrderReceipt } from './OrderReceipt';
 import type { Order, OrderStatus } from '@/types';
 import { useCloudPrnt } from '@/hooks/use-cloudprnt';
+import { usePauseSync } from '@/hooks/use-pause-sync';
 
 /*
  * Pantalla de cocina (rediseño 2026-11-13, investigación Toast/Square/Fresh/Oracle):
@@ -160,6 +161,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
   useEffect(() => { if (pausedUntil && now >= pausedUntil) setPausedUntil(null); }, [now, pausedUntil]);
+  const pauseSync = usePauseSync(setPausedUntil);
 
   /* Conexión */
   const [online, setOnline] = useState(true);
@@ -388,15 +390,20 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   };
 
   const doPause = async (min: number) => {
-    let ms = min * 60000;
-    if (min === 9999) { const n = new Date(); ms = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime(); }
+    // 9999 = "Hasta mañana": el servidor usa el corte del restaurante, no la medianoche de la tablet.
+    const nextDay = min === 9999;
     const prev = pausedUntil;
-    const u = Date.now() + ms; setPausedUntil(u); setSheet(null);
-    const res = await setPauseOrders(new Date(u).toISOString()).catch(() => ({ error: 'network' }));
-    if (res?.error) { setPausedUntil(prev); showToast(T.pauseFailed, false); }
+    pauseSync.touch();
+    const u = Date.now() + (nextDay ? 60 : min) * 60000; setPausedUntil(u); setSheet(null);
+    const res: { error?: string; pausedUntil?: string | null } = await setPauseOrders(
+      nextDay ? 'next_day' : new Date(u).toISOString(),
+    ).catch(() => ({ error: 'network' }));
+    if (res?.error) { setPausedUntil(prev); showToast(T.pauseFailed, false); return; }
+    if (res?.pausedUntil) setPausedUntil(new Date(res.pausedUntil).getTime());
   };
   const doUnpause = async () => {
     const prev = pausedUntil;
+    pauseSync.touch();
     setPausedUntil(null);
     const res = await setPauseOrders(null).catch(() => ({ error: 'network' }));
     if (res?.error) { setPausedUntil(prev); showToast(T.pauseFailed, false); }

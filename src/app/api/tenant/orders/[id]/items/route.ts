@@ -1,7 +1,52 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
+import { computeTaxAmount } from '@/lib/tax-presets';
+import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
+
+const logger = createLogger('tenant-order-items');
+
+/**
+ * Total e impuesto del pedido después de agregar o quitar un plato, con la misma
+ * cuenta que /api/orders (order-pricing.ts). Antes se reusaba el tax_amount viejo:
+ * un plato de $10 subía el total $10 justos, y con impuesto incluido en el precio
+ * se sumaba igual (auditoría Counter 2026-11-21, §2.3).
+ * discount_amount ya trae promo + lealtad juntos (loyalty_discount es solo el desglose).
+ */
+async function recalcOrderTotals(supabase: SupabaseClient, orderId: string, restaurantId: string) {
+  const [{ data: allItems }, { data: fees }, { data: rest }] = await Promise.all([
+    supabase.from('order_items').select('line_total').eq('order_id', orderId),
+    supabase
+      .from('orders')
+      .select('tip_amount, delivery_fee, discount_amount')
+      .eq('id', orderId)
+      .maybeSingle(),
+    supabase.from('restaurants').select('tax_rate, tax_included').eq('id', restaurantId).maybeSingle(),
+  ]);
+  const subtotal = (allItems ?? []).reduce((s, i) => s + Number(i.line_total), 0);
+  const discount = Number(fees?.discount_amount ?? 0);
+  const tip = Number(fees?.tip_amount ?? 0);
+  const deliveryFee = Number(fees?.delivery_fee ?? 0);
+  const taxIncluded = rest?.tax_included ?? false;
+  const base = Math.max(0, subtotal - discount);
+  const tax = computeTaxAmount(base, Number(rest?.tax_rate) || 0, taxIncluded);
+  const total = Math.round(Math.max(0, base + tip + deliveryFee + (taxIncluded ? 0 : tax)) * 100) / 100;
+  const { error } = await supabase
+    .from('orders')
+    .update({ total, tax_amount: tax })
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId);
+  // No se lanza: el plato ya se agregó/quitó. Con un error acá la tablet decía "Error",
+  // reintentaban y el plato quedaba doble. Se registra y el sondeo trae el total real.
+  if (error) {
+    logger.error('recalc total failed', { orderId, error: error.message });
+    captureError(new Error(error.message), { route: 'tenant/orders/items', orderId });
+  }
+  return { total, tax };
+}
 
 // POST — add a product to an existing order
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -37,13 +82,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Fetch product price
     const { data: product } = await supabase
       .from('products')
-      .select('id, name, price, in_stock, image_url')
+      .select('id, name, price, in_stock, is_active, image_url')
       .eq('id', product_id)
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
 
     if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    if (product.is_active === false) return NextResponse.json({ error: 'This item is not on the menu' }, { status: 400 });
     if (product.in_stock === false) return NextResponse.json({ error: 'Product is out of stock' }, { status: 400 });
+    // Con preguntas obligatorias (cocción, acompañamiento…) entraba "pelado" y la
+    // cocina recibía un Steak sin punto ni guarnición. Desde acá no se pueden elegir.
+    const { count: requiredGroups } = await supabase
+      .from('modifier_groups')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_id', product_id)
+      .or('is_required.eq.true,min_select.gt.0')
+      .is('depends_on_option_id', null)
+      .is('depends_on_option_ids', null);
+    if ((requiredGroups ?? 0) > 0) {
+      return NextResponse.json(
+        { error: `${product.name} has required choices (cooking, sides…) and can't be added here.` },
+        { status: 409 },
+      );
+    }
 
     const unitPrice = Number(product.price);
     const lineTotal = unitPrice * qty;
@@ -63,35 +124,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 });
 
-    // Recalculate order total: sum item subtotals then re-apply existing fees/discounts
-    const [{ data: allItems }, { data: orderFees }] = await Promise.all([
-      supabase.from('order_items').select('line_total').eq('order_id', orderId),
-      supabase
-        .from('orders')
-        .select('tax_amount, tip_amount, delivery_fee, discount_amount, loyalty_discount')
-        .eq('id', orderId)
-        .single(),
-    ]);
-
-    const newSubtotal = (allItems ?? []).reduce((s, i) => s + Number(i.line_total), 0);
-    const tax = Number(orderFees?.tax_amount ?? 0);
-    const tip = Number(orderFees?.tip_amount ?? 0);
-    const deliveryFee = Number(orderFees?.delivery_fee ?? 0);
-    // discount_amount ALREADY includes the loyalty discount (order-pricing.ts
-    // stores promo + loyalty combined there; loyalty_discount is a breakdown
-    // column, not an additional charge). Subtracting both double-counted it.
-    const discount = Number(orderFees?.discount_amount ?? 0);
-    const newSubtotalAfterDiscount = Math.max(0, newSubtotal - discount);
-    const newTotal = Math.max(0, newSubtotalAfterDiscount + tax + tip + deliveryFee);
-
-    await supabase
-      .from('orders')
-      .update({ total: newTotal })
-      .eq('id', orderId);
+    const { total, tax } = await recalcOrderTotals(supabase, orderId, restaurantId);
 
     return NextResponse.json({
       item: { ...newItem, product: { id: product.id, name: product.name, image_url: product.image_url } },
-      newTotal: newSubtotal,
+      newTotal: total,
+      newTax: tax,
     });
   } catch {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
@@ -143,30 +181,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
 
-    // Recalculate total: sum item subtotals then re-apply existing fees/discounts
-    const [{ data: allItems }, { data: orderFees }] = await Promise.all([
-      supabase.from('order_items').select('line_total').eq('order_id', orderId),
-      supabase
-        .from('orders')
-        .select('tax_amount, tip_amount, delivery_fee, discount_amount, loyalty_discount')
-        .eq('id', orderId)
-        .single(),
-    ]);
+    const { total, tax } = await recalcOrderTotals(supabase, orderId, restaurantId);
 
-    const newSubtotal = (allItems ?? []).reduce((s, i) => s + Number(i.line_total), 0);
-    const tax = Number(orderFees?.tax_amount ?? 0);
-    const tip = Number(orderFees?.tip_amount ?? 0);
-    const deliveryFee = Number(orderFees?.delivery_fee ?? 0);
-    // discount_amount ALREADY includes the loyalty discount (order-pricing.ts
-    // stores promo + loyalty combined there; loyalty_discount is a breakdown
-    // column, not an additional charge). Subtracting both double-counted it.
-    const discount = Number(orderFees?.discount_amount ?? 0);
-    const newSubtotalAfterDiscount = Math.max(0, newSubtotal - discount);
-    const newTotal = Math.max(0, newSubtotalAfterDiscount + tax + tip + deliveryFee);
-
-    await supabase.from('orders').update({ total: newTotal }).eq('id', orderId);
-
-    return NextResponse.json({ success: true, newTotal });
+    return NextResponse.json({ success: true, newTotal: total, newTax: tax });
   } catch {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

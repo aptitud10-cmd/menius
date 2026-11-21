@@ -30,6 +30,7 @@ import {
 } from "@/lib/order-state";
 import { getStartOfDayUTC } from "@/lib/date-utils";
 import { broadcastOrderUpdate } from "@/lib/realtime/broadcast-order";
+import { nextCutoffInstant } from "@/lib/daily-menu";
 
 /**
  * order_status_history solo tiene política de LECTURA para el dueño: con el
@@ -2328,7 +2329,13 @@ export async function updateOrderTip(orderId: string, tipAmount: number) {
   return { success: true };
 }
 
-export async function setPauseOrders(pausedUntil: string | null) {
+/**
+ * Pausa los pedidos hasta `pausedUntil` (ISO), o la quita con null.
+ * "next_day" = hasta que empiece el próximo día de trabajo del restaurante (su
+ * timezone y day_cutoff). Antes la tablet calculaba su medianoche: en un diner
+ * 24 h, "hasta mañana" a las 23:00 duraba una hora. Devuelve el instante guardado.
+ */
+export async function setPauseOrders(pausedUntil: string | null | "next_day") {
   const {
     supabase,
     restaurantId,
@@ -2336,13 +2343,25 @@ export async function setPauseOrders(pausedUntil: string | null) {
   } = await getAuthenticatedRestaurant({ allowDevice: true });
   if (authErr) return { error: authErr };
 
+  let until: string | null = pausedUntil;
+  if (pausedUntil === "next_day") {
+    const { data: rest } = await supabase
+      .from("restaurants")
+      .select("timezone, day_cutoff")
+      .eq("id", restaurantId)
+      .maybeSingle();
+    until = nextCutoffInstant(new Date(), rest?.timezone, rest?.day_cutoff).toISOString();
+  } else if (pausedUntil !== null && !Number.isFinite(new Date(pausedUntil).getTime())) {
+    return { error: "invalid date" };
+  }
+
   const { error } = await supabase
     .from("restaurants")
-    .update({ orders_paused_until: pausedUntil })
+    .update({ orders_paused_until: until })
     .eq("id", restaurantId);
 
   if (error) return { error: error.message };
-  return { success: true };
+  return { success: true, pausedUntil: until };
 }
 
 export async function assignDriver(
