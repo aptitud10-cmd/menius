@@ -39,7 +39,7 @@ import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS, DEMO_MAX_MS } from
 import { useCounterSettings } from '@/hooks/use-counter-settings';
 import { DEFAULT_COUNTER_SETTINGS, type CounterSettings } from '@/lib/counter-settings';
 import { getScreenTheme, resolveThemeTokens, themeCssVars } from '@/lib/counter-themes';
-import { CounterBoard, type PrimaryKind } from './counter/CounterBoard';
+import { CounterBoard, orderTime, type PrimaryKind } from './counter/CounterBoard';
 import { NewOrdersAlert } from './counter/NewOrdersAlert';
 import { OrderSheet } from './counter/OrderSheet';
 import { OwnerPanelButton } from './counter/OwnerPanelButton';
@@ -863,6 +863,24 @@ export function CounterView({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ordersView]);
+
+  // Pedido atrasado (maqueta 2026-11-21): suena una vez cuando un pedido pasa a rojo
+  // (pasó la hora prometida o un pickup lleva 60 min esperando). El sonido de "problema",
+  // solo en la tablet que lleva el sonido. La primera pasada solo registra: recargar no suena.
+  const lateSeenRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const check = () => {
+      const late = new Set(ordersView.filter((o) => orderTime(o, T).level === 'late').map((o) => o.id));
+      const prev = lateSeenRef.current;
+      lateSeenRef.current = late;
+      if (!prev) return;
+      if (Array.from(late).some((id) => !prev.has(id)) && soundsHere()) void playEvent('cancelled');
+    };
+    check();
+    const id = setInterval(check, 15_000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ordersView, T]);
 
   // CloudPRNT: si un ticket más no salió, el mismo sonido de "problema".
   const cloudFailedRef = useRef<number | null>(null);

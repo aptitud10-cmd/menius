@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { AlertOctagon, AlertTriangle, CheckCircle2, Navigation } from 'lucide-react';
+import { AlertOctagon, AlertTriangle, CheckCircle2, Clock, Navigation } from 'lucide-react';
 import type { Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { KindTag } from './KindTag';
@@ -40,39 +40,73 @@ export function primaryAction(order: Order, T: CounterText, acceptMins: number):
   }
 }
 
-function TimeBadge({ order, T }: { order: Order; T: CounterText }) {
+export type TimeLevel = 'plain' | 'warn' | 'late';
+
+/**
+ * Tiempo de un pedido y qué tan urgente es (maqueta aprobada 2026-11-21,
+ * .specify/docs/counter-auditoria/atrasos-prop.png). Los límites son los de siempre;
+ * lo nuevo es cómo se muestra: en ámbar o rojo pasa a ser una ficha que se lee a 1 m.
+ * ink = hora pactada de un programado (texto negro, sin alarma).
+ */
+export function orderTime(order: Order, T: CounterText): { text: string; level: TimeLevel; ink?: boolean } {
   if (order.status === 'pending' && order.scheduled_for) {
     // Programado: lo que importa es la hora pactada, no cuándo se hizo el pedido.
-    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.ink }}>{T.scheduledFor(scheduledWhen(order.scheduled_for, T.locale))}</span>;
+    return { text: T.scheduledFor(scheduledWhen(order.scheduled_for, T.locale)), level: 'plain', ink: true };
   }
   if (order.status === 'pending') {
     const m = Math.max(0, Math.floor((Date.now() - waitingSince(order as Order & { updated_at?: string | null })) / 60_000));
-    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: m >= 5 ? C.amber : C.sub }}>{T.minAgo(m)}</span>;
+    return { text: T.minAgo(m), level: m >= 5 ? 'warn' : 'plain' };
   }
   const pickedUpEarly = (order as Order & { driver_picked_up_at?: string | null }).driver_picked_up_at;
   if (pickedUpEarly && !['delivered', 'completed', 'cancelled'].includes(order.status)) {
-    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.sub }}>{T.minAgo(minsSince(pickedUpEarly))}</span>;
+    return { text: T.minAgo(minsSince(pickedUpEarly)), level: 'plain' };
   }
   if (['confirmed', 'preparing', 'almost_ready'].includes(order.status)) {
     const left = minsLeft(order);
-    if (left == null) return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.sub }}>{T.minAgo(minsSince(order.created_at))}</span>;
-    if (left < 0) return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.red }}>{T.late(-left)}</span>;
-    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: left <= 3 ? C.amber : C.sub }}>{T.readyIn(left)}</span>;
+    if (left == null) return { text: T.minAgo(minsSince(order.created_at)), level: 'plain' };
+    if (left < 0) return { text: T.late(-left), level: 'late' };
+    return { text: T.readyIn(left), level: left <= 3 ? 'warn' : 'plain' };
   }
   // En camino: no "espera" en el local — cuánto hace que salió, sin alarma.
   const pickedUp = (order as Order & { driver_picked_up_at?: string | null }).driver_picked_up_at;
   if (order.status === 'out_for_delivery' || pickedUp) {
-    const m = minsSince(pickedUp ?? (order.updated_at as string | undefined) ?? order.created_at);
-    return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: C.sub }}>{T.minAgo(m)}</span>;
+    return { text: T.minAgo(minsSince(pickedUp ?? (order.updated_at as string | undefined) ?? order.created_at)), level: 'plain' };
   }
   const since = minsSince((order.updated_at as string | undefined) ?? order.created_at);
   // Pickup: envejece por tiempo (30 ámbar / 60 rojo). El resto (delivery
   // esperando repartidor) avisa a los 10.
-  const color = order.order_type === 'pickup'
-    ? (since >= PICKUP_WAIT_LATE_MINS ? C.red : since >= PICKUP_WAIT_WARN_MINS ? C.amber : C.sub)
-    : (since >= 10 ? C.amber : C.sub);
-  return <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color }}>{T.waiting(since)}</span>;
+  const level: TimeLevel = order.order_type === 'pickup'
+    ? (since >= PICKUP_WAIT_LATE_MINS ? 'late' : since >= PICKUP_WAIT_WARN_MINS ? 'warn' : 'plain')
+    : (since >= 10 ? 'warn' : 'plain');
+  return { text: T.waiting(since), level };
 }
+
+/** A tiempo: texto gris al lado del nombre, como siempre. */
+function TimeText({ info }: { info: ReturnType<typeof orderTime> }) {
+  return (
+    <span className="tabular-nums font-semibold text-[16px] whitespace-nowrap" style={{ color: info.ink ? C.ink : C.sub }}>
+      {info.text}
+    </span>
+  );
+}
+
+/** Por vencer (ámbar con borde) o atrasado (rojo relleno): ficha en su propia fila. */
+function TimeChip({ info }: { info: ReturnType<typeof orderTime> }) {
+  const late = info.level === 'late';
+  const Icon = late ? AlertTriangle : Clock;
+  return (
+    <span className="self-start inline-flex items-center gap-1.5 h-9 px-3 rounded-full tabular-nums text-[18px] font-bold whitespace-nowrap"
+      style={late
+        ? { background: C.critical, color: C.onCritical }
+        : { background: C.warnBg, color: C.warnText, boxShadow: `inset 0 0 0 1.5px color-mix(in srgb, ${C.warnText} 35%, transparent)` }}>
+      <Icon className="w-[18px] h-[18px] flex-none" strokeWidth={2.4} aria-hidden />
+      {info.text.charAt(0).toUpperCase() + info.text.slice(1)}
+    </span>
+  );
+}
+
+/** Barra roja de 6 px a la izquierda de un pedido atrasado. critical (no red): en Oscuro red es rosado y el blanco no se lee. */
+const LATE_BAR = `inset 6px 0 0 ${C.critical}`;
 
 /** Pickup en Listo desde hace ≥30 min y sin pago online (eso va por reembolso). */
 export function canMarkNoShow(order: Order): boolean {
@@ -163,6 +197,7 @@ export function OrderCard({
   const action = primaryAction(order, T, acceptMins);
   const shortNum = shortOrderNumber(order.order_number);
   const paidOnline = (order as { payment_status?: string }).payment_status === 'paid';
+  const time = orderTime(order, T);
 
   return (
     <div
@@ -177,13 +212,13 @@ export function OrderCard({
         'focus-visible:ring-4 focus-visible:ring-black/20',
       )}
       // Siempre la misma superficie: lo "nuevo" lo dicen el botón Aceptar y el contador de la columna.
-      style={{ background: C.surface }}
+      style={{ background: C.surface, boxShadow: time.level === 'late' ? LATE_BAR : undefined }}
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-bold text-[22px] leading-tight tracking-[-0.015em] truncate" style={{ color: C.ink }}>
           {shortName(order.customer_name, '—')}
         </span>
-        <TimeBadge order={order} T={T} />
+        {time.level === 'plain' && <TimeText info={time} />}
       </div>
 
       {/* El total va fijo a la derecha (sin "·"): así la fila no se parte por un total
@@ -205,6 +240,8 @@ export function OrderCard({
           <span className="shrink-0 tabular-nums font-semibold whitespace-nowrap" style={{ color: C.ink }}>{money(Number(order.total), currency)}</span>
         )}
       </div>
+
+      {time.level !== 'plain' && <TimeChip info={time} />}
 
       <CustomerFlagLine order={order} T={T} />
       <DriverLine order={order} T={T} routeStop={routeStop} />
@@ -287,6 +324,7 @@ function CompactRow({ order, T, currency, busy, fresh, tight, onOpen, onPrimary,
   const action = primaryAction(order, T, 0);
   const allergies = orderAllergies(order);
   const driver = driverInfo(order, T, routeStop);
+  const time = orderTime(order, T);
   return (
     <div
       role="button"
@@ -296,7 +334,10 @@ function CompactRow({ order, T, currency, busy, fresh, tight, onOpen, onPrimary,
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
       className={cn('flex items-center pr-3 py-3 min-h-[80px] cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-black/20',
         tight ? 'gap-2.5 pl-4' : 'gap-3.5 max-[479px]:gap-2.5 pl-5 max-[479px]:pl-4')}
-      style={{ background: fresh ? `color-mix(in srgb, ${C.accent} 12%, ${C.surface})` : C.surface, transition: 'background-color .6s' }}
+      style={{
+        background: fresh ? `color-mix(in srgb, ${C.accent} 12%, ${C.surface})` : C.surface, transition: 'background-color .6s',
+        boxShadow: time.level === 'late' ? LATE_BAR : undefined,
+      }}
     >
       <div className="flex-1 min-w-0">
         {fresh && (
@@ -306,7 +347,7 @@ function CompactRow({ order, T, currency, busy, fresh, tight, onOpen, onPrimary,
           <span className="min-w-0 truncate font-bold text-[20px] max-[479px]:text-[18px] leading-tight tracking-[-0.015em]" style={{ color: C.ink }}>
             {shortName(order.customer_name, '—')}
           </span>
-          <span className="ml-auto shrink-0"><TimeBadge order={order} T={T} /></span>
+          {time.level === 'plain' && <span className="ml-auto shrink-0"><TimeText info={time} /></span>}
         </div>
         <div className="mt-1 flex items-center gap-x-2.5 gap-y-1 flex-wrap text-[16px] font-medium" style={{ color: C.sub }}>
           <KindTag order={order} T={T} />
@@ -326,6 +367,7 @@ function CompactRow({ order, T, currency, busy, fresh, tight, onOpen, onPrimary,
             <span className="min-w-0 truncate font-semibold" style={{ color: driver.moving ? C.blue : C.sub }}>{driver.text}</span>
           )}
         </div>
+        {time.level !== 'plain' && <div className="mt-1.5 flex"><TimeChip info={time} /></div>}
         {onNoShow && canMarkNoShow(order) && (
           <button
             type="button"
