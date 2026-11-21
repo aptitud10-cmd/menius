@@ -4,6 +4,9 @@
  * (restaurants.day_cutoff en su timezone; Buccaneer 05:00 America/New_York) corre runDailyReset
  * y revalida el menú público. La pestaña "Hoy" también lo corre antes de cada acción;
  * el "reclamo" del día en runDailyReset evita reiniciar dos veces.
+ *
+ * Además (cualquier restaurante): vuelve a poner lo agotado "hasta mañana" desde la pestaña Menú
+ * (products.in_stock_until ya pasado). Corre cada 10 min, así que vuelve entre las 5:00 y las 5:10.
  */
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -24,6 +27,8 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
+  const restocked = await restockExpired(supabase);
+
   const { data: dailyRows, error } = await supabase
     .from('products')
     .select('restaurant_id')
@@ -33,7 +38,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   const restaurantIds = Array.from(new Set((dailyRows ?? []).map((r) => r.restaurant_id as string)));
-  if (restaurantIds.length === 0) return NextResponse.json({ ok: true, reset: [] });
+  if (restaurantIds.length === 0) return NextResponse.json({ ok: true, reset: [], restocked });
 
   const { data: restaurants, error: rErr } = await supabase
     .from('restaurants')
@@ -57,5 +62,27 @@ export async function GET(req: NextRequest) {
   }
 
   if (reset.length) logger.info('Daily reset', { reset });
-  return NextResponse.json({ ok: true, reset });
+  return NextResponse.json({ ok: true, reset, restocked });
+}
+
+/** Lo agotado "hasta mañana" cuyo momento ya pasó vuelve a la venta (el trigger borra in_stock_until). */
+async function restockExpired(supabase: ReturnType<typeof createAdminClient>): Promise<number> {
+  const { data, error } = await supabase
+    .from('products')
+    .update({ in_stock: true })
+    .eq('in_stock', false)
+    .not('in_stock_until', 'is', null)
+    .lte('in_stock_until', new Date().toISOString())
+    .select('restaurant_id');
+  if (error) {
+    logger.error('Restock failed', { error: error.message });
+    return 0;
+  }
+  const ids = Array.from(new Set((data ?? []).map((r) => r.restaurant_id as string)));
+  if (ids.length) {
+    const { data: rs } = await supabase.from('restaurants').select('slug').in('id', ids);
+    for (const r of rs ?? []) revalidatePublicMenu(r.slug as string);
+    logger.info('Restocked', { count: data?.length ?? 0, restaurants: ids.length });
+  }
+  return data?.length ?? 0;
 }

@@ -27,7 +27,7 @@ async function load() {
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const supabase = await createClient();
-  const [cats, prods] = await Promise.all([
+  const [cats, prods, rest] = await Promise.all([
     supabase
       .from('categories')
       .select('id, name, group_name, group_sort_order, sort_order')
@@ -37,14 +37,16 @@ async function load() {
       .order('sort_order', { ascending: true }),
     supabase
       .from('products')
-      .select('id, name, price, in_stock, category_id, sort_order')
+      .select('id, name, price, in_stock, in_stock_until, category_id, sort_order')
       .eq('restaurant_id', tenant.restaurantId)
       .eq('is_active', true)
       .is('daily_kind', null)
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true })
       .limit(2000),
+    supabase.from('restaurants').select('day_cutoff').eq('id', tenant.restaurantId).maybeSingle(),
   ]);
+  if (rest.error) logger.error('counter menu cutoff failed (se usa 5:00)', { error: rest.error.message });
   if (cats.error || prods.error) {
     logger.error('counter menu query failed', { error: (cats.error ?? prods.error)?.message });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
@@ -59,6 +61,8 @@ async function load() {
       name: p.name as string,
       price: Number(p.price) || 0,
       in_stock: p.in_stock !== false,
+      // Solo importa si está agotado: con fecha vuelve solo (corte del día); sin fecha, "hasta que lo vuelva a poner".
+      until: p.in_stock === false ? ((p.in_stock_until as string | null) ?? null) : null,
       category_id: p.category_id as string,
     }));
   const used = new Set(products.map((p) => p.category_id));
@@ -66,5 +70,5 @@ async function load() {
     .filter((c) => used.has(c.id as string))
     .map((c) => ({ id: c.id as string, name: c.name as string, group: (c.group_name as string | null) ?? null }));
 
-  return NextResponse.json({ categories, products });
+  return NextResponse.json({ categories, products, cutoff: (rest.data?.day_cutoff as string | null) ?? null });
 }

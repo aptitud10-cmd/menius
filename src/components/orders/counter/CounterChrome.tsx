@@ -54,7 +54,7 @@ export function CounterTopBar({
 }) {
   // En celular y tablet vertical los botones son solo ícono (48 px); el nombre
   // de la tienda sale desde 768 px: antes no cabían y "Menú" quedaba cortado fuera de la pantalla.
-  const btn = 'flex-none h-11 min-w-11 px-3 lg:pl-4 lg:pr-[18px] rounded-full inline-flex items-center justify-center gap-2 font-semibold text-[16px] whitespace-nowrap';
+  const btn = 'flex-none h-11 min-w-11 px-3 xl:pl-4 xl:pr-[18px] rounded-full inline-flex items-center justify-center gap-2 font-semibold text-[16px] whitespace-nowrap';
   const idle = { background: C.fill, color: C.ink };
   const active = { background: C.inverse, color: C.onInverse };
   return (
@@ -75,33 +75,33 @@ export function CounterTopBar({
         <button type="button" onClick={() => onView('scheduled')} className={btn} aria-label={`${T.scheduled} ${scheduledCount}`}
           style={view === 'scheduled' ? active : idle}>
           <CalendarClock className="w-5 h-5" strokeWidth={2.2} />
-          <span className="hidden lg:inline">{T.scheduled}</span>
+          <span className="hidden xl:inline">{T.scheduled}</span>
           <span className="tabular-nums">{scheduledCount}</span>
         </button>
       )}
       {showToday && (
         <button type="button" onClick={() => onView('today')} className={btn} aria-label={T.locale.startsWith('en') ? 'Today' : 'Hoy'}
           style={view === 'today' ? active : idle}>
-          <Sun className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.locale.startsWith('en') ? 'Today' : 'Hoy'}</span>
+          <Sun className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden xl:inline">{T.locale.startsWith('en') ? 'Today' : 'Hoy'}</span>
         </button>
       )}
       {/* Menú: marcar "se acabó" a pantalla completa (antes era una caja de 256 px en el panel lateral). */}
       <button type="button" onClick={() => onView('menu')} className={btn} aria-label={T.menuTab}
         style={view === 'menu' ? active : idle}>
-        <BookOpen className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.menuTab}</span>
+        <BookOpen className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden xl:inline">{T.menuTab}</span>
       </button>
       <button type="button" onClick={() => onView('history')} className={btn} aria-label={T.history}
         style={view === 'history' ? active : idle}>
-        <History className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.history}</span>
+        <History className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden xl:inline">{T.history}</span>
       </button>
       {onCustomize && (
         <button type="button" onClick={onCustomize} className={btn} style={idle} aria-label={T.customize}>
-          <Palette className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.customize}</span>
+          <Palette className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden xl:inline">{T.customize}</span>
         </button>
       )}
       {/* Era "Menú" con hamburguesa; ahora "Menú" es la carta, y esto es el panel de ajustes. */}
       <button type="button" onClick={onMenu} className={btn} style={idle} aria-label={T.settings}>
-        <Settings className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden lg:inline">{T.settings}</span>
+        <Settings className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden xl:inline">{T.settings}</span>
       </button>
     </header>
   );

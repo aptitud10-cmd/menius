@@ -649,7 +649,8 @@ CREATE TABLE public.products (
   daily_kind text,
   daily_always boolean NOT NULL DEFAULT false,
   daily_label text,
-  daily_last_on date
+  daily_last_on date,
+  in_stock_until timestamp with time zone
 );
 
 CREATE TABLE public.profiles (

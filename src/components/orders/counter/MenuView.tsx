@@ -8,18 +8,27 @@
  * filas de 76 px y botón fijo a la derecha. Cada toque deja "Deshacer": un scroll mal hecho
  * no puede sacar un plato del menú sin que se note.
  * Sopas y especiales no están acá: se manejan en "Hoy".
+ * Fase B: "Se acabó" pregunta hasta cuándo — "Hasta mañana" (products.in_stock_until = próximo
+ * corte del día; lo devuelve el cron daily-reset) o "Hasta que lo vuelva a poner" (sin fecha).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, Search, Sun, X } from 'lucide-react';
+import { Ban, Lock, Moon, Search, Sun, X } from 'lucide-react';
+import { cutoffLabel } from '@/lib/daily-menu';
 import { C, type CounterText } from './ui';
 
 interface MenuCat { id: string; name: string; group: string | null }
-interface MenuItem { id: string; name: string; price: number; in_stock: boolean; category_id: string }
+interface MenuItem {
+  id: string; name: string; price: number; in_stock: boolean; category_id: string;
+  /** Agotado con vuelta automática: cuándo vuelve. null = no vuelve solo (o está a la venta). */
+  until: string | null;
+}
+/** El globo de "Se acabó…": el plato y dónde está su botón. */
+interface Pop { item: MenuItem; rect: { top: number; bottom: number; right: number } }
 type Mode = { kind: 'all' } | { kind: 'out' } | { kind: 'search'; q: string };
 interface Toast { text: string; tone: 'ok' | 'error'; undo?: () => void }
 
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 /** Marca en negrita la parte del nombre que coincide con la búsqueda. */
 function Highlight({ text, q }: { text: string; q: string }) {
@@ -50,7 +59,11 @@ export function MenuView({ T, currency, onGoToday }: {
   const [pending, setPending] = useState<Set<string>>(new Set());
   // En "Agotados", lo que se vuelve a poner queda en la lista hasta salir de la vista:
   // si la fila desapareciera, la de abajo subiría justo debajo del dedo.
-  const [kept, setKept] = useState<Set<string>>(new Set());
+  // id → si tenía vuelta automática (para mostrarlo en su grupo de "Agotados").
+  const [kept, setKept] = useState<Map<string, boolean>>(new Map());
+  const [cutoff, setCutoff] = useState<string | null>(null);
+  const [pop, setPop] = useState<Pop | null>(null);
+  const itemsRef = useRef<MenuItem[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const pendingRef = useRef(0);
@@ -73,12 +86,13 @@ export function MenuView({ T, currency, onGoToday }: {
     try {
       const res = await fetch('/api/counter/menu', { cache: 'no-store' });
       if (!res.ok) throw new Error(String(res.status));
-      const data = (await res.json()) as { categories: MenuCat[]; products: MenuItem[] };
+      const data = (await res.json()) as { categories: MenuCat[]; products: MenuItem[]; cutoff: string | null };
       // Si hay un cambio guardándose, o hubo uno desde que salió el pedido, no se pisa:
       // la respuesta puede traer el estado de antes del toque.
       if (pendingRef.current > 0 || versionRef.current !== v) return;
       setCats(data.categories);
       setItems(data.products);
+      setCutoff(data.cutoff);
       setLoadFailed(false);
     } catch {
       setLoadFailed(true);
@@ -102,45 +116,66 @@ export function MenuView({ T, currency, onGoToday }: {
     toastTimer.current = setTimeout(() => setToast(null), t.undo ? 8000 : 5000);
   }, []);
 
-  /** Guarda in_stock para varios platos. Cambia la pantalla al instante y revierte lo que falle. */
-  const save = useCallback(async (ids: string[], inStock: boolean): Promise<boolean> => {
+  // En el render (no en un efecto): la reversión de save() siempre parte de lo que está en pantalla.
+  itemsRef.current = items;
+
+  /**
+   * Guarda in_stock para varios platos. Cambia la pantalla al instante y revierte lo que falle.
+   * auto (solo al agotar): vuelve solo en el próximo corte del día; si no, hasta que lo vuelvan a poner.
+   */
+  const save = useCallback(async (ids: string[], inStock: boolean, auto = false): Promise<boolean> => {
+    if (ids.length === 0) return true;
     const idSet = new Set(ids);
+    const before = new Map(itemsRef.current.filter((p) => idSet.has(p.id)).map((p) => [p.id, { in_stock: p.in_stock, until: p.until }]));
     pendingRef.current += 1;
     versionRef.current += 1;
     setPending((prev) => new Set(Array.from(prev).concat(ids)));
-    setItems((prev) => prev.map((p) => (idSet.has(p.id) ? { ...p, in_stock: inStock } : p)));
-    const ok = await Promise.all(ids.map((id) =>
+    // Mientras el servidor calcula la hora exacta, cualquier texto sirve: solo importa si hay vuelta o no.
+    const optimisticUntil = !inStock && auto ? 'pending' : null;
+    setItems((prev) => prev.map((p) => (idSet.has(p.id) ? { ...p, in_stock: inStock, until: optimisticUntil } : p)));
+    // undefined = falló; string | null = lo que guardó el servidor.
+    const results = await Promise.all(ids.map((id) =>
       fetch('/api/products/stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: id, in_stock: inStock }),
-      }).then((r) => r.ok).catch(() => false),
+        body: JSON.stringify({ product_id: id, in_stock: inStock, ...(!inStock && auto ? { until: 'next_cutoff' } : {}) }),
+      })
+        .then(async (r) => (r.ok ? (((await r.json()) as { in_stock_until?: string | null }).in_stock_until ?? null) : undefined))
+        .catch(() => undefined),
     ));
-    const failed = new Set(ids.filter((_, i) => !ok[i]));
-    if (failed.size > 0) {
-      setItems((prev) => prev.map((p) => (failed.has(p.id) ? { ...p, in_stock: !inStock } : p)));
-    }
+    const saved = new Map(ids.map((id, i) => [id, results[i]]));
+    setItems((prev) => prev.map((p) => {
+      if (!saved.has(p.id)) return p;
+      const r = saved.get(p.id);
+      if (r === undefined) return { ...p, ...(before.get(p.id) ?? {}) };
+      return { ...p, until: inStock ? null : r };
+    }));
     pendingRef.current -= 1;
     setPending((prev) => { const n = new Set(prev); ids.forEach((id) => n.delete(id)); return n; });
-    return failed.size === 0;
+    return results.every((r) => r !== undefined);
   }, []);
 
   const fail = useCallback(() => showToast({ text: T.mFailed, tone: 'error' }), [showToast, T]);
 
-  const markOut = useCallback(async (p: MenuItem) => {
-    if (!(await save([p.id], false))) return fail();
+  const en = T.locale.startsWith('en');
+  const cut = cutoffLabel(cutoff, en);
+
+  const markOut = useCallback(async (p: MenuItem, auto: boolean) => {
+    setPop(null);
+    if (!(await save([p.id], false, auto))) return fail();
     showToast({
-      text: T.mIsOut(p.name), tone: 'ok',
+      text: auto ? T.mIsOutAuto(p.name, cut) : T.mIsOutManual(p.name), tone: 'ok',
       undo: async () => { setToast(null); if (!(await save([p.id], true))) fail(); },
     });
-  }, [save, fail, showToast, T]);
+  }, [save, fail, showToast, T, cut]);
 
   const putBack = useCallback(async (p: MenuItem) => {
-    if (mode.kind === 'out') setKept((prev) => new Set(prev).add(p.id));
+    const wasAuto = !!p.until;
+    if (mode.kind === 'out') setKept((prev) => new Map(prev).set(p.id, wasAuto));
     if (!(await save([p.id], true))) return fail();
     showToast({
       text: T.mIsBack(p.name), tone: 'ok',
-      undo: async () => { setToast(null); if (!(await save([p.id], false))) fail(); },
+      undo: async () => { setToast(null); if (!(await save([p.id], false, wasAuto))) fail(); },
     });
   }, [mode.kind, save, fail, showToast, T]);
 
@@ -157,13 +192,23 @@ export function MenuView({ T, currency, onGoToday }: {
   const outCount = outItems.length;
 
   const putAllBack = useCallback(async () => {
-    const ids = outItems.map((p) => p.id);
-    if (ids.length === 0) return;
-    setKept((prev) => new Set(Array.from(prev).concat(ids)));
-    if (!(await save(ids, true))) return fail();
+    if (outItems.length === 0) return;
+    const autoIds = outItems.filter((p) => p.until).map((p) => p.id);
+    const manualIds = outItems.filter((p) => !p.until).map((p) => p.id);
+    setKept((prev) => {
+      const n = new Map(prev);
+      autoIds.forEach((id) => n.set(id, true));
+      manualIds.forEach((id) => n.set(id, false));
+      return n;
+    });
+    if (!(await save(autoIds.concat(manualIds), true))) return fail();
     showToast({
-      text: T.mAllBack(ids.length), tone: 'ok',
-      undo: async () => { setToast(null); if (!(await save(ids, false))) fail(); },
+      text: T.mAllBack(outItems.length), tone: 'ok',
+      undo: async () => {
+        setToast(null);
+        const ok = await Promise.all([save(autoIds, false, true), save(manualIds, false, false)]);
+        if (!ok.every(Boolean)) fail();
+      },
     });
   }, [outItems, save, fail, showToast, T]);
 
@@ -239,7 +284,7 @@ export function MenuView({ T, currency, onGoToday }: {
   const toggleOut = () => {
     resetScroll();
     if (mode.kind === 'out') { setMode({ kind: 'all' }); return; }
-    setKept(new Set());
+    setKept(new Map());
     setMode({ kind: 'out' });
   };
 
@@ -261,9 +306,10 @@ export function MenuView({ T, currency, onGoToday }: {
             <Highlight text={p.name} q={query} />
           </p>
           {out ? (
-            <span className="inline-flex items-center mt-1.5 h-7 px-2.5 rounded-lg text-[14px] font-bold uppercase tracking-[.02em]"
+            <span className="inline-flex items-center gap-1.5 mt-1.5 min-h-[28px] py-0.5 px-2.5 rounded-lg text-[14px] font-bold uppercase tracking-[.02em] leading-tight"
               style={{ background: C.warnBg, color: C.destructive }}>
-              {T.mChip}
+              {!p.until && <Lock className="w-3.5 h-3.5 flex-none" strokeWidth={2.6} />}
+              {p.until ? T.mChipAuto(cut) : T.mChipManual}
             </span>
           ) : sub ? (
             <p className="mt-1 text-[15px] truncate" style={{ color: C.sub }}>{sub}</p>
@@ -272,7 +318,12 @@ export function MenuView({ T, currency, onGoToday }: {
         <span className="hidden min-[520px]:block w-20 text-right text-[17px] font-medium tabular-nums" style={{ color: C.sub }}>
           {fmt.format(p.price)}
         </span>
-        <button type="button" disabled={busy} onClick={() => (out ? putBack(p) : markOut(p))}
+        <button type="button" disabled={busy} aria-haspopup={out ? undefined : 'dialog'}
+          onClick={(e) => {
+            if (out) { putBack(p); return; }
+            const r = e.currentTarget.getBoundingClientRect();
+            setPop({ item: p, rect: { top: r.top, bottom: r.bottom, right: r.right } });
+          }}
           className="flex-none w-[128px] min-[600px]:w-[168px] h-14 rounded-[14px] text-[16px] min-[600px]:text-[17px] font-bold disabled:opacity-60"
           style={out ? { background: C.inverse, color: C.onInverse } : { background: C.fill, color: C.ink }}>
           {out ? T.mBack : T.mOutBtn}
@@ -409,13 +460,27 @@ export function MenuView({ T, currency, onGoToday }: {
           <>
             {head(T.mOut, T.mItems(flatList.filter((p) => !p.in_stock).length), null,
               outCount > 0 ? (
-                <button type="button" onClick={putAllBack} className="ml-2 h-12 px-[18px] rounded-xl text-[16px] font-bold" style={{ background: C.fill, color: C.ink }}>
+                <button type="button" onClick={putAllBack} disabled={pending.size > 0} className="ml-2 h-12 px-[18px] rounded-xl text-[16px] font-bold" style={{ background: C.fill, color: C.ink }}>
                   {T.mBackAll}
                 </button>
               ) : null)}
             {flatList.length === 0
               ? <p className="py-12 text-center text-[18px] font-medium" style={{ color: C.sub }}>{T.mNoneOut}</p>
-              : card(flatList.map((p) => row(p, catById.get(p.category_id)?.name)))}
+              : (() => {
+                // Lo vuelto a poner queda en el grupo donde estaba (kept guarda si tenía vuelta automática).
+                const isAuto = (p: MenuItem) => (p.in_stock ? !!kept.get(p.id) : !!p.until);
+                const autoList = flatList.filter(isAuto);
+                const manualList = flatList.filter((p) => !isAuto(p));
+                const section = (title: string, list: MenuItem[], first: boolean) => list.length === 0 ? null : (
+                  <div key={title} className={first ? 'mt-2' : 'mt-4'}>
+                    {card(<>
+                      <p className="px-5 pt-3.5 pb-1 text-[14px] font-semibold uppercase tracking-[.04em]" style={{ color: C.sub }}>{title}</p>
+                      {list.map((p) => row(p, catById.get(p.category_id)?.name))}
+                    </>)}
+                  </div>
+                );
+                return <>{section(T.mSecAuto(cut), autoList, true)}{section(T.mSecManual, manualList, autoList.length === 0)}</>;
+              })()}
           </>
         ) : mode.kind === 'search' ? (
           <>
@@ -439,6 +504,11 @@ export function MenuView({ T, currency, onGoToday }: {
         )}
       </main>
 
+      {pop && (
+        <SoldOutPop T={T} cut={cut} pop={pop} onClose={() => setPop(null)}
+          onPick={(auto) => markOut(pop.item, auto)} />
+      )}
+
       {toast && (
         <div role="status" aria-live="polite"
           className="absolute z-20 left-4 min-[880px]:left-[316px] right-4 min-[880px]:right-auto max-w-[620px] rounded-2xl pl-5 pr-2 py-2 flex items-center gap-4 shadow-2xl"
@@ -453,5 +523,50 @@ export function MenuView({ T, currency, onGoToday }: {
         </div>
       )}
     </div>
+  );
+}
+
+/** Globo de "Se acabó…": hasta mañana (vuelve solo al corte) o hasta que lo vuelvan a poner. */
+function SoldOutPop({ T, cut, pop, onClose, onPick }: {
+  T: CounterText; cut: string; pop: Pop; onClose: () => void; onPick: (auto: boolean) => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // Debajo del botón, alineado a su borde derecho; si no entra abajo, arriba.
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const width = Math.min(380, vw - 32);
+  const left = Math.max(16, Math.min(pop.rect.right - width, vw - width - 16));
+  const below = pop.rect.bottom + 8 + 210 < vh;
+  const place: React.CSSProperties = below ? { top: pop.rect.bottom + 8 } : { bottom: vh - pop.rect.top + 8 };
+
+  const opt = 'w-full min-h-[64px] mt-2 rounded-[14px] flex items-center gap-3.5 px-4 py-2.5 text-left';
+  return (
+    <>
+      <button type="button" aria-label={T.close} onClick={onClose} className="fixed inset-0 z-40 cursor-default" style={{ background: 'rgba(0,0,0,.18)' }} />
+      <div role="dialog" aria-modal="true" aria-label={T.mPopTitle(pop.item.name)}
+        className="fixed z-[41] rounded-[20px] p-4"
+        style={{ ...place, left, width, background: C.raised, color: C.ink, boxShadow: `0 0 0 1px ${C.raisedEdge}, 0 24px 48px rgba(0,0,0,.28)` }}>
+        <h3 className="mx-1 mt-0.5 mb-1 text-[18px] font-bold leading-snug">{T.mPopTitle(pop.item.name)}</h3>
+        <button type="button" onClick={() => onPick(true)} className={opt} style={{ background: C.inverse, color: C.onInverse }}>
+          <Moon className="w-[22px] h-[22px] flex-none" strokeWidth={2.2} />
+          <span>
+            <strong className="block text-[18px]">{T.mTomorrow}</strong>
+            <span className="block text-[15px] opacity-75 mt-0.5">{T.mTomorrowSub(cut)}</span>
+          </span>
+        </button>
+        <button type="button" onClick={() => onPick(false)} className={opt} style={{ background: C.fill, color: C.ink }}>
+          <Lock className="w-[22px] h-[22px] flex-none" strokeWidth={2.2} />
+          <span>
+            <strong className="block text-[18px]">{T.mManual}</strong>
+            <span className="block text-[15px] opacity-75 mt-0.5">{T.mManualSub}</span>
+          </span>
+        </button>
+      </div>
+    </>
   );
 }
