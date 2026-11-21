@@ -98,7 +98,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
     <article
       onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
-        'relative flex flex-col bg-white rounded-2xl overflow-hidden transition-all duration-150',
+        // h-full: fills the grid cell so every card in a row ends at the same
+        // line and the price/+ row (mt-auto below) lines up across the row.
+        'relative h-full flex flex-col bg-white rounded-2xl overflow-hidden transition-all duration-150',
         // El badge (⭐ #1 / 🔥 Top 3) ya comunica la popularidad. Repetirla en el
         // borde de CADA card de la sección hacía que el ámbar compitiera con la
         // foto —que es lo que vende— y perdiera valor de señal. Solo el #1

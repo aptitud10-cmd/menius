@@ -103,7 +103,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
     <article
       onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
-        'group relative bg-white rounded-2xl shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
+        // h-full + flex-col: the card fills its grid cell, so a two-line name
+        // in one card no longer leaves the neighbours' price/Add rows higher up.
+        'group relative h-full flex flex-col bg-white rounded-2xl shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
         // El badge (⭐ #1 / 🔥 Top 3) ya comunica la popularidad. Repetirla en el
         // borde de CADA card de la sección hacía que el ámbar compitiera con la
         // foto —que es lo que vende— y perdiera valor de señal. Solo el #1
@@ -215,7 +217,8 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
         </div>
       )}
 
-      <div className="p-4 flex flex-col">
+      <div className="p-4 flex flex-col flex-1">
+        <div className="mb-3">
         <h3 className={cn('font-bold text-base line-clamp-2 leading-snug', outOfStock ? 'text-ink-400' : 'text-ink-900')}>
           {displayName}
         </h3>
@@ -236,8 +239,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             })}
           </div>
         )}
+        </div>
 
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-ink-100">
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-ink-100">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-baseline gap-1.5">
               <span className={cn('text-base font-bold tabular-nums', outOfStock ? 'text-ink-300 line-through' : 'text-ink-900')}>
