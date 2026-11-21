@@ -111,7 +111,16 @@ class MainActivity : AppCompatActivity() {
                     view: WebView?,
                     request: WebResourceRequest?
                 ): Boolean {
-                    val host = request?.url?.host ?: return false
+                    val url = request?.url ?: return false
+                    val scheme = url.scheme?.lowercase()
+                    if (scheme != "http" && scheme != "https") {
+                        // tel:, mailto:, sms:, whatsapp: (Ayuda y soporte). No tienen host: antes
+                        // caían al WebView, que no sabe abrirlos, y el botón no hacía nada.
+                        val intent = if (scheme == "mailto") Intent(Intent.ACTION_SENDTO, url) else Intent(Intent.ACTION_VIEW, url)
+                        runCatching { startActivity(intent) }
+                        return true
+                    }
+                    val host = url.host ?: return false
                     val allowed = host == APP_HOST || host.endsWith(".$APP_HOST")
                     if (allowed) return false // let the WebView handle it
                     // External link → hand off to the browser, don't load in-app.

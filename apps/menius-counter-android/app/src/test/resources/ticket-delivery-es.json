@@ -1,0 +1,108 @@
+{
+ "ticketType": "receipt",
+ "ticketVersion": 2,
+ "ticket": {
+  "kind": "order",
+  "locale": "es",
+  "restaurant": {
+   "name": "Taquería El Niño",
+   "currency": "USD",
+   "taxLabel": "Tax",
+   "orderDirectUrl": "menius.app/buccaneer"
+  },
+  "channel": "website",
+  "orderType": "delivery",
+  "shortNumber": "014",
+  "orderNumber": "ORD-261121-014",
+  "customerName": "Ñoño Pérez",
+  "readyAt": "9:15 a.m.",
+  "includeUtensils": true,
+  "allergy": "Alergia al maní, sin maní por favor",
+  "items": [
+   {
+    "qty": 1,
+    "name": "Jalapeños rellenos de camarón",
+    "lineTotal": 33.45,
+    "lines": [
+     {
+      "text": "Salsa de piña",
+      "price": 0,
+      "indent": false
+     }
+    ]
+   }
+  ],
+  "itemCount": 1,
+  "orderNotes": "Alergia al maní, sin maní por favor",
+  "totals": {
+   "subtotal": 33.45,
+   "tax": 2.5,
+   "deliveryFee": 0,
+   "discount": 0,
+   "tip": 5,
+   "total": 40.95
+  },
+  "payment": {
+   "kind": "paid",
+   "amount": 40.95
+  },
+  "delivery": {
+   "address": "87-90 30th Ave, Apt 2R, East Elmhurst, NY 11369",
+   "phone": "+17185550123",
+   "instructions": "Tocar el timbre 2",
+   "driverUrl": "https://menius.app/driver/track/tok-123"
+  },
+  "placedAt": "9:00 a.m.",
+  "placedFull": "21 de noviembre, 9:00 a.m.",
+  "placedShort": "21 nov, 9:00 a.m.",
+  "dueFull": "21 de noviembre, 9:15 a.m."
+ },
+ "ticketText": {
+  "channelLine": "WEB · DOMICILIO",
+  "ready": "LISTO",
+  "reprint": "REIMPRESIÓN - NO ES PEDIDO NUEVO",
+  "allergy": "ALERGIA",
+  "scheduled": "PROGRAMADO",
+  "utensils": "Cubiertos: Sí",
+  "itemCount": "1 producto",
+  "note": "Nota",
+  "subtotal": "Subtotal",
+  "tax": "Tax",
+  "delivery": "Envío",
+  "discount": "Descuento",
+  "tip": "Propina",
+  "total": "TOTAL",
+  "payment": "PAGADO - NO COBRAR",
+  "table": "MESA",
+  "placed": "Pedido",
+  "placedLine": "Pedido: 21 de noviembre, 9:00 a.m.",
+  "dueLine": "Para: 21 de noviembre, 9:15 a.m.",
+  "thanks": "Gracias por pedir en Taquería El Niño",
+  "orderDirect": "Pide directo",
+  "driverScan": "REPARTIDOR: ESCANEA",
+  "poweredBy": "Pedidos online con MENIUS",
+  "v5": {
+   "orderVia": "Pedido web",
+   "orderType": "DOMICILIO",
+   "readyBy": "LISTO A LAS",
+   "table": "MESA",
+   "scheduled": "PROGRAMADO",
+   "deliverTo": "ENTREGAR EN",
+   "instructions": "INDICACIONES",
+   "driverTitle": "REPARTIDOR",
+   "driverHint": "Escanea para iniciar la entrega",
+   "noteLabel": "NOTA",
+   "orderNote": "NOTA DEL PEDIDO",
+   "utensilsLabel": "Cubiertos y servilletas",
+   "yes": "SÍ",
+   "no": "NO",
+   "collectCashTitle": "COBRAR EFECTIVO",
+   "cashWho": "Cobra el repartidor",
+   "paidTitle": "PAGADO EN LÍNEA",
+   "doNotCharge": "No cobrar al cliente",
+   "verifyPayment": "VERIFICAR PAGO EN LA TABLET",
+   "placedLine": "Pedido 21 nov, 9:00 a.m.",
+   "currencySymbol": "$"
+  }
+ }
+}

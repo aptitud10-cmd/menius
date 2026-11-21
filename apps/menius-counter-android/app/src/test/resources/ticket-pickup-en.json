@@ -1,0 +1,128 @@
+{
+ "ticketType": "receipt",
+ "ticketVersion": 2,
+ "ticket": {
+  "kind": "order",
+  "locale": "en",
+  "restaurant": {
+   "name": "Buccaneer Diner",
+   "currency": "USD",
+   "taxLabel": "Tax",
+   "orderDirectUrl": "menius.app/buccaneer"
+  },
+  "channel": "website",
+  "orderType": "pickup",
+  "shortNumber": "003",
+  "orderNumber": "ORD-261121-003",
+  "customerName": "Stephen S.",
+  "readyAt": "9:15 AM",
+  "includeUtensils": false,
+  "items": [
+   {
+    "qty": 1,
+    "name": "Pastrami Omelette",
+    "lineTotal": 18.2,
+    "lines": [
+     {
+      "text": "Add 1 Egg",
+      "price": 1.25,
+      "indent": false
+     }
+    ]
+   },
+   {
+    "qty": 2,
+    "name": "Bacon Cheeseburger Deluxe",
+    "lineTotal": 38.62,
+    "lines": [
+     {
+      "text": "Medium",
+      "price": 0,
+      "indent": false
+     },
+     {
+      "text": "No onions",
+      "price": 0,
+      "indent": false
+     },
+     {
+      "text": "Sweet Potato Fries",
+      "price": 1.8,
+      "indent": false
+     },
+     {
+      "text": "with Swiss cheese",
+      "price": 1.5,
+      "indent": true
+     }
+    ],
+    "notes": "Cut in half"
+   }
+  ],
+  "itemCount": 3,
+  "totals": {
+   "subtotal": 56.82,
+   "tax": 5.04,
+   "deliveryFee": 0,
+   "discount": 0,
+   "tip": 0,
+   "total": 61.86
+  },
+  "payment": {
+   "kind": "collect_cash",
+   "amount": 61.86
+  },
+  "placedAt": "9:00 AM",
+  "placedFull": "November 21, 9:00 AM",
+  "placedShort": "Nov 21, 9:00 AM",
+  "dueFull": "November 21, 9:15 AM"
+ },
+ "ticketText": {
+  "channelLine": "WEBSITE · PICKUP",
+  "ready": "READY",
+  "reprint": "REPRINT - NOT A NEW ORDER",
+  "allergy": "ALLERGY",
+  "scheduled": "SCHEDULED",
+  "utensils": "Utensils: No",
+  "itemCount": "3 items",
+  "note": "Note",
+  "subtotal": "Subtotal",
+  "tax": "Tax",
+  "delivery": "Delivery",
+  "discount": "Discount",
+  "tip": "Tip",
+  "total": "TOTAL",
+  "payment": "COLLECT $61.86 CASH",
+  "table": "TABLE",
+  "placed": "Placed",
+  "placedLine": "Placed at November 21, 9:00 AM",
+  "dueLine": "Due at November 21, 9:15 AM",
+  "thanks": "Thank you for ordering from Buccaneer Diner",
+  "orderDirect": "Order direct",
+  "driverScan": "DRIVER: SCAN TO START",
+  "poweredBy": "Online ordering by MENIUS",
+  "v5": {
+   "orderVia": "Website order",
+   "orderType": "PICKUP",
+   "readyBy": "READY BY",
+   "table": "TABLE",
+   "scheduled": "SCHEDULED",
+   "deliverTo": "DELIVER TO",
+   "instructions": "INSTRUCTIONS",
+   "driverTitle": "DRIVER",
+   "driverHint": "Scan to start the delivery",
+   "noteLabel": "NOTE",
+   "orderNote": "ORDER NOTE",
+   "utensilsLabel": "Utensils & napkins",
+   "yes": "YES",
+   "no": "NO",
+   "collectCashTitle": "COLLECT CASH",
+   "cashWho": "Customer pays at pickup",
+   "paidTitle": "PAID ONLINE",
+   "doNotCharge": "Do not charge the customer",
+   "verifyPayment": "VERIFY PAYMENT ON TABLET",
+   "placedLine": "Placed Nov 21, 9:00 AM",
+   "currencySymbol": "$"
+  }
+ }
+}

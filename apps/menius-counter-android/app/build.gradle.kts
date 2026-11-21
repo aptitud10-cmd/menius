@@ -19,8 +19,8 @@ android {
         applicationId = "com.menius.counter"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.0.5"
+        versionCode = 7
+        versionName = "1.0.6"
     }
 
     // Only declared when keystore.properties is present. That file is gitignored,
@@ -78,4 +78,9 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    // Solo tests de JVM (no van en la APK): el ticket ESC/POS se revisa como texto, sin impresora.
+    // org.json real porque el de android.jar es un stub que tira "Stub!" fuera del teléfono.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }
