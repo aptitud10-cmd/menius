@@ -494,7 +494,7 @@ export function CartPanel({
           const thumb = cartItemImage(item);
           const isPendingRemove = confirmRemoveIdx === idx;
           // "Cheeseburger" + Deluxe → "Cheeseburger Deluxe", como en el Counter y el ticket.
-          const { name: itemName, lines: modLines, price: titlePrice } = withTitle(item.product.name, cartModLines(item.modifierSelections));
+          const { name: itemName, lines: modLines } = withTitle(item.product.name, cartModLines(item.modifierSelections));
           return (
               <motion.div
                 key={item.uid ?? `${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`}
@@ -536,17 +536,12 @@ export function CartPanel({
                     )}
 
                     <div className="flex-1 min-w-0">
-                      {/* Name + base price + Edit. Con opciones, el precio base va arriba y cada
-                          opción con su recargo debajo (Pedro 2026-11-13); el total queda abajo. */}
+                      {/* Nombre + Edit. Un solo precio por plato, el total de abajo (Pedro 2026-11-22:
+                          sin precio base ni recargo por opción, "se sobreentiende"; igual que el checkout). */}
                       <div className="flex items-start justify-between gap-1">
                         <div className="min-w-0">
                           <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 leading-tight">{itemName}</h4>
                         </div>
-                        {modLines.length > 0 && (
-                          <span className="flex-shrink-0 text-sm font-semibold text-gray-900 tabular-nums leading-tight">
-                            {fmtPrice(Number(item.product.price) + Number(item.variant?.price_delta ?? 0) + titlePrice)}
-                          </span>
-                        )}
                         <div className="flex-shrink-0 p-1.5 -mt-1 text-gray-500" aria-hidden>
                           <Pencil className="w-3.5 h-3.5" />
                         </div>
@@ -560,12 +555,10 @@ export function CartPanel({
                               {item.variant.name}
                             </span>
                           )}
-                          {/* Una línea por cosa, como se dice en la cocina, con su precio
-                              (lib/modifier-lines) — igual que el Counter y el ticket. */}
+                          {/* Una línea por cosa, como se dice en la cocina (lib/modifier-lines). */}
                           {modLines.map((line, k) => (
-                            <p key={k} className={cn('basis-full flex justify-between gap-2 text-xs leading-relaxed text-gray-600', line.indent && 'pl-3')}>
-                              <span className="min-w-0">{line.indent && <span className="text-gray-300">↳ </span>}{line.text}</span>
-                              {line.price > 0 && <span className="flex-shrink-0 text-gray-500 tabular-nums">+{fmtPrice(line.price)}</span>}
+                            <p key={k} className={cn('basis-full text-xs leading-relaxed text-gray-600', line.indent && 'pl-3')}>
+                              {line.indent && <span className="text-gray-300">↳ </span>}{line.text}
                             </p>
                           ))}
                           {(item.modifierSelections ?? []).length === 0 && item.extras.map(e => (
