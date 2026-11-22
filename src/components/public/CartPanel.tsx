@@ -9,6 +9,7 @@ import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import { showsAsRow } from '@/lib/product-display';
 import { ProductGlyph } from './ProductGlyph';
+import { cartItemImage } from '@/lib/product-display';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
 import type { Translations } from '@/lib/translations';
 import type { Product, CartItem, OrderType } from '@/types';
@@ -490,6 +491,7 @@ export function CartPanel({
         <AnimatePresence initial={false}>
         {items.map((item, idx) => {
           const imgKey = `${item.product.id}-${idx}`;
+          const thumb = cartItemImage(item);
           const isPendingRemove = confirmRemoveIdx === idx;
           // "Cheeseburger" + Deluxe → "Cheeseburger Deluxe", como en el Counter y el ticket.
           const { name: itemName, lines: modLines, price: titlePrice } = withTitle(item.product.name, cartModLines(item.modifierSelections));
@@ -517,13 +519,14 @@ export function CartPanel({
                   >
                     {/* Thumbnail. Without a photo, a tinted tile with an icon:
                         text alone made a cart of rolls and coffees look empty. */}
-                    {!showsAsRow(item.product) && item.product.image_url ? (
+                    {thumb ? (
                       <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
                         <Image
-                          src={item.product.image_url}
+                          src={thumb.src}
                           alt={item.product.name}
                           fill
                           sizes="56px"
+                          unoptimized={thumb.option}
                           className="object-cover transition-opacity duration-150 opacity-0"
                           onLoad={(e) => markImageLoaded(imgKey, e.currentTarget)}
                         />

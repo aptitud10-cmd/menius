@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
       available_until: o.available_until ?? null,
       ...(o.linked_product_id ? { linked_product_id: o.linked_product_id } : {}),
       ...(stateOf(o) === 'sold_out' ? { sold_out: true } : {}),
+      ...(o.image_url ? { image_url: o.image_url } : {}),
     });
 
     const modifier_groups: ModifierGroup[] = rawGroups

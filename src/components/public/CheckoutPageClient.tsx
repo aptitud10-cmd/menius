@@ -32,7 +32,7 @@ import {
   safeParseJson,
 } from '@/lib/checkout-errors';
 import { supabaseLoader } from '@/lib/image-loader';
-import { showsAsRow } from '@/lib/product-display';
+import { showsAsRow, cartItemImage } from '@/lib/product-display';
 import { ProductGlyph } from './ProductGlyph';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
 import { tipAllowedFor, tipOptions, customTipAmount } from '@/lib/order-pricing';
@@ -1855,16 +1855,18 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     // "Cheeseburger" + Deluxe → "Cheeseburger Deluxe", como en el carrito y el ticket.
     const { name: itemName, lines: modLines } = withTitle(item.product.name, cartModLines(item.modifierSelections));
     const confirmingRemove = confirmRemoveIdx === idx;
+    const thumb = cartItemImage(item);
     return (
       <div key={`${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`} className="grid grid-cols-[52px_1fr_auto] min-[860px]:grid-cols-[64px_1fr_auto] gap-3 items-start">
-        {!showsAsRow(item.product) && item.product.image_url ? (
+        {thumb ? (
           <div className="relative w-[52px] h-[52px] min-[860px]:w-16 min-[860px]:h-16 rounded-xl min-[860px]:rounded-[14px] overflow-hidden bg-[#e9e9ee]">
             <Image
-              src={item.product.image_url}
+              src={thumb.src}
               alt=""
               fill
               sizes="64px"
-              loader={item.product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
+              unoptimized={thumb.option}
+              loader={!thumb.option && thumb.src.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               className="object-cover opacity-0 transition-opacity duration-300"
               onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
             />

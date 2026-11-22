@@ -231,6 +231,8 @@ export interface ModifierOption {
   linked_product_id?: string | null;
   /** Lo calcula /api/product-modifiers: el plato enganchado se agotó hoy. */
   sold_out?: boolean;
+  /** Fotito del ítem en carrito/checkout cuando esta opción está elegida (la sopa por tamaño). */
+  image_url?: string | null;
 }
 
 export interface ProductVariant {

@@ -54,3 +54,19 @@ export function splitByDisplay<T extends { image_url?: string | null; hide_image
 
 /** Share of a category that needs a photo before photo cards are worth showing. */
 export const MIN_PHOTO_SHARE = 0.2;
+
+/**
+ * Fotito de un ítem del carrito/checkout. Primero la foto de la opción elegida (la sopa
+ * según el tamaño: Cup / Bowl / Extra Large Bowl, Pedro 2026-11-22); si no hay, la del plato
+ * cuando el menú la muestra; si tampoco, null (el ícono de ProductGlyph).
+ * `option`: las fotos de opción son WebP chicas ya listas: van sin optimizador.
+ */
+export function cartItemImage(item: {
+  product: { image_url?: string | null; hide_image?: boolean | null };
+  modifierSelections?: ReadonlyArray<{ selectedOptions: ReadonlyArray<{ image_url?: string | null }> }>;
+}): { src: string; option: boolean } | null {
+  for (const sel of item.modifierSelections ?? []) {
+    for (const o of sel.selectedOptions) if (o.image_url) return { src: o.image_url, option: true };
+  }
+  return showsAsRow(item.product) ? null : { src: item.product.image_url as string, option: false };
+}
