@@ -50,6 +50,7 @@ import { useCheckoutStore } from "@/lib/store/checkoutStore";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { supabaseLoader } from "@/lib/image-loader";
+import { wheelToHorizontal } from "@/lib/wheel-to-horizontal";
 import { StoreConfigProvider } from "@/lib/store-config-context";
 import { getStoreOverrides } from "@/lib/store-overrides";
 import { useNaturalSearch } from "@/lib/hooks/useNaturalSearch";
@@ -446,7 +447,19 @@ export function MenuShell({
     mainRef.current = node;
     if (node) setMainMounted(true);
   }, []);
-  const mobilePillsRef = useRef<HTMLDivElement>(null);
+  const mobilePillsRef = useRef<HTMLDivElement | null>(null);
+  // La rueda del mouse mueve las pills de costado (PC con ventana angosta). Ver wheel-to-horizontal.ts.
+  const pillsWheelOffRef = useRef<(() => void) | undefined>(undefined);
+  const mobilePillsRefCb = useCallback((node: HTMLDivElement | null) => {
+    pillsWheelOffRef.current?.();
+    pillsWheelOffRef.current = node ? wheelToHorizontal(node) : undefined;
+    mobilePillsRef.current = node;
+  }, []);
+  const dietWheelOffRef = useRef<(() => void) | undefined>(undefined);
+  const dietPillsRefCb = useCallback((node: HTMLDivElement | null) => {
+    dietWheelOffRef.current?.();
+    dietWheelOffRef.current = node ? wheelToHorizontal(node) : undefined;
+  }, []);
   // True while user has a pointer/touch active on the pills bar — prevents auto-scroll from
   // fighting the user's horizontal swipe gesture (which caused the bounce/return effect).
   const pillsTouchActiveRef = useRef(false);
@@ -2645,7 +2658,7 @@ export function MenuShell({
         {/* Vertical divider */}
         <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" aria-hidden />
         <div
-          ref={mobilePillsRef}
+          ref={mobilePillsRefCb}
           className="py-1 px-2 flex gap-1.5 overflow-x-auto scrollbar-hide flex-1 overscroll-x-contain"
           style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }}
           onPointerDown={() => {
@@ -2751,6 +2764,7 @@ export function MenuShell({
 
   const dietaryPills = availableDietTags.length > 0 && (
     <div
+      ref={dietPillsRefCb}
       className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2 -mx-0"
       style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
     >
