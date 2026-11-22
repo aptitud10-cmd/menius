@@ -37,19 +37,25 @@ export async function getCounts(): Promise<Counts> {
     if (cErr || pErr || !cats || !prods) throw cErr ?? pErr ?? new Error('empty menu');
 
     const groupOf = new Map(cats.map((c) => [c.id as string, (c.group_name ?? c.name) as string]));
+    const nameOf = new Map(cats.map((c) => [c.id as string, c.name as string]));
     const byGroup = new Map<string, number>();
+    // Por nombre de categoría: "From the Fountain" pasó a ser una sección dentro del
+    // grupo Desserts (2026-11-22) y el sitio la sigue enlazando con su propio conteo.
+    const byName = new Map<string, number>();
     let total = 0;
     for (const p of prods) {
       const g = groupOf.get(p.category_id as string);
       if (!g) continue; // product in an inactive category: the menu doesn't show it
       total += 1;
       byGroup.set(g, (byGroup.get(g) ?? 0) + 1);
+      const n = nameOf.get(p.category_id as string) as string;
+      byName.set(n, (byName.get(n) ?? 0) + 1);
     }
     if (total === 0) throw new Error('no active products');
 
     const out = { ...COUNTS, total };
     for (const [key, group] of Object.entries(COUNT_GROUPS) as [keyof typeof COUNT_GROUPS, string][]) {
-      out[key] = byGroup.get(group) ?? 0;
+      out[key] = byGroup.get(group) ?? byName.get(group) ?? 0;
     }
     return out;
   } catch (err: unknown) {
