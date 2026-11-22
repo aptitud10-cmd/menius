@@ -1884,9 +1884,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             /* Sin truncate: las exclusiones ("No Onion") son lo que el cliente más necesita confirmar. */
             <div className="mt-0.5 space-y-0.5">
               {modLines.map((line, k) => (
-                <p key={k} className={cn('flex justify-between gap-2 text-[13px] text-[#4f4f57] leading-snug break-words', line.indent && 'pl-3')}>
-                  <span className="min-w-0">{line.indent && <span className="text-[#9a9aa2]">↳ </span>}{line.text}</span>
-                  {line.price > 0 && <span className="shrink-0 tabular-nums">+{fmtPrice(line.price)}</span>}
+                // Sin el recargo de cada opción (Pedro 2026-11-22): el precio del plato a la
+                // derecha ya lo incluye, y el "+$1.70" quedaba flotando en el medio de la fila.
+                <p key={k} className={cn('text-[13px] text-[#4f4f57] leading-snug break-words', line.indent && 'pl-3')}>
+                  {line.indent && <span className="text-[#9a9aa2]">↳ </span>}{line.text}
                 </p>
               ))}
             </div>
