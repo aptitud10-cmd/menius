@@ -355,6 +355,45 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     expect(mockCreateReversal).not.toHaveBeenCalled();
   });
 
+  // ── refund.failed: el pedido vuelve a "pagado" ──────────────────────────────
+  const refundFailed = (metadata: Record<string, string> | null) => ({
+    id: 'evt_rf', type: 'refund.failed',
+    data: { object: { id: 're_9', payment_intent: 'pi_9', metadata, failure_reason: 'expired_or_canceled_card' } },
+  });
+  const defaultEq = () => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
+
+  it('refund.failed con metadata: reabre el cobro de ese pedido', async () => {
+    mockConstructEvent.mockReturnValue(refundFailed({ order_id: 'order-9' }));
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
+    expect(mockEq).toHaveBeenCalledWith('id', 'order-9');
+    expect(mockEq).toHaveBeenCalledWith('payment_status', 'refunded');
+  });
+
+  it('refund.failed sin metadata (reembolso viejo o hecho en Stripe): busca el pedido por el PaymentIntent', async () => {
+    mockConstructEvent.mockReturnValue(refundFailed(null));
+    const limit = vi.fn().mockResolvedValue({ data: [{ id: 'order-9' }], error: null });
+    mockEq.mockImplementation(((col: string) => (col === 'payment_intent_id' ? { limit } : defaultEq())) as never);
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockEq).toHaveBeenCalledWith('payment_intent_id', 'pi_9');
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
+    expect(mockEq).toHaveBeenCalledWith('id', 'order-9');
+  });
+
+  it('refund.failed sin metadata y con el PaymentIntent en 2 pedidos: no toca ninguno', async () => {
+    mockConstructEvent.mockReturnValue(refundFailed(null));
+    const limit = vi.fn().mockResolvedValue({ data: [{ id: 'order-9' }, { id: 'order-10' }], error: null });
+    mockEq.mockImplementation(((col: string) => (col === 'payment_intent_id' ? { limit } : defaultEq())) as never);
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
+  });
+
   // ── Tarjetas internacionales: el +1.5% lo paga el restaurante ───────────────
   const succeeded = () => ({
     id: 'evt_pi', type: 'payment_intent.succeeded',

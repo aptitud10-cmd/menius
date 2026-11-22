@@ -101,6 +101,8 @@ export async function POST(req: NextRequest) {
         reason: refundReason as 'duplicate' | 'fraudulent' | 'requested_by_customer',
         reverse_transfer: true,
         refund_application_fee: false,
+        // El webhook refund.failed ubica el pedido por esto para reabrir el cobro.
+        metadata: { order_id: order.id },
       });
     } catch (stripeErr: unknown) {
       // With reverse_transfer, Stripe returns an error (instead of a pending refund)

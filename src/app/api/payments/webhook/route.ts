@@ -309,7 +309,14 @@ export async function POST(request: NextRequest) {
           // sigue cobrado. Vuelve a 'paid' para que el cron lo reintente si fue
           // un no-aceptado, y siempre se avisa: puede necesitar mano.
           const refund = event.data.object as unknown as { id: string; payment_intent?: string | { id: string } | null; metadata?: Record<string, string> | null; failure_reason?: string | null };
-          const refundOrderId = refund.metadata?.order_id ?? null;
+          let refundOrderId = refund.metadata?.order_id ?? null;
+          const refundPi = idOf(refund.payment_intent);
+          // Reembolsos sin metadata (los viejos, o hechos a mano desde el
+          // dashboard de Stripe): se busca el pedido por su PaymentIntent.
+          if (!refundOrderId && refundPi) {
+            const { data: byPi } = await adminDb.from('orders').select('id').eq('payment_intent_id', refundPi).limit(2);
+            if (byPi?.length === 1) refundOrderId = byPi[0].id as string;
+          }
           if (refundOrderId) {
             await adminDb
               .from('orders')
@@ -318,7 +325,7 @@ export async function POST(request: NextRequest) {
               .eq('payment_status', 'refunded');
           }
           logger.error('Stripe refund failed after being accepted', { refundId: refund.id, orderId: refundOrderId, reason: refund.failure_reason ?? null });
-          captureError(new Error('Stripe refund failed'), { refundId: refund.id, orderId: refundOrderId, paymentIntent: idOf(refund.payment_intent), reason: refund.failure_reason ?? null });
+          captureError(new Error('Stripe refund failed'), { refundId: refund.id, orderId: refundOrderId, paymentIntent: refundPi, reason: refund.failure_reason ?? null });
           break;
         }
 
