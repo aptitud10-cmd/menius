@@ -29,6 +29,7 @@ import {
 import { buildModLines, withTitle, type LineGroup, type LineSelection } from "@/lib/modifier-lines";
 import { dependencyIds } from "@/lib/conditional-modifiers";
 import { isOptionAvailableAt, optionHoursLabel } from "@/lib/option-hours";
+import { linkedOptionState, linkedProductIds, type LinkedProductState } from "@/lib/linked-options";
 import { formatPrice } from "@/lib/utils";
 import { isOpenAt, inTimeZone, validScheduledFor, type OperatingHours } from "@/lib/orders/business-hours";
 import { haversineKm } from "@/lib/utils/eta";
@@ -574,9 +575,27 @@ export async function POST(request: NextRequest) {
       modGroupIds.length > 0
         ? await supabase
             .from("modifier_options")
-            .select("id, group_id, name, price_delta, available_from, available_until")
+            // "*": trae linked_product_id cuando existe la columna sin romper si todavía
+            // no se corrió la migración (un 42703 acá frenaría TODOS los pedidos).
+            .select("*")
             .in("group_id", modGroupIds)
         : { data: [] };
+
+    // Opciones enganchadas a un plato (las sopas de "Which soup?"): valen solo si ese
+    // plato está puesto hoy y no se agotó (lib/linked-options). Un producto que no
+    // vuelve (apagado: la RLS no lo muestra) cuenta como "no está hoy".
+    const linkedIds = linkedProductIds(dbModOptions ?? []);
+    const linkedProducts = new Map<string, LinkedProductState>();
+    if (linkedIds.length > 0) {
+      const { data: lp } = await supabase
+        .from("products")
+        .select("id, is_active, in_stock")
+        .in("id", linkedIds)
+        .eq("restaurant_id", restaurant_id);
+      for (const p of lp ?? []) linkedProducts.set(p.id, p);
+    }
+    const linkedStateOf = (o: { linked_product_id?: string | null }) =>
+      linkedOptionState(o.linked_product_id, linkedProducts);
 
     const productMap = new Map((dbProducts ?? []).map((p) => [p.id, p]));
     const variantMap = new Map((dbVariants ?? []).map((v) => [v.id, v]));
@@ -625,8 +644,10 @@ export async function POST(request: NextRequest) {
 
     // Build a set of group IDs that have at least one option — used to skip
     // required validation for groups with no options (avoids blocking orders)
+    // Las enganchadas que hoy no se ofrecen no cuentan: "Which soup?" sin ninguna sopa
+    // puesta no aparece en el menú y no puede frenar el pedido.
     const groupsWithOptions = new Set(
-      (dbModOptions ?? []).map((o) => o.group_id),
+      (dbModOptions ?? []).filter((o) => linkedStateOf(o) !== "hidden").map((o) => o.group_id),
     );
 
     // W5 — inventario: el trigger de la base descontaba con GREATEST(stock - qty, 0),
@@ -830,6 +851,20 @@ export async function POST(request: NextRequest) {
               error: en
                 ? `"${o.name}" is only available ${hours}. Tap "${dbProduct.name}" in your cart and pick another option.`
                 : `"${o.name}" solo está disponible ${hours}. Tocá "${dbProduct.name}" en el carrito y elegí otra opción.`,
+              code: "OPTION_UNAVAILABLE",
+              product_id: item.product_id,
+            },
+            { status: 409 },
+          );
+        }
+        // La sopa elegida ya no está hoy o se acabó (carrito de ayer, la sacaron recién).
+        const linked = o ? linkedStateOf(o) : "ok";
+        if (o && linked !== "ok") {
+          return NextResponse.json(
+            {
+              error: en
+                ? `"${o.name}" ${linked === "sold_out" ? "is sold out" : "is not available"} today. Tap "${dbProduct.name}" in your cart and pick another option.`
+                : `"${o.name}" ${linked === "sold_out" ? "se acabó" : "no está"} hoy. Tocá "${dbProduct.name}" en el carrito y elegí otra opción.`,
               code: "OPTION_UNAVAILABLE",
               product_id: item.product_id,
             },

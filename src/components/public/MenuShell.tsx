@@ -1318,7 +1318,8 @@ export function MenuShell({
     setReorderLoading(true);
     try {
       const local = inTimeZone(new Date(), restaurant.timezone || "UTC");
-      const isAvailable = (o: ModifierOption) => !hasHours(o) || isOptionAvailableAt(o, local);
+      const isAvailable = (o: ModifierOption) =>
+        !o.sold_out && (!hasHours(o) || isOptionAvailableAt(o, local));
       const byId = new Map(liveProducts.map((p) => [p.id, p]));
       const groupsCache = new Map<string, Promise<ModifierGroup[] | null>>();
       const groupsFor = (productId: string) => {

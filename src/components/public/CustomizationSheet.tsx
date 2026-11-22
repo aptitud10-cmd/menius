@@ -309,8 +309,12 @@ export function CustomizationSheet({
     () => inTimeZone(new Date(nowMs), timeZone || "UTC"),
     [nowMs, timeZone],
   );
+  // Agotada hoy (la sopa que se acabó) se trata como fuera de horario: gris y el toque avisa.
   const isAvailableNow = (o: ModifierOption) =>
-    !hasHours(o) || isOptionAvailableAt(o, localNow);
+    !o.sold_out && (!hasHours(o) || isOptionAvailableAt(o, localNow));
+  /** Lo que se escribe debajo de una opción que no se puede pedir ahora. */
+  const unavailableLabel = (o: ModifierOption) =>
+    o.sold_out ? t.optionSoldOutToday : optionHoursLabel(o, locale);
   // "Grits: 5:30–11 AM only", under the group the diner just tapped.
   const [hoursNotice, setHoursNotice] = useState<{ groupId: string; text: string } | null>(null);
   useEffect(() => {
@@ -536,12 +540,12 @@ export function CustomizationSheet({
     // from the cart may still carry it.
     const already = (selections[group.id] ?? []).some((o) => o.id === option.id);
     if (!already && !isAvailableNow(option)) {
+      const optName = tName(option, locale, defaultLocale);
       setHoursNotice({
         groupId: group.id,
-        text: t.optionHoursOnly(
-          tName(option, locale, defaultLocale),
-          optionHoursLabel(option, locale) ?? "",
-        ),
+        text: option.sold_out
+          ? t.optionSoldOutNotice(optName)
+          : t.optionHoursOnly(optName, optionHoursLabel(option, locale) ?? ""),
       });
       return;
     }
@@ -739,7 +743,7 @@ export function CustomizationSheet({
       // Out of hours: greyed, but still tappable so the tap can say when it
       // is served (a disabled button swallows the tap).
       isOffHours: !isSelected && !isAvailableNow(opt),
-      hours: optionHoursLabel(opt, locale),
+      hours: unavailableLabel(opt),
       price: Number(opt.price_delta),
     };
   };
@@ -1213,7 +1217,7 @@ export function CustomizationSheet({
                     // Out of hours: greyed, but still tappable so the tap can say
                     // when it is served (a disabled button swallows the tap).
                     const isOffHours = !isSelected && !isAvailableNow(opt);
-                    const hours = optionHoursLabel(opt, locale);
+                    const hours = unavailableLabel(opt);
                     return (
                       <button
                         key={opt.id}

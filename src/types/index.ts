@@ -226,6 +226,11 @@ export interface ModifierOption {
    *  ordered — Grits until 11 AM. Both NULL = always. See lib/option-hours. */
   available_from?: string | null;
   available_until?: string | null;
+  /** Plato del que sale esta opción ("Which soup?" → Lentil). Se ofrece solo si ese
+   *  plato está puesto hoy en el Counter. See lib/linked-options. */
+  linked_product_id?: string | null;
+  /** Lo calcula /api/product-modifiers: el plato enganchado se agotó hoy. */
+  sold_out?: boolean;
 }
 
 export interface ProductVariant {

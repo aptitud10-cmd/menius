@@ -154,6 +154,9 @@ export interface Translations {
   standardChoice: (name: string) => string;
   /** "Grits: 5:30–11 AM only" — tapped an option outside its hours. */
   optionHoursOnly: (name: string, hours: string) => string;
+  /** Option linked to a dish that sold out today ("Lentil" in "Which soup?"). */
+  optionSoldOutToday: string;
+  optionSoldOutNotice: (name: string) => string;
   /** Card label for a dish outside its hours: "Served 5:30–11 AM". */
   servedHours: (hours: string) => string;
   /** Badge on a required group once it is satisfied. */
@@ -633,6 +636,8 @@ const es: Translations = {
   chooseMore: (n) => `Elige ${n} más`,
   standardChoice: (name) => `Por defecto: ${name} · toca otra para cambiar`,
   optionHoursOnly: (name, hours) => `${name}: solo ${hours}`,
+  optionSoldOutToday: 'Se acabó por hoy',
+  optionSoldOutNotice: (name) => `${name} se acabó por hoy`,
   servedHours: (hours) => `Se sirve ${hours}`,
   groupDone: 'Listo',
   groupRequired: 'Obligatorio',
@@ -1093,6 +1098,8 @@ const en: Translations = {
   chooseMore: (n) => `Choose ${n} more`,
   standardChoice: (name) => `Standard: ${name} · tap another to swap`,
   optionHoursOnly: (name, hours) => `${name}: ${hours} only`,
+  optionSoldOutToday: 'Sold out today',
+  optionSoldOutNotice: (name) => `${name} is sold out today`,
   servedHours: (hours) => `Served ${hours}`,
   groupDone: 'Done',
   groupRequired: 'Required',

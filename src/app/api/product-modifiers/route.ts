@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { ModifierGroup, ModifierOption, ProductVariant, ProductExtra } from '@/types';
+import { linkedOptionState, linkedProductIds, type LinkedProductState } from '@/lib/linked-options';
 
 /**
  * GET /api/product-modifiers?productId=<uuid>
@@ -29,8 +30,7 @@ export async function GET(request: NextRequest) {
           id, product_id, name, selection_type, is_required,
           min_select, max_select, sort_order, display_type, depends_on_option_id,
           depends_on_option_ids, translations, ticket_label, ticket_layout,
-          modifier_options ( id, group_id, name, price_delta, is_default, sort_order, translations,
-            available_from, available_until )
+          modifier_options ( * )
         `)
         .eq('product_id', productId)
         .order('sort_order', { ascending: true }),
@@ -65,7 +65,47 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Internal error' }, { status: 500 });
     }
 
-    const modifier_groups: ModifierGroup[] = ((modGroupsResult.data ?? []) as any[]).map((g) => ({
+    // Opciones con "*" y lista blanca abajo (cost_price no sale): linked_product_id llega
+    // cuando existe la columna, y si todavía no existe la consulta no falla (un 42703 acá
+    // dejaría sin opciones a TODAS las tiendas si se promueve antes de la migración).
+    const rawGroups = (modGroupsResult.data ?? []) as any[];
+    const rawOptionsOf = (g: any) => (g.modifier_options ?? []) as Record<string, any>[];
+    const linkedIds = linkedProductIds(rawGroups.flatMap(rawOptionsOf));
+    const linkedProducts = new Map<string, LinkedProductState>();
+    if (linkedIds.length > 0) {
+      const { data: lp, error: lpErr } = await db
+        .from('products')
+        .select('id, is_active, in_stock')
+        .in('id', linkedIds);
+      if (lpErr) {
+        console.error('[product-modifiers] linked products query failed', { productId, error: lpErr.message });
+        return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+      }
+      for (const p of lp ?? []) linkedProducts.set(p.id, p);
+    }
+    const stateOf = (o: Record<string, any>) => linkedOptionState(o.linked_product_id, linkedProducts);
+    const toOption = (o: Record<string, any>): ModifierOption => ({
+      id: o.id,
+      group_id: o.group_id,
+      name: o.name,
+      price_delta: o.price_delta,
+      is_default: o.is_default,
+      sort_order: o.sort_order,
+      translations: o.translations ?? null,
+      available_from: o.available_from ?? null,
+      available_until: o.available_until ?? null,
+      ...(o.linked_product_id ? { linked_product_id: o.linked_product_id } : {}),
+      ...(stateOf(o) === 'sold_out' ? { sold_out: true } : {}),
+    });
+
+    const modifier_groups: ModifierGroup[] = rawGroups
+      // Una pregunta de sopas cuyas opciones están todas apagadas hoy no se muestra:
+      // sería obligatoria y sin nada para elegir.
+      .filter((g) => {
+        const opts = rawOptionsOf(g);
+        return opts.length === 0 || opts.some((o) => stateOf(o) !== 'hidden');
+      })
+      .map((g) => ({
       id: g.id,
       product_id: g.product_id,
       name: g.name,
@@ -80,9 +120,11 @@ export async function GET(request: NextRequest) {
       translations: g.translations ?? null,
       ticket_label: g.ticket_label ?? null,
       ticket_layout: g.ticket_layout ?? 'line',
-      options: ((g.modifier_options ?? []) as ModifierOption[]).sort(
-        (a, b) => a.sort_order - b.sort_order
-      ),
+      // Las enganchadas a un plato que hoy no está puesto no se ofrecen.
+      options: rawOptionsOf(g)
+        .filter((o) => stateOf(o) !== 'hidden')
+        .map(toOption)
+        .sort((a, b) => a.sort_order - b.sort_order),
     }));
 
     return NextResponse.json(
@@ -97,7 +139,12 @@ export async function GET(request: NextRequest) {
           // opción, la hoja seguía ofreciendo el id viejo hasta 15 min, el
           // pedido daba 409 MODIFIERS_CHANGED y "quitar y volver a agregar"
           // repetía el error. revalidatePath no purga esta respuesta.
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+          // Con opciones enganchadas (las sopas de hoy) el Counter las cambia durante el
+          // día: 10 s. El pedido las valida igual; esto solo acorta lo que se ve viejo.
+          'Cache-Control':
+            linkedIds.length > 0
+              ? 'public, s-maxage=10, stale-while-revalidate=20'
+              : 'public, s-maxage=30, stale-while-revalidate=60',
         },
       }
     );
