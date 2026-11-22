@@ -363,7 +363,8 @@ CREATE TABLE public.modifier_options (
   translations jsonb,
   available_from time without time zone,
   available_until time without time zone,
-  linked_product_id uuid
+  linked_product_id uuid,
+  image_url text
 );
 
 CREATE TABLE public.notifications (
