@@ -58,3 +58,21 @@ describe('ticket de la sopa elegida', () => {
     expect(lines.map((l) => l.text)).toEqual(['Soup / Lentil']);
   });
 });
+
+describe('recargo visible solo en agregados opcionales (carrito/checkout)', () => {
+  it('"elegí uno" obligatorio sin addon; opcional con addon', async () => {
+    const { buildModLines } = await import('@/lib/modifier-lines');
+    const lines = buildModLines([
+      {
+        group: { id: 'size', name: 'Which size?', sort_order: 0, is_required: true },
+        options: [{ id: 'bowl', name: 'Bowl', price_delta: 1.7 }],
+      },
+      {
+        group: { id: 'bread', name: 'Would you like bread?', sort_order: 1, is_required: false },
+        options: [{ id: 'b', name: 'Bread', price_delta: 0.5 }],
+      },
+    ]);
+    expect(lines.find((l) => l.text === 'Bowl')?.addon).toBeUndefined();
+    expect(lines.find((l) => l.text === 'Bread')?.addon).toBe(true);
+  });
+});

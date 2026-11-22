@@ -29,6 +29,12 @@ export interface ModLine {
   /** Va pegada al nombre del plato ("Cheeseburger" + "Deluxe"), no como línea. */
   title?: boolean;
   /**
+   * Sale de una pregunta opcional (bacon extra, pan, queso). El carrito y el checkout muestran
+   * el recargo solo de estas; en "elegí uno" (tamaño, estilo) el precio es parte de la elección
+   * y se ve en el total del plato (Pedro 2026-11-22). Cocina y ticket muestran todos.
+   */
+  addon?: boolean;
+  /**
    * La opción elegida de una pregunta cuyas alternativas están en el nombre del plato
    * ("Pastrami or Corned Beef Omelette" → Pastrami). withTitle la usa para nombrar el
    * plato por lo que se pidió ("Pastrami Omelette") en vez de dejarla como línea chica.
@@ -44,6 +50,7 @@ export interface LineGroup {
   depends_on_option_ids?: string[] | null;
   ticket_label?: string | null;
   ticket_layout?: string | null;
+  is_required?: boolean | null;
 }
 
 export interface LineOption {
@@ -75,6 +82,7 @@ interface Node {
   text: string;
   price: number;
   indent: boolean;
+  addon?: boolean;
   children: Node[];
   choice?: ModLine['choice'];
 }
@@ -90,6 +98,7 @@ export function buildModLines(selections: LineSelection[]): ModLine[] {
 
   const place = (sel: LineSelection, parent: Node | null, top = false) => {
     const layout = sel.group.ticket_layout ?? 'line';
+    const addon = sel.group.is_required === false;
     for (const o of sel.options) {
       const text = renderTicketLabel(sel.group.ticket_label, o.name);
       const price = Number(o.price_delta) || 0;
@@ -104,10 +113,11 @@ export function buildModLines(selections: LineSelection[]): ModLine[] {
       if (parent && layout === 'inline') {
         parent.text += ` / ${text}`;
         parent.price = round2(parent.price + price);
+        if (addon && price > 0) parent.addon = true;
         nodeByOption.set(o.id, parent);
         continue;
       }
-      const node: Node = { text, price, indent: layout === 'indent', children: [] };
+      const node: Node = { text, price, indent: layout === 'indent', addon, children: [] };
       // Una sola elección, en una pregunta que no depende de otra, con 2+ alternativas.
       if (top && sel.options.length === 1 && (sel.allOptions?.length ?? 0) >= 2) {
         node.choice = { option: o.name, of: sel.allOptions as string[] };
@@ -154,7 +164,7 @@ export function buildModLines(selections: LineSelection[]): ModLine[] {
 
   const out: ModLine[] = [];
   const walk = (n: Node, depth: number) => {
-    out.push({ text: n.text, price: n.price, indent: depth > 0 || n.indent, ...(n.choice && depth === 0 ? { choice: n.choice } : {}) });
+    out.push({ text: n.text, price: n.price, indent: depth > 0 || n.indent, ...(n.addon ? { addon: true } : {}), ...(n.choice && depth === 0 ? { choice: n.choice } : {}) });
     for (const c of n.children) walk(c, depth + 1);
   };
   for (const t of titles) out.push({ text: t.text, price: t.price, indent: false, title: true });

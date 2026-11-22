@@ -555,10 +555,12 @@ export function CartPanel({
                               {item.variant.name}
                             </span>
                           )}
-                          {/* Una línea por cosa, como se dice en la cocina (lib/modifier-lines). */}
+                          {/* Una línea por cosa, como se dice en la cocina (lib/modifier-lines).
+                              Recargo solo en los agregados opcionales (+$2.00 bacon), no en "elegí uno". */}
                           {modLines.map((line, k) => (
-                            <p key={k} className={cn('basis-full text-xs leading-relaxed text-gray-600', line.indent && 'pl-3')}>
-                              {line.indent && <span className="text-gray-300">↳ </span>}{line.text}
+                            <p key={k} className={cn('basis-full flex justify-between gap-2 text-xs leading-relaxed text-gray-600', line.indent && 'pl-3')}>
+                              <span className="min-w-0">{line.indent && <span className="text-gray-300">↳ </span>}{line.text}</span>
+                              {line.addon && line.price > 0 && <span className="flex-shrink-0 text-gray-500 tabular-nums">+{fmtPrice(line.price)}</span>}
                             </p>
                           ))}
                           {(item.modifierSelections ?? []).length === 0 && item.extras.map(e => (
