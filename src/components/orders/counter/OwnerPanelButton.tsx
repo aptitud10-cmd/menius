@@ -49,7 +49,18 @@ type PadState =
   | { kind: 'noPin' }
   | { kind: 'error' };
 
-export function PinPad({ en, onClose }: { en: boolean; onClose: () => void }) {
+/**
+ * Teclado del PIN del dueño. Por defecto abre el panel (/app). Con onUnlocked, solo desbloquea
+ * (10 min) y avisa: lo usa el cambio de precios del Counter para seguir en la misma pantalla.
+ */
+export function PinPad({ en, onClose, title, onUnlocked, layer = 'z-[70]' }: {
+  en: boolean; onClose: () => void;
+  /** Título del teclado (por defecto "Panel del dueño"). */
+  title?: string;
+  onUnlocked?: () => void;
+  /** Capa (z-index). El de precios va debajo de la alerta de pedidos nuevos (z-60). */
+  layer?: string;
+}) {
   const [pin, setPin] = useState('');
   const [state, setState] = useState<PadState>({ kind: 'idle' });
   const [now, setNow] = useState(() => Date.now());
@@ -78,7 +89,8 @@ export function PinPad({ en, onClose }: { en: boolean; onClose: () => void }) {
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string; attemptsLeft?: number; lockedUntil?: string };
       if (res.ok) {
-        window.location.href = '/app';
+        if (onUnlocked) onUnlocked();
+        else window.location.href = '/app';
         return;
       }
       setPin('');
@@ -109,10 +121,10 @@ export function PinPad({ en, onClose }: { en: boolean; onClose: () => void }) {
   // !mt-0: el PIN vive dentro del menú (space-y-4), que le ponía 16 px de margen
   // arriba y dejaba una franja sin velo.
   return (
-    <div className="fixed inset-0 !mt-0 z-[70] flex items-center justify-center p-4" style={{ background: C.scrim }} role="dialog" aria-modal="true" aria-label={en ? 'Owner panel PIN' : 'PIN del panel del dueño'}>
+    <div className={`fixed inset-0 !mt-0 ${layer} flex items-center justify-center p-4`} style={{ background: C.scrim }} role="dialog" aria-modal="true" aria-label={title ?? (en ? 'Owner panel PIN' : 'PIN del panel del dueño')}>
       <div className="w-full max-w-[360px] rounded-[28px] p-5" style={RAISED}>
         <div className="flex items-center justify-between mb-1">
-          <p className="text-[20px] font-bold tracking-[-0.015em]" style={{ color: C.ink }}>{en ? 'Owner panel' : 'Panel del dueño'}</p>
+          <p className="text-[20px] font-bold tracking-[-0.015em]" style={{ color: C.ink }}>{title ?? (en ? 'Owner panel' : 'Panel del dueño')}</p>
           <button type="button" onClick={onClose} aria-label={en ? 'Close' : 'Cerrar'} className="w-11 h-11 -mr-2 rounded-xl flex items-center justify-center" style={{ color: C.sub }}>
             <X className="w-5 h-5" />
           </button>

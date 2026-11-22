@@ -13,8 +13,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, Lock, Moon, Search, Sun, X } from 'lucide-react';
+import { Ban, Lock, Moon, Pencil, Search, Sun, X } from 'lucide-react';
 import { cutoffLabel } from '@/lib/daily-menu';
+import { PriceDialog, postPrice, relockTablet } from './PriceDialog';
+import { PinPad } from './OwnerPanelButton';
 import { C, type CounterText } from './ui';
 
 interface MenuCat { id: string; name: string; group: string | null }
@@ -63,6 +65,9 @@ export function MenuView({ T, currency, onGoToday }: {
   const [kept, setKept] = useState<Map<string, boolean>>(new Map());
   const [cutoff, setCutoff] = useState<string | null>(null);
   const [pop, setPop] = useState<Pop | null>(null);
+  // Tanda 3: el plato cuyo precio se está cambiando, y el "Deshacer" que necesita PIN de nuevo.
+  const [priceItem, setPriceItem] = useState<MenuItem | null>(null);
+  const [undoPin, setUndoPin] = useState<(() => void) | null>(null);
   const itemsRef = useRef<MenuItem[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -212,6 +217,56 @@ export function MenuView({ T, currency, onGoToday }: {
     });
   }, [outItems, save, fail, showToast, T]);
 
+  // ── Tanda 3: precios ──
+  const setLocalPrice = useCallback((id: string, price: number) => {
+    versionRef.current += 1; // una respuesta del polling que salió antes no pisa el precio nuevo
+    setItems((prev) => prev.map((p) => (p.id === id ? { ...p, price } : p)));
+  }, []);
+
+  // El PIN de precios desbloquea la tablet 10 min (device_sessions.panel_unlocked_until) y eso
+  // abre más que precios. Por eso, si se puso el PIN acá, se vuelve a bloquear al terminar:
+  // al cerrar el diálogo, o al vencer el "Deshacer" (8 s) si se guardó.
+  const pinUsedRef = useRef(false);
+  const relockTimer = useRef<ReturnType<typeof setTimeout>>();
+  const markPinUsed = useCallback(() => { pinUsedRef.current = true; }, []);
+  const relockSoon = useCallback((ms: number) => {
+    clearTimeout(relockTimer.current);
+    relockTimer.current = setTimeout(() => {
+      if (!pinUsedRef.current) return;
+      pinUsedRef.current = false;
+      relockTablet();
+    }, ms);
+  }, []);
+  useEffect(() => () => {
+    clearTimeout(relockTimer.current);
+    if (pinUsedRef.current) relockTablet(); // salir de la pestaña también lo cierra
+  }, []);
+
+  const undoPrice = useCallback(async (p: MenuItem, oldPrice: number, newPrice: number) => {
+    setToast(null);
+    clearTimeout(relockTimer.current);
+    const r = await postPrice(p.id, oldPrice, newPrice, { isUndo: true, confirmBig: true });
+    if (r.kind === 'pin') {
+      // Ya se había bloqueado: se pide el PIN de nuevo y se reintenta.
+      setUndoPin(() => () => { setUndoPin(null); markPinUsed(); void undoPrice(p, oldPrice, newPrice); });
+      return;
+    }
+    relockSoon(0);
+    if (r.kind === 'ok') { setLocalPrice(p.id, r.price); showToast({ text: T.pDone(p.name, fmt.format(r.price)), tone: 'ok' }); return; }
+    if (r.kind === 'changed') { setLocalPrice(p.id, r.price); showToast({ text: T.pChanged(fmt.format(r.price)), tone: 'error' }); return; }
+    fail();
+  }, [setLocalPrice, showToast, fail, markPinUsed, relockSoon, T, fmt]);
+
+  const onPriceSaved = useCallback((p: MenuItem, oldPrice: number, newPrice: number) => {
+    setPriceItem(null);
+    setLocalPrice(p.id, newPrice);
+    showToast({ text: T.pDone(p.name, fmt.format(newPrice)), tone: 'ok', undo: () => { void undoPrice(p, oldPrice, newPrice); } });
+    relockSoon(8500); // después del "Deshacer"
+  }, [setLocalPrice, showToast, undoPrice, relockSoon, T, fmt]);
+
+  // Símbolo de la moneda de la tienda para el campo del precio ("$").
+  const symbol = useMemo(() => fmt.formatToParts(0).find((x) => x.type === 'currency')?.value ?? '$', [fmt]);
+
   // Lo que muestra la lista en "Agotados" y en la búsqueda.
   const flatList = useMemo(() => {
     if (mode.kind === 'out') return items.filter((p) => !p.in_stock || kept.has(p.id));
@@ -315,9 +370,12 @@ export function MenuView({ T, currency, onGoToday }: {
             <p className="mt-1 text-[15px] truncate" style={{ color: C.sub }}>{sub}</p>
           ) : null}
         </div>
-        <span className="hidden min-[520px]:block w-20 text-right text-[17px] font-medium tabular-nums" style={{ color: C.sub }}>
+        <button type="button" onClick={() => setPriceItem(p)} aria-label={`${T.pEdit(p.name)} · ${fmt.format(p.price)}`} aria-haspopup="dialog"
+          className="hidden min-[520px]:inline-flex flex-none items-center justify-end gap-1.5 min-w-[104px] h-12 px-3 rounded-xl text-[17px] font-semibold tabular-nums"
+          style={{ color: C.ink, boxShadow: `inset 0 0 0 1px ${C.line}` }}>
           {fmt.format(p.price)}
-        </span>
+          <Pencil className="w-4 h-4 flex-none" strokeWidth={2.2} style={{ color: C.sub }} aria-hidden />
+        </button>
         <button type="button" disabled={busy} aria-haspopup={out ? undefined : 'dialog'}
           onClick={(e) => {
             if (out) { putBack(p); return; }
@@ -507,6 +565,20 @@ export function MenuView({ T, currency, onGoToday }: {
       {pop && (
         <SoldOutPop T={T} cut={cut} pop={pop} onClose={() => setPop(null)}
           onPick={(auto) => markOut(pop.item, auto)} />
+      )}
+
+      {priceItem && (
+        <PriceDialog T={T} name={priceItem.name} productId={priceItem.id} price={priceItem.price} format={(n) => fmt.format(n)}
+          symbol={symbol}
+          onClose={() => { setPriceItem(null); relockSoon(0); }}
+          onSaved={(oldPrice, newPrice) => onPriceSaved(priceItem, oldPrice, newPrice)}
+          onChangedElsewhere={(price) => setLocalPrice(priceItem.id, price)}
+          onPinUsed={markPinUsed} />
+      )}
+
+      {undoPin && (
+        <PinPad en={en} title={T.pPinTitle} layer="z-[56]" onUnlocked={undoPin}
+          onClose={() => { setUndoPin(null); showToast({ text: T.pNotUndone, tone: 'error' }); }} />
       )}
 
       {toast && (
