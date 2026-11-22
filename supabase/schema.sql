@@ -551,6 +551,19 @@ CREATE TABLE public.restaurant_panel_pins (
   updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
+CREATE TABLE public.price_change_log (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  restaurant_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  old_price numeric NOT NULL,
+  new_price numeric NOT NULL,
+  source text NOT NULL,
+  is_undo boolean NOT NULL DEFAULT false,
+  session_id uuid,
+  user_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
 CREATE TABLE public.print_jobs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   restaurant_id uuid NOT NULL,
