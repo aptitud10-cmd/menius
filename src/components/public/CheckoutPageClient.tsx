@@ -33,6 +33,7 @@ import {
 } from '@/lib/checkout-errors';
 import { supabaseLoader } from '@/lib/image-loader';
 import { showsAsRow } from '@/lib/product-display';
+import { ProductGlyph } from './ProductGlyph';
 import { cartModLines, withTitle } from '@/lib/modifier-lines';
 import { tipAllowedFor, tipOptions, customTipAmount } from '@/lib/order-pricing';
 import { isOpenAt, inTimeZone, type OperatingHours } from '@/lib/orders/business-hours';
@@ -1856,8 +1857,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     const confirmingRemove = confirmRemoveIdx === idx;
     return (
       <div key={`${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`} className="grid grid-cols-[52px_1fr_auto] min-[860px]:grid-cols-[64px_1fr_auto] gap-3 items-start">
-        <div className="relative w-[52px] h-[52px] min-[860px]:w-16 min-[860px]:h-16 rounded-xl min-[860px]:rounded-[14px] overflow-hidden bg-[#e9e9ee]">
-          {!showsAsRow(item.product) && item.product.image_url && (
+        {!showsAsRow(item.product) && item.product.image_url ? (
+          <div className="relative w-[52px] h-[52px] min-[860px]:w-16 min-[860px]:h-16 rounded-xl min-[860px]:rounded-[14px] overflow-hidden bg-[#e9e9ee]">
             <Image
               src={item.product.image_url}
               alt=""
@@ -1867,8 +1868,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               className="object-cover opacity-0 transition-opacity duration-300"
               onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
             />
-          )}
-        </div>
+          </div>
+        ) : (
+          // Sin foto: el mismo cuadrito con ícono que el carrito (antes, un cuadro gris vacío).
+          <ProductGlyph
+            name={item.product.name}
+            className="w-[52px] h-[52px] min-[860px]:w-16 min-[860px]:h-16 rounded-xl min-[860px]:rounded-[14px]"
+          />
+        )}
         <div className="min-w-0">
           <p className="text-[15px] font-semibold tracking-[-0.01em] text-[#111114] leading-snug">
             {itemName}{item.variant ? ` (${item.variant.name})` : ''}
