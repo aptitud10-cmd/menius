@@ -362,7 +362,8 @@ CREATE TABLE public.modifier_options (
   cost_price numeric DEFAULT NULL::numeric,
   translations jsonb,
   available_from time without time zone,
-  available_until time without time zone
+  available_until time without time zone,
+  linked_product_id uuid
 );
 
 CREATE TABLE public.notifications (
