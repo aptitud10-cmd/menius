@@ -12,6 +12,10 @@
  * "Popular items" 2 pantallas); las sopas fijas van en una línea; "+" verde sólido.
  * Tercera vuelta (crítico visual): todo alineado a la izquierda también en tablet y
  * computadora, y el "Today's Special" con el nombre más grande.
+ * 2026-11-22 (Pedro + crítico, variante C2 en .specify/docs/especiales/titulos/): cada sección
+ * abre con una banda oscura de cartel ("Soups of the day · 4 today", "Today's specials ·
+ * 4 dishes") para que se note al entrar. Las sopas fijas pasan a ser filas iguales a las del
+ * día, con la etiqueta "Every day" (Pedro: se veían más chicas y también se piden).
  */
 
 import { Instrument_Serif } from "next/font/google";
@@ -36,7 +40,30 @@ const C = {
   red: "#B0232C",
   label: "#7A5A2E",
   leader: "#D9CBB0",
+  band: "#21180F",
+  bandText: "#FBF7EE",
+  bandCount: "#E3C48E",
 };
+
+/** Banda de cartel que abre cada sección. El -mx iguala el padding de la hoja: va de borde a borde. */
+function Band({ title, count }: { title: string; count: string }) {
+  return (
+    <div
+      className="-mx-4 flex min-h-[40px] items-center justify-between gap-3 px-4 py-2 sm:-mx-8 sm:min-h-[52px] sm:px-8 sm:py-2.5"
+      style={{ background: C.band }}
+    >
+      <h3 className="font-menu text-[1.3rem] leading-none sm:text-[1.85rem]" style={{ color: C.bandText }}>
+        {title}
+      </h3>
+      <span
+        className="flex-none text-[12px] font-semibold uppercase leading-none tracking-[0.1em] tabular-nums"
+        style={{ color: C.bandCount }}
+      >
+        {count}
+      </span>
+    </div>
+  );
+}
 
 const WEEKDAYS = {
   en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
@@ -98,14 +125,25 @@ function AddDot({ big }: { big?: boolean }) {
 export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fmtPrice, onOpen }: TodaySheetProps) {
   const en = locale !== "es";
   const T = en
-    ? { today: "Today", soups: "Soups of the day", every: "Every day", alsoEvery: "Also every day", out: "Sold out today", add: "Add" }
-    : { today: "Hoy", soups: "Sopas del día", every: "Todos los días", alsoEvery: "También todos los días", out: "Agotado por hoy", add: "Agregar" };
+    ? {
+        today: "Today", soups: "Soups of the day", specials: "Today\u2019s specials", every: "Every day",
+        out: "Sold out today", add: "Add",
+        soupCount: (n: number) => `${n} today`, dishCount: (n: number) => `${n} ${n === 1 ? "dish" : "dishes"}`,
+      }
+    : {
+        today: "Hoy", soups: "Sopas del día", specials: "Especiales de hoy", every: "Todos los días",
+        out: "Agotado por hoy", add: "Agregar",
+        soupCount: (n: number) => `${n} hoy`, dishCount: (n: number) => `${n} ${n === 1 ? "plato" : "platos"}`,
+      };
 
   const soldLast = (a: Product, b: Product) => Number(a.in_stock === false) - Number(b.in_stock === false);
   const specials = products.filter((p) => p.daily_kind === "special").sort(soldLast);
   const rotating = products.filter((p) => p.daily_kind === "soup" && !p.daily_always).sort(soldLast);
   const fixed = products.filter((p) => p.daily_kind === "soup" && p.daily_always);
   if (specials.length === 0 && rotating.length === 0) return null;
+  // Las del día primero (son la noticia), después las de todos los días; agotadas al final.
+  const soups = [...rotating, ...fixed].sort(soldLast);
+  const available = (list: Product[]) => list.filter((p) => p.in_stock !== false).length;
 
   const sizes = soupSizes ?? [];
   // Agotado: sin onClick y aria-disabled (no `disabled`, que lo saca del teclado y de algunos lectores).
@@ -130,15 +168,13 @@ export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fm
         {day && <p className="text-[14px] text-gray-600 sm:text-[15px]">{dayLabel(day, en)}</p>}
       </header>
 
-      {(rotating.length > 0 || fixed.length > 0) && (
+      {soups.length > 0 && (
         <div className="mt-5 sm:mt-6">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: C.label }}>
-            {T.soups}
-          </p>
+          <Band title={T.soups} count={T.soupCount(available(soups))} />
           {sizes.length > 0 && (
             // Cada tamaño entero y separado por aire, sin "·": nunca queda un
             // separador huérfano ni "Extra Large Bowl" / "$10.85" partido.
-            <p className="mt-1 flex flex-wrap gap-x-4 text-[14px] text-gray-700 tabular-nums">
+            <p className="mt-3.5 flex flex-wrap gap-x-4 text-[14px] text-gray-700 tabular-nums">
               {sizes.map((s) => (
                 <span key={s.name} className="whitespace-nowrap">
                   {s.name} <span className="font-semibold text-gray-950">{fmtPrice(s.price)}</span>
@@ -146,11 +182,12 @@ export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fm
               ))}
             </p>
           )}
-          {rotating.length > 0 && (
+          {soups.length > 0 && (
             <ul className="mt-2">
-              {rotating.map((p) => {
+              {soups.map((p) => {
                 const name = tName(p, locale, defaultLocale);
                 const out = p.in_stock === false;
+                const always = !!p.daily_always;
                 return (
                   <li key={p.id}>
                     <button
@@ -164,6 +201,11 @@ export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fm
                     >
                       {!out && <span className="sr-only">{T.add} </span>}
                       <span className={cn("text-[17px] font-semibold", out ? "text-gray-600" : "text-gray-950")}>{name}</span>
+                      {always && (
+                        <span className="flex-none whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: C.label }}>
+                          {T.every}
+                        </span>
+                      )}
                       <span aria-hidden="true" className="mx-1 h-0 min-w-[16px] flex-1 translate-y-[3px] border-b-2 border-dotted" style={{ borderColor: C.leader }} />
                       {out ? (
                         <span className="whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-1 text-[13px] font-semibold text-gray-700">{T.out}</span>
@@ -176,39 +218,13 @@ export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fm
               })}
             </ul>
           )}
-          {fixed.length > 0 && (
-            <p className={cn("text-[14px] text-gray-600", rotating.length > 0 ? "mt-1" : "mt-2")}>
-              <span className="font-medium">{rotating.length > 0 ? T.alsoEvery : T.every}:</span>{" "}
-              {fixed.map((p, i) => {
-                const name = tName(p, locale, defaultLocale);
-                const out = p.in_stock === false;
-                return (
-                  <span key={p.id}>
-                    {i > 0 && <span aria-hidden="true"> · </span>}
-                    {out ? (
-                      <span className="text-gray-600">
-                        {name} ({T.out.toLowerCase()})
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={open(p)}
-                        className="inline-flex min-h-[44px] items-center font-semibold text-gray-950 underline decoration-[#D9CBB0] decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] rounded"
-                      >
-                        <span className="sr-only">{T.add} </span>
-                        {name}
-                      </button>
-                    )}
-                  </span>
-                );
-              })}
-            </p>
-          )}
         </div>
       )}
 
       {specials.length > 0 && (
-        <ul className="mt-3 sm:mt-4">
+        <div className="mt-6">
+          <Band title={T.specials} count={T.dishCount(available(specials))} />
+          <ul>
           {specials.map((p) => {
             const name = tName(p, locale, defaultLocale);
             const desc = tDesc(p, locale, defaultLocale);
@@ -216,7 +232,7 @@ export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fm
             // El "Today's Special" es la estrella de la tarjeta impresa: nombre más grande.
             const star = !out && /today'?s special/i.test(p.daily_label ?? "");
             return (
-              <li key={p.id} className="border-t" style={{ borderColor: C.edge }}>
+              <li key={p.id} className="border-t first:border-t-0" style={{ borderColor: C.edge }}>
                 <button
                   type="button"
                   onClick={open(p)}
@@ -272,7 +288,8 @@ export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fm
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </div>
       )}
     </section>
   );
