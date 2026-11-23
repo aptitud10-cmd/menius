@@ -50,14 +50,14 @@ export type SlotId =
 // real photo with the clutter retouched out, so it can stay. D02, D09 and S06 are
 // Pedro's real photos (visit 2026-11-23); still AI: D01 D04 D06 D05 S03 S05b.
 export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; alt: string; position?: string }> = {
-  D01: { src: '/buccaneer/v2/ia-pancakes-booth.webp', position: 'center 85%', label: 'D01 · Buttermilk pancakes, Morning hero', alt: 'A stack of buttermilk pancakes with butter and syrup, coffee beside it, in a booth under the ship’s-wheel clock' },
+  D01: { src: '/buccaneer/v2/ia-pancakes-ovalada.webp', position: 'center 58%', label: 'D01 · Buttermilk pancakes, Morning hero', alt: 'Three buttermilk pancakes on an oval platter and a cup of black coffee on a marble booth table, placemats and cutlery behind' },
   D04: { src: '/buccaneer/v2/ia-burger-booth.webp', position: 'center 85%', label: 'D04 · 7 oz burger, Midday hero', alt: 'A 7 oz. Angus cheeseburger with fries and a pickle in a booth under the ship’s-wheel clock' },
   D06: { src: '/buccaneer/v2/ia-lobster-booth.webp', position: 'center 80%', label: 'D06 · Seafood plate, Evening hero', alt: 'Broiled lobster tail with mashed potatoes, corn and a glass of white wine in a booth' },
   S01: { src: '/buccaneer/v2/fachada-noche-vertical.webp', label: 'S01 · Facade at night, sign on', alt: 'Buccaneer Diner at night, the red neon sign lit over a wet parking lot', position: 'center 28%' },
   S02: { src: '/buccaneer/v2/fachada-noche.webp', label: 'S02 · Facade video poster (video pending)', alt: 'Buccaneer Diner facade at night, red and blue neon along the roof', position: 'center 70%' },
   D02: { src: '/buccaneer/v2/huevos-barra.webp', position: '34% 90%', label: 'D02 · Eggs and home fries, at the counter', alt: 'Two sunny-side-up eggs with home fries, toast and a cup of coffee on the counter, red stools alongside' },
   S05a: { src: '/buccaneer/v2/barra-diagonal.webp', label: 'S05a · Counter and stools, diagonal', alt: 'The long counter with its red stools, the coffee station behind it' },
-  D05: { src: '/buccaneer/v2/ia-calamari-booth.webp', label: 'D05 · Dinner plate to share, booth', alt: 'A platter of fried calamari to share between two plates in an orange booth with a jukebox' },
+  D05: { src: '/buccaneer/v2/ia-calamari-platito.webp', label: 'D05 · Dinner plate to share, booth', alt: 'An oval platter of fried calamari with a dish of marinara on a booth table, the tabletop jukebox behind' },
   D09: { src: '/buccaneer/v2/torta-booth.webp', label: 'D09 · Slice from the case, served', alt: 'A slice of chocolate layer cake and a cup of coffee on a booth table, the jukebox behind' },
   S06: { src: '/buccaneer/v2/vitrina-bake-shop.webp', label: 'S06 · Bake Shop dessert case, night', alt: 'The bake shop case: croissants, muffins and pound cake by the coffee urns' },
   S03: { src: '/buccaneer/v2/ia-fachada-dia.webp', label: 'S03 · Facade by day', alt: 'Buccaneer Diner by day' },
