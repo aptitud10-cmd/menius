@@ -46,8 +46,8 @@ export type SlotId =
 // PROVISIONAL (2026-11-21, for the owner demo; the page is noindex): the `ia-*`
 // files are Pedro's real photos of the booths with only the plate added by AI.
 // Ideally they are replaced with real photography of the dishes before the site
-// goes public — see "Fotos Buccaneer - guia.pdf". `barra-diagonal` is Pedro's
-// real photo with the clutter retouched out, so it can stay. D02, D09 and S06 are
+// goes public — see "Fotos Buccaneer - guia.pdf". `barra-vertical` (S05a) is Pedro's
+// real photo with only the bags on the counter removed (nothing added). D02, D09 and S06 are
 // Pedro's real photos (visit 2026-11-23), as are S03 and S05b. D01 D04 D05 D06 are his real booth
 // photos with only the plate added (measured against the table); nothing is fully AI anymore.
 export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; alt: string; position?: string }> = {
@@ -57,8 +57,8 @@ export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; al
   S01: { src: '/buccaneer/v2/fachada-noche-vertical.webp', label: 'S01 · Facade at night, sign on', alt: 'Buccaneer Diner at night, the red neon sign lit over a wet parking lot', position: 'center 28%' },
   S02: { src: '/buccaneer/v2/fachada-noche.webp', label: 'S02 · Facade video poster (video pending)', alt: 'Buccaneer Diner facade at night, red and blue neon along the roof', position: 'center 70%' },
   D02: { src: '/buccaneer/v2/huevos-barra.webp', position: '34% 90%', label: 'D02 · Eggs and home fries, at the counter', alt: 'Two sunny-side-up eggs with home fries, toast and a cup of coffee on the counter, red stools alongside' },
-  S05a: { src: '/buccaneer/v2/barra-diagonal.webp', label: 'S05a · Counter and stools, diagonal', alt: 'The long counter with its red stools, the coffee station behind it' },
-  D05: { src: '/buccaneer/v2/ia-calamari-platito.webp', label: 'D05 · Dinner plate to share, booth', alt: 'An oval platter of fried calamari with a dish of marinara on a booth table, the tabletop jukebox behind' },
+  S05a: { src: '/buccaneer/v2/barra-vertical.webp', position: 'center 60%', label: 'S05a · Counter and stools', alt: 'The long counter with its red stools, the coffee station and the bar behind it' },
+  D05: { src: '/buccaneer/v2/ia-calamari-booth12.webp', label: 'D05 · Dinner plate to share, booth', alt: 'A plate of fried calamari with a dish of marinara on a booth table, the tabletop jukebox behind' },
   D09: { src: '/buccaneer/v2/torta-booth.webp', label: 'D09 · Slice from the case, served', alt: 'A slice of chocolate layer cake and a cup of coffee on a booth table, the jukebox behind' },
   S06: { src: '/buccaneer/v2/vitrina-bake-shop.webp', label: 'S06 · Bake Shop dessert case, night', alt: 'The bake shop case: croissants, muffins and pound cake by the coffee urns' },
   S03: { src: '/buccaneer/v2/fachada-amanecer.webp', label: 'S03 · Facade at dawn', alt: 'Buccaneer Diner at dawn, the neon and the patio lights still on' },
@@ -77,10 +77,23 @@ export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; al
 const CDN =
   'https://hdlhmqvbaxzhmhtablwt.supabase.co/storage/v1/object/public/product-images/opt/a1f5af6a-1805-49d2-b494-f074ac657357';
 export const THUMBS = {
-  burgers: `${CDN}/cheeseburger-1794385130172-sm.webp`,
-  lunch: `${CDN}/club-turkey-bacon-1794342289068-sm.webp`,
-  dinner: `${CDN}/lobster-tails-1786533460195-sm.webp`,
-  appetizers: `${CDN}/the-sampler-1786537907822-sm.webp`,
+  burgers: `${CDN}/cheeseburger-vasito-1795459035155-sm.webp`,
+  lunch: `${CDN}/club-turkey-bacon-1795266618886-sm.webp`,
+  dinner: `${CDN}/beef-and-reef-real2-1795367063868-sm.webp`,
+  appetizers: `${CDN}/the-sampler-1794422818214-sm.webp`,
+};
+export type ThumbKey = keyof typeof THUMBS;
+
+/**
+ * The dish behind each thumbnail. counts.ts reads its CURRENT photo at render time,
+ * so a photo replaced on the menu shows up here too (Pedro 2026-11-23: hard-coded
+ * URLs went stale and kept showing old photos). THUMBS above is only the fallback.
+ */
+export const THUMB_IDS: Record<ThumbKey, string> = {
+  burgers: '5cd58eee-7488-423b-85f2-c119868f6123', // Cheeseburger
+  lunch: 'e2dbf59d-ebca-4a37-9b66-3ba1a4c0fa7b', // Turkey & Bacon Club
+  dinner: '98a8e761-2d01-4c2d-ac86-2ab9867dc521', // Beef & Reef (foto real de Pedro)
+  appetizers: '0ea30aa0-5ace-48a1-bc86-c4268c18d96d', // The Sampler
 };
 
 // ---------------------------------------------------------------------------
@@ -186,12 +199,14 @@ export const BREAKFAST_INDEX = [
  * Appetizers <= 40, Bar (three + separators) <= 48.
  */
 export const PIZARRA: Record<'dinner' | 'appetizers' | 'bar', { name: string; id: string }[]> = {
+  // Pedro 2026-11-23: solo platos cuya foto del menú sale de una foto real de Pedro (más la langosta,
+  // el plato del héroe de la noche). Fuera Jumbo Shrimp y Scampi (foto oculta), Scallops y Sole (IA).
   dinner: [
     { name: 'Twin 5 oz. Rock Lobster Tails', id: '8371dba5-9a65-4d51-9665-a876bcbaecaa' },
-    { name: 'Jumbo Shrimp (6) Broiled', id: '7e06171e-4e6a-490f-ac92-e2fcf40b1e5e' },
-    { name: 'Shrimp Scampi (6)', id: '4db25be1-7e4e-48f7-a498-e9136ea57dfe' },
-    { name: 'Deep Sea Scallops', id: '8ad940f3-0f69-4705-ae71-bb2447514c21' },
-    { name: 'Filet of Sole Broiled', id: '2f2c96db-370a-4083-b8ff-f4ecb24d7e05' },
+    { name: 'Beef & Reef', id: '98a8e761-2d01-4c2d-ac86-2ab9867dc521' },
+    { name: 'Ribeye Steak', id: '5c80cf67-e976-4b53-8ff6-ad7436ec26f9' },
+    { name: "Fisherman's Platter", id: 'cba8ab37-fd43-4b03-b62a-c3b4a49b19cc' },
+    { name: 'Chicken Marsala', id: '54f8f23b-cbca-4f95-8356-40280ac751c5' },
   ],
   appetizers: [
     { name: 'The Sampler', id: '0ea30aa0-5ace-48a1-bc86-c4268c18d96d' },

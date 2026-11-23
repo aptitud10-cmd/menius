@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import Behavior from './Behavior';
 import Photo, { hasPhoto } from './Photo';
-import { getCounts } from './counts';
+import { getCounts, getThumbs } from './counts';
 import { MapPin, PhoneIcon, WordmarkA, WordmarkB } from './Wordmark';
 import {
   ADDRESS_1,
@@ -18,7 +18,6 @@ import {
   item,
   STATES,
   STATE_COPY,
-  THUMBS,
   stateForHour,
   type DayState,
   type SlotId,
@@ -175,7 +174,7 @@ const RESTAURANT_LD = {
 
 export default async function BuccaneerV2Page() {
   const state = stateForHour(Number(NY_HOUR.format(new Date())) % 24);
-  const COUNTS = await getCounts();
+  const [COUNTS, THUMBS] = await Promise.all([getCounts(), getThumbs()]);
 
   return (
     <div className="b2-root b2-scroll" data-bd-state={state} suppressHydrationWarning>

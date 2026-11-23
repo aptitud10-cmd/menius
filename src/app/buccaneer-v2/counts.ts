@@ -1,7 +1,7 @@
 import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
-import { COUNTS, COUNT_GROUPS, MENU_SLUG, type Counts } from './data';
+import { COUNTS, COUNT_GROUPS, MENU_SLUG, THUMBS, THUMB_IDS, type Counts, type ThumbKey } from './data';
 
 const logger = createLogger('buccaneer-v2');
 
@@ -61,5 +61,34 @@ export async function getCounts(): Promise<Counts> {
   } catch (err: unknown) {
     logger.error('counts fallback', { error: err instanceof Error ? err.message : String(err) });
     return COUNTS;
+  }
+}
+
+/**
+ * Current photo of each thumbnail dish, read from the live menu (same ISR window).
+ * Uses the pre-optimized 640px `-sm.webp` sibling every upload creates; a dish with
+ * its photo hidden or missing keeps the fallback in THUMBS.
+ */
+export async function getThumbs(): Promise<Record<ThumbKey, string>> {
+  try {
+    const db = createAdminClient({ isr: true });
+    const { data, error } = await db
+      .from('products')
+      .select('id, image_url, hide_image')
+      .in('id', Object.values(THUMB_IDS));
+    if (error || !data) throw error ?? new Error('no thumbs');
+    const urlOf = new Map(
+      data
+        .filter((p) => !p.hide_image && typeof p.image_url === 'string' && p.image_url.endsWith('-lg.jpg'))
+        .map((p) => [p.id as string, (p.image_url as string).replace(/-lg\.jpg$/, '-sm.webp')]),
+    );
+    const out = { ...THUMBS };
+    for (const [key, id] of Object.entries(THUMB_IDS) as [ThumbKey, string][]) {
+      out[key] = urlOf.get(id) ?? THUMBS[key];
+    }
+    return out;
+  } catch (err: unknown) {
+    logger.error('thumbs fallback', { error: err instanceof Error ? err.message : String(err) });
+    return THUMBS;
   }
 }
