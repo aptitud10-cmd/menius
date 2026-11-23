@@ -80,6 +80,7 @@
   --ink: var(--b2-bou);
   --ink2: var(--b2-harbor);
   --wm: var(--b2-roof);
+  --wm-diner: var(--b2-bou); /* AD 25.4: the sign's blue, never red */
   --act-bg: var(--b2-bou);
   --act-fg: var(--b2-paper);
   --line: var(--b2-bou);
@@ -95,6 +96,7 @@
   --ink: var(--b2-paper);
   --ink2: var(--b2-fog);
   --wm: var(--b2-neon);
+  --wm-diner: var(--b2-paper);
   --act-bg: var(--b2-yolk);
   --act-fg: var(--b2-bou);
   --line: var(--b2-paper);
@@ -134,6 +136,7 @@
 }
 .b2-foot {
   --wm: var(--b2-neon);
+  --wm-diner: var(--b2-paper);
   --ring: var(--b2-paper); /* AD 24.5: Paper focus inside header/footer on Sign */
 }
 
@@ -321,7 +324,7 @@
   display: block;
   height: 48px;
   width: 136px;
-  padding-top: 2px; /* ink lands at y = 8–32 (AD 24.1) */
+  padding-top: 0; /* ink lands at y = 6–32, 24px clear of the bottom (AD 25.5) */
   margin-left: -10px; /* plate padding: ink aligns to the page margin */
 }
 .b2-plate {
@@ -334,27 +337,18 @@
   color: var(--wm);
   overflow: visible;
 }
-.b2-wm text {
-  font-family: var(--serif);
-  font-weight: 700;
-}
 .b2-wm--a {
   width: 116px;
-  height: 24px;
-}
-.b2-wm--a text {
-  font-size: 24px;
+  height: auto;
+  aspect-ratio: 673 / 150.6;
 }
 .b2-wm--b {
-  width: 200px;
-  height: 72px;
+  width: 240px; /* footer (AD 25.5): 240 / 280 / 320 */
+  height: auto;
+  aspect-ratio: 690.4 / 219.8;
 }
-.b2-wm--b .b2-wm__top {
-  font-size: 40px;
-}
-.b2-wm--b .b2-wm__diner {
-  font-size: 24px;
-  fill: var(--ink);
+.b2-hero__wm {
+  display: none; /* desktop only (AD 25.5) */
 }
 .b2-hdr__r {
   display: flex;
@@ -1077,10 +1071,6 @@
 .b2-root[data-bd-state='night'] .b2-foot {
   border-top: 2px solid var(--b2-fog);
 }
-.b2-foot__brand .b2-plate {
-  display: inline-block;
-  margin-left: -10px;
-}
 .b2-foot__data {
   display: flex;
   flex-direction: column;
@@ -1176,11 +1166,10 @@
     height: 48px;
     width: 152px;
     margin-top: 3px;
-    padding-top: 3px; /* ink y = 12–39 (AD 24.1) */
+    padding-top: 1px; /* ink y = 10–39.5 (AD 25.5) */
   }
   .b2-wm--a {
     width: 132px;
-    height: 27.3px;
   }
   .b2-hdr__r {
     margin-top: 3px;
@@ -1474,12 +1463,8 @@
     padding-top: 96px;
     padding-bottom: max(32px, env(safe-area-inset-bottom));
   }
-  .b2-foot__brand .b2-plate {
-    margin-left: -10px;
-  }
   .b2-wm--b {
-    width: 240px;
-    height: 86px;
+    width: 280px;
   }
 }
 
@@ -1705,7 +1690,7 @@
     opacity: 1;
   }
   .b2-hdr__brand {
-    margin-top: 8px;
+    margin-top: 5px; /* + 8px plate: ink y = 13–48, 24px clear (AD 25.5) */
     padding-top: 0;
     height: 48px;
     width: 180px;
@@ -1715,7 +1700,6 @@
   }
   .b2-wm--a {
     width: 156px;
-    height: 32.3px;
   }
   .b2-hdr__r {
     margin-top: 8px;
@@ -1731,6 +1715,7 @@
     padding-top: 0;
     grid-template-columns: var(--axis) 1fr;
     height: clamp(712px, 100svh, 880px);
+    grid-template-rows: minmax(0, 1fr); /* the column never outgrows the hero */
   }
   .b2-hero__right {
     padding: 0 var(--gr) 64px 24px;
@@ -1768,6 +1753,40 @@
   }
   .b2-root[data-bd-state='evening'] .b2-hero__right {
     padding-bottom: 64px;
+  }
+
+  /* AD 25.5 — the sign crowns the text column. Takes the free space above the
+     clock: ink top at y = 104, at least 56px of air to the clock, at most 256
+     (the spacer gives way first; beyond 256 the extra air goes above the sign).
+     Width = min(26vw, 440px, ratio × free height); --wm-k is the hero's fixed
+     part (104 + 56 + clock-to-bottom block), measured on the build. */
+  .b2-hero__wm {
+    --wm-k: 714px; /* 104 + 56 + 554 (clock top → hero bottom, all four states) */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 104px var(--gr) 56px 24px;
+    margin: 0 calc(-1 * var(--gr)) 0 -24px;
+  }
+  .b2-hero .b2-wm--hero {
+    flex: none;
+    width: min(26vw, 440px, calc((min(100svh, 880px) - var(--wm-k)) * 3.14));
+  }
+  .b2-hero__wmsp {
+    flex: 0 1 200px;
+    min-height: 0;
+  }
+  /* Evening: the Yolk panel starts 32px above the clock; the name sits on
+     Paper, like the sign's white box over its yellow panel. */
+  .b2-root[data-bd-state='evening'] .b2-hero__wm {
+    background: linear-gradient(to bottom, var(--b2-paper) calc(100% - 32px), var(--b2-yolk) 0);
+  }
+  /* One gothic logo at a time: lockup A returns (hard cut, no morph) once the
+     hero lockup passes under the header — data-wm-off comes from Behavior. */
+  .b2-root:not([data-wm-off]) .b2-hdr__brand {
+    visibility: hidden;
   }
   /* sticky hours in text columns: 48px strips */
   .b2-hour {
@@ -2086,8 +2105,7 @@
     grid-column: 1 / 5;
   }
   .b2-wm--b {
-    width: 280px;
-    height: 100px;
+    width: 320px;
   }
   .b2-foot__data {
     grid-column: 7 / 10;
@@ -2096,6 +2114,26 @@
   .b2-foot__fine {
     grid-column: 10 / 13;
     margin-top: 0;
+  }
+}
+
+/* AD 25.5 fallback: below 296px the sign would read as a label, so a short
+   desktop (≈ < 809px visible: 1280×800, 1366×768) keeps lockup A in the header
+   and the hero shows no sign. The cards never move to make room. */
+@media (min-width: 1280px) and (max-height: 808px) {
+  .b2-hero .b2-wm--hero {
+    display: none;
+  }
+  .b2-root .b2-hdr__brand {
+    visibility: visible;
+  }
+  /* No plate floating over the photo: the header is a solid bar from the
+     start and the hero begins under it (the 554px text block still fits). */
+  .b2-hdr::before {
+    opacity: 1;
+  }
+  .b2-hero {
+    padding-top: 72px;
   }
 }
 

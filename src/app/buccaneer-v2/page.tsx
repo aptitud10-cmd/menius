@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import Behavior from './Behavior';
 import Photo, { hasPhoto } from './Photo';
 import { getCounts } from './counts';
-import { MapPin, PhoneIcon, WordmarkA, WordmarkB } from './Wordmark';
+import { MapPin, PhoneIcon, WordmarkA, WordmarkB, WordmarkBSymbol } from './Wordmark';
 import {
   ADDRESS_1,
   ADDRESS_2,
@@ -173,6 +173,7 @@ export default async function BuccaneerV2Page() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(RESTAURANT_LD).replace(/</g, '\\u003c') }}
       />
       <Behavior />
+      <WordmarkBSymbol />
 
       {/* ------------------------------------------------------------ header */}
       <header className="b2-hdr">
@@ -222,6 +223,12 @@ export default async function BuccaneerV2Page() {
             ))}
           </div>
           <div className="b2-hero__right">
+            {/* AD 25.5: the sign crowns the text column (desktop only). The spacer
+                caps the air above the clock at 256px; below it the lockup rides at y=104. */}
+            <div className="b2-hero__wm">
+              <WordmarkB id="b2-wm-hero" decorative />
+              <span className="b2-hero__wmsp" />
+            </div>
             <div className="b2-hero__text">
               <div className="b2-hero__top">
                 <Clock />
@@ -418,6 +425,10 @@ export default async function BuccaneerV2Page() {
                 <dt className="b2-meta">Service</dt>
                 <dd className="b2-lg">Dine-in, pickup, or delivery</dd>
               </div>
+              <div>
+                <dt className="b2-meta">Parking</dt>
+                <dd className="b2-lg">Free lot for customers</dd>
+              </div>
             </dl>
             <div className="b2-btns">
               <a className="b2-btn b2-btn--solid b2-btn--lg" href={DIRECTIONS_URL} target="_blank" rel="noopener noreferrer">
@@ -484,9 +495,7 @@ export default async function BuccaneerV2Page() {
       {/* ----------------------------------------------------------- Footer */}
       <footer className="b2-foot" data-pal="sign">
         <div className="b2-foot__brand">
-          <span className="b2-plate">
-            <WordmarkB />
-          </span>
+          <WordmarkB />
         </div>
         <address className="b2-foot__data">
           <span>{ADDRESS_1}</span>

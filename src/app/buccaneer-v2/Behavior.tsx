@@ -11,6 +11,8 @@ import { stateForHour } from './data';
  * - data-bar      : mobile sticky bar visible (hero CTA is above the viewport and
  *                   the Close CTA is not on screen — AD 24.7)
  * - data-ready    : clocks are populated
+ * - data-wm-off   : the hero lockup B is not on screen, so the header shows lockup A
+ *                   (desktop; one gothic logo at a time, hard cut — AD 25.5)
  * - data-bd-state : re-evaluated when the tab becomes visible again (AD 3.3.4)
  *
  * Observers use the viewport as root, so it does not matter whether the scroller
@@ -88,14 +90,16 @@ export default function Behavior() {
     let closeVisible = false;
     const syncBar = () => root.toggleAttribute('data-bar', heroGone && !closeVisible);
 
-    const watch = (id: string, cb: (e: IntersectionObserverEntry) => void) => {
+    const watch = (id: string, cb: (e: IntersectionObserverEntry) => void, rootMargin?: string) => {
       const el = document.getElementById(id);
       if (!el) return;
-      const io = new IntersectionObserver(([e]) => cb(e));
+      const io = new IntersectionObserver(([e]) => cb(e), { rootMargin });
       io.observe(el);
       observers.push(io);
     };
     watch('b2-top-sentinel', (e) => root.toggleAttribute('data-filled', !e.isIntersecting));
+    // Hidden lockup (mobile, tablet, short desktop) never intersects → header keeps lockup A.
+    watch('b2-wm-hero', (e) => root.toggleAttribute('data-wm-off', !e.isIntersecting), '-72px 0px 0px 0px');
     watch('b2-hero-cta', (e) => {
       heroGone = !e.isIntersecting && e.boundingClientRect.top < 0;
       syncBar();
