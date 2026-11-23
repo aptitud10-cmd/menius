@@ -1,14 +1,13 @@
 import { Fragment } from 'react';
 import Behavior from './Behavior';
 import Photo, { hasPhoto } from './Photo';
-import { getCounts, getThumbs } from './counts';
+import { getCounts } from './counts';
 import { MapPin, PhoneIcon, WordmarkA, WordmarkB } from './Wordmark';
 import {
   ADDRESS_1,
   ADDRESS_2,
   BREAKFAST_INDEX,
   DIRECTIONS_URL,
-  DISCLOSURE,
   LINKS,
   MENU_URL,
   SITE_URL,
@@ -117,16 +116,6 @@ function Head({ title, lede }: { title: string; lede: string }) {
   );
 }
 
-/** Framed AI composition — small, square, 1.5px ink frame (AD 6). Never animated. */
-function Thumb({ src, size }: { src: string; size: 'sm' | 'md' | 'lg' }) {
-  return (
-    <span className={`b2-thumb b2-thumb--${size}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- already-optimized CDN asset; avoids Image Transformations quota */}
-      <img src={src} alt="" width={160} height={160} loading="lazy" decoding="async" />
-    </span>
-  );
-}
-
 function Fig({ slot, cls, sizes }: { slot: SlotId; cls: string; sizes?: string }) {
   return (
     <figure className={`b2-fig ${cls}`}>
@@ -174,7 +163,7 @@ const RESTAURANT_LD = {
 
 export default async function BuccaneerV2Page() {
   const state = stateForHour(Number(NY_HOUR.format(new Date())) % 24);
-  const [COUNTS, THUMBS] = await Promise.all([getCounts(), getThumbs()]);
+  const COUNTS = await getCounts();
 
   return (
     <div className="b2-root b2-scroll" data-bd-state={state} suppressHydrationWarning>
@@ -287,14 +276,12 @@ export default async function BuccaneerV2Page() {
             <Head title="Lunchtime." lede="Burgers, sandwiches, salads, and soups." />
             <div className="b2-mid__dishes">
               <a className="b2-prin" href={LINKS.burgers}>
-                <Thumb src={THUMBS.burgers} size="md" />
                 <span className="b2-prin__t">
                   <span className="b2-d3">Burgers</span>
                   <span className="b2-meta">{COUNTS.burgers} dishes →</span>
                 </span>
               </a>
               <a className="b2-prin" href={LINKS.lunch}>
-                <Thumb src={THUMBS.lunch} size="md" />
                 <span className="b2-prin__t">
                   <span className="b2-d3">Lunch</span>
                   <span className="b2-meta">{COUNTS.lunch} dishes →</span>
@@ -307,7 +294,6 @@ export default async function BuccaneerV2Page() {
                 <a href={LINKS.sides}>Sides ({COUNTS.sides})</a>
                 <span className="b2-side__end">.</span>
               </p>
-              <p className="b2-meta b2-disc">{DISCLOSURE}</p>
             </div>
           </div>
           <Fig slot="S05a" cls="b2-mid__ph b2-reveal" sizes="(max-width: 1023px) 100vw, 40vw" />
@@ -319,7 +305,6 @@ export default async function BuccaneerV2Page() {
             <Hour s="evening" />
             <Head title="Dinner." lede="A few picks from the dinner menu." />
             <div className="b2-dinner">
-              <Thumb src={THUMBS.dinner} size="lg" />
               <ul className="b2-dishes">
                 {PIZARRA.dinner.map((d) => (
                   <li key={d.id}>
@@ -336,9 +321,6 @@ export default async function BuccaneerV2Page() {
           </div>
           <div className="b2-eve__r">
             <div className="b2-app">
-              <div className="b2-app__thumb">
-                <Thumb src={THUMBS.appetizers} size="sm" />
-              </div>
               <div className="b2-app__body">
                 <span className="b2-row b2-gname">Appetizers</span>
                 <ul className="b2-plain">
@@ -382,11 +364,11 @@ export default async function BuccaneerV2Page() {
           <div className="b2-pair">
             <a className="b2-pair__a" href={LINKS.desserts}>
               <Fig slot="D09" cls="b2-pair__ph b2-reveal" sizes="(max-width: 1023px) 50vw, 50vw" />
-              <span className="b2-row">Desserts ({COUNTS.desserts}) →</span>
+              <span className="b2-row">Desserts ({COUNTS.desserts})&nbsp;→</span>
             </a>
             <a className="b2-pair__b" href={LINKS.bakeShop}>
               <Fig slot="S06" cls="b2-pair__ph b2-reveal" sizes="(max-width: 1023px) 50vw, 30vw" />
-              <span className="b2-row">The Bake Shop ({COUNTS.bakeShop}) →</span>
+              <span className="b2-row">The Bake Shop ({COUNTS.bakeShop})&nbsp;→</span>
             </a>
           </div>
           <p className="b2-fount">
@@ -408,10 +390,6 @@ export default async function BuccaneerV2Page() {
           <div className="b2-visit__video">
             {/* S02 becomes a video (AD 9): muted 6 s loop, mobile 4:5 · tablet/desktop 21:9. */}
             <Photo slot="S02" sizes="100vw" />
-          </div>
-          <div className="b2-visit__by">
-            <Fig slot="S03" cls="b2-visit__bypic" sizes="140px" />
-            {hasPhoto('S03') ? <p className="b2-meta">At dawn.</p> : null}
           </div>
           <div className="b2-visit__info">
             <h2 className="b2-d2">9301 Astoria Boulevard.</h2>
@@ -452,11 +430,13 @@ export default async function BuccaneerV2Page() {
           </div>
           <div className="b2-visit__map">
             <a className="b2-map" href={DIRECTIONS_URL} target="_blank" rel="noopener noreferrer" aria-label="Open 9301 Astoria Boulevard in Google Maps">
-              <span className="b2-map__grid" aria-hidden="true" />
+              {/* Own static map from OpenStreetMap data (AD 7.5): scripts/.product-output/mapa-osm.mjs. */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- static SVG, nothing to optimize */}
+              <img className="b2-map__img" src="/buccaneer/v2/mapa-astoria.svg" alt="" width={1000} height={1000} loading="lazy" decoding="async" />
               <MapPin />
             </a>
-            {/* Add "© OpenStreetMap contributors" (ODbL, AD 7.5) here when the real OSM map image goes in. */}
             <p className="b2-map__src">
+              <span className="b2-meta b2-map__attr">© OpenStreetMap contributors</span>
               <a className="b2-lnk" href={DIRECTIONS_URL} target="_blank" rel="noopener noreferrer">
                 Open in Google Maps →
               </a>
@@ -519,7 +499,6 @@ export default async function BuccaneerV2Page() {
           </a>
         </address>
         <div className="b2-foot__fine">
-          <p className="b2-meta">{DISCLOSURE}</p>
           <p className="b2-meta">Powered by MENIUS</p>
           <p className="b2-meta">© 2026 Buccaneer Diner</p>
         </div>

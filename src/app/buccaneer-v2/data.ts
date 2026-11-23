@@ -48,7 +48,7 @@ export type SlotId =
 // Ideally they are replaced with real photography of the dishes before the site
 // goes public — see "Fotos Buccaneer - guia.pdf". `barra-vertical` (S05a) is Pedro's
 // real photo with only the bags on the counter removed (nothing added). D02, D09 and S06 are
-// Pedro's real photos (visit 2026-11-23), as are S03 and S05b. D01 D04 D05 D06 are his real booth
+// Pedro's real photos (visit 2026-11-23), as is S05b. D01 D04 D05 D06 are his real booth
 // photos with only the plate added (measured against the table); nothing is fully AI anymore.
 export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; alt: string; position?: string }> = {
   D01: { src: '/buccaneer/v2/ia-pancakes-ovalada.webp', position: 'center 58%', label: 'D01 · Buttermilk pancakes, Morning hero', alt: 'Three buttermilk pancakes on an oval platter and a cup of black coffee on a marble booth table, placemats and cutlery behind' },
@@ -61,39 +61,12 @@ export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; al
   D05: { src: '/buccaneer/v2/ia-calamari-booth12.webp', label: 'D05 · Dinner plate to share, booth', alt: 'A plate of fried calamari with a dish of marinara on a booth table, the tabletop jukebox behind' },
   D09: { src: '/buccaneer/v2/torta-booth.webp', label: 'D09 · Slice from the case, served', alt: 'A slice of chocolate layer cake and a cup of coffee on a booth table, the jukebox behind' },
   S06: { src: '/buccaneer/v2/vitrina-bake-shop.webp', label: 'S06 · Bake Shop dessert case, night', alt: 'The bake shop case: croissants, muffins and pound cake by the coffee urns' },
-  S03: { src: '/buccaneer/v2/fachada-amanecer.webp', label: 'S03 · Facade at dawn', alt: 'Buccaneer Diner at dawn, the neon and the patio lights still on' },
+  // Not shown (2026-11-23): the dawn shot still has the neon on and read as a copy of S01. Needs a real daytime facade.
+  S03: { src: null, label: 'S03 · Facade by day', alt: 'Buccaneer Diner by day' },
   S04: { src: '/buccaneer/v2/salon.webp', label: 'S04 · Dining room, wide', alt: 'The counter stools and orange booths of the dining room' },
   S05b: { src: '/buccaneer/v2/barra-cubierto.webp', label: 'S05b · Counter detail', alt: 'A place set at the granite counter, the red stools alongside' },
   S11: { src: '/buccaneer/v2/jukebox.webp', label: 'S11 · Tabletop jukebox, booth', alt: 'A tabletop jukebox in a booth' },
   S10: { src: '/buccaneer/v2/reloj-timon.webp', label: 'S10 · Dining room wheel clock', alt: 'A ship’s-wheel clock with an anchor on the dining room wall, between two windows over the booths' },
-};
-
-/**
- * AI product compositions (AD 6): already live on the menu, reused by URL, only
- * ever shown as small framed thumbnails inside Midday and Evening.
- * The pre-optimized 640px `-sm.webp` variant (20–35 KB), not the `ai/` original:
- * two of those originals weigh ~1.4 MB each for a 160px box.
- */
-const CDN =
-  'https://hdlhmqvbaxzhmhtablwt.supabase.co/storage/v1/object/public/product-images/opt/a1f5af6a-1805-49d2-b494-f074ac657357';
-export const THUMBS = {
-  burgers: `${CDN}/cheeseburger-vasito-1795459035155-sm.webp`,
-  lunch: `${CDN}/club-turkey-bacon-1795266618886-sm.webp`,
-  dinner: `${CDN}/beef-and-reef-real2-1795367063868-sm.webp`,
-  appetizers: `${CDN}/the-sampler-1794422818214-sm.webp`,
-};
-export type ThumbKey = keyof typeof THUMBS;
-
-/**
- * The dish behind each thumbnail. counts.ts reads its CURRENT photo at render time,
- * so a photo replaced on the menu shows up here too (Pedro 2026-11-23: hard-coded
- * URLs went stale and kept showing old photos). THUMBS above is only the fallback.
- */
-export const THUMB_IDS: Record<ThumbKey, string> = {
-  burgers: '5cd58eee-7488-423b-85f2-c119868f6123', // Cheeseburger
-  lunch: 'e2dbf59d-ebca-4a37-9b66-3ba1a4c0fa7b', // Turkey & Bacon Club
-  dinner: '98a8e761-2d01-4c2d-ac86-2ab9867dc521', // Beef & Reef (foto real de Pedro)
-  appetizers: '0ea30aa0-5ace-48a1-bc86-c4268c18d96d', // The Sampler
 };
 
 // ---------------------------------------------------------------------------
@@ -238,5 +211,3 @@ export const LINKS = {
   smoothies: cat('Smoothies'),
 };
 
-/** Shown under Midday (first framed thumbnails) and in the footer. */
-export const DISCLOSURE = 'The small framed pictures are illustrations, not photos of our food.';

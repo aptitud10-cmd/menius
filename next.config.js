@@ -95,6 +95,16 @@ const nextConfig = {
         ],
       },
       {
+        // Fotos del sitio Buccaneer v2: la regla de arriba también las agarra (su regex cruza "/")
+        // y las dejaba sin caché de navegador. Cada foto nueva lleva nombre nuevo → inmutables.
+        // Va DESPUÉS: con la misma clave gana la última regla. `:file+` exige al menos un
+        // segmento, así que nunca toca el menú /buccaneer ni la página /buccaneer-v2.
+        source: '/buccaneer/v2/:file+',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
         source: '/:slug/orden/:orderNumber*',
         headers: [
           { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },

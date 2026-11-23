@@ -268,32 +268,6 @@
   border: 1px dashed color-mix(in srgb, var(--ink) 30%, transparent);
   pointer-events: none;
 }
-/* framed AI product composition (AD 6): small, square, 1.5px ink frame, still */
-.b2-thumb {
-  display: block;
-  flex: none;
-  border: 1.5px solid var(--ink);
-  overflow: hidden;
-  background: color-mix(in srgb, var(--ink) 10%, transparent);
-}
-.b2-thumb img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.b2-thumb--sm {
-  width: 72px;
-  height: 72px;
-}
-.b2-thumb--md {
-  width: 88px;
-  height: 88px;
-}
-.b2-thumb--lg {
-  width: 96px;
-  height: 96px;
-}
 
 /* M2 reveal: visible by default; hidden start state only inside @supports */
 @supports (animation-timeline: view()) {
@@ -718,7 +692,12 @@
   grid-template-columns: 1fr 1fr;
   column-gap: 16px;
 }
+/* each link fills its grid row, so the hairlines of both columns line up */
+.b2-idx li {
+  display: flex;
+}
 .b2-idx a {
+  flex: 1;
   display: flex;
   align-items: center;
   min-height: 48px;
@@ -775,6 +754,11 @@
   flex-direction: column;
   gap: 2px;
 }
+/* 2026-11-23: without the thumbnails the two principals carry the column on their own */
+.b2-prin .b2-d3 {
+  /* a step under the chapter title (d2), never smaller than d3 */
+  font-size: max(var(--t-d3), calc(var(--t-d2) * 0.75));
+}
 .b2-side {
   margin-top: 24px;
   display: flex;
@@ -804,9 +788,6 @@
 }
 .b2-side__end {
   margin-left: -2px;
-}
-.b2-disc {
-  margin-top: 24px;
 }
 
 /* Evening — Pizarra (Yolk: all ink Boulevard) */
@@ -840,13 +821,9 @@
 }
 .b2-app {
   display: grid;
-  grid-template-columns: 72px 1fr;
-  grid-template-areas: 'thumb name' 'list list' 'all all';
+  grid-template-areas: 'name' 'list' 'all';
   column-gap: 16px;
   align-items: center;
-}
-.b2-app__thumb {
-  grid-area: thumb;
 }
 .b2-app__body {
   display: contents;
@@ -952,17 +929,6 @@
   aspect-ratio: 4 / 5;
   overflow: hidden;
 }
-.b2-visit__by {
-  order: 1;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 12px;
-}
-.b2-visit__bypic {
-  width: 140px;
-  aspect-ratio: 3 / 2;
-}
 .b2-visit__info {
   order: 2;
   margin-top: 24px;
@@ -999,29 +965,20 @@
   border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
   overflow: hidden;
 }
-.b2-map__grid {
+.b2-map__img {
   position: absolute;
   inset: 0;
-  background-image: repeating-linear-gradient(
-      0deg,
-      color-mix(in srgb, var(--b2-fog) 22%, transparent) 0 1px,
-      transparent 1px 44px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--b2-fog) 22%, transparent) 0 1px,
-      transparent 1px 44px
-    ),
-    repeating-linear-gradient(
-      -28deg,
-      color-mix(in srgb, var(--b2-fog) 30%, transparent) 0 2px,
-      transparent 2px 160px
-    );
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.b2-map__attr {
+  color: var(--b2-fog);
 }
 .b2-pin {
   position: absolute;
   left: 50%;
-  top: 46%;
+  top: 50%; /* the map is centred on the corner of 93rd St and Astoria Blvd */
   transform: translate(-50%, -100%);
 }
 .b2-map__src {
@@ -1059,6 +1016,13 @@
   aspect-ratio: 3 / 2;
 }
 @media (max-width: 719px) {
+  /* the two links wrap onto two lines here: a trailing "·" would hang alone */
+  .b2-fount {
+    column-gap: 24px;
+  }
+  .b2-fount i {
+    display: none;
+  }
   .b2-trip__a figcaption {
     padding-left: 20px;
   }
@@ -1344,7 +1308,7 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
-    min-height: 160px;
+    min-height: 0;
     padding: 0 0 24px;
   }
   .b2-prin + .b2-prin {
@@ -1352,34 +1316,11 @@
     border-left: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
     padding-left: 20px;
   }
-  .b2-thumb--md {
-    width: 96px;
-    height: 96px;
-  }
-  .b2-side,
-  .b2-mid .b2-disc {
+  .b2-side {
     grid-column: 1 / -1;
   }
 
   /* Evening T1: Dinner full width, Appetizers | Bar side by side, D05 2:1 */
-  .b2-dinner {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    column-gap: 20px;
-    align-items: start;
-  }
-  .b2-dinner .b2-thumb--lg {
-    width: 120px;
-    height: 120px;
-    margin-top: 16px;
-  }
-  .b2-dishes {
-    grid-column: 2;
-    grid-row: 1;
-  }
-  .b2-all {
-    grid-column: 2;
-  }
   .b2-eve__r {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1456,9 +1397,6 @@
   .b2-visit__video {
     grid-column: 1 / -1;
     aspect-ratio: 21 / 9;
-  }
-  .b2-visit__by {
-    display: none;
   }
   .b2-visit__info {
     grid-column: 1;
@@ -1700,15 +1638,8 @@
     padding-left: 0;
     border-top: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
   }
-  .b2-thumb--md {
-    width: 120px;
-    height: 120px;
-  }
   .b2-prin {
     gap: 24px;
-  }
-  .b2-mid .b2-disc {
-    margin-top: 24px;
   }
 }
 
@@ -1734,10 +1665,11 @@
     --mid-l: 1 / 7;
     --mid-ph: 8 / 13;
 
-    --t-clock: 64px;
-    --t-clocks: 24px;
+    /* 2026-11-23 audit: the phrase leads, the clock is a fact (it used to outrank the headline) */
+    --t-clock: 44px;
+    --t-clocks: 18px;
     --t-open: 18px;
-    --t-d1: 48px;
+    --t-d1: 64px;
     --t-d2: 52px;
     --t-d3: 30px;
     --t-hour: 26px;
@@ -1808,7 +1740,7 @@
     margin-bottom: 24px;
   }
   .b2-clock {
-    height: 64px;
+    height: 44px;
     margin-bottom: 4px;
   }
   .b2-open {
@@ -1816,7 +1748,7 @@
     line-height: 24px;
   }
   .b2-hero__mid .b2-d1 {
-    min-height: 101px;
+    min-height: 135px;
   }
   .b2-h1 {
     margin-top: 16px;
@@ -1861,10 +1793,6 @@
   .b2-mid .b2-head {
     margin-top: 32px;
   }
-  .b2-thumb--md {
-    width: 140px;
-    height: 140px;
-  }
   .b2-prin {
     padding: 16px 0;
   }
@@ -1904,11 +1832,6 @@
     display: block;
     margin-top: 32px;
   }
-  .b2-dinner .b2-thumb--lg {
-    width: 160px;
-    height: 160px;
-    margin: 0 0 40px;
-  }
   .b2-dishes {
     margin-top: 0;
   }
@@ -1939,12 +1862,10 @@
     align-items: start;
     padding-top: 48px; /* aligns the group under the sticky strip */
   }
-  .b2-app__thumb {
-    grid-area: auto;
-  }
   .b2-app__body {
     display: block;
     grid-area: auto;
+    grid-column: 2; /* keeps Appetizers on the same left edge as Bar */
   }
   .b2-app .b2-plain,
   .b2-app .b2-allm,
