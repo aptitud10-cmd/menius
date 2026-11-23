@@ -303,7 +303,16 @@ export default async function BuccaneerV2Page() {
               </p>
             </div>
           </div>
-          <Fig slot="S05a" cls="b2-mid__ph b2-reveal" sizes="(max-width: 1023px) 100vw, 40vw" />
+          {/* The chapter's dish is the burger; at midday the hero already shows it, so
+              the chapter shows the counter instead (one burger per page, Pedro 2026-11-23). */}
+          <figure className="b2-fig b2-mid__ph b2-reveal">
+            <div className="b2-sv b2-sv--morning b2-sv--evening b2-sv--night b2-fill">
+              <Photo slot="D04" sizes="(max-width: 1023px) 100vw, 40vw" />
+            </div>
+            <div className="b2-sv b2-sv--midday b2-fill">
+              <Photo slot="S05a" sizes="(max-width: 1023px) 100vw, 40vw" />
+            </div>
+          </figure>
         </section>
 
         {/* ------------------------------------------------- Evening — Pizarra */}

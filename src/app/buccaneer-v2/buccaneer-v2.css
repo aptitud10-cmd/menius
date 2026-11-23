@@ -1595,7 +1595,9 @@
     grid-row: 1;
     margin: 0 calc(-1 * var(--gr)) 0 0;
     aspect-ratio: auto;
-    max-height: calc(100svh - 120px);
+    /* capped: on tall/wide screens the 4:5 photo grew to ~1150px and opened a
+       ~675px hole between the lede and the dishes (Pedro, 2026-11-23) */
+    max-height: min(100svh - 120px, 720px);
     min-height: 0;
   }
   .b2-mid__ph::before {
