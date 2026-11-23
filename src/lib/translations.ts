@@ -281,6 +281,8 @@ export interface Translations {
   daysAgoLabel: string;
   weeksAgoLabel: string;
   seeOnGoogleMaps: string;
+  visitWebsite: string;
+  backToWebsite: string;
   closeSearch: string;
   clearSearch: string;
   searching: string;
@@ -746,6 +748,8 @@ const es: Translations = {
   daysAgoLabel: 'Hace {n} días',
   weeksAgoLabel: 'Hace {n} sem',
   seeOnGoogleMaps: 'Ver en Google Maps',
+  visitWebsite: 'Visitar el sitio web',
+  backToWebsite: 'Volver al sitio web',
   closeSearch: 'Cerrar búsqueda',
   clearSearch: 'Borrar búsqueda',
   searching: 'Buscando…',
@@ -1208,6 +1212,8 @@ const en: Translations = {
   daysAgoLabel: '{n} days ago',
   weeksAgoLabel: '{n}w ago',
   seeOnGoogleMaps: 'See on Google Maps',
+  visitWebsite: 'Visit our website',
+  backToWebsite: 'Back to the website',
   closeSearch: 'Close search',
   clearSearch: 'Clear search',
   searching: 'Searching…',

@@ -89,7 +89,7 @@ import { MenuSheet, type MenuSheetEntry } from "./MenuSheet";
 import { TodaySheet, todayItemCount, type SoupSize } from "./TodaySheet";
 import { hasHours, isOptionAvailableAt, optionHoursLabel, hoursRangeLabel, clockLabel } from "@/lib/option-hours";
 import { inTimeZone, isOpenAt, nextOpening, type OperatingHours } from "@/lib/orders/business-hours";
-import { RestaurantInfoSheet, dayHoursText } from "./RestaurantInfoSheet";
+import { RestaurantInfoSheet, dayHoursText, websiteHref } from "./RestaurantInfoSheet";
 import { ReviewsSheet } from "./ReviewsSheet";
 import { DietIcon } from "./DietIcon";
 import { prettyPhone, telHref } from "@/lib/phone-format";
@@ -169,6 +169,22 @@ export function MenuShell({
   const availableLocales = availableLocalesRaw ?? [initialLocale];
   const hasMultiLang = availableLocales.length > 1;
   const [locale, setLocale] = useState<Locale>(initialLocale);
+  // Back arrow to the restaurant's own site, only for visitors who came from it:
+  // someone who scanned a QR or came from Google was never there.
+  const [siteBackUrl, setSiteBackUrl] = useState<string | undefined>(undefined);
+  const restaurantWebsite = restaurant.website;
+  useEffect(() => {
+    const site = websiteHref({ website: restaurantWebsite });
+    if (!site || backUrl || !document.referrer) return;
+    try {
+      const ref = new URL(document.referrer);
+      const s = new URL(site);
+      const base = s.pathname.replace(/\/$/, '');
+      if (ref.origin === s.origin && ref.pathname.replace(/\/$/, '').startsWith(base)) setSiteBackUrl(site);
+    } catch {
+      // malformed URL in the free-text column: no arrow
+    }
+  }, [restaurantWebsite, backUrl]);
   // The root layout can't know the menu's language (no cookies() there, to
   // keep ISR) and sets <html lang> from the MENIUS UI preference, so an
   // English menu was announced as Spanish to screen readers (WCAG 3.1.1).
@@ -2827,7 +2843,7 @@ export function MenuShell({
             fmtPrice={fmtPrice}
             openLabel={t.open}
             closedLabel={t.closed}
-            backUrl={backUrl}
+            backUrl={backUrl ?? siteBackUrl}
             isScrolled={headerScrolled}
             hasCover={hasCover}
             locale={locale}

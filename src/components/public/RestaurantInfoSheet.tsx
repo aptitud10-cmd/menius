@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Clock, ExternalLink, MapPin, Phone, X } from 'lucide-react';
+import { Clock, ExternalLink, Globe, MapPin, Phone, X } from 'lucide-react';
 import { hoursRangeLabel } from '@/lib/option-hours';
 import { inTimeZone } from '@/lib/orders/business-hours';
 import { prettyPhone, telHref } from '@/lib/phone-format';
@@ -18,6 +18,7 @@ export interface RestaurantInfo {
   longitude?: number | null;
   timezone?: string | null;
   google_business_url?: string | null;
+  website?: string | null;
   operating_hours?: Record<string, DayHours> | null;
 }
 
@@ -33,6 +34,12 @@ export function dayHoursText(
   if (dh.fullDay || (dh.open === '00:00' && dh.close === '23:59')) return t.open24h;
   if (!dh.open || !dh.close) return t.closedDay;
   return hoursRangeLabel(dh.open, dh.close, locale);
+}
+
+/** The restaurant's own site, only when it is a real http(s) URL (the column is free text). */
+export function websiteHref(r: Pick<RestaurantInfo, 'website'>): string | null {
+  const w = r.website?.trim();
+  return w && /^https?:\/\//i.test(w) ? w : null;
 }
 
 export function directionsHref(r: RestaurantInfo): string | null {
@@ -88,6 +95,7 @@ export function RestaurantInfoSheet({
       timeZone: 'UTC',
     });
   const directions = directionsHref(restaurant);
+  const website = websiteHref(restaurant);
   const texts = week.map((idx) => dayHoursText(hours?.[DAY_KEYS[idx]], locale, t));
   // Same hours all week (Buccaneer: 24 h): one line, not seven equal ones.
   const sameAllWeek = texts.every((x) => x === texts[0]);
@@ -189,6 +197,15 @@ export function RestaurantInfoSheet({
                   >
                     <Phone className="w-4 h-4" aria-hidden="true" />
                     {prettyPhone(restaurant.phone)}
+                  </a>
+                )}
+                {website && (
+                  <a
+                    href={website}
+                    className="h-12 flex items-center justify-center gap-2 rounded-full border border-gray-300 text-gray-900 text-[15px] font-semibold hover:bg-gray-50 transition-colors"
+                  >
+                    <Globe className="w-4 h-4" aria-hidden="true" />
+                    {t.visitWebsite}
                   </a>
                 )}
                 {restaurant.google_business_url && (
