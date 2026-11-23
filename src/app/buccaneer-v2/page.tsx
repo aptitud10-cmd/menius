@@ -412,7 +412,7 @@ export default async function BuccaneerV2Page() {
           </div>
           <div className="b2-visit__by">
             <Fig slot="S03" cls="b2-visit__bypic" sizes="140px" />
-            {hasPhoto('S03') ? <p className="b2-meta">By day.</p> : null}
+            {hasPhoto('S03') ? <p className="b2-meta">At dawn.</p> : null}
           </div>
           <div className="b2-visit__info">
             <h2 className="b2-d2">9301 Astoria Boulevard.</h2>
