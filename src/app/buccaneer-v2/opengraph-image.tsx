@@ -1,14 +1,21 @@
 import { ImageResponse } from 'next/og';
+import { B_DINER, B_TOP } from './Wordmark';
 
 /**
- * Share card for WhatsApp / iMessage / social. Typographic placeholder in the
- * Sign palette (AD 4) until S01 — the lit sign at night — replaces it.
+ * Share card (WhatsApp / iMessage / social): lockup B centered on Paper, the
+ * roof sign's colors (AD 25.4), no other text — the title and address travel in
+ * the link preview itself. Departs from AD 10.4 (photo left, lockup right) on
+ * purpose: WhatsApp crops the card to its central square, which cut the lockup
+ * in half. Centered at 540px it survives that crop with ~45px to spare.
  */
 // Same runtime as the root opengraph-image (the Node render crashed the dev server on Windows).
 export const runtime = 'edge';
-export const alt = 'Buccaneer Diner — Open 24/7 on Astoria Blvd, East Elmhurst, Queens';
+export const alt = 'Buccaneer Diner';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
+
+const W = 540;
+const H = Math.round((W * 219.8) / 690.4);
 
 export default function OgImage() {
   return new ImageResponse(
@@ -16,26 +23,17 @@ export default function OgImage() {
       <div
         style={{
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
+          alignItems: 'center',
+          justifyContent: 'center',
           width: '100%',
           height: '100%',
-          background: '#17225A',
-          color: '#FAF4E6',
-          padding: '72px 80px',
-          fontFamily: 'Georgia, serif',
+          background: '#FAF4E6',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 120, fontWeight: 700, color: '#FF5148', lineHeight: 1 }}>Buccaneer</div>
-          <div style={{ fontSize: 56, fontWeight: 700, marginTop: 8 }}>Diner</div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif' }}>
-          <div style={{ fontSize: 48, fontWeight: 700, color: '#F2B33D' }}>Open 24/7</div>
-          <div style={{ fontSize: 32, marginTop: 12, color: '#AEB6C8' }}>
-            9301 Astoria Blvd · East Elmhurst, Queens · (718) 429-5188
-          </div>
-        </div>
+        <svg width={W} height={H} viewBox="0 0 690.4 219.8">
+          <path fill="#C8152A" d={B_TOP} />
+          <path fill="#17225A" d={B_DINER} />
+        </svg>
       </div>
     ),
     size,
