@@ -41,4 +41,6 @@
     <string name="offline_retry">Reintentar ahora</string>
 
     <string name="press_back_again">Presiona atrás otra vez para salir</string>
+    <string name="update_ready">Nueva versión lista</string>
+    <string name="update_restart">Reiniciar</string>
 </resources>

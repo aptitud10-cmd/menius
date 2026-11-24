@@ -136,6 +136,12 @@ class MeniusJsBridge(private val activity: MainActivity) {
     @JavascriptInterface
     fun getAppVersion(): String = BuildConfig.VERSION_NAME
 
+    /** 1.0.8+: minimum versionCode the web needs; below it the update is forced (AppUpdater). */
+    @JavascriptInterface
+    fun setMinAppVersion(code: Int) {
+        activity.runOnUiThread { activity.onMinAppVersion(code) }
+    }
+
     /** Replaces the previous toast instead of queueing: N failures used to mean N toasts in a row for minutes. */
     private fun showToast(msg: String) {
         Handler(Looper.getMainLooper()).post {

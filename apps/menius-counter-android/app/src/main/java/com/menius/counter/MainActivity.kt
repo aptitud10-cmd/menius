@@ -50,6 +50,15 @@ class MainActivity : AppCompatActivity() {
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
+    /** In-app updates: the Counter stays open all day, so Play alone never updates it. */
+    private lateinit var updater: AppUpdater
+    private val updateTick = object : Runnable {
+        override fun run() {
+            updater.check()
+            mainHandler.postDelayed(this, UPDATE_CHECK_EVERY_MS)
+        }
+    }
+
     /** While the offline panel is up, retry on a timer too — onAvailable alone misses
      *  "Wi-Fi connected but the router has no internet yet". */
     private val retryTick = object : Runnable {
@@ -80,6 +89,9 @@ class MainActivity : AppCompatActivity() {
         // sleeps on the OS timeout and incoming orders go unnoticed until someone
         // wakes it — the whole point of the device is being glanceable.
         binding.root.keepScreenOn = true
+
+        updater = AppUpdater(this) { binding.root }.also { it.start() }
+        mainHandler.postDelayed(updateTick, UPDATE_CHECK_EVERY_MS)
 
         binding.webView.apply {
             setBackgroundColor(ContextCompat.getColor(context, R.color.menius_bg))
@@ -199,6 +211,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         enterImmersive()
+        // Also resumes a required (IMMEDIATE) update the user backed out of.
+        updater.check()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -244,6 +258,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         mainHandler.removeCallbacksAndMessages(null)
+        if (::updater.isInitialized) updater.stop()
         networkCallback?.let { cb ->
             runCatching { getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) }
         }
@@ -261,6 +276,16 @@ class MainActivity : AppCompatActivity() {
 
     fun openPrinterSettings() {
         startActivity(Intent(this, PrinterSettingsActivity::class.java))
+    }
+
+    /**
+     * The web says which versionCode it needs (src/lib/counter-app.ts). Below it,
+     * the update becomes required (IMMEDIATE); otherwise this only refreshes the
+     * stored minimum.
+     */
+    fun onMinAppVersion(code: Int) {
+        AppUpdater.setMinVersionCode(this, code)
+        if (updater.isRequired()) updater.check(forcePrompt = true)
     }
 
     /**
@@ -325,6 +350,7 @@ class MainActivity : AppCompatActivity() {
         private const val SPLASH_MAX_MS = 8_000L
         private const val RETRY_INTERVAL_MS = 10_000L
         private const val BACK_EXIT_WINDOW_MS = 2_000L
+        private const val UPDATE_CHECK_EVERY_MS = 60 * 60 * 1000L
         /** Host the WebView is allowed to navigate within (derived from BASE_URL). */
         private val APP_HOST: String =
             AppConfig.BASE_URL.toUri().host ?: "menius.app"

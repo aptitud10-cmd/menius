@@ -19,8 +19,8 @@ android {
         applicationId = "com.menius.counter"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.0.7"
+        versionCode = 9
+        versionName = "1.0.8"
     }
 
     // Only declared when keystore.properties is present. That file is gitignored,
@@ -78,6 +78,8 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    // Actualizaciones desde la app (AppUpdater): el Counter vive abierto y Play no lo actualiza solo.
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
 
     // Solo tests de JVM (no van en la APK): el ticket ESC/POS se revisa como texto, sin impresora.
     // org.json real porque el de android.jar es un stub que tira "Stub!" fuera del teléfono.
