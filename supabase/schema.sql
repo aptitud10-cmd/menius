@@ -764,6 +764,7 @@ CREATE TABLE public.restaurants (
   busy_until timestamp with time zone,
   counter_seen_at timestamp with time zone,
   counter_offline_alerted_at timestamp with time zone,
+  counter_app_version text,
   latitude double precision,
   longitude double precision,
   fiscal_rfc text,
