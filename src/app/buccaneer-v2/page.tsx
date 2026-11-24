@@ -1,15 +1,29 @@
 import { Fragment } from 'react';
-import { AppDays, AppDock, AppSheets } from './AppMobile';
+import {
+  AppCatering,
+  AppChip,
+  AppDays,
+  AppDock,
+  AppFavorites,
+  AppHeroText,
+  AppReviews,
+  AppSeal,
+  AppSheets,
+  AppStory,
+  AppVisit,
+} from './AppMobile';
 import AppBehavior from './AppBehavior';
 import Behavior from './Behavior';
 import Photo, { hasPhoto } from './Photo';
 import { getCounts } from './counts';
+import { getFavoritePrices } from './favorites';
 import { MapPin, PhoneIcon, WordmarkA, WordmarkB, WordmarkBSymbol } from './Wordmark';
 import {
   ADDRESS_1,
   ADDRESS_2,
   BREAKFAST_INDEX,
   DIRECTIONS_URL,
+  INSTAGRAM_URL,
   LINKS,
   MENU_URL,
   SITE_URL,
@@ -168,7 +182,7 @@ const RESTAURANT_LD = {
 
 export default async function BuccaneerV2Page() {
   const state = stateForHour(Number(NY_HOUR.format(new Date())) % 24);
-  const COUNTS = await getCounts();
+  const [COUNTS, PRICES] = await Promise.all([getCounts(), getFavoritePrices()]);
 
   return (
     <div className="b2-root b2-scroll" data-bd-state={state} suppressHydrationWarning>
@@ -229,7 +243,10 @@ export default async function BuccaneerV2Page() {
                 <Photo slot={HERO_SLOT[s]} priority={s === state} sizes="(max-width: 1023px) 100vw, 60vw" />
               </div>
             ))}
+            {/* App layout only: live time + the hour's line, and the 50-year seal. */}
+            <AppChip />
           </div>
+          <AppSeal />
           <div className="b2-hero__right">
             {/* AD 25.5: the sign crowns the text column (desktop only). The spacer
                 caps the air above the clock at 256px; below it the lockup rides at y=104. */}
@@ -255,6 +272,8 @@ export default async function BuccaneerV2Page() {
             <a className="b2-more" href={MENU_URL}>
               Full menu — {COUNTS.total} dishes →
             </a>
+            {/* App layout only: the story-led hero text (replaces .b2-hero__text there). */}
+            <AppHeroText />
           </div>
         </section>
         {/* Phones: the menu link leaves the fold and sits right under the hero. */}
@@ -262,8 +281,13 @@ export default async function BuccaneerV2Page() {
           Full menu — {COUNTS.total} dishes →
         </a>
 
-        {/* Portrait phones (app layout): hour strip + the four moments stacked. Hidden elsewhere. */}
-        <AppDays counts={COUNTS} />
+        {/* Portrait phones (app layout): story, favorites, a day, reviews, catering, visit. Hidden elsewhere. */}
+        <AppStory />
+        <AppFavorites prices={PRICES} total={COUNTS.total} />
+        <AppDays />
+        <AppReviews />
+        <AppCatering />
+        <AppVisit />
 
         {/* ------------------------------------------------ Morning — Índice */}
         <section className="b2-ch b2-morning" data-pal="day" id="morning">
@@ -571,6 +595,9 @@ export default async function BuccaneerV2Page() {
           </a>
           <a className="b2-lnk b2-foot__menu" href={MENU_URL}>
             Full menu — {COUNTS.total} dishes →
+          </a>
+          <a className="b2-lnk b2-foot__ig" href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
+            Instagram @buccaneer_diner
           </a>
         </address>
         <div className="b2-foot__fine">

@@ -43,6 +43,25 @@ export const cat = (name: string) => `${MENU_URL}?category=${encodeURIComponent(
 /** `?item=` deep link: opens that dish's sheet on the menu (product ID from the DB). */
 export const item = (id: string) => `${MENU_URL}?item=${id}`;
 
+/** Google Maps place search: the listing that carries the reviews. */
+export const REVIEWS_URL =
+  'https://www.google.com/maps/search/?api=1&query=Buccaneer+Diner+93-01+Astoria+Blvd+East+Elmhurst+NY';
+export const INSTAGRAM_URL = 'https://www.instagram.com/buccaneer_diner/';
+
+/**
+ * "Where to start" (app layout, copy approved 2026-11-24). Names and lines are the
+ * site's own copy; `price` is only the fallback (getFavoritePrices reads the live one).
+ * Images: the menu photos with the black backdrop removed (no other edits).
+ */
+export const FAVORITES = [
+  { id: '6655f59e-90d9-4aa0-9099-41dfa6e3fbbd', name: 'Challah Bread French Toast', price: '12.95', line: 'Thick-cut challah, butter, and warm syrup. Served all day.', img: '/buccaneer/v2/app-dish-french-toast.webp' },
+  { id: '388bb707-2bcc-4105-84bf-73d99cafa3f2', name: 'Roadhouse Burger', price: '15.95', line: 'Nine-ounce steak burger with pepper jack, bacon, avocado, grilled onions, and chipotle.', img: '/buccaneer/v2/app-dish-roadhouse.webp' },
+  { id: '3d588e53-348e-41ad-84b2-0fb8a7def775', name: 'Crispy Chicken Parmigiana', price: '20.95', line: 'Breaded chicken, melted mozzarella, and marinara on ciabatta.', img: '/buccaneer/v2/app-dish-chicken-parm.webp' },
+  { id: 'cba8ab37-fd43-4b03-b62a-c3b4a49b19cc', name: "Fisherman's Platter", price: '45.95', line: 'Lobster tail, stuffed shrimp, stuffed filet, stuffed clam, and scallops, broiled in garlic sauce.', img: '/buccaneer/v2/app-dish-fishermans.webp', tag: 'House signature' },
+  { id: 'f19dfa7e-6832-4cd7-bddd-34c974a4f651', name: 'Greek Gyro', price: '25.95', line: 'Sliced gyro on warm pita with fries, Greek salad, and tzatziki.', img: '/buccaneer/v2/app-dish-gyro.webp' },
+  { id: 'de5500c3-9f4c-4b9f-823c-0d562c02d087', name: 'New York Cheesecake', price: '7.45', line: 'Baked here, like every cake in the case.', img: '/buccaneer/v2/app-dish-cheesecake.webp' },
+] as const;
+
 // ---------------------------------------------------------------------------
 // PHOTO SLOTS — one place to swap placeholders for real photography.
 // Set a slot's `src` (a path under /public or a full URL) and the placeholder

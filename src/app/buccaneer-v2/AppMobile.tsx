@@ -1,16 +1,19 @@
+import type { ReactNode } from 'react';
+import Image from 'next/image';
 import Photo from './Photo';
+import type { FavoritePrices } from './favorites';
 import { MapPin, PhoneIcon } from './Wordmark';
 import {
   ADDRESS_2,
-  BREAKFAST_INDEX,
   DIRECTIONS_URL,
+  FAVORITES,
   LINKS,
   MENU_URL,
   PHONE2_HREF,
   PHONE2_TEXT,
   PHONE_HREF,
   PHONE_TEXT,
-  PIZARRA,
+  REVIEWS_URL,
   item,
   STATES,
   STATE_COPY,
@@ -19,8 +22,9 @@ import {
 } from './data';
 
 /**
- * Markup that exists only in the portrait-phone "app" layout (DESIGN_MOBILE_APP_BUCCANEER_V2.md):
- * dock, Menu / Visit sheets and the hour strip + four stacked moments. Everything here is
+ * Markup that exists only in the portrait-phone "app" layout: dock, Menu / Visit sheets, hero
+ * extras and the story-led sections (copy approved 2026-11-24; mockup in
+ * scripts/.product-output/app-mobile/v3). Everything here is
  * `display:none` outside `APP_MQ` (see buccaneer-v2.css), so tablet and desktop never see it
  * and its images (lazy) are never requested there. Behavior lives in AppBehavior.tsx.
  */
@@ -292,150 +296,493 @@ export function AppSheets({ counts }: { counts: Counts }) {
   );
 }
 
-// -------------------------------------------------- hour strip + the 4 moments
-const TABS: { s: DayState; name: string }[] = [
-  { s: 'morning', name: 'Mornings' },
-  { s: 'midday', name: 'Lunchtime' },
-  { s: 'evening', name: 'Dinner' },
-  { s: 'night', name: 'After dark' },
-];
-
-export function AppDays({ counts }: { counts: Counts }) {
+// ------------------------------------------------------------- hero extras
+/** Live time + the hour's line, on the hero photo. Also the header clock's "is the hero on screen" probe. */
+export function AppChip() {
   return (
-    <div className="b2-days">
-      <nav className="b2-strip" aria-label="The day">
-        <div className="b2-tabs">
-          {TABS.map((t) => (
-            <a key={t.s} className={`b2-tab b2-tab--${t.s}`} href={`#b2-sec-${t.s}`}>
-              <span className="b2-tab__h">{STATE_COPY[t.s].hourLabel}</span>
-              <span className="b2-tab__name">{t.name}</span>
-              <span className="b2-tab__now">
-                Now<span className="b2-sr"> ({t.name})</span>
-              </span>
-            </a>
-          ))}
-          <span className="b2-tabs__bar" aria-hidden="true" />
-        </div>
-      </nav>
+    <span className="b2-chip" aria-hidden="true">
+      <b data-b2-time />
+      {STATES.map((s) => (
+        <span key={s} className={`b2-sv b2-sv--${s}`}>
+          {' '}— {STATE_COPY[s].phrase}
+        </span>
+      ))}
+    </span>
+  );
+}
 
-      {/* ---------------------------------------------------------- Mornings */}
-      <section className="b2-sec" data-pal="day" id="b2-sec-morning">
-        <div className="b2-sec__ph">
-          <Photo slot="D02" file="/buccaneer/v2/app-sec-morning.webp" sizes="100vw" />
-        </div>
-        <div className="b2-sec__b">
-          <h2 className="b2-d2">Mornings.</h2>
-          <p className="b2-sec__lede">Breakfast all day.</p>
-          <div className="b2-sec__list">
-            <ul className="b2-sec__idx">
-              {BREAKFAST_INDEX.slice(0, 6).map((n) => (
-                <li key={n}>
-                  <a className="b2-index" href={`${MENU_URL}?category=${encodeURIComponent(n)}`}>
-                    <span aria-hidden="true">· </span>
-                    {n}
-                  </a>
-                </li>
-              ))}
-            </ul>
-            <a className="b2-row b2-sec__r" href={LINKS.breakfast}>
-              All {counts.breakfast} breakfast dishes →
-            </a>
-            <a className="b2-row b2-sec__r" href={LINKS.beverage}>
-              Coffee &amp; drinks ({counts.beverage}) →
-            </a>
-          </div>
-        </div>
-      </section>
+/** The 50-year seal (1976–2026). Decorative: the same facts are in the eyebrow and the story. */
+export function AppSeal() {
+  return (
+    <span className="b2-seal" aria-hidden="true">
+      <svg viewBox="0 0 120 120" focusable="false">
+        <defs>
+          <path id="b2-seal-c" d="M60 60m-45 0a45 45 0 1 1 90 0a45 45 0 1 1 -90 0" />
+        </defs>
+        <text>
+          <textPath href="#b2-seal-c">· SINCE 1976 · ASTORIA BOULEVARD · QUEENS NY </textPath>
+        </text>
+      </svg>
+      <span className="b2-seal__n">50</span>
+      <span className="b2-seal__y">years</span>
+    </span>
+  );
+}
 
-      {/* --------------------------------------------------------- Lunchtime */}
-      <section className="b2-sec" data-pal="day" id="b2-sec-midday">
-        <div className="b2-sec__ph">
-          {/* One burger per page: at midday the hero already shows it, so the counter takes its place. */}
-          <div className="b2-sv b2-sv--morning b2-sv--evening b2-sv--night b2-fill">
-            <Photo slot="D04" file="/buccaneer/v2/app-sec-lunch.webp" sizes="100vw" />
-          </div>
-          <div className="b2-sv b2-sv--midday b2-fill">
-            <Photo slot="S05a" sizes="100vw" />
-          </div>
-        </div>
-        <div className="b2-sec__b">
-          <h2 className="b2-d2">Lunchtime.</h2>
-          <p className="b2-sec__lede">Burgers, sandwiches, salads, and soups.</p>
-          <div className="b2-sec__list">
-            <a className="b2-sec__big" href={LINKS.burgers}>
-              <span className="b2-d3">Burgers</span>
-              <span className="b2-meta">{counts.burgers} dishes →</span>
-            </a>
-            <a className="b2-sec__big" href={LINKS.lunch}>
-              <span className="b2-d3">Lunch</span>
-              <span className="b2-meta">{counts.lunch} dishes →</span>
-            </a>
-            <a className="b2-row b2-sec__r" href={LINKS.salads}>
-              Salads &amp; Soups ({counts.salads}) →
-            </a>
-            <a className="b2-row b2-sec__r" href={LINKS.sides}>
-              Sides ({counts.sides}) →
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------------ Dinner */}
-      <section className="b2-sec" data-pal="yolk" id="b2-sec-evening">
-        <div className="b2-sec__ph">
-          <Photo slot="D06" file="/buccaneer/v2/app-sec-dinner.webp" sizes="100vw" />
-        </div>
-        <div className="b2-sec__b">
-          <h2 className="b2-d2">Dinner.</h2>
-          <p className="b2-sec__lede">A few picks from the dinner menu.</p>
-          <div className="b2-sec__list">
-            {PIZARRA.dinner.slice(0, 3).map((d) => (
-              <a key={d.id} className="b2-row b2-sec__r" href={item(d.id)}>
-                {d.name}
-              </a>
-            ))}
-            <a className="b2-row b2-sec__r" href={LINKS.dinner}>
-              All {counts.dinner} dinner dishes →
-            </a>
-            <a className="b2-row b2-sec__r" href={LINKS.appetizers}>
-              Appetizers ({counts.appetizers}) →
-            </a>
-            <a className="b2-row b2-sec__r" href={LINKS.bar}>
-              Bar ({counts.bar}) →
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* -------------------------------------------------------- After dark */}
-      <section className="b2-sec" data-pal="sign" id="b2-sec-night">
-        <div className="b2-sec__ph b2-sec__mos">
-          <a href={LINKS.desserts} tabIndex={-1} aria-hidden="true">
-            <Photo slot="D09" file="/buccaneer/v2/app-sec-torta.webp" sizes="50vw" />
-          </a>
-          <a href={LINKS.bakeShop} tabIndex={-1} aria-hidden="true">
-            <Photo slot="S06" file="/buccaneer/v2/vitrina-bake-shop.webp" position="50% 40%" sizes="50vw" />
-          </a>
-        </div>
-        <div className="b2-sec__b">
-          <h2 className="b2-d2">After dark.</h2>
-          <p className="b2-sec__lede">Something sweet.</p>
-          <div className="b2-sec__list">
-            <a className="b2-row b2-sec__r" href={LINKS.desserts}>
-              Desserts ({counts.desserts}) →
-            </a>
-            <a className="b2-row b2-sec__r" href={LINKS.bakeShop}>
-              The Bake Shop ({counts.bakeShop}) →
-            </a>
-            <a className="b2-row b2-sec__r" href={LINKS.fountain}>
-              From the Fountain ({counts.fountain}) →
-            </a>
-            <a className="b2-row b2-sec__r" href={LINKS.smoothies}>
-              Smoothies &amp; Shakes ({counts.smoothies}) →
-            </a>
-          </div>
-        </div>
-      </section>
+export function AppHeroText() {
+  return (
+    <div className="b2-ahero">
+      <p className="b2-eyebrow">Since 1976 · Open 24/7 · Queens</p>
+      <h1 className="b2-ah1">Fifty years on Astoria Boulevard.</h1>
+      <p className="b2-ahero__sub">
+        A Greek-American diner that never turns the lights off. 400+ dishes, cakes baked in-house, free
+        parking.
+      </p>
+      {STATES.map((s) => (
+        <a key={s} className={`b2-sv b2-sv--${s} b2-btn b2-btn--solid b2-abtn`} href={STATE_COPY[s].href}>
+          Order pickup or delivery <span aria-hidden="true">→</span>
+        </a>
+      ))}
+      <a className="b2-btn b2-btn--line b2-abtn" href={MENU_URL}>
+        See the menu
+      </a>
     </div>
+  );
+}
+
+/** next/image filling its box; lazy (app sections never render outside APP_MQ). */
+function Img({
+  src,
+  alt,
+  sizes = '100vw',
+  contain = false,
+}: {
+  src: string;
+  alt: string;
+  sizes?: string;
+  contain?: boolean;
+}) {
+  return (
+    <Image
+      className={contain ? 'b2-photo b2-photo--contain' : 'b2-photo'}
+      src={src}
+      alt={alt}
+      fill
+      sizes={sizes}
+      loading="lazy"
+    />
+  );
+}
+
+// -------------------------------------------------------------------- story
+export function AppStory() {
+  return (
+    <section className="b2-as b2-story" data-pal="day" aria-labelledby="b2-story-t">
+      <p className="b2-eyebrow b2-eyebrow--rule">Our story</p>
+      <h2 className="b2-ah2" id="b2-story-t">
+        Half a century, one Boulevard.
+      </h2>
+      <p className="b2-story__p b2-story__p--lead">
+        <span className="b2-drop" aria-hidden="true">
+          B
+        </span>
+        <span className="b2-sr">B</span>uccaneer opened on Astoria Boulevard in 1976. Fifty years later it is
+        still a Greek-American diner in the classic New York sense: big menu, bottomless coffee, and a kitchen
+        that never closes.
+      </p>
+      <figure className="b2-story__fig">
+        <div className="b2-story__ph">
+          <Photo slot="S05a" sizes="80vw" />
+        </div>
+        <figcaption>The counter, Astoria Blvd.</figcaption>
+      </figure>
+      <p className="b2-story__p">
+        Neighbors come in for breakfast. Mets fans come after the game. Travelers come straight from LaGuardia,
+        just down the road, and taxi and truck drivers come at three in the morning. Everyone gets the same full
+        menu, whatever the hour.
+      </p>
+      <p className="b2-story__p">
+        We still bake our own cakes, pies, and cheesecake, and we still pick our own fish.{' '}
+        <em>Some things are worth doing the long way.</em>
+      </p>
+      <dl className="b2-stats">
+        <div>
+          <dt>1976</dt>
+          <dd>Opened on the Boulevard</dd>
+        </div>
+        <div>
+          <dt>24/7</dt>
+          <dd>Day and night</dd>
+        </div>
+        <div>
+          <dt>400+</dt>
+          <dd>Dishes on the menu</dd>
+        </div>
+        <div>
+          <dt>
+            4.3<small aria-hidden="true">★</small>
+          </dt>
+          <dd>3,500+ Google reviews</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------- favorites
+type Fav = (typeof FAVORITES)[number];
+
+function Price({ v }: { v: string }) {
+  return (
+    <span className="b2-price">
+      <sup>$</sup>
+      {v}
+    </span>
+  );
+}
+
+function DishBig({ d, price }: { d: Fav; price: string }) {
+  return (
+    <article className="b2-dish b2-dish--big">
+      <div className="b2-dish__ph">
+        <Img src={d.img} alt={d.name} sizes="100vw" contain />
+        {'tag' in d ? <span className="b2-dish__tag">{d.tag}</span> : null}
+      </div>
+      <div className="b2-dish__b">
+        <div className="b2-dish__top">
+          <h3 className="b2-dish__n b2-dish__n--big">{d.name}</h3>
+          <Price v={price} />
+        </div>
+        <p className="b2-dish__d">{d.line}</p>
+        <a className="b2-dish__o" href={item(d.id)} aria-label={`Order ${d.name}`}>
+          Order <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </article>
+  );
+}
+
+function DishSm({ d, price }: { d: Fav; price: string }) {
+  return (
+    <article className="b2-dish b2-dish--sm">
+      <div className="b2-dish__ph">
+        <Img src={d.img} alt={d.name} sizes="50vw" contain />
+      </div>
+      <h3 className="b2-dish__n">{d.name}</h3>
+      <p className="b2-dish__d">{d.line}</p>
+      <div className="b2-dish__foot">
+        <Price v={price} />
+        <a className="b2-dish__o" href={item(d.id)} aria-label={`Order ${d.name}`}>
+          Order <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </article>
+  );
+}
+
+export function AppFavorites({ prices, total }: { prices: FavoritePrices; total: number }) {
+  const [a, b, c, d, e, f] = FAVORITES;
+  const p = (x: Fav) => prices[x.id] ?? x.price;
+  return (
+    <section className="b2-as b2-fav" data-pal="sign" aria-labelledby="b2-fav-t">
+      <p className="b2-eyebrow b2-eyebrow--rule">From the kitchen</p>
+      <h2 className="b2-ah2" id="b2-fav-t">
+        Where to start.
+      </h2>
+      <p className="b2-alede">Six plates that show what this kitchen does best.</p>
+      <DishBig d={a} price={p(a)} />
+      <div className="b2-fpair">
+        <DishSm d={b} price={p(b)} />
+        <DishSm d={c} price={p(c)} />
+      </div>
+      <DishBig d={d} price={p(d)} />
+      <div className="b2-fpair">
+        <DishSm d={e} price={p(e)} />
+        <DishSm d={f} price={p(f)} />
+      </div>
+      <a className="b2-btn b2-btn--line b2-abtn b2-fav__all" href={MENU_URL}>
+        See all {total} dishes <span aria-hidden="true">→</span>
+      </a>
+    </section>
+  );
+}
+
+// --------------------------------------------------------- a day (4 scenes)
+function Scene({
+  n,
+  hour,
+  title,
+  body,
+  link,
+  href,
+  pal,
+  side,
+  children,
+}: {
+  n: number;
+  hour: string;
+  title: string;
+  body: string;
+  link: string;
+  href: string;
+  pal: 'day' | 'yolk' | 'sign';
+  side: 'l' | 'r';
+  children: ReactNode;
+}) {
+  return (
+    <article className={`b2-scene b2-scene--${side}`} data-pal={pal}>
+      <div className="b2-scene__ph">
+        {children}
+        <span className="b2-scene__h" aria-hidden="true">
+          {hour}
+        </span>
+      </div>
+      <div className="b2-scene__b">
+        <span className="b2-scene__i" aria-hidden="true">
+          0{n} / 04
+        </span>
+        <h3 className="b2-ah3">
+          <span className="b2-sr">{hour}: </span>
+          {title}
+        </h3>
+        <p>{body}</p>
+        <a className="b2-alnk" href={href}>
+          {link} <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </article>
+  );
+}
+
+export function AppDays() {
+  return (
+    <section className="b2-as b2-days" data-pal="day" aria-labelledby="b2-days-t">
+      <div className="b2-days__hd">
+        <p className="b2-eyebrow b2-eyebrow--rule">Around the clock</p>
+        <h2 className="b2-ah2" id="b2-days-t">
+          A day at Buccaneer.
+        </h2>
+        <p className="b2-alede">Same booths, same counter. A different diner every few hours.</p>
+      </div>
+      <Scene
+        n={1}
+        hour="5 a.m."
+        title="Sunrise, sunny side up."
+        body="Three-egg omelettes, buttermilk pancakes, challah French toast, and hand-rolled bagels. Breakfast runs all day."
+        link="Breakfast menu"
+        href={LINKS.breakfast}
+        pal="day"
+        side="l"
+      >
+        <Photo slot="D02" file="/buccaneer/v2/app-sec-morning.webp" sizes="85vw" />
+      </Scene>
+      <Scene
+        n={2}
+        hour="11 a.m."
+        title="Lunch hour, Queens style."
+        body="Nine-ounce steak burgers, triple-decker clubs, a proper Reuben, and the soups of the day."
+        link="Lunch menu"
+        href={LINKS.lunch}
+        pal="day"
+        side="r"
+      >
+        {/* One burger per page: at midday the hero already shows it, so the counter takes its place. */}
+        <div className="b2-sv b2-sv--morning b2-sv--evening b2-sv--night b2-fill">
+          <Photo slot="D04" file="/buccaneer/v2/app-sec-lunch.webp" sizes="85vw" />
+        </div>
+        <div className="b2-sv b2-sv--midday b2-fill">
+          <Photo slot="S05b" sizes="85vw" />
+        </div>
+      </Scene>
+      <Scene
+        n={3}
+        hour="4 p.m."
+        title="Sit down for dinner."
+        body="Broiled seafood, Romanian steak, Greek plates, and pasta. Dinner plates come with soup or salad, potato, and vegetable."
+        link="Dinner menu"
+        href={LINKS.dinner}
+        pal="yolk"
+        side="l"
+      >
+        <Img
+          src="/buccaneer/v2/app-sec-dinner-booth.webp"
+          alt="A booth table set for dinner: broiled lobster tails and a glass of white wine"
+          sizes="85vw"
+        />
+      </Scene>
+      <Scene
+        n={4}
+        hour="10 p.m."
+        title="Up late? So are we."
+        body="The full menu runs all night. So does the cake case: cheesecake, carrot cake, and rice pudding, all baked here."
+        link="Desserts"
+        href={LINKS.desserts}
+        pal="sign"
+        side="r"
+      >
+        <Photo slot="S06" sizes="85vw" />
+      </Scene>
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------ reviews
+const STAR = 'M12 2.5l2.9 6.2 6.6.7-5 4.5 1.4 6.6L12 17.2l-5.9 3.3 1.4-6.6-5-4.5 6.6-.7z';
+
+/** 4.3: four full stars and a third of the fifth. */
+function Stars() {
+  return (
+    <svg className="b2-stars" viewBox="0 0 120 24" width="120" height="24" aria-hidden="true" focusable="false">
+      <defs>
+        <clipPath id="b2-star-part">
+          <rect x="96" y="0" width="7" height="24" />
+        </clipPath>
+      </defs>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <path key={`b${i}`} d={STAR} transform={`translate(${i * 24} 0)`} className="b2-stars__bg" />
+      ))}
+      {[0, 1, 2, 3].map((i) => (
+        <path key={`o${i}`} d={STAR} transform={`translate(${i * 24} 0)`} className="b2-stars__on" />
+      ))}
+      <path d={STAR} transform="translate(96 0)" className="b2-stars__on" clipPath="url(#b2-star-part)" />
+    </svg>
+  );
+}
+
+export function AppReviews() {
+  return (
+    <section className="b2-as b2-rev" data-pal="day" aria-labelledby="b2-rev-t">
+      <div className="b2-rev__score" aria-hidden="true">
+        <span className="b2-rev__n">4.3</span>
+        <div>
+          <Stars />
+          <p className="b2-rev__c">3,500+ Google reviews</p>
+        </div>
+      </div>
+      <h2 className="b2-sr" id="b2-rev-t">
+        4.3 stars from 3,500+ Google reviews.
+      </h2>
+      <figure className="b2-q b2-q--big">
+        <span className="b2-q__m" aria-hidden="true">
+          “
+        </span>
+        <blockquote>
+          <p>We arrived from the airport at 3:38 AM and were pleasantly surprised to find a full menu available.</p>
+        </blockquote>
+        <figcaption>Ginger R. · Google</figcaption>
+      </figure>
+      <figure className="b2-q">
+        <blockquote>
+          <p>“A classic diner, with incredibly kind workers, very generous portions, and good prices.”</p>
+        </blockquote>
+        <figcaption>Google review</figcaption>
+      </figure>
+      <figure className="b2-q">
+        <blockquote>
+          <p>“…one of my top diners in Queens! Not only is the food delicious, theres parking, drinks, great service.”</p>
+        </blockquote>
+        <figcaption>Krishana M. · Google</figcaption>
+      </figure>
+      <a className="b2-alnk" href={REVIEWS_URL} target="_blank" rel="noopener noreferrer">
+        Read the reviews on Google <span aria-hidden="true">→</span>
+      </a>
+    </section>
+  );
+}
+
+// ----------------------------------------------------------------- catering
+export function AppCatering() {
+  return (
+    <section className="b2-as b2-acat" data-pal="yolk" aria-labelledby="b2-acat-t">
+      <div className="b2-acat__ph">
+        <Photo slot="S04" sizes="100vw" />
+      </div>
+      <div className="b2-acat__b">
+        <p className="b2-eyebrow">Parties, offices &amp; gifts</p>
+        <h2 className="b2-ah2" id="b2-acat-t">
+          Feeding a crowd?
+        </h2>
+        <p className="b2-acat__p">
+          Office lunches, birthdays, and family parties, from the same kitchen. Corporate accounts and gift
+          certificates available.
+        </p>
+        <a className="b2-btn b2-btn--solid b2-abtn" href={PHONE_HREF}>
+          Call about catering <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+  );
+}
+
+// -------------------------------------------------------------------- visit
+export function AppVisit() {
+  return (
+    <section className="b2-as b2-avisit" data-pal="sign" aria-labelledby="b2-avisit-t">
+      <div className="b2-avisit__ph">
+        <Photo slot="S02" sizes="100vw" />
+      </div>
+      <div className="b2-avisit__b">
+        <p className="b2-eyebrow b2-eyebrow--rule">Visit</p>
+        <h2 className="b2-ah2" id="b2-avisit-t">
+          93-01 Astoria Boulevard.
+        </h2>
+        <p className="b2-avisit__sub">East Elmhurst, Queens · just down the road from LaGuardia</p>
+        <dl className="b2-facts">
+          <div>
+            <dt>Hours</dt>
+            <dd>Open 24 hours, 7 days a week</dd>
+          </div>
+          <div>
+            <dt>Parking</dt>
+            <dd>Free parking lot</dd>
+          </div>
+          <div>
+            <dt>Service</dt>
+            <dd>Dine in, pick up, or get it delivered</dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>
+              <a href={PHONE_HREF}>{PHONE_TEXT}</a>
+              <br />
+              <a href={PHONE2_HREF}>{PHONE2_TEXT}</a>
+            </dd>
+          </div>
+        </dl>
+        <a
+          className="b2-map b2-avisit__map"
+          href={DIRECTIONS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open 93-01 Astoria Boulevard in Google Maps"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- static SVG, nothing to optimize */}
+          <img
+            className="b2-map__img"
+            src="/buccaneer/v2/app-mapa-astoria-hc.svg"
+            alt=""
+            width={1000}
+            height={1000}
+            loading="lazy"
+            decoding="async"
+          />
+          <MapPin />
+        </a>
+        <p className="b2-avisit__attr">© OpenStreetMap contributors</p>
+        <div className="b2-avisit__btns">
+          <a
+            className="b2-btn b2-btn--solid b2-abtn"
+            href={DIRECTIONS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Get directions <span aria-hidden="true">→</span>
+          </a>
+          <a className="b2-btn b2-btn--line b2-abtn" href={PHONE_HREF}>
+            Call the diner
+          </a>
+        </div>
+      </div>
+    </section>
   );
 }

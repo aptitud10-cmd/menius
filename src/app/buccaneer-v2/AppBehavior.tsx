@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { APP_MQ, STATES, type DayState } from './data';
+import { APP_MQ } from './data';
 
 /**
- * Client behavior of the portrait-phone "app" layout (AppMobile.tsx): header clock,
- * hour strip <-> moments, and the Menu / Visit sheets. Gated by APP_MQ; on any other
+ * Client behavior of the portrait-phone "app" layout (AppMobile.tsx): header clock
+ * and the Menu / Visit sheets. Gated by APP_MQ; on any other
  * viewport it does nothing (and tears down if the viewport leaves the query).
  *
  * The scroller is `.b2-root.b2-scroll` itself (not window): read `scrollTop` and call
@@ -20,12 +20,10 @@ function init(root: HTMLElement): () => void {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   const hdr = root.querySelector<HTMLElement>('.b2-hdr');
   const dock = root.querySelector<HTMLElement>('.b2-dock');
-  const stateIdx = () =>
-    Math.max(0, STATES.indexOf((root.getAttribute('data-bd-state') ?? 'morning') as DayState));
 
   // ------------------------------------------------------------ header clock
-  // Shown only while neither the Now clock nor the Close clock is on screen (R1.9).
-  const clocks = Array.from(root.querySelectorAll<HTMLElement>('.b2-hero .b2-clock, .b2-close .b2-clock'));
+  // Shown only while neither the hero's time chip nor the Close clock is on screen (R1.9).
+  const clocks = Array.from(root.querySelectorAll<HTMLElement>('.b2-hero .b2-chip, .b2-close .b2-clock'));
   if (hdr && clocks.length) {
     const seen = new Map<Element, boolean>();
     let clockIo: IntersectionObserver | undefined;
@@ -52,74 +50,6 @@ function init(root: HTMLElement): () => void {
     });
     window.addEventListener('resize', buildClock);
     cleanups.push(() => window.removeEventListener('resize', buildClock));
-  }
-
-  // ------------------------------------------------------------- hour strip
-  const strip = root.querySelector<HTMLElement>('.b2-strip');
-  const tabs = Array.from(root.querySelectorAll<HTMLAnchorElement>('.b2-strip .b2-tab'));
-  const secs = Array.from(root.querySelectorAll<HTMLElement>('.b2-sec'));
-  if (hdr && strip && tabs.length === secs.length && secs.length > 0) {
-    let lockUntil = 0;
-    const setOn = (i: number) => {
-      strip.dataset.on = String(i);
-      tabs.forEach((t, j) => {
-        if (j === i) t.setAttribute('aria-current', 'true');
-        else t.removeAttribute('aria-current');
-      });
-    };
-    setOn(stateIdx());
-
-    let io: IntersectionObserver | undefined;
-    const build = () => {
-      io?.disconnect();
-      const top = Math.round(hdr.getBoundingClientRect().bottom + strip.getBoundingClientRect().height);
-      const vh = window.innerHeight;
-      // A 2px band right under the strip: the moment crossing it is the one "on screen".
-      io = new IntersectionObserver(
-        (entries) => {
-          if (performance.now() < lockUntil) return;
-          for (const e of entries) {
-            const i = secs.indexOf(e.target as HTMLElement);
-            if (e.isIntersecting) setOn(i);
-            else if (i === 0 && e.boundingClientRect.top > top) setOn(stateIdx());
-          }
-        },
-        { rootMargin: `-${top}px 0px -${Math.max(0, vh - top - 2)}px 0px` },
-      );
-      secs.forEach((s) => io?.observe(s));
-    };
-    build();
-    let raf = 0;
-    const onResize = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(build);
-    };
-    window.addEventListener('resize', onResize);
-
-    const onTab = (e: MouseEvent) => {
-      const a = (e.target as Element).closest<HTMLAnchorElement>('a.b2-tab');
-      if (!a) return;
-      const i = tabs.indexOf(a);
-      const sec = secs[i];
-      if (!sec) return;
-      e.preventDefault();
-      const top = hdr.getBoundingClientRect().bottom + strip.getBoundingClientRect().height;
-      lockUntil = performance.now() + (reduce.matches ? 80 : 700);
-      setOn(i);
-      root.scrollTo({
-        top: root.scrollTop + sec.getBoundingClientRect().top - top,
-        behavior: reduce.matches ? 'auto' : 'smooth',
-      });
-    };
-    strip.addEventListener('click', onTab);
-    cleanups.push(() => {
-      io?.disconnect();
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', onResize);
-      strip.removeEventListener('click', onTab);
-      strip.removeAttribute('data-on');
-      tabs.forEach((t) => t.removeAttribute('aria-current'));
-    });
   }
 
   // ------------------------------------------------------------------ sheets
