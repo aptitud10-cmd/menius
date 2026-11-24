@@ -1041,7 +1041,7 @@ export async function POST(request: NextRequest) {
       ) {
         discountAmt =
           promo.discount_type === "percentage"
-            ? subtotal * (Number(promo.discount_value) / 100)
+            ? Math.round(subtotal * Number(promo.discount_value)) / 100
             : Number(promo.discount_value);
         discountAmt = Math.min(discountAmt, subtotal);
       }
@@ -1299,6 +1299,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Si el pedido se deshace más abajo (se borra tras un error), el uso del
+    // código promo vuelve: antes quedaba consumido por un pedido que no existe.
+    const releasePromo = () => {
+      if (!promoIncremented) return;
+      promoIncremented = false;
+      adminDb
+        .rpc("decrement_promo_usage", {
+          p_code: promo_code!.toUpperCase().trim(),
+          p_restaurant_id: restaurant_id,
+        })
+        .then(({ error: e }) => {
+          if (e) logger.error("Failed to rollback promo usage", { error: e.message });
+        });
+    };
+
     const { data: insertedItems, error: itemsError } = await adminDb
       .from("order_items")
       .insert(
@@ -1330,6 +1345,7 @@ export async function POST(request: NextRequest) {
         order_id: order.id,
         error: itemsError.message,
       });
+      releasePromo();
       const { error: rollbackErr } = await adminDb
         .from("orders")
         .delete()
@@ -1484,6 +1500,7 @@ export async function POST(request: NextRequest) {
             code: r.error.code,
           })),
         });
+        releasePromo();
         const { error: rollbackErr } = await adminDb
           .from("orders")
           .delete()
@@ -1610,6 +1627,7 @@ export async function POST(request: NextRequest) {
         if (!connectedAccount) {
           // Stripe Connect not configured for this restaurant.
           // Refuse instead of silently collecting funds into the platform account.
+          releasePromo();
           await adminDb.from("orders").delete().eq("id", order.id);
           return NextResponse.json(
             {
@@ -1624,6 +1642,7 @@ export async function POST(request: NextRequest) {
         // Online payments require at least Starter plan. Free-tier restaurants
         // cannot accept card payments even if they have a connected account.
         if (isFreeTier) {
+          releasePromo();
           await adminDb.from("orders").delete().eq("id", order.id);
           return NextResponse.json(
             {
@@ -1692,7 +1711,9 @@ export async function POST(request: NextRequest) {
                 }),
             },
           };
-        const session = await stripe.checkout.sessions.create(sessionParams);
+        const session = await stripe.checkout.sessions.create(sessionParams, {
+          idempotencyKey: `order-session:${order.id}`,
+        });
         stripeUrl = session.url;
       } catch (stripeErr) {
         const errMsg =
@@ -1704,6 +1725,7 @@ export async function POST(request: NextRequest) {
 
         // Roll back: delete the order so the customer doesn't see a pending order
         // with no payment URL. They can retry cleanly from the cart.
+        releasePromo();
         const { error: rbErr } = await adminDb
           .from("orders")
           .delete()
