@@ -7,6 +7,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { MarketingDish, LifecycleEmailInput } from './emails';
 import type { LifecycleKind } from './lifecycle';
+import { getStoreOverrides } from '@/lib/store-overrides';
 
 type Db = ReturnType<typeof createAdminClient>;
 
@@ -45,6 +46,7 @@ export function restaurantForEmail(r: MarketingRestaurant): LifecycleEmailInput[
     logoUrl: r.logo_url || null,
     timezone: r.timezone || null,
     brandColor: r.brand_color || null,
+    headerImageUrl: getStoreOverrides(r.slug).emailHeaderImageUrl ?? null,
     currency: r.currency || 'USD',
     canReply: !!validEmail(r.email),
   };

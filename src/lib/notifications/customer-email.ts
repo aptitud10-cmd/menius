@@ -36,6 +36,11 @@ export interface CustomerEmailCtx {
     timezone?: string | null;
     /** restaurants.brand_color: same rule as the tracker (lib/tracker-brand). */
     brandColor?: string | null;
+    /**
+     * Cabecera de marca (store-overrides emailHeaderImageUrl): reemplaza el
+     * logo redondo + nombre por el letrero del restaurante, ya con su fondo.
+     */
+    headerImageUrl?: string | null;
   };
   orderNumber: string;
   customerName: string;
@@ -319,6 +324,11 @@ function initials(name: string): string {
 
 function header(ctx: CustomerEmailCtx): string {
   const r = ctx.restaurant;
+  if (r.headerImageUrl) {
+    // Imagen con su propio fondo (no transparente): se ve igual en modo claro,
+    // oscuro y en Gmail, que no repinta imágenes.
+    return `<tr><td style="padding:18px 20px 0;"><img src="${esc(r.headerImageUrl)}" width="440" alt="${esc(r.name)}" style="display:block;width:100%;max-width:440px;height:auto;border:0;border-radius:14px;"></td></tr>`;
+  }
   const b = trackerBrand(r.brandColor);
   const logo = r.logoUrl
     ? `<img src="${esc(r.logoUrl)}" width="40" height="40" alt="" style="display:block;width:40px;height:40px;border-radius:20px;border:0;background:#FFFFFF;">`

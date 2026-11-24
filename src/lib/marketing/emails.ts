@@ -29,6 +29,7 @@ export interface LifecycleEmailInput {
     logoUrl: string | null;
     timezone: string | null;
     brandColor: string | null;
+    headerImageUrl?: string | null;
     currency: string;
     canReply: boolean;
   };
@@ -51,7 +52,7 @@ function ctxFor(input: LifecycleEmailInput): CustomerEmailCtx {
   const r = input.restaurant;
   return {
     locale: input.locale,
-    restaurant: { name: r.name, address: r.address, phone: r.phone, logoUrl: r.logoUrl, timezone: r.timezone, brandColor: r.brandColor },
+    restaurant: { name: r.name, address: r.address, phone: r.phone, logoUrl: r.logoUrl, timezone: r.timezone, brandColor: r.brandColor, headerImageUrl: r.headerImageUrl ?? null },
     orderNumber: '',
     customerName: input.customerName,
     orderType: 'pickup',

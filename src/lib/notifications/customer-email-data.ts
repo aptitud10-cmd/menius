@@ -9,6 +9,7 @@ import { createLogger } from '@/lib/logger';
 import { sendEmail } from './email';
 import { cleanSenderName, type CustomerEmailCtx, type CustomerEmailItem, type BuiltEmail } from './customer-email';
 import { orderItemModLines, withTitle } from '@/lib/modifier-lines';
+import { getStoreOverrides } from '@/lib/store-overrides';
 
 const logger = createLogger('customer-email');
 
@@ -119,6 +120,7 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
       logoUrl: (r.logo_url as string | null) ?? null,
       timezone: (r.timezone as string | null) ?? null,
       brandColor: (r.brand_color as string | null) ?? null,
+      headerImageUrl: getStoreOverrides(slug).emailHeaderImageUrl ?? null,
     },
     orderNumber: String(o.order_number ?? ''),
     customerName: String(o.customer_name ?? ''),

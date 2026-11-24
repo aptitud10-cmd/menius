@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { CalendarClock, Check, Eye, HeartHandshake, Loader2, MailCheck, Repeat, ShieldCheck, X } from 'lucide-react';
+import { CalendarClock, Check, Eye, HeartHandshake, Loader2, MailCheck, Repeat, Send, ShieldCheck, X } from 'lucide-react';
 import { cn, formatPrice } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { LifecycleKind } from '@/lib/marketing/lifecycle';
@@ -48,6 +48,11 @@ const COPY = {
     always: ['Recibo del pedido', 'Hora para recoger o entregar', 'Listo / en camino', 'Pedido de reseña (uno por semana como mucho)'],
     inbox: 'Así se ve en la bandeja de entrada',
     close: 'Cerrar',
+    sendTest: 'Enviarme una prueba',
+    sendingTest: 'Enviando…',
+    testSent: (to: string) => `Enviado a ${to}. Revisa tu bandeja (y Promociones, si usas Gmail).`,
+    testError: 'No se pudo enviar la prueba. Inténtalo en un rato.',
+    testLimit: 'Llegaste al máximo de pruebas por hora.',
     kinds: {
       second_visit: {
         title: '¿Repetimos?',
@@ -94,6 +99,11 @@ const COPY = {
     always: ['Order receipt', 'Pickup or delivery time', 'Ready / on the way', 'Review request (at most one a week)'],
     inbox: 'How it looks in the inbox',
     close: 'Close',
+    sendTest: 'Send me a test',
+    sendingTest: 'Sending…',
+    testSent: (to: string) => `Sent to ${to}. Check your inbox (and Promotions, if you use Gmail).`,
+    testError: "Couldn't send the test. Try again in a bit.",
+    testLimit: "You've reached the hourly limit for tests.",
     kinds: {
       second_visit: {
         title: 'Order again?',
@@ -320,6 +330,24 @@ function PreviewDialog({
   const [lang, setLang] = useState<'es' | 'en'>(locale);
   const [email, setEmail] = useState<{ subject: string; preheader: string; html: string } | null>(null);
   const [failed, setFailed] = useState(false);
+  const [test, setTest] = useState<{ state: 'idle' | 'sending' | 'sent' | 'error' | 'limit'; to?: string }>({ state: 'idle' });
+
+  const sendTest = async () => {
+    setTest({ state: 'sending' });
+    try {
+      const r = await fetch('/api/tenant/marketing-automations/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, locale: lang }),
+      });
+      if (r.status === 429) return setTest({ state: 'limit' });
+      if (!r.ok) throw new Error(String(r.status));
+      const d = (await r.json()) as { sentTo: string };
+      setTest({ state: 'sent', to: d.sentTo });
+    } catch {
+      setTest({ state: 'error' });
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -389,6 +417,24 @@ function PreviewDialog({
               <Loader2 className="w-5 h-5 animate-spin" />
             </div>
           )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-4 py-3 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={sendTest}
+            disabled={!email || test.state === 'sending'}
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 flex-shrink-0"
+          >
+            {test.state === 'sending' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {test.state === 'sending' ? copy.sendingTest : copy.sendTest}
+          </button>
+          <p
+            aria-live="polite"
+            className={cn('text-xs leading-snug', test.state === 'error' || test.state === 'limit' ? 'text-red-600' : 'text-gray-500')}
+          >
+            {test.state === 'sent' && test.to ? copy.testSent(test.to) : test.state === 'error' ? copy.testError : test.state === 'limit' ? copy.testLimit : ''}
+          </p>
         </div>
       </div>
     </div>

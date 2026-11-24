@@ -59,6 +59,13 @@ export interface StoreOverrides {
    * someone searches for that business).
    */
   noindex?: boolean;
+
+  /**
+   * Cabecera de los emails al cliente (pedido y marketing): imagen 2x/3x de
+   * 440 px de ancho con el letrero del restaurante YA sobre su fondo. Si no
+   * hay, el email usa el logo redondo + nombre.
+   */
+  emailHeaderImageUrl?: string;
 }
 
 const OVERRIDES: Record<string, StoreOverrides> = {
@@ -72,6 +79,8 @@ const OVERRIDES: Record<string, StoreOverrides> = {
     /** Demo privada con el nombre de un negocio real que NO es cliente:
      *  no debe aparecer cuando alguien busca "Buccaneer Diner" en Google. */
     noindex: true,
+    /** El letrero del techo de noche (wordmark del sitio, buccaneer-v2). */
+    emailHeaderImageUrl: 'https://menius.app/email/buccaneer-header-v1.png',
   },
   // Configuración para el nuevo modo de alta conversión (ejemplo)
   // ¡Recuerda reemplazar los IDs de producto con IDs reales de tu base de datos!
