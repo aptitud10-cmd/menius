@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { reservationId, status, restaurantId, customerName, customerEmail, customerPhone, date, time, partySize } = await req.json();
+    const { restaurantId, customerName, customerEmail, date, time, partySize } = await req.json();
 
     if (restaurantId !== tenant.restaurantId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -51,7 +51,6 @@ export async function POST(req: NextRequest) {
     const isEn = restaurant.locale === 'en';
     const formattedDate = formatDate(date, restaurant.locale);
     const formattedTime = formatTime(time);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
     const safeName = escHtml(String(customerName ?? ''));
     const safeRestaurant = escHtml(restaurant.name ?? '');

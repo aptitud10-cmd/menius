@@ -114,9 +114,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const tableName = useCartStore((s) => s.tableName);
   const welcomeOrderType = useCartStore((s) => s.selectedOrderType);
 
-  const savedCustomer = useCheckoutStore((s) => s.customer);
   const saveCustomer = useCheckoutStore((s) => s.saveCustomer);
-  const isReturningCustomer = useCheckoutStore((s) => s.isReturningCustomer);
 
   const [hasMounted, setHasMounted] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);

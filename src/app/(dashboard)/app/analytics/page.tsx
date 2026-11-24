@@ -1,10 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  BarChart3, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Loader2,
-  Calendar, Percent, Clock, XCircle, ArrowUpRight, ArrowDownRight, Flame, Download, FileText,
-} from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingBag, Loader2, Percent, Clock, XCircle, ArrowUpRight, ArrowDownRight, Flame, Download, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 

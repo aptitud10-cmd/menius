@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useCartStore } from '@/store/cartStore';
-import type { Product, ProductVariant, ProductExtra, ModifierSelection, ModifierGroup, ModifierOption } from '@/types';
+import type { Product, ProductVariant, ProductExtra, ModifierSelection, ModifierGroup } from '@/types';
 
 const makeProduct = (overrides: Partial<Product> = {}): Product => ({
   id: 'prod-1',

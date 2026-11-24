@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Product, ProductVariant, ProductExtra, CartItem, ModifierSelection, ModifierOption, OrderType } from '@/types';
+import type { Product, ProductVariant, ProductExtra, CartItem, ModifierSelection, OrderType } from '@/types';
 import { toSavedModifiers, type SavedModifier } from '@/lib/reorder';
 
 interface SavedOrderItem {

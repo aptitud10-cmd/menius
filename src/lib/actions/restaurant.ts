@@ -3,7 +3,6 @@
 import { afterResponse } from "@/lib/server/after-response";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chooseDriverToken, type CurrentDriverToken } from "@/lib/orders/driver-token";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { revalidatePublicMenu } from "@/lib/revalidate-public-menu";
 import { createClient } from "@/lib/supabase/server";
@@ -21,13 +20,7 @@ import type {
 } from "@/lib/validations";
 
 const logger = createLogger("action-restaurant");
-import {
-  VALID_TRANSITIONS,
-  ALL_STATUSES,
-  canTransition,
-  REVENUE_STATUSES,
-  isRevenueStatus,
-} from "@/lib/order-state";
+import { ALL_STATUSES, canTransition, REVENUE_STATUSES, isRevenueStatus } from "@/lib/order-state";
 import { getStartOfDayUTC } from "@/lib/date-utils";
 import { broadcastOrderUpdate } from "@/lib/realtime/broadcast-order";
 import { nextCutoffInstant } from "@/lib/daily-menu";

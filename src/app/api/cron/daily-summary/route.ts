@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
-  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const riskThreshold = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000).toISOString();
 
   // Idempotency tag for this specific week (e.g. "weekly_digest_2026_W32").

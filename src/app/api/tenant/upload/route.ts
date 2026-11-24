@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
@@ -9,7 +8,6 @@ import { uploadOptimizedProductImage } from '@/lib/product-image-upload';
 export async function POST(request: NextRequest) {
   try {
     // Verify authentication first with the user-scoped client
-    const supabase = await createClient();
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 

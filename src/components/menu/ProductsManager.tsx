@@ -116,7 +116,6 @@ export function ProductsManager({
   restaurantId,
   currency,
   defaultLocale = 'es',
-  availableLocales = ['es'],
 }: {
   initialProducts: Product[];
   categories: Category[];
@@ -151,7 +150,7 @@ export function ProductsManager({
   const [showBulkAI, setShowBulkAI] = useState(false);
   const [showAdminRegen, setShowAdminRegen] = useState(false);
   const { t } = useDashboardLocale();
-  const { success: toastSuccess, error: toastError } = useToast();
+  const { error: toastError } = useToast();
 
   const toggleCat = (id: string) => {
     setExpanded(prev => {
@@ -656,7 +655,6 @@ function SortableProductList({
   handleDelete,
   handleDuplicate,
   curr,
-  products,
   setProducts,
   startTransition,
 }: {

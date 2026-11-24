@@ -27,19 +27,9 @@ import { useCartStore } from "@/store/cartStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { formatPrice, cn } from "@/lib/utils";
 import { hasRealPopularity } from "@/lib/social-proof";
-import { SHOW_FAVORITES } from "@/lib/menu-ui";
 import { ProductListItem } from "./ProductListItem";
 import { getTranslations, type Locale } from "@/lib/translations";
-import type {
-  Restaurant,
-  Category,
-  Product,
-  OrderType,
-  DietaryTag,
-  ModifierGroup,
-  ModifierOption,
-  ModifierSelection,
-} from "@/types";
+import type { Restaurant, Category, Product, DietaryTag, ModifierGroup, ModifierOption, ModifierSelection } from "@/types";
 import { rebuildSelections } from "@/lib/reorder";
 import { DIETARY_TAGS, getTagConfig } from "@/lib/dietary-tags";
 import { tName, tDesc } from "@/lib/i18n";
@@ -168,7 +158,6 @@ export function MenuShell({
   reviewStats,
   recentReviews,
   limitedMode,
-  isFreePlan = false,
   today = null,
 }: MenuShellProps) {
   const router = useRouter();
@@ -326,9 +315,6 @@ export function MenuShell({
     }
   }, [lastDishId, lastDishDismissKey]);
 
-  const enabledOrderTypes: OrderType[] = restaurant.order_types_enabled?.length
-    ? restaurant.order_types_enabled
-    : ["dine_in", "pickup", "delivery"];
 
   useEffect(() => {
     setHasMounted(true);
@@ -410,7 +396,6 @@ export function MenuShell({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showCatSheet, setShowCatSheet] = useState(false);
   const [showSubcatSheet, setShowSubcatSheet] = useState(false);
-  const CATEGORY_PREVIEW = 8; // kept for potential future use
   // Activated automatically for stores with many products or categories (e.g. Buccaneer)
   const isLargeCatalog = products.length > 80 || categories.length > 12;
   const isDemo = restaurant.id.startsWith("demo");
@@ -799,10 +784,6 @@ export function MenuShell({
     };
   }, []);
 
-  const getBannerHeight = useCallback(
-    () => bannerRef.current?.offsetHeight ?? 0,
-    [],
-  );
 
   // IntersectionObserver: watch the banner element and keep bannerVisibleRef in sync.
   useEffect(() => {
@@ -2704,26 +2685,6 @@ export function MenuShell({
   }, [displayedGroups, scrollToSection]);
 
   // Desktop fav / diet pills
-  const favPill = SHOW_FAVORITES && hasMounted && favIds.length > 0 && (
-    <button
-      key="__favs__"
-      data-pill-id="__favs__"
-      onClick={() => {
-        setShowFavs(!showFavs);
-        if (!showFavs) setActiveCategory(null);
-      }}
-      style={{ touchAction: "manipulation" }}
-      className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap",
-        showFavs
-          ? "bg-red-500 text-white shadow-sm"
-          : "bg-white border border-gray-200 text-gray-600 active:bg-gray-50",
-      )}
-    >
-      <Heart className={cn("w-3.5 h-3.5", showFavs ? "fill-white" : "")} />
-      {favIds.length}
-    </button>
-  );
 
   // Mobile fav / diet pills — squircle premium style
   const mobileFavPill = hasMounted && favIds.length > 0 && (

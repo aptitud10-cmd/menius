@@ -489,7 +489,6 @@ export function buildReceiptText(data: ReceiptData): string {
 
 export function buildKitchenHTML(data: ReceiptData): string {
   const { restaurantName, orderNumber, orderType, tableName, items, notes, etaMinutes, locale } = data;
-  const L = getLabels(locale);
   const htmlLang = isEn(locale) ? 'en' : 'es';
   const typeLabel = formatOrderType(orderType, locale);
 

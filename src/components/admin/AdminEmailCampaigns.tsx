@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Send, Store, Filter, Sparkles, AlertCircle, CheckCircle2, Loader2, Wand2, Lightbulb, Copy } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Mail, Send, Store, Sparkles, AlertCircle, CheckCircle2, Loader2, Wand2, Lightbulb, Copy } from 'lucide-react';
 
 interface Props {
   totalRestaurants: number;

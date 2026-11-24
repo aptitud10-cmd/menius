@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import {
-  Upload, Trash2, Link2, Download, Search, X, Loader2, ImageOff,
-  CheckCircle2, AlertCircle,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Upload, Trash2, Link2, Download, Search, X, Loader2, ImageOff } from 'lucide-react';
 import { useToast } from '@/components/dashboard/DashToast';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 

@@ -16,7 +16,6 @@ interface LoaderParams {
   quality?: number;
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 
 // Fotos ya optimizadas al subirlas (product-images/opt/…): existen en tres
 // archivos, `-lg.jpg` (el que guarda image_url; hasta 1820px en las 16:9),

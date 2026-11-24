@@ -119,7 +119,7 @@ export function buildTrialEndingEmail(params: {
   pricingUrl: string;
   supportUrl: string;
 }): string {
-  const { ownerName, restaurantName, trialEndDate, dashboardUrl, pricingUrl, supportUrl } = params;
+  const { ownerName, restaurantName, trialEndDate, pricingUrl, supportUrl } = params;
   const firstName = esc(ownerName.split(' ')[0]);
   const safeRestaurantName = esc(restaurantName);
 

@@ -161,7 +161,6 @@ export async function POST(request: NextRequest) {
     const notes = sanitizeMultiline(body.notes, 500);
     const items = body.items;
     const promo_code = sanitizeText(body.promo_code, 50);
-    const discount_amount = body.discount_amount;
     const loyalty_points_redeemed = Number(body.loyalty_points_redeemed) || 0;
     const UUID_RE =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

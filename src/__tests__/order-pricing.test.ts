@@ -20,7 +20,6 @@ import {
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 const PROD_A: ProductRecord = { id: 'prod-a', price: 100 };
-const PROD_B: ProductRecord = { id: 'prod-b', price: 50 };
 
 const VAR_L: VariantRecord = { id: 'var-l', product_id: 'prod-a', price_delta: 20 };
 const VAR_S: VariantRecord = { id: 'var-s', product_id: 'prod-a', price_delta: 0 };

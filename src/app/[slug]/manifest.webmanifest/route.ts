@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { shortName } from '@/lib/pwa-short-name';
 
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
 
 // Default MENIUS icons as fallback
 const DEFAULT_ICONS = [

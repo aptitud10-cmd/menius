@@ -440,37 +440,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function buildTrialExpiringEmail(
-  restaurantName: string,
-  daysLeft: number,
-  billingUrl: string,
-  en = false,
-): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#050505;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
-    <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:22px;font-weight:800;color:#7c3aed;margin:0;">MENIUS</h1>
-    </div>
-    <div style="background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);padding:32px 24px;">
-      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;line-height:1.6;font-weight:600;">${en ? `⏰ Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}` : `⏰ Tu prueba gratuita termina en ${daysLeft} día${daysLeft !== 1 ? "s" : ""}`}</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? `Hi, your trial for <strong style="color:#f3f4f6;">${restaurantName}</strong> on MENIUS is about to end.` : `Hola, el periodo de prueba de <strong style="color:#f3f4f6;">${restaurantName}</strong> en MENIUS está por terminar.`}</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? "If you don't subscribe, your account moves to the Free plan: your menu stays online, but you lose pickup, delivery and online payments. Subscribe to Pro to keep everything — you keep your remaining trial days." : "Si no te suscribes, tu cuenta pasa al plan Gratis: tu menú sigue en línea, pero pierdes pickup, delivery y pagos online. Suscríbete a Pro para conservar todo — mantienes los días de prueba que te quedan."}</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? 'Pro: <strong style="color:#f3f4f6;">$149/mo</strong> or $1,490/yr. Cancel anytime.' : 'Pro: <strong style="color:#f3f4f6;">$149/mes</strong> o $1,490/año. Cancela cuando quieras.'}</p>
-      <a href="${billingUrl}" style="display:block;margin-top:24px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        ${en ? "Subscribe to Pro" : "Suscribirme a Pro"}
-      </a>
-    </div>
-    <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">
-      MENIUS — ${en ? "Digital menu for restaurants" : "Menú digital para restaurantes"}
-    </p>
-  </div>
-</body>
-</html>`;
-}
 
 function buildSetupIncompleteEmail(
   restaurantName: string,

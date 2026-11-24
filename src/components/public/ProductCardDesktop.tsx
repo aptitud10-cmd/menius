@@ -7,7 +7,6 @@ import { Plus, Check, UtensilsCrossed, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { showsPopularityBadge } from '@/lib/social-proof';
 import { SHOW_FAVORITES } from '@/lib/menu-ui';
-import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { DietIcon } from './DietIcon';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -24,15 +23,12 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   onQuickAdd,
   fmtPrice,
   addLabel,
-  customizeLabel,
-  popularLabel,
   soldOutLabel,
   unavailableLabel,
   addedShortLabel,
   locale = 'es',
   defaultLocale = 'es',
   priority = false,
-  inPopularSection = false,
 }: ProductCardProps) {
   const t = getTranslations(locale);
   // Out of its hours (Oatmeal after 11 AM) the dish says when it's served

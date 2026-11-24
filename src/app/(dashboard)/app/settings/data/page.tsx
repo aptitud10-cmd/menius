@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, Trash2, AlertTriangle, Shield, FileJson } from 'lucide-react';
+import { Trash2, AlertTriangle, Shield, FileJson } from 'lucide-react';
 import { useToast } from '@/components/dashboard/DashToast';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 

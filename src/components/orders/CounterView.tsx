@@ -1,14 +1,8 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {
-  Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
-  Truck, ShoppingBag, Utensils, MessageCircle, Phone,
-  MapPin, Pause, Flame, Printer, History, AlertTriangle,
-  Wifi, WifiOff, ChevronRight, ChevronDown, User, Settings2, Calendar, Plus, Ban, BellOff, Palette, Wallet,
-  LifeBuoy, Languages,
-} from 'lucide-react';
-import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
+import { X, Bell, CheckCircle, Printer, History, AlertTriangle, WifiOff, ChevronRight, ChevronDown, Settings2, Plus, Ban, BellOff, Palette, Wallet, LifeBuoy, Languages } from 'lucide-react';
+import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, setBusyMode, assignDriver,
@@ -24,7 +18,7 @@ import { COUNTER_APP_MIN_VERSION_CODE } from '@/lib/counter-app';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { PrinterConfig } from '@/lib/printing/PrinterConfig';
 import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
-import type { Order, OrderItem } from '@/types';
+import type { Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { isRevenueStatus } from '@/lib/order-state';
 import { C, RAISED, counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
@@ -226,24 +220,8 @@ function elapsedMins(createdAt: string) {
   return Math.floor((Date.now() - new Date(createdAt).getTime()) / 60_000);
 }
 
-function elapsedSecs(createdAt: string) {
-  return Math.floor((Date.now() - new Date(createdAt).getTime()) / 1_000);
-}
 
-function fmtCountdown(secs: number) {
-  const abs = Math.abs(secs);
-  const m = Math.floor(abs / 60);
-  const s = abs % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
 
-function timeAgo(createdAt: string, t: ReturnType<typeof getT>) {
-  const m = elapsedMins(createdAt);
-  if (m < 1) return t.justNow;
-  if (m < 60) return t.minsAgo(m);
-  const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
-}
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
 // El motor (Web Audio: temas, volumen, alerta en loop, urgente, aceptadas al
@@ -257,17 +235,7 @@ function sendPushNotification(title: string, body: string) {
 
 // ─── Type icons ──────────────────────────────────────────────────────────────
 
-const TYPE_ICON = {
-  delivery: Truck,
-  pickup: ShoppingBag,
-  dine_in: Utensils,
-} as const;
 
-function getTypeLabel(orderType: string | undefined, t: ReturnType<typeof getT>) {
-  if (orderType === 'delivery') return t.delivery;
-  if (orderType === 'pickup') return t.pickup;
-  return t.dineIn;
-}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Props
@@ -320,7 +288,7 @@ export interface ShiftReport {
 
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
-  restaurantLat, restaurantLng, taxLabel, taxIncluded, restaurantSlug, tabletMode = false, isDevice = false,
+  taxLabel, taxIncluded, restaurantSlug, tabletMode = false, isDevice = false,
   initialPausedUntil = null, initialBusy, ownerPanel = false, previewAlertIds, previewShiftReport, previewModal,
   initialSettings = DEFAULT_COUNTER_SETTINGS, settingsLive = true,
 }: CounterViewProps) {
@@ -786,7 +754,7 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder, t.newScheduledOrder]);
 
-  const { orders, updateOrderLocally, rtStatus, lastSyncAt, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
+  const { orders, updateOrderLocally, rtStatus, lastSyncAt } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
   // ── Modo demo: pedidos falsos SOLO en memoria (ver counter/demo.ts) ──
   // Suenan y se ven como reales, pero toda acción de servidor (estado, impresión,
@@ -978,9 +946,6 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newOrders]);
 
-  const overdueCount = useMemo(() =>
-    newOrders.filter(o => elapsedMins(waitingSinceIso(o)) >= SLA_WARN_MINS).length,
-    [newOrders]);
 
   const prepOrders = useMemo(() =>
     ordersView.filter(o => ['confirmed', 'preparing', 'almost_ready'].includes(o.status))
@@ -1065,7 +1030,6 @@ export function CounterView({
   });
 
   // ── Derived ──
-  const selectedOrder = orders.find(o => o.id === selectedId) ?? null;
 
 
   const isPaused = !!pausedUntil && Date.now() < pausedUntil;
@@ -1344,23 +1308,6 @@ export function CounterView({
     finally { setEditSaving(false); }
   }, [t.en, orders, updateOrderLocally]);
 
-  const handleRemoveItem = useCallback(async (orderId: string, itemId: string) => {
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/tenant/orders/${orderId}/items`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ item_id: itemId }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setErrorToast(data.error ?? 'Error'); return; }
-      const existingOrder = orders.find(o => o.id === orderId);
-      if (existingOrder) {
-        updateOrderLocally(orderId, { items: (existingOrder.items ?? []).filter(i => i.id !== itemId), total: data.newTotal, tax_amount: data.newTax });
-      }
-    } catch { setErrorToast(t.en ? 'Error removing item' : 'Error al eliminar'); }
-    finally { setEditSaving(false); }
-  }, [t.en, orders, updateOrderLocally]);
 
   const handleAdjustEta = useCallback(async (order: Order, newEta: number) => {
     setUpdatingId(order.id);
@@ -1615,11 +1562,6 @@ export function CounterView({
   const busyIds = useMemo(() => new Set(updatingId ? [updatingId] : []), [updatingId]);
 
   // ── Tab change helper ──
-  const changeTab = (tab: Tab) => {
-    setActiveTab(tab);
-    setShowDetailMobile(false);
-    setSidebarOpen(false);
-  };
 
   // ═══════════════════════════════════════════════════════════════════
   // RENDER

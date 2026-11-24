@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Save, ExternalLink, CheckCircle2, Bell, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Receipt } from 'lucide-react';
 import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, US_CITY_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
 import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, UNIQUE_CURRENCIES, formatTimezone } from '@/lib/country-config';
-import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
+import { SUPPORTED_LOCALES } from '@/lib/i18n';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';

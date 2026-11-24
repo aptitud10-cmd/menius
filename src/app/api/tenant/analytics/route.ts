@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
-import { captureError } from '@/lib/error-reporting';
 import { getDashboardPlan, meetsMinPlan } from '@/lib/plan-access';
 import { isRevenueStatus } from '@/lib/order-state';
 

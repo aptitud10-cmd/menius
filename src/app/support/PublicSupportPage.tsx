@@ -2,11 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import {
-  MessageSquare, Mail, ChevronDown, ChevronUp, Send,
-  Loader2, CheckCircle, AlertCircle, ArrowRight, Zap,
-  BookOpen, HelpCircle, Shield, Clock, Search, Bot, X,
-} from 'lucide-react';
+import { Mail, ChevronDown, ChevronUp, Send, Loader2, CheckCircle, AlertCircle, ArrowRight, Zap, BookOpen, HelpCircle, Shield, Clock, Search, Bot, X } from 'lucide-react';
 
 type Locale = 'es' | 'en';
 

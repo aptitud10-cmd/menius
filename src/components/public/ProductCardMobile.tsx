@@ -7,7 +7,6 @@ import { Plus, Check, UtensilsCrossed, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { showsPopularityBadge } from '@/lib/social-proof';
 import { SHOW_FAVORITES } from '@/lib/menu-ui';
-import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { DietIcon } from './DietIcon';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -23,20 +22,16 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   onSelect,
   onQuickAdd,
   fmtPrice,
-  customizeLabel,
   soldOutLabel,
-  addedShortLabel,
   locale = 'es',
   defaultLocale = 'es',
   priority = false,
-  inPopularSection = false,
   wide = false,
 }: ProductCardProps) {
   const t = getTranslations(locale);
   // Out of its hours (Oatmeal after 11 AM) the dish says when it's served
   // instead of "Sold out" — see MenuShell's filteredProducts.
   const labelSoldOut = product.unavailable_note ?? soldOutLabel ?? t.soldOut;
-  const labelAdded = addedShortLabel ?? t.addedToCart;
 
   const hasVariants = (product.variants?.length ?? 0) > 0;
   const hasExtras = (product.extras?.length ?? 0) > 0;

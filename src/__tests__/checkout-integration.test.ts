@@ -416,7 +416,6 @@ describe('publicOrderSchema — request validation', () => {
   it('rejects whitespace-only customer_name (min(1) check)', () => {
     // Schema uses min(1) without trim — whitespace passes min(1) but empty string doesn't
     // This documents current behavior; if trim is added later, update this test
-    const result = publicOrderSchema.safeParse({ ...validBaseOrder, customer_name: '   ' });
     // Acceptable either way — what matters is empty string is rejected
     expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_name: '' }).success).toBe(false);
   });

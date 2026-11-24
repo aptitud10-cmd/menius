@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Share2, Smartphone, Zap } from 'lucide-react';
+import { Mail, Share2, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AdminEmailCampaigns } from './AdminEmailCampaigns';
 import { AdminSocialMedia } from './AdminSocialMedia';

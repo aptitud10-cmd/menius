@@ -60,7 +60,6 @@ export async function POST(request: NextRequest) {
       no_orders: 'Restaurantes sin pedidos recientes',
     };
 
-    const isEmail = channel !== 'social' && channel !== 'sms';
     const isSocial = channel === 'social';
     const isSms = channel === 'sms';
 
