@@ -155,6 +155,8 @@ export async function POST(request: NextRequest) {
     const restaurant_id = body.restaurant_id;
     const customer_name = sanitizeText(body.customer_name, 100);
     const customer_email = sanitizeEmail(body.customer_email);
+    // Casilla "Quiero recibir ofertas" del checkout (destildada por defecto): solo `true` cuenta.
+    const marketing_opt_in = body.marketing_opt_in === true;
     const customer_phone = sanitizeText(body.customer_phone, 20);
     const notes = sanitizeMultiline(body.notes, 500);
     const items = body.items;
@@ -1538,19 +1540,25 @@ export async function POST(request: NextRequest) {
         .ilike("email", customer_email)
         .maybeSingle()
         .then(({ data: cust }) => {
-          if (cust && (cust.tags ?? []).includes("reactivation_sent")) {
-            const newTags = (cust.tags as string[]).filter(
-              (t) => t !== "reactivation_sent",
-            );
-            // Sin .then() el builder de Supabase no se ejecuta nunca.
-            adminDb
-              .from("customers")
-              .update({ tags: newTags })
-              .eq("id", cust.id)
-              .then(({ error: tagErr }) => {
-                if (tagErr) logger.warn("reactivation tag cleanup failed", { error: tagErr.message });
-              });
+          if (!cust) return;
+          const tags = (cust.tags ?? []) as string[];
+          let newTags = tags.filter((t) => t !== "reactivation_sent");
+          // Consentimiento de marketing: lo marcó en ESTE pedido. Si antes se había
+          // dado de baja, marcarlo de nuevo es volver a suscribirse (lo eligió él).
+          // Sin marcar no se toca: no destildar no es darse de baja.
+          if (marketing_opt_in) {
+            newTags = newTags.filter((t) => t !== "unsubscribed");
+            if (!newTags.includes("marketing_opt_in")) newTags.push("marketing_opt_in");
           }
+          if (newTags.length === tags.length && newTags.every((t, i) => t === tags[i])) return;
+          // Sin .then() el builder de Supabase no se ejecuta nunca.
+          adminDb
+            .from("customers")
+            .update({ tags: newTags })
+            .eq("id", cust.id)
+            .then(({ error: tagErr }) => {
+              if (tagErr) logger.warn("customer tags update failed", { error: tagErr.message });
+            });
         });
     }
 

@@ -360,6 +360,8 @@ export interface Translations {
   includeUtensils: string;
   scheduleForLater: string;
   rememberMeLabel: string;
+  /** Consentimiento de marketing (destildado por defecto). {name} = restaurante. */
+  marketingOptInLabel: string;
   paymentSection: string;
   // CheckoutPageClient — loyalty
   youHavePoints: string;
@@ -837,6 +839,7 @@ const es: Translations = {
   includeUtensils: 'Incluir cubiertos, servilletas y salsas',
   scheduleForLater: 'Programar para después',
   rememberMeLabel: 'Recordar mis datos para la próxima vez',
+  marketingOptInLabel: 'Quiero recibir ofertas de {name} por email',
   paymentSection: '3 · Forma de pago',
   // CheckoutPageClient — loyalty
   youHavePoints: 'Tienes {n} puntos',
@@ -1310,6 +1313,7 @@ const en: Translations = {
   includeUtensils: 'Include utensils, napkins & condiments',
   scheduleForLater: 'Schedule for later',
   rememberMeLabel: 'Remember my info for next time',
+  marketingOptInLabel: 'Email me offers from {name}',
   paymentSection: '3 · Payment',
   // CheckoutPageClient — loyalty
   youHavePoints: 'You have {n} points',

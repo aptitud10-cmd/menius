@@ -120,6 +120,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   const [hasMounted, setHasMounted] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  // Marketing: siempre destildado; solo se manda si hay email (ver api/orders).
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
 
   // Restore table context from URL if cartStore lost it (e.g. cleared cache, new tab)
   const setCartTableName = useCartStore((s) => s.setTableName);
@@ -676,6 +678,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           customer_name: customerName.trim(),
           customer_phone: phoneForOrder,
           customer_email: customerEmail.trim() || undefined,
+          marketing_opt_in: marketingOptIn && customerEmail.trim() !== '' ? true : undefined,
           notes: (() => {
             const arrival = orderType === 'dine_in' && !tableName && arrivalTime
               ? `[${t.arrivesLabel}: ${arrivalTime}] `
@@ -709,7 +712,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     } catch {
       return { error: t.noConnectionRetry };
     }
-  }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, phoneForOrder, customerEmail, orderNotes, arrivalTime, orderType, deliveryAddress, deliveryUnit, deliveryCoords, fullDeliveryAddress, deliveryCoords, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
+  }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, phoneForOrder, customerEmail, marketingOptIn, orderNotes, arrivalTime, orderType, deliveryAddress, deliveryUnit, deliveryCoords, fullDeliveryAddress, deliveryCoords, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
 
   // B2 — la Idempotency-Key se renueva cuando cambia lo que se va a pedir.
   // Antes era una por sesión de checkout: si el cliente volvía de Stripe con
@@ -876,6 +879,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           customer_name: customerName.trim(),
           customer_phone: phoneForOrder,
           customer_email: customerEmail.trim() || undefined,
+          marketing_opt_in: marketingOptIn && customerEmail.trim() !== '' ? true : undefined,
           notes: (() => {
             const arrival = orderType === 'dine_in' && !tableName && arrivalTime
               ? `[${t.arrivesLabel}: ${arrivalTime}] `
@@ -2532,6 +2536,18 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         {fieldErrors.customer_email
           ? <CkError id="checkout-email-error">{fieldErrors.customer_email}</CkError>
           : <p id="checkout-email-hint" className="text-[12.5px] text-[#6b6b74] mt-1.5 mx-1">{t.emailHint}</p>}
+        {/* Consentimiento de marketing: destildado y solo con email (2026-11-24). */}
+        {customerEmail.trim() !== '' && (
+          <label className="flex items-center gap-2.5 mt-2 mx-1 min-h-[44px] text-sm text-[#4f4f57]">
+            <input
+              type="checkbox"
+              checked={marketingOptIn}
+              onChange={(e) => setMarketingOptIn(e.target.checked)}
+              className="w-[22px] h-[22px] shrink-0 accent-[#05c8a7]"
+            />
+            <span>{t.marketingOptInLabel.replace('{name}', restaurant.name)}</span>
+          </label>
+        )}
         <label className="flex items-center gap-2.5 mt-2 mx-1 min-h-[44px] text-sm text-[#4f4f57]">
           <input
             type="checkbox"
