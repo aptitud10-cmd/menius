@@ -184,7 +184,9 @@ export interface ModifierGroup {
   max_select: number;
   is_required: boolean;
   sort_order: number;
-  display_type?: 'list' | 'grid';
+  /** 'search' = agregados sin pregunta propia: la hoja los dibuja como buscador
+   *  ("Add something else") en vez de botones. See lib/addon-search. */
+  display_type?: 'list' | 'grid' | 'search';
   /** When set, this group is only shown — and only required — while that option
    *  of another group is selected. Buccaneer's "Choice of Side" hangs off the
    *  "Deluxe" option: a Regular burger comes with no side, so asking for one

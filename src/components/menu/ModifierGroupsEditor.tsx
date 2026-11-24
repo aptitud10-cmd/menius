@@ -73,7 +73,8 @@ type GroupFormState = {
   min_select: string;
   max_select: string;
   is_required: boolean;
-  display_type: 'list' | 'grid';
+  /** 'search' = buscador de agregados (lib/addon-search): editar el grupo no lo pisa. */
+  display_type: 'list' | 'grid' | 'search';
   /** "Any of these" — empty = always shown. See lib/conditional-modifiers. */
   depends_on_option_ids: string[];
   translations: Record<string, string>;

@@ -832,7 +832,7 @@ export async function createModifierGroup(
     max_select: number;
     is_required: boolean;
     sort_order: number;
-    display_type?: "list" | "grid";
+    display_type?: "list" | "grid" | "search";
     depends_on_option_id?: string | null;
     depends_on_option_ids?: string[] | null;
     translations?: Record<string, { name?: string }> | null;
@@ -896,7 +896,7 @@ export async function updateModifierGroup(
     max_select: number;
     is_required: boolean;
     sort_order: number;
-    display_type?: "list" | "grid";
+    display_type?: "list" | "grid" | "search";
     depends_on_option_id?: string | null;
     depends_on_option_ids?: string[] | null;
     translations?: Record<string, { name?: string }> | null;

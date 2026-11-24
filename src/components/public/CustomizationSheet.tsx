@@ -27,6 +27,7 @@ import { hasHours, isOptionAvailableAt, optionHoursLabel } from "@/lib/option-ho
 import { inTimeZone } from "@/lib/orders/business-hours";
 import { showsAsRow } from "@/lib/product-display";
 import { planGroupLayout, splitOptionName } from "@/lib/modifier-layout";
+import { AddonSearch } from "./AddonSearch";
 
 /** Height of the compact header that replaces the floating X on scroll. */
 const COMPACT_HEADER_PX = 52;
@@ -330,8 +331,19 @@ export function CustomizationSheet({
     () => visibleGroups(allGroups, selections),
     [allGroups, selections],
   );
+  // "Add something else" (display_type 'search') no es una pregunta más de la
+  // lista: se dibuja como buscador al final, justo antes de "Special
+  // instructions". Validación, precio y envío siguen usando activeGroups.
+  const questionGroups = useMemo(
+    () => activeGroups.filter((g) => g.display_type !== "search"),
+    [activeGroups],
+  );
+  const searchGroup = useMemo(
+    () => activeGroups.find((g) => g.display_type === "search" && g.options.length > 0) ?? null,
+    [activeGroups],
+  );
   // Chips, list or cards per group, and which lone add-ons join a list.
-  const layout = useMemo(() => planGroupLayout(activeGroups), [activeGroups]);
+  const layout = useMemo(() => planGroupLayout(questionGroups), [questionGroups]);
 
   // A hidden group's stale selection would still reach the cart: picking
   // Deluxe → Onion Rings (+$1.50) and switching back to Regular kept the
@@ -372,6 +384,8 @@ export function CustomizationSheet({
    * wide, and a note nobody can read on the line is worse than no note.
    */
   const [notes, setNotes] = useState(editItem?.notes ?? "");
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+  const searchBlockRef = useRef<HTMLDivElement>(null);
 
   // Focus trap: save previously focused element, restore on unmount
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -583,28 +597,66 @@ export function CustomizationSheet({
    * when tapped. Now the tap itself is the guide: scroll to the first
    * unanswered group, flash it, buzz (Android; iOS has no vibrate API).
    */
+  /** Sube `target` hasta el borde de arriba del cuerpo de la hoja. */
+  const scrollSheetTo = (target: HTMLElement | null | undefined) => {
+    const container = bodyScrollRef.current;
+    if (!container || !target) return;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    // Offset relative to the sheet's own scroller — scrollIntoView would
+    // also scroll the page behind the sheet on iOS.
+    const delta =
+      target.getBoundingClientRect().top -
+      container.getBoundingClientRect().top;
+    container.scrollTo({
+      // Minus the compact header, which is showing by then and would
+      // otherwise cover the title of the group being pointed at.
+      top: Math.max(0, container.scrollTop + delta - COMPACT_HEADER_PX - 8),
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  };
+
+  // El buscador encontró algo que el plato ya pregunta: llevar ahí y marcarlo
+  // un momento en el color de "elegido" (el rojo es solo para lo que falta).
+  const [pointedGroupId, setPointedGroupId] = useState<string | null>(null);
+  const pointTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (pointTimer.current) clearTimeout(pointTimer.current);
+    },
+    [],
+  );
+  const pointToGroup = (groupId: string) => {
+    // Un agregado suelto dibujado dentro de otra lista ("Extra cheese?") no
+    // tiene bloque propio: se señala la lista que lo contiene.
+    let id = groupId;
+    layout.guests.forEach((guests, hostId) => {
+      if (guests.some((g) => g.id === groupId)) id = hostId;
+    });
+    scrollSheetTo(groupRefs.current.get(id));
+    if (pointTimer.current) clearTimeout(pointTimer.current);
+    setPointedGroupId(id);
+    pointTimer.current = setTimeout(() => setPointedGroupId(null), 1600);
+  };
+
+  // Sin resultado en el buscador: a "Special instructions" con lo escrito.
+  const goToNotes = (query: string) => {
+    const q = query.trim();
+    if (q && !notes.trim()) setNotes(q.slice(0, 200));
+    scrollSheetTo(notesRef.current);
+    notesRef.current?.focus({ preventScroll: true });
+  };
+
   const revealFirstIncompleteGroup = () => {
     const id = firstIncompleteGroupId;
     if (!id) return;
-    const container = bodyScrollRef.current;
     const target = groupRefs.current.get(id);
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    if (container && target) {
-      // Offset relative to the sheet's own scroller — scrollIntoView would
-      // also scroll the page behind the sheet on iOS.
-      const delta =
-        target.getBoundingClientRect().top -
-        container.getBoundingClientRect().top;
-      container.scrollTo({
-        // Minus the compact header, which is showing by then and would
-        // otherwise cover the title of the group being pointed at.
-        top: Math.max(0, container.scrollTop + delta - COMPACT_HEADER_PX - 8),
-        behavior: reduceMotion ? "auto" : "smooth",
-      });
-    }
+    scrollSheetTo(target);
 
     navigator.vibrate?.(30);
 
@@ -1062,7 +1114,7 @@ export function CustomizationSheet({
           </div>
         )}
 
-        {activeGroups.map((group) => {
+        {questionGroups.map((group) => {
           if (layout.absorbed.has(group.id)) return null;
           const format = layout.format.get(group.id) ?? "chips";
           const guests = layout.guests.get(group.id) ?? [];
@@ -1087,6 +1139,7 @@ export function CustomizationSheet({
           const minRequired = minRequiredFor(group);
           const isSatisfied = minRequired > 0 && selected.length >= minRequired;
           const isHighlighted = highlightGroupId === group.id;
+          const isPointed = pointedGroupId === group.id;
           const headingId = `cs-group-${group.id}`;
           // A single choice that arrives preselected reads as "already decided"
           // unless it says so: diners didn't realise eggs come with home fries
@@ -1132,6 +1185,7 @@ export function CustomizationSheet({
                 className={cn(
                   "rounded-2xl transition-shadow duration-300",
                   isHighlighted && "ring-2 ring-red-400 ring-offset-4",
+                  !isHighlighted && isPointed && "ring-2 ring-[#05c8a7] ring-offset-4",
                 )}
               >
               {/* Group titles are the questions the diner answers ("How would you
@@ -1294,6 +1348,24 @@ export function CustomizationSheet({
           );
         })}
 
+        {searchGroup && (
+          <div ref={searchBlockRef}>
+            <AddonSearch
+              group={searchGroup}
+              otherGroups={questionGroups}
+              selected={selections[searchGroup.id] ?? []}
+              onToggle={toggleOption}
+              onRevealGroup={pointToGroup}
+              onGoToNotes={goToNotes}
+              onFocusInput={() => scrollSheetTo(searchBlockRef.current)}
+              fmtPrice={fmtPrice}
+              t={t}
+              locale={locale}
+              defaultLocale={defaultLocale}
+            />
+          </div>
+        )}
+
         {/* ── Free-text note for this line ──
             Deliberately last, after every modifier group: the structured options
             are what the kitchen can price and route, so the diner should meet
@@ -1308,6 +1380,7 @@ export function CustomizationSheet({
             {t.itemNotesLabel}
           </label>
           <textarea
+            ref={notesRef}
             id="item-notes"
             value={notes}
             onChange={(e) => {

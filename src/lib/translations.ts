@@ -157,6 +157,17 @@ export interface Translations {
   /** Option linked to a dish that sold out today ("Lentil" in "Which soup?"). */
   optionSoldOutToday: string;
   optionSoldOutNotice: (name: string) => string;
+  /** Buscador de agregados de la hoja ("Add something else"). */
+  addonSearchPlaceholder: (examples: string) => string;
+  addonSearchLabel: string;
+  /** Lo buscado ya es una pregunta del plato: "Already above · Would you like to add meat?" */
+  addonSearchAbove: (question: string) => string;
+  addonSearchAboveShort: string;
+  addonSearchGoTo: string;
+  addonSearchNone: (query: string) => string;
+  addonSearchToNotes: string;
+  addonSearchClear: string;
+  addonSearchRemove: (name: string) => string;
   /** Card label for a dish outside its hours: "Served 5:30–11 AM". */
   servedHours: (hours: string) => string;
   /** Badge on a required group once it is satisfied. */
@@ -640,6 +651,15 @@ const es: Translations = {
   optionHoursOnly: (name, hours) => `${name}: solo ${hours}`,
   optionSoldOutToday: 'Se acabó por hoy',
   optionSoldOutNotice: (name) => `${name} se acabó por hoy`,
+  addonSearchPlaceholder: (examples) => `Busca: ${examples}…`,
+  addonSearchLabel: 'Buscar un agregado',
+  addonSearchAbove: (question) => `Ya está arriba · ${question}`,
+  addonSearchAboveShort: 'Ya está arriba en las opciones del plato',
+  addonSearchGoTo: 'Ver',
+  addonSearchNone: (query) => `No tenemos “${query}” como agregado.`,
+  addonSearchToNotes: 'Escríbelo en Alguna indicación',
+  addonSearchClear: 'Borrar búsqueda',
+  addonSearchRemove: (name) => `Quitar ${name}`,
   servedHours: (hours) => `Se sirve ${hours}`,
   groupDone: 'Listo',
   groupRequired: 'Obligatorio',
@@ -1104,6 +1124,15 @@ const en: Translations = {
   optionHoursOnly: (name, hours) => `${name}: ${hours} only`,
   optionSoldOutToday: 'Sold out today',
   optionSoldOutNotice: (name) => `${name} is sold out today`,
+  addonSearchPlaceholder: (examples) => `Search ${examples}…`,
+  addonSearchLabel: 'Search add-ons',
+  addonSearchAbove: (question) => `Already above · ${question}`,
+  addonSearchAboveShort: 'Already above in this dish’s options',
+  addonSearchGoTo: 'Show',
+  addonSearchNone: (query) => `“${query}” isn't on our add-on list.`,
+  addonSearchToNotes: 'Add it to Special instructions',
+  addonSearchClear: 'Clear search',
+  addonSearchRemove: (name) => `Remove ${name}`,
   servedHours: (hours) => `Served ${hours}`,
   groupDone: 'Done',
   groupRequired: 'Required',
