@@ -1,27 +1,31 @@
 export const dynamic = 'force-dynamic';
 
 /**
- * Stripe Connect webhook handler.
+ * Webhook de Stripe Connect: mantiene `stripe_onboarding_complete` al día sin
+ * depender de que el dueño abra Configuración (antes era el único camino).
  *
- * Listens for v2 thin events on connected accounts:
- *   - v2.core.account.updated
- *   - v2.core.account[requirements].updated
- *   - v2.core.account[configuration.merchant].capability_status_updated
+ * Antes escuchaba eventos v2 "thin" con `parseThinEvent`, que no existe en el
+ * SDK instalado (stripe 20): respondía 400 a todo y nunca funcionó. Nuestras
+ * cuentas son Express (API v1), así que se usan los eventos clásicos.
  *
- * Setup in Stripe Dashboard → Developers → Event destinations → + Add destination:
- *   • Events from: Connected and v2 accounts
- *   • Events: v2.core.account.updated (or the ones above)
- *   • Payload style: Thin
+ * Configuración en Stripe (modo Live) → Developers → Webhooks → Add endpoint:
  *   • URL: https://menius.app/api/connect/webhook
+ *   • Listen to: Events on Connected accounts
+ *   • Eventos: account.updated, account.application.deauthorized
+ * El "Signing secret" de ESE endpoint va en STRIPE_CONNECT_WEBHOOK_SECRET
+ * (es distinto del de /api/payments/webhook).
  *
- * Set the resulting webhook secret as STRIPE_CONNECT_WEBHOOK_SECRET in .env.
+ * Sin tabla de idempotencia a propósito: cada evento vuelve a leer la cuenta
+ * en Stripe y escribe un booleano, así que repetir o desordenar no hace daño.
  */
 
+import type Stripe from 'stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, getConnectWebhookSecret } from '@/lib/stripe';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
+import { isConnectAccountReady } from '@/lib/payments/connect-account';
 
 const logger = createLogger('connect-webhook');
 
@@ -33,71 +37,65 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 });
   }
 
-  const stripe = getStripe();
-  const webhookSecret = getConnectWebhookSecret();
-
-  let thinEvent: any;
+  let stripe: ReturnType<typeof getStripe>;
+  let event: Stripe.Event;
   try {
-    thinEvent = (stripe as any).parseThinEvent(body, signature, webhookSecret);
+    stripe = getStripe();
+    event = stripe.webhooks.constructEvent(body, signature, getConnectWebhookSecret());
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Invalid signature';
-    logger.warn('Invalid Connect webhook signature', { error: message });
+    const message = err instanceof Error ? err.message : String(err);
+    // Firma inválida = request ajena o secret mal cargado: esto último deja la
+    // tienda sin enterarse de nada, por eso va a Sentry y no solo al log.
+    logger.error('Connect webhook rejected', { error: message });
+    captureError(err, { route: '/api/connect/webhook', step: 'verify' });
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
   try {
-    logger.info('Connect event received', { type: thinEvent.type });
+    const accountId = event.account;
 
-    // All these events mean "something changed on a connected account" —
-    // we just re-read the account status via v1 API and sync it.
-    const accountEvents = [
-      'v2.core.account.updated',
-      'v2.core.account[requirements].updated',
-      'v2.core.account[configuration.merchant].capability_status_updated',
-    ];
-
-    if (accountEvents.includes(thinEvent.type)) {
-      const accountId: string | undefined =
-        thinEvent.related_object?.id ?? thinEvent.data?.object?.id;
-
-      if (accountId) {
-        await syncAccountStatus(accountId, stripe);
-      } else {
-        logger.warn('No accountId in thin event', { type: thinEvent.type });
+    switch (event.type) {
+      case 'account.updated': {
+        if (!accountId) break;
+        // Se relee la cuenta: los eventos pueden llegar desordenados y el
+        // estado actual es lo único que importa.
+        const account = await stripe.accounts.retrieve(accountId);
+        await setOnboardingComplete(accountId, isConnectAccountReady(account));
+        break;
       }
+      case 'account.application.deauthorized': {
+        if (!accountId) break;
+        await setOnboardingComplete(accountId, false);
+        break;
+      }
+      default:
+        logger.info('Unhandled Connect event', { type: event.type });
     }
 
     return NextResponse.json({ received: true });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error';
-    logger.error('Connect webhook processing error', { error: message });
-    captureError(err, { route: '/api/connect/webhook' });
-    return NextResponse.json({ received: true, warning: message });
+    // 500 para que Stripe reintente: si respondiéramos 200 el cambio se perdería.
+    logger.error('Connect webhook processing error', {
+      type: event.type,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    captureError(err, { route: '/api/connect/webhook', eventType: event.type });
+    return NextResponse.json({ error: 'processing failed' }, { status: 500 });
   }
 }
 
-async function syncAccountStatus(stripeAccountId: string, stripe: any) {
-  // Read via v1 API — our accounts are Express (v1)
-  const account = await stripe.accounts.retrieve(stripeAccountId);
-
-  const readyToReceivePayments = account.capabilities?.card_payments === 'active';
-  const onboardingComplete =
-    !account.requirements?.currently_due?.length &&
-    !account.requirements?.past_due?.length;
-  const isComplete = onboardingComplete && readyToReceivePayments;
-
-  const adminDb = createAdminClient();
-  const { error } = await adminDb
+async function setOnboardingComplete(stripeAccountId: string, isComplete: boolean) {
+  const { data, error } = await createAdminClient()
     .from('restaurants')
     .update({ stripe_onboarding_complete: isComplete })
-    .eq('stripe_account_id', stripeAccountId);
+    .eq('stripe_account_id', stripeAccountId)
+    .select('id');
 
-  if (error) {
-    logger.error('Failed to sync stripe_onboarding_complete', {
-      stripeAccountId,
-      error: error.message,
-    });
-  } else {
-    logger.info('Synced stripe_onboarding_complete', { stripeAccountId, isComplete });
+  if (error) throw new Error(`restaurants update failed: ${error.message}`);
+  if (!data?.length) {
+    // Cuenta de otra plataforma/prueba o restaurante que cambió de cuenta.
+    logger.warn('Connect event for an account no restaurant uses', { stripeAccountId });
+    return;
   }
+  logger.info('Synced stripe_onboarding_complete', { stripeAccountId, isComplete });
 }

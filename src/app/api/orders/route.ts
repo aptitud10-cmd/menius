@@ -1658,6 +1658,12 @@ export async function POST(request: NextRequest) {
           {
             line_items: lineItems,
             mode: "payment",
+            // Solo tarjeta (Apple Pay / Google Pay entran acá), igual que
+            // /api/payments/checkout. Sin esto Checkout usa los métodos
+            // dinámicos del dashboard: uno asíncrono (ACH) puede confirmarse
+            // después de cancelado el pedido, y Klarna/Afterpay cobran más que
+            // la tarifa de tarjeta que cubre el application fee.
+            payment_method_types: ["card"],
             // custToken (solo lectura): el token del driver permite cambiar el estado
             // del pedido y no debe quedar en Stripe ni en el historial del cliente.
             success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true&t=${custToken}`,

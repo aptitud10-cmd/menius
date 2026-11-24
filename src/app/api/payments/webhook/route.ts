@@ -8,6 +8,9 @@ import { getStripe, getPaymentsWebhookSecret } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
 import { sendPaymentConfirmedNotifications } from '@/lib/notifications/order-notifications';
 import { internationalCardSurchargeCents } from '@/lib/order-pricing';
+import { refundStripePayment, isAlreadyRefundedError, isStripePaymentIntent } from '@/lib/payments/stripe-refund';
+import { NOT_ACCEPTED_REASON } from '@/lib/orders/order-timeouts';
+import { sendEmail } from '@/lib/notifications/email';
 
 const logger = createLogger('payments-webhook');
 
@@ -29,16 +32,28 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
   // Ni un reintento tardío de Stripe puede volver a 'paid' un pedido ya
   // reembolsado (Fase C): mandaría "pago confirmado" de un pedido cancelado.
   q = q.neq('payment_status', 'refunded');
-  const { data, error } = await q.select('id').maybeSingle();
+  const { data, error } = await q.select('id, status, cancellation_reason').maybeSingle();
 
   if (error) {
-    logger.error('Failed to update order payment status', { orderId, status, error: error.message });
-    return;
+    // Se relanza: el POST libera el evento y responde 500 para que Stripe
+    // reintente. Antes se respondía 200 con el evento ya reclamado → el pedido
+    // cobrado quedaba invisible y monitor-orders lo cancelaba a las 25 h.
+    throw new Error(`Failed to update order ${orderId} payment status to ${status}: ${error.message}`);
   }
 
   if (!data) {
     logger.info('Order already in target payment status, skipping notifications', { orderId, status });
     if (status === 'paid' && paymentIntent) await refundIfDuplicatePayment(orderId, paymentIntent);
+    return;
+  }
+
+  // Pago que llega para un pedido ya cancelado (sesión vieja pagada tarde,
+  // reintento de Stripe): sin "pago confirmado" ni "nuevo pedido" en el panel,
+  // y la plata vuelve sola.
+  if (status === 'paid' && data.status === 'cancelled') {
+    if (paymentIntent && data.cancellation_reason !== NOT_ACCEPTED_REASON) {
+      await refundPaymentForCancelledOrder(orderId, paymentIntent);
+    }
     return;
   }
 
@@ -59,10 +74,21 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
 async function refundIfDuplicatePayment(orderId: string, paymentIntentId: string) {
   const { data: ord } = await createAdminClient()
     .from('orders')
-    .select('payment_status, payment_intent_id')
+    .select('payment_status, payment_intent_id, status, cancellation_reason')
     .eq('id', orderId)
     .maybeSingle();
-  const kept = (ord as { payment_status?: string; payment_intent_id?: string | null } | null);
+  const kept = (ord as { payment_status?: string; payment_intent_id?: string | null; status?: string; cancellation_reason?: string | null } | null);
+  // Mismo pago, pedido cancelado y todavía cobrado: un intento anterior de
+  // devolverlo falló (el evento se reintenta) → se vuelve a intentar.
+  if (
+    kept?.payment_intent_id === paymentIntentId
+    && kept.status === 'cancelled'
+    && kept.payment_status === 'paid'
+    && kept.cancellation_reason !== NOT_ACCEPTED_REASON
+  ) {
+    await refundPaymentForCancelledOrder(orderId, paymentIntentId);
+    return;
+  }
   // 'refunded' también: el pedido ya se canceló y devolvió (Fase C), así que un
   // segundo cobro con otro PaymentIntent no tiene pedido que lo respalde.
   if (!kept || !['paid', 'refunded'].includes(kept.payment_status ?? '') || !kept.payment_intent_id || kept.payment_intent_id === paymentIntentId) return;
@@ -85,12 +111,108 @@ async function refundIfDuplicatePayment(orderId: string, paymentIntentId: string
   }
 }
 
+/**
+ * El pedido ya estaba cancelado cuando llegó el cobro: se devuelve completo.
+ * Los cancelados por "nadie aceptó" (not_accepted) no pasan por acá: esos los
+ * reembolsa y reintenta el cron order-timeouts, y así no compiten dos caminos.
+ * Si Stripe rechaza, se relanza → 500 → Stripe reintenta el evento y se vuelve
+ * a intentar (refundIfDuplicatePayment detecta el caso en el reintento).
+ */
+async function refundPaymentForCancelledOrder(orderId: string, paymentIntentId: string) {
+  if (!isStripePaymentIntent(paymentIntentId)) return;
+  try {
+    await refundStripePayment(paymentIntentId, {
+      reason: 'requested_by_customer',
+      // Clave por día (UTC), como el cron: Stripe guarda 24 h la respuesta de
+      // una clave, errores incluidos; un reembolso total no se puede duplicar.
+      idempotencyKey: `cancelled-order-refund:${paymentIntentId}:${new Date().toISOString().slice(0, 10)}`,
+      metadata: { order_id: orderId, reason: 'paid_after_cancel' },
+    });
+  } catch (err) {
+    if (!isAlreadyRefundedError(err)) throw err;
+  }
+  const { error } = await createAdminClient()
+    .from('orders')
+    .update({ payment_status: 'refunded', updated_at: new Date().toISOString() })
+    .eq('id', orderId)
+    .eq('payment_status', 'paid');
+  if (error) throw new Error(`refund ok but order ${orderId} not marked refunded: ${error.message}`);
+
+  logger.warn('Payment for a cancelled order refunded automatically', { orderId, paymentIntentId });
+  captureError(new Error('Payment arrived for a cancelled order — refunded automatically'), { orderId, paymentIntentId });
+}
+
 interface DisputeLike {
   id: string;
   amount: number;
+  currency?: string;
+  reason?: string;
   charge: string | { id: string };
   payment_intent?: string | { id: string } | null;
   status: string;
+  evidence_details?: { due_by?: number | null } | null;
+}
+
+/**
+ * Disputa nueva → email a los admins de MENIUS. Con destination charges la
+ * responde la plataforma: si nadie presenta evidencia antes de `due_by`, se
+ * pierde sola. Antes solo quedaba en Sentry, sin número de pedido.
+ */
+async function notifyDisputeOpened(dispute: DisputeLike) {
+  const pi = idOf(dispute.payment_intent);
+  let orderNumber: string | null = null;
+  let restaurantName: string | null = null;
+  let orderId: string | null = null;
+  if (pi) {
+    const { data: rows } = await createAdminClient()
+      .from('orders')
+      .select('id, order_number, restaurants(name)')
+      .eq('payment_intent_id', pi)
+      .limit(2);
+    if (rows?.length === 1) {
+      const row = rows[0] as { id: string; order_number: string; restaurants?: { name?: string } | { name?: string }[] | null };
+      orderId = row.id;
+      orderNumber = row.order_number;
+      const rest = Array.isArray(row.restaurants) ? row.restaurants[0] : row.restaurants;
+      restaurantName = rest?.name ?? null;
+    }
+  }
+
+  const amount = `${(dispute.amount / 100).toFixed(2)} ${(dispute.currency ?? '').toUpperCase()}`.trim();
+  const dueBy = dispute.evidence_details?.due_by
+    ? new Date(dispute.evidence_details.due_by * 1000).toLocaleString('es', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' })
+    : 'ver en Stripe';
+
+  logger.warn('Stripe dispute opened', { disputeId: dispute.id, paymentIntent: pi, orderId, amount: dispute.amount });
+  captureError(new Error('Stripe dispute opened'), { disputeId: dispute.id, paymentIntent: pi, orderId, orderNumber, amount: dispute.amount });
+
+  const admins = (process.env.ADMIN_EMAIL ?? '').split(',').map((e) => e.trim()).filter(Boolean);
+  if (!admins.length) {
+    logger.error('ADMIN_EMAIL not set — dispute email not sent', { disputeId: dispute.id });
+    return;
+  }
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const row = (k: string, v: string) =>
+    `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">${k}</td><td style="padding:6px 0;font-size:14px;font-weight:600;">${esc(v)}</td></tr>`;
+  const html = `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:20px;">
+      <h2 style="color:#b91c1c;margin:0 0 8px;">Disputa abierta en Stripe</h2>
+      <p style="font-size:14px;color:#374151;margin:0 0 16px;">Un cliente desconoció un cargo. Si no se responde con evidencia antes de la fecha límite, se pierde sola.</p>
+      <table style="width:100%;border-collapse:collapse;">
+        ${row('Restaurante', restaurantName ?? 'no encontrado')}
+        ${row('Pedido', orderNumber ?? 'no encontrado')}
+        ${row('Monto', amount)}
+        ${row('Motivo', dispute.reason ?? '—')}
+        ${row('Fecha límite', dueBy)}
+        ${row('Disputa', dispute.id)}
+      </table>
+      <p style="margin-top:20px;"><a href="https://dashboard.stripe.com/disputes/${encodeURIComponent(dispute.id)}" style="display:inline-block;padding:10px 20px;background:#111827;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Abrir en Stripe</a></p>
+    </div>`;
+  const subject = `⚠️ Disputa Stripe: ${orderNumber ?? dispute.id} — ${amount}`;
+  for (const to of admins) {
+    const sent = await sendEmail({ to, subject, html });
+    if (!sent) logger.error('Dispute email not sent', { disputeId: dispute.id });
+  }
 }
 
 const idOf = (v: string | { id: string } | null | undefined) =>
@@ -178,15 +300,25 @@ async function recoverInternationalCardSurcharge(
     return;
   }
 
+  // Si el pago ya se devolvió (pedido cancelado, Fase C) el transfer está
+  // revertido entero: pedir más de lo que queda da error → 500 → Stripe
+  // reintentaría el evento durante días.
+  const transfer = await stripe.transfers.retrieve(transferId);
+  const amount = Math.min(surcharge, transfer.amount - transfer.amount_reversed);
+  if (amount <= 0) {
+    logger.info('International card surcharge skipped — transfer already reversed', { chargeId: charge.id, transferId });
+    return;
+  }
+
   await stripe.transfers.createReversal(
     transferId,
-    { amount: surcharge, metadata: { charge_id: charge.id, reason: 'international_card_surcharge' } },
+    { amount, metadata: { charge_id: charge.id, reason: 'international_card_surcharge' } },
     { idempotencyKey: `intl-card-fee:${charge.id}` },
   );
   logger.info('International card surcharge recovered from restaurant', {
     chargeId: charge.id,
     country: charge.payment_method_details?.card?.country,
-    surcharge,
+    surcharge: amount,
   });
 }
 
@@ -330,18 +462,7 @@ export async function POST(request: NextRequest) {
         }
 
         case 'charge.dispute.created': {
-          const dispute = event.data.object as unknown as DisputeLike;
-          // Aviso: hasta ahora una disputa llegaba sin que nadie se enterara.
-          logger.warn('Stripe dispute opened', {
-            disputeId: dispute.id,
-            paymentIntent: idOf(dispute.payment_intent),
-            amount: dispute.amount,
-          });
-          captureError(new Error('Stripe dispute opened'), {
-            disputeId: dispute.id,
-            paymentIntent: idOf(dispute.payment_intent),
-            amount: dispute.amount,
-          });
+          await notifyDisputeOpened(event.data.object as unknown as DisputeLike);
           break;
         }
 

@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { isConnectAccountReady } from '@/lib/payments/connect-account';
 
 export async function GET() {
   try {
@@ -34,11 +35,7 @@ export async function GET() {
     const readyToProcessPayments =
       account.capabilities?.card_payments === 'active';
 
-    const onboardingComplete =
-      !account.requirements?.currently_due?.length &&
-      !account.requirements?.past_due?.length;
-
-    const isComplete = onboardingComplete && readyToProcessPayments;
+    const isComplete = isConnectAccountReady(account);
 
     if (isComplete && !restaurant.stripe_onboarding_complete) {
       await createAdminClient()

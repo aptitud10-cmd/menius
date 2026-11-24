@@ -13,11 +13,14 @@ const mockEq = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: 
 const mockUpdate = vi.fn(() => ({ eq: mockEq }));
 const mockInsert = vi.fn();
 const mockUpsert = vi.fn();
+const mockDeleteEq = vi.fn().mockResolvedValue({ error: null });
+const mockDelete = vi.fn(() => ({ eq: mockDeleteEq }));
 const mockFrom = vi.fn(() => ({
   select: mockSelect,
   update: mockUpdate,
   insert: mockInsert,
   upsert: mockUpsert,
+  delete: mockDelete,
 }));
 
 vi.mock('@/lib/supabase/admin', () => ({
@@ -43,8 +46,15 @@ vi.mock('@/lib/stripe', () => ({
 }));
 
 // ── Notifications mock (fire-and-forget — don't let it throw) ─────────────────
+const { mockPaymentConfirmed, mockSendEmail } = vi.hoisted(() => ({
+  mockPaymentConfirmed: vi.fn(),
+  mockSendEmail: vi.fn(),
+}));
 vi.mock('@/lib/notifications/order-notifications', () => ({
-  sendPaymentConfirmedNotifications: vi.fn().mockResolvedValue(undefined),
+  sendPaymentConfirmedNotifications: mockPaymentConfirmed,
+}));
+vi.mock('@/lib/notifications/email', () => ({
+  sendEmail: mockSendEmail,
 }));
 
 // ── Error reporting mock ──────────────────────────────────────────────────────
@@ -123,6 +133,10 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
     mockInsert.mockResolvedValue({ error: null });
     mockUpsert.mockResolvedValue({ error: null });
+    mockPaymentConfirmed.mockResolvedValue(undefined);
+    mockSendEmail.mockResolvedValue(true);
+    mockDeleteEq.mockResolvedValue({ error: null });
+    process.env.ADMIN_EMAIL = 'a@x.com, b@x.com';
     mockPIRetrieve.mockResolvedValue(paidIntent('US'));
     mockUpdate.mockReturnValue({ eq: mockEq });
     mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
@@ -336,14 +350,39 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     expect(res.status).toBe(200);
     expect(mockCreateReversal).not.toHaveBeenCalled();
   });
-  it('charge.dispute.created: avisa y no revierte nada todavía', async () => {
-    mockConstructEvent.mockReturnValue({ id: 'evt_dp4', type: 'charge.dispute.created', data: { object: dispute('needs_response') } });
+  it('charge.dispute.created: manda email a cada admin con el pedido y no revierte nada todavía', async () => {
+    mockConstructEvent.mockReturnValue({
+      id: 'evt_dp4', type: 'charge.dispute.created',
+      data: { object: { ...dispute('needs_response'), currency: 'usd', reason: 'fraudulent', evidence_details: { due_by: 1767225600 } } },
+    });
+    const limit = vi.fn().mockResolvedValue({ data: [{ id: 'order-1', order_number: 'BUC-0042', restaurants: { name: 'Buccaneer' } }], error: null });
+    mockEq.mockImplementation(((col: string) => (col === 'payment_intent_id'
+      ? { limit }
+      : { eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder })) as never);
 
     const { POST } = await import('@/app/api/payments/webhook/route');
     const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
     const res = await POST(req as never);
     expect(res.status).toBe(200);
     expect(mockCreateReversal).not.toHaveBeenCalled();
+    expect(mockSendEmail).toHaveBeenCalledTimes(2);
+    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({
+      to: 'a@x.com',
+      subject: expect.stringContaining('BUC-0042'),
+      html: expect.stringContaining('Buccaneer'),
+    }));
+  });
+
+  it('charge.dispute.created sin pedido encontrado: igual avisa', async () => {
+    mockConstructEvent.mockReturnValue({ id: 'evt_dp6', type: 'charge.dispute.created', data: { object: dispute('needs_response') } });
+    const limit = vi.fn().mockResolvedValue({ data: [], error: null });
+    mockEq.mockImplementation(((col: string) => (col === 'payment_intent_id'
+      ? { limit }
+      : { eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder })) as never);
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({ subject: expect.stringContaining('dp_1') }));
   });
   it('si la reversión falla, responde 500 para que Stripe reintente', async () => {
     mockConstructEvent.mockReturnValue({ id: 'evt_dp5', type: 'charge.dispute.closed', data: { object: dispute('lost') } });
@@ -403,6 +442,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
   it('tarjeta internacional: recupera el 1.5% revirtiendo el transfer', async () => {
     mockConstructEvent.mockReturnValue(succeeded());
     mockPIRetrieve.mockResolvedValue(paidIntent('MX'));
+    mockTransferRetrieve.mockResolvedValue({ id: 'tr_1', amount: 2900, amount_reversed: 0, destination: 'acct_1' });
     mockCreateReversal.mockResolvedValue({ id: 'trr_intl' });
     mockMaybeSingle.mockResolvedValue({ data: { id: 'order-1' }, error: null });
 
@@ -428,6 +468,74 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     await POST(req as never);
 
     expect(mockCreateReversal).not.toHaveBeenCalled();
+  });
+
+  it('tarjeta internacional con el pago ya devuelto: no intenta revertir (evita 500 en bucle)', async () => {
+    mockConstructEvent.mockReturnValue(succeeded());
+    mockPIRetrieve.mockResolvedValue(paidIntent('MX'));
+    mockTransferRetrieve.mockResolvedValue({ id: 'tr_1', amount: 2900, amount_reversed: 2900, destination: 'acct_1' });
+    mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockCreateReversal).not.toHaveBeenCalled();
+  });
+
+  // ── B1: un error de base no se traga el pago ────────────────────────────────
+  it('si falla el update a pagado: 500 y libera el evento para que Stripe reintente', async () => {
+    mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: 'connection reset' } });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(500);
+    expect(mockDelete).toHaveBeenCalled();
+    expect(mockDeleteEq).toHaveBeenCalledWith('event_id', 'evt_pi');
+    expect(mockPaymentConfirmed).not.toHaveBeenCalled();
+  });
+
+  // ── W3: pago que llega para un pedido ya cancelado ──────────────────────────
+  it('pago para un pedido cancelado: lo devuelve solo y no avisa "pago confirmado"', async () => {
+    mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: 'order-1', status: 'cancelled', cancellation_reason: null }, error: null });
+    mockRefundCreate.mockResolvedValue({ id: 're_late', status: 'pending' });
+    mockTransferRetrieve.mockResolvedValue({ id: 'tr_1', amount: 2900, amount_reversed: 2900, destination: 'acct_1' });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockRefundCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ payment_intent: 'pi_1', reverse_transfer: true, metadata: expect.objectContaining({ reason: 'paid_after_cancel' }) }),
+      { idempotencyKey: expect.stringMatching(/^cancelled-order-refund:pi_1:\d{4}-\d{2}-\d{2}$/) },
+    );
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'refunded' }));
+    expect(mockPaymentConfirmed).not.toHaveBeenCalled();
+  });
+
+  it('pago para un pedido cancelado por "nadie aceptó": no reembolsa acá (lo hace el cron)', async () => {
+    mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: 'order-1', status: 'cancelled', cancellation_reason: 'not_accepted' }, error: null });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockRefundCreate).not.toHaveBeenCalled();
+    expect(mockPaymentConfirmed).not.toHaveBeenCalled();
+  });
+
+  it('reintento de Stripe tras un reembolso fallido de pedido cancelado: vuelve a intentar', async () => {
+    mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { payment_status: 'paid', payment_intent_id: 'pi_1', status: 'cancelled', cancellation_reason: 'Cliente pidio cancelar' }, error: null });
+    mockRefundCreate.mockResolvedValue({ id: 're_retry', status: 'pending' });
+    mockTransferRetrieve.mockResolvedValue({ id: 'tr_1', amount: 2900, amount_reversed: 2900, destination: 'acct_1' });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockRefundCreate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'refunded' }));
   });
 
   it('commission_plan con tarjeta internacional: no hay recargo (el 4% ya lo cubre)', async () => {
