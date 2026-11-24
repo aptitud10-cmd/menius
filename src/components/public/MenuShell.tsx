@@ -95,6 +95,7 @@ import { ReviewsSheet } from "./ReviewsSheet";
 import { DietIcon } from "./DietIcon";
 import { prettyPhone, telHref } from "@/lib/phone-format";
 import { usablePaymentMethods } from "@/lib/payments/online-ready";
+import { DEEP_LINK_ATTR } from "./DeepLinkGuard";
 interface ReviewStats {
   average: number;
   total: number;
@@ -150,6 +151,11 @@ const RAW_ALERT = "\u0001";
 // A remembered menu position older than this is a different visit, not a
 // "back from checkout" — land on the default view instead.
 const MENU_POS_TTL_MS = 30 * 60 * 1000;
+
+/** Shows the menu DeepLinkGuard hid while a ?category= / ?item= link lands. */
+function revealDeepLink() {
+  document.documentElement.removeAttribute(DEEP_LINK_ATTR);
+}
 
 export function MenuShell({
   restaurant,
@@ -814,7 +820,7 @@ export function MenuShell({
   /** Scrolls the main container to a category section.
    *  Extracted from handleCategorySelect so the subcategory sheet can jump to a
    *  section without re-implementing the iOS Safari workarounds below. */
-  const scrollToSection = useCallback((catId: string) => {
+  const scrollToSection = useCallback((catId: string, opts?: { instant?: boolean }) => {
       const section = sectionRefs.current.get(catId);
       if (section && mainRef.current) {
         const savedSidebarScroll = sidebarRef.current?.scrollTop ?? 0;
@@ -839,9 +845,11 @@ export function MenuShell({
         // preventing the spy from reverting to the previous category (the "bounce-back" effect).
         const targetScroll =
           mainRef.current.scrollTop + sectionTop - containerTop - margin + 8;
+        // Instant for deep links: the visitor never saw where the menu started,
+        // so animating from the top only reads as the page jumping.
         mainRef.current.scrollTo({
           top: Math.max(0, targetScroll),
-          behavior: "smooth",
+          behavior: opts?.instant ? "auto" : "smooth",
         });
 
         requestAnimationFrame(() => {
@@ -876,6 +884,11 @@ export function MenuShell({
             isScrollingRef.current = false;
           });
         };
+        if (opts?.instant) {
+          // No animation to wait for (and no scrollend if the position did not change).
+          requestAnimationFrame(unlock);
+          return;
+        }
         const timer = setTimeout(unlock, 1500);
         mainRef.current.addEventListener(
           "scrollend",
@@ -1937,7 +1950,10 @@ export function MenuShell({
     const params = new URLSearchParams(window.location.search);
     const itemId = params.get("item");
     const catParam = params.get("category")?.trim().toLowerCase() ?? "";
-    if (!itemId && !catParam) return;
+    if (!itemId && !catParam) {
+      revealDeepLink();
+      return;
+    }
 
     const product = itemId
       ? liveProducts.find((p) => p.id === itemId && p.is_active !== false)
@@ -1951,6 +1967,9 @@ export function MenuShell({
         : undefined;
 
     if (category) {
+      // Treated like a click so the pill bar and sidebar jump straight to the
+      // category instead of sliding over while the menu appears.
+      categoryClickedRef.current = true;
       if (isLargeCatalog) {
         const filterId =
           groupsActive && category.group_name
@@ -1962,6 +1981,8 @@ export function MenuShell({
         setActiveCategory(category.id);
       }
       setDeepLinkSection(category.id);
+    } else {
+      revealDeepLink();
     }
     // Sold out or outside its hours (Oatmeal at 3 PM): land on its section,
     // where the card says when it's served, instead of opening a sheet the
@@ -1986,9 +2007,12 @@ export function MenuShell({
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
-        scrollToSection(deepLinkSection);
+        scrollToSection(deepLinkSection, { instant: true });
         menuPosReadyRef.current = true;
         setDeepLinkSection(null);
+        // After scrollToSection's correction frame and the compact header swap
+        // (its IntersectionObserver fires a beat after the scroll).
+        setTimeout(revealDeepLink, 120);
       });
     });
     return () => {

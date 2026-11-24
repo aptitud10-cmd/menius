@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { MenuShell } from "@/components/public/MenuShell";
+import { DeepLinkGuard } from "@/components/public/DeepLinkGuard";
 import { HighConversionLayout } from "@/components/public/high-conversion/HighConversionLayout"; // Nuevo import
 import { fetchMenuData, fetchRestaurantMeta, fetchAllSlugs } from "./menu-data";
 import { demoRestaurant, demoCategories, demoProducts } from "@/lib/demo-data";
@@ -500,6 +501,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
           products={demoConfig.products}
           reviewStats={null}
         />
+        <DeepLinkGuard />
         <MenuShell
           restaurant={demoConfig.restaurant}
           categories={demoConfig.categories}
@@ -602,6 +604,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
         products={slimProducts}
         reviewStats={data.reviewStats}
       />
+      <DeepLinkGuard />
       <MenuShell
         restaurant={data.restaurant}
         categories={data.categories}
