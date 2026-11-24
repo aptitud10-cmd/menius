@@ -593,6 +593,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const awaitingPayment = isAwaitingOnlinePayment(o);
   const refunded = isCancelled && o.payment_status === 'refunded';
   const autoClosed = Boolean(o.auto_closed);
+  // Pickup dado por retirado tras 30 min en Listo: no hay hora real de retiro.
+  const pickupDone = Boolean(o.pickup_done);
   const notAccepted = isCancelled && Boolean(o.not_accepted);
   const shortNum = shortOrderNumber(o.order_number as string | null | undefined);
   const driverName = String(o.driver_name ?? '').trim().split(' ')[0] || null;
@@ -727,6 +729,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     if (isCancelled) return [en ? 'Order cancelled' : 'Pedido cancelado', en ? `${R} couldn't take it this time.` : `${R} no pudo tomarlo esta vez.`];
     if (isComplete) {
       if (autoClosed) return [en ? 'Order closed' : 'Pedido cerrado', ''];
+      if (pickupDone) return [en ? 'Thanks for your order' : 'Gracias por tu pedido',
+        en ? `Thanks for ordering directly from ${R}.` : `Gracias por pedir directo a ${R}.`];
       const at = Number.isFinite(closedMs) ? fmtClock(closedMs) : '';
       if (isDineIn) return [en ? 'Served. Enjoy!' : 'Servido. ¡Buen provecho!', en ? `Thanks for ordering at ${R}.` : `Gracias por pedir en ${R}.`];
       return [

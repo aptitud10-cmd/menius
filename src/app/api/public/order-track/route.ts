@@ -117,6 +117,8 @@ export async function GET(req: NextRequest) {
       delivery_lng: authorized ? safeOrder.delivery_lng : null,
       authorized,
       auto_closed: reason === 'auto_closed',
+      // Pickup dado por retirado a los 30 min en Listo (cron/order-timeouts): sin hora de retiro real.
+      pickup_done: reason === 'pickup_done',
       // Cancelado por el sistema: el restaurante no lo aceptó a tiempo (cron/order-timeouts).
       not_accepted: reason === 'not_accepted',
       // Canal del GPS en vivo: solo con token (ver live-topic.ts).

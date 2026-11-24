@@ -11,7 +11,9 @@
  *   acepta en ese mismo segundo, no se toca) y después se reembolsa. Si Stripe
  *   falla, el pedido queda cancelado y pagado: se reintenta en cada vuelta.
  * - Aceptado y olvidado → cerrado en silencio ('auto_closed').
- * - Pickup listo hace 20 min → recordatorio al cliente (push + email), una vez.
+ * - Pickup en Listo 30 min → dado por retirado ('pickup_done'), en silencio; entra
+ *   en el email de reseña. Ya no hay recordatorio "tu pedido te espera" a los
+ *   20 min: en el mostrador nadie marca "recogido" y le llegaba a todos.
  *
  * Corre cada 10 minutos (vercel.json) y SIEMPRE deja una línea en el log, para
  * poder confirmar que corre (el anterior solo escribía si cerraba algo).
@@ -28,11 +30,10 @@ import { captureError } from '@/lib/error-reporting';
 import { refundStripePayment, isAlreadyRefundedError, refundRetryKey, hasFailedRefund } from '@/lib/payments/stripe-refund';
 import {
   classifyTimeout,
-  needsPickupReminder,
   needsRefundRetry,
-  PICKUP_REMINDER_EVENT,
   NOT_ACCEPTED_REASON,
   AUTO_CLOSED_REASON,
+  PICKUP_DONE_REASON,
   type TimeoutOrder,
 } from '@/lib/orders/order-timeouts';
 
@@ -113,7 +114,6 @@ export async function GET(req: Request) {
   const cancelled: string[] = [];
   const closed: string[] = [];
   const failed: string[] = [];
-  const reminded: string[] = [];
   const refunded: string[] = [];
   const refundFailed: string[] = [];
   const refundNeedsHuman: string[] = [];
@@ -148,45 +148,13 @@ export async function GET(req: Request) {
     (ok ? refunded : refundFailed).push(o.order_number);
   }
 
-  // Recordatorio "tu pedido te espera" (pickup listo hace 20 min). Una sola vez
-  // por pedido: cuenta cualquier fila del log, no solo las exitosas — un cliente
-  // sin email no deja fila "exitosa" y si no recibía el push cada 10 min.
-  const reminderCandidates = ((data ?? []) as Row[]).filter((o) => needsPickupReminder(o, now));
-  if (reminderCandidates.length > 0) {
-    const { data: sent } = await db
-      .from('order_notification_log')
-      .select('order_id')
-      .eq('event', PICKUP_REMINDER_EVENT)
-      .in('order_id', reminderCandidates.map((o) => o.id));
-    const already = new Set((sent ?? []).map((r) => r.order_id as string));
-    const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
-    for (const o of reminderCandidates) {
-      if (already.has(o.id)) continue;
-      try {
-        await notifyStatusChange({
-          orderId: o.id,
-          orderNumber: o.order_number,
-          restaurantId: o.restaurant_id,
-          status: PICKUP_REMINDER_EVENT,
-          customerName: o.customer_name ?? '',
-          customerEmail: o.customer_email || undefined,
-          customerPhone: o.customer_phone || undefined,
-          orderType: o.order_type || undefined,
-        });
-        reminded.push(o.order_number);
-      } catch (err) {
-        logger.warn('reminder failed', { orderId: o.id, error: err instanceof Error ? err.message : String(err) });
-      }
-    }
-  }
-
   for (const o of (data ?? []) as Row[]) {
     const action = classifyTimeout(o, now);
     if (!action) continue;
 
     const cancels = action.kind === 'cancel_not_accepted' || action.kind === 'refund_not_accepted';
-    const to = cancels ? 'cancelled' : action.to;
-    const reason = cancels ? NOT_ACCEPTED_REASON : AUTO_CLOSED_REASON;
+    const to = cancels ? 'cancelled' : action.kind === 'pickup_done' ? 'delivered' : action.to;
+    const reason = cancels ? NOT_ACCEPTED_REASON : action.kind === 'pickup_done' ? PICKUP_DONE_REASON : AUTO_CLOSED_REASON;
     const stamp = new Date().toISOString();
 
     // Cambio de sistema, fuera de la máquina de estados del personal (como el
@@ -256,7 +224,6 @@ export async function GET(req: Request) {
     cancelled: cancelled.length,
     closed: closed.length,
     failed: failed.length,
-    reminded: reminded.length,
     refunded: refunded.length,
     refundFailed: refundFailed.length,
     ...(refundFailed.length ? { refundFailedOrders: refundFailed } : {}),
@@ -264,5 +231,5 @@ export async function GET(req: Request) {
     ...(cancelled.length ? { cancelledOrders: cancelled } : {}),
     ...(closed.length ? { closedOrders: closed } : {}),
   });
-  return NextResponse.json({ cancelled, closed, failed, reminded, refunded, refundFailed, refundNeedsHuman });
+  return NextResponse.json({ cancelled, closed, failed, refunded, refundFailed, refundNeedsHuman });
 }

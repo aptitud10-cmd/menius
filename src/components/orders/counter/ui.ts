@@ -605,12 +605,12 @@ export function minsLeft(order: Order): number | null {
 export const SCHEDULED_LEAD_MS = 30 * 60_000;
 
 /**
- * Pickup en Listo: el contador pasa a ámbar a los 30 min y a rojo a los 60, como
- * el envejecimiento de tickets de Toast/Square/Aloha. Desde el ámbar aparece
- * "No vino a buscarlo". (Delivery listo sigue en ámbar a los 10: espera repartidor.)
+ * Pickup en Listo: ámbar a los 15 min y desde ahí aparece "No vino a buscarlo".
+ * Nunca rojo ni alarma (2026-11-24): en Buccaneer nadie marca "recogido", así que
+ * un pickup en Listo casi siempre ya se fue; a los 30 min el cron lo da por
+ * retirado (READY_PICKUP_MINS). (Delivery listo sigue en ámbar a los 10: espera repartidor.)
  */
-export const PICKUP_WAIT_WARN_MINS = 30;
-export const PICKUP_WAIT_LATE_MINS = 60;
+export const PICKUP_WAIT_WARN_MINS = 15;
 
 /**
  * Desde cuándo un pedido NUEVO espera respuesta: su llegada; para un programado,

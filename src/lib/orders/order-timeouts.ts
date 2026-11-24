@@ -18,6 +18,13 @@
  * 2. ACEPTADO Y OLVIDADO → se CIERRA en silencio (cancellation_reason
  *    'auto_closed'), sin avisar al cliente: casi siempre la comida salió y
  *    solo faltó tocar el botón. Sigue contando como venta.
+ * 3. PICKUP EN LISTO → a los 30 min se da por retirado ('pickup_done', 2026-11-24).
+ *    En Buccaneer nunca marcan "recogido" en ninguna de las 4 apps que usan
+ *    (ChowNow, Uber, Grubhub, Menufy): el pickup termina en "Listo". Antes eso
+ *    dejaba el pedido 2 h en la columna, le mandaba al cliente "tu pedido te
+ *    espera" a los 20 min aunque ya estuviera comiendo, y hacía sonar la alarma
+ *    a los 60. Sin aviso en el momento (no sabemos si ya lo retiró), pero a
+ *    diferencia de 'auto_closed' SÍ entra en el email de reseña.
  *
  * Funciones puras: el cron (api/cron/order-timeouts) solo las aplica.
  */
@@ -28,17 +35,16 @@ export const NOT_ACCEPTED_MINS = 15;
 /** Un pendiente más viejo que esto ya no es "tu pedido de recién": se cancela
  *  sin email (backlog de antes de esta regla, o un cron que no corrió). */
 export const NOTIFY_MAX_AGE_MINS = 120;
-export const READY_PICKUP_MINS = 120;
+/** Pickup en Listo: a partir de acá se da por retirado (regla 3). */
+export const READY_PICKUP_MINS = 30;
 export const STALE_KITCHEN_MINS = 240;
 export const OUT_FOR_DELIVERY_MINS = 180;
 export const SERVED_MINS = 180;
 
-/** Pickup listo sin recoger: recordatorio al cliente (push + email), una vez. */
-export const PICKUP_REMINDER_MINS = 20;
-export const PICKUP_REMINDER_EVENT = 'pickup_reminder';
-
 export const NOT_ACCEPTED_REASON = 'not_accepted';
 export const AUTO_CLOSED_REASON = 'auto_closed';
+/** Pickup dado por retirado tras READY_PICKUP_MINS en Listo (regla 3). */
+export const PICKUP_DONE_REASON = 'pickup_done';
 
 export interface TimeoutOrder {
   status: string;
@@ -56,7 +62,8 @@ export interface TimeoutOrder {
 export type TimeoutAction =
   | { kind: 'cancel_not_accepted'; notify: boolean }
   | { kind: 'refund_not_accepted'; notify: boolean }
-  | { kind: 'auto_close'; to: 'delivered' | 'completed' };
+  | { kind: 'auto_close'; to: 'delivered' | 'completed' }
+  | { kind: 'pickup_done' };
 
 const t = (iso: string | null | undefined) => (iso ? new Date(iso).getTime() : NaN);
 const latest = (...xs: number[]) => Math.max(...xs.filter(Number.isFinite));
@@ -64,17 +71,6 @@ const latest = (...xs: number[]) => Math.max(...xs.filter(Number.isFinite));
 /** Cierre final según el tipo: la mesa termina en 'completed', el resto en 'delivered' (igual que el Counter). */
 function closedStatus(o: TimeoutOrder): 'delivered' | 'completed' {
   return o.order_type === 'dine_in' ? 'completed' : 'delivered';
-}
-
-/**
- * ¿Toca recordarle al cliente que su pickup lo espera? Entre los 20 min y el
- * cierre automático (2 h), y no si ya avisó "Ya llegué". El "una sola vez" lo
- * controla el cron con order_notification_log.
- */
-export function needsPickupReminder(o: TimeoutOrder, now: number): boolean {
-  if (o.status !== 'ready' || o.order_type !== 'pickup' || o.customer_arrived_at) return false;
-  const mins = (now - latest(t(o.created_at), t(o.updated_at), t(o.prepared_at))) / 60_000;
-  return mins >= PICKUP_REMINDER_MINS && mins < READY_PICKUP_MINS;
 }
 
 /**
@@ -120,8 +116,8 @@ export function classifyTimeout(o: TimeoutOrder, now: number): TimeoutAction | n
     case 'almost_ready':
       return mins >= STALE_KITCHEN_MINS ? { kind: 'auto_close', to: closedStatus(o) } : null;
     case 'ready': {
-      const limit = o.order_type === 'pickup' ? READY_PICKUP_MINS
-        : o.order_type === 'dine_in' ? SERVED_MINS
+      if (o.order_type === 'pickup') return mins >= READY_PICKUP_MINS ? { kind: 'pickup_done' } : null;
+      const limit = o.order_type === 'dine_in' ? SERVED_MINS
         : STALE_KITCHEN_MINS; // delivery listo esperando repartidor
       return mins >= limit ? { kind: 'auto_close', to: closedStatus(o) } : null;
     }

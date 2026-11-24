@@ -10,7 +10,7 @@ import { shortOrderNumber } from '@/lib/orders/short-number';
 import {
   C, type CounterText, shortName, minsSince, minsLeft, itemCount,
   orderAllergies, money, stripNoteLabel, scheduledWhen, waitingSince,
-  PICKUP_WAIT_WARN_MINS, PICKUP_WAIT_LATE_MINS,
+  PICKUP_WAIT_WARN_MINS,
 } from './ui';
 
 export type PrimaryKind = 'accept' | 'ready' | 'serve' | 'dispatch' | 'deliver' | 'complete';
@@ -79,10 +79,10 @@ export function orderTime(order: Order, T: CounterText): { text: string; level: 
     return { text: T.minAgo(minsSince(pickedUp ?? (order.updated_at as string | undefined) ?? order.created_at)), level: 'plain' };
   }
   const since = minsSince((order.updated_at as string | undefined) ?? order.created_at);
-  // Pickup: envejece por tiempo (30 ámbar / 60 rojo). El resto (delivery
-  // esperando repartidor) avisa a los 10.
+  // Pickup: ámbar a los 15, nunca rojo (a los 30 el cron lo da por retirado). El
+  // resto (delivery esperando repartidor) avisa a los 10.
   const level: TimeLevel = order.order_type === 'pickup'
-    ? (since >= PICKUP_WAIT_LATE_MINS ? 'late' : since >= PICKUP_WAIT_WARN_MINS ? 'warn' : 'plain')
+    ? (since >= PICKUP_WAIT_WARN_MINS ? 'warn' : 'plain')
     : (since >= 10 ? 'warn' : 'plain');
   return { text: T.waiting(since), level };
 }
