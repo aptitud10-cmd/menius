@@ -574,7 +574,7 @@ export function AppDays() {
         pal="day"
         side="l"
       >
-        <Photo slot="D02" file="/buccaneer/v2/app-sec-morning.webp" sizes="85vw" />
+        <Photo slot="D02" file="/buccaneer/v2/app-scene-morning.webp" sizes="85vw" />
       </Scene>
       <Scene
         n={2}
@@ -588,7 +588,7 @@ export function AppDays() {
       >
         {/* One burger per page: at midday the hero already shows it, so the counter takes its place. */}
         <div className="b2-sv b2-sv--morning b2-sv--evening b2-sv--night b2-fill">
-          <Photo slot="D04" file="/buccaneer/v2/app-sec-lunch.webp" sizes="85vw" />
+          <Photo slot="D04" file="/buccaneer/v2/app-scene-lunch.webp" sizes="85vw" />
         </div>
         <div className="b2-sv b2-sv--midday b2-fill">
           <Photo slot="S05b" sizes="85vw" />
@@ -605,7 +605,7 @@ export function AppDays() {
         side="l"
       >
         <Img
-          src="/buccaneer/v2/app-sec-dinner-booth.webp"
+          src="/buccaneer/v2/app-scene-dinner.webp"
           alt="A booth table set for dinner: broiled lobster tails and a glass of white wine"
           sizes="85vw"
         />

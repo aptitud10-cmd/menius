@@ -2528,14 +2528,9 @@
   .b2-root .b2-more--m {
     display: none;
   }
+  /* app-hero2-* crops are cut to this box (~1.15:1), so they sit centered */
   .b2-root .b2-hero__photo .b2-photo {
     object-position: 50% 50%;
-  }
-  .b2-root .b2-hero__photo .b2-sv--midday .b2-photo {
-    object-position: 50% 35%;
-  }
-  .b2-root .b2-hero__photo .b2-sv--evening .b2-photo {
-    object-position: 50% 86%;
   }
   .b2-chip {
     position: absolute;
