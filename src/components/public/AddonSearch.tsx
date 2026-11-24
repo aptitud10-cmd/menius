@@ -5,7 +5,7 @@ import { Search, X, Plus, Check, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tName } from "@/lib/i18n";
 import { searchAddons } from "@/lib/addon-search";
-import type { ModifierGroup, ModifierOption } from "@/types";
+import type { ModifierGroup, ModifierOption, Product } from "@/types";
 import type { Translations, Locale } from "@/lib/translations";
 
 interface AddonSearchProps {
@@ -21,6 +21,13 @@ interface AddonSearchProps {
   onGoToNotes: (query: string) => void;
   /** Al enfocar, subir el buscador para que el teclado no tape los resultados. */
   onFocusInput?: () => void;
+  /** Sin agregado que encaje: lo que sí está en el menú (bebidas, sides, postres).
+   *  "pepsi" en una burger → "Sodas — Pepsi, Sprite & more · Add after this". */
+  findOnMenu?: (query: string) => Product[];
+  /** Producto que se abre cuando el cliente agrega este plato. */
+  queued?: Product | null;
+  onQueue?: (product: Product) => void;
+  onUnqueue?: () => void;
   fmtPrice: (n: number) => string;
   t: Translations;
   locale: Locale;
@@ -40,6 +47,10 @@ export function AddonSearch({
   onRevealGroup,
   onGoToNotes,
   onFocusInput,
+  findOnMenu,
+  queued = null,
+  onQueue,
+  onUnqueue,
   fmtPrice,
   t,
   locale,
@@ -68,6 +79,10 @@ export function AddonSearch({
     .join(", ");
   const trimmed = query.trim();
   const noResults = trimmed.length >= 2 && results.length === 0;
+  const menuHits = useMemo(
+    () => (noResults && findOnMenu ? findOnMenu(trimmed).slice(0, 2) : []),
+    [noResults, findOnMenu, trimmed],
+  );
 
   const isSelected = (o: ModifierOption) => selected.some((s) => s.id === o.id);
 
@@ -201,7 +216,37 @@ export function AddonSearch({
           </div>
         )}
 
-        {noResults && (
+        {menuHits.length > 0 && onQueue && (
+          <div className="mt-2 rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+            {menuHits.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  onQueue(p);
+                  setQuery("");
+                }}
+                className="w-full min-h-[52px] flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 active:bg-gray-100"
+              >
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[15px] leading-snug text-gray-900 font-medium">
+                    {tName(p, locale, defaultLocale)}
+                  </span>
+                  <span className="block text-[13px] leading-snug text-gray-600">
+                    {t.addonSearchOnMenu} · {fmtPrice(Number(p.price))}
+                  </span>
+                </span>
+                <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#047a65] flex-shrink-0">
+                  <Plus className="w-4 h-4" aria-hidden="true" />
+                  {t.addonSearchAddAfter}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Una soda no va en las instrucciones del plato: si está en el menú, solo eso. */}
+        {noResults && menuHits.length === 0 && (
           <div className="mt-2 rounded-2xl bg-gray-50 px-4 py-3">
             <p className="text-[14px] text-gray-700">{t.addonSearchNone(trimmed)}</p>
             <button
@@ -214,6 +259,23 @@ export function AddonSearch({
           </div>
         )}
       </div>
+
+      {queued && (
+        <div className="mt-3 flex items-center gap-2 rounded-2xl bg-[#e6faf7] px-4 py-2.5" role="status">
+          <p className="flex-1 min-w-0 text-[14px] leading-snug text-[#04241E]">
+            {t.addonSearchQueued(tName(queued, locale, defaultLocale))}
+          </p>
+          {onUnqueue && (
+            <button
+              type="button"
+              onClick={onUnqueue}
+              className="flex-shrink-0 min-h-[40px] px-2 text-[13px] font-semibold text-[#047a65] underline underline-offset-2"
+            >
+              {t.addonSearchUnqueue}
+            </button>
+          )}
+        </div>
+      )}
 
       {selected.length > 0 && (
         <ul className="mt-3 flex flex-wrap gap-2" aria-label={title}>

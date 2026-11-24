@@ -44,6 +44,7 @@ import { rebuildSelections } from "@/lib/reorder";
 import { DIETARY_TAGS, getTagConfig } from "@/lib/dietary-tags";
 import { tName, tDesc } from "@/lib/i18n";
 import { searchMenu, suggestedCategories } from "@/lib/menu-search";
+import { cartSuggestions } from "@/lib/cart-suggestions";
 import { trackEvent } from "@/lib/analytics";
 
 import { useCheckoutStore } from "@/lib/store/checkoutStore";
@@ -764,6 +765,10 @@ export function MenuShell({
 
   const cartColRef = useRef<HTMLDivElement>(null);
 
+  // "pepsi" typed in a burger's add-on search: the soda opens right after the
+  // burger is added, so the diner never loses the dish they were building.
+  const [queuedNext, setQueuedNext] = useState<Product | null>(null);
+
   // The xl cart column starts below the cover photo, so with a fixed
   // h-[calc(100dvh-48px)] its footer (total + Checkout) sat ~180px below the
   // fold until the diner scrolled. Fit its height to what is visible instead.
@@ -1160,6 +1165,7 @@ export function MenuShell({
   // column, so there's nothing to reopen.
   const handleCloseCustomization = useCallback(() => {
     const wasEditing = customization !== null && customization.editIndex !== null;
+    setQueuedNext(null);
     setCustomization(null);
     if (wasEditing && !isXlView) setOpen(true);
   }, [customization, isXlView, setOpen]);
@@ -1678,69 +1684,90 @@ export function MenuShell({
     classifyProduct,
   ]);
 
-  // Cart-based suggestions: regex-fallback only (data-driven needs an active anchor
-  // in customization). Anchor is the most recently added cart item.
-  const firstCartProductId = useCartStore(
-    (s) => s.items[s.items.length - 1]?.product.id ?? null,
-  );
+  // "Complete your order": looks at the WHOLE cart (lib/cart-suggestions) —
+  // what kind is missing (drink, side, dessert) and the owner's pairings of
+  // every dish in it. It used to anchor on the last item only, and the cart
+  // never drew it once it had items.
+  const cartIdsKey = useCartStore((s) => s.items.map((i) => i.product.id).join(","));
+  const [cartPairings, setCartPairings] = useState<Map<string, string[]>>(() => new Map());
+  useEffect(() => {
+    const ids = Array.from(new Set(cartIdsKey.split(",").filter(Boolean)));
+    if (ids.length === 0) {
+      setCartPairings(new Map());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await getSupabaseBrowser()
+          .from("product_pairings")
+          .select("product_id, paired_id, sort_order")
+          .in("product_id", ids)
+          .order("sort_order", { ascending: true });
+        if (cancelled) return;
+        const map = new Map<string, string[]>();
+        for (const r of (data ?? []) as Array<{ product_id: string; paired_id: string }>) {
+          const list = map.get(r.product_id) ?? [];
+          list.push(r.paired_id);
+          map.set(r.product_id, list);
+        }
+        setCartPairings(map);
+      } catch {
+        // Non-critical — the menu-order fallback still fills the row.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cartIdsKey]);
+
   const cartBasedSuggestions = useMemo(() => {
-    if (!firstCartProductId) return [];
-    const anchor = liveProducts.find((p) => p.id === firstCartProductId);
-    if (!anchor) return [];
+    const cartIds = cartIdsKey.split(",").filter(Boolean);
+    if (cartIds.length === 0) return [];
 
     const hour = inTimeZone(new Date(), restaurant.timezone || "UTC").getHours();
     const isBreakfastHour = hour >= 5 && hour < 11;
     const alcoholRegex =
       /cerveza|beer|vino|wine|margarita|coctel|cocktail|mojito|sangria|michelada|alcohol/i;
-    const isAlcohol = (p: Product) =>
-      alcoholRegex.test(
-        `${p.name} ${categories.find((c) => c.id === p.category_id)?.name ?? ""}`,
-      );
+    const catName = (p: Product) => categories.find((c) => c.id === p.category_id)?.name ?? "";
 
-    const anchorCat = categories.find((c) => c.id === anchor.category_id);
-    const anchorType = classifyProduct(anchorCat?.name ?? "", anchor.name);
-    const wantOrder: Array<"drink" | "dessert" | "side" | "main"> = (() => {
-      if (anchorType === "main") return ["drink", "side", "dessert"];
-      if (anchorType === "side") return ["drink", "main", "dessert"];
-      if (anchorType === "dessert") return ["drink", "main"];
-      return ["main", "side", "dessert"];
-    })();
-
-    return liveProducts
-      .filter(
-        (p) =>
-          p.id !== anchor.id &&
-          p.in_stock !== false &&
-          !cartProductIds.has(p.id) &&
-          !(isBreakfastHour && isAlcohol(p)) &&
-          // Same rule as the sheet: by category only, never another main.
-          !(
-            anchorType === "main" &&
-            classifyProduct(
-              categories.find((c) => c.id === p.category_id)?.name ?? "",
-              "",
-            ) === "main"
-          ),
-      )
-      .map((p) => {
-        const cat = categories.find((c) => c.id === p.category_id);
-        const pType = classifyProduct(cat?.name ?? "", p.name);
-        const typeRank = wantOrder.indexOf(pType);
-        const baseRank = typeRank === -1 ? wantOrder.length + 1 : typeRank;
-        const featuredBoost = p.is_featured ? 0 : 3;
-        return { product: p, score: baseRank * 10 + featuredBoost };
-      })
-      .sort((a, b) => a.score - b.score)
-      .slice(0, 5)
-      .map(({ product }) => product);
+    return cartSuggestions({
+      cartProductIds: cartIds,
+      products: liveProducts,
+      // By category only, as in the sheet: "Crab Cakes Benedict" is not a cake.
+      kindOf: (p) => classifyProduct(catName(p), ""),
+      pairings: cartPairings,
+      isAllowed: (p) =>
+        p.in_stock !== false &&
+        p.is_active !== false &&
+        !(isBreakfastHour && alcoholRegex.test(`${p.name} ${catName(p)}`)),
+      limit: 4,
+    });
   }, [
-    firstCartProductId,
+    cartIdsKey,
+    cartPairings,
     restaurant.timezone,
     liveProducts,
     categories,
-    cartProductIds,
     classifyProduct,
   ]);
+
+  // Add-on search fallback: only drinks, sides and desserts — a dish's add-on
+  // box never sends the diner off to another main.
+  const findOnMenu = useCallback(
+    (query: string): Product[] => {
+      const catName = (p: Product) => categories.find((c) => c.id === p.category_id)?.name ?? "";
+      const pool = liveProducts.filter(
+        (p) =>
+          p.in_stock !== false &&
+          p.is_active !== false &&
+          p.id !== customization?.product.id &&
+          classifyProduct(catName(p), "") !== "main",
+      );
+      return searchMenu({ products: pool, categories, query, locale, defaultLocale }) ?? [];
+    },
+    [liveProducts, categories, classifyProduct, customization?.product.id, locale, defaultLocale],
+  );
 
   const handleCartSuggestionAdd = useCallback(
     (product: Product) => {
@@ -4632,7 +4659,25 @@ export function MenuShell({
                 editIndex={customization.editIndex}
                 onClose={handleCloseCustomization}
                 onViewCart={handleViewCartFromCustomization}
-                onAddToCart={showToast}
+                onAddToCart={(name) => {
+                  showToast(name);
+                  const next = queuedNext;
+                  if (next) {
+                    setQueuedNext(null);
+                    // Let "Added" register before the next sheet replaces this one.
+                    setTimeout(() => setCustomization({ product: next, editIndex: null }), 450);
+                  }
+                }}
+                findOnMenu={findOnMenu}
+                queuedNext={queuedNext}
+                onQueueNext={(p) => {
+                  if ((p.variants?.length ?? 0) > 0 || (p.extras?.length ?? 0) > 0 || p.has_modifiers) {
+                    setQueuedNext(p);
+                  } else {
+                    handleQuickAdd(p);
+                  }
+                }}
+                onUnqueueNext={() => setQueuedNext(null)}
                 fmtPrice={fmtPrice}
                 t={t}
                 locale={locale}

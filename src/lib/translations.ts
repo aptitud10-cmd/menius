@@ -174,6 +174,12 @@ export interface Translations {
   groupDone: string;
   groupRequired: string;
   goesWellWith: string;
+  completeYourOrder: string;
+  addToOrder: string;
+  addonSearchOnMenu: string;
+  addonSearchAddAfter: string;
+  addonSearchQueued: (name: string) => string;
+  addonSearchUnqueue: string;
   menuSheetTitle: string;
   searchDishes: (n: number) => string;
   menuSections: string;
@@ -666,6 +672,12 @@ const es: Translations = {
   groupDone: 'Listo',
   groupRequired: 'Obligatorio',
   goesWellWith: 'Para acompañar',
+  completeYourOrder: 'Completa tu pedido',
+  addToOrder: 'Agregar',
+  addonSearchOnMenu: 'Está en el menú',
+  addonSearchAddAfter: 'Agregar después',
+  addonSearchQueued: (name) => `${name} se abre cuando agregues este plato`,
+  addonSearchUnqueue: 'Quitar',
   menuSheetTitle: 'Menú',
   searchDishes: (n) => `Buscar entre ${n} platos`,
   menuSections: 'Secciones',
@@ -1140,6 +1152,12 @@ const en: Translations = {
   groupDone: 'Done',
   groupRequired: 'Required',
   goesWellWith: 'Goes well with',
+  completeYourOrder: 'Complete your order',
+  addToOrder: 'Add',
+  addonSearchOnMenu: 'On the menu',
+  addonSearchAddAfter: 'Add after this',
+  addonSearchQueued: (name) => `${name} opens after you add this dish`,
+  addonSearchUnqueue: 'Remove',
   menuSheetTitle: 'Menu',
   searchDishes: (n) => `Search ${n} dishes`,
   menuSections: 'Sections',

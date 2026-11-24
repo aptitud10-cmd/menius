@@ -410,6 +410,7 @@ export function CartPanel({
   }
 
   // ── Filled cart ────────────────────────────────────────────────────────────
+  const fullSuggestions = suggestions?.filter((p) => p.in_stock !== false).slice(0, 4) ?? [];
   return (
     <div className="flex flex-col h-full">
 
@@ -629,6 +630,45 @@ export function CartPanel({
           );
         })}
         </AnimatePresence>
+
+        {/* ── Complete your order ── what the cart is missing (lib/cart-suggestions):
+            a drink with a burger, fries, then dessert — never what is already in it. */}
+        {fullSuggestions.length > 0 && onSuggestionAdd && (
+          <section className="pt-3 pb-1" aria-labelledby="cart-complete-title">
+            <h3 id="cart-complete-title" className="text-[15px] font-semibold text-gray-900 mb-2">
+              {t.completeYourOrder}
+            </h3>
+            <div
+              className="-mx-4 px-4 flex gap-2.5 overflow-x-auto pb-1"
+              style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+            >
+              {fullSuggestions.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onSuggestionAdd(p)}
+                  aria-label={`${t.addToOrder} ${p.name}`}
+                  className="flex-shrink-0 w-[112px] text-left rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                >
+                  <div className="relative w-full aspect-square bg-gray-100">
+                    {!showsAsRow(p) && p.image_url ? (
+                      <Image src={p.image_url} alt="" fill sizes="112px" className="object-cover" />
+                    ) : (
+                      <ProductGlyph name={p.name} className="w-full h-full" iconClassName="w-6 h-6" />
+                    )}
+                    <span className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-white border-[1.5px] border-[#05c8a7] flex items-center justify-center shadow-sm" aria-hidden>
+                      <Plus className="w-4 h-4 text-[#047a65]" />
+                    </span>
+                  </div>
+                  <div className="px-2 py-1.5">
+                    <p className="text-[13px] font-medium text-gray-900 line-clamp-2 leading-tight">{p.name}</p>
+                    <p className="text-[13px] font-semibold text-gray-800 tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
       </div>
 

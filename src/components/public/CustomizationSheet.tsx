@@ -66,6 +66,12 @@ interface CustomizationSheetProps {
   isPreview?: boolean;
   /** IANA zone of the restaurant: option hours (Grits 5:30–11 AM) are local. */
   timeZone?: string | null;
+  /** Add-on search fallback: drinks/sides/desserts on the menu ("pepsi" in a burger). */
+  findOnMenu?: (query: string) => Product[];
+  /** Product to open once this dish is added ("Add after this"). */
+  queuedNext?: Product | null;
+  onQueueNext?: (product: Product) => void;
+  onUnqueueNext?: () => void;
 }
 
 export function CustomizationSheet({
@@ -82,6 +88,10 @@ export function CustomizationSheet({
   onSuggestAdd,
   isPreview = false,
   timeZone,
+  findOnMenu,
+  queuedNext = null,
+  onQueueNext,
+  onUnqueueNext,
 }: CustomizationSheetProps) {
   const displayName = tName(product, locale, defaultLocale);
   const displayDesc = tDesc(product, locale, defaultLocale);
@@ -1358,6 +1368,10 @@ export function CustomizationSheet({
               onRevealGroup={pointToGroup}
               onGoToNotes={goToNotes}
               onFocusInput={() => scrollSheetTo(searchBlockRef.current)}
+              findOnMenu={isEditing ? undefined : findOnMenu}
+              queued={queuedNext}
+              onQueue={onQueueNext}
+              onUnqueue={onUnqueueNext}
               fmtPrice={fmtPrice}
               t={t}
               locale={locale}
