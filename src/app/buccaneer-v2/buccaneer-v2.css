@@ -911,6 +911,44 @@
 .b2-phrase .b2-d2 {
   max-width: 18ch;
 }
+/* Parties, offices & gifts (Tanda 3): the menu cover's three lines, a hairline
+   under the phrase. Catering leads (the big order); the other two are rows
+   with hairlines, like the Lunchtime list. No icons, no cards. */
+.b2-extra {
+  margin-top: 48px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+}
+.b2-extra__h {
+  color: var(--ink2);
+  font-weight: 400;
+}
+.b2-extra__lead {
+  margin-top: 16px;
+  max-width: 14ch;
+  font-size: max(var(--t-d3), calc(var(--t-d2) * 0.75));
+}
+.b2-extra__list {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+}
+.b2-extra__list li {
+  padding: 12px 0;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+}
+.b2-extra__list li:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+}
+.b2-extra__call {
+  margin-top: 24px;
+}
+/* the two numbers sit together: their own line on phones, inline from tablet */
+.b2-extra__tels {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 24px;
+}
 
 /* ------------------------------------------------------------------- Visit */
 .b2-visit {
@@ -1374,6 +1412,19 @@
   }
   .b2-phrase .b2-d2 {
     max-width: 613px;
+  }
+  .b2-extra__body {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    column-gap: 24px;
+    align-items: start; /* the lead and the first row share a top line */
+  }
+  .b2-extra__list {
+    margin-top: 16px;
+  }
+  /* the call line closes the right column, under the two rows */
+  .b2-extra__call {
+    margin-top: 12px;
   }
 
   /* Visit T1 */
@@ -1971,6 +2022,19 @@
   .b2-phrase {
     padding-top: 128px;
     padding-bottom: 128px;
+  }
+  /* same columns as the phrase (3–10), so the block reads as its footnote */
+  .b2-extra {
+    margin-top: 96px;
+    margin-left: calc(2 * (var(--colw) + 24px));
+    width: calc(8 * var(--colw) + 7 * 24px);
+    padding-top: 24px;
+  }
+  .b2-extra__body {
+    grid-template-columns: 5fr 3fr;
+  }
+  .b2-extra__call {
+    margin-top: 32px;
   }
   .b2-phrase .b2-d2 {
     max-width: none;

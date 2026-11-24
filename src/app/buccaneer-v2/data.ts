@@ -22,6 +22,9 @@ export const MENU_URL = 'https://menius.app/buccaneer';
 export const SITE_URL = 'https://menius.app/buccaneer-v2';
 export const PHONE_TEXT = '(718) 429-5188';
 export const PHONE_HREF = 'tel:+17184295188';
+/** Second line, printed on the menu cover (2026-11-23). */
+export const PHONE2_TEXT = '(718) 457-6803';
+export const PHONE2_HREF = 'tel:+17184576803';
 export const DIRECTIONS_URL =
   'https://maps.google.com/?q=9301+Astoria+Blvd,+East+Elmhurst,+NY+11369';
 export const ADDRESS_1 = '9301 Astoria Boulevard';

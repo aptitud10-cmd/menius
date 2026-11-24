@@ -12,6 +12,8 @@ import {
   MENU_URL,
   SITE_URL,
   PHONE_HREF,
+  PHONE2_HREF,
+  PHONE2_TEXT,
   PHONE_TEXT,
   PIZARRA,
   item,
@@ -399,6 +401,31 @@ export default async function BuccaneerV2Page() {
           <p className="b2-d2">
             {COUNTS.total}&nbsp;dishes, breakfast all day, open&nbsp;24/7. Dine-in, pickup, or delivery.
           </p>
+          {/* Tanda 3: the three services the printed menu cover announces, in its own words.
+              Their current site says "For Catering Inquiries" with no contact at all. */}
+          <div className="b2-extra" id="catering">
+            <h2 className="b2-meta b2-extra__h">Parties, offices &amp; gifts</h2>
+            <div className="b2-extra__body">
+              <p className="b2-d3 b2-extra__lead">Let us cater your next party.</p>
+              <div className="b2-extra__side">
+                <ul className="b2-extra__list">
+                  <li className="b2-lg">Corporate accounts welcome.</li>
+                  <li className="b2-lg">Gift certificates available.</li>
+                </ul>
+                <p className="b2-lg b2-extra__call">
+                  Ask at the counter or call{' '}
+                  <span className="b2-extra__tels">
+                    <a className="b2-lnk" href={PHONE_HREF}>
+                      {PHONE_TEXT}
+                    </a>
+                    <a className="b2-lnk" href={PHONE2_HREF}>
+                      {PHONE2_TEXT}
+                    </a>
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* ------------------------------------------------------------ Visit */}
@@ -427,6 +454,10 @@ export default async function BuccaneerV2Page() {
                 <dd className="b2-lg">
                   <a className="b2-lnk" href={PHONE_HREF}>
                     {PHONE_TEXT}
+                  </a>
+                  <br />
+                  <a className="b2-lnk" href={PHONE2_HREF}>
+                    {PHONE2_TEXT}
                   </a>
                 </dd>
               </div>
@@ -511,6 +542,9 @@ export default async function BuccaneerV2Page() {
           <span>{ADDRESS_2}</span>
           <a className="b2-lnk" href={PHONE_HREF}>
             {PHONE_TEXT}
+          </a>
+          <a className="b2-lnk" href={PHONE2_HREF}>
+            {PHONE2_TEXT}
           </a>
           <a className="b2-lnk" href={MENU_URL}>
             Full menu — {COUNTS.total} dishes →
