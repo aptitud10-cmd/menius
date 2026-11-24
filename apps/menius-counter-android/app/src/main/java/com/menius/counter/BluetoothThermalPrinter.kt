@@ -5,6 +5,7 @@ import android.content.Context
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -26,6 +27,9 @@ object BluetoothThermalPrinter {
      */
     private const val CONNECT_TIMEOUT_MS = 8_000L
 
+    /** ~300 ms base + 1 ms per 20 bytes (SPP moves a few KB/s in practice), capped at 2 s. */
+    internal fun drainDelayMs(bytes: Int): Long = minOf(2_000L, 300L + bytes / 20L)
+
     suspend fun send(context: Context, macAddress: String, data: ByteArray): Result<Unit> {
         val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
             ?: return Result.failure(IllegalStateException("NO_BLUETOOTH"))
@@ -39,6 +43,10 @@ object BluetoothThermalPrinter {
         } catch (e: IllegalArgumentException) {
             return Result.failure(IllegalStateException("BAD_MAC"))
         }
+
+        // Android docs: an ongoing discovery slows connect() down a lot and can make it fail.
+        // Needs BLUETOOTH_SCAN on 12+; without it, skip it rather than fail the print.
+        try { adapter.cancelDiscovery() } catch (_: SecurityException) { }
 
         val socket = try {
             device.createRfcommSocketToServiceRecord(SPP_UUID)
@@ -60,6 +68,10 @@ object BluetoothThermalPrinter {
                         offset += len
                     }
                     stream.flush()
+                    // flush() on a Bluetooth stream returns before the bytes are on the air.
+                    // Closing right away (end of `use`) drops what's still in flight on some
+                    // cheap printers: "sent" but nothing prints. Give it time, by size.
+                    delay(drainDelayMs(data.size))
                 }
             }
             Result.success(Unit)

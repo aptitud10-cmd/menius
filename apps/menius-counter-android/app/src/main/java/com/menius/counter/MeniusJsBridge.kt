@@ -10,50 +10,78 @@ import android.os.VibratorManager
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.widget.Toast
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Exposed to the WebView as [MeniusAndroid].
- * From Counter: `MeniusAndroid.printReceipt(JSON.stringify(payload))` → returns "OK" or error code.
  *
- * On blocking: the web side (src/lib/printing/native-bridge.ts) reads the return
- * value synchronously, so this call has to block — going async would mean
- * changing the JS contract and shipping both sides in lockstep. What was fixed
- * instead is the *unbounded* wait: BluetoothThermalPrinter had no timeout at all
- * (socket.connect() can hang for a long time with the printer off), which froze
- * the Counter UI mid-service. Both transports are now capped, so the worst case
- * is a few seconds and a clear toast rather than a dead tablet.
+ * Two ways to print, same result string ("OK", "NO_PRINTER: …" or "PRINT_ERROR: …"):
  *
- * @JavascriptInterface methods run on a dedicated WebView thread, never on the
- * UI thread — the freeze is the WebView waiting for the JS return, not this
- * thread blocking the main looper.
+ * - `printReceiptAsync(json, callbackId)` (1.0.7+) — returns at once; when the
+ *   printer is done the result comes back through
+ *   `window.__meniusPrintDone(callbackId, result)` (MainActivity.deliverPrintResult).
+ *   Tested 2026-11-24 on a Galaxy Tab A11: with the sync call, a printer that
+ *   didn't answer froze the whole Counter ~8 s per attempt, and taps made while
+ *   frozen queued up and froze it again — minutes without buttons mid-service.
+ *   The web (src/lib/printing/native-bridge.ts) uses this one when it exists.
+ * - `printReceipt(json)` — the old blocking call, kept for web builds that don't
+ *   know the async one (both sides ship independently).
+ *
+ * Jobs run one at a time ([printMutex]): two tickets at once would fight over the
+ * single Bluetooth/TCP connection the printer accepts.
  */
 class MeniusJsBridge(private val activity: MainActivity) {
 
     private val context: Context get() = activity
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val printMutex = Mutex()
+    private var lastToast: Toast? = null
 
     @JavascriptInterface
-    fun printReceipt(jsonPayload: String): String {
+    fun printReceiptAsync(jsonPayload: String, callbackId: String) {
+        scope.launch {
+            // The web shows its own error banner for the async path: no native toast here.
+            val result = printMutex.withLock { print(jsonPayload, toastOnError = false) }
+            activity.deliverPrintResult(callbackId, result)
+        }
+    }
+
+    @JavascriptInterface
+    fun printReceipt(jsonPayload: String): String =
+        runBlocking(Dispatchers.IO) { printMutex.withLock { print(jsonPayload, toastOnError = true) } }
+
+    private suspend fun print(jsonPayload: String, toastOnError: Boolean): String {
         return try {
             val lineWidth = PrinterPreferences.lineWidthChars(context)
             val bytes = ReceiptEscPosBuilder.build(jsonPayload, lineWidth)
 
-            val result = runBlocking(Dispatchers.IO) {
+            val result = run {
                 when (PrinterPreferences.getMode(context)) {
                     PrinterPreferences.MODE_NETWORK -> {
                         val ip = PrinterPreferences.getNetworkIp(context)
-                            ?: return@runBlocking Result.failure(
+                        if (ip == null) {
+                            Result.failure(
                                 IllegalStateException("NO_PRINTER: Open Printer settings in the Counter menu and enter the printer IP address")
                             )
-                        NetworkThermalPrinter.send(ip, bytes)
+                        } else {
+                            NetworkThermalPrinter.send(ip, bytes)
+                        }
                     }
                     else -> {
                         val mac = PrinterPreferences.getBluetoothAddress(context)
-                            ?: return@runBlocking Result.failure(
+                        if (mac == null) {
+                            Result.failure(
                                 IllegalStateException("NO_PRINTER: Open Printer settings in the Counter menu and select a paired device")
                             )
-                        BluetoothThermalPrinter.send(context.applicationContext, mac, bytes)
+                        } else {
+                            BluetoothThermalPrinter.send(context.applicationContext, mac, bytes)
+                        }
                     }
                 }
             }
@@ -63,14 +91,14 @@ class MeniusJsBridge(private val activity: MainActivity) {
                 onFailure = { e ->
                     val msg = e.message ?: e.javaClass.simpleName
                     Log.e(TAG, "print failed", e)
-                    showToast("Print: $msg")
+                    if (toastOnError) showToast("Print: $msg")
                     if (msg.startsWith("NO_PRINTER")) msg else "PRINT_ERROR: $msg"
                 }
             )
         } catch (e: Exception) {
             Log.e(TAG, "printReceipt", e)
             val msg = e.message ?: "parse_error"
-            showToast("Print: $msg")
+            if (toastOnError) showToast("Print: $msg")
             "PRINT_ERROR: $msg"
         }
     }
@@ -108,9 +136,11 @@ class MeniusJsBridge(private val activity: MainActivity) {
     @JavascriptInterface
     fun getAppVersion(): String = BuildConfig.VERSION_NAME
 
+    /** Replaces the previous toast instead of queueing: N failures used to mean N toasts in a row for minutes. */
     private fun showToast(msg: String) {
         Handler(Looper.getMainLooper()).post {
-            Toast.makeText(context.applicationContext, msg, Toast.LENGTH_LONG).show()
+            lastToast?.cancel()
+            lastToast = Toast.makeText(context.applicationContext, msg, Toast.LENGTH_LONG).also { it.show() }
         }
     }
 

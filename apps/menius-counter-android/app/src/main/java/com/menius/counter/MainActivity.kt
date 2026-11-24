@@ -30,6 +30,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.menius.counter.databinding.ActivityMainBinding
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
@@ -260,6 +261,20 @@ class MainActivity : AppCompatActivity() {
 
     fun openPrinterSettings() {
         startActivity(Intent(this, PrinterSettingsActivity::class.java))
+    }
+
+    /**
+     * Result of MeniusJsBridge.printReceiptAsync back to the page (any thread → UI thread).
+     * The page registers window.__meniusPrintDone (src/lib/printing/native-bridge.ts);
+     * if it navigated away meanwhile, the && guard makes this a no-op.
+     */
+    fun deliverPrintResult(callbackId: String, result: String) {
+        runOnUiThread {
+            if (isFinishing || isDestroyed) return@runOnUiThread
+            val js = "window.__meniusPrintDone&&window.__meniusPrintDone(" +
+                "${JSONObject.quote(callbackId)},${JSONObject.quote(result)})"
+            binding.webView.evaluateJavascript(js, null)
+        }
     }
 
     /** Clear the session and return to the pairing screen so a different
