@@ -36,3 +36,25 @@ export function isAlreadyRefundedError(err: unknown): boolean {
   const code = (err as { code?: unknown } | null)?.code;
   return code === 'charge_already_refunded';
 }
+
+/**
+ * Clave de idempotencia para un reembolso que se puede reintentar: cambia cada
+ * hora (UTC). Stripe guarda 24 h la respuesta de una clave, errores incluidos:
+ * con una clave fija o por día, un rechazo por saldo se "repetía" desde la
+ * caché sin volver a intentarse hasta el día siguiente. Todos nuestros
+ * reembolsos son totales, así que no se pueden duplicar: el segundo da
+ * charge_already_refunded (Stripe cuenta también los pendientes).
+ */
+export function refundRetryKey(prefix: string, paymentIntentId: string, now = new Date()): string {
+  return `${prefix}:${paymentIntentId}:${now.toISOString().slice(0, 13)}`;
+}
+
+/**
+ * ¿Stripe ya intentó devolver este pago y el banco lo rechazó (tarjeta
+ * cerrada, perdida, etc.)? Reintentar a la misma tarjeta vuelve a fallar: esos
+ * casos los resuelve una persona (el webhook refund.failed avisa por email).
+ */
+export async function hasFailedRefund(paymentIntentId: string): Promise<boolean> {
+  const refunds = await getStripe().refunds.list({ payment_intent: paymentIntentId, limit: 10 });
+  return refunds.data.some((r) => r.status === 'failed');
+}

@@ -27,7 +27,7 @@ const req = (sig: string | null = 'sig') =>
   });
 
 const accountUpdated = { id: 'evt_a', type: 'account.updated', account: 'acct_1', data: { object: { id: 'acct_1' } } };
-const readyAccount = { capabilities: { card_payments: 'active' }, requirements: { currently_due: [], past_due: [] } };
+const readyAccount = { charges_enabled: true, capabilities: { card_payments: 'active', transfers: 'active' } };
 
 describe('POST /api/connect/webhook', () => {
   beforeEach(() => {
@@ -67,10 +67,18 @@ describe('POST /api/connect/webhook', () => {
 
   it('account.updated con verificación pendiente: lo deja apagado', async () => {
     mockConstructEvent.mockReturnValue(accountUpdated);
-    mockAccountRetrieve.mockResolvedValue({ capabilities: { card_payments: 'pending' }, requirements: { currently_due: [], past_due: [] } });
+    mockAccountRetrieve.mockResolvedValue({ charges_enabled: false, capabilities: { card_payments: 'pending', transfers: 'active' } });
     const { POST } = await import('@/app/api/connect/webhook/route');
     await POST(req() as never);
     expect(mockUpdate).toHaveBeenCalledWith({ stripe_onboarding_complete: false });
+  });
+
+  it('Stripe pide un dato con plazo pero sigue dejando cobrar: la tarjeta sigue prendida', async () => {
+    mockConstructEvent.mockReturnValue(accountUpdated);
+    mockAccountRetrieve.mockResolvedValue({ ...readyAccount, requirements: { currently_due: ['individual.id_number'], past_due: [] } });
+    const { POST } = await import('@/app/api/connect/webhook/route');
+    await POST(req() as never);
+    expect(mockUpdate).toHaveBeenCalledWith({ stripe_onboarding_complete: true });
   });
 
   it('cuenta desconectada: apaga el cobro con tarjeta', async () => {

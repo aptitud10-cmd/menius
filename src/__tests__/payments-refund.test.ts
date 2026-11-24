@@ -84,6 +84,14 @@ describe('POST /api/payments/refund', () => {
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'refunded', status: 'cancelled' }));
   });
 
+  it('reembolsa aunque la cuenta Connect figure como no lista (el cobro vive en la plataforma)', async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { ...paidOrder, restaurants: { stripe_account_id: null, stripe_onboarding_complete: false } }, error: null });
+    mockRefundCreate.mockResolvedValue({ id: 're_1', status: 'pending' });
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(200);
+    expect(mockRefundCreate).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: 'pi_123', reverse_transfer: true }));
+  });
+
   it('si Stripe rechaza el reembolso, no marca la orden como reembolsada', async () => {
     mockRefundCreate.mockRejectedValue(new Error('Insufficient funds in connected account'));
 

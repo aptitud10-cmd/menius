@@ -41,7 +41,8 @@ function builder(table: string) {
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: () => ({ from: (t: string) => builder(t) }) }));
 
 const mockRefundCreate = vi.fn();
-vi.mock('@/lib/stripe', () => ({ getStripe: () => ({ refunds: { create: mockRefundCreate } }) }));
+const mockRefundList = vi.fn();
+vi.mock('@/lib/stripe', () => ({ getStripe: () => ({ refunds: { create: mockRefundCreate, list: mockRefundList } }) }));
 vi.mock('@/lib/error-reporting', () => ({ captureError: vi.fn() }));
 vi.mock('@/lib/realtime/broadcast-order', () => ({ broadcastOrderUpdate: vi.fn().mockResolvedValue(undefined) }));
 const mockNotify = vi.fn().mockResolvedValue({ success: true });
@@ -67,6 +68,7 @@ describe('cron order-timeouts: pagado y no aceptado', () => {
     process.env.CRON_SECRET = 's3cret';
     vi.clearAllMocks();
     inserts.length = 0;
+    mockRefundList.mockResolvedValue({ data: [] });
   });
 
   it('cancela, reembolsa el total con reverse_transfer y avisa al cliente ya reembolsado', async () => {
@@ -82,7 +84,7 @@ describe('cron order-timeouts: pagado y no aceptado', () => {
     expect(statusWhenRefunded).toBe('cancelled'); // primero se cancela, después se cobra la devolución
     expect(mockRefundCreate).toHaveBeenCalledWith(
       expect.objectContaining({ payment_intent: 'pi_123', reverse_transfer: true, refund_application_fee: false }),
-      { idempotencyKey: `not-accepted-refund:pi_123:${new Date().toISOString().slice(0, 10)}` },
+      { idempotencyKey: `not-accepted-refund:pi_123:${new Date().toISOString().slice(0, 13)}` },
     );
     expect(orders[0]).toMatchObject({ status: 'cancelled', payment_status: 'refunded', cancellation_reason: 'not_accepted' });
     expect(paymentWhenNotified).toBe('refunded'); // el email dice "reembolsado"
@@ -103,6 +105,16 @@ describe('cron order-timeouts: pagado y no aceptado', () => {
     expect(orders[0].payment_status).toBe('refunded');
     expect(body.refunded).toEqual(['ORD-1']);
     expect(mockNotify).toHaveBeenCalledTimes(1);
+  });
+
+  it('si el banco ya rechazó un reembolso (tarjeta cerrada), no lo reintenta: queda para una persona', async () => {
+    orders = [paidPending({ status: 'cancelled', cancellation_reason: 'not_accepted', updated_at: ago(30) })];
+    mockRefundList.mockResolvedValue({ data: [{ id: 're_old', status: 'failed' }] });
+
+    const body = await (await GET(req())).json();
+    expect(mockRefundCreate).not.toHaveBeenCalled();
+    expect(orders[0].payment_status).toBe('paid');
+    expect(body.refundNeedsHuman).toEqual(['ORD-1']);
   });
 
   it('"ya reembolsado" en Stripe cuenta como éxito', async () => {

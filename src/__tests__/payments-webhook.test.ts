@@ -9,7 +9,7 @@ const mockLimit = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
 const mockOrder = vi.fn(() => ({ limit: mockLimit, maybeSingle: mockMaybeSingle }));
 const mockNeq: ReturnType<typeof vi.fn> = vi.fn(() => ({ select: mockSelect, maybeSingle: mockMaybeSingle, order: mockOrder, neq: mockNeq }));
 const mockSelect = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder }));
-const mockEq = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder }));
+const mockEq = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder, limit: mockLimit }));
 const mockUpdate = vi.fn(() => ({ eq: mockEq }));
 const mockInsert = vi.fn();
 const mockUpsert = vi.fn();
@@ -34,12 +34,13 @@ const mockTransferRetrieve = vi.fn();
 const mockCreateReversal = vi.fn();
 const mockPIRetrieve = vi.fn();
 const mockRefundCreate = vi.fn();
+const mockRefundList = vi.fn();
 vi.mock('@/lib/stripe', () => ({
   getStripe: () => ({
     webhooks: { constructEvent: mockConstructEvent },
     charges: { retrieve: mockChargeRetrieve },
     paymentIntents: { retrieve: mockPIRetrieve },
-    refunds: { create: mockRefundCreate },
+    refunds: { create: mockRefundCreate, list: mockRefundList },
     transfers: { retrieve: mockTransferRetrieve, createReversal: mockCreateReversal },
   }),
   getPaymentsWebhookSecret: () => 'whsec_test',
@@ -137,9 +138,10 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     mockSendEmail.mockResolvedValue(true);
     mockDeleteEq.mockResolvedValue({ error: null });
     process.env.ADMIN_EMAIL = 'a@x.com, b@x.com';
+    mockRefundList.mockResolvedValue({ data: [] });
     mockPIRetrieve.mockResolvedValue(paidIntent('US'));
     mockUpdate.mockReturnValue({ eq: mockEq });
-    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
+    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder, limit: mockLimit });
     mockOrder.mockReturnValue({ limit: mockLimit, maybeSingle: mockMaybeSingle });
     mockLimit.mockReturnValue({ maybeSingle: mockMaybeSingle });
     mockNeq.mockReturnValue({ select: mockSelect, maybeSingle: mockMaybeSingle, order: mockOrder, neq: mockNeq });
@@ -208,8 +210,22 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     expect(res.status).toBe(200);
     expect(mockRefundCreate).toHaveBeenCalledWith(
       expect.objectContaining({ payment_intent: 'pi_B', reason: 'duplicate', reverse_transfer: true }),
-      { idempotencyKey: 'dup-refund:pi_B' },
+      { idempotencyKey: expect.stringMatching(/^dup-refund:pi_B:\d{4}-\d{2}-\d{2}T\d{2}$/) },
     );
+  });
+
+  it('cobro doble cuyo reembolso falla: 500 y libera el evento para que Stripe reintente', async () => {
+    const session = { metadata: { order_id: 'order-dup' }, payment_status: 'paid', payment_intent: 'pi_B', amount_total: 2500 };
+    mockConstructEvent.mockReturnValue({ id: 'evt_dup_fail', type: 'checkout.session.completed', data: { object: session } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 25 }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { payment_status: 'paid', payment_intent_id: 'pi_A' }, error: null });
+    mockRefundCreate.mockRejectedValue(Object.assign(new Error('insufficient balance'), { code: 'balance_insufficient' }));
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(500);
+    expect(mockDeleteEq).toHaveBeenCalledWith('event_id', 'evt_dup_fail');
   });
 
   it('does NOT refund when the same payment arrives twice (session + payment_intent events)', async () => {
@@ -358,7 +374,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     const limit = vi.fn().mockResolvedValue({ data: [{ id: 'order-1', order_number: 'BUC-0042', restaurants: { name: 'Buccaneer' } }], error: null });
     mockEq.mockImplementation(((col: string) => (col === 'payment_intent_id'
       ? { limit }
-      : { eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder })) as never);
+      : { eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder, limit: mockLimit })) as never);
 
     const { POST } = await import('@/app/api/payments/webhook/route');
     const req = makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' });
@@ -378,7 +394,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     const limit = vi.fn().mockResolvedValue({ data: [], error: null });
     mockEq.mockImplementation(((col: string) => (col === 'payment_intent_id'
       ? { limit }
-      : { eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder })) as never);
+      : { eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder, limit: mockLimit })) as never);
     const { POST } = await import('@/app/api/payments/webhook/route');
     const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
     expect(res.status).toBe(200);
@@ -399,7 +415,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     id: 'evt_rf', type: 'refund.failed',
     data: { object: { id: 're_9', payment_intent: 'pi_9', metadata, failure_reason: 'expired_or_canceled_card' } },
   });
-  const defaultEq = () => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
+  const defaultEq = () => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder, limit: mockLimit });
 
   it('refund.failed con metadata: reabre el cobro de ese pedido', async () => {
     mockConstructEvent.mockReturnValue(refundFailed({ order_id: 'order-9' }));
@@ -421,6 +437,25 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     expect(mockEq).toHaveBeenCalledWith('payment_intent_id', 'pi_9');
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
     expect(mockEq).toHaveBeenCalledWith('id', 'order-9');
+  });
+
+  it('refund.failed: avisa por email a cada admin con el pedido y el cliente', async () => {
+    mockConstructEvent.mockReturnValue(refundFailed({ order_id: 'order-9' }));
+    const limit = vi.fn().mockResolvedValue({
+      data: [{ id: 'order-9', order_number: 'BUC-0099', customer_name: 'Ana', customer_email: 'ana@example.com', customer_phone: '+1555', restaurants: { name: 'Buccaneer' } }],
+      error: null,
+    });
+    mockEq.mockImplementation(((col: string) => (col === 'id' ? { limit, eq: mockEq, select: mockSelect } : defaultEq())) as never);
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockSendEmail).toHaveBeenCalledTimes(2);
+    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({
+      to: 'b@x.com',
+      subject: expect.stringContaining('BUC-0099'),
+      html: expect.stringContaining('ana@example.com'),
+    }));
+    mockEq.mockImplementation(defaultEq as never);
   });
 
   it('refund.failed sin metadata y con el PaymentIntent en 2 pedidos: no toca ninguno', async () => {
@@ -507,9 +542,22 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     expect(res.status).toBe(200);
     expect(mockRefundCreate).toHaveBeenCalledWith(
       expect.objectContaining({ payment_intent: 'pi_1', reverse_transfer: true, metadata: expect.objectContaining({ reason: 'paid_after_cancel' }) }),
-      { idempotencyKey: expect.stringMatching(/^cancelled-order-refund:pi_1:\d{4}-\d{2}-\d{2}$/) },
+      { idempotencyKey: expect.stringMatching(/^cancelled-order-refund:pi_1:\d{4}-\d{2}-\d{2}T\d{2}$/) },
     );
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'refunded' }));
+    expect(mockPaymentConfirmed).not.toHaveBeenCalled();
+  });
+
+  it('pago para un pedido cancelado con un reembolso ya rechazado por el banco: no reintenta', async () => {
+    mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: 'order-1', status: 'cancelled', cancellation_reason: null }, error: null });
+    mockRefundList.mockResolvedValue({ data: [{ id: 're_old', status: 'failed' }] });
+    mockTransferRetrieve.mockResolvedValue({ id: 'tr_1', amount: 2900, amount_reversed: 0, destination: 'acct_1' });
+
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockRefundCreate).not.toHaveBeenCalled();
     expect(mockPaymentConfirmed).not.toHaveBeenCalled();
   });
 
@@ -577,7 +625,7 @@ describe('POST /api/payments/wompi-webhook', () => {
       error: null,
     });
     mockUpdate.mockReturnValue({ eq: mockEq });
-    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
+    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder, limit: mockLimit });
     mockOrder.mockReturnValue({ limit: mockLimit, maybeSingle: mockMaybeSingle });
     mockLimit.mockReturnValue({ maybeSingle: mockMaybeSingle });
     mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder });
@@ -712,7 +760,7 @@ describe('POST /api/payments/mercadopago-webhook', () => {
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
     mockInsert.mockResolvedValue({ error: null });
     mockUpdate.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
-    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder });
+    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq, order: mockOrder, limit: mockLimit });
     mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq, order: mockOrder });
   });
 

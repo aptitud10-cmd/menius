@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     // Fetch order — verify it belongs to this tenant's restaurant
     const { data: order, error: orderErr } = await adminDb
       .from('orders')
-      .select('id, order_number, total, payment_status, payment_intent_id, status, promo_code, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, driver_tracking_token, restaurants(stripe_account_id, stripe_onboarding_complete, commission_plan)')
+      .select('id, order_number, total, payment_status, payment_intent_id, status, promo_code, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, driver_tracking_token')
       .eq('id', order_id)
       .eq('restaurant_id', tenant.restaurantId)
       .maybeSingle();
@@ -81,11 +81,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const rest = (order as any).restaurants;
-    if (!rest?.stripe_onboarding_complete || !rest?.stripe_account_id) {
-      return NextResponse.json({ error: 'El restaurante no tiene Stripe configurado.' }, { status: 422 });
-    }
-
+    // Sin chequear stripe_onboarding_complete: el cobro vive en la plataforma
+    // (destination charge) y siempre se puede devolver. Antes, si Stripe le
+    // pedía un dato al restaurante y la bandera se apagaba, el dueño no podía
+    // cancelar ni devolver un pedido ya cobrado. Si la cuenta conectada no
+    // tiene saldo para revertir el transfer, Stripe lo rechaza abajo (502).
     const stripe = getStripe();
 
     // Destination charges are created on the platform account (transfer_data.destination).

@@ -25,7 +25,7 @@ import { createLogger } from '@/lib/logger';
 import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 import { OPEN_ORDER_STATUSES } from '@/lib/order-state';
 import { captureError } from '@/lib/error-reporting';
-import { refundStripePayment, isAlreadyRefundedError } from '@/lib/payments/stripe-refund';
+import { refundStripePayment, isAlreadyRefundedError, refundRetryKey, hasFailedRefund } from '@/lib/payments/stripe-refund';
 import {
   classifyTimeout,
   needsPickupReminder,
@@ -60,11 +60,8 @@ async function refundNotAccepted(db: Db, o: { id: string; order_number: string; 
   try {
     const refund = await refundStripePayment(o.payment_intent_id, {
       reason: 'requested_by_customer',
-      // Clave por día (UTC): Stripe guarda la respuesta de una clave 24 h,
-      // errores incluidos, así que con una clave fija un rechazo de negocio
-      // (saldo del restaurante) se repetiría sin intentarlo de verdad. Un
-      // reembolso total no se puede duplicar: el segundo da charge_already_refunded.
-      idempotencyKey: `not-accepted-refund:${o.payment_intent_id}:${new Date().toISOString().slice(0, 10)}`,
+      // Clave por hora: un rechazo por saldo se reintenta de verdad cada hora.
+      idempotencyKey: refundRetryKey('not-accepted-refund', o.payment_intent_id),
       metadata: { order_id: o.id, reason: NOT_ACCEPTED_REASON },
     });
     if (refund.status === 'failed' || refund.status === 'canceled') {
@@ -119,6 +116,7 @@ export async function GET(req: Request) {
   const reminded: string[] = [];
   const refunded: string[] = [];
   const refundFailed: string[] = [];
+  const refundNeedsHuman: string[] = [];
 
   // Reintentos: cancelados por no aceptados que siguen cobrados (Stripe falló
   // en una vuelta anterior). Ventana de 30 días: más atrás ya es caso manual.
@@ -134,6 +132,18 @@ export async function GET(req: Request) {
   if (stuckErr) logger.error('refund retry fetch failed', { error: stuckErr.message });
   for (const o of stuck ?? []) {
     if (!needsRefundRetry(o)) continue;
+    // Si el banco ya rechazó un reembolso (tarjeta cerrada, perdida…), volver
+    // a mandarlo a la misma tarjeta falla igual y se repetía todos los días.
+    // Lo resuelve una persona: refund.failed ya mandó el email a los admins.
+    try {
+      if (await hasFailedRefund(o.payment_intent_id as string)) {
+        refundNeedsHuman.push(o.order_number);
+        continue;
+      }
+    } catch (err) {
+      logger.warn('refund list failed — retry skipped this round', { orderId: o.id, error: err instanceof Error ? err.message : String(err) });
+      continue;
+    }
     const ok = await refundNotAccepted(db, { id: o.id, order_number: o.order_number, payment_intent_id: o.payment_intent_id as string });
     (ok ? refunded : refundFailed).push(o.order_number);
   }
@@ -250,8 +260,9 @@ export async function GET(req: Request) {
     refunded: refunded.length,
     refundFailed: refundFailed.length,
     ...(refundFailed.length ? { refundFailedOrders: refundFailed } : {}),
+    ...(refundNeedsHuman.length ? { refundNeedsHumanOrders: refundNeedsHuman } : {}),
     ...(cancelled.length ? { cancelledOrders: cancelled } : {}),
     ...(closed.length ? { closedOrders: closed } : {}),
   });
-  return NextResponse.json({ cancelled, closed, failed, reminded, refunded, refundFailed });
+  return NextResponse.json({ cancelled, closed, failed, reminded, refunded, refundFailed, refundNeedsHuman });
 }
