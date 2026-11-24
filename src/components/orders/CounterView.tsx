@@ -35,6 +35,7 @@ import {
 } from './counter/audio';
 import { CustomizePanel, type AppearancePreview } from './counter/CustomizePanel';
 import { usePauseSync } from '@/hooks/use-pause-sync';
+import { useDeployReload } from '@/hooks/use-deploy-reload';
 import { BUSY_DURATION_MIN, BUSY_OFF, busyExtraAt, busyFromRow, type BusyState } from '@/lib/busy-mode';
 import { useCounterDemo, isDemoId, DEMO_URGENT_AFTER_SECONDS, DEMO_MAX_MS } from './counter/demo';
 import { useCounterSettings } from '@/hooks/use-counter-settings';
@@ -1555,6 +1556,9 @@ export function CounterView({
       .filter(o => o.status === 'pending'),
     [splashQueue, ordersView],
   );
+  // Deploy nuevo → recarga sola en un momento tranquilo (solo en la app: ver el hook).
+  useDeployReload(inApp, () =>
+    newOrders.length > 0 || alertQueue.length > 0 || sheetId !== null || Object.keys(pendingStatus).length > 0);
   // Suena mientras quede alguno sin aceptar ni rechazar (aunque se haya cerrado la alerta).
   // UN solo loop para todos: la alerta del tema cada 3.5 s (o al terminar el clip,
   // si dura más); pasa a la urgente cuando el pendiente más viejo supera
