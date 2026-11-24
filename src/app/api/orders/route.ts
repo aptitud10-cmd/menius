@@ -1549,34 +1549,30 @@ export async function POST(request: NextRequest) {
     // arrastraba la limpieza del tag de reactivación, que nunca corría.
     // Remove reactivation_sent tag now that the customer ordered again, so they
     // can receive future reactivation emails if they become inactive again.
+    // Con afterResponse: un .then() suelto podía cortarse al terminar la
+    // función en Vercel, y con él se perdía el consentimiento de marketing.
     if (customer_email) {
-      adminDb
-        .from("customers")
-        .select("id, tags")
-        .eq("restaurant_id", restaurant_id)
-        .ilike("email", customer_email)
-        .maybeSingle()
-        .then(({ data: cust }) => {
-          if (!cust) return;
-          const tags = (cust.tags ?? []) as string[];
-          let newTags = tags.filter((t) => t !== "reactivation_sent");
-          // Consentimiento de marketing: lo marcó en ESTE pedido. Si antes se había
-          // dado de baja, marcarlo de nuevo es volver a suscribirse (lo eligió él).
-          // Sin marcar no se toca: no destildar no es darse de baja.
-          if (marketing_opt_in) {
-            newTags = newTags.filter((t) => t !== "unsubscribed");
-            if (!newTags.includes("marketing_opt_in")) newTags.push("marketing_opt_in");
-          }
-          if (newTags.length === tags.length && newTags.every((t, i) => t === tags[i])) return;
-          // Sin .then() el builder de Supabase no se ejecuta nunca.
-          adminDb
-            .from("customers")
-            .update({ tags: newTags })
-            .eq("id", cust.id)
-            .then(({ error: tagErr }) => {
-              if (tagErr) logger.warn("customer tags update failed", { error: tagErr.message });
-            });
-        });
+      afterResponse(async () => {
+        const { data: cust } = await adminDb
+          .from("customers")
+          .select("id, tags")
+          .eq("restaurant_id", restaurant_id)
+          .ilike("email", customer_email)
+          .maybeSingle();
+        if (!cust) return;
+        const tags = (cust.tags ?? []) as string[];
+        let newTags = tags.filter((t) => t !== "reactivation_sent");
+        // Consentimiento de marketing: lo marcó en ESTE pedido. Si antes se había
+        // dado de baja, marcarlo de nuevo es volver a suscribirse (lo eligió él).
+        // Sin marcar no se toca: no destildar no es darse de baja.
+        if (marketing_opt_in) {
+          newTags = newTags.filter((t) => t !== "unsubscribed");
+          if (!newTags.includes("marketing_opt_in")) newTags.push("marketing_opt_in");
+        }
+        if (newTags.length === tags.length && newTags.every((t, i) => t === tags[i])) return;
+        const { error: tagErr } = await adminDb.from("customers").update({ tags: newTags }).eq("id", cust.id);
+        if (tagErr) logger.warn("customer tags update failed", { error: tagErr.message });
+      });
     }
 
     // First order "wow" email — fire-and-forget to restaurant owner

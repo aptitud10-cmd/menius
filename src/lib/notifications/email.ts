@@ -33,6 +33,10 @@ interface EmailMessage {
   replyTo?: string; // reply-to address
   subject: string;
   html: string;
+  /** Headers extra (p. ej. List-Unsubscribe en los emails de marketing). */
+  headers?: Record<string, string>;
+  /** Etiquetas de Resend (categoría, restaurante) para filtrar en su panel. */
+  tags?: { name: string; value: string }[];
 }
 
 // ---------- HTML escaping ----------
@@ -54,6 +58,8 @@ export async function sendEmail({
   replyTo,
   subject,
   html,
+  headers,
+  tags,
 }: EmailMessage): Promise<boolean> {
   const apiKey = (process.env.RESEND_API_KEY ?? "").trim();
   if (!apiKey) {
@@ -71,6 +77,8 @@ export async function sendEmail({
       html,
     };
     if (replyTo) payload.reply_to = [replyTo];
+    if (headers && Object.keys(headers).length) payload.headers = headers;
+    if (tags?.length) payload.tags = tags;
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

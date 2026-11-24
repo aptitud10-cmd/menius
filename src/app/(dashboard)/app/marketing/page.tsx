@@ -18,11 +18,14 @@ export default async function MarketingPage() {
     { count: totalCustomers },
     { count: customersWithEmail },
     { count: customersWithPhone },
+    { count: customersOptedIn },
   ] = await Promise.all([
     supabase.from('restaurants').select('name, slug, currency, locale, notification_email, notifications_enabled').eq('id', restaurantId).maybeSingle(),
     supabase.from('customers').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
     supabase.from('customers').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).not('email', 'is', null).neq('email', ''),
     supabase.from('customers').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).not('phone', 'is', null).neq('phone', ''),
+    // A quién le llega una campaña: aceptó ofertas al pedir y no se dio de baja.
+    supabase.from('customers').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).contains('tags', ['marketing_opt_in']).not('tags', 'cs', '{"unsubscribed"}'),
   ]);
 
   return (
@@ -33,6 +36,7 @@ export default async function MarketingPage() {
       totalCustomers={totalCustomers ?? 0}
       customersWithEmail={customersWithEmail ?? 0}
       customersWithPhone={customersWithPhone ?? 0}
+      customersOptedIn={customersOptedIn ?? 0}
       notificationsEnabled={restaurant?.notifications_enabled !== false}
       hasEmail={!!restaurant?.notification_email}
     />

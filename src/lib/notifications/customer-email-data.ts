@@ -168,7 +168,11 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
 }
 
 /** Envía un email al cliente con el restaurante como remitente y reply-to. */
-export async function sendCustomerEmail(order: CustomerEmailOrder, email: BuiltEmail): Promise<boolean> {
+export async function sendCustomerEmail(
+  order: CustomerEmailOrder,
+  email: BuiltEmail,
+  extra?: { headers?: Record<string, string>; tags?: { name: string; value: string }[] },
+): Promise<boolean> {
   if (!order.customerEmail) return false;
   return sendEmail({
     to: order.customerEmail,
@@ -176,6 +180,8 @@ export async function sendCustomerEmail(order: CustomerEmailOrder, email: BuiltE
     replyTo: order.replyTo ?? undefined,
     subject: email.subject,
     html: email.html,
+    headers: extra?.headers,
+    tags: extra?.tags,
   });
 }
 

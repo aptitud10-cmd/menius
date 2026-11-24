@@ -582,3 +582,8 @@ export function buildReviewEmail(ctx: CustomerEmailCtx, opts: { reviewUrl: strin
     : undefined;
   return { subject, preheader, html: layout(ctx, { preheader, title: subject, blocks, footerExtra }) };
 }
+
+// ── Piezas compartidas con los emails de marketing (lib/marketing/emails) ──
+// Mismo layout, tipografía y modo oscuro: el cliente ve una sola marca en el
+// recibo, en el seguimiento y en "¿lo de siempre?".
+export const emailKit = { T, BODY, layout, heading, para, button, link, firstName, money };

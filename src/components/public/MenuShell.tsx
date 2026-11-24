@@ -1375,6 +1375,63 @@ export function MenuShell({
     }
   }, [lastOrder, reorder, liveProducts, setOpen, restaurant.timezone, dismissReorder]);
 
+  // "Pedir lo mismo" desde un email (?repeat=<pedido>&t=<token>): el pedido se
+  // trae de la base (sirve en cualquier dispositivo) y pasa por el mismo
+  // handleReorder, con precios y opciones de hoy. Tocar el link dos veces no
+  // duplica el carrito: si ese pedido ya se agregó y el carrito tiene cosas,
+  // solo se abre.
+  const repeatPending = useRef(false);
+  useEffect(() => {
+    if (!hasMounted) return;
+    const sp = new URLSearchParams(window.location.search);
+    const orderId = sp.get("repeat");
+    const token = sp.get("t");
+    if (!orderId || !token) return;
+    sp.delete("repeat");
+    sp.delete("t");
+    const qs = sp.toString();
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`,
+    );
+    const doneKey = `menius_repeat_done_${orderId}`;
+    try {
+      if (localStorage.getItem(doneKey) && useCartStore.getState().items.length > 0) {
+        setOpen(true);
+        return;
+      }
+    } catch {
+      // Modo privado: se agrega igual.
+    }
+    fetch(`/api/public/order-repeat?o=${encodeURIComponent(orderId)}&t=${encodeURIComponent(token)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { restaurantId?: string; date?: string; items?: unknown[] } | null) => {
+        if (!d || d.restaurantId !== restaurant.id || !Array.isArray(d.items) || d.items.length === 0) return;
+        try {
+          localStorage.setItem(doneKey, "1");
+        } catch {
+          // idem
+        }
+        repeatPending.current = true;
+        useCartStore.setState({
+          lastOrder: {
+            restaurantId: restaurant.id,
+            items: d.items as NonNullable<ReturnType<typeof useCartStore.getState>["lastOrder"]>["items"],
+            date: d.date ?? new Date().toISOString(),
+          },
+        });
+      })
+      .catch(() => {
+        // Link vencido o sin red: queda el menú normal.
+      });
+  }, [hasMounted, restaurant.id, setOpen]);
+  useEffect(() => {
+    if (!repeatPending.current || !lastOrder) return;
+    repeatPending.current = false;
+    void handleReorder();
+  }, [lastOrder, handleReorder]);
+
   // Skipped dish tapped in the cart ("Choose the options again for: …").
   const openProductById = useCallback(
     (productId: string) => {

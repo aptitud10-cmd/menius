@@ -8,6 +8,9 @@ import { formatPrice } from '@/lib/utils';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
+import { cleanSenderName } from '@/lib/notifications/customer-email';
+import { OPT_IN_TAG } from '@/lib/marketing/lifecycle';
+import { listUnsubscribeHeaders, unsubscribeUrl } from '@/lib/marketing/unsubscribe-token';
 
 const logger = createLogger('tenant-campaigns');
 
@@ -107,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('name, slug, currency, locale')
+      .select('name, slug, currency, locale, email')
       .eq('id', tenant.restaurantId)
       .maybeSingle();
 
@@ -122,7 +125,10 @@ export async function POST(request: NextRequest) {
       .eq('restaurant_id', tenant.restaurantId)
       .not('email', 'is', null)
       .neq('email', '')
-      .not('tags', 'cs', '{"unsubscribed"}');
+      .not('tags', 'cs', '{"unsubscribed"}')
+      // Solo quien aceptó recibir ofertas (casilla del checkout). Sin esto la
+      // campaña le llegaba a todo el que alguna vez dejó su email para un pedido.
+      .contains('tags', [OPT_IN_TAG]);
 
     if (filter === 'vip') {
       query = query.gte('total_orders', 5);
@@ -141,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     const recipients = (customers ?? []) as CampaignCustomer[];
     if (recipients.length === 0) {
-      return NextResponse.json({ error: en ? 'No customers with email match the selected filter.' : 'No hay clientes con email que coincidan con el filtro.' }, { status: 400 });
+      return NextResponse.json({ error: en ? 'No customers who accepted offers match the selected filter. Customers join by checking "Email me offers" when they order.' : 'No hay clientes que hayan aceptado ofertas con ese filtro. Se suman al marcar "Quiero recibir ofertas" al pedir.' }, { status: 400 });
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
@@ -155,8 +161,11 @@ export async function POST(request: NextRequest) {
       ctaText: ctaText || (en ? 'View menu' : 'Ver menú'),
       ctaUrl: ctaUrl || menuUrl,
       locale: rLocale,
-      unsubscribeUrl: `${appUrl}/api/unsubscribe?id={customerId}`,
+      unsubscribeUrl: '{unsubscribeUrl}',
     });
+
+    const rawReply = typeof restaurant.email === 'string' ? restaurant.email.trim() : '';
+    const replyTo = /^[^\s@,;/<>"]+@[^\s@,;/<>"]+\.[a-z]{2,}$/i.test(rawReply) ? rawReply : null;
 
     let sent = 0;
     let failed = 0;
@@ -169,12 +178,16 @@ export async function POST(request: NextRequest) {
           .replace(/\{nombre\}/g, escapeHtml(customer.name || 'Cliente'))
           .replace(/\{total_gastado\}/g, formatPrice(customer.total_spent, restaurant.currency ?? 'USD'))
           .replace(/\{total_ordenes\}/g, String(customer.total_orders))
-          .replace(/\{customerId\}/g, customer.id);
+          .replace(/\{unsubscribeUrl\}/g, unsubscribeUrl(appUrl, customer.id).replace(/&/g, '&amp;'));
 
         const success = await sendEmail({
           to: customer.email,
+          from: `"${cleanSenderName(restaurant.name)}" <orders@menius.app>`,
+          replyTo: replyTo ?? undefined,
           subject: personalizedSubject.replace('{nombre}', customer.name || 'Cliente'),
           html: personalizedHtml,
+          headers: listUnsubscribeHeaders(appUrl, customer.id),
+          tags: [{ name: 'category', value: 'campaign' }, { name: 'restaurant_id', value: tenant.restaurantId }],
         });
 
         if (success) sent++;

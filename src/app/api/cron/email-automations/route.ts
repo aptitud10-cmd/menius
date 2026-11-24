@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/notifications/email";
 import { buildReviewEmail } from "@/lib/notifications/customer-email";
 import { loadCustomerEmailOrder, sendCustomerEmail } from "@/lib/notifications/customer-email-data";
 import { createLogger } from "@/lib/logger";
+import { listUnsubscribeHeaders, unsubscribeUrl as signedUnsubscribeUrl } from "@/lib/marketing/unsubscribe-token";
 
 const logger = createLogger("email-automations", { report: true });
 
@@ -802,8 +803,11 @@ async function sendReviewRequests(
         const full = await loadCustomerEmailOrder(order.id);
         if (!full?.customerEmail || !full.notificationsOn) return;
         const reviewUrl = `${full.ctx.menuUrl}/review/${order.id}`;
-        const unsubscribeUrl = full.customerId ? `${appUrl}/api/unsubscribe?id=${full.customerId}` : null;
-        const ok = await sendCustomerEmail(full, buildReviewEmail(full.ctx, { reviewUrl, unsubscribeUrl }));
+        const unsubscribeUrl = full.customerId ? signedUnsubscribeUrl(appUrl, full.customerId) : null;
+        const ok = await sendCustomerEmail(full, buildReviewEmail(full.ctx, { reviewUrl, unsubscribeUrl }), {
+          headers: full.customerId ? listUnsubscribeHeaders(appUrl, full.customerId) : undefined,
+          tags: [{ name: "category", value: "review_request" }],
+        });
         if (!ok) {
           logger.warn("Review request email failed to send", { order_id: order.id });
           return;

@@ -10,6 +10,8 @@ interface Props {
   restaurantLocale: string;
   totalCustomers: number;
   customersWithEmail: number;
+  /** Aceptaron ofertas y no se dieron de baja: los únicos que reciben campañas. */
+  customersOptedIn: number;
 }
 
 const TEMPLATES_ES = [
@@ -66,7 +68,7 @@ const TEMPLATES_EN = [
   },
 ];
 
-export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, totalCustomers, customersWithEmail }: Props) {
+export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, totalCustomers, customersWithEmail, customersOptedIn }: Props) {
   const { t } = useDashboardLocale();
   const en = restaurantLocale === 'en';
   const TEMPLATES = en ? TEMPLATES_EN : TEMPLATES_ES;
@@ -178,7 +180,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, tot
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
             <Filter className="w-3.5 h-3.5" /> {t.email_reachable}
           </div>
-          <p className="text-xl font-bold text-emerald-600">{customersWithEmail}</p>
+          <p className="text-xl font-bold text-emerald-600">{customersOptedIn}</p>
           <p className="text-[10px] text-gray-600 mt-0.5">{t.email_willReceive}</p>
         </div>
       </div>

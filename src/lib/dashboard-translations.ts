@@ -2279,7 +2279,7 @@ const es: DashboardTranslations = {
   email_totalCustomers: "Total clientes",
   email_withEmail: "Con email",
   email_reachable: "Alcanzables",
-  email_willReceive: "clientes recibirán el email",
+  email_willReceive: "aceptaron ofertas: solo ellos reciben el email",
   email_quickTemplates: "Plantillas rápidas",
   email_generateAI: "Generar con IA",
   email_aiDesc:
@@ -3667,7 +3667,7 @@ const en: DashboardTranslations = {
   email_totalCustomers: "Total customers",
   email_withEmail: "With email",
   email_reachable: "Reachable",
-  email_willReceive: "customers will receive the email",
+  email_willReceive: "accepted offers: only they get the email",
   email_quickTemplates: "Quick templates",
   email_generateAI: "Generate with AI",
   email_aiDesc:

@@ -14,6 +14,7 @@ interface Props {
   totalCustomers: number;
   customersWithEmail: number;
   customersWithPhone: number;
+  customersOptedIn: number;
   notificationsEnabled: boolean;
   hasEmail: boolean;
 }
@@ -65,6 +66,7 @@ export function MarketingHub(props: Props) {
           restaurantLocale={props.restaurantLocale}
           totalCustomers={props.totalCustomers}
           customersWithEmail={props.customersWithEmail}
+          customersOptedIn={props.customersOptedIn}
         />
       )}
 
