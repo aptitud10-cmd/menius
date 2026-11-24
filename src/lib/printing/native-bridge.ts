@@ -1,9 +1,60 @@
 import type { ReceiptData } from './types';
 
 type MeniusAndroidBridge = {
+  /** Bloquea la página hasta que la impresora responde (todas las versiones de la app). */
   printReceipt: (json: string) => string;
+  /** App >= 1.0.7: vuelve al instante; el resultado llega por window.__meniusPrintDone. */
+  printReceiptAsync?: (json: string, callbackId: string) => void;
   isNativePrintAvailable?: () => boolean;
 };
+
+type PrintDoneHook = { __meniusPrintDone?: (callbackId: string, result: string) => void };
+
+/**
+ * Con la app vieja (solo printReceipt), una impresora que no responde congela la
+ * página ~8 s por intento, y los toques hechos mientras tanto quedan en fila y la
+ * vuelven a congelar (Galaxy Tab A11, 2026-11-24: minutos sin botones). Tras una
+ * falla así, durante este tiempo no se vuelve a intentar: el aviso sale al instante.
+ */
+const SYNC_COOLDOWN_MS = 20_000;
+let lastSyncFailAt = 0;
+
+/** El resultado de la app nunca llega (no debería pasar): no dejar el pedido colgado. */
+const ASYNC_TIMEOUT_MS = 60_000;
+const pendingAsync = new Map<string, (result: string) => void>();
+let asyncSeq = 0;
+/** Un ticket a la vez también del lado web: el orden de salida es el de los pedidos. */
+let asyncChain: Promise<unknown> = Promise.resolve();
+
+function callAsync(M: MeniusAndroidBridge, json: string): Promise<string> {
+  const w = window as unknown as PrintDoneHook;
+  if (!w.__meniusPrintDone) {
+    w.__meniusPrintDone = (id, result) => {
+      const done = pendingAsync.get(id);
+      if (!done) return;
+      pendingAsync.delete(id);
+      done(result);
+    };
+  }
+  return new Promise((resolve) => {
+    const id = `p${Date.now().toString(36)}-${++asyncSeq}`;
+    const timer = setTimeout(() => { pendingAsync.delete(id); resolve('PRINT_ERROR: NO_RESPONSE'); }, ASYNC_TIMEOUT_MS);
+    pendingAsync.set(id, (r) => { clearTimeout(timer); resolve(r); });
+    try {
+      M.printReceiptAsync!(json, id);
+    } catch (e) {
+      pendingAsync.delete(id);
+      clearTimeout(timer);
+      resolve(`PRINT_ERROR: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  });
+}
+
+function check(result: unknown): void {
+  if (result !== 'OK') {
+    throw new Error(typeof result === 'string' && result.length > 0 ? result : 'Native print failed');
+  }
+}
 
 function getBridge(): MeniusAndroidBridge | null {
   if (typeof window === 'undefined') return null;
@@ -24,8 +75,11 @@ export function isMeniusNativePrintAvailable(): boolean {
 
 export type NativeTicketType = 'receipt' | 'kitchen';
 
-/** Serializes receipt for Kotlin ESC/POS. Throws if native returns non-OK. */
-export function nativePrintReceipt(data: ReceiptData, ticketType: NativeTicketType): void {
+/**
+ * Serializes receipt for Kotlin ESC/POS. Rejects if native returns non-OK.
+ * Async bridge when the app has it (no freeze); else the blocking one, with cooldown.
+ */
+export async function nativePrintReceipt(data: ReceiptData, ticketType: NativeTicketType): Promise<void> {
   const M = getBridge();
   if (!M) throw new Error('MeniusAndroid not available');
 
@@ -80,10 +134,26 @@ export function nativePrintReceipt(data: ReceiptData, ticketType: NativeTicketTy
       : {}),
   };
 
-  const result = M.printReceipt(JSON.stringify(payload));
-  if (result !== 'OK') {
-    throw new Error(typeof result === 'string' && result.length > 0 ? result : 'Native print failed');
+  const json = JSON.stringify(payload);
+
+  if (typeof M.printReceiptAsync === 'function') {
+    const run = () => callAsync(M, json);
+    const p = asyncChain.then(run, run);
+    asyncChain = p.catch(() => {});
+    check(await p);
+    return;
   }
+
+  if (Date.now() - lastSyncFailAt < SYNC_COOLDOWN_MS) {
+    throw new Error('PRINT_ERROR: PRINTER_COOLDOWN (the printer just failed to respond)');
+  }
+  const result = M.printReceipt(json);
+  // Medido al VOLVER: los toques que esperaban en fila se disparan justo ahora.
+  // NO_PRINTER no congela (falla antes de conectar): no activa la espera.
+  if (result !== 'OK' && !(typeof result === 'string' && result.startsWith('NO_PRINTER'))) {
+    lastSyncFailAt = Date.now();
+  }
+  check(result);
 }
 
 /** Extra methods exposed by MENIUS Counter >= 1.0.2 (see MeniusJsBridge.kt). */

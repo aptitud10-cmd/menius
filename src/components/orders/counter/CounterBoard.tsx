@@ -49,6 +49,12 @@ export type TimeLevel = 'plain' | 'warn' | 'late';
  * ink = hora pactada de un programado (texto negro, sin alarma).
  */
 export function orderTime(order: Order, T: CounterText): { text: string; level: TimeLevel; ink?: boolean } {
+  // Terminado (Historial): nada espera. Antes caía al final ("esperando N min") y un pickup
+  // entregado pasaba a rojo a los 60 min — y el chequeo de atrasos hacía sonar la alarma.
+  if ((['delivered', 'completed', 'cancelled'] as string[]).includes(order.status)) {
+    const at = new Date((order.updated_at as string | undefined) ?? order.created_at);
+    return { text: at.toLocaleTimeString(T.locale, { hour: 'numeric', minute: '2-digit' }), level: 'plain' };
+  }
   if (order.status === 'pending' && order.scheduled_for) {
     // Programado: lo que importa es la hora pactada, no cuándo se hizo el pedido.
     return { text: T.scheduledFor(scheduledWhen(order.scheduled_for, T.locale)), level: 'plain', ink: true };

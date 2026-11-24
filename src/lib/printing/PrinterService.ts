@@ -316,10 +316,10 @@ class PrinterServiceImpl {
 
       // Android Counter app: native Bluetooth ESC/POS (no browser print dialog)
       if (isMeniusNativePrintAvailable()) {
-        if (cfg.receiptEnabled) nativePrintReceipt(receiptData, 'receipt');
-        if (cfg.kitchenEnabled) nativePrintReceipt(receiptData, 'kitchen');
+        if (cfg.receiptEnabled) await nativePrintReceipt(receiptData, 'receipt');
+        if (cfg.kitchenEnabled) await nativePrintReceipt(receiptData, 'kitchen');
         if (!cfg.receiptEnabled && !cfg.kitchenEnabled) {
-          nativePrintReceipt(receiptData, 'receipt');
+          await nativePrintReceipt(receiptData, 'receipt');
         }
         return this.transition(current, 'printed');
       }
