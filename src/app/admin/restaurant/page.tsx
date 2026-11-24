@@ -10,6 +10,7 @@ import {
   RefreshCw, ChevronRight, Tablet,
 } from 'lucide-react';
 import { COUNTER_APP_LATEST, isOlderAppVersion } from '@/lib/counter-app';
+import { TestOrdersCleaner } from './TestOrdersCleaner';
 
 /** "hace 3 min" / "hace 2 h" / "hace 4 d" para la última señal de la tablet. */
 function agoEs(iso: string): string {
@@ -556,6 +557,8 @@ export default function RestaurantDetailPage() {
             </div>
           </div>
         </div>
+
+        <TestOrdersCleaner restaurantId={restaurant.id} slug={restaurant.slug} fmt={fmt} onDone={load} />
 
       </div>
     </div>
