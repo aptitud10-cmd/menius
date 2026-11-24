@@ -10,7 +10,8 @@ import { sendPaymentConfirmedNotifications } from '@/lib/notifications/order-not
 import { internationalCardSurchargeCents } from '@/lib/order-pricing';
 import { refundStripePayment, isAlreadyRefundedError, isStripePaymentIntent, refundRetryKey, hasFailedRefund } from '@/lib/payments/stripe-refund';
 import { NOT_ACCEPTED_REASON } from '@/lib/orders/order-timeouts';
-import { sendEmail } from '@/lib/notifications/email';
+import { idOf, formatCents, findOrderForAlert, emailAdmins } from '@/lib/payments/admin-alerts';
+import { handleDisputeCreated, handleDisputeClosed, handleEarlyFraudWarning, type DisputeLike } from '@/lib/payments/disputes';
 
 const logger = createLogger('payments-webhook');
 
@@ -142,178 +143,6 @@ async function refundPaymentForCancelledOrder(orderId: string, paymentIntentId: 
 
   logger.warn('Payment for a cancelled order refunded automatically', { orderId, paymentIntentId });
   captureError(new Error('Payment arrived for a cancelled order — refunded automatically'), { orderId, paymentIntentId });
-}
-
-interface DisputeLike {
-  id: string;
-  amount: number;
-  currency?: string;
-  reason?: string;
-  charge: string | { id: string };
-  payment_intent?: string | { id: string } | null;
-  status: string;
-  evidence_details?: { due_by?: number | null } | null;
-}
-
-/**
- * Disputa nueva → email a los admins de MENIUS. Con destination charges la
- * responde la plataforma: si nadie presenta evidencia antes de `due_by`, se
- * pierde sola. Antes solo quedaba en Sentry, sin número de pedido.
- */
-async function notifyDisputeOpened(dispute: DisputeLike) {
-  const pi = idOf(dispute.payment_intent);
-  const order = pi ? await findOrderForAlert({ paymentIntentId: pi }) : null;
-  const orderId = order?.id ?? null;
-  const orderNumber = order?.order_number ?? null;
-  const restaurantName = order?.restaurantName ?? null;
-
-  const amount = formatCents(dispute.amount, dispute.currency);
-  const dueBy = dispute.evidence_details?.due_by
-    ? new Date(dispute.evidence_details.due_by * 1000).toLocaleString('es', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' })
-    : 'ver en Stripe';
-
-  logger.warn('Stripe dispute opened', { disputeId: dispute.id, paymentIntent: pi, orderId, amount: dispute.amount });
-  captureError(new Error('Stripe dispute opened'), { disputeId: dispute.id, paymentIntent: pi, orderId, orderNumber, amount: dispute.amount });
-
-  await emailAdmins({
-    subject: `⚠️ Disputa Stripe: ${orderNumber ?? dispute.id} — ${amount}`,
-    title: 'Disputa abierta en Stripe',
-    intro: 'Un cliente desconoció un cargo. Si no se responde con evidencia antes de la fecha límite, se pierde sola.',
-    rows: [
-      ['Restaurante', restaurantName ?? 'no encontrado'],
-      ['Pedido', orderNumber ?? 'no encontrado'],
-      ['Monto', amount],
-      ['Motivo', dispute.reason ?? '—'],
-      ['Fecha límite', dueBy],
-      ['Disputa', dispute.id],
-    ],
-    link: { href: `https://dashboard.stripe.com/disputes/${encodeURIComponent(dispute.id)}`, label: 'Abrir en Stripe' },
-  });
-}
-
-type AlertOrder = {
-  id: string;
-  order_number: string;
-  customer_name: string | null;
-  customer_email: string | null;
-  customer_phone: string | null;
-  restaurantName: string | null;
-};
-
-/** Pedido para un aviso a los admins, por id o por PaymentIntent (solo si es único). */
-async function findOrderForAlert(by: { orderId?: string | null; paymentIntentId?: string | null }): Promise<AlertOrder | null> {
-  if (!by.orderId && !by.paymentIntentId) return null;
-  const q = createAdminClient()
-    .from('orders')
-    .select('id, order_number, customer_name, customer_email, customer_phone, restaurants(name)');
-  const { data: rows } = by.orderId
-    ? await q.eq('id', by.orderId).limit(2)
-    : await q.eq('payment_intent_id', by.paymentIntentId as string).limit(2);
-  if (rows?.length !== 1) return null;
-  const row = rows[0] as Omit<AlertOrder, 'restaurantName'> & { restaurants?: { name?: string } | { name?: string }[] | null };
-  const rest = Array.isArray(row.restaurants) ? row.restaurants[0] : row.restaurants;
-  return {
-    id: row.id,
-    order_number: row.order_number,
-    customer_name: row.customer_name,
-    customer_email: row.customer_email,
-    customer_phone: row.customer_phone,
-    restaurantName: rest?.name ?? null,
-  };
-}
-
-const formatCents = (cents: number, currency?: string | null) =>
-  `${(cents / 100).toFixed(2)} ${(currency ?? '').toUpperCase()}`.trim();
-
-/** Email a cada dirección de ADMIN_EMAIL (acepta CSV). Nunca lanza. */
-async function emailAdmins(opts: {
-  subject: string;
-  title: string;
-  intro: string;
-  rows: [string, string][];
-  link: { href: string; label: string };
-}) {
-  const admins = (process.env.ADMIN_EMAIL ?? '').split(',').map((e) => e.trim()).filter(Boolean);
-  if (!admins.length) {
-    logger.error('ADMIN_EMAIL not set — admin alert not sent', { subject: opts.subject });
-    return;
-  }
-  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const row = ([k, v]: [string, string]) =>
-    `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">${esc(k)}</td><td style="padding:6px 0;font-size:14px;font-weight:600;">${esc(v)}</td></tr>`;
-  const html = `
-    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:20px;">
-      <h2 style="color:#b91c1c;margin:0 0 8px;">${esc(opts.title)}</h2>
-      <p style="font-size:14px;color:#374151;margin:0 0 16px;">${esc(opts.intro)}</p>
-      <table style="width:100%;border-collapse:collapse;">
-        ${opts.rows.map(row).join('')}
-      </table>
-      <p style="margin-top:20px;"><a href="${esc(opts.link.href)}" style="display:inline-block;padding:10px 20px;background:#111827;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">${esc(opts.link.label)}</a></p>
-    </div>`;
-  for (const to of admins) {
-    try {
-      const sent = await sendEmail({ to, subject: opts.subject, html });
-      if (!sent) logger.error('Admin alert email not sent', { subject: opts.subject });
-    } catch (err) {
-      logger.error('Admin alert email threw', { subject: opts.subject, error: err instanceof Error ? err.message : String(err) });
-    }
-  }
-}
-
-const idOf = (v: string | { id: string } | null | undefined) =>
-  typeof v === 'string' ? v : v?.id ?? null;
-
-/**
- * Contracargos: responsabilidad del restaurante, no de MENIUS.
- * Con destination charges Stripe debita la disputa de la PLATAFORMA siempre
- * (docs: connect/destination-charges#handle-disputes). Si la disputa se pierde
- * — o el restaurante la acepta, que Stripe también marca como `lost` — se
- * recupera el monto revirtiendo el transfer a la cuenta conectada. Si se gana,
- * Stripe devuelve los fondos a la plataforma y no hay nada que revertir.
- *
- * La tarifa de disputa de Stripe NO se recupera acá: una reversión no puede
- * superar el monto transferido. Queda reportada para cobrarla aparte.
- */
-async function reverseTransferForLostDispute(
-  stripe: ReturnType<typeof getStripe>,
-  dispute: DisputeLike,
-) {
-  const chargeId = idOf(dispute.charge);
-  if (!chargeId) throw new Error(`Dispute ${dispute.id} has no charge`);
-
-  const charge = await stripe.charges.retrieve(chargeId);
-  const transferId = idOf(charge.transfer as string | { id: string } | null);
-  if (!transferId) {
-    // Pago sin transfer (no era destination charge): no hay de quién recuperar.
-    logger.warn('Lost dispute without transfer — nothing to reverse', { disputeId: dispute.id, chargeId });
-    return;
-  }
-
-  const transfer = await stripe.transfers.retrieve(transferId);
-  const reversible = transfer.amount - transfer.amount_reversed;
-  const amount = Math.min(dispute.amount, reversible);
-  if (amount <= 0) {
-    logger.info('Transfer already fully reversed', { disputeId: dispute.id, transferId });
-    return;
-  }
-
-  await stripe.transfers.createReversal(
-    transferId,
-    { amount, metadata: { dispute_id: dispute.id, reason: 'dispute_lost' } },
-    { idempotencyKey: `dispute-reversal:${dispute.id}` },
-  );
-
-  logger.warn('Lost dispute charged to restaurant via transfer reversal', {
-    disputeId: dispute.id,
-    transferId,
-    destination: idOf(transfer.destination as string | { id: string } | null),
-    amount,
-  });
-  captureError(new Error('Stripe dispute lost — amount recovered from restaurant; dispute fee still on MENIUS'), {
-    disputeId: dispute.id,
-    transferId,
-    amount,
-  });
 }
 
 /**
@@ -540,17 +369,20 @@ export async function POST(request: NextRequest) {
         }
 
         case 'charge.dispute.created': {
-          await notifyDisputeOpened(event.data.object as unknown as DisputeLike);
+          // Multa al restaurante + evidencia precargada + email (nunca lanza).
+          await handleDisputeCreated(stripe, event.data.object as unknown as DisputeLike);
           break;
         }
 
         case 'charge.dispute.closed': {
-          const dispute = event.data.object as unknown as DisputeLike;
-          if (dispute.status === 'lost') {
-            await reverseTransferForLostDispute(stripe, dispute);
-          } else {
-            logger.info('Dispute closed without loss', { disputeId: dispute.id, status: dispute.status });
-          }
+          // Perdida: monto y segunda multa al restaurante. Lanza si Stripe
+          // falla al revertir el monto → 500 y Stripe reintenta.
+          await handleDisputeClosed(stripe, event.data.object as unknown as DisputeLike);
+          break;
+        }
+
+        case 'radar.early_fraud_warning.created': {
+          await handleEarlyFraudWarning(stripe, event.data.object as unknown as Parameters<typeof handleEarlyFraudWarning>[1]);
           break;
         }
 
