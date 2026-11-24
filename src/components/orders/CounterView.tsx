@@ -2100,7 +2100,7 @@ export function CounterView({
               {/* Idioma de esta pantalla */}
               <SidebarSection title={t.en ? 'Screen language' : 'Idioma de la pantalla'} icon={<Languages className="w-4 h-4" />}>
                 <div role="radiogroup" aria-label={t.en ? 'Screen language' : 'Idioma de la pantalla'} className="grid grid-cols-2 gap-0.5 p-1 rounded-2xl" style={{ background: C.fill }}>
-                  {([['es', 'Español'], ['en', 'English']] as const).map(([v, label]) => (
+                  {([['en', 'English'], ['es', 'Español']] as const).map(([v, label]) => (
                     <button key={v} type="button" role="radio" aria-checked={screenLang === v} lang={v}
                       onClick={() => {
                         setScreenLang(v);
