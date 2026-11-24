@@ -11,7 +11,7 @@ import {
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
 import {
-  updateOrderStatus, updateOrderETA, setPauseOrders, setBusyMode, assignDriver, updateOrderTip,
+  updateOrderStatus, updateOrderETA, setPauseOrders, setBusyMode, assignDriver,
   sendOrderNotification, openShift, closeShift, getActiveShift, getTodaySummary,
   fetchOrderStatusHistory, getFlaggedCustomers,
 } from '@/lib/actions/restaurant';

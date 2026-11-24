@@ -2296,40 +2296,6 @@ export async function fetchOrderStatusHistory(orderId: string) {
   return { history: data ?? [] };
 }
 
-export async function updateOrderTip(orderId: string, tipAmount: number) {
-  const {
-    supabase,
-    restaurantId,
-    error: authErr,
-  } = await getAuthenticatedRestaurant({ allowDevice: true });
-  if (authErr) return { error: authErr };
-
-  const tip = Math.max(0, Number(tipAmount) || 0);
-
-  // Fetch current order to get existing total
-  const { data: order } = await supabase
-    .from("orders")
-    .select("id, total, tip_amount")
-    .eq("id", orderId)
-    .eq("restaurant_id", restaurantId)
-    .maybeSingle();
-
-  if (!order) return { error: "Orden no encontrada" };
-
-  const previousTip = Number(order.tip_amount) || 0;
-  const baseTotal = Number(order.total) - previousTip;
-  const newTotal = baseTotal + tip;
-
-  const { error } = await supabase
-    .from("orders")
-    .update({ tip_amount: tip, total: newTotal })
-    .eq("id", orderId)
-    .eq("restaurant_id", restaurantId);
-
-  if (error) return { error: error.message };
-  return { success: true };
-}
-
 /**
  * Pausa los pedidos hasta `pausedUntil` (ISO), o la quita con null.
  * "next_day" = hasta que empiece el próximo día de trabajo del restaurante (su

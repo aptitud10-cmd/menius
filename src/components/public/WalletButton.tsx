@@ -87,6 +87,15 @@ export function WalletButton({
           });
           const data = await res.json();
 
+          // El pedido ya estaba cobrado (reintento tras un corte): no se cobra
+          // otra vez y se sigue como pago exitoso.
+          if (data.alreadyPaid) {
+            ev.complete('success');
+            cb.onSuccess(orderResult.orderId, orderResult.orderNumber);
+            setPaying(false);
+            return;
+          }
+
           if (!data.clientSecret) {
             ev.complete('fail');
             cb.onError(data.error || 'Payment failed');

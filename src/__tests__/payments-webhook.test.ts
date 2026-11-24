@@ -518,8 +518,22 @@ describe('POST /api/payments/webhook (Stripe)', () => {
   });
 
   // ── B1: un error de base no se traga el pago ────────────────────────────────
+  it('PaymentIntent por menos que el total del pedido: no lo marca pagado (W2)', async () => {
+    mockConstructEvent.mockReturnValue({
+      id: 'evt_pi_low', type: 'payment_intent.succeeded',
+      data: { object: { id: 'pi_1', amount_received: 1000, metadata: { order_id: 'order-1' } } },
+    });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 29 }, error: null });
+    const { POST } = await import('@/app/api/payments/webhook/route');
+    const res = await POST(makeRequest('http://localhost/api/payments/webhook', 'body', { 'stripe-signature': 'sig' }) as never);
+    expect(res.status).toBe(200);
+    expect(mockUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'paid' }));
+    expect(mockPaymentConfirmed).not.toHaveBeenCalled();
+  });
+
   it('si falla el update a pagado: 500 y libera el evento para que Stripe reintente', async () => {
     mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 29 }, error: null }); // guarda de monto (W2)
     mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: 'connection reset' } });
 
     const { POST } = await import('@/app/api/payments/webhook/route');
@@ -533,6 +547,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
   // ── W3: pago que llega para un pedido ya cancelado ──────────────────────────
   it('pago para un pedido cancelado: lo devuelve solo y no avisa "pago confirmado"', async () => {
     mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 29 }, error: null }); // guarda de monto (W2)
     mockMaybeSingle.mockResolvedValueOnce({ data: { id: 'order-1', status: 'cancelled', cancellation_reason: null }, error: null });
     mockRefundCreate.mockResolvedValue({ id: 're_late', status: 'pending' });
     mockTransferRetrieve.mockResolvedValue({ id: 'tr_1', amount: 2900, amount_reversed: 2900, destination: 'acct_1' });
@@ -550,6 +565,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
 
   it('pago para un pedido cancelado con un reembolso ya rechazado por el banco: no reintenta', async () => {
     mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 29 }, error: null }); // guarda de monto (W2)
     mockMaybeSingle.mockResolvedValueOnce({ data: { id: 'order-1', status: 'cancelled', cancellation_reason: null }, error: null });
     mockRefundList.mockResolvedValue({ data: [{ id: 're_old', status: 'failed' }] });
     mockTransferRetrieve.mockResolvedValue({ id: 'tr_1', amount: 2900, amount_reversed: 0, destination: 'acct_1' });
@@ -563,6 +579,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
 
   it('pago para un pedido cancelado por "nadie aceptó": no reembolsa acá (lo hace el cron)', async () => {
     mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 29 }, error: null }); // guarda de monto (W2)
     mockMaybeSingle.mockResolvedValueOnce({ data: { id: 'order-1', status: 'cancelled', cancellation_reason: 'not_accepted' }, error: null });
 
     const { POST } = await import('@/app/api/payments/webhook/route');
@@ -574,6 +591,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
 
   it('reintento de Stripe tras un reembolso fallido de pedido cancelado: vuelve a intentar', async () => {
     mockConstructEvent.mockReturnValue(succeeded());
+    mockMaybeSingle.mockResolvedValueOnce({ data: { total: 29 }, error: null }); // guarda de monto (W2)
     mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
     mockMaybeSingle.mockResolvedValueOnce({ data: { payment_status: 'paid', payment_intent_id: 'pi_1', status: 'cancelled', cancellation_reason: 'Cliente pidio cancelar' }, error: null });
     mockRefundCreate.mockResolvedValue({ id: 're_retry', status: 'pending' });

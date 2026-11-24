@@ -7,6 +7,7 @@ import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { captureError } from '@/lib/error-reporting';
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,10 +90,16 @@ export async function POST(request: NextRequest) {
       accountId = account.id;
 
       // stripe_account_id lo escribe solo el servidor (el dueño no tiene UPDATE en esa columna).
-      await createAdminClient()
+      // Si no se guarda, el dueño completaría el alta en una cuenta que MENIUS
+      // no conoce y el próximo clic crearía otra (A7).
+      const { error: saveErr } = await createAdminClient()
         .from('restaurants')
         .update({ stripe_account_id: accountId })
         .eq('id', restaurant.id);
+      if (saveErr) {
+        captureError(saveErr, { route: '/api/connect/onboard', restaurantId: restaurant.id, accountId });
+        return NextResponse.json({ error: 'No se pudo guardar la cuenta de Stripe. Intenta de nuevo.' }, { status: 500 });
+      }
     }
 
     const accountLink = await stripe.accountLinks.create({

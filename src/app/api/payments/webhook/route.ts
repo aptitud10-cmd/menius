@@ -465,6 +465,18 @@ export async function POST(request: NextRequest) {
 
         case 'payment_intent.succeeded': {
           if (orderId) {
+            // Misma guarda de monto que checkout.session.completed (W2).
+            const { data: ord } = await createAdminClient()
+              .from('orders')
+              .select('total')
+              .eq('id', orderId)
+              .maybeSingle();
+            const expectedCents = ord ? Math.round(Number(ord.total) * 100) : null;
+            if (expectedCents != null && typeof session.amount_received === 'number' && session.amount_received + 1 < expectedCents) {
+              logger.error('PaymentIntent amount below order total — not marking paid', { orderId, amountReceived: session.amount_received, expectedCents });
+              captureError(new Error('Stripe PaymentIntent amount below order total'), { orderId, amountReceived: session.amount_received, expectedCents });
+              break;
+            }
             await updateOrderPayment(orderId, 'paid', session.id ?? '');
             logger.info('PaymentIntent succeeded (Apple Pay / Google Pay)', { orderId });
             await recoverInternationalCardSurcharge(stripe, session.id);

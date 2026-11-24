@@ -51,11 +51,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ya cobrado (p. ej. segundo toque de Apple Pay tras un corte de red): no
+    // es un error. Antes respondía 409 y el cliente veía "Payment failed" con
+    // la plata ya cobrada.
     if ((order as any).payment_status === "paid") {
-      return NextResponse.json(
-        { error: "Esta orden ya fue pagada" },
-        { status: 409 },
-      );
+      return NextResponse.json({ alreadyPaid: true });
     }
 
     // W10: un pedido cancelado no se cobra (antes solo se miraba "paid").
@@ -73,6 +73,11 @@ export async function POST(request: NextRequest) {
         const existing = await stripeClient.paymentIntents.retrieve(
           order.payment_intent_id,
         );
+        // Cobrado pero el webhook todavía no marcó el pedido: confirmar de
+        // nuevo ese PaymentIntent da error en Stripe.js.
+        if (existing.status === "succeeded") {
+          return NextResponse.json({ alreadyPaid: true });
+        }
         if (existing.status !== "canceled") {
           return NextResponse.json({ clientSecret: existing.client_secret });
         }
@@ -133,11 +138,21 @@ export async function POST(request: NextRequest) {
     const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.create(intentParams);
 
-    // Persist so retries return the same PI instead of creating duplicates
-    await adminDb
+    // Persist so retries return the same PI instead of creating duplicates.
+    // Si no se guarda, un reintento crearía un segundo cobro: se cancela este
+    // PaymentIntent (todavía sin confirmar) y el cliente vuelve a intentar.
+    const { error: saveErr } = await adminDb
       .from("orders")
       .update({ payment_intent_id: paymentIntent.id })
       .eq("id", order_id);
+    if (saveErr) {
+      captureError(saveErr, { route: "/api/payments/intent", orderId: order_id, step: "save-pi" });
+      await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => {});
+      return NextResponse.json(
+        { error: "Error creating payment intent" },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err: unknown) {
