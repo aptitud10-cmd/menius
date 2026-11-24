@@ -108,7 +108,9 @@ const ES = {
   collect: (amount: string) => `Cobrar ${amount}`,
   accept: 'Aceptar',
   acceptMin: (m: number) => `Aceptar · ${m} min`,
-  ready: 'Listo',
+  // Verbo, no estado (Pedro 2026-11-24): "Listo" al lado de "listo en 10 min" y de
+  // la columna "Listos" se leía como "ya está listo", no como "tocá cuando esté".
+  ready: 'Marcar listo',
   serve: 'Servido',
   closeTable: 'Cerrar mesa',
   delivered: 'Entregado',
@@ -306,7 +308,7 @@ const EN: Dict = {
   collect: (amount) => `Collect ${amount}`,
   accept: 'Accept',
   acceptMin: (m) => `Accept · ${m} min`,
-  ready: 'Ready',
+  ready: 'Mark ready',
   serve: 'Served',
   closeTable: 'Close table',
   delivered: 'Delivered',
