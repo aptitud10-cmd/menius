@@ -12,7 +12,7 @@
  * corte del día; lo devuelve el cron daily-reset) o "Hasta que lo vuelva a poner" (sin fecha).
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ban, Lock, Moon, Pencil, Search, Sun, X } from 'lucide-react';
 import { cutoffLabel } from '@/lib/daily-menu';
 import { PriceDialog, postPrice, relockTablet } from './PriceDialog';
@@ -48,7 +48,61 @@ function Highlight({ text, q }: { text: string; q: string }) {
   );
 }
 
-export function MenuView({ T, currency, onGoToday }: {
+/**
+ * Fila de un plato. Memo con props estables (rendimiento, Galaxy Tab A11 2026-11-24):
+ * con ~400 platos, re-dibujar todas las filas en cada cambio de categoría activa o en
+ * cada polling trababa el scroll. Así solo se re-dibuja la fila que cambió.
+ */
+const MenuRow = memo(function MenuRow({ p, sub, busy, query, cut, T, fmt, onPrice, onAskOut, onBack }: {
+  p: MenuItem; sub?: string; busy: boolean; query: string; cut: string; T: CounterText; fmt: Intl.NumberFormat;
+  onPrice: (p: MenuItem) => void;
+  onAskOut: (p: MenuItem, rect: Pop['rect']) => void;
+  onBack: (p: MenuItem) => void;
+}) {
+  const out = !p.in_stock;
+  return (
+    <div className="relative min-h-[76px] flex items-center gap-3 min-[600px]:gap-4 py-2.5 pr-3 pl-4 min-[600px]:pl-5 [&+&]:border-t"
+      style={{ borderColor: C.line, boxShadow: out ? `inset 4px 0 0 ${C.destructive}` : undefined }}>
+      <div className="flex-1 min-w-0">
+        <p className="text-[18px] min-[600px]:text-[20px] font-semibold leading-tight" style={{ color: out ? C.sub : C.ink }}>
+          <Highlight text={p.name} q={query} />
+        </p>
+        {out ? (
+          <span className="inline-flex items-center gap-1.5 mt-1.5 min-h-[28px] py-0.5 px-2.5 rounded-lg text-[14px] font-bold uppercase tracking-[.02em] leading-tight"
+            style={{ background: C.warnBg, color: C.destructive }}>
+            {!p.until && <Lock className="w-3.5 h-3.5 flex-none" strokeWidth={2.6} />}
+            {p.until ? T.mChipAuto(cut) : T.mChipManual}
+          </span>
+        ) : sub ? (
+          <p className="mt-1 text-[15px] truncate" style={{ color: C.sub }}>{sub}</p>
+        ) : null}
+      </div>
+      <button type="button" onClick={() => onPrice(p)} aria-label={`${T.pEdit(p.name)} · ${fmt.format(p.price)}`} aria-haspopup="dialog"
+        className="hidden min-[520px]:inline-flex flex-none items-center justify-end gap-1.5 min-w-[104px] h-12 px-3 rounded-xl text-[17px] font-semibold tabular-nums"
+        style={{ color: C.ink, boxShadow: `inset 0 0 0 1px ${C.line}` }}>
+        {fmt.format(p.price)}
+        <Pencil className="w-4 h-4 flex-none" strokeWidth={2.2} style={{ color: C.sub }} aria-hidden />
+      </button>
+      <button type="button" disabled={busy} aria-haspopup={out ? undefined : 'dialog'}
+        onClick={(e) => {
+          if (out) { onBack(p); return; }
+          const r = e.currentTarget.getBoundingClientRect();
+          onAskOut(p, { top: r.top, bottom: r.bottom, right: r.right });
+        }}
+        className="flex-none w-[128px] min-[600px]:w-[168px] h-14 rounded-[14px] text-[16px] min-[600px]:text-[17px] font-bold disabled:opacity-60"
+        style={out ? { background: C.inverse, color: C.onInverse } : { background: C.fill, color: C.ink }}>
+        {out ? T.mBack : T.mOutBtn}
+      </button>
+    </div>
+  );
+});
+
+/**
+ * memo: el Counter se re-renderiza con sus relojes y el polling de pedidos, y nada de
+ * eso le importa al Menú (sus props son estables: T y currency fijos, onGoToday con
+ * useCallback en CounterView).
+ */
+export const MenuView = memo(function MenuView({ T, currency, onGoToday }: {
   T: CounterText; currency: string;
   /** Lleva a "Hoy". Solo si la tienda tiene sopas o especiales del día. */
   onGoToday?: () => void;
@@ -74,6 +128,8 @@ export function MenuView({ T, currency, onGoToday }: {
   const pendingRef = useRef(0);
   // Sube en cada guardado: una respuesta del polling que salió antes de un cambio se descarta.
   const versionRef = useRef(0);
+  /** Última respuesta del menú que se aplicó, y con qué versión local. */
+  const lastApplied = useRef<{ text: string; v: number } | null>(null);
   const spyTimer = useRef<ReturnType<typeof setTimeout>>();
   const listRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -91,10 +147,18 @@ export function MenuView({ T, currency, onGoToday }: {
     try {
       const res = await fetch('/api/counter/menu', { cache: 'no-store' });
       if (!res.ok) throw new Error(String(res.status));
-      const data = (await res.json()) as { categories: MenuCat[]; products: MenuItem[]; cutoff: string | null };
+      const text = await res.text();
       // Si hay un cambio guardándose, o hubo uno desde que salió el pedido, no se pisa:
       // la respuesta puede traer el estado de antes del toque.
       if (pendingRef.current > 0 || versionRef.current !== v) return;
+      // Igual a la última aplicada y sin cambios locales desde entonces: no se toca nada
+      // (si no, el polling de cada minuto re-dibujaba los ~400 platos sin motivo).
+      if (lastApplied.current && lastApplied.current.text === text && lastApplied.current.v === v) {
+        setLoadFailed(false);
+        return;
+      }
+      const data = JSON.parse(text) as { categories: MenuCat[]; products: MenuItem[]; cutoff: string | null };
+      lastApplied.current = { text, v };
       setCats(data.categories);
       setItems(data.products);
       setCutoff(data.cutoff);
@@ -183,6 +247,12 @@ export function MenuView({ T, currency, onGoToday }: {
       undo: async () => { setToast(null); if (!(await save([p.id], false, wasAuto))) fail(); },
     });
   }, [mode.kind, save, fail, showToast, T]);
+
+  // Callbacks estables para MenuRow (memo): putBack cambia con la vista; la fila llama al último por ref.
+  const putBackRef = useRef(putBack);
+  putBackRef.current = putBack;
+  const onBack = useCallback((p: MenuItem) => { void putBackRef.current(p); }, []);
+  const askOut = useCallback((p: MenuItem, rect: Pop['rect']) => setPop({ item: p, rect }), []);
 
   const catById = useMemo(() => new Map((cats ?? []).map((c) => [c.id, c])), [cats]);
   const byCat = useMemo(() => {
@@ -292,18 +362,29 @@ export function MenuView({ T, currency, onGoToday }: {
   const ordered = useMemo(() => groups.flatMap((g) => g.cats), [groups]);
 
   // Categoría activa según el scroll (la última cuyo título ya pasó el borde de arriba).
+  // Una vez por cuadro (rAF): el evento scroll llega muchas veces por cuadro y cada pasada
+  // medía todas las secciones. Las secciones están en el mismo orden que `ordered`, así que
+  // se corta en la primera que todavía no llegó arriba.
+  const spyRaf = useRef(0);
   const onListScroll = useCallback(() => {
-    if (mode.kind !== 'all' || skipSpy.current) return;
-    const list = listRef.current;
-    if (!list) return;
-    const top = list.getBoundingClientRect().top + 24;
-    let current = ordered[0]?.id ?? null;
-    for (const c of ordered) {
-      const el = sectionRefs.current.get(c.id);
-      if (el && el.getBoundingClientRect().top <= top) current = c.id;
-    }
-    setActiveCat(current);
+    if (spyRaf.current) return;
+    spyRaf.current = requestAnimationFrame(() => {
+      spyRaf.current = 0;
+      if (mode.kind !== 'all' || skipSpy.current) return;
+      const list = listRef.current;
+      if (!list) return;
+      const top = list.getBoundingClientRect().top + 24;
+      let current = ordered[0]?.id ?? null;
+      for (const c of ordered) {
+        const el = sectionRefs.current.get(c.id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top > top) break;
+        current = c.id;
+      }
+      setActiveCat(current);
+    });
   }, [mode.kind, ordered]);
+  useEffect(() => () => cancelAnimationFrame(spyRaf.current), []);
 
   // La categoría activa siempre a la vista en el riel (o en la fila de categorías en el celular).
   // Uno de los dos está oculto (display:none) y ahí scrollIntoView no hace nada.
@@ -350,45 +431,10 @@ export function MenuView({ T, currency, onGoToday }: {
   const shownCat = activeCat ?? ordered[0]?.id ?? null;
 
   // ── Fila de un plato ──
-  const row = (p: MenuItem, sub?: string) => {
-    const out = !p.in_stock;
-    const busy = pending.has(p.id);
-    return (
-      <div key={p.id} className="relative min-h-[76px] flex items-center gap-3 min-[600px]:gap-4 py-2.5 pr-3 pl-4 min-[600px]:pl-5 [&+&]:border-t"
-        style={{ borderColor: C.line, boxShadow: out ? `inset 4px 0 0 ${C.destructive}` : undefined }}>
-        <div className="flex-1 min-w-0">
-          <p className="text-[18px] min-[600px]:text-[20px] font-semibold leading-tight" style={{ color: out ? C.sub : C.ink }}>
-            <Highlight text={p.name} q={query} />
-          </p>
-          {out ? (
-            <span className="inline-flex items-center gap-1.5 mt-1.5 min-h-[28px] py-0.5 px-2.5 rounded-lg text-[14px] font-bold uppercase tracking-[.02em] leading-tight"
-              style={{ background: C.warnBg, color: C.destructive }}>
-              {!p.until && <Lock className="w-3.5 h-3.5 flex-none" strokeWidth={2.6} />}
-              {p.until ? T.mChipAuto(cut) : T.mChipManual}
-            </span>
-          ) : sub ? (
-            <p className="mt-1 text-[15px] truncate" style={{ color: C.sub }}>{sub}</p>
-          ) : null}
-        </div>
-        <button type="button" onClick={() => setPriceItem(p)} aria-label={`${T.pEdit(p.name)} · ${fmt.format(p.price)}`} aria-haspopup="dialog"
-          className="hidden min-[520px]:inline-flex flex-none items-center justify-end gap-1.5 min-w-[104px] h-12 px-3 rounded-xl text-[17px] font-semibold tabular-nums"
-          style={{ color: C.ink, boxShadow: `inset 0 0 0 1px ${C.line}` }}>
-          {fmt.format(p.price)}
-          <Pencil className="w-4 h-4 flex-none" strokeWidth={2.2} style={{ color: C.sub }} aria-hidden />
-        </button>
-        <button type="button" disabled={busy} aria-haspopup={out ? undefined : 'dialog'}
-          onClick={(e) => {
-            if (out) { putBack(p); return; }
-            const r = e.currentTarget.getBoundingClientRect();
-            setPop({ item: p, rect: { top: r.top, bottom: r.bottom, right: r.right } });
-          }}
-          className="flex-none w-[128px] min-[600px]:w-[168px] h-14 rounded-[14px] text-[16px] min-[600px]:text-[17px] font-bold disabled:opacity-60"
-          style={out ? { background: C.inverse, color: C.onInverse } : { background: C.fill, color: C.ink }}>
-          {out ? T.mBack : T.mOutBtn}
-        </button>
-      </div>
-    );
-  };
+  const row = (p: MenuItem, sub?: string) => (
+    <MenuRow key={p.id} p={p} sub={sub} busy={pending.has(p.id)} query={query} cut={cut} T={T} fmt={fmt}
+      onPrice={setPriceItem} onAskOut={askOut} onBack={onBack} />
+  );
 
   const card = (children: React.ReactNode) => (
     <div className="rounded-[22px] overflow-hidden mt-2" style={{ background: C.surface }}>{children}</div>
@@ -596,7 +642,7 @@ export function MenuView({ T, currency, onGoToday }: {
       )}
     </div>
   );
-}
+});
 
 /** Globo de "Se acabó…": hasta mañana (vuelve solo al corte) o hasta que lo vuelvan a poner. */
 function SoldOutPop({ T, cut, pop, onClose, onPick }: {

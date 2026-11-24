@@ -437,7 +437,12 @@ export function CounterView({
     return Number.isFinite(ms) && ms > Date.now() ? ms : null;
   });
   const [pauseModalOpen, setPauseModalOpen] = useState(false);
-  const pauseSync = usePauseSync(setPausedUntil, setBusy, { heartbeat: true });
+  // El sync trae el modo ocupado cada 30 s como objeto nuevo: sin esta comparación,
+  // re-renderizaba el Counter entero aunque no hubiera cambiado nada.
+  const setBusyIfChanged = useCallback((b: BusyState) => {
+    setBusy((prev) => (prev.extra === b.extra && prev.until === b.until ? prev : b));
+  }, []);
+  const pauseSync = usePauseSync(setPausedUntil, setBusyIfChanged, { heartbeat: true });
 
   // ── Auto-print on accept ──
   const [autoPrint, setAutoPrint] = useState(() =>
@@ -554,6 +559,8 @@ export function CounterView({
   const [view, setView] = useState<CounterViewMode>('board');
   // Pestaña "Hoy": solo si la tienda tiene sopas o especiales del día cargados.
   const [hasDaily, setHasDaily] = useState(false);
+  // Estable: MenuView es memo y una función nueva en cada render lo re-dibujaba entero.
+  const goToday = useCallback(() => setView('today'), []);
   useEffect(() => {
     let alive = true;
     fetch('/api/counter/today', { cache: 'no-store' })
@@ -668,8 +675,10 @@ export function CounterView({
   // pausa, aviso urgente a los 5 min). Antes era cada 1 s y re-renderizaba el
   // Counter entero 60 veces por minuto; la cuenta regresiva de auto-aceptar
   // tiene su propio reloj en NewOrdersAlert.
+  // El mismo intervalo mueve `clock` (programados, más abajo): antes eran dos
+  // relojes desfasados (15 s y 30 s) y cada uno re-renderizaba por su lado.
   useEffect(() => {
-    const id = setInterval(() => tick(n => n + 1), 15_000);
+    const id = setInterval(() => { tick(n => n + 1); setClock(Date.now()); }, 15_000);
     return () => clearInterval(id);
   }, []);
 
@@ -913,11 +922,8 @@ export function CounterView({
   // Reloj de 30 s: un programado pasa de "Programados" a "Nuevos" (con la
   // alerta verde) SCHEDULED_SPLASH_LEAD_MS antes de su hora, sin esperar al
   // cron activate-scheduled (que corre cada 10 min y llegaba tarde).
+  // Lo actualiza el reloj de 15 s de arriba (junto con `tick`, en un solo render).
   const [clock, setClock] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setClock(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
   const isDue = useCallback((o: Order) =>
     !o.scheduled_for || new Date(o.scheduled_for).getTime() <= clock + SCHEDULED_SPLASH_LEAD_MS,
   [clock]);
@@ -1787,7 +1793,7 @@ export function CounterView({
       {view === 'today' ? (
         <TodayView en={t.en} restaurantName={restaurantName} />
       ) : view === 'menu' ? (
-        <MenuView T={T} currency={currency} onGoToday={hasDaily ? () => setView('today') : undefined} />
+        <MenuView T={T} currency={currency} onGoToday={hasDaily ? goToday : undefined} />
       ) : view === 'board' ? (
         <CounterBoard
           T={T}

@@ -221,8 +221,16 @@ export default async function RootLayout({
 
    2. Cost per event. This is on the hot path of every touch scroll, so the old
       getComputedStyle() walk up the DOM — a forced style recalc per move — is
-      replaced by scrollHeight/clientHeight checks, which read cached layout. */
+      replaced by scrollHeight/clientHeight checks, which read cached layout.
+
+   3. iOS only. A non-passive touchmove on document makes the browser wait for
+      the main thread before every scroll. Android/desktop don't need it
+      (overscroll-behavior in globals.css already works there) and paid that
+      cost anyway: the Counter on a Galaxy Tab A11 scrolled sluggishly. iPadOS
+      reports itself as "Macintosh", hence the maxTouchPoints check. */
 (function(){
+  var ua=navigator.userAgent;
+  if(!/iP(hone|ad|od)/.test(ua)&&!(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1))return;
   var startY=0;
   function scroller(){
     var b=document.body;
