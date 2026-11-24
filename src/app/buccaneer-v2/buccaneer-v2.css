@@ -2438,3 +2438,799 @@
     transition: none;
   }
 }
+
+/* ===========================================================================
+   APP LAYOUT — portrait phones (DESIGN_MOBILE_APP_BUCCANEER_V2.md, Rev. 1 + 2).
+   Dock, Menu / Visit sheets, hour strip + four stacked moments. Applies ONLY to
+   (max-width: 719px) and (min-height: 501px): tablet, desktop and phones in
+   landscape never match, so none of this touches them. Same query in
+   data.ts (APP_MQ) and AppBehavior.tsx. Only transform / opacity animate.
+   =========================================================================== */
+/* markup that exists only for the app layout: hidden everywhere else */
+.b2-dock,
+.b2-sheet,
+.b2-scrim,
+.b2-hdr__clock,
+.b2-days,
+.b2-m-call,
+.b2-root .b2-app-pre /* beats .b2-foot__data span { display: block } */ {
+  display: none;
+}
+
+@media (max-width: 719px) and (min-height: 501px) {
+  .b2-root {
+    --b2-scrim: rgb(9 13 36 / 0.6);
+    --hdr-total: calc(var(--hdr-h) + env(safe-area-inset-top));
+    --dock-h: calc(64px + max(8px, env(safe-area-inset-bottom)));
+  }
+  .b2-root[data-sheet] {
+    overflow-y: hidden; /* freezes the page behind a sheet without losing scrollTop */
+  }
+
+  /* ---- header: clock on the right while the Now / Close clocks are off screen */
+  .b2-root .b2-hdr {
+    z-index: 20;
+  }
+  .b2-root .b2-bar,
+  .b2-root .b2-hdr__r {
+    display: none;
+  }
+  .b2-hdr__clock {
+    display: block;
+    flex: none;
+    min-width: 96px;
+    margin-top: 8px;
+    text-align: right;
+    white-space: nowrap;
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 24px;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    visibility: hidden;
+  }
+  .b2-root[data-hclock] .b2-hdr__clock {
+    visibility: visible;
+  }
+
+  /* ---- Now: photo + panel, the hour strip fits on the first screen */
+  .b2-root .b2-hero {
+    min-height: calc(100svh - var(--dock-h) - 76px);
+    border-bottom: 2px solid var(--filete);
+  }
+  .b2-root .b2-hero__photo {
+    flex: 1 1 0;
+    min-height: 200px;
+  }
+  .b2-root .b2-hero__right {
+    flex: none;
+  }
+  .b2-root .b2-hero .b2-hero__text {
+    flex: none;
+    padding: 16px var(--gr) 16px var(--gl);
+  }
+  .b2-root .b2-hero__photo .b2-photo {
+    object-position: 50% 50%;
+  }
+  .b2-root .b2-hero__photo .b2-sv--midday .b2-photo {
+    object-position: 50% 35%;
+  }
+  .b2-root .b2-hero__photo .b2-sv--evening .b2-photo {
+    object-position: 50% 86%;
+  }
+  .b2-hero .b2-clock {
+    gap: 5px;
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .b2-hero .b2-clock__s {
+    font-size: 20px;
+    letter-spacing: -0.02em;
+  }
+  .b2-hero .b2-open__tz {
+    font-size: 14px;
+  }
+  /* the dock owns Order; no button, no "Come in", no supporting line in the panel */
+  .b2-hero .b2-cards,
+  .b2-hero .b2-more,
+  .b2-root .b2-more--m {
+    display: none;
+  }
+
+  /* ---- the old stacked chapters and the Visit section give way to the app blocks */
+  .b2-root .b2-morning,
+  .b2-root .b2-mid,
+  .b2-root .b2-eve,
+  .b2-root .b2-night,
+  .b2-root .b2-visit {
+    display: none;
+  }
+
+  /* ---- hour strip (sticky under the header inside .b2-days) */
+  .b2-days {
+    display: block;
+  }
+  .b2-strip {
+    position: sticky;
+    top: var(--hdr-total);
+    z-index: 15;
+    padding-top: 12px;
+    background: var(--g);
+    color: var(--ink);
+    border-bottom: 1px solid var(--filete);
+    --tab-bar: var(--b2-bou);
+  }
+  .b2-root[data-bd-state='night'] .b2-strip {
+    --tab-bar: var(--b2-yolk);
+  }
+  .b2-tabs {
+    position: relative;
+    height: 52px;
+    margin: 0 var(--gr) 0 var(--gl);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .b2-tab {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .b2-tab__h {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 22px;
+  }
+  .b2-tab__name,
+  .b2-tab__now {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: 0;
+    color: var(--ink2);
+  }
+  .b2-tab[aria-current='true'] .b2-tab__name,
+  .b2-tab[aria-current='true'] .b2-tab__now {
+    color: var(--ink);
+  }
+  .b2-tab__now {
+    display: none;
+  }
+  .b2-root[data-bd-state='morning'] .b2-tab--morning .b2-tab__now,
+  .b2-root[data-bd-state='midday'] .b2-tab--midday .b2-tab__now,
+  .b2-root[data-bd-state='evening'] .b2-tab--evening .b2-tab__now,
+  .b2-root[data-bd-state='night'] .b2-tab--night .b2-tab__now {
+    display: block;
+  }
+  .b2-root[data-bd-state='morning'] .b2-tab--morning .b2-tab__name,
+  .b2-root[data-bd-state='midday'] .b2-tab--midday .b2-tab__name,
+  .b2-root[data-bd-state='evening'] .b2-tab--evening .b2-tab__name,
+  .b2-root[data-bd-state='night'] .b2-tab--night .b2-tab__name {
+    display: none;
+  }
+  .b2-tabs__bar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 25%;
+    height: 4px;
+    background: var(--tab-bar);
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .b2-root[data-bd-state='midday'] .b2-strip:not([data-on]) .b2-tabs__bar,
+  .b2-strip[data-on='1'] .b2-tabs__bar {
+    transform: translateX(100%);
+  }
+  .b2-root[data-bd-state='evening'] .b2-strip:not([data-on]) .b2-tabs__bar,
+  .b2-strip[data-on='2'] .b2-tabs__bar {
+    transform: translateX(200%);
+  }
+  .b2-root[data-bd-state='night'] .b2-strip:not([data-on]) .b2-tabs__bar,
+  .b2-strip[data-on='3'] .b2-tabs__bar {
+    transform: translateX(300%);
+  }
+  .b2-strip[data-on='0'] .b2-tabs__bar {
+    transform: none;
+  }
+
+  /* ---- the four moments: photo to the edge, title, one line, 48px rows */
+  .b2-sec {
+    background: var(--g);
+    color: var(--ink);
+    --hair: color-mix(in srgb, var(--ink) 24%, transparent);
+    scroll-margin-top: calc(var(--hdr-total) + 65px);
+  }
+  .b2-sec__ph {
+    position: relative;
+    height: 234px;
+    overflow: hidden;
+  }
+  .b2-sec__mos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    background: var(--g);
+  }
+  .b2-sec__mos a {
+    position: relative;
+    display: block;
+    overflow: hidden;
+  }
+  .b2-sec__b {
+    padding: 24px var(--gr) 32px var(--gl);
+  }
+  .b2-sec__lede {
+    margin-top: 4px;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  .b2-sec__list {
+    margin-top: 12px;
+  }
+  .b2-sec__list > * {
+    border-bottom: 1px solid var(--hair);
+  }
+  .b2-sec__list > :last-child,
+  .b2-sec__list > .b2-sec__idx {
+    border-bottom: 0;
+  }
+  .b2-sec__r {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+  }
+  .b2-sec__big {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+  }
+  .b2-sec__idx {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 8px;
+  }
+  .b2-sec__idx a {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .b2-sec__r:active,
+  .b2-sec__big:active,
+  .b2-sec__idx a:active,
+  .b2-sh-row:active {
+    background: color-mix(in srgb, var(--ink) 10%, transparent);
+  }
+
+  /* ---- phrase + catering band */
+  .b2-root .b2-phrase {
+    padding-bottom: 0;
+  }
+  .b2-root .b2-extra {
+    --g: var(--b2-bou);
+    --ink: var(--b2-paper);
+    --ink2: var(--b2-fog);
+    --act-bg: var(--b2-yolk);
+    --act-fg: var(--b2-bou);
+    --line: var(--b2-paper);
+    --ring: var(--b2-yolk);
+    --hair: color-mix(in srgb, var(--b2-paper) 24%, transparent);
+    margin: 64px calc(-1 * var(--gr)) 0 calc(-1 * var(--gl));
+    padding: 48px var(--gr) 48px var(--gl);
+    border-top: 0;
+    background: var(--g);
+    color: var(--ink);
+  }
+  .b2-extra__h {
+    height: 20px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--b2-fog);
+  }
+  .b2-extra__lead {
+    margin-top: 8px;
+    max-width: none;
+    font-size: 30px;
+    line-height: 31.5px;
+    letter-spacing: -0.01em;
+  }
+  .b2-extra__list {
+    margin-top: 16px;
+  }
+  .b2-extra__list li {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0;
+    border-top: 0;
+    border-bottom: 1px solid var(--hair);
+  }
+  .b2-extra__list li:last-child {
+    border-bottom: 0;
+  }
+  .b2-extra__call {
+    margin-top: 16px;
+  }
+  .b2-extra__tels {
+    display: none;
+  }
+  .b2-m-call {
+    display: block;
+  }
+  .b2-m-call .b2-btn {
+    display: flex;
+    height: 56px;
+    margin-top: 12px;
+  }
+  .b2-m-also {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 14px;
+    line-height: 1.3;
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 4px;
+  }
+
+  /* ---- close: two columns so the whole clock and the line fit on the last screen
+     (stacked, the end of the page always showed half the clock). Order lives in the dock. */
+  .b2-root .b2-close {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    grid-template-areas: 'ph txt' 'cap txt';
+    grid-template-rows: auto 1fr;
+    column-gap: 20px;
+    padding: 32px var(--gr) 32px var(--gl);
+  }
+  .b2-close .b2-cards {
+    display: none;
+  }
+  .b2-root[data-bd-state='night'] .b2-close {
+    padding-top: 32px;
+  }
+  .b2-close__ph {
+    grid-area: ph;
+    margin: 0;
+    aspect-ratio: 4 / 5;
+  }
+  .b2-root .b2-close__ph .b2-photo {
+    object-position: 50% 30%;
+  }
+  .b2-close__cap {
+    grid-area: cap;
+    margin-top: 8px;
+    line-height: 16px;
+  }
+  .b2-root .b2-close__txt,
+  .b2-root[data-bd-state='evening'] .b2-close__txt {
+    --g: var(--b2-paper);
+    --ink2: var(--b2-harbor);
+    grid-area: txt;
+    align-self: center;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+  .b2-root[data-bd-state='night'] .b2-close__txt {
+    --g: var(--b2-bou);
+    --ink2: var(--b2-fog);
+  }
+  .b2-close__clock {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+  }
+  .b2-close .b2-clock {
+    height: 32px;
+    font-size: 32px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .b2-close .b2-clock__s {
+    font-size: 32px;
+    letter-spacing: -0.02em;
+  }
+  .b2-close .b2-open {
+    line-height: 20px;
+  }
+  .b2-close__cta .b2-lg {
+    margin-top: 12px;
+  }
+
+  /* ---- footer: clears the dock */
+  .b2-root .b2-foot {
+    padding: 32px var(--gr) calc(var(--dock-h) + 24px) var(--gl);
+  }
+  .b2-root .b2-app-pre {
+    display: inline;
+  }
+  .b2-root .b2-foot__data a:first-of-type {
+    margin-top: 0;
+  }
+  .b2-foot__fine {
+    margin-top: 16px;
+    gap: 0;
+  }
+  /* The last screen has to hold the whole close (clock + line) and the footer:
+     the second phone lives in the Visit sheet, the full menu in the Menu sheet. */
+  .b2-root .b2-foot__also,
+  .b2-root .b2-foot__menu,
+  .b2-root .b2-close__cap {
+    display: none;
+  }
+  .b2-foot__also {
+    min-height: 44px;
+    font-size: 14px;
+    text-decoration-thickness: 1.5px;
+  }
+
+  /* ---- dock */
+  .b2-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 4px;
+    height: var(--dock-h);
+    padding: 7px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+    background: var(--g);
+    border-top: 1px solid var(--filete);
+    color: var(--ink);
+  }
+  .b2-root[data-bd-state='night'] .b2-dock {
+    --ring: var(--b2-paper); /* Yolk would vanish on the Yolk Order button */
+  }
+  .b2-dock__order {
+    --sv-d: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 56px;
+    border-radius: 4px;
+    background: var(--act-bg);
+    color: var(--act-fg);
+    font-weight: 600;
+    font-size: 17px;
+    line-height: 1;
+    letter-spacing: 0;
+    transition: transform 0.12s ease-out;
+  }
+  .b2-dock__order:active {
+    transform: scale(0.98);
+  }
+  .b2-dock__it {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 56px;
+    margin: 0;
+    padding: 8px 0 0;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .b2-dock__it:active {
+    background: color-mix(in srgb, var(--ink) 10%, transparent);
+  }
+  .b2-dock__it svg {
+    display: block;
+  }
+  .b2-dock__l {
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: 0;
+  }
+  .b2-dock__it[aria-current='true']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 28px;
+    height: 3px;
+    margin-left: -14px;
+    background: var(--ink);
+  }
+  .b2-dock a:focus-visible,
+  .b2-dock button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -4px;
+  }
+
+  /* ---- sheets (Menu / Visit): non-modal dialogs that sit on the dock */
+  .b2-scrim:not([hidden]) {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: var(--dock-h);
+    z-index: 30;
+    background: var(--b2-scrim);
+    opacity: 0;
+    transition: opacity 0.2s linear;
+  }
+  .b2-scrim.is-in {
+    opacity: 1;
+  }
+  .b2-sheet[open] {
+    display: flex;
+  }
+  .b2-sheet {
+    position: fixed;
+    top: calc(var(--hdr-total) + 8px);
+    left: 0;
+    right: 0;
+    bottom: var(--dock-h);
+    z-index: 40;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 4px 4px 0 0;
+    overflow: hidden;
+    background: var(--g);
+    color: var(--ink);
+    --hair: color-mix(in srgb, var(--ink) 24%, transparent);
+    transform: translateY(100%);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 1, 1);
+  }
+  .b2-sheet.is-in {
+    transform: none;
+    transition: transform 0.26s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .b2-sheet.is-swap {
+    transform: none;
+    opacity: 0;
+    transition: opacity 0.12s linear;
+  }
+  .b2-sheet.is-swap.is-in {
+    opacity: 1;
+  }
+  .b2-sheet--menu {
+    border-top: 2px solid var(--b2-bou);
+  }
+  .b2-sheet--visit {
+    border-top: 2px solid var(--b2-fog);
+    background: color-mix(in srgb, var(--b2-paper) 6%, var(--b2-bou));
+  }
+  .b2-sheet h2:focus {
+    outline: none;
+  }
+  .b2-sheet__drag {
+    flex: none;
+    position: relative;
+    touch-action: none; /* the grabber + head are the drag handle; the list keeps its own scroll */
+  }
+  .b2-grab {
+    position: relative;
+    height: 24px;
+  }
+  .b2-grab::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    width: 40px;
+    height: 4px;
+    margin-left: -20px;
+    border-radius: 2px;
+    background: var(--b2-harbor);
+  }
+  .b2-sheet--visit .b2-grab::before {
+    background: var(--b2-fog);
+  }
+  .b2-x {
+    position: absolute;
+    right: max(8px, env(safe-area-inset-right));
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .b2-x:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -4px;
+  }
+  .b2-sh-head {
+    position: relative;
+    height: 80px;
+    padding: 4px var(--gr) 0 var(--gl);
+  }
+  .b2-sh-head .b2-x {
+    top: -4px;
+  }
+  .b2-sh-head .b2-meta {
+    margin-top: 4px;
+  }
+  .b2-sh-list {
+    position: relative;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .b2-sh-hd {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 var(--gr) 0 var(--gl);
+    background: var(--g);
+  }
+  .b2-sh-hd__t {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 22px;
+  }
+  .b2-sh-hd__n,
+  .b2-sh-now {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 16px;
+  }
+  .b2-sh-hd__n {
+    color: var(--b2-harbor);
+  }
+  .b2-sh-now {
+    --sv-d: inline;
+    color: var(--ink);
+  }
+  .b2-sh-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    padding: 0 var(--gr) 0 var(--gl);
+  }
+  .b2-sh-row::after {
+    content: '';
+    position: absolute;
+    left: var(--gl);
+    right: var(--gr);
+    bottom: 0;
+    height: 1px;
+    background: var(--hair);
+  }
+  .b2-sh-row .b2-meta {
+    white-space: nowrap;
+  }
+  .b2-sh-foot {
+    flex: none;
+    padding: 12px var(--gr) 12px var(--gl);
+    border-top: 1px solid var(--b2-bou);
+  }
+  .b2-sh-foot .b2-btn {
+    display: flex;
+    height: 56px;
+  }
+  .b2-v-title {
+    position: relative;
+    min-height: 63px;
+    padding: 0 var(--gr) 0 var(--gl);
+  }
+  .b2-v-title .b2-d2 {
+    max-width: 290px;
+  }
+  .b2-v-title .b2-x {
+    top: -8px;
+  }
+  .b2-v-body {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 var(--gr) 16px var(--gl);
+  }
+  .b2-v-addr {
+    margin-top: 8px;
+  }
+  .b2-v-open {
+    display: flex;
+    align-items: baseline;
+    height: 24px;
+    margin-top: 4px;
+    font-size: 16px;
+    line-height: 24px;
+    white-space: nowrap;
+  }
+  .b2-v-open strong {
+    font-weight: 600;
+  }
+  .b2-v-open__tz {
+    white-space: pre;
+    font-size: 14px;
+    color: var(--ink2);
+  }
+  .b2-v-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .b2-v-btns .b2-btn {
+    display: flex;
+    height: 56px;
+    padding: 0 8px;
+  }
+  .b2-v-map {
+    width: 100%;
+    margin: 24px 0 0;
+  }
+  .b2-v-sec {
+    margin-top: 16px;
+  }
+  .b2-v-sec .b2-meta {
+    height: 20px;
+  }
+  .b2-v-sec .b2-lnk,
+  .b2-v-sec p.b2-lg {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+  }
+}
+
+/* app layout + reduced motion: nothing slides, things just appear */
+@media (max-width: 719px) and (min-height: 501px) and (prefers-reduced-motion: reduce) {
+  .b2-sheet,
+  .b2-sheet.is-in {
+    transform: none;
+    transition: opacity 0.12s linear;
+  }
+  .b2-sheet {
+    opacity: 0;
+  }
+  .b2-sheet.is-in {
+    opacity: 1;
+  }
+  .b2-scrim:not([hidden]),
+  .b2-tabs__bar {
+    transition: none;
+  }
+}

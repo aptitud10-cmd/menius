@@ -1,4 +1,6 @@
 import { Fragment } from 'react';
+import { AppDays, AppDock, AppSheets } from './AppMobile';
+import AppBehavior from './AppBehavior';
 import Behavior from './Behavior';
 import Photo, { hasPhoto } from './Photo';
 import { getCounts } from './counts';
@@ -176,6 +178,7 @@ export default async function BuccaneerV2Page() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(RESTAURANT_LD).replace(/</g, '\\u003c') }}
       />
       <Behavior />
+      <AppBehavior />
       <WordmarkBSymbol />
 
       {/* ------------------------------------------------------------ header */}
@@ -185,6 +188,8 @@ export default async function BuccaneerV2Page() {
             <WordmarkA />
           </span>
         </a>
+        {/* App layout: live clock, only while neither the Now nor the Close clock is on screen (decorative). */}
+        <span className="b2-hdr__clock" aria-hidden="true" data-b2-time />
         <div className="b2-hdr__r">
           <a className="b2-hdr__tel" href={PHONE_HREF}>
             {PHONE_TEXT}
@@ -256,6 +261,9 @@ export default async function BuccaneerV2Page() {
         <a className="b2-more b2-more--m" href={MENU_URL}>
           Full menu — {COUNTS.total} dishes →
         </a>
+
+        {/* Portrait phones (app layout): hour strip + the four moments stacked. Hidden elsewhere. */}
+        <AppDays counts={COUNTS} />
 
         {/* ------------------------------------------------ Morning — Índice */}
         <section className="b2-ch b2-morning" data-pal="day" id="morning">
@@ -428,6 +436,14 @@ export default async function BuccaneerV2Page() {
                     </a>
                   </span>
                 </p>
+                <div className="b2-m-call">
+                  <a className="b2-btn b2-btn--solid" href={PHONE_HREF}>
+                    Call the diner · {PHONE_TEXT}
+                  </a>
+                  <a className="b2-m-also" href={PHONE2_HREF}>
+                    Also {PHONE2_TEXT}
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -546,12 +562,14 @@ export default async function BuccaneerV2Page() {
           <span>{ADDRESS_1}</span>
           <span>{ADDRESS_2}</span>
           <a className="b2-lnk" href={PHONE_HREF}>
+            <span className="b2-app-pre">Call the diner ·&nbsp;</span>
             {PHONE_TEXT}
           </a>
-          <a className="b2-lnk" href={PHONE2_HREF}>
+          <a className="b2-lnk b2-foot__also" href={PHONE2_HREF}>
+            <span className="b2-app-pre">Also&nbsp;</span>
             {PHONE2_TEXT}
           </a>
-          <a className="b2-lnk" href={MENU_URL}>
+          <a className="b2-lnk b2-foot__menu" href={MENU_URL}>
             Full menu — {COUNTS.total} dishes →
           </a>
         </address>
@@ -560,6 +578,10 @@ export default async function BuccaneerV2Page() {
           <p className="b2-meta">© 2026 Buccaneer Diner</p>
         </div>
       </footer>
+
+      {/* Portrait phones (app layout): dock + Menu / Visit sheets. Hidden elsewhere. */}
+      <AppDock />
+      <AppSheets counts={COUNTS} />
     </div>
   );
 }

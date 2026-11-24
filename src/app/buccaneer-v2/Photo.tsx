@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import Image, { getImageProps } from 'next/image';
-import { PHOTO_SLOTS, type SlotId } from './data';
+import { APP_MQ, PHOTO_SLOTS, type SlotId } from './data';
 
 /** Same query as the phone layout in buccaneer-v2.css (portrait <= 719, phones in landscape). */
 const PHONE_MQ = '(max-width: 719px), (max-width: 1279px) and (max-height: 500px)';
@@ -18,12 +18,32 @@ export default function Photo({
   slot,
   priority = false,
   sizes = '100vw',
+  file,
+  position,
 }: {
   slot: SlotId;
   priority?: boolean;
   sizes?: string;
+  /** Another file for this slot's alt text (app layout crops); ignores the slot's own framing. */
+  file?: string;
+  position?: string;
 }) {
   const s = PHOTO_SLOTS[slot];
+
+  if (s.src && file) {
+    return (
+      <Image
+        className="b2-photo"
+        src={file}
+        alt={s.alt}
+        fill
+        sizes={sizes}
+        priority={priority}
+        loading={priority ? undefined : 'lazy'}
+        style={position ? ({ '--op': position } as CSSProperties) : undefined}
+      />
+    );
+  }
 
   if (s.src) {
     // Framing via custom properties so phones can use their own (see .b2-photo).
@@ -32,16 +52,22 @@ export default function Photo({
       ...(s.mobilePosition ? { '--op-m': s.mobilePosition } : {}),
     } as CSSProperties;
 
-    if (s.mobileSrc) {
-      // Art direction: phones get the tight crop, everything else the full frame.
+    if (s.mobileSrc || s.appSrc) {
+      // Art direction: portrait phones (app layout) and phones get their own crops, everything else the full frame.
       const common = { alt: s.alt, fill: true, sizes, priority, loading: priority ? undefined : ('lazy' as const) };
-      const { props: phone } = getImageProps({ ...common, src: s.mobileSrc });
+      const app = s.appSrc ? getImageProps({ ...common, src: s.appSrc }).props : null;
+      const phone = s.mobileSrc ? getImageProps({ ...common, src: s.mobileSrc }).props : null;
       const { props: wide } = getImageProps({ ...common, src: s.src });
       return (
         <picture>
-          <source media={PHONE_MQ} srcSet={phone.srcSet} sizes={phone.sizes} />
+          {app ? <source media={APP_MQ} srcSet={app.srcSet} sizes={app.sizes} /> : null}
+          {phone ? <source media={PHONE_MQ} srcSet={phone.srcSet} sizes={phone.sizes} /> : null}
           {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes in the spread props */}
-          <img {...wide} className="b2-photo b2-photo--ad" style={{ ...wide.style, ...framing }} />
+          <img
+            {...wide}
+            className={s.mobileSrc ? 'b2-photo b2-photo--ad' : 'b2-photo'}
+            style={{ ...wide.style, ...framing }}
+          />
         </picture>
       );
     }

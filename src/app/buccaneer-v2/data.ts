@@ -30,6 +30,13 @@ export const DIRECTIONS_URL =
 export const ADDRESS_1 = '9301 Astoria Boulevard';
 export const ADDRESS_2 = 'East Elmhurst, NY 11369';
 
+/**
+ * Phones in portrait ("app" layout: dock, sheets, hour strip). Landscape phones
+ * (<= 500 tall) keep the previous mobile layout. Same query as the APP block in
+ * buccaneer-v2.css and in AppBehavior.tsx.
+ */
+export const APP_MQ = '(max-width: 719px) and (min-height: 501px)';
+
 /** `?category=` deep link. Names copied from the live menu (MenuSection names). */
 export const cat = (name: string) => `${MENU_URL}?category=${encodeURIComponent(name)}`;
 
@@ -54,6 +61,8 @@ export type SlotId =
 // Pedro's real photos (visit 2026-11-23), as is S05b. D01 D04 D05 D06 are his real booth
 // photos with only the plate added (measured against the table); nothing is fully AI anymore.
 /**
+ * `appSrc`: the crop for the portrait-phone app layout only (taller box than the
+ * previous phone hero), tried before `mobileSrc`.
  * `mobileSrc`: a tighter crop for phones (<= 719 and phones in landscape), served
  * through <picture> so each screen downloads only its own file (2026-11-23: on
  * phones the wide booth shots left the dish small and far). `mobilePosition`:
@@ -61,12 +70,12 @@ export type SlotId =
  */
 export const PHOTO_SLOTS: Record<
   SlotId,
-  { src: string | null; label: string; alt: string; position?: string; mobileSrc?: string; mobilePosition?: string }
+  { src: string | null; label: string; alt: string; position?: string; mobileSrc?: string; mobilePosition?: string; appSrc?: string }
 > = {
-  D01: { src: '/buccaneer/v2/ia-pancakes-ovalada.webp', mobileSrc: '/buccaneer/v2/ia-pancakes-ovalada-m.webp', position: 'center 58%', label: 'D01 · Buttermilk pancakes, Morning hero', alt: 'Three buttermilk pancakes on an oval platter and a cup of black coffee on a marble booth table, placemats and cutlery behind' },
-  D04: { src: '/buccaneer/v2/ia-burger-deluxe.webp', mobileSrc: '/buccaneer/v2/ia-burger-deluxe-m.webp', position: 'center 35%', label: 'D04 · Cheeseburger, Midday hero', alt: 'A cheeseburger with lettuce, tomato and fries on a booth table, the tan booth behind' },
-  D06: { src: '/buccaneer/v2/ia-lobster-copa.webp', mobileSrc: '/buccaneer/v2/ia-lobster-copa-m.webp', position: 'center 86%', label: 'D06 · Twin lobster tails, Evening hero', alt: 'Twin broiled lobster tails with mashed potatoes and corn and a glass of white wine in a booth under the ship’s-wheel clock' },
-  S01: { src: '/buccaneer/v2/fachada-noche-vertical.webp', label: 'S01 · Facade at night, sign on', alt: 'Buccaneer Diner at night, the red neon sign lit over a wet parking lot', position: 'center 28%' },
+  D01: { src: '/buccaneer/v2/ia-pancakes-ovalada.webp', mobileSrc: '/buccaneer/v2/ia-pancakes-ovalada-m.webp', appSrc: '/buccaneer/v2/app-hero-pancakes.webp', position: 'center 58%', label: 'D01 · Buttermilk pancakes, Morning hero', alt: 'Three buttermilk pancakes on an oval platter and a cup of black coffee on a marble booth table, placemats and cutlery behind' },
+  D04: { src: '/buccaneer/v2/ia-burger-deluxe.webp', mobileSrc: '/buccaneer/v2/ia-burger-deluxe-m.webp', appSrc: '/buccaneer/v2/app-hero-burger.webp', position: 'center 35%', label: 'D04 · Cheeseburger, Midday hero', alt: 'A cheeseburger with lettuce, tomato and fries on a booth table, the tan booth behind' },
+  D06: { src: '/buccaneer/v2/ia-lobster-copa.webp', mobileSrc: '/buccaneer/v2/ia-lobster-copa-m.webp', appSrc: '/buccaneer/v2/app-hero-lobster.webp', position: 'center 86%', label: 'D06 · Twin lobster tails, Evening hero', alt: 'Twin broiled lobster tails with mashed potatoes and corn and a glass of white wine in a booth under the ship’s-wheel clock' },
+  S01: { src: '/buccaneer/v2/fachada-noche-vertical.webp', label: 'S01 · Facade at night, sign on', alt: 'Buccaneer Diner at night, the red neon sign lit over a wet parking lot', position: 'center 28%', appSrc: '/buccaneer/v2/app-hero-fachada.webp' },
   S02: { src: '/buccaneer/v2/fachada-noche.webp', label: 'S02 · Facade video poster (video pending)', alt: 'Buccaneer Diner facade at night, red and blue neon along the roof', position: 'center 70%' },
   D02: { src: '/buccaneer/v2/huevos-barra.webp', position: '34% 90%', mobilePosition: '20% 90%', label: 'D02 · Eggs and home fries, at the counter', alt: 'Two sunny-side-up eggs with home fries, toast and a cup of coffee on the counter, red stools alongside' },
   S05a: { src: '/buccaneer/v2/barra-vertical.webp', position: 'center 60%', label: 'S05a · Counter and stools', alt: 'The long counter with its red stools, the coffee station and the bar behind it' },
@@ -78,7 +87,7 @@ export const PHOTO_SLOTS: Record<
   S04: { src: '/buccaneer/v2/salon.webp', label: 'S04 · Dining room, wide', alt: 'The counter stools and orange booths of the dining room' },
   S05b: { src: '/buccaneer/v2/barra-cubierto.webp', label: 'S05b · Counter detail', alt: 'A place set at the granite counter, the red stools alongside' },
   S11: { src: '/buccaneer/v2/jukebox.webp', label: 'S11 · Tabletop jukebox, booth', alt: 'A tabletop jukebox in a booth' },
-  S10: { src: '/buccaneer/v2/reloj-timon.webp', label: 'S10 · Dining room wheel clock', alt: 'A ship’s-wheel clock with an anchor on the dining room wall, between two windows over the booths' },
+  S10: { src: '/buccaneer/v2/reloj-timon.webp', appSrc: '/buccaneer/v2/app-reloj.webp', label: 'S10 · Dining room wheel clock', alt: 'A ship’s-wheel clock with an anchor on the dining room wall, between two windows over the booths' },
 };
 
 // ---------------------------------------------------------------------------
