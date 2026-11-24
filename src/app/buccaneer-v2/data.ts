@@ -53,13 +53,22 @@ export type SlotId =
 // real photo with only the bags on the counter removed (nothing added). D02, D09 and S06 are
 // Pedro's real photos (visit 2026-11-23), as is S05b. D01 D04 D05 D06 are his real booth
 // photos with only the plate added (measured against the table); nothing is fully AI anymore.
-export const PHOTO_SLOTS: Record<SlotId, { src: string | null; label: string; alt: string; position?: string }> = {
-  D01: { src: '/buccaneer/v2/ia-pancakes-ovalada.webp', position: 'center 58%', label: 'D01 · Buttermilk pancakes, Morning hero', alt: 'Three buttermilk pancakes on an oval platter and a cup of black coffee on a marble booth table, placemats and cutlery behind' },
-  D04: { src: '/buccaneer/v2/ia-burger-deluxe.webp', position: 'center 35%', label: 'D04 · Cheeseburger, Midday hero', alt: 'A cheeseburger with lettuce, tomato and fries on a booth table, the tan booth behind' },
-  D06: { src: '/buccaneer/v2/ia-lobster-copa.webp', position: 'center 86%', label: 'D06 · Twin lobster tails, Evening hero', alt: 'Twin broiled lobster tails with mashed potatoes and corn and a glass of white wine in a booth under the ship’s-wheel clock' },
+/**
+ * `mobileSrc`: a tighter crop for phones (<= 719 and phones in landscape), served
+ * through <picture> so each screen downloads only its own file (2026-11-23: on
+ * phones the wide booth shots left the dish small and far). `mobilePosition`:
+ * object-position on phones when only the framing changes.
+ */
+export const PHOTO_SLOTS: Record<
+  SlotId,
+  { src: string | null; label: string; alt: string; position?: string; mobileSrc?: string; mobilePosition?: string }
+> = {
+  D01: { src: '/buccaneer/v2/ia-pancakes-ovalada.webp', mobileSrc: '/buccaneer/v2/ia-pancakes-ovalada-m.webp', position: 'center 58%', label: 'D01 · Buttermilk pancakes, Morning hero', alt: 'Three buttermilk pancakes on an oval platter and a cup of black coffee on a marble booth table, placemats and cutlery behind' },
+  D04: { src: '/buccaneer/v2/ia-burger-deluxe.webp', mobileSrc: '/buccaneer/v2/ia-burger-deluxe-m.webp', position: 'center 35%', label: 'D04 · Cheeseburger, Midday hero', alt: 'A cheeseburger with lettuce, tomato and fries on a booth table, the tan booth behind' },
+  D06: { src: '/buccaneer/v2/ia-lobster-copa.webp', mobileSrc: '/buccaneer/v2/ia-lobster-copa-m.webp', position: 'center 86%', label: 'D06 · Twin lobster tails, Evening hero', alt: 'Twin broiled lobster tails with mashed potatoes and corn and a glass of white wine in a booth under the ship’s-wheel clock' },
   S01: { src: '/buccaneer/v2/fachada-noche-vertical.webp', label: 'S01 · Facade at night, sign on', alt: 'Buccaneer Diner at night, the red neon sign lit over a wet parking lot', position: 'center 28%' },
   S02: { src: '/buccaneer/v2/fachada-noche.webp', label: 'S02 · Facade video poster (video pending)', alt: 'Buccaneer Diner facade at night, red and blue neon along the roof', position: 'center 70%' },
-  D02: { src: '/buccaneer/v2/huevos-barra.webp', position: '34% 90%', label: 'D02 · Eggs and home fries, at the counter', alt: 'Two sunny-side-up eggs with home fries, toast and a cup of coffee on the counter, red stools alongside' },
+  D02: { src: '/buccaneer/v2/huevos-barra.webp', position: '34% 90%', mobilePosition: '20% 90%', label: 'D02 · Eggs and home fries, at the counter', alt: 'Two sunny-side-up eggs with home fries, toast and a cup of coffee on the counter, red stools alongside' },
   S05a: { src: '/buccaneer/v2/barra-vertical.webp', position: 'center 60%', label: 'S05a · Counter and stools', alt: 'The long counter with its red stools, the coffee station and the bar behind it' },
   D05: { src: '/buccaneer/v2/ia-calamari-booth12.webp', label: 'D05 · Dinner plate to share, booth', alt: 'A plate of fried calamari with a dish of marinara on a booth table, the tabletop jukebox behind' },
   D09: { src: '/buccaneer/v2/torta-booth.webp', label: 'D09 · Slice from the case, served', alt: 'A slice of chocolate layer cake and a cup of coffee on a booth table, the jukebox behind' },

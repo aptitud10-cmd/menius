@@ -1,5 +1,9 @@
-import Image from 'next/image';
+import type { CSSProperties } from 'react';
+import Image, { getImageProps } from 'next/image';
 import { PHOTO_SLOTS, type SlotId } from './data';
+
+/** Same query as the phone layout in buccaneer-v2.css (portrait <= 719, phones in landscape). */
+const PHONE_MQ = '(max-width: 719px), (max-width: 1279px) and (max-height: 500px)';
 
 /**
  * A photo slot. Fills its parent (the parent owns the aspect ratio and crop).
@@ -22,6 +26,26 @@ export default function Photo({
   const s = PHOTO_SLOTS[slot];
 
   if (s.src) {
+    // Framing via custom properties so phones can use their own (see .b2-photo).
+    const framing = {
+      ...(s.position ? { '--op': s.position } : {}),
+      ...(s.mobilePosition ? { '--op-m': s.mobilePosition } : {}),
+    } as CSSProperties;
+
+    if (s.mobileSrc) {
+      // Art direction: phones get the tight crop, everything else the full frame.
+      const common = { alt: s.alt, fill: true, sizes, priority, loading: priority ? undefined : ('lazy' as const) };
+      const { props: phone } = getImageProps({ ...common, src: s.mobileSrc });
+      const { props: wide } = getImageProps({ ...common, src: s.src });
+      return (
+        <picture>
+          <source media={PHONE_MQ} srcSet={phone.srcSet} sizes={phone.sizes} />
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes in the spread props */}
+          <img {...wide} className="b2-photo b2-photo--ad" style={{ ...wide.style, ...framing }} />
+        </picture>
+      );
+    }
+
     return (
       <Image
         className="b2-photo"
@@ -31,7 +55,7 @@ export default function Photo({
         sizes={sizes}
         priority={priority}
         loading={priority ? undefined : 'lazy'}
-        style={s.position ? { objectPosition: s.position } : undefined}
+        style={framing}
       />
     );
   }

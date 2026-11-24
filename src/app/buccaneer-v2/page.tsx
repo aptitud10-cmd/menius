@@ -104,6 +104,7 @@ function Cards({ id }: { id: string }) {
           <span aria-hidden="true">→</span>
         </span>
         <span className="b2-card__m">9301 Astoria Blvd</span>
+        <span className="b2-sr">, opens Google Maps</span>
       </a>
     </div>
   );
@@ -251,6 +252,10 @@ export default async function BuccaneerV2Page() {
             </a>
           </div>
         </section>
+        {/* Phones: the menu link leaves the fold and sits right under the hero. */}
+        <a className="b2-more b2-more--m" href={MENU_URL}>
+          Full menu — {COUNTS.total} dishes →
+        </a>
 
         {/* ------------------------------------------------ Morning — Índice */}
         <section className="b2-ch b2-morning" data-pal="day" id="morning">
