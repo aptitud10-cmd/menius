@@ -237,7 +237,9 @@ export const PIZARRA: Record<'dinner' | 'appetizers' | 'bar', { name: string; id
 export const LINKS = {
   fullMenu: MENU_URL,
   breakfast: cat('Buttermilk Pancakes'),
-  beverage: cat('Coffee and Drinks Bar'),
+  // By id, not name: the category was renamed to "Coffee, Tea & Soft Drinks" (MenuShell
+  // matches ?category= by id or exact name).
+  beverage: cat('c1000001-0000-0000-0000-000000000040'),
   burgers: cat('7 oz. Certified Angus Beef Burgers'),
   lunch: cat('Signature Sandwiches'),
   salads: cat('Gourmet Salads'),
