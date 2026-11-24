@@ -33,6 +33,18 @@ export async function GET(req: Request) {
 
   if (!restaurant) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
 
+  // ── Tablet del Counter: aparte del select de arriba a propósito ───────────
+  // counter_app_version llega con la migración 20261124; si todavía no está
+  // aplicada, esta consulta falla sola y la página sigue andando (regla 11).
+  const { data: counterRow } = await db.from('restaurants')
+    .select('counter_seen_at, counter_app_version')
+    .eq('id', restaurantId)
+    .maybeSingle();
+  const counter = {
+    seenAt: (counterRow?.counter_seen_at as string | null | undefined) ?? null,
+    appVersion: (counterRow?.counter_app_version as string | null | undefined) ?? null,
+  };
+
   // ── Auth user (email + name) ──────────────────────────────────────────────
   let ownerEmail = restaurant.notification_email ?? '';
   let ownerName = '';
@@ -150,6 +162,7 @@ export async function GET(req: Request) {
       lastSignIn,
     },
     subscription: subscription ?? null,
+    counter,
     stats: {
       totalOrders: totalOrders ?? 0,
       ordersThisMonth: ordersThisMonth ?? 0,

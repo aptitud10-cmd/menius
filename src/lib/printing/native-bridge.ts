@@ -162,6 +162,8 @@ type CounterAppBridge = {
   disconnectDevice?: () => void;
   vibrateNewOrder?: () => void;
   getAppVersion?: () => string;
+  /** >= 1.0.8: versionCode mínimo; por debajo, la app se actualiza sola (obligatorio). */
+  setMinAppVersion?: (versionCode: number) => void;
 };
 
 /**

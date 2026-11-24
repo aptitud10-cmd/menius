@@ -7,8 +7,17 @@ import {
   ArrowLeft, ExternalLink, ShoppingBag, TrendingUp, Users,
   DollarSign, Clock, AlertTriangle, CheckCircle, XCircle,
   Package, Tag, Mail, Phone, Globe, Calendar, CreditCard,
-  RefreshCw, ChevronRight,
+  RefreshCw, ChevronRight, Tablet,
 } from 'lucide-react';
+import { COUNTER_APP_LATEST, isOlderAppVersion } from '@/lib/counter-app';
+
+/** "hace 3 min" / "hace 2 h" / "hace 4 d" para la última señal de la tablet. */
+function agoEs(iso: string): string {
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (m < 60) return `hace ${m} min`;
+  if (m < 48 * 60) return `hace ${Math.round(m / 60)} h`;
+  return `hace ${Math.round(m / 1440)} d`;
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,6 +34,8 @@ interface RestaurantDetail {
     stripe_customer_id: string | null; current_period_end: string | null;
     cancel_at: string | null;
   } | null;
+  /** Tablet del Counter: última señal y versión de la app (null = navegador o nunca). */
+  counter?: { seenAt: string | null; appVersion: string | null };
   stats: {
     totalOrders: number; ordersThisMonth: number; ordersThisWeek: number;
     ordersToday: number; revenueThisMonth: number; productCount: number;
@@ -301,6 +312,25 @@ export default function RestaurantDetailPage() {
                   <Globe className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
                   {restaurant.country_code || '—'} · {currency}
                 </p>
+                {(() => {
+                  const c = data.counter;
+                  const v = c?.appVersion ?? null;
+                  const old = v != null && isOlderAppVersion(v, COUNTER_APP_LATEST);
+                  return (
+                    <p className="flex items-center gap-2 text-gray-400">
+                      <Tablet className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                      <span>
+                        Counter{' '}
+                        {v ? (
+                          <span className={old ? 'text-amber-400' : undefined}>
+                            app {v}{old ? ` (desactualizada, última ${COUNTER_APP_LATEST})` : ''}
+                          </span>
+                        ) : c?.seenAt ? 'desde navegador' : 'nunca abierto'}
+                        {c?.seenAt ? ` · señal ${agoEs(c.seenAt)}` : ''}
+                      </span>
+                    </p>
+                  );
+                })()}
               </div>
             </div>
           </div>

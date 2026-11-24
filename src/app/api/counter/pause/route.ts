@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
+import { counterAppVersionFromUA } from '@/lib/counter-app';
 
 const logger = createLogger('counter-pause');
 
@@ -31,6 +32,20 @@ export async function GET(request: NextRequest) {
       .eq('id', tenant.restaurantId)
       .or(`counter_seen_at.is.null,counter_seen_at.lt.${new Date(Date.now() - 60_000).toISOString()}`);
     if (hbErr) logger.warn('counter heartbeat failed', { error: hbErr.message });
+
+    // Versión de la app Android (si es la app): el admin ve qué tablets quedaron atrás.
+    // Escritura aparte de la señal: si falla (p. ej. migración 20261124 sin aplicar),
+    // la señal de arriba ya quedó guardada. La versión pasa por counterAppVersionFromUA
+    // (solo dígitos y puntos), así que es seguro usarla dentro del filtro.
+    const appVersion = counterAppVersionFromUA(request.headers.get('user-agent'));
+    if (appVersion) {
+      const { error: vErr } = await createAdminClient()
+        .from('restaurants')
+        .update({ counter_app_version: appVersion })
+        .eq('id', tenant.restaurantId)
+        .or(`counter_app_version.is.null,counter_app_version.neq.${appVersion}`);
+      if (vErr) logger.warn('counter app version write failed', { error: vErr.message });
+    }
   }
   const supabase = await createClient();
   const { data, error } = await supabase

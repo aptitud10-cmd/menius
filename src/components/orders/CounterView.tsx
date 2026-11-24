@@ -20,6 +20,7 @@ import { useCloudPrnt } from '@/hooks/use-cloudprnt';
 import { isOrderIncident, type CustomerFlag } from '@/lib/customer-incidents';
 import { PrinterService } from '@/lib/printing/PrinterService';
 import { getCounterAppBridge, isMeniusNativePrintAvailable } from '@/lib/printing/native-bridge';
+import { COUNTER_APP_MIN_VERSION_CODE } from '@/lib/counter-app';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { PrinterConfig } from '@/lib/printing/PrinterConfig';
 import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
@@ -375,9 +376,12 @@ export function CounterView({
   // Inside the app there is no gate to tap: unlock silently on mount (a chime every
   // time the app opens would just be noise).
   useEffect(() => {
-    if (!getCounterAppBridge()) return;
+    const bridge = getCounterAppBridge();
+    if (!bridge) return;
     setInApp(true);
     unlockAudio(true);
+    // App 1.0.8+: si su versión es menor que la que necesita esta web, se actualiza sola.
+    try { bridge.setMinAppVersion?.(COUNTER_APP_MIN_VERSION_CODE); } catch { /* app vieja */ }
   }, [unlockAudio]);
 
   // La pantalla "Iniciar Counter" es solo la primera vez en este dispositivo.
