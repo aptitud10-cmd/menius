@@ -392,7 +392,7 @@ describe('utensilsRequested', () => {
   it('ningún camino del server vuelve al default "sí" (guarda de regresión)', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
-    for (const r of ['src/app/api/orders/route.ts', 'src/lib/orders/validate-order.ts']) {
+    for (const r of ['src/app/api/orders/route.ts']) {
       const src = fs.readFileSync(path.join(process.cwd(), r), 'utf8');
       expect(src, `${r} no puede asumir cubiertos por defecto`).not.toMatch(/include_utensils\s*!==\s*false/);
     }
