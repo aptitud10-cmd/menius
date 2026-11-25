@@ -642,7 +642,7 @@ export function AppDays() {
       <Scene
         n={4}
         hour="10 p.m."
-        title="Up late? So are we."
+        title="Still cooking at 3 a.m."
         body="The full menu runs all night. So does the cake case: cheesecake, carrot cake, and rice pudding, all baked here."
         link="Desserts"
         href={LINKS.desserts}

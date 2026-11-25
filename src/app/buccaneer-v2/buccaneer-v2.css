@@ -3250,6 +3250,12 @@
   .b2-root .b2-close__cap {
     display: none;
   }
+  /* Footer = signature only, as on tablet/desktop (Pedro 2026-11-25): address and phone are
+     already in Visit right above and in the dock's Call; repeating them made three "Call the diner". */
+  .b2-root .b2-foot__data > span,
+  .b2-root .b2-foot__data > a:not(.b2-foot__ig) {
+    display: none;
+  }
   .b2-foot__also {
     min-height: 44px;
     font-size: 14px;
@@ -5254,6 +5260,31 @@
    dinner scene left ~360px of empty Yolk; Pedro 2026-11-25). */
 @media (min-width: 1280px) {
   .b2-root .b2-days > .b2-scene .b2-scene__b {
+    align-self: center;
+  }
+}
+
+/* Split hero (720–1279, everything but the stacked tablet): the three zones sat spread over the
+   full height (margin-top:auto) and left two ~120px holes at 1024×768. Now one centred group
+   with fixed gaps (Pedro 2026-11-25). */
+@media (min-width: 720px) and (max-width: 1279px) and (min-height: 501px) and (orientation: landscape),
+  (min-width: 720px) and (max-width: 1279px) and (min-height: 501px) and (max-height: 879px) {
+  .b2-root .b2-hero__right {
+    justify-content: center;
+  }
+  .b2-root .b2-hero .b2-h1 {
+    margin-top: 28px;
+  }
+  .b2-root .b2-hero .b2-btn--solid {
+    margin-top: 0;
+  }
+}
+
+/* Tablet Favorites: in the mirrored row the two small plates run taller than the big one, which
+   was pinned to the top and left ~230px of navy under it. Each block centres in its row. */
+@media (min-width: 720px) and (max-width: 1023px) and (min-height: 501px) {
+  .b2-root .b2-fav > .b2-dish--big,
+  .b2-root .b2-fav > .b2-fpair {
     align-self: center;
   }
 }
