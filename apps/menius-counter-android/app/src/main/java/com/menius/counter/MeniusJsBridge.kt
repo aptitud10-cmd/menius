@@ -133,6 +133,15 @@ class MeniusJsBridge(private val activity: MainActivity) {
         }
     }
 
+    /**
+     * Pedido nuevo (apps con NewOrderNotifier; las viejas no tienen el método). Con el Counter en pantalla no hace nada (suena la web);
+     * tapado por otra app, notificación que suena hasta abrirla (NewOrderNotifier).
+     */
+    @JavascriptInterface
+    fun notifyNewOrder(title: String?, body: String?) {
+        NewOrderNotifier.notify(context.applicationContext, title.orEmpty(), body.orEmpty())
+    }
+
     @JavascriptInterface
     fun getAppVersion(): String = BuildConfig.VERSION_NAME
 

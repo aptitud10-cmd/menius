@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Haptic pulse on a new order (MeniusAndroid.vibrateNewOrder). -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Pedido nuevo con el Counter tapado por otra app (NewOrderNotifier). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- For future Bluetooth thermal printing -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"

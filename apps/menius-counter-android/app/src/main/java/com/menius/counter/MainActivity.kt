@@ -83,7 +83,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         enterImmersive()
-        requestBluetoothPermissionsIfNeeded()
+        requestStartupPermissions()
 
         // The Counter runs on a till tablet all shift. Without this the screen
         // sleeps on the OS timeout and incoming orders go unnoticed until someone
@@ -208,6 +208,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        // De vuelta en el Counter: la alerta de la web toma el relevo y el aviso
+        // de Android (que suena sin parar) se borra.
+        NewOrderNotifier.inForeground = true
+        NewOrderNotifier.clear(this)
+    }
+
+    override fun onStop() {
+        NewOrderNotifier.inForeground = false
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         enterImmersive()
@@ -327,18 +340,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun requestBluetoothPermissionsIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+    /** Bluetooth (impresora) y, en Android 13+, notificaciones (pedido nuevo con otra app encima). */
+    private fun requestStartupPermissions() {
         val need = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            need.add(Manifest.permission.BLUETOOTH_CONNECT)
+        fun missing(p: String) =
+            ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (missing(Manifest.permission.BLUETOOTH_CONNECT)) need.add(Manifest.permission.BLUETOOTH_CONNECT)
+            if (missing(Manifest.permission.BLUETOOTH_SCAN)) need.add(Manifest.permission.BLUETOOTH_SCAN)
         }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) !=
-            PackageManager.PERMISSION_GRANTED
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            missing(Manifest.permission.POST_NOTIFICATIONS)
         ) {
-            need.add(Manifest.permission.BLUETOOTH_SCAN)
+            need.add(Manifest.permission.POST_NOTIFICATIONS)
         }
         if (need.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, need.toTypedArray(), REQ_BT)

@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">MENIUS Counter</string>
     <string name="printer_settings_title">Printer</string>
+    <string name="channel_new_orders">New orders</string>
+    <string name="channel_new_orders_desc">Rings until you open the Counter when an order arrives while another app is on screen.</string>
 
     <!-- Mode -->
     <string name="connection_mode_label">Connection mode</string>

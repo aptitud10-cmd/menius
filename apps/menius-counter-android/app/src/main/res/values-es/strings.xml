@@ -43,4 +43,6 @@
     <string name="press_back_again">Presiona atrás otra vez para salir</string>
     <string name="update_ready">Nueva versión lista</string>
     <string name="update_restart">Reiniciar</string>
+    <string name="channel_new_orders">Pedidos nuevos</string>
+    <string name="channel_new_orders_desc">Suena hasta que abres el Counter cuando entra un pedido con otra app en pantalla.</string>
 </resources>
