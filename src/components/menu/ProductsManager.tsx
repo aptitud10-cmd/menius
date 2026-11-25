@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useTransition, useRef, useEffect, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
   Plus, Trash2, Eye, EyeOff, Search, Package, Sparkles,
   ChevronRight, X, GripVertical,
-  PackageX, PackageCheck, ImagePlus, Copy, SlidersHorizontal, Zap,
+  PackageX, PackageCheck, ImagePlus, Copy, SlidersHorizontal, Zap, MoreHorizontal, Loader2,
 } from 'lucide-react';
 import {
   DndContext,
@@ -24,9 +25,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  createProduct, updateProduct, deleteProduct, reorderProducts, toggleProductStock,
-  createModifierGroup, createModifierOption,
-  getProductForDuplication,
+  updateProduct, deleteProduct, reorderProducts, toggleProductStock, duplicateProduct,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
 import type { Product, Category } from '@/types';
@@ -41,6 +40,13 @@ const AdminBulkRegenerateLazy = lazy(() => import('./AdminBulkRegenerate').then(
 // Admin debug feature — read from env so the UUID is not baked into the client bundle
 const ADMIN_REGEN_RESTAURANT_ID = process.env.NEXT_PUBLIC_ADMIN_REGEN_RESTAURANT_ID ?? '';
 
+// Shared by the header and every row (md+). On touch screens (iPad) the drag
+// handle and the action column grow so each target is at least 44x44.
+const ROW_GRID =
+  'grid-cols-[1.5rem_2rem_1fr_6rem_4.5rem_4rem_4.5rem_5rem] [@media(pointer:coarse)]:grid-cols-[2.75rem_2rem_1fr_6rem_4.5rem_4rem_3rem_8.5rem]';
+const TOUCH_TARGET =
+  '[@media(pointer:coarse)]:p-0 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 inline-flex items-center justify-center';
+
 // ─── Inline price cell ──────────────────────────────────────────
 
 function InlinePriceCell({
@@ -50,29 +56,37 @@ function InlinePriceCell({
 }: {
   price: number;
   currency: string;
-  onSave: (v: number) => void;
+  /** Resolves true only once the server confirmed the new price. */
+  onSave: (v: number) => Promise<boolean>;
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(String(price));
   const [flash, setFlash] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
+  // Enter and the blur that follows must not save twice.
+  const committed = useRef(false);
   const { t } = useDashboardLocale();
 
   useEffect(() => {
     if (editing) {
+      committed.current = false;
       ref.current?.focus();
       ref.current?.select();
     }
   }, [editing]);
 
-  const save = () => {
+  const save = async () => {
+    if (committed.current) return;
+    committed.current = true;
+    setEditing(false);
     const n = parseFloat(value);
-    if (!isNaN(n) && n >= 0 && n !== price) {
-      onSave(n);
+    if (isNaN(n) || n < 0 || n === price) return;
+    // Green "saved" flash only after the server confirms; on failure the
+    // parent restores the old price and shows an error toast.
+    if (await onSave(n)) {
       setFlash(true);
       setTimeout(() => setFlash(false), 1200);
     }
-    setEditing(false);
   };
 
   if (editing) {
@@ -86,7 +100,7 @@ function InlinePriceCell({
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') save();
-          if (e.key === 'Escape') { setValue(String(price)); setEditing(false); }
+          if (e.key === 'Escape') { committed.current = true; setValue(String(price)); setEditing(false); }
         }}
         onBlur={save}
         className="w-20 px-2 py-0.5 text-sm border border-emerald-400 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
@@ -149,8 +163,11 @@ export function ProductsManager({
   const [showBulkImages, setShowBulkImages] = useState(false);
   const [showBulkAI, setShowBulkAI] = useState(false);
   const [showAdminRegen, setShowAdminRegen] = useState(false);
-  const { t } = useDashboardLocale();
-  const { error: toastError } = useToast();
+  const [sheetProduct, setSheetProduct] = useState<Product | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const { t, locale } = useDashboardLocale();
+  const { success: toastSuccess, error: toastError } = useToast();
+  const L = (es: string, en: string) => (locale === 'en' ? en : es);
 
   const toggleCat = (id: string) => {
     setExpanded(prev => {
@@ -167,86 +184,65 @@ export function ProductsManager({
     startTransition(async () => {
       try {
         const res = await deleteProduct(id);
-        if (res?.error) { setProducts(prev); }
-      } catch { setProducts(prev); }
+        if (res?.error) throw new Error(res.error);
+      } catch {
+        setProducts(prev);
+        toastError(L('No se pudo borrar el plato. Probá de nuevo.', 'Couldn’t delete the dish. Please try again.'));
+      }
     });
   };
 
-  const handleDuplicate = (p: Product) => {
-    const tempId = `temp-dup-${Date.now()}`;
-    const newProduct: Product = {
-      ...p,
-      id: tempId,
-      name: `${p.name} (${t.products_copy})`,
-      sort_order: products.length,
-    };
-    setProducts(prev => [...prev, newProduct]);
-    startTransition(async () => {
-      const res = await createProduct({
-        name: newProduct.name,
-        description: p.description ?? '',
-        price: Number(p.price),
-        category_id: p.category_id,
-        is_active: true,
-        dietary_tags: p.dietary_tags,
-      });
-      if (res?.error || !res?.id) {
-        setProducts(prev => prev.filter(x => x.id !== tempId));
+  const handleDuplicate = async (p: Product) => {
+    if (duplicatingId) return;
+    const name = `${p.name} (${t.products_copy})`;
+    setDuplicatingId(p.id);
+    try {
+      const res = await duplicateProduct(p.id, name);
+      if ('error' in res && res.error) {
+        toastError('limitReached' in res && res.limitReached
+          ? res.error
+          : L('No se pudo duplicar el plato. No se creó ninguna copia.', 'Couldn’t duplicate the dish. No copy was created.'));
         return;
       }
-      const newId = res.id;
-      // La lista viene slim (sin variants/extras/modifiers), así que traemos las
-      // relaciones completas del producto original on-demand antes de copiarlas.
-      const full = await getProductForDuplication(p.id);
-      if ('error' in full) {
-        // El producto base ya se creó; avisamos que las relaciones no se copiaron.
-        toastError(defaultLocale === 'en' ? 'Could not copy variants/modifiers' : 'No se pudieron copiar variantes/modificadores');
-        window.location.reload();
-        return;
-      }
-      // Copy modifier groups and their options
-      const groups = full.modifier_groups ?? [];
-      for (const g of groups) {
-        const gRes = await createModifierGroup(newId, {
-          name: g.name,
-          selection_type: g.selection_type,
-          min_select: g.min_select,
-          max_select: g.max_select,
-          is_required: g.is_required,
-          sort_order: g.sort_order,
-        });
-        const newGroupId = (gRes as any)?.group?.id;
-        if (newGroupId) {
-          for (const opt of g.options ?? []) {
-            await createModifierOption(newGroupId, {
-              name: opt.name,
-              price_delta: opt.price_delta,
-              is_default: opt.is_default,
-              sort_order: opt.sort_order,
-            });
-          }
-        }
-      }
-      window.location.reload();
-    });
+      if (!('id' in res) || !res.id) throw new Error('missing id');
+      const copy: Product = {
+        ...p,
+        id: res.id,
+        name,
+        is_active: false,
+        in_stock: true,
+        sort_order: res.sort_order,
+        daily_kind: null,
+      };
+      setProducts(prev => [...prev, copy]);
+      setExpanded(prev => new Set(prev).add(p.category_id));
+      toastSuccess(L(
+        'Copia creada y oculta. Revisala y mostrala cuando esté lista.',
+        'Copy created and hidden. Review it and show it when it’s ready.',
+      ));
+    } catch {
+      toastError(L('No se pudo duplicar el plato. Revisá la conexión.', 'Couldn’t duplicate the dish. Check your connection.'));
+    } finally {
+      setDuplicatingId(null);
+    }
   };
 
   const handleToggle = (p: Product) => {
+    const revert = () => setProducts(prev =>
+      prev.map(x => (x.id === p.id ? { ...x, is_active: p.is_active } : x)),
+    );
     setProducts(prev =>
-      prev.map(x => (x.id === p.id ? { ...x, is_active: !x.is_active } : x)),
+      prev.map(x => (x.id === p.id ? { ...x, is_active: !p.is_active } : x)),
     );
     startTransition(async () => {
       try {
         const res = await updateProduct(p.id, { is_active: !p.is_active });
-        if (res?.error) {
-          setProducts(prev =>
-            prev.map(x => (x.id === p.id ? { ...x, is_active: p.is_active } : x)),
-          );
-        }
+        if (res?.error) throw new Error(res.error);
       } catch {
-        setProducts(prev =>
-          prev.map(x => (x.id === p.id ? { ...x, is_active: p.is_active } : x)),
-        );
+        revert();
+        toastError(p.is_active
+          ? L('No se pudo ocultar el plato. Sigue visible en la tienda.', 'Couldn’t hide the dish. It’s still visible in the store.')
+          : L('No se pudo mostrar el plato. Sigue oculto.', 'Couldn’t show the dish. It’s still hidden.'));
       }
     });
   };
@@ -257,24 +253,38 @@ export function ProductsManager({
       prev.map(x => (x.id === p.id ? { ...x, in_stock: newStock } : x)),
     );
     startTransition(async () => {
-      const res = await toggleProductStock(p.id, newStock);
-      if (res?.error) {
+      try {
+        const res = await toggleProductStock(p.id, newStock);
+        if (res?.error) throw new Error(res.error);
+      } catch {
         setProducts(prev =>
           prev.map(x => (x.id === p.id ? { ...x, in_stock: p.in_stock } : x)),
         );
+        toastError(newStock
+          ? L('No se pudo volver a poner disponible. Sigue agotado.', 'Couldn’t mark it available. It’s still sold out.')
+          : L('No se pudo marcar como agotado. La tienda lo sigue vendiendo.', 'Couldn’t mark it sold out. The store is still selling it.'));
       }
     });
   };
 
-  const handlePriceSave = (id: string, price: number) => {
+  const handlePriceSave = async (id: string, price: number): Promise<boolean> => {
     const oldPrice = products.find(p => p.id === id)?.price;
     setProducts(prev => prev.map(p => (p.id === id ? { ...p, price } : p)));
-    startTransition(async () => {
+    try {
       const res = await updateProduct(id, { price });
-      if (res?.error && oldPrice !== undefined) {
+      if (res?.error) throw new Error(res.error);
+      return true;
+    } catch {
+      if (oldPrice !== undefined) {
         setProducts(prev => prev.map(p => (p.id === id ? { ...p, price: oldPrice } : p)));
       }
-    });
+      const old = oldPrice !== undefined ? formatPrice(Number(oldPrice), curr) : '';
+      toastError(L(
+        `No se pudo guardar el precio.${old ? ` Sigue en ${old}.` : ''}`,
+        `Couldn’t save the price.${old ? ` It’s still ${old}.` : ''}`,
+      ));
+      return false;
+    }
   };
 
   const handleBulkToggle = (active: boolean) => {
@@ -283,10 +293,12 @@ export function ProductsManager({
     setProducts(p => p.map(x => (ids.has(x.id) ? { ...x, is_active: active } : x)));
     setSelected(new Set());
     startTransition(async () => {
-      const results = await Promise.all(
-        Array.from(ids).map(id => updateProduct(id, { is_active: active })),
-      );
-      if (results.some(r => r?.error)) {
+      try {
+        const results = await Promise.all(
+          Array.from(ids).map(id => updateProduct(id, { is_active: active })),
+        );
+        if (results.some(r => r?.error)) throw new Error('bulk');
+      } catch {
         setProducts(prev);
         toastError(t.products_bulkToggleError);
       }
@@ -300,10 +312,12 @@ export function ProductsManager({
     setProducts(p => p.filter(x => !ids.has(x.id)));
     setSelected(new Set());
     startTransition(async () => {
-      const results = await Promise.all(
-        Array.from(ids).map(id => deleteProduct(id)),
-      );
-      if (results.some(r => r?.error)) {
+      try {
+        const results = await Promise.all(
+          Array.from(ids).map(id => deleteProduct(id)),
+        );
+        if (results.some(r => r?.error)) throw new Error('bulk');
+      } catch {
         setProducts(prev);
         toastError(t.products_bulkDeleteError);
       }
@@ -442,7 +456,9 @@ export function ProductsManager({
             >
               <option value="all">{t.products_allFem}</option>
               {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.is_active === false ? ` (${L('oculta', 'hidden')})` : ''}
+                </option>
               ))}
             </select>
           </div>
@@ -522,7 +538,8 @@ export function ProductsManager({
       ) : (
         <div className="dash-card overflow-hidden">
           {/* Column headers (desktop) */}
-          <div className="hidden md:grid grid-cols-[2rem_1fr_6rem_4.5rem_4rem_4.5rem_5rem] items-center gap-2 px-4 py-2 bg-gray-50/80 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+          <div className={cn('hidden md:grid items-center gap-2 px-4 py-2 bg-gray-50/80 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider', ROW_GRID)}>
+            <div />
             <div />
             <div>{t.products_product}</div>
             <div>{t.products_price}</div>
@@ -551,8 +568,16 @@ export function ProductsManager({
                       isExp && 'rotate-90',
                     )}
                   />
-                  <span className="text-sm font-semibold text-gray-700">{cat.name}</span>
+                  <span className={cn('text-sm font-semibold', cat.is_active === false ? 'text-gray-500' : 'text-gray-700')}>{cat.name}</span>
                   <span className="text-xs text-gray-400 ml-1">({totalInCat})</span>
+                  {cat.is_active === false && (
+                    <span
+                      className="dash-badge dash-badge-inactive text-[10px]"
+                      title={L('Esta categoría está oculta: sus platos no se ven en la tienda.', 'This category is hidden: its dishes are not shown in the store.')}
+                    >
+                      {L('Categoría oculta', 'Hidden category')}
+                    </span>
+                  )}
                 </button>
 
                 {/* Product rows */}
@@ -567,6 +592,8 @@ export function ProductsManager({
                     handleStockToggle={handleStockToggle}
                     handleDelete={handleDelete}
                     handleDuplicate={handleDuplicate}
+                    duplicatingId={duplicatingId}
+                    onMore={setSheetProduct}
                     curr={curr}
                     products={products}
                     setProducts={setProducts}
@@ -583,7 +610,7 @@ export function ProductsManager({
       {showImport && (
         <Suspense fallback={null}>
           <MenuImportLazy
-            existingCategories={categories.map(c => ({ id: c.id, name: c.name }))}
+            existingCategories={categories.filter(c => c.is_active !== false).map(c => ({ id: c.id, name: c.name }))}
             restaurantId={restaurantId || ''}
             currency={curr}
             onComplete={() => window.location.reload()}
@@ -629,6 +656,18 @@ export function ProductsManager({
         </Suspense>
       )}
 
+      {/* Phone row actions (no hover on touch screens) */}
+      {sheetProduct && (
+        <ProductActionsSheet
+          product={products.find(x => x.id === sheetProduct.id) ?? sheetProduct}
+          duplicating={duplicatingId === sheetProduct.id}
+          onClose={() => setSheetProduct(null)}
+          onDuplicate={(p) => { setSheetProduct(null); void handleDuplicate(p); }}
+          onToggle={(p) => { setSheetProduct(null); handleToggle(p); }}
+          onDelete={(id) => { setSheetProduct(null); handleDelete(id); }}
+        />
+      )}
+
       {/* Admin bulk image regeneration when NEXT_PUBLIC_ADMIN_REGEN_RESTAURANT_ID matches this restaurant */}
       {showAdminRegen && restaurantId && (
         <Suspense fallback={null}>
@@ -654,6 +693,8 @@ function SortableProductList({
   handleStockToggle,
   handleDelete,
   handleDuplicate,
+  duplicatingId,
+  onMore,
   curr,
   setProducts,
   startTransition,
@@ -662,11 +703,13 @@ function SortableProductList({
   catProducts: Product[];
   selected: Set<string>;
   toggleSel: (id: string) => void;
-  handlePriceSave: (id: string, v: number) => void;
+  handlePriceSave: (id: string, v: number) => Promise<boolean>;
   handleToggle: (p: Product) => void;
   handleStockToggle: (p: Product) => void;
   handleDelete: (id: string) => void;
   handleDuplicate: (p: Product) => void;
+  duplicatingId: string | null;
+  onMore: (p: Product) => void;
   curr: string;
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
@@ -686,15 +729,22 @@ function SortableProductList({
     const newIndex = catProducts.findIndex((p) => p.id === over.id);
     const reordered = arrayMove(catProducts, oldIndex, newIndex);
 
+    let snapshot: Product[] | null = null;
     setProducts((prev) => {
+      snapshot = prev;
       const others = prev.filter((p) => p.category_id !== catId);
       return [...others, ...reordered.map((p, i) => ({ ...p, sort_order: i }))].sort((a, b) => a.sort_order - b.sort_order);
     });
 
     startTransition(async () => {
-      const result = await reorderProducts(reordered.map((p) => p.id));
-      if (result?.error) toastError(t.products_reorderError);
-      else toastSuccess(t.products_reorderSaved);
+      try {
+        const result = await reorderProducts(reordered.map((p) => p.id));
+        if (result?.error) throw new Error(result.error);
+        toastSuccess(t.products_reorderSaved);
+      } catch {
+        if (snapshot) setProducts(snapshot);
+        toastError(t.products_reorderError);
+      }
     });
   };
 
@@ -712,6 +762,8 @@ function SortableProductList({
             handleStockToggle={handleStockToggle}
             handleDelete={handleDelete}
             handleDuplicate={handleDuplicate}
+            duplicating={duplicatingId === p.id}
+            onMore={onMore}
             curr={curr}
           />
         ))}
@@ -729,16 +781,20 @@ function SortableProductRow({
   handleStockToggle,
   handleDelete,
   handleDuplicate,
+  duplicating,
+  onMore,
   curr,
 }: {
   p: Product;
   isSel: boolean;
   toggleSel: (id: string) => void;
-  handlePriceSave: (id: string, v: number) => void;
+  handlePriceSave: (id: string, v: number) => Promise<boolean>;
   handleToggle: (p: Product) => void;
   handleStockToggle: (p: Product) => void;
   handleDelete: (id: string) => void;
   handleDuplicate: (p: Product) => void;
+  duplicating: boolean;
+  onMore: (p: Product) => void;
   curr: string;
 }) {
   const modCount = p.modifier_groups?.length ?? 0;
@@ -750,7 +806,8 @@ function SortableProductRow({
     transition,
     isDragging,
   } = useSortable({ id: p.id });
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
+  const L = (es: string, en: string) => (locale === 'en' ? en : es);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -773,14 +830,15 @@ function SortableProductRow({
         p.in_stock === false && p.is_active && 'opacity-75',
       )}
     >
-      {/* Desktop row */}
-      <div className="hidden md:grid grid-cols-[1.5rem_2rem_1fr_6rem_4.5rem_4rem_4.5rem_5rem] items-center gap-2 px-4 py-2.5">
+      {/* Desktop / tablet row */}
+      <div className={cn('hidden md:grid items-center gap-2 px-4 py-2.5', ROW_GRID)}>
         <button
-          className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none"
+          className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none inline-flex items-center justify-center [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11"
+          aria-label={L('Arrastrar para ordenar', 'Drag to reorder')}
           {...attributes}
           {...listeners}
         >
-          <GripVertical className="w-3.5 h-3.5" />
+          <GripVertical className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />
         </button>
         <input
           type="checkbox"
@@ -812,7 +870,8 @@ function SortableProductRow({
         <button
           onClick={() => handleStockToggle(p)}
           className={cn(
-            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-all',
+            // after: grows the tap area to ~44px tall without changing the pill.
+            "relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-all after:absolute after:inset-x-0 after:-inset-y-3 after:content-['']",
             p.in_stock === false
               ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
               : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
@@ -832,22 +891,39 @@ function SortableProductRow({
             <span className="text-[11px] text-gray-300">&mdash;</span>
           )}
         </div>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => handleDuplicate(p)} className="p-1 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-500" title={t.products_duplicate}>
-            <Copy className="w-3.5 h-3.5" />
+        {/* Always visible on touch screens; with a mouse they appear on hover. */}
+        <div className="flex items-center gap-0.5 transition-opacity focus-within:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
+          <button
+            onClick={() => handleDuplicate(p)}
+            disabled={duplicating}
+            className={cn('p-1 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-500 disabled:opacity-50', TOUCH_TARGET)}
+            title={t.products_duplicate}
+            aria-label={t.products_duplicate}
+          >
+            {duplicating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
-          <button onClick={() => handleToggle(p)} className="p-1 rounded hover:bg-gray-100 text-gray-400" title={p.is_active ? t.products_hide : t.products_show}>
+          <button
+            onClick={() => handleToggle(p)}
+            className={cn('p-1 rounded hover:bg-gray-100 text-gray-400', TOUCH_TARGET)}
+            title={p.is_active ? t.products_hide : t.products_show}
+            aria-label={p.is_active ? t.products_hide : t.products_show}
+          >
             {p.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           </button>
-          <button onClick={() => handleDelete(p.id)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500" title={t.general_delete}>
+          <button
+            onClick={() => handleDelete(p.id)}
+            className={cn('p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500', TOUCH_TARGET)}
+            title={t.general_delete}
+            aria-label={t.general_delete}
+          >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {/* Mobile row */}
-      <div className="flex md:hidden items-center gap-3 px-4 py-3 w-full">
-        <Link href={`/app/menu/products/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+      <div className="flex md:hidden items-center gap-2 pl-4 pr-2 py-2 w-full">
+        <Link href={`/app/menu/products/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0 text-left py-1">
           {p.image_url ? (
             <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
               <Image src={p.image_url} alt={p.name} fill sizes="44px" className="object-cover" />
@@ -872,21 +948,88 @@ function SortableProductRow({
             <p className="text-xs text-gray-400 mt-0.5">
               {formatPrice(Number(p.price), curr)}
               {modCount > 0 && ` · ${modCount} ${t.products_groups}`}
+              {!p.is_active && ` · ${t.products_hiddenStatus}`}
             </p>
           </div>
         </Link>
         <button
           onClick={() => handleStockToggle(p)}
           className={cn(
-            'p-1.5 rounded-lg transition-colors flex-shrink-0',
-            p.in_stock === false ? 'text-red-400 hover:bg-red-50' : 'text-emerald-400 hover:bg-emerald-50'
+            'w-11 h-11 rounded-lg transition-colors flex-shrink-0 inline-flex items-center justify-center',
+            p.in_stock === false ? 'text-red-500 hover:bg-red-50 active:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50 active:bg-emerald-50'
           )}
           title={p.in_stock === false ? t.products_markAvailable : t.products_markOutOfStock}
+          aria-label={p.in_stock === false ? t.products_markAvailable : t.products_markOutOfStock}
         >
-          {p.in_stock === false ? <PackageX className="w-4 h-4" /> : <PackageCheck className="w-4 h-4" />}
+          {p.in_stock === false ? <PackageX className="w-5 h-5" /> : <PackageCheck className="w-5 h-5" />}
         </button>
-        <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+        <button
+          onClick={() => onMore(p)}
+          disabled={duplicating}
+          className="w-11 h-11 rounded-lg text-gray-500 hover:bg-gray-100 active:bg-gray-100 flex-shrink-0 inline-flex items-center justify-center disabled:opacity-50"
+          aria-label={L('Más acciones', 'More actions')}
+        >
+          {duplicating ? <Loader2 className="w-5 h-5 animate-spin" /> : <MoreHorizontal className="w-5 h-5" />}
+        </button>
       </div>
     </div>
+  );
+}
+
+// ─── Phone action sheet ─────────────────────────────────────────
+
+function ProductActionsSheet({
+  product,
+  duplicating,
+  onClose,
+  onDuplicate,
+  onToggle,
+  onDelete,
+}: {
+  product: Product;
+  duplicating: boolean;
+  onClose: () => void;
+  onDuplicate: (p: Product) => void;
+  onToggle: (p: Product) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { t, locale } = useDashboardLocale();
+  const L = (es: string, en: string) => (locale === 'en' ? en : es);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const item = 'w-full min-h-[48px] flex items-center gap-3 px-4 rounded-xl text-sm font-medium text-left active:bg-gray-100';
+
+  // Portaled to <body>: the list sits inside an overflow-hidden card.
+  return createPortal(
+    <div className="fixed inset-0 z-[90] md:hidden" role="dialog" aria-modal="true" aria-label={product.name}>
+      <button className="absolute inset-0 bg-black/40" aria-label={t.general_cancel} onClick={onClose} />
+      <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-2xl px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <p className="px-4 pb-2 text-xs font-semibold text-gray-500 truncate">{product.name}</p>
+        <button className={cn(item, 'text-gray-900')} disabled={duplicating} onClick={() => onDuplicate(product)}>
+          <Copy className="w-5 h-5 text-gray-500" />
+          <span className="flex-1">
+            {t.products_duplicate}
+            <span className="block text-xs font-normal text-gray-500">{L('La copia queda oculta hasta que la muestres', 'The copy stays hidden until you show it')}</span>
+          </span>
+        </button>
+        <button className={cn(item, 'text-gray-900')} onClick={() => onToggle(product)}>
+          {product.is_active ? <EyeOff className="w-5 h-5 text-gray-500" /> : <Eye className="w-5 h-5 text-gray-500" />}
+          <span className="flex-1">{product.is_active ? t.products_hide : t.products_show}</span>
+        </button>
+        <button className={cn(item, 'text-red-600')} onClick={() => onDelete(product.id)}>
+          <Trash2 className="w-5 h-5" />
+          <span className="flex-1">{t.general_delete}</span>
+        </button>
+        <button className={cn(item, 'mt-1 justify-center bg-gray-100 text-gray-700')} onClick={onClose}>
+          {t.general_cancel}
+        </button>
+      </div>
+    </div>,
+    document.body,
   );
 }

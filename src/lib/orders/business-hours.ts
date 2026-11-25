@@ -70,3 +70,17 @@ export function nextOpening(hours: OperatingHours, local: Date): { daysAhead: nu
   }
   return null;
 }
+
+/** Closing earlier than opening (e.g. 18:00–02:00) means the day ends after midnight. */
+export function crossesMidnight(open: string, close: string): boolean {
+  const o = mins(open), c = mins(close);
+  return o != null && c != null && c < o;
+}
+
+/**
+ * Settings validation for one day's hours (isOpenAt supports overnight hours).
+ * Only the same open and close time is rejected: the owner should use "24 h".
+ */
+export function dayHoursError(open: string, close: string): 'same_time' | null {
+  return mins(open) != null && mins(open) === mins(close) ? 'same_time' : null;
+}

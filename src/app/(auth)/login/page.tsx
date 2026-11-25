@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { login } from '@/lib/actions/auth';
-import { loginSchema } from '@/lib/validations';
+import { getLoginSchema } from '@/lib/validations';
 import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
 
@@ -48,7 +48,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const parsed = loginSchema.safeParse({ email, password });
+    const parsed = getLoginSchema(locale).safeParse({ email, password });
     if (!parsed.success) {
       setError(parsed.error.errors[0].message);
       return;

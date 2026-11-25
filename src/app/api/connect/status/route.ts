@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { getTenant } from '@/lib/auth/get-tenant';
-import { isConnectAccountReady } from '@/lib/payments/connect-account';
+import { isConnectAccountReady, summarizeConnectAccount } from '@/lib/payments/connect-account';
 
 export async function GET() {
   try {
@@ -26,7 +26,7 @@ export async function GET() {
     }
 
     if (!restaurant.stripe_account_id) {
-      return NextResponse.json({ connected: false, onboarding_complete: false });
+      return NextResponse.json({ connected: false, onboarding_complete: false, ...summarizeConnectAccount(null) });
     }
 
     const stripe = getStripe();
@@ -56,6 +56,8 @@ export async function GET() {
       onboarding_complete: isComplete,
       ready_to_process_payments: readyToProcessPayments,
       account_id: restaurant.stripe_account_id,
+      // state: not_connected | incomplete | in_review | rejected | active
+      ...summarizeConnectAccount(account),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Error';

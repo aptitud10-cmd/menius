@@ -54,7 +54,9 @@ describe('POST /api/payments/intent', () => {
   it('sin el token del pedido (o con otro) responde 404 y no cobra', async () => {
     mockMaybeSingle.mockResolvedValue({ data: { ...baseOrder }, error: null });
     const { POST } = await import('@/app/api/payments/intent/route');
-    expect((await POST(post(null) as never)).status).toBe(404);
+    const res = await POST(post(null) as never);
+    expect(res.status).toBe(404);
+    expect((await res.json()).code).toBe('order_not_found');
     expect((await POST(post('otro-token') as never)).status).toBe(404);
     expect(mockPICreate).not.toHaveBeenCalled();
   });
@@ -62,7 +64,9 @@ describe('POST /api/payments/intent', () => {
   it('pedido en efectivo: no se cobra con tarjeta', async () => {
     mockMaybeSingle.mockResolvedValue({ data: { ...baseOrder, payment_method: 'cash' }, error: null });
     const { POST } = await import('@/app/api/payments/intent/route');
-    expect((await POST(post() as never)).status).toBe(409);
+    const res = await POST(post() as never);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'Este pedido se paga en efectivo.', code: 'cash_order' });
     expect(mockPICreate).not.toHaveBeenCalled();
   });
 
@@ -91,6 +95,7 @@ describe('POST /api/payments/intent', () => {
     const { POST } = await import('@/app/api/payments/intent/route');
     const res = await POST(post() as never);
     expect(res.status).toBe(500);
+    expect((await res.json()).code).toBe('payment_start_failed');
     expect(mockPICancel).toHaveBeenCalledWith('pi_new');
     expect(mockCaptureError).toHaveBeenCalled();
   });
@@ -103,5 +108,23 @@ describe('POST /api/payments/intent', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ clientSecret: 'secret_new' });
     expect(mockPICancel).not.toHaveBeenCalled();
+  });
+
+  it('stable codes: cancelled order, bad amount, restaurant without Stripe', async () => {
+    const { POST } = await import('@/app/api/payments/intent/route');
+    const cases = [
+      [{ ...baseOrder, status: 'cancelled' }, 409, 'order_closed'],
+      [{ ...baseOrder, total: 0 }, 400, 'invalid_amount'],
+      [{ ...baseOrder, restaurants: { ...baseOrder.restaurants, stripe_onboarding_complete: false } }, 400, 'online_unavailable'],
+    ] as const;
+    for (const [order, status, code] of cases) {
+      mockMaybeSingle.mockResolvedValueOnce({ data: order, error: null });
+      const res = await POST(post() as never);
+      expect(res.status).toBe(status);
+      const body = await res.json();
+      expect(body.code).toBe(code);
+      expect(typeof body.error).toBe('string');
+    }
+    expect(mockPICreate).not.toHaveBeenCalled();
   });
 });

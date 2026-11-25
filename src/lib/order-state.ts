@@ -57,6 +57,10 @@ export const ALL_STATUSES: OrderStatus[] = Object.keys(VALID_TRANSITIONS) as Ord
  *
  * Definición ÚNICA compartida por todas las superficies (home, analytics,
  * business overview) para que el mismo restaurante no muestre cifras distintas.
+ *
+ * Note: Home, Analytics, the sales report and the Orders board now use
+ * `isSale` (lib/sales.ts). Business overview, shift close, daily summary and
+ * the AI chat still use this status-based rule.
  */
 export const REVENUE_STATUSES: OrderStatus[] = ['completed', 'delivered', 'served'];
 

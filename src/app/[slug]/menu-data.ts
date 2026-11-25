@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { REVIEWS_MIN_FOR_RATING, hasRealPopularity } from '@/lib/social-proof';
 import { businessDay } from '@/lib/daily-menu';
+import { onlinePaymentsAllowedByPlan } from '@/lib/payments/online-ready';
 import type { Restaurant, Category, Product } from '@/types';
 
 const logger = createLogger('menu-data');
@@ -171,7 +172,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
 
     // Parallelize all data fetching: subscription, categories, products, reviews
     const [
-      subData,
+      subResult,
       { data: categories },
       { data: products },
       { data: reviewRows },
@@ -180,10 +181,10 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       Promise.resolve(
         db
           .from('subscriptions')
-          .select('status, trial_end, current_period_end')
+          .select('status, trial_end, current_period_end, plan_id, past_due_since')
           .eq('restaurant_id', restaurant.id)
           .maybeSingle()
-      ).then((r) => r.data, () => null),
+      ).then((r) => ({ row: r.data, ok: !r.error }), () => ({ row: null, ok: false })),
       db
         .from('categories')
         .select('*')
@@ -251,6 +252,16 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
           { data: [] as { product_id: string }[] },
           { data: [] as { product_id: string }[] },
         ];
+
+    const subData = subResult.row;
+    // Same plan rule /api/orders uses to reject card payments (403). If the
+    // subscription read failed, do not hide cards (the server also fails open).
+    const onlinePaymentsAllowed = subResult.ok
+      ? onlinePaymentsAllowedByPlan(
+          (restaurant as { commission_plan?: boolean | null }).commission_plan === true,
+          subData,
+        )
+      : true;
 
     const DAILY_FREE_LIMIT = 3;
     let subscriptionExpired = false;
@@ -423,7 +434,11 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       ...rest
     } = restaurant as Record<string, unknown>;
     // The checkout only checks that a Stripe account exists — never send the id.
-    const publicRestaurant = { ...rest, stripe_account_id: stripeAccountId ? 'connected' : null };
+    const publicRestaurant = {
+      ...rest,
+      stripe_account_id: stripeAccountId ? 'connected' : null,
+      online_payments_allowed: onlinePaymentsAllowed,
+    };
 
     return {
       restaurant: publicRestaurant as unknown as Restaurant,

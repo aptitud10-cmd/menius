@@ -7,6 +7,7 @@ import { captureError } from '@/lib/error-reporting';
 import { createHash } from 'crypto';
 import { COUNTRY_CONFIGS } from '@/lib/country-config';
 import { decryptSecret } from '@/lib/crypto/secrets';
+import type { PaymentErrorCode } from '@/lib/payments/payment-errors';
 
 /**
  * POST /api/payments/wompi
@@ -24,17 +25,17 @@ export async function POST(request: NextRequest) {
     const ip = getClientIP(request);
     const { allowed } = await checkRateLimitAsync(`wompi:${ip}`, { limit: 10, windowSec: 60 });
     if (!allowed) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+      return NextResponse.json({ error: 'Too many requests', code: 'rate_limited' satisfies PaymentErrorCode }, { status: 429 });
     }
 
     const body = await request.json();
     const { order_id, slug, t } = body;
 
     if (!order_id || typeof order_id !== 'string' || !/^[0-9a-f-]{36}$/.test(order_id)) {
-      return NextResponse.json({ error: 'Valid order_id required' }, { status: 400 });
+      return NextResponse.json({ error: 'Valid order_id required', code: 'invalid_request' satisfies PaymentErrorCode }, { status: 400 });
     }
     if (!slug || typeof slug !== 'string') {
-      return NextResponse.json({ error: 'slug required' }, { status: 400 });
+      return NextResponse.json({ error: 'slug required', code: 'invalid_request' satisfies PaymentErrorCode }, { status: 400 });
     }
 
     const adminDb = createAdminClient();
@@ -48,19 +49,19 @@ export async function POST(request: NextRequest) {
     // payment, and only for orders placed to be paid online.
     const orderToken = (order as { customer_token?: string | null } | null)?.customer_token;
     if (error || !order || typeof t !== 'string' || !orderToken || t !== orderToken) {
-      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Orden no encontrada', code: 'order_not_found' satisfies PaymentErrorCode }, { status: 404 });
     }
     if ((order as { payment_method?: string | null }).payment_method === 'cash') {
-      return NextResponse.json({ error: 'Este pedido se paga en efectivo.' }, { status: 409 });
+      return NextResponse.json({ error: 'Este pedido se paga en efectivo.', code: 'cash_order' satisfies PaymentErrorCode }, { status: 409 });
     }
 
     // Prevent generating a new payment session for an already-paid order
     if (order.payment_status === 'paid') {
-      return NextResponse.json({ error: 'Esta orden ya fue pagada' }, { status: 409 });
+      return NextResponse.json({ error: 'Esta orden ya fue pagada', code: 'already_paid' satisfies PaymentErrorCode }, { status: 409 });
     }
     // W10: un pedido cancelado (por el restaurante o por expiración) no se cobra.
     if ((order as { status?: string }).status === 'cancelled') {
-      return NextResponse.json({ error: 'Este pedido ya no acepta pagos.' }, { status: 409 });
+      return NextResponse.json({ error: 'Este pedido ya no acepta pagos.', code: 'order_closed' satisfies PaymentErrorCode }, { status: 409 });
     }
 
     const restaurantData = (order as unknown as {
@@ -78,17 +79,17 @@ export async function POST(request: NextRequest) {
       ? `+${COUNTRY_CONFIGS[countryCode].phonePrefix}`
       : '+57';
     if (currency !== 'COP') {
-      return NextResponse.json({ error: 'Wompi only supports COP' }, { status: 400 });
+      return NextResponse.json({ error: 'Wompi only supports COP', code: 'wompi_unavailable' satisfies PaymentErrorCode }, { status: 400 });
     }
 
     const publicKey = restaurantData?.wompi_public_key?.trim();
     const integrityEnc = restaurantData?.wompi_integrity_secret_enc ?? '';
     if (!restaurantData?.wompi_connected || !publicKey || !integrityEnc) {
-      return NextResponse.json({ error: 'Wompi not configured' }, { status: 503 });
+      return NextResponse.json({ error: 'Wompi not configured', code: 'wompi_unavailable' satisfies PaymentErrorCode }, { status: 503 });
     }
     const integritySecret = decryptSecret(integrityEnc).trim();
     if (!integritySecret) {
-      return NextResponse.json({ error: 'Wompi not configured' }, { status: 503 });
+      return NextResponse.json({ error: 'Wompi not configured', code: 'wompi_unavailable' satisfies PaymentErrorCode }, { status: 503 });
     }
 
     const amountInCents = Math.round(Number(order.total) * 100);
@@ -121,6 +122,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     captureError(err, { route: '/api/payments/wompi' });
     // Generic message — real error is in Sentry; err.message would leak gateway/DB internals.
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno', code: 'payment_start_failed' satisfies PaymentErrorCode }, { status: 500 });
   }
 }

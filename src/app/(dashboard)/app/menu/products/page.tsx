@@ -6,12 +6,14 @@ export default async function ProductsPage() {
 
   // Slim: la lista solo necesita columnas de `products` + un CONTEO de modifier
   // groups (para el badge). variants/extras/modifier_options completos NO se
-  // traen aquí — solo los usa "duplicar producto", que ahora los carga on-demand
-  // (ver getProductForDuplication). En catálogos grandes (Buccaneer: 380 prod,
+  // traen aquí — "duplicar producto" los copia del lado del servidor
+  // (ver duplicateProduct). En catálogos grandes (Buccaneer: 380 prod,
   // 997 opciones) esto recorta el payload RSC en ~1200 filas anidadas.
+  // Hidden categories are included on purpose: the owner must still find and
+  // edit their dishes here (the public menu filters them out on its own).
   const [{ data: products }, { data: categories }, { data: restaurant }] = await Promise.all([
     supabase.from('products').select('*, modifier_groups(count)').eq('restaurant_id', rid).order('sort_order'),
-    supabase.from('categories').select('*').eq('restaurant_id', rid).eq('is_active', true).order('sort_order'),
+    supabase.from('categories').select('*').eq('restaurant_id', rid).order('sort_order'),
     supabase.from('restaurants').select('id, currency, locale, available_locales').eq('id', rid).maybeSingle(),
   ]);
 

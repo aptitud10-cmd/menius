@@ -289,7 +289,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const en = restaurant.locale === "en";
+    // Diner-facing messages follow the language the diner ordered in (body
+    // `locale`), falling back to the restaurant's.
+    const en = customerLocale === "en";
 
     // Validate order_type is enabled for this restaurant
     const orderTypesEnabled = restaurant.order_types_enabled;

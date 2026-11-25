@@ -450,6 +450,8 @@ export interface Translations {
   ckChangeTime: string;
   ckPaused: string;
   ckPausedCta: string;
+  ckNoPayment: string;
+  ckNoPaymentCta: string;
   ckFixAddress: string;
   ckFixContact: string;
   ckPickupAt: string;
@@ -936,6 +938,8 @@ const es: Translations = {
   ckChangeTime: 'Cambiar hora',
   ckPaused: '{name} no está tomando pedidos en este momento. Prueba en un rato.',
   ckPausedCta: 'Pedidos en pausa',
+  ckNoPayment: '{name} no está aceptando pedidos en línea en este momento. Prueba más tarde o comunícate con el restaurante.',
+  ckNoPaymentCta: 'Pedidos en línea no disponibles',
   ckFixAddress: 'Cambiar dirección',
   ckFixContact: 'Corregir contacto',
   ckPickupAt: 'Recoges en',
@@ -1419,6 +1423,8 @@ const en: Translations = {
   ckChangeTime: 'Change time',
   ckPaused: "{name} isn't taking orders right now. Try again shortly.",
   ckPausedCta: 'Orders paused',
+  ckNoPayment: "{name} can't take online orders right now. Please try again later or contact the restaurant.",
+  ckNoPaymentCta: 'Online ordering unavailable',
   ckFixAddress: 'Change address',
   ckFixContact: 'Edit contact',
   ckPickupAt: 'Pick up at',

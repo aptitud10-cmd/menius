@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { loadStripe, type Stripe, type PaymentRequest } from '@stripe/stripe-js';
 import { cn } from '@/lib/utils';
+import { formatPaymentStartError } from '@/lib/checkout-errors';
 
 interface WalletButtonProps {
   amount: number;
@@ -18,6 +19,16 @@ interface WalletButtonProps {
    *  submit button and avoid a parallel order. */
   onPayingChange?: (paying: boolean) => void;
   disabled?: boolean;
+  /** Store/diner locale for error messages ('es' | 'en'). */
+  locale?: string;
+}
+
+// Fallback when Stripe.js returns an error without a message (Stripe's own
+// messages are already localized by Stripe.js).
+function paymentFailedText(locale: string): string {
+  return locale === 'en'
+    ? "The payment didn't go through. Try again or use another card."
+    : 'El pago no se completó. Inténtalo de nuevo o usa otra tarjeta.';
 }
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -34,6 +45,7 @@ export function WalletButton({
   onCreateOrder,
   onPayingChange,
   disabled,
+  locale = 'es',
 }: WalletButtonProps) {
   const [canPay, setCanPay] = useState(false);
   const [walletType, setWalletType] = useState<'applePay' | 'googlePay' | 'link' | null>(null);
@@ -41,8 +53,8 @@ export function WalletButton({
   const prRef = useRef<PaymentRequest | null>(null);
   const stripeRef = useRef<Stripe | null>(null);
 
-  const callbacksRef = useRef({ onSuccess, onError, onCreateOrder, amount, currency });
-  callbacksRef.current = { onSuccess, onError, onCreateOrder, amount, currency };
+  const callbacksRef = useRef({ onSuccess, onError, onCreateOrder, amount, currency, locale });
+  callbacksRef.current = { onSuccess, onError, onCreateOrder, amount, currency, locale };
 
   // Surface the paying state to the parent (to disable its submit button).
   const onPayingChangeRef = useRef(onPayingChange);
@@ -98,7 +110,7 @@ export function WalletButton({
 
           if (!data.clientSecret) {
             ev.complete('fail');
-            cb.onError(data.error || 'Payment failed');
+            cb.onError(formatPaymentStartError(res.status, data.error, cb.locale, data.code));
             setPaying(false);
             return;
           }
@@ -112,7 +124,7 @@ export function WalletButton({
 
           if (error) {
             ev.complete('fail');
-            cb.onError(error.message ?? 'Payment failed');
+            cb.onError(error.message ?? paymentFailedText(cb.locale));
             setPaying(false);
             return;
           }
@@ -122,7 +134,7 @@ export function WalletButton({
             ev.complete('success');
             const { error: confirmError } = await s.confirmCardPayment(data.clientSecret);
             if (confirmError) {
-              cb.onError(confirmError.message ?? 'Payment failed');
+              cb.onError(confirmError.message ?? paymentFailedText(cb.locale));
             } else {
               cb.onSuccess(orderResult.orderId, orderResult.orderNumber);
             }
@@ -133,7 +145,9 @@ export function WalletButton({
           setPaying(false);
         } catch {
           ev.complete('fail');
-          cb.onError('Connection error');
+          cb.onError(cb.locale === 'en'
+            ? 'Connection error. Check your internet and try again.'
+            : 'Error de conexión. Revisa tu internet e inténtalo de nuevo.');
           setPaying(false);
         }
       });

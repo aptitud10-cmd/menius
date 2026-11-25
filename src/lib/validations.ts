@@ -1,26 +1,71 @@
 import { z } from 'zod';
 
-export const signupSchema = z.object({
-  full_name: z.string().min(2, 'Mínimo 2 caracteres').optional(),
-  email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
-});
+// Signup / login / onboarding wizard messages, in the interface language
+// ('en' for English, Spanish otherwise).
+const FORM_TEXT = {
+  es: {
+    nameMin: 'Escribe al menos 2 caracteres.',
+    email: 'Ingresa un email válido.',
+    passwordMin: 'Usa al menos 8 caracteres en la contraseña.',
+    passwordRequired: 'Ingresa tu contraseña.',
+    restaurantNameMin: 'El nombre debe tener al menos 2 caracteres.',
+    restaurantNameMax: 'Usa 80 caracteres como máximo.',
+    restaurantNameEmail: 'Escribe el nombre del restaurante, no un email.',
+    slugMin: 'La URL debe tener al menos 2 caracteres.',
+    slugFormat: 'Usa solo minúsculas, números y guiones en la URL.',
+  },
+  en: {
+    nameMin: 'Enter at least 2 characters.',
+    email: 'Enter a valid email.',
+    passwordMin: 'Use at least 8 characters for your password.',
+    passwordRequired: 'Enter your password.',
+    restaurantNameMin: 'The name needs at least 2 characters.',
+    restaurantNameMax: 'Use 80 characters or fewer.',
+    restaurantNameEmail: "Enter your restaurant's name, not an email.",
+    slugMin: 'The URL needs at least 2 characters.',
+    slugFormat: 'Use only lowercase letters, numbers and hyphens in the URL.',
+  },
+} as const;
 
-export const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(1, 'Ingresa tu contraseña'),
-});
+function formText(locale?: string | null) {
+  return locale === 'en' ? FORM_TEXT.en : FORM_TEXT.es;
+}
 
-export const createRestaurantSchema = z.object({
-  name: z.string().min(2, 'Mínimo 2 caracteres').max(80, 'Máximo 80 caracteres')
-    .refine(v => !/@/.test(v), { message: 'Ingresa el nombre del restaurante, no un email' }),
-  slug: z.string().min(2, 'Mínimo 2 caracteres')
-    .regex(/^[a-z0-9-]+$/, 'Solo letras minúsculas, números y guiones'),
-  country_code: z.string().min(2).max(2).transform(v => v.toUpperCase()).default('MX'),
-  timezone: z.string().default('America/Mexico_City'),
-  currency: z.string().default('MXN'),
-  locale: z.enum(['es', 'en']).default('es'),
-});
+export function getSignupSchema(locale?: string | null) {
+  const m = formText(locale);
+  return z.object({
+    full_name: z.string().min(2, m.nameMin).optional(),
+    email: z.string().email(m.email),
+    password: z.string().min(8, m.passwordMin),
+  });
+}
+
+export function getLoginSchema(locale?: string | null) {
+  const m = formText(locale);
+  return z.object({
+    email: z.string().email(m.email),
+    password: z.string().min(1, m.passwordRequired),
+  });
+}
+
+/** `locale` here is the interface language for messages, not the menu's `locale` field. */
+export function getCreateRestaurantSchema(locale?: string | null) {
+  const m = formText(locale);
+  return z.object({
+    name: z.string().min(2, m.restaurantNameMin).max(80, m.restaurantNameMax)
+      .refine(v => !/@/.test(v), { message: m.restaurantNameEmail }),
+    slug: z.string().min(2, m.slugMin)
+      .regex(/^[a-z0-9-]+$/, m.slugFormat),
+    country_code: z.string().min(2).max(2).transform(v => v.toUpperCase()).default('MX'),
+    timezone: z.string().default('America/Mexico_City'),
+    currency: z.string().default('MXN'),
+    locale: z.enum(['es', 'en']).default('es'),
+  });
+}
+
+export const signupSchema = getSignupSchema('es');
+export const loginSchema = getLoginSchema('es');
+export const createRestaurantSchema = getCreateRestaurantSchema('es');
 
 const contentTranslationSchema = z.object({
   name: z.string().optional(),

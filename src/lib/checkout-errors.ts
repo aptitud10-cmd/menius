@@ -4,6 +4,7 @@
  */
 
 import type { Locale } from '@/lib/translations';
+import { paymentErrorText } from '@/lib/payments/payment-errors';
 
 type Bilingual = { es: string; en: string };
 
@@ -164,12 +165,18 @@ export function formatOrderSubmitError(
 
 /**
  * Error starting Stripe (or similar) checkout after order exists.
+ * `code` is the stable error code from the payment routes; when known it wins
+ * over the legacy `error` text.
  */
 export function formatPaymentStartError(
   status: number,
   apiError: string | undefined,
-  locale: Locale
+  locale: Locale,
+  code?: unknown
 ): string {
+  const byCode = paymentErrorText(code, locale);
+  if (byCode) return byCode;
+
   const raw = (apiError ?? '').trim();
   const base = normalizePaymentRaw(raw, locale);
 

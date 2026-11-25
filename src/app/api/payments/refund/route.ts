@@ -7,6 +7,7 @@ import { getStripe } from '@/lib/stripe';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
+import type { RefundErrorCode } from '@/lib/payments/payment-errors';
 
 const logger = createLogger('payments:refund');
 
@@ -15,7 +16,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function POST(req: NextRequest) {
   try {
     const tenant = await getTenant({ ownerOnly: true });
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant) return NextResponse.json({ error: 'No autenticado', code: 'unauthenticated' satisfies RefundErrorCode }, { status: 401 });
 
     const body = await req.json();
     const { order_id, reason } = body;
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       : null;
 
     if (!order_id || typeof order_id !== 'string' || !UUID_RE.test(order_id)) {
-      return NextResponse.json({ error: 'order_id inválido' }, { status: 400 });
+      return NextResponse.json({ error: 'order_id inválido', code: 'invalid_request' satisfies RefundErrorCode }, { status: 400 });
     }
 
     const ALLOWED_REASONS = ['duplicate', 'fraudulent', 'requested_by_customer'];
@@ -42,15 +43,15 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (orderErr || !order) {
-      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Orden no encontrada', code: 'order_not_found' satisfies RefundErrorCode }, { status: 404 });
     }
 
     if (order.payment_status !== 'paid') {
-      return NextResponse.json({ error: 'Esta orden no tiene un pago confirmado.' }, { status: 409 });
+      return NextResponse.json({ error: 'Esta orden no tiene un pago confirmado.', code: 'not_paid' satisfies RefundErrorCode }, { status: 409 });
     }
 
     if (order.status === 'cancelled') {
-      return NextResponse.json({ error: 'Esta orden ya fue cancelada.' }, { status: 409 });
+      return NextResponse.json({ error: 'Esta orden ya fue cancelada.', code: 'already_cancelled' satisfies RefundErrorCode }, { status: 409 });
     }
 
     // Wompi y Mercado Pago no tienen reembolso automático aquí (no guardamos su
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
         .neq('status', 'cancelled');
       if (cancelErr) {
         logger.error('Manual-refund cancel failed', { orderId: order.id, error: cancelErr.message });
-        return NextResponse.json({ error: 'No se pudo cancelar la orden.' }, { status: 500 });
+        return NextResponse.json({ error: 'No se pudo cancelar la orden.', code: 'cancel_failed' satisfies RefundErrorCode }, { status: 500 });
       }
       await afterCancel(adminDb, order, cancellationReason);
       logger.info('Order cancelled — manual refund pending', { orderId: order.id, provider });
@@ -113,14 +114,14 @@ export async function POST(req: NextRequest) {
       });
       captureError(stripeErr, { route: '/api/payments/refund', orderId: order.id });
       return NextResponse.json(
-        { error: 'Stripe rechazó el reembolso. Si el saldo de tu cuenta de Stripe no alcanza para cubrirlo, espera a recibir nuevos pagos o contacta soporte.' },
+        { error: 'Stripe rechazó el reembolso. Si el saldo de tu cuenta de Stripe no alcanza para cubrirlo, espera a recibir nuevos pagos o contacta soporte.', code: 'stripe_rejected' satisfies RefundErrorCode },
         { status: 502 },
       );
     }
 
     if (refund.status === 'failed') {
       logger.error('Stripe refund failed', { orderId: order.id, refundId: refund.id });
-      return NextResponse.json({ error: 'El reembolso falló en Stripe. Intenta manualmente desde el dashboard.' }, { status: 502 });
+      return NextResponse.json({ error: 'El reembolso falló en Stripe. Intenta manualmente desde el dashboard.', code: 'stripe_failed' satisfies RefundErrorCode }, { status: 502 });
     }
 
     // Mark order as refunded
@@ -142,7 +143,7 @@ export async function POST(req: NextRequest) {
         error: updateErr.message,
       });
       captureError(new Error('Refund DB sync failure'), { orderId: order.id, refundId: refund.id });
-      return NextResponse.json({ error: 'Reembolso procesado en Stripe pero no se pudo actualizar la orden. Contacta soporte.' }, { status: 500 });
+      return NextResponse.json({ error: 'Reembolso procesado en Stripe pero no se pudo actualizar la orden. Contacta soporte.', code: 'refund_not_saved' satisfies RefundErrorCode }, { status: 500 });
     }
 
     await afterCancel(adminDb, order, cancellationReason);
@@ -158,7 +159,7 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     captureError(err, { route: '/api/payments/refund' });
     logger.error('Refund error', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ error: 'Error interno al procesar el reembolso.' }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno al procesar el reembolso.', code: 'internal_error' satisfies RefundErrorCode }, { status: 500 });
   }
 }
 

@@ -29,6 +29,7 @@ import {
 } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import { useToast } from '@/components/dashboard/DashToast';
 import { getDashboardTranslations, type DashboardLocale } from '@/lib/dashboard-translations';
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import type { ModifierGroup, ModifierOption } from '@/types';
@@ -788,7 +789,6 @@ function SortableGroup({
             const oldIndex = group.options.findIndex(o => o.id === active.id);
             const newIndex = group.options.findIndex(o => o.id === over.id);
             onOptionDragEnd(group.id, oldIndex, newIndex);
-            reorderModifierOptions(group.id, arrayMove(group.options, oldIndex, newIndex).map(o => o.id));
           }}>
             <SortableContext items={group.options.map(o => o.id)} strategy={verticalListSortingStrategy}>
               {group.options.map((opt) => (
@@ -912,6 +912,7 @@ function LibraryPicker({
   const [mode, setMode] = useState<'link' | 'copy' | null>(null);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
+  const { error: toastError } = useToast();
 
   useEffect(() => {
     let alive = true;
@@ -956,9 +957,15 @@ function LibraryPicker({
       if (!ok) return;
     }
     setBusy(true);
-    const res = await attachModifierGroups(productId, Array.from(picked), mode);
-    setBusy(false);
-    if (!res.error) onAttached();
+    try {
+      const res = await attachModifierGroups(productId, Array.from(picked), mode);
+      if (res.error) throw new Error(res.error);
+      onAttached();
+    } catch {
+      toastError(lang === 'en' ? 'Couldn’t add the groups. Please try again.' : 'No se pudieron agregar los grupos. Probá de nuevo.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -1144,6 +1151,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
   const [editOptionId, setEditOptionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const { error: toastError } = useToast();
   const router = useRouter();
   const dashboard = useDashboardLocale();
   const t = localeProp ? getDashboardTranslations(localeProp) : dashboard.t;
@@ -1187,116 +1195,165 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
     setAddingGroup(true);
   };
 
+  const saveFailed = (what: { es: string; en: string }) =>
+    toastError(lang === 'en' ? what.en : what.es);
+
   const handleAddGroup = async () => {
     if (!groupForm.name.trim()) return;
     setLoading(true);
-    const result = await createModifierGroup(productId, {
-      name: groupForm.name,
-      selection_type: groupForm.selection_type,
-      min_select: parseInt(groupForm.min_select) || 0,
-      max_select: parseInt(groupForm.max_select) || 1,
-      is_required: groupForm.is_required,
-      sort_order: items.length,
-      display_type: groupForm.display_type,
-      depends_on_option_ids: groupForm.depends_on_option_ids,
-      translations: toContentTranslations(groupForm.translations),
-    });
-    if (result.group) {
+    try {
+      const result = await createModifierGroup(productId, {
+        name: groupForm.name,
+        selection_type: groupForm.selection_type,
+        min_select: parseInt(groupForm.min_select) || 0,
+        max_select: parseInt(groupForm.max_select) || 1,
+        is_required: groupForm.is_required,
+        sort_order: items.length,
+        display_type: groupForm.display_type,
+        depends_on_option_ids: groupForm.depends_on_option_ids,
+        translations: toContentTranslations(groupForm.translations),
+      });
+      if (!('group' in result) || !result.group) {
+        // Keep the form open with what was typed.
+        saveFailed({ es: 'No se pudo crear el grupo. Probá de nuevo.', en: 'Couldn’t create the group. Please try again.' });
+        return;
+      }
       let newGroup = result.group as ModifierGroup;
+      let failedOptions = 0;
       for (let i = 0; i < pendingOptions.length; i++) {
-        const optResult = await createModifierOption(newGroup.id, {
-          name: pendingOptions[i],
-          price_delta: 0,
-          is_default: false,
-          sort_order: i,
-        });
-        if (optResult.option) {
-          newGroup = { ...newGroup, options: [...(newGroup.options ?? []), optResult.option as ModifierOption] };
+        try {
+          const optResult = await createModifierOption(newGroup.id, {
+            name: pendingOptions[i],
+            price_delta: 0,
+            is_default: false,
+            sort_order: i,
+          });
+          if ('option' in optResult && optResult.option) {
+            newGroup = { ...newGroup, options: [...(newGroup.options ?? []), optResult.option as ModifierOption] };
+          } else {
+            failedOptions++;
+          }
+        } catch {
+          failedOptions++;
         }
       }
-      const newItems = [...items, newGroup];
-      sync(newItems);
+      sync([...items, newGroup]);
       setExpandedGroup(newGroup.id);
+      if (failedOptions > 0) {
+        saveFailed({
+          es: `Grupo creado, pero ${failedOptions} opción(es) no se guardaron. Agregalas de nuevo.`,
+          en: `Group created, but ${failedOptions} option(s) were not saved. Add them again.`,
+        });
+      }
+      resetAddState();
+    } catch {
+      saveFailed({ es: 'No se pudo crear el grupo. Revisá la conexión.', en: 'Couldn’t create the group. Check your connection.' });
+    } finally {
+      setLoading(false);
     }
-    resetAddState();
-    setLoading(false);
   };
 
   const handleUpdateGroup = async (g: ModifierGroup) => {
     setLoading(true);
-    await updateModifierGroup(g.id, {
-      name: groupForm.name || g.name,
-      selection_type: groupForm.selection_type,
-      min_select: parseInt(groupForm.min_select) || 0,
-      max_select: parseInt(groupForm.max_select) || 1,
-      is_required: groupForm.is_required,
-      sort_order: g.sort_order,
-      display_type: groupForm.display_type,
-      depends_on_option_ids: groupForm.depends_on_option_ids,
-      translations: toContentTranslations(groupForm.translations),
-      ticket_label: groupForm.ticket_label.trim() || null,
-      ticket_layout: groupForm.ticket_layout,
-    });
-    sync(items.map(i => i.id === g.id ? {
-      ...i,
-      name: groupForm.name || i.name,
-      selection_type: groupForm.selection_type,
-      min_select: parseInt(groupForm.min_select) || 0,
-      max_select: parseInt(groupForm.max_select) || 1,
-      is_required: groupForm.is_required,
-      display_type: groupForm.display_type,
-      depends_on_option_id: groupForm.depends_on_option_ids[0] ?? null,
-      depends_on_option_ids: groupForm.depends_on_option_ids.length > 0 ? groupForm.depends_on_option_ids : null,
-      translations: toContentTranslations(groupForm.translations),
-      ticket_label: groupForm.ticket_label.trim() || null,
-      ticket_layout: groupForm.ticket_layout,
-    } : i));
-    setEditGroupId(null);
-    setLoading(false);
+    try {
+      const res = await updateModifierGroup(g.id, {
+        name: groupForm.name || g.name,
+        selection_type: groupForm.selection_type,
+        min_select: parseInt(groupForm.min_select) || 0,
+        max_select: parseInt(groupForm.max_select) || 1,
+        is_required: groupForm.is_required,
+        sort_order: g.sort_order,
+        display_type: groupForm.display_type,
+        depends_on_option_ids: groupForm.depends_on_option_ids,
+        translations: toContentTranslations(groupForm.translations),
+        ticket_label: groupForm.ticket_label.trim() || null,
+        ticket_layout: groupForm.ticket_layout,
+      });
+      if (res?.error) throw new Error(res.error);
+      sync(items.map(i => i.id === g.id ? {
+        ...i,
+        name: groupForm.name || i.name,
+        selection_type: groupForm.selection_type,
+        min_select: parseInt(groupForm.min_select) || 0,
+        max_select: parseInt(groupForm.max_select) || 1,
+        is_required: groupForm.is_required,
+        display_type: groupForm.display_type,
+        depends_on_option_id: groupForm.depends_on_option_ids[0] ?? null,
+        depends_on_option_ids: groupForm.depends_on_option_ids.length > 0 ? groupForm.depends_on_option_ids : null,
+        translations: toContentTranslations(groupForm.translations),
+        ticket_label: groupForm.ticket_label.trim() || null,
+        ticket_layout: groupForm.ticket_layout,
+      } : i));
+      setEditGroupId(null);
+    } catch {
+      // The form stays open with the edits so they can be saved again.
+      saveFailed({ es: 'No se guardaron los cambios del grupo. Probá de nuevo.', en: 'The group changes were not saved. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleToggleDisplayType = async (g: ModifierGroup) => {
     const next: 'list' | 'grid' = g.display_type === 'grid' ? 'list' : 'grid';
-    await updateModifierGroup(g.id, {
-      name: g.name,
-      selection_type: g.selection_type,
-      min_select: g.min_select,
-      max_select: g.max_select,
-      is_required: g.is_required,
-      sort_order: g.sort_order,
-      display_type: next,
-      // Carried through explicitly: updateModifierGroup writes every field, so
-      // omitting these would wipe the group's dependency and translations on a
-      // simple list/grid toggle.
-      depends_on_option_ids: dependencyIds(g),
-      translations: g.translations ?? null,
-    });
-    sync(items.map(i => i.id === g.id ? { ...i, display_type: next } : i));
+    try {
+      const res = await updateModifierGroup(g.id, {
+        name: g.name,
+        selection_type: g.selection_type,
+        min_select: g.min_select,
+        max_select: g.max_select,
+        is_required: g.is_required,
+        sort_order: g.sort_order,
+        display_type: next,
+        // Carried through explicitly: updateModifierGroup writes every field, so
+        // omitting these would wipe the group's dependency and translations on a
+        // simple list/grid toggle.
+        depends_on_option_ids: dependencyIds(g),
+        translations: g.translations ?? null,
+      });
+      if (res?.error) throw new Error(res.error);
+      sync(items.map(i => i.id === g.id ? { ...i, display_type: next } : i));
+    } catch {
+      saveFailed({ es: 'No se pudo cambiar la vista del grupo.', en: 'Couldn’t change the group layout.' });
+    }
   };
 
   const handleDeleteGroup = async (id: string) => {
     if (!confirm(t.modifiers_deleteGroupConfirm)) return;
     setLoading(true);
-    await deleteModifierGroup(id);
-    sync(items.filter(i => i.id !== id));
-    setLoading(false);
+    try {
+      const res = await deleteModifierGroup(id);
+      if (res?.error) throw new Error(res.error);
+      sync(items.filter(i => i.id !== id));
+    } catch {
+      saveFailed({ es: 'No se pudo borrar el grupo. Probá de nuevo.', en: 'Couldn’t delete the group. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleGroupDragEnd = (event: DragEndEvent) => {
+  const handleGroupDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    const before = items;
     const oldIndex = items.findIndex(g => g.id === active.id);
     const newIndex = items.findIndex(g => g.id === over.id);
     const reordered = arrayMove(items, oldIndex, newIndex);
     sync(reordered);
-    reorderModifierGroups(productId, reordered.map(g => g.id));
+    try {
+      const res = await reorderModifierGroups(productId, reordered.map(g => g.id));
+      if (res?.error) throw new Error(res.error);
+    } catch {
+      sync(before);
+      saveFailed({ es: 'No se guardó el nuevo orden de los grupos.', en: 'The new group order was not saved.' });
+    }
   };
 
   // A single-select group can only have one "included by default" option.
   // Persist the un-marking of the others so the DB matches what the editor shows.
-  const clearOtherDefaults = async (group: ModifierGroup, keepId: string) => {
+  // Returns false when any of those writes failed.
+  const clearOtherDefaults = async (group: ModifierGroup, keepId: string): Promise<boolean> => {
     const stale = (group.options ?? []).filter(o => o.id !== keepId && o.is_default);
-    await Promise.all(
+    const results = await Promise.all(
       stale.map(o =>
         updateModifierOption(o.id, {
           name: o.name,
@@ -1307,26 +1364,38 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
           // these out would clear the option's cost and translations.
           cost_price: o.cost_price ?? null,
           translations: o.translations ?? null,
-        }),
+        }).catch(() => ({ error: 'network' })),
       ),
     );
+    return !results.some(r => r && 'error' in r && r.error);
   };
+
+  const defaultsFailed = () =>
+    saveFailed({
+      es: 'La opción se guardó, pero otra sigue marcada como incluida. Revisala.',
+      en: 'The option was saved, but another one is still marked as included. Check it.',
+    });
 
   const handleAddOption = async (groupId: string) => {
     if (!optionForm.name.trim()) return;
     setLoading(true);
-    const group = items.find(g => g.id === groupId);
-    const result = await createModifierOption(groupId, {
-      name: optionForm.name,
-      price_delta: parseFloat(optionForm.price_delta) || 0,
-      is_default: optionForm.is_default,
-      sort_order: (group?.options.length ?? 0),
-      cost_price: parseCost(optionForm.cost_price),
-      translations: toContentTranslations(optionForm.translations),
-      available_from: optionForm.available_from || null,
-      available_until: optionForm.available_until || null,
-    });
-    if (result.option) {
+    try {
+      const group = items.find(g => g.id === groupId);
+      const result = await createModifierOption(groupId, {
+        name: optionForm.name,
+        price_delta: parseFloat(optionForm.price_delta) || 0,
+        is_default: optionForm.is_default,
+        sort_order: (group?.options.length ?? 0),
+        cost_price: parseCost(optionForm.cost_price),
+        translations: toContentTranslations(optionForm.translations),
+        available_from: optionForm.available_from || null,
+        available_until: optionForm.available_until || null,
+      });
+      if (!('option' in result) || !result.option) {
+        // Keep the form open with what was typed.
+        saveFailed({ es: 'No se pudo agregar la opción. Probá de nuevo.', en: 'Couldn’t add the option. Please try again.' });
+        return;
+      }
       const added = result.option as ModifierOption;
       sync(items.map(g => g.id === groupId
         ? {
@@ -1341,64 +1410,82 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
           }
         : g));
       if (added.is_default && group?.selection_type === 'single') {
-        await clearOtherDefaults(group, added.id);
+        if (!(await clearOtherDefaults(group, added.id))) defaultsFailed();
       }
+      setOptionForm(EMPTY_OPTION_FORM);
+      setAddingOptionFor(null);
+    } catch {
+      saveFailed({ es: 'No se pudo agregar la opción. Revisá la conexión.', en: 'Couldn’t add the option. Check your connection.' });
+    } finally {
+      setLoading(false);
     }
-    setOptionForm(EMPTY_OPTION_FORM);
-    setAddingOptionFor(null);
-    setLoading(false);
   };
 
   const handleUpdateOption = async (opt: ModifierOption, groupId: string) => {
     setLoading(true);
-    const group = items.find(g => g.id === groupId);
-    const nextDefault = optionForm.is_default;
-    await updateModifierOption(opt.id, {
-      name: optionForm.name || opt.name,
-      price_delta: parseFloat(optionForm.price_delta) || 0,
-      is_default: nextDefault,
-      sort_order: opt.sort_order,
-      cost_price: parseCost(optionForm.cost_price),
-      translations: toContentTranslations(optionForm.translations),
-      available_from: optionForm.available_from || null,
-      available_until: optionForm.available_until || null,
-    });
-    if (nextDefault && group?.selection_type === 'single') {
-      await clearOtherDefaults(group, opt.id);
+    try {
+      const group = items.find(g => g.id === groupId);
+      const nextDefault = optionForm.is_default;
+      const res = await updateModifierOption(opt.id, {
+        name: optionForm.name || opt.name,
+        price_delta: parseFloat(optionForm.price_delta) || 0,
+        is_default: nextDefault,
+        sort_order: opt.sort_order,
+        cost_price: parseCost(optionForm.cost_price),
+        translations: toContentTranslations(optionForm.translations),
+        available_from: optionForm.available_from || null,
+        available_until: optionForm.available_until || null,
+      });
+      if (res?.error) throw new Error(res.error);
+      let defaultsOk = true;
+      if (nextDefault && group?.selection_type === 'single') {
+        defaultsOk = await clearOtherDefaults(group, opt.id);
+      }
+      sync(items.map(g => g.id === groupId
+        ? { ...g, options: g.options.map(o => {
+            const isTarget = o.id === opt.id;
+            // Single-select: marking one included un-marks the rest.
+            const is_default = isTarget
+              ? nextDefault
+              : (nextDefault && g.selection_type === 'single' ? false : o.is_default);
+            return isTarget
+              ? {
+                  ...o,
+                  name: optionForm.name || o.name,
+                  price_delta: parseFloat(optionForm.price_delta) || 0,
+                  is_default,
+                  cost_price: parseCost(optionForm.cost_price),
+                  translations: toContentTranslations(optionForm.translations),
+                  available_from: optionForm.available_from || null,
+                  available_until: optionForm.available_until || null,
+                }
+              : { ...o, is_default };
+          }) }
+        : g));
+      if (!defaultsOk) defaultsFailed();
+      setEditOptionId(null);
+      setOptionForm(EMPTY_OPTION_FORM);
+    } catch {
+      // The form stays open with the edits (price included) so nothing is lost.
+      saveFailed({ es: 'No se guardó la opción. El precio sigue como estaba.', en: 'The option was not saved. The price is unchanged.' });
+    } finally {
+      setLoading(false);
     }
-    sync(items.map(g => g.id === groupId
-      ? { ...g, options: g.options.map(o => {
-          const isTarget = o.id === opt.id;
-          // Single-select: marking one included un-marks the rest.
-          const is_default = isTarget
-            ? nextDefault
-            : (nextDefault && g.selection_type === 'single' ? false : o.is_default);
-          return isTarget
-            ? {
-                ...o,
-                name: optionForm.name || o.name,
-                price_delta: parseFloat(optionForm.price_delta) || 0,
-                is_default,
-                cost_price: parseCost(optionForm.cost_price),
-                translations: toContentTranslations(optionForm.translations),
-                available_from: optionForm.available_from || null,
-                available_until: optionForm.available_until || null,
-              }
-            : { ...o, is_default };
-        }) }
-      : g));
-    setEditOptionId(null);
-    setOptionForm(EMPTY_OPTION_FORM);
-    setLoading(false);
   };
 
   const handleDeleteOption = async (optionId: string, groupId: string) => {
     setLoading(true);
-    await deleteModifierOption(optionId);
-    sync(items.map(g => g.id === groupId
-      ? { ...g, options: g.options.filter(o => o.id !== optionId) }
-      : g));
-    setLoading(false);
+    try {
+      const res = await deleteModifierOption(optionId);
+      if (res?.error) throw new Error(res.error);
+      sync(items.map(g => g.id === groupId
+        ? { ...g, options: g.options.filter(o => o.id !== optionId) }
+        : g));
+    } catch {
+      saveFailed({ es: 'No se pudo borrar la opción. Probá de nuevo.', en: 'Couldn’t delete the option. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   /**
@@ -1434,19 +1521,32 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
   const handleUnlink = async (id: string) => {
     if (!confirm(t.modifiers_unlinkConfirm)) return;
     setLoading(true);
-    const res = await unlinkModifierGroup(id);
-    setLoading(false);
-    if (!res.error) {
+    try {
+      const res = await unlinkModifierGroup(id);
+      if (res.error) throw new Error(res.error);
       sync(items.map(g => g.id === id ? { ...g, shared_origin_id: null } : g));
       setGroupsRevision(r => r + 1);
+    } catch {
+      saveFailed({ es: 'No se pudo desvincular el grupo. Probá de nuevo.', en: 'Couldn’t unlink the group. Please try again.' });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle option reorder from inside SortableGroup (optimistic local update)
-  const handleOptionDragEndLocal = (groupId: string, oldIndex: number, newIndex: number) => {
-    sync(items.map(g => g.id === groupId
-      ? { ...g, options: arrayMove(g.options, oldIndex, newIndex) }
-      : g));
+  // Option reorder from inside SortableGroup: optimistic, reverted on failure.
+  const handleOptionDragEndLocal = async (groupId: string, oldIndex: number, newIndex: number) => {
+    const before = items;
+    const group = items.find(g => g.id === groupId);
+    if (!group) return;
+    const reordered = arrayMove(group.options, oldIndex, newIndex);
+    sync(items.map(g => g.id === groupId ? { ...g, options: reordered } : g));
+    try {
+      const res = await reorderModifierOptions(groupId, reordered.map(o => o.id));
+      if (res?.error) throw new Error(res.error);
+    } catch {
+      sync(before);
+      saveFailed({ es: 'No se guardó el nuevo orden de las opciones.', en: 'The new option order was not saved.' });
+    }
   };
 
   return (

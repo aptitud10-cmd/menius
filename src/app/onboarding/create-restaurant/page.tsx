@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createRestaurant, createProduct } from '@/lib/actions/restaurant';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
-import { createRestaurantSchema } from '@/lib/validations';
+import { getCreateRestaurantSchema } from '@/lib/validations';
 import { slugify } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
 import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, formatTimezone } from '@/lib/country-config';
@@ -25,6 +25,7 @@ const WIZARD_TEXT = {
     available: 'Disponible',
     unavailable: 'No disponible',
     slugTaken: 'Esta URL ya está en uso. Prueba con otra.',
+    createFailed: 'No pudimos crear tu restaurante. Inténtalo de nuevo.',
     slugPrefix: 'Tu menú estará en:',
     menuLanguage: 'Idioma del menú / Menu language',
     currency: 'Moneda',
@@ -81,6 +82,7 @@ const WIZARD_TEXT = {
     available: 'Available',
     unavailable: 'Not available',
     slugTaken: 'This URL is already taken. Try another.',
+    createFailed: "We couldn't create your restaurant. Please try again.",
     slugPrefix: 'Your menu will be at:',
     menuLanguage: 'Menu language',
     currency: 'Currency',
@@ -235,7 +237,7 @@ function CreateRestaurantPageInner() {
       setError(ui.chooseCountry);
       return;
     }
-    const parsed = createRestaurantSchema.safeParse({ name, slug, country_code: countryCode, timezone, currency, locale });
+    const parsed = getCreateRestaurantSchema(uiLocale).safeParse({ name, slug, country_code: countryCode, timezone, currency, locale });
     if (!parsed.success) {
       setError(parsed.error.errors[0].message);
       return;
@@ -244,7 +246,9 @@ function CreateRestaurantPageInner() {
     setLoading(true);
     const result = await createRestaurant(parsed.data);
     if (result?.error) {
-      setError(result.error);
+      // The action answers in Spanish (or with the raw DB error): show the
+      // wizard's own text in the interface language instead.
+      setError(/slug ya está en uso|duplicate key.*slug/i.test(result.error) ? ui.slugTaken : ui.createFailed);
       setLoading(false);
       return;
     }

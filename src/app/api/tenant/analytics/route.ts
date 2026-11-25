@@ -5,12 +5,42 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
 import { getDashboardPlan, meetsMinPlan } from '@/lib/plan-access';
-import { isRevenueStatus } from '@/lib/order-state';
+import { isSale, isReceivedOrder, summarizeSales, SALE_FIELDS, type SaleFields } from '@/lib/sales';
+import {
+  resolveTimezone, localDateString, addDaysToDateString, localDayRange,
+  lastLocalDaysRange, previousLocalDayRange, type LocalDayRange,
+} from '@/lib/date-utils';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 const logger = createLogger('tenant-analytics');
 
 const STARTER_MAX_DAYS = 30;
 const PRO_MAX_DAYS = 365;
+
+const ORDER_COLUMNS = `id, total, created_at, discount_amount, tax_amount, tip_amount, delivery_fee, order_type, ${SALE_FIELDS}`;
+
+interface OrderRow extends SaleFields {
+  id: string;
+  total: number | string | null;
+  created_at: string;
+  discount_amount: number | string | null;
+  tax_amount: number | string | null;
+  tip_amount: number | string | null;
+  delivery_fee: number | string | null;
+  order_type: string | null;
+  status: string;
+}
+
+type ProductEmbed = { name: string; cost_price: number | null };
+
+interface ItemRow {
+  id: string;
+  product_id: string;
+  qty: number;
+  line_total: number | string;
+  products: ProductEmbed | ProductEmbed[] | null;
+  order: SaleFields | SaleFields[] | null;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,46 +55,6 @@ export async function GET(request: NextRequest) {
     const startParam = searchParams.get('start');
     const endParam = searchParams.get('end');
 
-    let sinceISO: string;
-    let prevSinceISO: string;
-    let days: number;
-    let endISO: string;
-
-    if (startParam && endParam) {
-      const startDate = new Date(startParam + 'T00:00:00');
-      const endDate = new Date(endParam + 'T23:59:59.999');
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
-        return NextResponse.json({ error: 'Rango de fechas inválido' }, { status: 400 });
-      }
-
-      const maxAllowedDays = isPro ? PRO_MAX_DAYS : STARTER_MAX_DAYS;
-      const maxStart = new Date();
-      maxStart.setDate(maxStart.getDate() - maxAllowedDays);
-      if (startDate < maxStart) {
-        startDate.setTime(maxStart.getTime());
-      }
-
-      sinceISO = startDate.toISOString();
-      endISO = endDate.toISOString();
-      days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      const prevEnd = new Date(startDate);
-      prevEnd.setDate(prevEnd.getDate() - 1);
-      const prevStart = new Date(prevEnd);
-      prevStart.setDate(prevStart.getDate() - days);
-      prevSinceISO = prevStart.toISOString();
-    } else {
-      days = Number(searchParams.get('days')) || 7;
-      const maxAllowedDays = isPro ? PRO_MAX_DAYS : STARTER_MAX_DAYS;
-      if (days > maxAllowedDays) days = maxAllowedDays;
-      const since = new Date();
-      since.setDate(since.getDate() - days);
-      sinceISO = since.toISOString();
-      const prevSince = new Date();
-      prevSince.setDate(prevSince.getDate() - days * 2);
-      prevSinceISO = prevSince.toISOString();
-      endISO = new Date().toISOString();
-    }
-
     const rid = tenant.restaurantId;
 
     const { data: restaurantInfo } = await supabase
@@ -74,16 +64,48 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     const currency: string = restaurantInfo?.currency || 'MXN';
-    const timezone: string = (restaurantInfo as any)?.timezone || 'UTC';
+    // Day boundaries follow the restaurant's local calendar, not the server's (UTC).
+    const timezone = resolveTimezone(restaurantInfo?.timezone as string | null | undefined);
+
+    const maxAllowedDays = isPro ? PRO_MAX_DAYS : STARTER_MAX_DAYS;
+    const today = localDateString(new Date(), timezone);
+    const earliestDate = addDaysToDateString(today, -(maxAllowedDays - 1));
+
+    let range: LocalDayRange;
+    if (startParam && endParam) {
+      const requested = localDayRange(startParam, endParam, timezone);
+      if (!requested) {
+        return NextResponse.json({ error: 'Rango de fechas inválido' }, { status: 400 });
+      }
+      if (requested.endDate < earliestDate) {
+        return NextResponse.json({ error: 'Rango de fechas fuera del período de tu plan' }, { status: 400 });
+      }
+      // Clamp the start to the plan's history window.
+      range = requested.startDate < earliestDate
+        ? localDayRange(earliestDate, requested.endDate, timezone)!
+        : requested;
+    } else {
+      const rawDays = Math.floor(Number(searchParams.get('days')) || 7);
+      const days = Math.min(maxAllowedDays, Math.max(1, rawDays));
+      range = lastLocalDaysRange(days, timezone);
+    }
+    const prevRange = previousLocalDayRange(range, timezone);
+
+    const ordersIn = (r: LocalDayRange) =>
+      fetchAllRows<OrderRow>((from, to) =>
+        supabase
+          .from('orders')
+          .select(ORDER_COLUMNS)
+          .eq('restaurant_id', rid)
+          .gte('created_at', r.start.toISOString())
+          .lt('created_at', r.end.toISOString())
+          .order('created_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to),
+      );
 
     // Helper: convert a UTC Date to the restaurant's local date string (YYYY-MM-DD)
-    const toLocalDate = (utcDateStr: string): string => {
-      try {
-        return new Date(utcDateStr).toLocaleDateString('en-CA', { timeZone: timezone });
-      } catch {
-        return utcDateStr.split('T')[0];
-      }
-    };
+    const toLocalDate = (utcDateStr: string): string => localDateString(new Date(utcDateStr), timezone);
 
     // Helper: get local hour (0-23) and day-of-week (0=Sun) for a UTC timestamp
     const toLocalHourDow = (utcDateStr: string): { hour: number; dow: number } => {
@@ -98,37 +120,30 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    const [currentRes, prevRes] = await Promise.all([
-      supabase
-        .from('orders')
-        .select('id, total, status, created_at, discount_amount, order_type')
-        .eq('restaurant_id', rid)
-        .gte('created_at', sinceISO)
-        .lte('created_at', endISO)
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('orders')
-        .select('id, total, status, created_at')
-        .eq('restaurant_id', rid)
-        .gte('created_at', prevSinceISO)
-        .lt('created_at', sinceISO),
-    ]);
+    const [currentRes, prevRes] = await Promise.all([ordersIn(range), ordersIn(prevRange)]);
+    if (currentRes.error || prevRes.error) {
+      logger.error('orders query failed', { error: currentRes.error ?? prevRes.error });
+      return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    }
+    if (currentRes.truncated) {
+      logger.warn('orders truncated', { restaurantId: rid, rows: currentRes.rows.length });
+    }
 
-    const allOrders = currentRes.data ?? [];
-    const prevOrders = prevRes.data ?? [];
+    // Unpaid online checkouts never reached the restaurant: not orders, not cancellations.
+    const allOrders = currentRes.rows.filter(isReceivedOrder);
+    const prevOrders = prevRes.rows.filter(isReceivedOrder);
 
-    // Revenue realizado = isRevenueStatus (completed+delivered), definición única
-    // compartida con home y business. 'ready' se excluye: comida lista pero no cobrada.
-    const completedOrders = allOrders.filter(o => isRevenueStatus(o.status));
-    const prevCompleted = prevOrders.filter(o => isRevenueStatus(o.status));
+    // Revenue uses the shared sale rule (lib/sales.ts), same as Home, Orders and the report.
+    const current = summarizeSales(allOrders);
+    const previous = summarizeSales(prevOrders);
 
-    const totalRevenue = completedOrders.reduce((s, o) => s + Number(o.total), 0);
-    const prevRevenue = prevCompleted.reduce((s, o) => s + Number(o.total), 0);
+    const totalRevenue = current.total;
+    const prevRevenue = previous.total;
     const totalOrders = allOrders.length;
     const prevTotalOrders = prevOrders.length;
-    const avgTicket = completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
-    const prevAvgTicket = prevCompleted.length > 0 ? prevRevenue / prevCompleted.length : 0;
-    const totalDiscount = allOrders.reduce((s, o) => s + Number(o.discount_amount || 0), 0);
+    const avgTicket = current.count > 0 ? totalRevenue / current.count : 0;
+    const prevAvgTicket = previous.count > 0 ? prevRevenue / previous.count : 0;
+    const totalDiscount = current.discount;
     const cancelledOrders = allOrders.filter(o => o.status === 'cancelled').length;
     const conversionRate = totalOrders > 0 ? ((totalOrders - cancelledOrders) / totalOrders) * 100 : 0;
 
@@ -142,7 +157,7 @@ export async function GET(request: NextRequest) {
       const d = toLocalDate(o.created_at);
       if (!salesByDay[d]) salesByDay[d] = { date: d, orders: 0, revenue: 0 };
       salesByDay[d].orders++;
-      if (isRevenueStatus(o.status)) {
+      if (isSale(o)) {
         salesByDay[d].revenue += Number(o.total);
       }
     }
@@ -175,22 +190,32 @@ export async function GET(request: NextRequest) {
     }
 
 
-    // Only count items from non-cancelled orders for top products
-    const validOrderIds = allOrders
-      .filter(o => o.status !== 'cancelled')
-      .map(o => o.id)
-      .slice(0, 5000); // cap para evitar queries .in() excesivos
+    // Top products: items from orders that count as a sale, in the same local-day range.
     let topProducts: { name: string; qty: number; revenue: number }[] = [];
-    if (validOrderIds.length > 0) {
-      const { data: items } = await supabase
-        .from('order_items')
-        .select('product_id, qty, line_total, products(name, cost_price)')
-        .in('order_id', validOrderIds);
+    if (current.count > 0) {
+      const itemsRes = await fetchAllRows<ItemRow>((from, to) =>
+        supabase
+          .from('order_items')
+          .select('id, product_id, qty, line_total, products(name, cost_price), order:orders!inner(restaurant_id, created_at, status, payment_method, payment_status)')
+          .eq('order.restaurant_id', rid)
+          .neq('order.status', 'cancelled')
+          .gte('order.created_at', range.start.toISOString())
+          .lt('order.created_at', range.end.toISOString())
+          .order('id', { ascending: true })
+          .range(from, to),
+      );
+      if (itemsRes.error) {
+        logger.error('order_items query failed', { error: itemsRes.error });
+      }
+      const items = itemsRes.rows.filter((item) => {
+        const ord = Array.isArray(item.order) ? item.order[0] : item.order;
+        return ord != null && isSale(ord);
+      });
 
       const productMap: Record<string, { name: string; qty: number; revenue: number; cost: number; hasCost: boolean }> = {};
-      for (const item of (items ?? [])) {
+      for (const item of items) {
         const pid = item.product_id;
-        const rawProds = (item as unknown as { products: { name: string; cost_price: number | null }[] | { name: string; cost_price: number | null } | null }).products;
+        const rawProds = item.products;
         const prod = Array.isArray(rawProds) ? rawProds[0] : rawProds;
         const pname = prod?.name ?? 'Desconocido';
         const costPrice = prod?.cost_price != null ? Number(prod.cost_price) : null;
@@ -212,13 +237,22 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       currency,
-      period: { days, since: sinceISO },
+      period: {
+        days: range.days,
+        since: range.start.toISOString(),
+        startDate: range.startDate,
+        endDate: range.endDate,
+        timezone,
+      },
+      truncated: currentRes.truncated,
       summary: {
         totalOrders,
         totalRevenue,
         avgTicket,
         totalDiscount,
-        completedOrders: completedOrders.length,
+        totalTax: current.tax,
+        totalTips: current.tip,
+        completedOrders: current.count,
         cancelledOrders,
         conversionRate,
         peakHour: peakHourLabel,

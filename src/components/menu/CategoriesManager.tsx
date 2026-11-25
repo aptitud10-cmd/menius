@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical, Languages, X, Camera, ImageIcon, Clock, ChefHat, Store, LayoutGrid, List, Wand2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical, Languages, X, Camera, ImageIcon, Clock, ChefHat, Store, LayoutGrid, List, Wand2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import {
   DndContext,
@@ -28,6 +28,13 @@ import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { Category, ContentTranslation } from '@/types';
 
+// 44x44 tap target on touch screens; desktop keeps the compact icon button.
+const TOUCH_TARGET =
+  '[@media(pointer:coarse)]:p-0 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 inline-flex items-center justify-center';
+
+// Vercel rejects request bodies above ~4.5 MB before the upload route runs.
+const MAX_IMAGE_BYTES = 4.5 * 1024 * 1024;
+
 interface CategoriesManagerProps {
   initialCategories: Category[];
   defaultLocale: string;
@@ -44,6 +51,7 @@ function SortableCategoryRow({
   onDelete,
   onTranslate,
   onImageUpload,
+  uploading,
 }: {
   cat: Category;
   hasMultiLang: boolean;
@@ -54,6 +62,7 @@ function SortableCategoryRow({
   onDelete: () => void;
   onTranslate: () => void;
   onImageUpload: (file: File) => void;
+  uploading: boolean;
 }) {
   const { t, locale } = useDashboardLocale();
   const imgRef = useRef<HTMLInputElement>(null);
@@ -78,29 +87,58 @@ function SortableCategoryRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex items-center justify-between px-4 py-3 hover:bg-gray-50/50 transition-colors group',
+        'flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-3 hover:bg-gray-50/50 transition-colors group',
         isDragging && 'bg-white shadow-lg rounded-lg border border-gray-200'
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
         <button
-          className="p-1 -ml-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none"
+          className="p-1 -ml-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none inline-flex items-center justify-center [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:-ml-3"
+          aria-label={locale === 'en' ? 'Drag to reorder' : 'Arrastrar para ordenar'}
           {...attributes}
           {...listeners}
         >
           <GripVertical className="w-4 h-4" />
         </button>
-        <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onImageUpload(f); }} />
+        <input
+          ref={imgRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            // Reset so picking the same file again after an error retries.
+            e.target.value = '';
+            if (f) onImageUpload(f);
+          }}
+        />
         {cat.image_url ? (
-          <button onClick={() => imgRef.current?.click()} className="relative w-7 h-7 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 group/img" title={t.editor_changeImage}>
-            <Image src={cat.image_url} alt="" aria-hidden="true" fill sizes="28px" className="object-cover" />
-            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 flex items-center justify-center transition-colors">
-              <Camera className="w-3 h-3 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
+          <button
+            onClick={() => imgRef.current?.click()}
+            disabled={uploading}
+            className="relative w-7 h-7 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 group/img"
+            title={t.editor_changeImage}
+            aria-label={t.editor_changeImage}
+          >
+            <Image src={cat.image_url} alt="" aria-hidden="true" fill sizes="44px" className="object-cover" />
+            <div className={cn(
+              'absolute inset-0 flex items-center justify-center transition-colors',
+              uploading ? 'bg-black/40' : 'bg-black/0 group-hover/img:bg-black/30 [@media(hover:none)]:bg-black/20',
+            )}>
+              {uploading
+                ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                : <Camera className="w-3 h-3 text-white opacity-0 group-hover/img:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity" />}
             </div>
           </button>
         ) : (
-          <button onClick={() => imgRef.current?.click()} className="w-7 h-7 rounded-md bg-gray-50 flex items-center justify-center text-gray-300 hover:text-gray-400 hover:bg-gray-100 transition-colors flex-shrink-0" title={t.categories_uploadImage}>
-            <ImageIcon className="w-3.5 h-3.5" />
+          <button
+            onClick={() => imgRef.current?.click()}
+            disabled={uploading}
+            className="w-7 h-7 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 rounded-md bg-gray-50 flex items-center justify-center text-gray-300 hover:text-gray-400 hover:bg-gray-100 transition-colors flex-shrink-0"
+            title={t.categories_uploadImage}
+            aria-label={t.categories_uploadImage}
+          >
+            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" /> : <ImageIcon className="w-3.5 h-3.5" />}
           </button>
         )}
         <div className="min-w-0">
@@ -156,20 +194,22 @@ function SortableCategoryRow({
               : <><Wand2 className="w-3 h-3" />Auto</>}
         </button>
       </div>
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Always visible on touch screens (phone, tablet); with a mouse they
+          appear on hover. 44x44 targets on coarse pointers. */}
+      <div className="flex items-center gap-0.5 ml-auto transition-opacity focus-within:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
         {hasMultiLang && (
-          <button onClick={onTranslate} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title={t.categories_translate}>
-            <Languages className="w-3.5 h-3.5" />
+          <button onClick={onTranslate} className={cn('p-1.5 rounded-md hover:bg-gray-100 text-gray-400', TOUCH_TARGET)} title={t.categories_translate} aria-label={t.categories_translate}>
+            <Languages className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />
           </button>
         )}
-        <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title={cat.is_active ? t.products_hide : t.products_show}>
-          {cat.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+        <button onClick={onToggle} className={cn('p-1.5 rounded-md hover:bg-gray-100 text-gray-400', TOUCH_TARGET)} title={cat.is_active ? t.products_hide : t.products_show} aria-label={cat.is_active ? t.products_hide : t.products_show}>
+          {cat.is_active ? <EyeOff className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" /> : <Eye className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />}
         </button>
-        <button onClick={onEdit} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title={t.general_edit}>
-          <Pencil className="w-3.5 h-3.5" />
+        <button onClick={onEdit} className={cn('p-1.5 rounded-md hover:bg-gray-100 text-gray-400', TOUCH_TARGET)} title={t.general_edit} aria-label={t.general_edit}>
+          <Pencil className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />
         </button>
-        <button onClick={onDelete} className="p-1.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500" title={t.general_delete}>
-          <Trash2 className="w-3.5 h-3.5" />
+        <button onClick={onDelete} className={cn('p-1.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500', TOUCH_TARGET)} title={t.general_delete} aria-label={t.general_delete}>
+          <Trash2 className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />
         </button>
       </div>
     </div>
@@ -186,9 +226,11 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
   const [error, setError] = useState('');
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; reason?: string; suggestedPlan?: 'pro' }>({ open: false });
   const [translatingCat, setTranslatingCat] = useState<Category | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
   const { success: toastSuccess, error: toastError } = useToast();
+  const L = (es: string, en: string) => (locale === 'en' ? en : es);
 
   const extraLocales = availableLocales.filter((l) => l !== defaultLocale);
   const hasMultiLang = extraLocales.length > 0;
@@ -239,7 +281,11 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
           }
           setError(result.error); return;
         }
-        setCategories((prev) => [...prev, { id: `temp-${Date.now()}`, restaurant_id: '', name, sort_order: prev.length, is_active: true, created_at: new Date().toISOString(), available_from: from, available_to: to }]);
+        // Real id from the server: hiding, deleting or adding a photo right
+        // after creating must target the saved row, not a temporary one.
+        const newId = 'id' in result && result.id ? result.id : null;
+        if (!newId) { window.location.reload(); return; }
+        setCategories((prev) => [...prev, { id: newId, restaurant_id: '', name, sort_order: prev.length, is_active: true, created_at: new Date().toISOString(), available_from: from, available_to: to }]);
       }
       resetForm();
     });
@@ -255,16 +301,32 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
 
   const handleDelete = (id: string) => {
     if (!confirm(t.categories_deleteConfirm)) return;
+    const snapshot = categories;
+    setCategories((prev) => prev.filter((c) => c.id !== id));
     startTransition(async () => {
-      await deleteCategory(id);
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+      try {
+        const res = await deleteCategory(id);
+        if (res?.error) throw new Error(res.error);
+      } catch {
+        setCategories(snapshot);
+        toastError(L('No se pudo borrar la categoría. Probá de nuevo.', 'Couldn’t delete the category. Please try again.'));
+      }
     });
   };
 
   const handleToggle = (cat: Category) => {
+    const next = !cat.is_active;
+    setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: next } : c));
     startTransition(async () => {
-      await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: !cat.is_active });
-      setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: !c.is_active } : c));
+      try {
+        const res = await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: next });
+        if (res?.error) throw new Error(res.error);
+      } catch {
+        setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: cat.is_active } : c));
+        toastError(next
+          ? L('No se pudo mostrar la categoría. Sigue oculta.', 'Couldn’t show the category. It’s still hidden.')
+          : L('No se pudo ocultar la categoría. Sigue visible en la tienda.', 'Couldn’t hide the category. It’s still visible in the store.'));
+      }
     });
   };
 
@@ -272,8 +334,13 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
     const next = cat.send_to_kitchen === false;
     setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, send_to_kitchen: next } : c));
     startTransition(async () => {
-      const res = await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, send_to_kitchen: next });
-      if (res?.error) setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, send_to_kitchen: !next } : c));
+      try {
+        const res = await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, send_to_kitchen: next });
+        if (res?.error) throw new Error(res.error);
+      } catch {
+        setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, send_to_kitchen: !next } : c));
+        toastError(L('No se pudo cambiar Cocina/Mostrador. Probá de nuevo.', 'Couldn’t change Kitchen/Counter. Please try again.'));
+      }
     });
   };
 
@@ -282,24 +349,44 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
     const next = prev === null ? 'grid' : prev === 'grid' ? 'list' : null;
     setCategories((all) => all.map((c) => c.id === cat.id ? { ...c, display_mode: next } : c));
     startTransition(async () => {
-      const res = await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, display_mode: next });
-      if (res?.error) setCategories((all) => all.map((c) => c.id === cat.id ? { ...c, display_mode: prev } : c));
+      try {
+        const res = await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, display_mode: next });
+        if (res?.error) throw new Error(res.error);
+      } catch {
+        setCategories((all) => all.map((c) => c.id === cat.id ? { ...c, display_mode: prev } : c));
+        toastError(L('No se pudo cambiar el formato. Probá de nuevo.', 'Couldn’t change the layout. Please try again.'));
+      }
     });
   };
 
   const handleImageUpload = async (catId: string, file: File) => {
-    if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) return;
+    if (!file.type.startsWith('image/')) {
+      toastError(L('Ese archivo no es una imagen.', 'That file is not an image.'));
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toastError(L('La foto pesa más de 4,5 MB. Elegí una más liviana.', 'The photo is larger than 4.5 MB. Pick a smaller one.'));
+      return;
+    }
+    const cat = categories.find((c) => c.id === catId);
+    if (!cat) return;
     const fd = new FormData();
     fd.append('file', file);
+    setUploadingId(catId);
     try {
       const res = await fetch('/api/tenant/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) return;
-      const cat = categories.find((c) => c.id === catId);
-      if (!cat) return;
-      await updateCategory(catId, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, image_url: data.url });
+      // Oversized bodies come back as plain text, not JSON.
+      const data: { url?: string; error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error ?? `HTTP ${res.status}`);
+      const saved = await updateCategory(catId, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, image_url: data.url });
+      if (saved?.error) throw new Error(saved.error);
       setCategories((prev) => prev.map((c) => c.id === catId ? { ...c, image_url: data.url } : c));
-    } catch { /* ignore */ }
+      toastSuccess(L('Foto guardada', 'Photo saved'));
+    } catch {
+      toastError(L('No se pudo subir la foto. Probá de nuevo.', 'Couldn’t upload the photo. Please try again.'));
+    } finally {
+      setUploadingId(null);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -420,6 +507,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
                   onDelete={() => handleDelete(cat.id)}
                   onTranslate={() => setTranslatingCat(cat)}
                   onImageUpload={(file) => handleImageUpload(cat.id, file)}
+                  uploading={uploadingId === cat.id}
                 />
               ))}
             </div>
@@ -469,17 +557,25 @@ function TranslationModal({
     return init;
   });
   const [isPending, startTransition] = useTransition();
-  const { t } = useDashboardLocale();
+  const [saveError, setSaveError] = useState('');
+  const { t, locale } = useDashboardLocale();
 
   const handleSave = () => {
+    setSaveError('');
     startTransition(async () => {
-      await updateCategory(category.id, {
-        name: category.name,
-        sort_order: category.sort_order,
-        is_active: category.is_active,
-        translations,
-      });
-      onSave(category.id, translations);
+      try {
+        const res = await updateCategory(category.id, {
+          name: category.name,
+          sort_order: category.sort_order,
+          is_active: category.is_active,
+          translations,
+        });
+        if (res?.error) throw new Error(res.error);
+        onSave(category.id, translations);
+      } catch {
+        // Keep the modal open with the typed text so nothing is lost.
+        setSaveError(locale === 'en' ? 'Couldn’t save the translation. Please try again.' : 'No se pudo guardar la traducción. Probá de nuevo.');
+      }
     });
   };
 
@@ -523,6 +619,7 @@ function TranslationModal({
             })}
           </div>
 
+          {saveError && <p className="px-5 pb-2 text-sm text-red-600" role="alert">{saveError}</p>}
           <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200">
             <button onClick={onClose} className="dash-btn-secondary">{t.general_cancel}</button>
             <button onClick={handleSave} disabled={isPending} className="dash-btn-primary">

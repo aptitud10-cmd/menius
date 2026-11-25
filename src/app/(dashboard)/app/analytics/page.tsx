@@ -64,8 +64,13 @@ function formatDayLabel(dateStr: string, locale: 'es' | 'en') {
 
 type PeriodPreset = 7 | 14 | 30 | 'custom';
 
+// Local calendar date (YYYY-MM-DD) of the device, not the UTC date: after
+// 7-8 pm in New York the UTC date is already tomorrow.
 function formatDateForInput(d: Date) {
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 export default function AnalyticsPage() {

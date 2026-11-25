@@ -20,6 +20,9 @@ import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { DashboardTranslations } from '@/lib/dashboard-translations';
 import type { Order, OrderStatus } from '@/types';
 import { useCloudPrnt } from '@/hooks/use-cloudprnt';
+import { isSale } from '@/lib/sales';
+import { canTransition } from '@/lib/order-state';
+import { localDateString, localDayStartUTC, addDaysToDateString, isValidTimezone } from '@/lib/date-utils';
 
 const COLUMNS: { status: OrderStatus; icon: typeof Clock }[] = [
   { status: 'pending', icon: Clock },
@@ -32,8 +35,29 @@ const NEXT_STATUS: Record<string, OrderStatus> = {
   pending: 'confirmed',
   confirmed: 'preparing',
   preparing: 'ready',
+  almost_ready: 'ready',
   ready: 'delivered',
+  out_for_delivery: 'delivered',
 };
+
+/**
+ * Board column for each open status. Statuses set from Counter/KDS/driver
+ * (almost_ready, out_for_delivery) share the nearest column so they stay visible.
+ */
+const BOARD_COLUMN: Partial<Record<string, OrderStatus>> = {
+  pending: 'pending',
+  confirmed: 'confirmed',
+  preparing: 'preparing',
+  almost_ready: 'preparing',
+  ready: 'ready',
+  out_for_delivery: 'ready',
+};
+
+/** Finished orders: shown in History. 'served' is the resting state of a dine-in order. */
+const HISTORY_STATUSES: ReadonlySet<string> = new Set(['served', 'delivered', 'completed', 'cancelled']);
+
+const isHistoryStatus = (status: string) => HISTORY_STATUSES.has(status);
+const columnOf = (status: string): OrderStatus | undefined => BOARD_COLUMN[status];
 
 const ORDER_TYPE_META: Record<string, { icon: typeof Utensils; color: string }> = {
   dine_in: { icon: Utensils, color: 'text-blue-600 bg-blue-50' },
@@ -59,7 +83,12 @@ function paymentLabel(t: DashboardTranslations, method?: string | null): string 
   return '';
 }
 
-function statusLabel(t: DashboardTranslations, status: string): string {
+const EXTRA_STATUS_LABELS: Record<'es' | 'en', Record<string, string>> = {
+  es: { almost_ready: 'Casi lista', out_for_delivery: 'En camino', served: 'Servida', completed: 'Completada' },
+  en: { almost_ready: 'Almost ready', out_for_delivery: 'Out for delivery', served: 'Served', completed: 'Completed' },
+};
+
+function statusLabel(t: DashboardTranslations, status: string, locale: string = 'es'): string {
   const map: Record<string, string> = {
     pending: t.orders_pending,
     confirmed: t.orders_confirmed,
@@ -68,7 +97,7 @@ function statusLabel(t: DashboardTranslations, status: string): string {
     delivered: t.orders_delivered,
     cancelled: t.orders_cancelled,
   };
-  return map[status] ?? status;
+  return map[status] ?? EXTRA_STATUS_LABELS[locale === 'en' ? 'en' : 'es'][status] ?? status;
 }
 
 interface OrdersBoardProps {
@@ -81,10 +110,16 @@ interface OrdersBoardProps {
   restaurantAddress?: string;
   taxLabel?: string;
   taxIncluded?: boolean;
+  /** Restaurant IANA timezone: "today" and date filters follow it. */
+  timezone?: string;
 }
 
-export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, currency, restaurantName, restaurantPhone, restaurantAddress, taxLabel, taxIncluded }: OrdersBoardProps) {
+export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, currency, restaurantName, restaurantPhone, restaurantAddress, taxLabel, taxIncluded, timezone }: OrdersBoardProps) {
   const { t, locale } = useDashboardLocale();
+  const tz = useMemo(
+    () => (isValidTimezone(timezone) ? timezone : Intl.DateTimeFormat().resolvedOptions().timeZone),
+    [timezone],
+  );
   const [isPending, startTransition] = useTransition();
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
@@ -170,31 +205,28 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       result = result.filter((o) => o.order_type === filterType);
     }
     if (dateRange !== 'all') {
-      const cutoff = new Date();
-      if (dateRange === 'today') {
-        cutoff.setHours(0, 0, 0, 0);
-      } else if (dateRange === '7') {
-        cutoff.setDate(cutoff.getDate() - 7);
-      } else if (dateRange === '30') {
-        cutoff.setDate(cutoff.getDate() - 30);
-      }
+      // Calendar days in the restaurant's timezone (today, last 7, last 30)
+      const back = dateRange === 'today' ? 0 : dateRange === '7' ? 6 : 29;
+      const cutoff = localDayStartUTC(addDaysToDateString(localDateString(new Date(), tz), -back), tz);
       result = result.filter((o) => new Date(o.created_at) >= cutoff);
     }
     return result;
-  }, [orders, search, filterType, dateRange]);
+  }, [orders, search, filterType, dateRange, tz]);
 
   const activeOrders = useMemo(() =>
-    filteredOrders.filter((o) => !['delivered', 'cancelled'].includes(o.status)),
+    filteredOrders.filter((o) => !isHistoryStatus(o.status)),
   [filteredOrders]);
 
   const historyOrders = useMemo(() =>
-    filteredOrders.filter((o) => ['delivered', 'cancelled'].includes(o.status)),
+    filteredOrders.filter((o) => isHistoryStatus(o.status)),
   [filteredOrders]);
 
   const pendingCount = orders.filter((o) => o.status === 'pending').length;
-  const preparingCount = orders.filter((o) => o.status === 'preparing').length;
-  const todayOrders = orders.filter((o) => new Date(o.created_at).toDateString() === new Date().toDateString() && o.status !== 'cancelled');
-  const todayTotal = todayOrders.reduce((s, o) => s + Number(o.total), 0);
+  const preparingCount = orders.filter((o) => o.status === 'preparing' || o.status === 'almost_ready').length;
+  const todayKey = localDateString(new Date(), tz);
+  const todayOrders = orders.filter((o) => localDateString(new Date(o.created_at), tz) === todayKey && o.status !== 'cancelled');
+  // Same sale rule as Home, Analytics and the report (lib/sales.ts).
+  const todayTotal = todayOrders.filter(isSale).reduce((s, o) => s + Number(o.total), 0);
 
   useEffect(() => { updateTabTitle(pendingCount); }, [pendingCount, updateTabTitle]);
 
@@ -412,9 +444,9 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-bold">{order.order_number}</span>
                   <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold',
-                    order.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                    order.status !== 'cancelled' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
                   )}>
-                    {order.status === 'delivered' ? t.orders_delivered : t.orders_cancelled}
+                    {statusLabel(t, order.status, locale)}
                   </span>
                   {ORDER_TYPE_META[order.order_type ?? ''] && (
                     <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold', ORDER_TYPE_META[order.order_type!].color)}>
@@ -454,9 +486,12 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
             <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide">
               {COLUMNS.map(({ status, icon: Icon }) => {
                 const config = ORDER_STATUS_CONFIG[status];
-                const count = activeOrders.filter((o) => o.status === status).length;
+                const count = activeOrders.filter((o) => columnOf(o.status) === status).length;
                 const isActive = mobileTab === status;
-                const hasNew = newOrderIds.size > 0 && Array.from(newOrderIds).some((id) => orders.find((o) => o.id === id)?.status === status);
+                const hasNew = newOrderIds.size > 0 && Array.from(newOrderIds).some((id) => {
+                  const st = orders.find((o) => o.id === id)?.status;
+                  return st !== undefined && columnOf(st) === status;
+                });
                 return (
                   <button
                     key={status}
@@ -469,7 +504,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
                     )}
                   >
                     <Icon className="w-3.5 h-3.5" />
-                    {statusLabel(t, status)}
+                    {statusLabel(t, status, locale)}
                     <span className={cn(
                       'text-xs font-bold px-1.5 py-0.5 rounded-full',
                       isActive ? 'bg-white/60' : 'bg-gray-200 text-gray-600',
@@ -483,18 +518,18 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
             </div>
             {/* Active column orders */}
             <div className="space-y-3">
-              {activeOrders.filter((o) => o.status === mobileTab).length === 0 ? (
+              {activeOrders.filter((o) => columnOf(o.status) === mobileTab).length === 0 ? (
                 <div className="text-center py-10 text-sm text-gray-400">
-                  {statusLabel(t, mobileTab)} · {t.orders_noOrders ?? 'Sin órdenes'}
+                  {statusLabel(t, mobileTab, locale)} · {t.orders_noOrders ?? 'Sin órdenes'}
                 </div>
-              ) : activeOrders.filter((o) => o.status === mobileTab).map((order) => (
+              ) : activeOrders.filter((o) => columnOf(o.status) === mobileTab).map((order) => (
                 <OrderCard
                   key={order.id}
                   order={order}
                   isNew={newOrderIds.has(order.id)}
-                  status={mobileTab}
+                  status={order.status}
                   currency={currency}
-                  onAdvance={() => handleStatusChange(order.id, NEXT_STATUS[mobileTab])}
+                  onAdvance={() => handleStatusChange(order.id, NEXT_STATUS[order.status])}
                   onCancel={() => handleStatusChange(order.id, 'cancelled')}
                   onPrint={() => setPrintOrder(order)}
                   onDetail={() => setDetailOrder(order)}
@@ -509,12 +544,12 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
           <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 pb-2">
             {COLUMNS.map(({ status, icon: Icon }) => {
               const config = ORDER_STATUS_CONFIG[status];
-              const columnOrders = activeOrders.filter((o) => o.status === status);
+              const columnOrders = activeOrders.filter((o) => columnOf(o.status) === status);
               return (
                 <div key={status} className="space-y-3 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <Icon className={`w-4 h-4 ${config.color}`} />
-                    <span className="text-sm font-semibold text-gray-900">{statusLabel(t, status)}</span>
+                    <span className="text-sm font-semibold text-gray-900">{statusLabel(t, status, locale)}</span>
                     <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
                       {columnOrders.length}
                     </span>
@@ -524,9 +559,9 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
                       key={order.id}
                       order={order}
                       isNew={newOrderIds.has(order.id)}
-                      status={status}
+                      status={order.status}
                       currency={currency}
-                      onAdvance={() => handleStatusChange(order.id, NEXT_STATUS[status])}
+                      onAdvance={() => handleStatusChange(order.id, NEXT_STATUS[order.status])}
                       onCancel={() => handleStatusChange(order.id, 'cancelled')}
                       onPrint={() => setPrintOrder(order)}
                       onDetail={() => setDetailOrder(order)}
@@ -741,7 +776,7 @@ function OrderCard({
               <ArrowRight className="w-3 h-3" />
             </button>
           )}
-          {status !== 'cancelled' && status !== 'delivered' && (
+          {canTransition(status, 'cancelled') && (
             <button onClick={onCancel} className="p-1 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
               <XCircle className="w-3.5 h-3.5" />
             </button>
@@ -761,7 +796,7 @@ function OrderDetailModal({
   onClose: () => void; onPrint: () => void;
   onStatusChange: (s: OrderStatus) => void;
 }) {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
   const typeMeta = ORDER_TYPE_META[order.order_type ?? ''];
   const payMeta = PAYMENT_META[order.payment_method ?? ''];
   const statusConfig = ORDER_STATUS_CONFIG[order.status];
@@ -822,7 +857,7 @@ function OrderDetailModal({
           {/* Status + badges */}
           <div className="flex flex-wrap gap-2">
             <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold', statusConfig?.bg, statusConfig?.color)}>
-              {statusLabel(t, order.status)}
+              {statusLabel(t, order.status, locale)}
             </span>
             {typeMeta && (
               <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold', typeMeta.color)}>
@@ -951,7 +986,7 @@ function OrderDetailModal({
             <Printer className="w-4 h-4" /> {t.orders_print}
           </button>
           <div className="flex-1" />
-          {order.status !== 'cancelled' && order.status !== 'delivered' && (
+          {canTransition(order.status, 'cancelled') && (
             <button
               onClick={() => onStatusChange('cancelled')}
               className="px-3 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
@@ -964,7 +999,7 @@ function OrderDetailModal({
               onClick={() => onStatusChange(nextStatus)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
             >
-              {statusLabel(t, nextStatus)} <ArrowRight className="w-4 h-4" />
+              {statusLabel(t, nextStatus, locale)} <ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>

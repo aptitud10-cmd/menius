@@ -9,6 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getDeviceSession, isDeviceSession } from "@/lib/auth/device-session";
 import { sanitizeText, sanitizeMultiline } from "@/lib/sanitize";
 import { normalizeHour } from "@/lib/option-hours";
+import { randomUUID } from "crypto";
+import { planModifierCopy, suffixTranslatedNames, type SourceGroup } from "@/lib/duplicate-product";
 import { ORDER_INCIDENTS, type OrderIncident, type CustomerFlag } from "@/lib/customer-incidents";
 import { captureError } from "@/lib/error-reporting";
 import { createLogger } from "@/lib/logger";
@@ -446,9 +448,11 @@ export async function reorderCategories(orderedIds: string[]) {
       .eq("id", id)
       .eq("restaurant_id", restaurantId),
   );
-  await Promise.all(updates);
+  const results = await Promise.all(updates);
   revalidatePath("/app/menu/categories");
   revalidatePublicMenu(restaurantSlug);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
   return { success: true };
 }
 
@@ -468,9 +472,11 @@ export async function reorderProducts(orderedIds: string[]) {
       .eq("id", id)
       .eq("restaurant_id", restaurantId),
   );
-  await Promise.all(updates);
+  const results = await Promise.all(updates);
   revalidatePath("/app/menu/products");
   revalidatePublicMenu(restaurantSlug);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
   return { success: true };
 }
 
@@ -533,11 +539,16 @@ export async function createProduct(
   return { success: true, id: created?.id };
 }
 
-// Trae las relaciones completas (variants, extras, modifier groups + options) de
-// UN producto, on-demand. Se usa al DUPLICAR: la lista del dashboard ya no carga
-// estas relaciones para todos los productos (payload slim), así que el duplicado
-// las pide solo del producto elegido. Valida ownership del tenant.
-export async function getProductForDuplication(productId: string) {
+/**
+ * Duplicates a dish with everything that defines it: fields, modifier groups,
+ * options (with hours, images, linked dishes), conditional dependencies
+ * remapped to the copy's own options, and legacy variants/extras.
+ *
+ * The copy is born HIDDEN (is_active false) at the end of its category, so
+ * customers never see a half-reviewed "Burger (copy)". All or nothing: if any
+ * insert fails the new product is deleted (groups/options cascade).
+ */
+export async function duplicateProduct(productId: string, newName: string) {
   const {
     supabase,
     restaurantId,
@@ -545,35 +556,133 @@ export async function getProductForDuplication(productId: string) {
   } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
-  const { data: product, error } = await supabase
+  const name = sanitizeText(newName ?? "", 150).trim();
+  if (!productId || !name) return { error: "Datos inválidos" };
+
+  const { data: source, error: readErr } = await supabase
     .from("products")
     .select(
-      "id, product_variants(name, price_delta, sort_order), product_extras(name, price, sort_order), modifier_groups(name, selection_type, min_select, max_select, is_required, sort_order, modifier_options(name, price_delta, is_default, sort_order))",
+      `id, category_id, description, price, image_url, dietary_tags, is_featured, is_new,
+       translations, prep_time_minutes, station_id, cost_price, compare_at_price,
+       hide_image, dine_in_only, available_from, available_until,
+       product_variants(name, price_delta, sort_order),
+       product_extras(name, price, sort_order),
+       modifier_groups(id, name, selection_type, min_select, max_select, is_required,
+         sort_order, display_type, depends_on_option_id, depends_on_option_ids,
+         translations, shared_origin_id, ticket_label, ticket_layout,
+         modifier_options(id, name, price_delta, is_default, sort_order, cost_price,
+           translations, available_from, available_until, linked_product_id, image_url))`,
     )
     .eq("id", productId)
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
+  if (readErr) return { error: readErr.message };
+  if (!source) return { error: "No encontrado" };
 
-  if (error) return { error: error.message };
-  if (!product) return { error: "No encontrado" };
+  const { getEffectivePlanLimits } = await import("@/lib/auth/check-plan");
+  const { isWithinLimit } = await import("@/lib/plans");
+  const { count: productCount } = await supabase
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("restaurant_id", restaurantId);
+  const effective = await getEffectivePlanLimits(restaurantId);
+  if (!isWithinLimit((productCount ?? 0) + 1, effective.limits.maxProducts)) {
+    return {
+      error: `Tu plan permite hasta ${effective.limits.maxProducts} productos. Actualiza tu plan para agregar más.`,
+      limitReached: true,
+    };
+  }
 
-  return {
-    success: true as const,
-    variants: (product.product_variants ?? []).sort(
-      (a, b) => a.sort_order - b.sort_order,
-    ),
-    extras: (product.product_extras ?? []).sort(
-      (a, b) => a.sort_order - b.sort_order,
-    ),
-    modifier_groups: (product.modifier_groups ?? [])
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((g) => ({
-        ...g,
-        options: (g.modifier_options ?? []).sort(
-          (a, b) => a.sort_order - b.sort_order,
-        ),
-      })),
+  // Last position of its category.
+  const { data: last } = await supabase
+    .from("products")
+    .select("sort_order")
+    .eq("restaurant_id", restaurantId)
+    .eq("category_id", source.category_id)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sortOrder = last ? Number(last.sort_order ?? 0) + 1 : 0;
+
+  const { data: created, error: insertErr } = await supabase
+    .from("products")
+    .insert({
+      restaurant_id: restaurantId,
+      category_id: source.category_id,
+      name,
+      description: source.description ?? "",
+      price: source.price,
+      image_url: source.image_url ?? "",
+      is_active: false,
+      sort_order: sortOrder,
+      dietary_tags: source.dietary_tags ?? [],
+      is_featured: source.is_featured ?? false,
+      is_new: source.is_new ?? false,
+      translations: suffixTranslatedNames(source.translations),
+      prep_time_minutes: source.prep_time_minutes,
+      station_id: source.station_id,
+      cost_price: source.cost_price,
+      compare_at_price: source.compare_at_price,
+      hide_image: source.hide_image ?? false,
+      dine_in_only: source.dine_in_only ?? false,
+      available_from: source.available_from,
+      available_until: source.available_until,
+    })
+    .select("id")
+    .single();
+  if (insertErr || !created) return { error: insertErr?.message ?? "No se pudo duplicar" };
+  const newId = created.id as string;
+
+  const rollback = async (message: string) => {
+    await supabase.from("products").delete().eq("id", newId).eq("restaurant_id", restaurantId);
+    logger.error("duplicateProduct rolled back", { productId, message });
+    return { error: message };
   };
+
+  const groups = (source.modifier_groups ?? []) as unknown as SourceGroup[];
+
+  // Source groups that other dishes link to: the copy joins the same family.
+  let sharedOrigins = new Set<string>();
+  const originCandidates = groups.filter((g) => !g.shared_origin_id).map((g) => g.id);
+  if (originCandidates.length > 0) {
+    const { data: linked, error: linkedErr } = await supabase
+      .from("modifier_groups")
+      .select("shared_origin_id")
+      .in("shared_origin_id", originCandidates);
+    if (linkedErr) return rollback(linkedErr.message);
+    sharedOrigins = new Set(
+      (linked ?? []).map((r) => r.shared_origin_id as string).filter(Boolean),
+    );
+  }
+
+  const plan = planModifierCopy(groups, newId, () => randomUUID(), sharedOrigins);
+  if (plan.groups.length > 0) {
+    const { error } = await supabase.from("modifier_groups").insert(plan.groups);
+    if (error) return rollback(error.message);
+  }
+  if (plan.options.length > 0) {
+    const { error } = await supabase.from("modifier_options").insert(plan.options);
+    if (error) return rollback(error.message);
+  }
+
+  const variants = source.product_variants ?? [];
+  if (variants.length > 0) {
+    const { error } = await supabase.from("product_variants").insert(
+      variants.map((v) => ({ product_id: newId, name: v.name, price_delta: v.price_delta, sort_order: v.sort_order })),
+    );
+    if (error) return rollback(error.message);
+  }
+  const extras = source.product_extras ?? [];
+  if (extras.length > 0) {
+    const { error } = await supabase.from("product_extras").insert(
+      extras.map((x) => ({ product_id: newId, name: x.name, price: x.price, sort_order: x.sort_order })),
+    );
+    if (error) return rollback(error.message);
+  }
+
+  // Hidden copy: the public menu does not change, only the dashboard list.
+  revalidatePath("/app/menu/products");
+  return { success: true as const, id: newId, sort_order: sortOrder };
 }
 
 export async function updateProduct(
@@ -1306,7 +1415,7 @@ export async function reorderModifierGroups(
     .maybeSingle();
   if (!product) return { error: "No encontrado" };
 
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, i) =>
       supabase
         .from("modifier_groups")
@@ -1316,6 +1425,8 @@ export async function reorderModifierGroups(
     ),
   );
   revalidatePath("/app/menu/products");
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
   return { success: true };
 }
 
@@ -1338,7 +1449,7 @@ export async function reorderModifierOptions(
     .maybeSingle();
   if (!owned) return { error: "No encontrado" };
 
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, i) =>
       supabase
         .from("modifier_options")
@@ -1347,6 +1458,8 @@ export async function reorderModifierOptions(
         .eq("group_id", groupId),
     ),
   );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
 
   // Shared groups: siblings must be reordered too. Their options are separate
   // rows paired only by position, so reordering one dish alone would leave the

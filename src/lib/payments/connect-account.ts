@@ -19,3 +19,42 @@ export function isConnectAccountReady(
     && account.capabilities?.card_payments === 'active'
     && account.capabilities?.transfers === 'active';
 }
+
+export type ConnectAccountState = 'not_connected' | 'incomplete' | 'in_review' | 'rejected' | 'active';
+
+export interface ConnectAccountSummary {
+  state: ConnectAccountState;
+  /** ISO date by which `currently_due` must be provided (Stripe disables the account after it). */
+  requirements_deadline: string | null;
+  /** Fields Stripe still needs (currently_due + past_due), even while the account can charge. */
+  requirements_due_count: number;
+}
+
+type AccountForState = Pick<
+  Stripe.Account,
+  'charges_enabled' | 'payouts_enabled' | 'details_submitted' | 'requirements' | 'capabilities'
+>;
+
+/**
+ * Owner-facing state of a Connect account, from the fields Stripe exposes.
+ * Precedence: rejected > active > incomplete > in_review.
+ * "active" uses the same readiness rule as checkout (isConnectAccountReady)
+ * plus payouts_enabled, so the panel never says "active" while cards are off.
+ */
+export function summarizeConnectAccount(account: AccountForState | null): ConnectAccountSummary {
+  if (!account) return { state: 'not_connected', requirements_deadline: null, requirements_due_count: 0 };
+
+  const req = account.requirements;
+  const due = new Set([...(req?.currently_due ?? []), ...(req?.past_due ?? [])]);
+  const deadline = due.size > 0 && req?.current_deadline
+    ? new Date(req.current_deadline * 1000).toISOString()
+    : null;
+  const base = { requirements_deadline: deadline, requirements_due_count: due.size };
+
+  if (req?.disabled_reason?.startsWith('rejected')) return { state: 'rejected', ...base };
+  if (isConnectAccountReady(account) && account.payouts_enabled === true) return { state: 'active', ...base };
+  if (due.size > 0 || !account.details_submitted) return { state: 'incomplete', ...base };
+  // Nothing left for the owner: Stripe is verifying (pending_verification,
+  // under_review, capabilities still pending, payouts not enabled yet).
+  return { state: 'in_review', ...base };
+}

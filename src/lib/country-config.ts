@@ -68,6 +68,20 @@ for (const [currency, countryCode] of Object.entries(CURRENCY_CANONICAL)) {
 /** Deduplicated currency list for dropdowns (one entry per ISO 4217 code) */
 export const UNIQUE_CURRENCIES = Object.values(CURRENCY_TO_CONFIG);
 
+/**
+ * US time zones an owner can pick in Settings. COUNTRY_CONFIGS.US.timezone
+ * (Eastern) stays the default when the country is chosen.
+ */
+export const US_TIMEZONES: readonly { tz: string; en: string; es: string }[] = [
+  { tz: 'America/New_York',    en: 'Eastern',  es: 'Este' },
+  { tz: 'America/Chicago',     en: 'Central',  es: 'Centro' },
+  { tz: 'America/Denver',      en: 'Mountain', es: 'Montaña' },
+  { tz: 'America/Phoenix',     en: 'Arizona',  es: 'Arizona' },
+  { tz: 'America/Los_Angeles', en: 'Pacific',  es: 'Pacífico' },
+  { tz: 'America/Anchorage',   en: 'Alaska',   es: 'Alaska' },
+  { tz: 'Pacific/Honolulu',    en: 'Hawaii',   es: 'Hawái' },
+];
+
 /** Format IANA timezone string as a readable city name: "America/Buenos_Aires" → "Buenos Aires" */
 export function formatTimezone(tz: string): string {
   return tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;

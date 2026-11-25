@@ -4669,7 +4669,7 @@ export function MenuShell({
                     // Empty cart on desktop: pickup/delivery choice, as the
                     // old xl column showed. Phone and tablet unchanged.
                     orderTypes={isXlView ? (restaurant.order_types_enabled ?? []).filter((ot) => ot !== "dine_in") : undefined}
-                    cashOnly={!usablePaymentMethods(restaurant).includes("online")}
+                    cashOnly={((m) => m.includes("cash") && !m.includes("online"))(usablePaymentMethods(restaurant))}
                   />
                 </div>
                 {/* No safe-area spacer here: CartPanel's footer already pads

@@ -47,6 +47,8 @@ export interface Restaurant {
   mp_access_token?: string | null;
   /** Wompi (CO) connected with the restaurant's own keys. Secrets never reach the client. */
   wompi_connected?: boolean;
+  /** Derived in menu-data (not a DB column): the plan allows online payments. */
+  online_payments_allowed?: boolean;
   is_active?: boolean;
   created_at: string;
   // CFDI / fiscal data (Mexico)

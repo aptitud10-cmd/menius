@@ -17,6 +17,7 @@ import { shortOrderNumber } from '@/lib/orders/short-number';
 import { trackerBrand } from '@/lib/tracker-brand';
 import { formatPhoneNumber, formatPhoneNumberIntl } from 'react-phone-number-input';
 import { NOT_ACCEPTED_MINS } from '@/lib/orders/order-timeouts';
+import { paymentErrorText } from '@/lib/payments/payment-errors';
 
 // Datos "de máquina" (n.º de pedido, horas de los pasos, "Actualizado…") van
 // en Inter con cifras tabulares: la DM Mono con cero tachado se leía como una
@@ -1593,7 +1594,8 @@ function PaymentPendingCard({ orderId, trackingToken, restaurantSlug, paidParam,
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.url) { window.location.href = data.url; return; }
-      setErr(t.payRetryError);
+      // The route sends a stable `code` (already paid, closed, …): say why.
+      setErr(paymentErrorText(data.code, t.en ? 'en' : 'es') ?? t.payRetryError);
     } catch {
       setErr(t.payRetryError);
     }

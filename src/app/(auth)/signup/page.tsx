@@ -6,7 +6,7 @@ import { Eye, EyeOff, Sparkles, Check } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { signup } from '@/lib/actions/auth';
-import { signupSchema } from '@/lib/validations';
+import { getSignupSchema } from '@/lib/validations';
 import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
 
@@ -97,7 +97,7 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
 
-    const parsed = signupSchema.safeParse({ email, password });
+    const parsed = getSignupSchema(locale).safeParse({ email, password });
     if (!parsed.success) {
       setError(parsed.error.errors[0].message);
       return;

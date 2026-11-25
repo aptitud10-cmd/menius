@@ -98,6 +98,7 @@ describe('POST /api/payments/refund', () => {
     const res = await POST(makeRequest());
 
     expect(res.status).toBe(502);
+    expect((await res.json()).code).toBe('stripe_rejected');
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
@@ -126,5 +127,27 @@ describe('POST /api/payments/refund', () => {
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelled' }));
     expect(mockUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ payment_status: 'refunded' }));
     expect(mockNotify).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelled' }));
+  });
+
+  it('stable codes for the Counter: not paid, already cancelled, not found', async () => {
+    const cases = [
+      [{ data: { ...paidOrder, payment_status: 'pending' }, error: null }, 409, 'not_paid'],
+      [{ data: { ...paidOrder, status: 'cancelled' }, error: null }, 409, 'already_cancelled'],
+      [{ data: null, error: null }, 404, 'order_not_found'],
+    ] as const;
+    for (const [row, status, code] of cases) {
+      mockMaybeSingle.mockResolvedValueOnce(row);
+      const res = await POST(makeRequest());
+      expect(res.status).toBe(status);
+      expect((await res.json()).code).toBe(code);
+    }
+    expect(mockRefundCreate).not.toHaveBeenCalled();
+  });
+
+  it('Stripe refund with status failed: 502 with code stripe_failed', async () => {
+    mockRefundCreate.mockResolvedValue({ id: 're_1', status: 'failed' });
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(502);
+    expect((await res.json()).code).toBe('stripe_failed');
   });
 });

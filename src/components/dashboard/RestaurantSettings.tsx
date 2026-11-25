@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Save, ExternalLink, CheckCircle2, Bell, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Receipt } from 'lucide-react';
 import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, US_CITY_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
-import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, UNIQUE_CURRENCIES, formatTimezone } from '@/lib/country-config';
+import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, UNIQUE_CURRENCIES, US_TIMEZONES, formatTimezone } from '@/lib/country-config';
+import { crossesMidnight, dayHoursError } from '@/lib/orders/business-hours';
+import type { ConnectAccountState } from '@/lib/payments/connect-account';
 import { SUPPORTED_LOCALES } from '@/lib/i18n';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -12,6 +14,7 @@ import { PhoneField } from '@/components/ui/PhoneField';
 import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { normalizeBrandColor, trackerBrand } from '@/lib/tracker-brand';
+import { SUPPORT_CONTACT } from '@/lib/support-contact';
 
 const DAYS = [
   { key: 'monday' },
@@ -23,7 +26,17 @@ const DAYS = [
   { key: 'sunday' },
 ];
 
-export function RestaurantSettings({ initialData }: { initialData: Restaurant }) {
+/** Vercel rejects request bodies over 4.5 MB before they reach the upload route. */
+const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024;
+
+export function RestaurantSettings({
+  initialData,
+  onlinePaymentsAllowed = true,
+}: {
+  initialData: Restaurant;
+  /** False when the plan has no online payments (/api/orders would reject cards). */
+  onlinePaymentsAllowed?: boolean;
+}) {
   const { t, locale } = useDashboardLocale();
   const dayLabels: Record<string, string> = {
     monday: t.settings_days_monday,
@@ -160,10 +173,25 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   const [stripeStatus, setStripeStatus] = useState<{
     connected: boolean;
     onboarding_complete: boolean;
+    /** From /api/connect/status; null until it answers (or if it fails). */
+    state: ConnectAccountState | null;
+    requirementsDeadline: string | null;
+    requirementsDueCount: number;
     loading: boolean;
     connecting: boolean;
+    openingDashboard: boolean;
     error: string | null;
-  }>({ connected: !!initialData.stripe_account_id, onboarding_complete: !!initialData.stripe_onboarding_complete, loading: true, connecting: false, error: null });
+  }>({
+    connected: !!initialData.stripe_account_id,
+    onboarding_complete: !!initialData.stripe_onboarding_complete,
+    state: null,
+    requirementsDeadline: null,
+    requirementsDueCount: 0,
+    loading: true,
+    connecting: false,
+    openingDashboard: false,
+    error: null,
+  });
 
   const isColombianRestaurant =
     (form.country_code ?? '').toUpperCase() === 'CO' ||
@@ -177,8 +205,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     loading: boolean;
     saving: boolean;
     error: string | null;
-  }>({ connected: false, publicKey: null, loading: true, saving: false, error: null });
+  }>({ connected: !!initialData.wompi_connected, publicKey: null, loading: true, saving: false, error: null });
   const [wompiEditing, setWompiEditing] = useState(false);
+  // Same inputs as usablePaymentMethods on the storefront: gateway ready + plan.
+  const onlineUsable = onlinePaymentsAllowed && (isColombianRestaurant ? wompiStatus.connected : stripeStatus.onboarding_complete);
   const [wompiForm, setWompiForm] = useState({ public_key: '', integrity_secret: '', events_secret: '' });
 
   useEffect(() => {
@@ -242,12 +272,16 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
     setStripeStatus((prev) => ({ ...prev, loading: true }));
     fetch('/api/connect/status')
-      .then((r) => r.json())
+      // On an error keep the saved flags instead of showing "not connected".
+      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
       .then((data) => {
         setStripeStatus((prev) => ({
           ...prev,
           connected: data.connected ?? false,
           onboarding_complete: data.onboarding_complete ?? false,
+          state: typeof data.state === 'string' ? (data.state as ConnectAccountState) : null,
+          requirementsDeadline: typeof data.requirements_deadline === 'string' ? data.requirements_deadline : null,
+          requirementsDueCount: typeof data.requirements_due_count === 'number' ? data.requirements_due_count : 0,
           loading: false,
         }));
       })
@@ -269,7 +303,89 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     }
   };
 
+  const handleOpenStripeDashboard = async () => {
+    setStripeStatus((prev) => ({ ...prev, openingDashboard: true, error: null }));
+    const failMsg = locale === 'en'
+      ? "Couldn't open your Stripe dashboard. Please try again in a minute."
+      : 'No se pudo abrir tu panel de Stripe. Intenta de nuevo en un minuto.';
+    try {
+      const res = await fetch('/api/connect/login-link', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && typeof data.url === 'string') {
+        window.location.href = data.url;
+        return;
+      }
+      setStripeStatus((prev) => ({ ...prev, openingDashboard: false, error: failMsg }));
+    } catch {
+      setStripeStatus((prev) => ({ ...prev, openingDashboard: false, error: failMsg }));
+    }
+  };
+
   const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
+  // Fallback when /api/connect/status did not answer: use the saved flags.
+  const stripeState: ConnectAccountState = stripeStatus.state
+    ?? (stripeStatus.onboarding_complete ? 'active' : stripeStatus.connected ? 'incomplete' : 'not_connected');
+  const en = locale === 'en';
+  const stripeBox: { tone: string; icon: React.ReactNode; text: string } =
+    stripeState === 'rejected'
+      ? {
+          tone: 'bg-red-50 border-red-200 text-red-700',
+          icon: <XCircle className="w-4 h-4 mt-0.5 shrink-0 text-red-600" />,
+          text: en
+            ? "Stripe didn't approve this account, so you can't accept card payments. Contact us and we'll review it with you."
+            : 'Stripe no aprobó esta cuenta, así que no puedes cobrar con tarjeta. Escríbenos y lo revisamos contigo.',
+        }
+      : stripeState === 'incomplete'
+      ? {
+          tone: 'bg-amber-50 border-amber-200 text-amber-800',
+          icon: <Clock className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />,
+          text: en
+            ? 'Stripe needs more information from you. Finish your setup on Stripe to accept card payments and receive payouts.'
+            : 'A Stripe le faltan datos tuyos. Termina el alta en Stripe para cobrar con tarjeta y recibir tus depósitos.',
+        }
+      : stripeState === 'in_review'
+      ? {
+          tone: 'bg-sky-50 border-sky-200 text-sky-800',
+          icon: <Clock className="w-4 h-4 mt-0.5 shrink-0 text-sky-600" />,
+          text: en
+            ? "Stripe is reviewing your information. There's nothing to do for now; it usually takes from a few minutes to a couple of business days."
+            : 'Stripe está revisando tus datos. No tienes que hacer nada por ahora; suele tardar entre unos minutos y un par de días hábiles.',
+        }
+      : onlinePaymentsAllowed
+      ? {
+          tone: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+          icon: <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" />,
+          text: t.settings_stripeReady,
+        }
+      : {
+          tone: 'bg-gray-50 border-gray-200 text-gray-700',
+          icon: <CreditCard className="w-4 h-4 mt-0.5 shrink-0 text-gray-500" />,
+          text: en
+            ? "Stripe is connected, but card payments are off because your plan doesn't include online payments."
+            : 'Stripe está conectado, pero las tarjetas están apagadas porque tu plan no incluye pagos en línea.',
+        };
+  // Stripe asks for more while the account can still charge: say it before it pauses.
+  const stripeDueNote: string | null =
+    (stripeState === 'active' || stripeState === 'in_review') && stripeStatus.requirementsDueCount > 0
+      ? stripeStatus.requirementsDeadline
+        ? (en
+            ? `Stripe needs more information by ${new Date(stripeStatus.requirementsDeadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. If it's not provided, Stripe will pause your card payments.`
+            : `Stripe necesita más datos antes del ${new Date(stripeStatus.requirementsDeadline).toLocaleDateString('es', { day: 'numeric', month: 'long' })}. Si no los envías, Stripe pausará tus cobros con tarjeta.`)
+        : (en
+            ? 'Stripe needs more information. Provide it soon so your card payments are not paused.'
+            : 'Stripe necesita más datos. Envíalos pronto para que no se pausen tus cobros con tarjeta.')
+      : null;
+
+  // US spans several zones; other countries keep one zone each. The saved zone
+  // is always listed so the select never shows a value it doesn't have.
+  const isUsRestaurant = form.country_code === 'US' || (!form.country_code && form.currency === 'USD');
+  const timezoneOptions: { value: string; label: string }[] = isUsRestaurant
+    ? US_TIMEZONES.map((z) => ({ value: z.tz, label: `🇺🇸 ${locale === 'en' ? z.en : z.es} (${formatTimezone(z.tz)})` }))
+    : COUNTRY_CONFIG_LIST.map((c) => ({ value: c.timezone, label: `${c.flag} ${formatTimezone(c.timezone)} (${c.name})` }));
+  if (form.timezone && !timezoneOptions.some((o) => o.value === form.timezone)) {
+    timezoneOptions.unshift({ value: form.timezone, label: formatTimezone(form.timezone) });
+  }
   const publicUrl = `${appUrl}/${initialData.slug}`;
 
   const handleChange = (key: string, value: string) => {
@@ -306,13 +422,24 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
   const uploadImage = async (file: File): Promise<string | null> => {
     if (!file.type.startsWith('image/')) { setError(t.settings_onlyImages); return null; }
-    if (file.size > 10 * 1024 * 1024) { setError(t.settings_maxSize); return null; }
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await fetch('/api/tenant/upload', { method: 'POST', body: fd });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error ?? t.settings_uploadError); return null; }
-    return data.url;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError(locale === 'en'
+        ? 'This image is larger than 4.5 MB. Please choose a smaller one (a screenshot of the photo works too).'
+        : 'La imagen pesa más de 4,5 MB. Elige una más liviana (también sirve una captura de pantalla de la foto).');
+      return null;
+    }
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/tenant/upload', { method: 'POST', body: fd });
+      // A 413 from the platform comes back as plain text, not JSON.
+      const data: { url?: string; error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) { setError(data.error ?? t.settings_uploadError); return null; }
+      return data.url;
+    } catch {
+      setError(t.settings_uploadError);
+      return null;
+    }
   };
 
   const autoSaveImageField = async (field: 'logo_url' | 'cover_image_url', url: string) => {
@@ -333,13 +460,16 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     if (!file) return;
     setUploadingLogo(true);
     setError('');
-    const url = await uploadImage(file);
-    if (url) {
-      setLogoUrl(url);
-      await autoSaveImageField('logo_url', url);
+    try {
+      const url = await uploadImage(file);
+      if (url) {
+        setLogoUrl(url);
+        await autoSaveImageField('logo_url', url);
+      }
+    } finally {
+      setUploadingLogo(false);
+      if (logoRef.current) logoRef.current.value = '';
     }
-    setUploadingLogo(false);
-    if (logoRef.current) logoRef.current.value = '';
   };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -347,27 +477,42 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     if (!file) return;
     setUploadingCover(true);
     setError('');
-    const url = await uploadImage(file);
-    if (url) {
-      setCoverUrl(url);
-      await autoSaveImageField('cover_image_url', url);
+    try {
+      const url = await uploadImage(file);
+      if (url) {
+        setCoverUrl(url);
+        await autoSaveImageField('cover_image_url', url);
+      }
+    } finally {
+      setUploadingCover(false);
+      if (coverRef.current) coverRef.current.value = '';
     }
-    setUploadingCover(false);
-    if (coverRef.current) coverRef.current.value = '';
   };
 
   const handleSave = async () => {
     // Validate operating hours before saving
     for (const day of DAYS) {
       const h = hours[day.key];
-      if (!h.closed && !h.fullDay && h.open >= h.close) {
+      // Closing earlier than opening is allowed: it closes after midnight.
+      if (!h.closed && !h.fullDay && dayHoursError(h.open, h.close)) {
         setError(
           locale === 'en'
-            ? `${dayLabels[day.key]}: opening time must be before closing time`
-            : `${dayLabels[day.key]}: la hora de apertura debe ser antes de cierre`
+            ? `${dayLabels[day.key]}: opening and closing times are the same. If you're open all day, use "${t.settings_24h}".`
+            : `${dayLabels[day.key]}: la hora de apertura y de cierre son iguales. Si abres todo el día, usa "${t.settings_24h}".`
         );
         return;
       }
+    }
+
+    // Online-only with no way to charge cards: customers could not order at all
+    // (the checkout blocks it and /api/orders rejects cash).
+    if (!form.payment_methods_enabled.includes('cash') && form.payment_methods_enabled.includes('online') && !onlineUsable) {
+      setError(
+        locale === 'en'
+          ? `Customers can't pay online yet, so with only "${t.settings_onlinePayment}" nobody could order. Turn on "${t.settings_cash}" too, or finish the online payment setup first.`
+          : `Tus clientes todavía no pueden pagar en línea: con solo "${t.settings_onlinePayment}" nadie podría pedir. Activa también "${t.settings_cash}", o termina primero la configuración del pago en línea.`
+      );
+      return;
     }
 
     // Validate tax rate
@@ -666,10 +811,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               onChange={(e) => handleChange('timezone', e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
-              {COUNTRY_CONFIG_LIST.map((c) => (
-                <option key={c.timezone} value={c.timezone}>
-                  {c.flag} {formatTimezone(c.timezone)} ({c.name})
-                </option>
+              {timezoneOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </div>
@@ -1247,6 +1390,21 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           })}
         </div>
 
+        {/* Plan without online payments (e.g. trial ended): /api/orders rejects cards. */}
+        {!onlinePaymentsAllowed && (
+          <div className="flex items-start gap-2.5 mt-3 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+            <span className="mt-0.5 shrink-0">⚠️</span>
+            <span>
+              {en
+                ? "Your current plan doesn't include online payments (for example, your free trial ended), so customers only see cash. "
+                : 'Tu plan actual no incluye pagos en línea (por ejemplo, terminó tu prueba gratis), así que los clientes solo ven efectivo. '}
+              <a href="/app/billing" className="font-semibold underline">
+                {en ? 'Choose a plan' : 'Elegir un plan'}
+              </a>
+            </span>
+          </div>
+        )}
+
         {/* Warning: online enabled but gateway not ready */}
         {form.payment_methods_enabled.includes('online') && !isColombianRestaurant && !stripeStatus.onboarding_complete && (
           <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
@@ -1384,37 +1542,63 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t.settings_stripeVerifying}
               </div>
-            ) : stripeStatus.onboarding_complete ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm font-medium text-emerald-700">{t.settings_stripeReady}</span>
-              </div>
-            ) : stripeStatus.connected ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
-                  <Clock className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm text-amber-700">{t.settings_stripePendingVerify}</span>
-                </div>
+            ) : stripeState === 'not_connected' ? (
+              onlinePaymentsAllowed ? (
                 <button
                   onClick={handleConnectStripe}
                   disabled={stripeStatus.connecting}
-                  className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                  className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                 >
-                  {stripeStatus.connecting ? t.settings_stripeRedirecting : t.settings_stripeCompleteVerify}
+                  {stripeStatus.connecting ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> {t.settings_stripeConnecting}</>
+                  ) : (
+                    <><CreditCard className="w-4 h-4" /> {t.settings_stripeConnect_btn}</>
+                  )}
                 </button>
-              </div>
+              ) : null
             ) : (
-              <button
-                onClick={handleConnectStripe}
-                disabled={stripeStatus.connecting}
-                className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-              >
-                {stripeStatus.connecting ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> {t.settings_stripeConnecting}</>
-                ) : (
-                  <><CreditCard className="w-4 h-4" /> {t.settings_stripeConnect_btn}</>
+              <div className="space-y-2">
+                <div className={cn('flex items-start gap-2 px-3 py-2 rounded-lg border', stripeBox.tone)}>
+                  {stripeBox.icon}
+                  <span className="text-sm">{stripeBox.text}</span>
+                </div>
+                {stripeDueNote && (
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">
+                    <Clock className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
+                    <span className="text-xs">{stripeDueNote}</span>
+                  </div>
                 )}
-              </button>
+                {stripeState === 'rejected' && (
+                  <p className="text-xs text-gray-600">
+                    {en ? 'Write to us at ' : 'Escríbenos a '}
+                    <a href={`mailto:${SUPPORT_CONTACT.email}`} className="font-medium text-violet-700 underline">{SUPPORT_CONTACT.email}</a>
+                    {SUPPORT_CONTACT.phoneDisplay ? (en ? ` or call ${SUPPORT_CONTACT.phoneDisplay}.` : ` o llama al ${SUPPORT_CONTACT.phoneDisplay}.`) : '.'}
+                  </p>
+                )}
+                {onlinePaymentsAllowed && (stripeState === 'incomplete' || stripeDueNote) && (
+                  <button
+                    onClick={handleConnectStripe}
+                    disabled={stripeStatus.connecting}
+                    className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                  >
+                    {stripeStatus.connecting
+                      ? t.settings_stripeRedirecting
+                      : (en ? 'Continue on Stripe' : 'Continuar en Stripe')}
+                  </button>
+                )}
+                {stripeState !== 'incomplete' && (
+                  <button
+                    onClick={handleOpenStripeDashboard}
+                    disabled={stripeStatus.openingDashboard}
+                    className="w-full py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    {stripeStatus.openingDashboard
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <ExternalLink className="w-4 h-4" />}
+                    {en ? 'Open my Stripe dashboard' : 'Abrir mi panel de Stripe'}
+                  </button>
+                )}
+              </div>
             )}
             {stripeStatus.error && (
               <div className="mt-2 flex items-start gap-2 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
@@ -1428,7 +1612,12 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
       {/* Operating hours */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.settings_schedule}</h2>
+        <h2 className="font-semibold text-sm mb-1 text-gray-900">{t.settings_schedule}</h2>
+        <p className="text-[11px] text-gray-500 mb-4">
+          {locale === 'en'
+            ? 'Open past midnight? Enter the real closing time (e.g. 6:00 PM to 2:00 AM): it counts as the next morning.'
+            : '¿Cierras después de la medianoche? Pon la hora real de cierre (ej. 18:00 a 02:00): cuenta como la madrugada siguiente.'}
+        </p>
         <div className="space-y-2.5">
           {DAYS.map((day) => (
             <div key={day.key} className="flex items-center gap-3">
@@ -1443,7 +1632,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               ) : hours[day.key].fullDay ? (
                 <span className="text-sm text-emerald-600 font-semibold">{t.settings_24h}</span>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <input
                     type="time"
                     value={hours[day.key].open}
@@ -1457,6 +1646,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     onChange={(e) => handleHourChange(day.key, 'close', e.target.value)}
                     className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   />
+                  {crossesMidnight(hours[day.key].open, hours[day.key].close) && (
+                    <span className="basis-full text-[11px] text-gray-500">
+                      {locale === 'en' ? 'Closes the next day' : 'Cierra al día siguiente'}
+                    </span>
+                  )}
                 </div>
               )}
               <div className="ml-auto flex items-center gap-1.5">

@@ -44,6 +44,7 @@ import { HelpSheet } from './counter/HelpSheet';
 import { TodayView } from './counter/TodayView';
 import { MenuView } from './counter/MenuView';
 import { shortOrderNumber } from '@/lib/orders/short-number';
+import { refundErrorText } from '@/lib/payments/payment-errors';
 import {
   CounterTopBar, StoreStatusSheet, OrdersListView, CounterToast, DemoBanner,
   type CounterViewMode, type StoreState,
@@ -1374,7 +1375,8 @@ export function CounterView({
         body: JSON.stringify({ order_id: cancelModal.orderId, reason: 'requested_by_customer', cancellation_reason: cancelReason || undefined }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { showError(data.error ?? (t.en ? 'Refund failed' : 'El reembolso falló')); return; }
+      // Translate by the route's stable `code`; its `error` text is Spanish-only.
+      if (!res.ok) { showError(refundErrorText(data.code, t.en ? 'en' : 'es') ?? (t.en ? "The refund didn't go through. Try again." : 'El reembolso no se completó. Inténtalo de nuevo.')); return; }
       setCancelModal(null);
       setCancelReason('');
       setRefundRequired(false);

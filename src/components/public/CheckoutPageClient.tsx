@@ -1123,7 +1123,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         body: JSON.stringify({ order_id: oid, slug: restaurant.slug, t: trackingToken }),
       });
       const text = await res.text();
-      const parsed = safeParseJson<{ error?: string; url?: string | null }>(text);
+      const parsed = safeParseJson<{ error?: string; code?: string; url?: string | null }>(text);
       if (!parsed.ok) {
         setOrderError(formatPaymentStartError(res.status, undefined, locale));
         setPayLoading(false);
@@ -1133,7 +1133,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setOrderError(formatPaymentStartError(res.status, data.error, locale));
+        setOrderError(formatPaymentStartError(res.status, data.error, locale, data.code));
         setPayLoading(false);
       }
     } catch {
@@ -1156,6 +1156,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       const text = await res.text();
       const parsed = safeParseJson<{
         error?: string;
+        code?: string;
         publicKey?: string;
         currency?: string;
         amountInCents?: number;
@@ -1171,7 +1172,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       }
       const data = parsed.data;
       if (data.error) {
-        setOrderError(formatPaymentStartError(res.status, data.error, locale));
+        setOrderError(formatPaymentStartError(res.status, data.error, locale, data.code));
         setPayLoading(false);
         return;
       }
@@ -1229,7 +1230,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.error) {
-        setOrderError(formatPaymentStartError(res.status, data.error, locale));
+        setOrderError(formatPaymentStartError(res.status, data.error, locale, data.code));
         setPayLoading(false);
         return;
       }
@@ -1770,6 +1771,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     : (() => { const v = enabledOrderTypes.filter((o) => o !== 'dine_in'); return v.length ? v : enabledOrderTypes; })();
   const hasOnline = enabledPaymentMethods.includes('online');
   const hasCash = enabledPaymentMethods.includes('cash');
+  // Online-only store that cannot take cards right now (Stripe not ready or plan
+  // without online payments): the server would reject both cash and card.
+  const noPaymentMethod = enabledPaymentMethods.length === 0;
   const eta = estimateMinutes({ items, orderType, restaurant, to: deliveryCoords });
   const scheduleOn = scheduleEnabled && !!scheduledFor;
   // A9: el mismo chequeo de horario que hace /api/orders, para avisar ANTES de
@@ -1829,6 +1833,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const next: { label: string; run: () => void; disabled?: boolean } =
     items.length === 0 ? { label: t.confirmOrder, run: () => {}, disabled: true }
     : pausedNow ? { label: t.ckPausedCta, run: () => {}, disabled: true }
+    : noPaymentMethod ? { label: t.ckNoPaymentCta, run: () => {}, disabled: true }
     : closedNow && orderType === 'dine_in' ? { label: t.ckClosedNow, run: () => {}, disabled: true }
     : needsSchedule ? { label: t.ckScheduleCta, run: openScheduler }
     : scheduledTooSoon || scheduledClosed ? { label: t.ckChangeTime, run: () => setActiveSheet('when') }
@@ -2124,6 +2129,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             onCreateOrder={createOrderForWallet}
             onSuccess={(oid, onum) => { setWalletPaying(false); handleWalletSuccess(oid, onum); }}
             onError={(msg) => { setWalletPaying(false); setOrderErrorAction(null); setOrderError(msg); }}
+            locale={locale}
             onPayingChange={setWalletPaying}
             disabled={submitting || items.length === 0}
           />
@@ -2343,7 +2349,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   onChange={setPaymentMethod}
                 />
               )}
-              {paymentMethod === 'online' ? (
+              {noPaymentMethod ? (
+                <div className="m-3 px-3 py-2.5 rounded-xl bg-[#fff6e0] text-[#7a4d00] text-[13.5px] leading-snug" role="status">
+                  {t.ckNoPayment.replace('{name}', restaurant.name)}
+                </div>
+              ) : paymentMethod === 'online' ? (
                 <div className={cn('px-3 pb-3.5', !(hasOnline && hasCash) && 'pt-3.5')}>
                   {tipBlock}
                   <p className={cn('mx-1 flex items-start gap-1.5 text-[12.5px] leading-snug text-[#6b6b74]', tipAllowed && 'mt-3')}>

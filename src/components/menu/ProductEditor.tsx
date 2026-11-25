@@ -64,7 +64,9 @@ export function ProductEditor({
     name: product?.name ?? '',
     description: product?.description ?? '',
     price: product ? String(product.price) : '',
-    category_id: product?.category_id ?? categories[0]?.id ?? '',
+    // A new dish defaults to the first visible category; hidden ones are
+    // listed too so dishes inside them can still be edited.
+    category_id: product?.category_id ?? (categories.find(c => c.is_active !== false) ?? categories[0])?.id ?? '',
     is_active: product?.is_active ?? true,
     in_stock: product?.in_stock ?? true,
     is_featured: product?.is_featured ?? false,
@@ -1202,12 +1204,21 @@ export function ProductEditor({
                 className="dash-input"
               >
                 {categories.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.is_active === false ? ` (${dashLocale === 'en' ? 'hidden' : 'oculta'})` : ''}
+                  </option>
                 ))}
               </select>
               {selectedCategory && (
                 <p className="mt-2 text-xs text-gray-500">
                   {t.editor_categoryNote.replace('{name}', selectedCategory.name)}
+                </p>
+              )}
+              {selectedCategory?.is_active === false && (
+                <p className="mt-2 text-xs font-medium text-amber-700">
+                  {dashLocale === 'en'
+                    ? 'This category is hidden: the dish is not shown in the store until you show the category.'
+                    : 'Esta categoría está oculta: el plato no se ve en la tienda hasta que muestres la categoría.'}
                 </p>
               )}
             </div>

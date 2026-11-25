@@ -7,13 +7,19 @@ import { KDSStationsSettings } from '@/components/dashboard/KDSStationsSettings'
 import { MercadoPagoSettings } from '@/components/dashboard/MercadoPagoSettings';
 import { WidgetCode } from './WidgetCode';
 import { getDashboardTranslations } from '@/lib/dashboard-translations';
+import { onlinePaymentsAllowedByPlan } from '@/lib/payments/online-ready';
 
 export default async function SettingsPage() {
   const { supabase, restaurantId } = await getDashboardContext();
 
-  const [{ data: restaurant }, { data: kdsStations }] = await Promise.all([
+  const [{ data: restaurant }, { data: kdsStations }, subResult] = await Promise.all([
     supabase.from('restaurants').select('*').eq('id', restaurantId).maybeSingle(),
     supabase.from('kds_stations').select('*').eq('restaurant_id', restaurantId).order('position'),
+    supabase
+      .from('subscriptions')
+      .select('status, trial_end, plan_id, past_due_since')
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle(),
   ]);
 
   if (!restaurant) redirect('/onboarding/create-restaurant');
@@ -24,12 +30,17 @@ export default async function SettingsPage() {
   const MP_COUNTRIES = new Set(['MX','AR','CO','PE','CL','UY','BR','BO','DO','EC','GT','HN','NI','CR','PA','VE','PY']);
   const showMercadoPago = MP_COUNTRIES.has((restaurant?.country_code ?? '').toUpperCase());
   const t = getDashboardTranslations(locale);
+  // Same plan rule /api/orders uses before accepting a card payment. A failed
+  // read does not claim cards are off (the server fails open too).
+  const onlinePaymentsAllowed = subResult.error
+    ? true
+    : onlinePaymentsAllowedByPlan(restaurant.commission_plan === true, subResult.data);
 
   return (
     <div className="space-y-10 pb-10">
       <div>
         <h1 className="dash-heading mb-5">{t.settings_title}</h1>
-        <RestaurantSettings initialData={restaurant} />
+        <RestaurantSettings initialData={restaurant} onlinePaymentsAllowed={onlinePaymentsAllowed} />
       </div>
       <div id="printer" className="scroll-mt-20">
         <PrinterSettingsSection locale={restaurant?.locale ?? 'es'} />

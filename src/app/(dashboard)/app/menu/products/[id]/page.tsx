@@ -14,7 +14,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         .eq('id', id)
         .eq('restaurant_id', rid)
         .maybeSingle(),
-      supabase.from('categories').select('*').eq('restaurant_id', rid).eq('is_active', true).order('sort_order'),
+      supabase.from('categories').select('*').eq('restaurant_id', rid).order('sort_order'),
       supabase.from('restaurants').select('id, currency, locale, available_locales, slug, timezone').eq('id', rid).maybeSingle(),
       supabase.from('modifier_groups').select('*, modifier_options(*)').eq('product_id', id).order('sort_order'),
       supabase.from('products').select('id, name, image_url, category_id, price, is_active, in_stock').eq('restaurant_id', rid).eq('is_active', true).order('name'),

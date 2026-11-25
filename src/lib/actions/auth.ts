@@ -18,13 +18,32 @@ async function getIPFromHeaders(): Promise<string> {
   return getClientIPFromHeaders(await headers());
 }
 
+// Same source as the (auth) layout: the menius_locale cookie ('en' or Spanish).
+const AUTH_TEXT = {
+  es: {
+    tooManyAttempts: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
+    captchaFailed: 'No pudimos verificar que eres una persona. Recarga la página e inténtalo de nuevo.',
+    authError: 'No pudimos iniciar tu sesión. Inténtalo de nuevo.',
+  },
+  en: {
+    tooManyAttempts: 'Too many attempts. Wait a few minutes and try again.',
+    captchaFailed: "We couldn't verify you're human. Reload the page and try again.",
+    authError: "We couldn't sign you in. Please try again.",
+  },
+} as const;
+
+async function authText() {
+  const cookieStore = await cookies();
+  return cookieStore.get('menius_locale')?.value === 'en' ? AUTH_TEXT.en : AUTH_TEXT.es;
+}
+
 export async function signup(data: SignupInput & { turnstileToken?: string }) {
   const ip = await getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`signup:${ip}`, { limit: 5, windowSec: 300 });
-  if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
+  if (!allowed) return { error: (await authText()).tooManyAttempts };
 
   const humanVerified = await verifyTurnstile(data.turnstileToken);
-  if (!humanVerified) return { error: 'Verificación de seguridad fallida. Intenta de nuevo.' };
+  if (!humanVerified) return { error: (await authText()).captchaFailed };
 
   const supabase = await createClient();
 
@@ -48,10 +67,10 @@ export async function signup(data: SignupInput & { turnstileToken?: string }) {
 export async function login(data: LoginInput & { turnstileToken?: string; next?: string }) {
   const ip = await getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`login:${ip}`, { limit: 10, windowSec: 300 });
-  if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
+  if (!allowed) return { error: (await authText()).tooManyAttempts };
 
   const humanVerified = await verifyTurnstile(data.turnstileToken);
-  if (!humanVerified) return { error: 'Verificación de seguridad fallida. Intenta de nuevo.' };
+  if (!humanVerified) return { error: (await authText()).captchaFailed };
 
   const supabase = await createClient();
 
@@ -64,7 +83,7 @@ export async function login(data: LoginInput & { turnstileToken?: string; next?:
 
   // Check if user has a restaurant
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Error de autenticación' };
+  if (!user) return { error: (await authText()).authError };
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -85,10 +104,10 @@ export async function login(data: LoginInput & { turnstileToken?: string; next?:
 export async function requestPasswordReset(email: string, turnstileToken?: string) {
   const ip = await getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`reset:${ip}`, { limit: 3, windowSec: 300 });
-  if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
+  if (!allowed) return { error: (await authText()).tooManyAttempts };
 
   const humanVerified = await verifyTurnstile(turnstileToken);
-  if (!humanVerified) return { error: 'Verificación de seguridad fallida. Intenta de nuevo.' };
+  if (!humanVerified) return { error: (await authText()).captchaFailed };
 
   const supabase = await createClient();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';

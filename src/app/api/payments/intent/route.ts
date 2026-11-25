@@ -6,6 +6,7 @@ import { checkRateLimitAsync, getClientIP } from "@/lib/rate-limit";
 import { getStripe } from "@/lib/stripe";
 import { captureError } from "@/lib/error-reporting";
 import { computeApplicationFeeCents, feeModelFor } from "@/lib/order-pricing";
+import type { PaymentErrorCode } from "@/lib/payments/payment-errors";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     });
     if (!allowed) {
       return NextResponse.json(
-        { error: "Too many requests" },
+        { error: "Too many requests", code: "rate_limited" satisfies PaymentErrorCode },
         { status: 429, headers: { "Retry-After": "60" } },
       );
     }
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       !/^[0-9a-f-]{36}$/.test(order_id)
     ) {
       return NextResponse.json(
-        { error: "Valid order_id required" },
+        { error: "Valid order_id required", code: "invalid_request" satisfies PaymentErrorCode },
         { status: 400 },
       );
     }
@@ -49,13 +50,13 @@ export async function POST(request: NextRequest) {
     const orderToken = (order as { customer_token?: string | null } | null)?.customer_token;
     if (!order || typeof body.t !== "string" || !orderToken || body.t !== orderToken) {
       return NextResponse.json(
-        { error: "Orden no encontrada" },
+        { error: "Orden no encontrada", code: "order_not_found" satisfies PaymentErrorCode },
         { status: 404 },
       );
     }
     if ((order as { payment_method?: string }).payment_method === "cash") {
       return NextResponse.json(
-        { error: "Este pedido se paga en efectivo." },
+        { error: "Este pedido se paga en efectivo.", code: "cash_order" satisfies PaymentErrorCode },
         { status: 409 },
       );
     }
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     // W10: un pedido cancelado no se cobra (antes solo se miraba "paid").
     if ((order as { status?: string }).status === "cancelled") {
       return NextResponse.json(
-        { error: "Este pedido ya no acepta pagos." },
+        { error: "Este pedido ya no acepta pagos.", code: "order_closed" satisfies PaymentErrorCode },
         { status: 409 },
       );
     }
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     const amount = Math.round(Number(order.total) * 100);
 
     if (amount <= 0) {
-      return NextResponse.json({ error: "Monto inválido" }, { status: 400 });
+      return NextResponse.json({ error: "Monto inválido", code: "invalid_amount" satisfies PaymentErrorCode }, { status: 400 });
     }
 
     const connectedAccount: string | null = rest?.stripe_onboarding_complete
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
         {
           error:
             "El pago en línea no está disponible para este restaurante aún. Por favor paga en persona.",
+          code: "online_unavailable" satisfies PaymentErrorCode,
         },
         { status: 400 },
       );
@@ -158,7 +160,7 @@ export async function POST(request: NextRequest) {
       captureError(saveErr, { route: "/api/payments/intent", orderId: order_id, step: "save-pi" });
       await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => {});
       return NextResponse.json(
-        { error: "Error creating payment intent" },
+        { error: "Error creating payment intent", code: "payment_start_failed" satisfies PaymentErrorCode },
         { status: 500 },
       );
     }
@@ -168,7 +170,7 @@ export async function POST(request: NextRequest) {
     captureError(err, { route: "/api/payments/intent" });
     // Generic message — real error is in Sentry; err.message would leak Stripe/DB internals.
     return NextResponse.json(
-      { error: "Error creating payment intent" },
+      { error: "Error creating payment intent", code: "payment_start_failed" satisfies PaymentErrorCode },
       { status: 500 },
     );
   }

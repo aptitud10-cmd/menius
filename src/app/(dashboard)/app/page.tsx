@@ -1,8 +1,26 @@
 import { redirect } from 'next/navigation';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { DashboardHome } from '@/components/dashboard/DashboardHome';
-import { getStartOfDayUTC } from '@/lib/date-utils';
-import { isRevenueStatus } from '@/lib/order-state';
+import { resolveTimezone, localDateString, localDayStartUTC, addDaysToDateString } from '@/lib/date-utils';
+import { isSale, isReceivedOrder, SALE_FIELDS, type SaleFields } from '@/lib/sales';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+
+interface HomeOrderRow extends SaleFields {
+  id: string;
+  total: number | string | null;
+  status: string;
+  created_at: string;
+  order_type: string | null;
+}
+
+interface HomeItemRow {
+  id: string;
+  qty: number;
+  products: { name: string } | { name: string }[] | null;
+  order: SaleFields | SaleFields[] | null;
+}
+
+const HOME_ORDER_COLUMNS = `id, total, created_at, order_type, ${SALE_FIELDS}`;
 
 /** Returns the hour (0-23) for a given Date in the specified timezone. */
 function getHourInTimezone(date: Date, timezone: string): number {
@@ -31,22 +49,31 @@ export default async function DashboardPage() {
   const restaurant = restaurantRes.data;
   if (!restaurant) redirect('/onboarding/create-restaurant');
 
-  const timezone = (restaurant.timezone as string | null) ?? 'America/Mexico_City';
+  const timezone = resolveTimezone(restaurant.timezone as string | null);
 
   // Compute today/weekAgo boundaries in the restaurant's local timezone
-  const todayStart = getStartOfDayUTC(timezone);
-  const weekAgo = getStartOfDayUTC(timezone, 6);
+  const todayDate = localDateString(new Date(), timezone);
+  const todayStart = localDayStartUTC(todayDate, timezone);
+  const weekAgo = localDayStartUTC(addDaysToDateString(todayDate, -6), timezone);
+  const yesterdayStart = localDayStartUTC(addDaysToDateString(todayDate, -1), timezone);
+
+  // Paged reads: a single PostgREST response stops at 1000 rows.
+  const ordersSince = (since: Date) =>
+    fetchAllRows<HomeOrderRow>((from, to) =>
+      supabase
+        .from('orders')
+        .select(HOME_ORDER_COLUMNS)
+        .eq('restaurant_id', restaurantId)
+        .gte('created_at', since.toISOString())
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
 
   const atRiskThreshold = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
 
   const [ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes, weekOrdersRes, topProductsRes, lowStockRes, productsWithPhotoRes, activePromosRes, atRiskRes] = await Promise.all([
-    supabase
-      .from('orders')
-      .select('id, total, status, created_at, order_type')
-      .eq('restaurant_id', restaurantId)
-      // Sin pagos online pendientes de cobro (isAwaitingOnlinePayment): no existen para el restaurante.
-      .or('status.neq.pending,payment_method.is.null,payment_method.not.in.(online,wallet),payment_status.eq.paid')
-      .gte('created_at', todayStart.toISOString()),
+    ordersSince(todayStart),
     supabase
       .from('products')
       .select('id')
@@ -74,19 +101,17 @@ export default async function DashboardPage() {
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('restaurant_id', restaurantId),
-    supabase
-      .from('orders')
-      .select('id, total, status, created_at, order_type')
-      .eq('restaurant_id', restaurantId)
-      .gte('created_at', weekAgo.toISOString())
-      .order('created_at'),
-    supabase
-      .from('order_items')
-      .select('qty, products!inner(name, restaurant_id), order:orders!inner(restaurant_id, created_at, status)')
-      .eq('order.restaurant_id', restaurantId)
-      .neq('order.status', 'cancelled')
-      .gte('order.created_at', weekAgo.toISOString())
-      .limit(1000),
+    ordersSince(weekAgo),
+    fetchAllRows<HomeItemRow>((from, to) =>
+      supabase
+        .from('order_items')
+        .select('id, qty, products!inner(name, restaurant_id), order:orders!inner(restaurant_id, created_at, status, payment_method, payment_status)')
+        .eq('order.restaurant_id', restaurantId)
+        .neq('order.status', 'cancelled')
+        .gte('order.created_at', weekAgo.toISOString())
+        .order('id', { ascending: true })
+        .range(from, to),
+    ),
     supabase
       .from('products')
       .select('id, name, stock_qty, low_stock_threshold')
@@ -118,11 +143,10 @@ export default async function DashboardPage() {
       .gte('total_orders', 2),
   ]);
 
-  const todaysOrders = ordersRes.data ?? [];
-  // Revenue = solo órdenes cobradas (completed+delivered), definición única
-  // compartida con analytics y business. Antes contaba TODO lo non-cancelled
-  // (incl. pending/ready/served), inflando "Ventas hoy" ~25%.
-  const revenueToday = todaysOrders.filter((o) => isRevenueStatus(o.status));
+  // Unpaid online checkouts never reached the restaurant: not orders, not cancellations.
+  const todaysOrders = ordersRes.rows.filter(isReceivedOrder);
+  // Sales use the shared rule in lib/sales.ts (same as Analytics, report and Orders).
+  const revenueToday = todaysOrders.filter(isSale);
   const salesToday = revenueToday.reduce((sum, o) => sum + Number(o.total), 0);
   const pendingOrders = todaysOrders.filter((o) => o.status === 'pending').length;
   const cancelledToday = todaysOrders.filter((o) => o.status === 'cancelled').length;
@@ -132,11 +156,10 @@ export default async function DashboardPage() {
   const activeTables = tablesRes.data?.length ?? 0;
 
   // Yesterday comparison — boundaries computed in restaurant timezone
-  const yesterdayStart = getStartOfDayUTC(timezone, 1);
-  const weekOrders = weekOrdersRes.data ?? [];
+  const weekOrders = weekOrdersRes.rows.filter(isReceivedOrder);
   const yesterdayOrders = weekOrders.filter((o) => {
     const d = new Date(o.created_at);
-    return d >= yesterdayStart && d < todayStart && isRevenueStatus(o.status);
+    return d >= yesterdayStart && d < todayStart && isSale(o);
   });
   const salesYesterday = yesterdayOrders.reduce((s, o) => s + Number(o.total), 0);
 
@@ -161,13 +184,11 @@ export default async function DashboardPage() {
   };
 
   // Build 7-day chart data — dates computed in restaurant's local timezone
-  const weekOrdersAll = weekOrdersRes.data ?? [];
+  const weekOrdersAll = weekOrders;
   const dailyMap = new Map<string, { orders: number; revenue: number }>();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekAgo.getTime() + i * 24 * 3600 * 1000);
-    // Use the date as seen in the restaurant's timezone
-    const key = getDateStrInTimezone(d, timezone);
-    if (!dailyMap.has(key)) dailyMap.set(key, { orders: 0, revenue: 0 });
+  for (let i = 6; i >= 0; i--) {
+    // Calendar arithmetic on local dates (adding 24 h breaks on DST-change days)
+    dailyMap.set(addDaysToDateString(todayDate, -i), { orders: 0, revenue: 0 });
   }
   for (const o of weekOrdersAll) {
     if (o.status === 'cancelled') continue;
@@ -178,7 +199,7 @@ export default async function DashboardPage() {
       // orders = actividad del día (todo lo non-cancelled);
       // revenue = solo órdenes cobradas, consistente con "Ventas hoy".
       entry.orders += 1;
-      if (isRevenueStatus(o.status)) entry.revenue += Number(o.total);
+      if (isSale(o)) entry.revenue += Number(o.total);
     }
   }
   const chartLocale = restaurant.locale === 'en' ? 'en-US' : 'es';
@@ -200,8 +221,11 @@ export default async function DashboardPage() {
 
   // Top products
   const productCounts = new Map<string, number>();
-  for (const item of (topProductsRes.data ?? []) as any[]) {
-    const name = item.products?.name;
+  for (const item of topProductsRes.rows) {
+    const ord = Array.isArray(item.order) ? item.order[0] : item.order;
+    if (!ord || !isSale(ord)) continue;
+    const prod = Array.isArray(item.products) ? item.products[0] : item.products;
+    const name = prod?.name;
     if (name) productCounts.set(name, (productCounts.get(name) ?? 0) + item.qty);
   }
   const topProducts = Array.from(productCounts.entries())

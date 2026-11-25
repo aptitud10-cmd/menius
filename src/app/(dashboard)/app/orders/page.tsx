@@ -10,7 +10,7 @@ export default async function OrdersPage() {
   const [{ data: restaurant }, { data: orders }] = await Promise.all([
     supabase
       .from('restaurants')
-      .select('name, slug, currency, phone, address, locale, tax_label, tax_included')
+      .select('name, slug, currency, phone, address, locale, tax_label, tax_included, timezone')
       .eq('id', restaurantId)
       .maybeSingle(),
     supabase
@@ -62,6 +62,7 @@ export default async function OrdersPage() {
         restaurantAddress={restaurant?.address ?? undefined}
         taxLabel={(restaurant as any)?.tax_label ?? undefined}
         taxIncluded={(restaurant as any)?.tax_included ?? false}
+        timezone={restaurant?.timezone ?? undefined}
       />
     </div>
   );
