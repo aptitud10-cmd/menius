@@ -2,6 +2,21 @@ import * as Sentry from '@sentry/nextjs';
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
+// Share of normal sessions that get a full Session Replay recording.
+const REPLAY_SESSION_RATE = 0.05;
+
+// Staff surfaces (panel, Counter, KDS, admin, driver and the auth pages that
+// lead into them) keep replay in every session so an error always comes with
+// its recording. Public pages (store menus, landing, client sites) roll the
+// 5% here instead: replay takes a full DOM snapshot when it attaches (~0.5 s
+// of main thread on a mid-range phone for a long page), and buffering for
+// on-error replay pays that cost in 100% of visits. Errors on public pages
+// still report with stack trace and breadcrumbs, just without the video.
+const STAFF_PATH =
+  /^\/(app|counter|kds|admin|driver|login|signup|onboarding|auth|forgot-password|reset-password|preview-counter|preview-kds)(\/|$)/;
+const isStaffPage = STAFF_PATH.test(window.location.pathname);
+const publicReplaySampled = !isStaffPage && Math.random() < REPLAY_SESSION_RATE;
+
 if (dsn) {
   Sentry.init({
     dsn,
@@ -12,8 +27,10 @@ if (dsn) {
 
     tracePropagationTargets: ['localhost', /^https:\/\/menius\.app/],
 
-    // Session Replay: capture all sessions that had an error, 5% of normal sessions
-    replaysSessionSampleRate: 0.05,
+    // Session Replay: on staff pages, 5% of sessions plus every session with an
+    // error. On public pages the 5% roll already happened above, so a session
+    // that loads replay at all records in full.
+    replaysSessionSampleRate: isStaffPage ? REPLAY_SESSION_RATE : 1.0,
     replaysOnErrorSampleRate: 1.0,
 
     // Session Replay is added below via a dynamic import, NOT here. Listing
@@ -89,9 +106,11 @@ if (dsn) {
   // Safari has no requestIdleCallback. Checked via typeof rather than `in` so
   // TypeScript doesn't narrow `window` to never in the fallback branch (lib.dom
   // declares the method as always present).
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(loadReplay, { timeout: 5000 });
-  } else {
-    window.setTimeout(loadReplay, 3000);
+  if (isStaffPage || publicReplaySampled) {
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(loadReplay, { timeout: 5000 });
+    } else {
+      window.setTimeout(loadReplay, 3000);
+    }
   }
 }
