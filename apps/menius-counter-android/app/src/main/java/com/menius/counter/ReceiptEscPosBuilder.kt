@@ -92,7 +92,7 @@ object ReceiptEscPosBuilder {
         val taxIncluded = root.optBoolean("taxIncluded", false)
         val tableName = root.optString("tableName", "").takeIf { it != "null" } ?: ""
         val driverUrl = root.optString("driverTrackingUrl", "").takeIf { it.startsWith("http") } ?: ""
-        val notes = root.optString("notes", "")
+        val notes = root.optString("notes", "").takeIf { it != "null" } ?: ""
         val eta = if (root.isNull("etaMinutes")) null else root.optInt("etaMinutes", 0).takeIf { it > 0 }
         val ts = root.optString("timestamp", "")
 
@@ -128,7 +128,7 @@ object ReceiptEscPosBuilder {
             val name = it.optString("name", "Item")
             val lineTotal = it.optDouble("lineTotal", 0.0)
             val mods = it.optJSONArray("modifiers") ?: JSONArray()
-            val itemNotes = it.optString("notes", "")
+            val itemNotes = it.optString("notes", "").takeIf { it != "null" } ?: ""
 
             // Con opciones (web >= 2026-11-13): precio base arriba, cada opción con su
             // precio a la derecha ("texto	precio") y el total del plato al final.
@@ -199,7 +199,7 @@ object ReceiptEscPosBuilder {
         val restaurantName = root.optString("restaurantName", "")
         val orderNumber = root.optString("orderNumber", "?")
         val orderType = root.optString("orderType", "")
-        val notes = root.optString("notes", "")
+        val notes = root.optString("notes", "").takeIf { it != "null" } ?: ""
         val eta = if (root.isNull("etaMinutes")) null else root.optInt("etaMinutes", 0).takeIf { it > 0 }
         val items = root.optJSONArray("items") ?: JSONArray()
 
@@ -231,7 +231,7 @@ object ReceiptEscPosBuilder {
             val name = it.optString("name", "Item")
             if (!it.optBoolean("kitchen", true)) { atCounter.add("$qty $name"); continue }
             val mods = it.optJSONArray("modifiers") ?: JSONArray()
-            val itemNotes = it.optString("notes", "")
+            val itemNotes = it.optString("notes", "").takeIf { it != "null" } ?: ""
             e.bold(true)
             e.text("${qty}x $name").newline()
             e.bold(false)

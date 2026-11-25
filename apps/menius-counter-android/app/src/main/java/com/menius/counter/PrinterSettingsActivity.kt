@@ -134,29 +134,8 @@ class PrinterSettingsActivity : AppCompatActivity() {
         }
 
         val w = PrinterPreferences.lineWidthChars(this)
-        val payload = org.json.JSONObject().apply {
-            put("ticketType", "receipt")
-            put("locale", "es")
-            put("currency", "USD")
-            put("restaurantName", "MENIUS")
-            put("orderNumber", "TEST")
-            put("customerName", "")
-            put("subtotal", 0)
-            put("total", 0)
-            put("timestamp", java.time.Instant.now().toString())
-            put(
-                "items",
-                org.json.JSONArray().put(
-                    org.json.JSONObject().apply {
-                        put("qty", 1)
-                        put("name", "Test ticket")
-                        put("lineTotal", 1.0)
-                        put("modifiers", org.json.JSONArray())
-                        put("notes", org.json.JSONObject.NULL)
-                    }
-                )
-            )
-        }.toString()
+        // Same v5 format as a real order (TicketV2), not the old builder.
+        val payload = TestTicket.payload()
 
         // lifecycleScope instead of a bare Thread: the send functions are suspend
         // now (they carry the connect timeout), and this way the test print is
