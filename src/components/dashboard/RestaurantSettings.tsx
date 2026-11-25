@@ -347,7 +347,10 @@ export function RestaurantSettings({
     }
   };
 
-  const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  // Read after mount: the server has no window, and a different first render
+  // made React throw a hydration error on the public URL.
+  const [appUrl, setAppUrl] = useState(process.env.NEXT_PUBLIC_APP_URL ?? '');
+  useEffect(() => setAppUrl(window.location.origin), []);
 
   // Fallback when /api/connect/status did not answer: use the saved flags.
   const stripeState: ConnectAccountState = stripeStatus.state

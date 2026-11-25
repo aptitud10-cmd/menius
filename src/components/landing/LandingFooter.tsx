@@ -154,6 +154,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
               <Link href="/privacy" className="text-xs text-gray-400 hover:text-white transition-colors">{f.privacy}</Link>
               <Link href="/terms" className="text-xs text-gray-400 hover:text-white transition-colors">{f.terms}</Link>
               <Link href="/cookies" className="text-xs text-gray-400 hover:text-white transition-colors">{f.cookies}</Link>
+              <Link href="/accessibility" className="text-xs text-gray-400 hover:text-white transition-colors">{f.accessibility}</Link>
             </div>
 
             <div className="border-t border-white/[0.06] pt-5 flex items-center justify-between">
@@ -204,6 +205,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                   <li><Link href="/privacy" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.privacy}</Link></li>
                   <li><Link href="/terms" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.terms}</Link></li>
                   <li><Link href="/cookies" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.cookies}</Link></li>
+                  <li><Link href="/accessibility" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.accessibility}</Link></li>
                 </ul>
               </div>
             </div>

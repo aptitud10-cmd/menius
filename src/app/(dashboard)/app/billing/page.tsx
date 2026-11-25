@@ -13,7 +13,6 @@ import {
   ChevronRight,
   Package,
   LayoutGrid,
-  Users,
   Sparkles,
   CheckCircle2,
   XCircle,
@@ -903,7 +902,7 @@ export default function BillingPage() {
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-5">
             {t.billing_currentUsage}
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <UsageMeter
               label={t.billing_productsLabel}
               icon={Package}
@@ -916,13 +915,6 @@ export default function BillingPage() {
               icon={LayoutGrid}
               value={usage.tables}
               limit={planLimits.maxTables}
-              unlimitedLabel={t.billing_unlimited}
-            />
-            <UsageMeter
-              label={t.billing_teamLabel}
-              icon={Users}
-              value={1}
-              limit={planLimits.maxUsers}
               unlimitedLabel={t.billing_unlimited}
             />
           </div>

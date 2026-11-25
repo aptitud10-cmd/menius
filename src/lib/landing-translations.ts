@@ -355,6 +355,7 @@ const es = {
     privacy: 'Privacidad',
     terms: 'Términos',
     cookies: 'Cookies',
+    accessibility: 'Accesibilidad',
   },
 };
 
@@ -715,6 +716,7 @@ const en: LandingT = {
     privacy: 'Privacy',
     terms: 'Terms',
     cookies: 'Cookies',
+    accessibility: 'Accessibility',
   },
 };
 
