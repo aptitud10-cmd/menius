@@ -61,7 +61,9 @@ export function DashToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={ctx}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+      {/* Phone: above the bottom nav (~56px + iPhone home bar). md+: no nav, only
+          the home bar inset (iPad). */}
+      <div className="fixed right-4 z-[100] flex flex-col gap-2 pointer-events-none bottom-[calc(4.5rem_+_env(safe-area-inset-bottom))] md:bottom-[max(1rem,env(safe-area-inset-bottom))]">
         {toasts.map(t => {
           const Icon = ICON_MAP[t.variant];
           return (

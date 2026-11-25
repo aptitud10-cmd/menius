@@ -8,7 +8,7 @@ import { hasPlanAccess } from "@/lib/auth/check-plan";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { getPlan } from "@/lib/plans";
 import { createLogger } from "@/lib/logger";
-import { REVENUE_STATUSES, isRevenueStatus } from "@/lib/order-state";
+import { isSale, SALE_FIELDS } from "@/lib/sales";
 
 const logger = createLogger("ai-chat");
 
@@ -105,7 +105,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     supabase
       .from("orders")
       .select(
-        "id, order_number, status, total, order_type, payment_method, customer_name, customer_phone, delivery_address, discount_amount, created_at",
+        "id, order_number, status, total, order_type, payment_method, payment_status, customer_name, customer_phone, delivery_address, discount_amount, created_at",
       )
       .eq("restaurant_id", restaurantId)
       .gte("created_at", todayStart)
@@ -113,7 +113,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     supabase
       .from("orders")
       .select(
-        "id, status, total, order_type, customer_name, customer_phone, created_at",
+        "id, status, total, order_type, payment_method, payment_status, customer_name, customer_phone, created_at",
       )
       .eq("restaurant_id", restaurantId)
       .gte("created_at", weekAgo)
@@ -121,7 +121,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     supabase
       .from("orders")
       .select(
-        "id, status, total, order_type, customer_name, customer_phone, discount_amount, created_at",
+        "id, status, total, order_type, payment_method, payment_status, customer_name, customer_phone, discount_amount, created_at",
       )
       .eq("restaurant_id", restaurantId)
       .gte("created_at", monthAgo),
@@ -170,10 +170,9 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     // Orders with hour info for peak hour calculation (last 30 days)
     supabase
       .from("orders")
-      .select("created_at")
+      .select(`created_at, ${SALE_FIELDS}`)
       .eq("restaurant_id", restaurantId)
-      .gte("created_at", monthAgo)
-      .in("status", REVENUE_STATUSES),
+      .gte("created_at", monthAgo),
   ]);
 
   const allMonth = monthOrders ?? [];
@@ -190,9 +189,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
           .in("order_id", monthOrderIds)
           .limit(500)
       : { data: [] as { product_id: string; line_total: number; products: { name: string; is_active: boolean } }[] };
-  const completedMonth = allMonth.filter((o) =>
-    isRevenueStatus(o.status),
-  );
+  const completedMonth = allMonth.filter(isSale);
   const monthRevenue = completedMonth.reduce((s, o) => s + Number(o.total), 0);
   const monthDiscount = allMonth.reduce(
     (s, o) => s + Number(o.discount_amount || 0),
@@ -200,15 +197,11 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
   );
 
   const allWeek = weekOrders ?? [];
-  const completedWeek = allWeek.filter((o) =>
-    isRevenueStatus(o.status),
-  );
+  const completedWeek = allWeek.filter(isSale);
   const weekRevenue = completedWeek.reduce((s, o) => s + Number(o.total), 0);
 
   const allToday = todayOrders ?? [];
-  const completedToday = allToday.filter((o) =>
-    isRevenueStatus(o.status),
-  );
+  const completedToday = allToday.filter(isSale);
   const todayRevenue = completedToday.reduce((s, o) => s + Number(o.total), 0);
 
   const cancelledMonth = allMonth.filter(
@@ -218,7 +211,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
 
   // Peak hour from last 30 days of completed orders
   const hourCounts: number[] = new Array(24).fill(0);
-  for (const o of hourlyRaw ?? []) {
+  for (const o of (hourlyRaw ?? []).filter(isSale)) {
     const h = new Date(o.created_at).getHours();
     hourCounts[h]++;
   }

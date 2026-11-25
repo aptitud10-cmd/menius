@@ -1,7 +1,7 @@
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { BusinessOverview } from '@/components/dashboard/BusinessOverview';
 import { getStartOfDayUTC } from '@/lib/date-utils';
-import { isRevenueStatus } from '@/lib/order-state';
+import { isReceivedOrder, isSale, SALE_FIELDS } from '@/lib/sales';
 import { checkPlanAccess } from '@/lib/plan-access';
 
 export const metadata = {
@@ -30,20 +30,20 @@ export default async function BusinessPage() {
       const todayISO = getStartOfDayUTC(branch.timezone ?? 'America/Mexico_City').toISOString();
       return supabase
         .from('orders')
-        .select('id, total, status, created_at')
+        .select(`id, total, created_at, ${SALE_FIELDS}`)
         .eq('restaurant_id', branch.id)
         .gte('created_at', todayISO);
     })
   );
 
   const branchStats = branchList.map((branch, i) => {
-    const orders = statsResults[i].data ?? [];
-    // Revenue realizado = definición única compartida (isRevenueStatus).
-    // 'ready' NO cuenta: comida lista pero aún no entregada/pagada.
-    const completed = orders.filter(o => isRevenueStatus(o.status));
+    // Unpaid online checkouts never reached the kitchen: not counted at all.
+    const orders = (statsResults[i].data ?? []).filter(isReceivedOrder);
+    // Same sale rule as Home and Analytics (lib/sales.ts).
+    const completed = orders.filter(isSale);
     // 'pending' es el estado inicial real ('new' no existe en la DB); incluirlo
     // para que las órdenes recién entradas cuenten como activas.
-    const active = orders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status));
+    const active = orders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status ?? ''));
     const revenue = completed.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     return {
       ...branch,

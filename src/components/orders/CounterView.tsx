@@ -21,7 +21,7 @@ import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import type { Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { escapeHtml } from '@/lib/sanitize';
-import { isRevenueStatus } from '@/lib/order-state';
+import { isSale } from '@/lib/sales';
 import { C, RAISED, counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
 import {
   getAudioCtx, unlockWithGesture, loadTheme, setSoundTheme, setVolume as setAudioVolume, resumeAudio,
@@ -1064,7 +1064,7 @@ export function CounterView({
   }, [sidebarOpen]);
   const localToday = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
   const todayOrdersCount = todaySummary?.orders ?? localToday.length;
-  const todayRevenue = todaySummary?.sales ?? localToday.filter(o => isRevenueStatus(o.status)).reduce((s, o) => s + Number(o.total), 0);
+  const todayRevenue = todaySummary?.sales ?? localToday.filter(isSale).reduce((s, o) => s + Number(o.total), 0);
 
   // ── Actions ──
   const handleAccept = useCallback(async (order: Order, mins?: number) => {

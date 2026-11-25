@@ -560,7 +560,7 @@ export function AIChatWidget() {
         {/* Mobile launcher button — sits above the MobileBottomNav (~56px) + gap.
             Se oculta cuando el chat está abierto: con open, su ícono X se solapaba
             con el botón enviar del panel (misma esquina inferior derecha). */}
-        <div className={`fixed bottom-[84px] right-4 z-50 ${open ? 'hidden' : ''}`}>
+        <div className={`fixed bottom-[max(84px,calc(80px_+_env(safe-area-inset-bottom)))] right-4 z-50 ${open ? 'hidden' : ''}`}>
           {showProactive && !open && (
             <div className="absolute bottom-full right-0 mb-2 pointer-events-none">
               <div className="bg-gray-900 text-white text-xs px-3 py-2 rounded-xl shadow-xl whitespace-nowrap border border-white/10">

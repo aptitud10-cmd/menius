@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/notifications/email';
 import { buildWeeklyDigestEmail } from '@/lib/notifications/retention-emails';
 import { createLogger } from '@/lib/logger';
-import { isRevenueStatus } from '@/lib/order-state';
+import { isSale, SALE_FIELDS } from '@/lib/sales';
 
 const logger = createLogger('weekly-digest', { report: true });
 
@@ -92,15 +92,15 @@ export async function GET(request: NextRequest) {
         { data: products },
         { data: promotions },
       ] = await Promise.all([
-        admin.from('orders').select('id, status, total').eq('restaurant_id', rid).gte('created_at', weekAgo),
-        admin.from('orders').select('id, status, total').eq('restaurant_id', rid).gte('created_at', twoWeeksAgo).lt('created_at', weekAgo),
+        admin.from('orders').select(`id, total, ${SALE_FIELDS}`).eq('restaurant_id', rid).gte('created_at', weekAgo),
+        admin.from('orders').select(`id, total, ${SALE_FIELDS}`).eq('restaurant_id', rid).gte('created_at', twoWeeksAgo).lt('created_at', weekAgo),
         admin.from('customers').select('id').eq('restaurant_id', rid).lt('last_order_at', riskThreshold).gte('total_orders', 2),
         admin.from('orders').select('id').eq('restaurant_id', rid).eq('status', 'pending'),
         admin.from('products').select('id, is_active, image_url').eq('restaurant_id', rid).eq('is_active', true),
         admin.from('promotions').select('id').eq('restaurant_id', rid).eq('is_active', true),
       ]);
 
-      const completedWeek = (weekOrders ?? []).filter(o => isRevenueStatus(o.status));
+      const completedWeek = (weekOrders ?? []).filter(isSale);
       const weekRevenue = completedWeek.reduce((s, o) => s + Number(o.total), 0);
       const weekOrderCount = completedWeek.length;
 
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      const completedPrev = (prevWeekOrders ?? []).filter(o => isRevenueStatus(o.status));
+      const completedPrev = (prevWeekOrders ?? []).filter(isSale);
       const prevWeekRevenue = completedPrev.reduce((s, o) => s + Number(o.total), 0);
       const prevWeekOrderCount = completedPrev.length;
 
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 
       // Top product by revenue this week — order_items has no created_at,
       // so filter via the order ids already fetched above (weekOrders).
-      const weekOrderIds = (weekOrders ?? []).map(o => o.id);
+      const weekOrderIds = completedWeek.map(o => o.id);
       const { data: topProductsRaw } = weekOrderIds.length > 0
         ? await admin.from('order_items').select('product_id, line_total, products!inner(name, is_active)').eq('products.restaurant_id', rid).in('order_id', weekOrderIds).limit(300)
         : { data: [] as { product_id: string; line_total: number; products: { name: string; is_active: boolean } }[] };

@@ -22,7 +22,8 @@ import type {
 } from "@/lib/validations";
 
 const logger = createLogger("action-restaurant");
-import { ALL_STATUSES, canTransition, REVENUE_STATUSES, isRevenueStatus } from "@/lib/order-state";
+import { ALL_STATUSES, canTransition } from "@/lib/order-state";
+import { isSale, SALE_FIELDS } from "@/lib/sales";
 import { getStartOfDayUTC } from "@/lib/date-utils";
 import { broadcastOrderUpdate } from "@/lib/realtime/broadcast-order";
 import { nextCutoffInstant } from "@/lib/daily-menu";
@@ -2713,14 +2714,14 @@ export async function closeShift(closingCash: number, notes?: string) {
   if (!shift) return { error: "No open shift found", noOpenShift: true as const };
 
   // Aggregate orders since shift opened
-  const { data: orders } = await supabase
+  // Same sale rule as Home and Analytics (lib/sales.ts): from the moment the
+  // order is accepted. Pickups that stay in "Ready" are in the drawer too.
+  const { data: shiftOrders } = await supabase
     .from("orders")
-    .select("total, payment_method, payment_breakdown, order_type, driver_name")
+    .select(`total, payment_breakdown, order_type, driver_name, ${SALE_FIELDS}`)
     .eq("restaurant_id", restaurantId)
-    // Misma definición de venta que home/analytics: antes solo 'delivered'
-    // → pickup ('completed') y mesa ('served') no entraban a la caja.
-    .in("status", REVENUE_STATUSES)
     .gte("created_at", shift.opened_at);
+  const orders = (shiftOrders ?? []).filter(isSale);
 
   const totalRevenue = (orders ?? []).reduce(
     (sum: number, o: any) => sum + Number(o.total ?? 0),
@@ -2824,7 +2825,7 @@ export async function getActiveShift() {
 /**
  * "Resumen de hoy" del Counter con la MISMA regla que el dashboard: desde la
  * medianoche en la zona del restaurante, sin pagos online sin cobrar, y venta
- * = REVENUE_STATUSES. El Counter lo calculaba con lo que tenía cargado (las
+ * = isSale (lib/sales.ts). El Counter lo calculaba con lo que tenía cargado (las
  * últimas 6 h, en la hora del dispositivo): de noche no coincidía.
  */
 export async function getTodaySummary() {
@@ -2844,7 +2845,7 @@ export async function getTodaySummary() {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("total, status")
+    .select(`total, ${SALE_FIELDS}`)
     .eq("restaurant_id", restaurantId)
     .or("status.neq.pending,payment_method.is.null,payment_method.not.in.(online,wallet),payment_status.eq.paid")
     .gte("created_at", getStartOfDayUTC(tz).toISOString());
@@ -2852,7 +2853,7 @@ export async function getTodaySummary() {
 
   const rows = data ?? [];
   const sales = rows
-    .filter((o) => isRevenueStatus(o.status as string))
+    .filter(isSale)
     .reduce((sum, o) => sum + Number(o.total ?? 0), 0);
   return { orders: rows.length, sales };
 }

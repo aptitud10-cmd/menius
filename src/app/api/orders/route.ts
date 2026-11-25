@@ -33,6 +33,7 @@ import { linkedOptionState, linkedProductIds, type LinkedProductState } from "@/
 import { formatPrice } from "@/lib/utils";
 import { isOpenAt, inTimeZone, validScheduledFor, type OperatingHours } from "@/lib/orders/business-hours";
 import { haversineKm } from "@/lib/utils/eta";
+import { onlinePaymentsAllowedByPlan } from "@/lib/payments/online-ready";
 
 const logger = createLogger("orders");
 
@@ -328,8 +329,8 @@ export async function POST(request: NextRequest) {
 
     // Cliente marcado (un pedido anterior que no recibió o no pagó): si el
     // restaurante puede cobrar con tarjeta, este pedido se paga online. Si no
-    // puede (sin Stripe), pasa igual y el Counter muestra la alerta — nunca se
-    // deja a un cliente sin forma de pedir.
+    // puede (sin Stripe, o un plan sin pagos online), pasa igual y el Counter
+    // muestra la alerta — nunca se deja a un cliente sin forma de pedir.
     const canChargeOnline =
       methodsEnabled.includes("online") &&
       (restaurant.currency ?? "").toUpperCase() !== "COP";
@@ -339,10 +340,10 @@ export async function POST(request: NextRequest) {
       (parsed.data.order_type === "delivery" || parsed.data.order_type === "pickup") &&
       (customer_phone || customer_email)
     ) {
-      const [{ data: stripeRow }, { data: flagged }] = await Promise.all([
+      const [{ data: stripeRow }, { data: flagged }, subRes] = await Promise.all([
         adminDb
           .from("restaurants")
-          .select("stripe_onboarding_complete")
+          .select("stripe_onboarding_complete, stripe_account_id")
           .eq("id", restaurant_id)
           .maybeSingle(),
         adminDb
@@ -360,8 +361,24 @@ export async function POST(request: NextRequest) {
               .join(","),
           )
           .limit(1),
+        restaurant.commission_plan === true
+          ? Promise.resolve({ data: null, error: null })
+          : adminDb
+              .from("subscriptions")
+              .select("status, trial_end, current_period_end, plan_id, past_due_since")
+              .eq("restaurant_id", restaurant_id)
+              .maybeSingle(),
       ]);
-      if (stripeRow?.stripe_onboarding_complete && (flagged?.length ?? 0) > 0) {
+      // A card order would be rejected later if the plan has no online
+      // payments; if the plan can't be read, let the cash order through.
+      const planAllowsOnline =
+        !subRes.error && onlinePaymentsAllowedByPlan(restaurant.commission_plan === true, subRes.data);
+      if (
+        stripeRow?.stripe_onboarding_complete &&
+        stripeRow?.stripe_account_id &&
+        planAllowsOnline &&
+        (flagged?.length ?? 0) > 0
+      ) {
         return NextResponse.json(
           {
             error: en

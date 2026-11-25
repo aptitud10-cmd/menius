@@ -8,6 +8,7 @@ import {
   Plus, Trash2, Eye, EyeOff, Search, Package, Sparkles,
   ChevronRight, X, GripVertical,
   PackageX, PackageCheck, ImagePlus, Copy, SlidersHorizontal, Zap, MoreHorizontal, Loader2,
+  ArrowUp, ArrowDown, ArrowUpToLine, ArrowDownToLine,
 } from 'lucide-react';
 import {
   DndContext,
@@ -188,6 +189,30 @@ export function ProductsManager({
       } catch {
         setProducts(prev);
         toastError(L('No se pudo borrar el plato. Probá de nuevo.', 'Couldn’t delete the dish. Please try again.'));
+      }
+    });
+  };
+
+  // Phone reorder (the drag handle only exists in the md+ row). Works on the
+  // whole category, not only what a search or filter shows. Saves run one
+  // after another so quick taps can't land out of order.
+  const reorderQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const handleMove = (p: Product, to: 'up' | 'down' | 'top' | 'bottom') => {
+    const list = products.filter(x => x.category_id === p.category_id);
+    const from = list.findIndex(x => x.id === p.id);
+    const dest = to === 'up' ? from - 1 : to === 'down' ? from + 1 : to === 'top' ? 0 : list.length - 1;
+    if (from < 0 || dest < 0 || dest >= list.length || dest === from) return;
+    const reordered = arrayMove(list, from, dest).map((x, i) => ({ ...x, sort_order: i }));
+    const prev = products;
+    setProducts([...products.filter(x => x.category_id !== p.category_id), ...reordered].sort((a, b) => a.sort_order - b.sort_order));
+    const ids = reordered.map(x => x.id);
+    reorderQueue.current = reorderQueue.current.then(async () => {
+      try {
+        const res = await reorderProducts(ids);
+        if (res?.error) throw new Error(res.error);
+      } catch {
+        setProducts(prev);
+        toastError(t.products_reorderError);
       }
     });
   };
@@ -657,16 +682,22 @@ export function ProductsManager({
       )}
 
       {/* Phone row actions (no hover on touch screens) */}
-      {sheetProduct && (
+      {sheetProduct && (() => {
+        const current = products.find(x => x.id === sheetProduct.id) ?? sheetProduct;
+        const inCat = products.filter(x => x.category_id === current.category_id);
+        return (
         <ProductActionsSheet
-          product={products.find(x => x.id === sheetProduct.id) ?? sheetProduct}
+          product={current}
+          position={{ index: inCat.findIndex(x => x.id === current.id), total: inCat.length }}
+          onMove={(to) => handleMove(current, to)}
           duplicating={duplicatingId === sheetProduct.id}
           onClose={() => setSheetProduct(null)}
           onDuplicate={(p) => { setSheetProduct(null); void handleDuplicate(p); }}
           onToggle={(p) => { setSheetProduct(null); handleToggle(p); }}
           onDelete={(id) => { setSheetProduct(null); handleDelete(id); }}
         />
-      )}
+        );
+      })()}
 
       {/* Admin bulk image regeneration when NEXT_PUBLIC_ADMIN_REGEN_RESTAURANT_ID matches this restaurant */}
       {showAdminRegen && restaurantId && (
@@ -980,6 +1011,8 @@ function SortableProductRow({
 
 function ProductActionsSheet({
   product,
+  position,
+  onMove,
   duplicating,
   onClose,
   onDuplicate,
@@ -987,6 +1020,8 @@ function ProductActionsSheet({
   onDelete,
 }: {
   product: Product;
+  position: { index: number; total: number };
+  onMove: (to: 'up' | 'down' | 'top' | 'bottom') => void;
   duplicating: boolean;
   onClose: () => void;
   onDuplicate: (p: Product) => void;
@@ -1003,6 +1038,9 @@ function ProductActionsSheet({
   }, [onClose]);
 
   const item = 'w-full min-h-[48px] flex items-center gap-3 px-4 rounded-xl text-sm font-medium text-left active:bg-gray-100';
+  const moveBtn = 'min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-gray-50 text-sm font-medium text-gray-800 active:bg-gray-200 disabled:opacity-40 disabled:active:bg-gray-50';
+  const first = position.index <= 0;
+  const last = position.index >= position.total - 1;
 
   // Portaled to <body>: the list sits inside an overflow-hidden card.
   return createPortal(
@@ -1010,6 +1048,27 @@ function ProductActionsSheet({
       <button className="absolute inset-0 bg-black/40" aria-label={t.general_cancel} onClick={onClose} />
       <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-2xl px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <p className="px-4 pb-2 text-xs font-semibold text-gray-500 truncate">{product.name}</p>
+        {position.total > 1 && (
+          <div className="px-1 pb-2 mb-1 border-b border-gray-100">
+            <p className="px-3 pb-2 text-xs text-gray-500" aria-live="polite">
+              {L(`Lugar ${position.index + 1} de ${position.total} en su categoría`, `Position ${position.index + 1} of ${position.total} in its category`)}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button className={moveBtn} disabled={first} onClick={() => onMove('up')}>
+                <ArrowUp className="w-4 h-4" />{L('Subir', 'Move up')}
+              </button>
+              <button className={moveBtn} disabled={last} onClick={() => onMove('down')}>
+                <ArrowDown className="w-4 h-4" />{L('Bajar', 'Move down')}
+              </button>
+              <button className={moveBtn} disabled={first} onClick={() => onMove('top')}>
+                <ArrowUpToLine className="w-4 h-4" />{L('Al principio', 'To the top')}
+              </button>
+              <button className={moveBtn} disabled={last} onClick={() => onMove('bottom')}>
+                <ArrowDownToLine className="w-4 h-4" />{L('Al final', 'To the bottom')}
+              </button>
+            </div>
+          </div>
+        )}
         <button className={cn(item, 'text-gray-900')} disabled={duplicating} onClick={() => onDuplicate(product)}>
           <Copy className="w-5 h-5 text-gray-500" />
           <span className="flex-1">
