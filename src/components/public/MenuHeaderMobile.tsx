@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { getTranslations } from '@/lib/translations';
 import { LanguageMenu } from './LanguageMenu';
+import { HeaderCartButton } from './HeaderCartButton';
 import type { MenuHeaderProps } from './MenuHeader';
 import { isRestaurantOpen } from './MenuHeader';
 
@@ -38,6 +39,10 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   loyaltyPoints,
   languages,
   onLocaleChange,
+  fmtPrice,
+  cartCount = 0,
+  cartTotal = 0,
+  onOpenCart,
 }: MenuHeaderProps) {
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {
@@ -91,7 +96,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
             Sans extrabold con tracking apretado (Opción C): más carácter que el
             bold plano sin perder legibilidad en mobile — el patrón de Uber Eats. */}
         <span className={cn(
-          'absolute left-0 right-0 text-center font-extrabold text-[20px] tracking-[-0.03em] px-16 truncate pointer-events-none',
+          'absolute left-0 right-0 text-center font-extrabold text-[20px] tracking-[-0.03em] px-16 md:px-56 truncate pointer-events-none',
           !showName && 'invisible',
           isTransparent ? 'text-white drop-shadow' : 'text-gray-900'
         )}>
@@ -144,6 +149,19 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           >
             <Search className={cn('w-5 h-5', isTransparent ? 'text-white' : 'text-gray-700')} />
           </button>
+          {/* Tablet only (md–lg): phones keep the bottom cart bar. */}
+          {onOpenCart && (
+            <HeaderCartButton
+              count={cartCount}
+              total={cartTotal}
+              onOpen={onOpenCart}
+              fmtPrice={fmtPrice}
+              t={t}
+              overPhoto={isTransparent}
+              showLabel={false}
+              className="hidden md:inline-flex ml-1"
+            />
+          )}
         </div>
       </div>
     </header>

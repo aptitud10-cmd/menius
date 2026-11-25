@@ -175,6 +175,10 @@ export interface Translations {
   groupRequired: string;
   goesWellWith: string;
   completeYourOrder: string;
+  /** Header cart button + confirmation card (tablet/desktop). */
+  addedToYourOrder: string;
+  viewOrder: string;
+  openOrderAria: (count: number) => string;
   addToOrder: string;
   addonSearchOnMenu: string;
   addonSearchAddAfter: string;
@@ -673,6 +677,9 @@ const es: Translations = {
   groupRequired: 'Obligatorio',
   goesWellWith: 'Para acompañar',
   completeYourOrder: 'Completa tu pedido',
+  addedToYourOrder: 'Agregado a tu pedido',
+  viewOrder: 'Ver pedido',
+  openOrderAria: (n) => (n === 0 ? 'Tu pedido, vacío' : `Tu pedido, ${n} ${n === 1 ? 'producto' : 'productos'}`),
   addToOrder: 'Agregar',
   addonSearchOnMenu: 'Está en el menú',
   addonSearchAddAfter: 'Agregar después',
@@ -1153,6 +1160,9 @@ const en: Translations = {
   groupRequired: 'Required',
   goesWellWith: 'Goes well with',
   completeYourOrder: 'Complete your order',
+  addedToYourOrder: 'Added to your order',
+  viewOrder: 'View order',
+  openOrderAria: (n) => (n === 0 ? 'Your order, empty' : `Your order, ${n} ${n === 1 ? 'item' : 'items'}`),
   addToOrder: 'Add',
   addonSearchOnMenu: 'On the menu',
   addonSearchAddAfter: 'Add after this',

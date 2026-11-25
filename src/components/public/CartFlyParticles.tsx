@@ -15,10 +15,11 @@ interface Particle {
 }
 
 interface CartFlyParticlesProps {
-  cartColRef: React.RefObject<HTMLDivElement | null>;
+  /** Where the particle lands: the header cart button that is on screen. */
+  getTarget: () => HTMLElement | null;
 }
 
-export function CartFlyParticles({ cartColRef }: CartFlyParticlesProps) {
+export function CartFlyParticles({ getTarget }: CartFlyParticlesProps) {
   const [particles, setParticles] = useState<Particle[]>([]);
   const idRef = useRef(0);
 
@@ -38,18 +39,17 @@ export function CartFlyParticles({ cartColRef }: CartFlyParticlesProps) {
   return (
     <>
       {particles.map((p) => {
-        const cartRect = cartColRef.current?.getBoundingClientRect();
+        const cartRect = getTarget()?.getBoundingClientRect();
         const tx = cartRect ? cartRect.left + cartRect.width / 2 - p.sx : 0;
-        const ty = cartRect ? cartRect.top + 60 - p.sy : -200;
+        const ty = cartRect ? cartRect.top + cartRect.height / 2 - p.sy : -200;
         const arcX = tx * 0.4;
         const arcY = Math.min(ty * 0.3, -80);
         return (
           <motion.div
             key={p.id}
-            // xl, matching the cart panel's breakpoint: below it the panel is
-            // hidden, cartColRef is null and the particle would fly to the
-            // fallback coordinates (straight up, off-screen).
-            className="fixed z-[999] pointer-events-none hidden xl:flex items-center justify-center"
+            // md and up, where the header cart button lives. Phones have the
+            // bottom bar instead and keep their own feedback (toast).
+            className="fixed z-[999] pointer-events-none hidden md:flex items-center justify-center"
             style={{ left: p.sx - 22, top: p.sy - 22, width: 44, height: 44 }}
             initial={{ scale: 0.8, opacity: 0, x: 0, y: 0 }}
             animate={{

@@ -37,6 +37,10 @@ export interface MenuHeaderProps {
   /** Menu languages (2+ shows the switch) and how to change it. */
   languages?: string[];
   onLocaleChange?: (code: string) => void;
+  /** Header cart button (tablet and up; the phone keeps its bottom bar). */
+  cartCount?: number;
+  cartTotal?: number;
+  onOpenCart?: () => void;
 }
 
 /** Utility shared by both mobile and desktop sub-components */

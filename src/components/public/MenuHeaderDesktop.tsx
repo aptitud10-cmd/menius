@@ -15,6 +15,7 @@ import { getTranslations } from '@/lib/translations';
 import { LanguageMenu } from './LanguageMenu';
 import type { MenuHeaderProps } from './MenuHeader';
 import { isRestaurantOpen } from './MenuHeader';
+import { HeaderCartButton } from './HeaderCartButton';
 
 let _sessionCache: Promise<boolean> | null = null;
 function checkIsLoggedIn(): Promise<boolean> {
@@ -42,6 +43,10 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
   loyaltyPoints,
   languages,
   onLocaleChange,
+  fmtPrice,
+  cartCount = 0,
+  cartTotal = 0,
+  onOpenCart,
 }: MenuHeaderProps) {
   const t = getTranslations(locale);
   const open = isRestaurantOpen(restaurant.operating_hours, restaurant.timezone);
@@ -177,6 +182,17 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[13px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
               ⭐ {loyaltyPoints} pts
             </span>
+          )}
+
+          {onOpenCart && (
+            <HeaderCartButton
+              count={cartCount}
+              total={cartTotal}
+              onOpen={onOpenCart}
+              fmtPrice={fmtPrice}
+              t={t}
+              className="ml-1"
+            />
           )}
 
         </div>

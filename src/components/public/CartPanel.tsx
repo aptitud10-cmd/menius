@@ -374,7 +374,21 @@ export function CartPanel({
             or delivery (picked here, it is preselected at checkout through
             the cart store), how long it takes, and what to do next. */}
         <div className="flex flex-col mb-6">
-          <h2 className="text-[17px] font-semibold text-gray-900">{t.yourOrder}</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-[17px] font-semibold text-gray-900">{t.yourOrder}</h2>
+            {/* Tablet/desktop drawer: a visible way out (the phone sheet closes
+                by dragging down, unchanged). */}
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="hidden md:flex -mr-2 -my-2 w-10 h-10 items-center justify-center rounded-full text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-150"
+                aria-label={t.closeCart}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
           {!tableName && orderTypes.length > 1 && (
             <div
               role="radiogroup"
@@ -549,10 +563,9 @@ export function CartPanel({
       {renderUndoToast('0.5rem')}
       <div
         className={cn(
-          // contain only in the mobile/tablet sheet (stops the menu behind it from
-          // moving). In the xl sidebar it trapped the wheel: over the cart the
-          // menu didn't scroll at all (Pedro 2026-11-25).
-          'flex-1 overflow-y-auto overscroll-contain xl:overscroll-auto px-4 min-h-0',
+          // The cart is always an overlay now (sheet/drawer, no xl column):
+          // contain keeps the wheel from moving the menu behind it.
+          'flex-1 overflow-y-auto overscroll-contain px-4 min-h-0',
           // Extra room while the toast is up so the last line can scroll clear of it.
           pendingUndo ? 'pb-16' : 'pb-3'
         )}

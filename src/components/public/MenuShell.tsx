@@ -62,6 +62,7 @@ import {
   GROUP_PREFIX,
 } from "@/lib/category-groups";
 import { CartPanel } from "./CartPanel";
+import { AddedToOrderCard } from "./AddedToOrderCard";
 import dynamic from "next/dynamic";
 const CustomizationSheet = dynamic(
   () => import("./CustomizationSheet").then((m) => m.CustomizationSheet),
@@ -146,6 +147,10 @@ const MENU_POS_TTL_MS = 30 * 60 * 1000;
 function revealDeepLink() {
   document.documentElement.removeAttribute(DEEP_LINK_ATTR);
 }
+
+/** The header cart button that is on screen (tablet and desktop headers both render one). */
+const getCartPill = () =>
+  Array.from(document.querySelectorAll<HTMLElement>("[data-cart-pill]")).find((e) => e.offsetParent) ?? null;
 
 export function MenuShell({
   restaurant,
@@ -441,6 +446,11 @@ export function MenuShell({
     ReturnType<typeof useCartStore.getState>,
     "items" | "reorderSkipped"
   > | null>(null);
+  // Line added from the product sheet, for the same "Undo". The sheet adds after
+  // its own state changes, so there is no clean "before" snapshot: undo removes
+  // exactly that line. Before, the toast reused the last quick-add's snapshot
+  // and could roll the cart back to an older state.
+  const undoUidRef = useRef<string | null>(null);
   const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -754,35 +764,29 @@ export function MenuShell({
     };
   }, [customization?.product?.id, restaurant.id]);
 
-  const cartColRef = useRef<HTMLDivElement>(null);
 
   // "pepsi" typed in a burger's add-on search: the soda opens right after the
   // burger is added, so the diner never loses the dish they were building.
   const [queuedNext, setQueuedNext] = useState<Product | null>(null);
 
-  // The xl cart column starts below the cover photo, so with a fixed
-  // h-[calc(100dvh-48px)] its footer (total + Checkout) sat ~180px below the
-  // fold until the diner scrolled. Fit its height to what is visible instead.
-  useEffect(() => {
-    const el = cartColRef.current;
-    if (!el) return;
-    let raf = 0;
-    const fit = () => {
-      raf = 0;
-      const top = Math.max(0, el.getBoundingClientRect().top);
-      el.style.height = `${Math.max(320, window.innerHeight - top)}px`;
-    };
-    const schedule = () => { if (!raf) raf = requestAnimationFrame(fit); };
-    fit();
-    window.addEventListener("scroll", schedule, { passive: true, capture: true });
-    window.addEventListener("resize", schedule);
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", schedule, { capture: true });
-      window.removeEventListener("resize", schedule);
-      el.style.height = "";
-    };
+  // Tablet/desktop "Added to your order" card under the header cart button
+  // (AddedToOrderCard). Phones keep the toast and the bottom bar.
+  const [addedUid, setAddedUid] = useState<string | null>(null);
+  // The card stands in for the toast: closing it must not reveal the toast
+  // still pending behind it.
+  const closeAddedCard = useCallback(() => {
+    setAddedUid(null);
+    setToastName(null);
   }, []);
+  // Opening the cart or another dish replaces the confirmation for good.
+  useEffect(() => {
+    if (isTabletUp && (isOpen || customization)) closeAddedCard();
+  }, [isTabletUp, isOpen, customization, closeAddedCard]);
+  const lastCartUid = () => {
+    const items = useCartStore.getState().items;
+    return items[items.length - 1]?.uid ?? null;
+  };
+
 
 
   // IntersectionObserver: watch the banner element and keep bannerVisibleRef in sync.
@@ -1115,8 +1119,16 @@ export function MenuShell({
 
   const undoQuickAdd = useCallback(() => {
     const prev = undoCartRef.current;
-    if (prev) useCartStore.setState(prev);
+    const uid = undoUidRef.current;
+    if (prev) {
+      useCartStore.setState(prev);
+    } else if (uid) {
+      const { items, removeItem } = useCartStore.getState();
+      const index = items.findIndex((i) => i.uid === uid);
+      if (index >= 0) removeItem(index);
+    }
     undoCartRef.current = null;
+    undoUidRef.current = null;
     clearTimeout(toastTimer.current);
     setToastName(null);
   }, []);
@@ -1125,8 +1137,12 @@ export function MenuShell({
     (product: Product) => {
       const { items, reorderSkipped } = useCartStore.getState();
       undoCartRef.current = { items, reorderSkipped };
+      undoUidRef.current = null;
       addItem(product, null, [], 1, "");
       showToast(product.name);
+      if (isTabletUp && !customizationRef.current && !useCartStore.getState().isOpen) {
+        setAddedUid(lastCartUid());
+      }
       trackEvent("product_added_to_cart", {
         product_id: product.id,
         product_name: product.name,
@@ -1134,7 +1150,7 @@ export function MenuShell({
         restaurant_id: restaurant.id,
       });
     },
-    [addItem, showToast, restaurant.id],
+    [addItem, showToast, restaurant.id, isTabletUp],
   );
 
   const handleEditCartItem = useCallback(
@@ -1155,14 +1171,16 @@ export function MenuShell({
   // Editing is entered from the cart sheet (which closes to make room), so
   // finishing the edit returns there — saved or cancelled — like popping a
   // screen in a native nav stack. Before, the customer was dropped on the menu
-  // and had to reopen the cart to check the change. xl shows the cart as a
-  // column, so there's nothing to reopen.
+  // and had to reopen the cart to check the change. Every size has the cart
+  // as an overlay now (no xl column since 2026-11-25), so it always reopens.
   const handleCloseCustomization = useCallback(() => {
     const wasEditing = customization !== null && customization.editIndex !== null;
     setQueuedNext(null);
     setCustomization(null);
-    if (wasEditing && !isXlView) setOpen(true);
-  }, [customization, isXlView, setOpen]);
+    if (wasEditing) setOpen(true);
+  }, [customization, setOpen]);
+
+  const openCart = useCallback(() => setOpen(true), [setOpen]);
 
   const handleViewCartFromCustomization = useCallback(() => {
     setCustomization(null);
@@ -1207,8 +1225,9 @@ export function MenuShell({
   ]);
 
   // ── System back closes overlays (see useBackToClose) ──
-  // Each gate matches where the overlay is actually visible: the cart sheet and
-  // the subcategory sheet are xl:hidden, search and the category sheet lg:hidden.
+  // Each gate matches where the overlay is actually visible: the subcategory
+  // sheet is xl:hidden, search and the category sheet lg:hidden; the cart is an
+  // overlay at every size.
   const closeCart = useCallback(() => setOpen(false), [setOpen]);
   const closeSearch = useCallback(() => {
     setShowSearch(false);
@@ -1216,7 +1235,7 @@ export function MenuShell({
   }, []);
   const closeCatSheet = useCallback(() => setShowCatSheet(false), []);
   const closeSubcatSheet = useCallback(() => setShowSubcatSheet(false), []);
-  useBackToClose(isOpen && !isXlView, closeCart);
+  useBackToClose(isOpen, closeCart);
   useBackToClose(showSearch && !isDesktopView, closeSearch);
   useBackToClose(showCatSheet && !isDesktopView, closeCatSheet);
   useBackToClose(showSubcatSheet && !isXlView, closeSubcatSheet);
@@ -2919,6 +2938,9 @@ export function MenuShell({
             loyaltyPoints={loyaltyData?.points ?? null}
             languages={hasMultiLang ? availableLocales : undefined}
             onLocaleChange={(code) => setLocale(code as Locale)}
+            cartCount={cartCount}
+            cartTotal={cartTotal}
+            onOpenCart={openCart}
           />
         </div>
 
@@ -2927,7 +2949,7 @@ export function MenuShell({
           ref={mainRefCb}
           id="main-content"
           tabIndex={-1}
-          className={`flex-1 overflow-y-auto overscroll-contain outline-none max-w-[1440px] w-full mx-auto ${cartCount > 0 ? "pb-[calc(5rem+env(safe-area-inset-bottom))] xl:pb-0" : "pb-[env(safe-area-inset-bottom)]"}`}
+          className={`flex-1 overflow-y-auto overscroll-contain outline-none max-w-[1440px] w-full mx-auto ${cartCount > 0 ? "pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-[env(safe-area-inset-bottom)]"}`}
           style={
             {
               overscrollBehavior: "contain",
@@ -3436,7 +3458,7 @@ export function MenuShell({
                               drink still leads the row list. */}
                           <motion.div
                             className={cn(
-                              "grid grid-cols-2 md:grid-cols-3 gap-3",
+                              "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3",
                               searchCards.length === 0 && "hidden",
                             )}
                             initial="hidden"
@@ -3539,7 +3561,7 @@ export function MenuShell({
                           return (
                             <>
                               {favCards.length > 0 && (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                                   {favCards.map((product) => (
                                     <ProductCard
                                       key={product.id}
@@ -3660,7 +3682,7 @@ export function MenuShell({
                           {t.viewFullMenu}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                         {filteredProducts.map((product) => (
                           <ProductCard
                             key={product.id}
@@ -3922,7 +3944,7 @@ export function MenuShell({
                                     ) : lightMobileProductGrid ? (
                                       <div
                                         className={cn(
-                                          "grid grid-cols-2 md:grid-cols-3 gap-3",
+                                          "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3",
                                           isLocked && "opacity-40",
                                           cardItems.length === 0 && "hidden",
                                         )}
@@ -3968,7 +3990,7 @@ export function MenuShell({
                                     ) : (
                                       <motion.div
                                         className={cn(
-                                          "grid grid-cols-2 md:grid-cols-3 gap-3",
+                                          "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3",
                                           isLocked && "opacity-40",
                                           cardItems.length === 0 && "hidden",
                                         )}
@@ -4391,49 +4413,13 @@ export function MenuShell({
             </div>
             {/* end center column wrapper */}
 
-            {/* Right: Cart — sticky, stays in place while content scrolls.
-                xl and not lg: between 1024 and 1279px the sidebar (200px) plus
-                this panel (340px) left the grid too narrow for its 3rd column,
-                so tablets got two cramped cards next to an empty cart. On
-                tablet the floating cart bar + bottom sheet take over instead
-                (their breakpoints move with this one — see the xl:hidden below). */}
-            <aside
-              ref={cartColRef}
-              className="hidden xl:flex flex-col w-[340px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
-            >
-              <MenuErrorBoundary section="cart" inline locale={locale}>
-                <CartPanel
-                  fmtPrice={fmtPrice}
-                  t={t}
-                  onEdit={handleEditCartItem}
-                  onCheckout={handleOpenCheckout}
-                  estimatedMinutes={
-                    restaurant.estimated_delivery_minutes ?? undefined
-                  }
-                  etaRestaurant={restaurant} taxPending={(restaurant.tax_rate ?? 0) > 0 && !restaurant.tax_included}
-                  deliveryFee={restaurant.order_types_enabled?.includes('delivery') ? (restaurant.delivery_fee ?? undefined) : undefined}
-                  lastOrder={
-                    lastOrder?.restaurantId === restaurant.id && !reorderDismissed ? lastOrder : null
-                  }
-                  onReorder={handleReorder}
-                  reorderLoading={reorderLoading}
-                  onOpenProduct={openProductById}
-                  suggestions={cartBasedSuggestions}
-                  onSuggestionAdd={handleCartSuggestionAdd}
-                  loyaltyData={loyaltyData}
-                  storeNotice={storeNoticeLine}
-                  orderTypes={(restaurant.order_types_enabled ?? []).filter((ot) => ot !== "dine_in")}
-                  cashOnly={!usablePaymentMethods(restaurant).includes("online")}
-                />
-              </MenuErrorBoundary>
-            </aside>
           </div>
           {/* end 3-column row */}
         </div>
         {/* end outer scroll */}
 
-        {/* ── Fly-to-cart particles (desktop only) — isolated component, no root re-renders ── */}
-        <CartFlyParticles cartColRef={cartColRef} />
+        {/* ── Fly-to-cart particles (tablet and up, into the header cart button) ── */}
+        <CartFlyParticles getTarget={getCartPill} />
 
         {/* ── Mobile: jump-to-subcategory button ──
             A group like Breakfast stacks 81 products across 13 subsections, and
@@ -4446,7 +4432,7 @@ export function MenuShell({
           <div
             className="fixed left-0 right-0 z-30 xl:hidden pointer-events-none flex justify-center px-4"
             style={{
-              bottom: cartCount > 0
+              bottom: cartCount > 0 && !isTabletUp
                 ? `calc(84px + env(safe-area-inset-bottom))`
                 : `max(env(safe-area-inset-bottom), 16px)`,
             }}
@@ -4489,7 +4475,7 @@ export function MenuShell({
           </div>
         ) : (
           cartCount > 0 && (
-            <div className="fixed bottom-0 left-0 right-0 z-30 xl:hidden pointer-events-none">
+            <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden pointer-events-none">
               <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
                 <div className="max-w-lg mx-auto pointer-events-auto">
                   <button
@@ -4527,14 +4513,15 @@ export function MenuShell({
           )
         )}
 
-        {/* ── Cart: bottom sheet on the phone, right-hand drawer on tablet ──
+        {/* ── Cart: bottom sheet on the phone, right-hand drawer from tablet up
+            (desktop too since 2026-11-25 — one cart, opened from the header). ──
             On an iPad the bottom sheet rose ~95% of the screen and hid the
             whole menu; a 400px drawer leaves the menu in view and is where
             Uber Eats / DoorDash put it at that width. */}
         <AnimatePresence>
           {isOpen && (
             <div
-              className="fixed inset-0 z-50 xl:hidden flex flex-col justify-end md:flex-row"
+              className="fixed inset-0 z-50 flex flex-col justify-end md:flex-row"
               role="dialog"
               aria-modal="true"
               aria-labelledby="cart-sheet-title"
@@ -4548,7 +4535,7 @@ export function MenuShell({
                 onClick={() => setOpen(false)}
               />
               <motion.div
-                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col md:rounded-none md:w-[400px] md:h-full md:pt-[max(12px,env(safe-area-inset-top))]"
+                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col md:rounded-none md:w-[400px] xl:w-[440px] md:h-full md:pt-[max(12px,env(safe-area-inset-top))]"
                 style={
                   isTabletUp
                     ? undefined
@@ -4613,6 +4600,9 @@ export function MenuShell({
                     onSuggestionAdd={handleCartSuggestionAdd}
                     loyaltyData={loyaltyData}
                   storeNotice={storeNoticeLine}
+                    // Empty cart on desktop: pickup/delivery choice, as the
+                    // old xl column showed. Phone and tablet unchanged.
+                    orderTypes={isXlView ? (restaurant.order_types_enabled ?? []).filter((ot) => ot !== "dine_in") : undefined}
                     cashOnly={!usablePaymentMethods(restaurant).includes("online")}
                   />
                 </div>
@@ -4645,12 +4635,27 @@ export function MenuShell({
                 onClose={handleCloseCustomization}
                 onViewCart={handleViewCartFromCustomization}
                 onAddToCart={(name) => {
+                  undoCartRef.current = null;
+                  undoUidRef.current = lastCartUid();
                   showToast(name);
                   const next = queuedNext;
                   if (next) {
                     setQueuedNext(null);
                     // Let "Added" register before the next sheet replaces this one.
                     setTimeout(() => setCustomization({ product: next, editIndex: null }), 450);
+                  } else if (isTabletUp) {
+                    // Tablet/desktop: the sheet closes and the dish flies into the
+                    // header cart button, with the confirmation card under it
+                    // (DoorDash). Phones keep the sheet open with View cart / Continue.
+                    const btn = document.activeElement as HTMLElement | null;
+                    const r = btn?.getBoundingClientRect();
+                    if (r && r.width > 0) {
+                      window.dispatchEvent(new CustomEvent("menu:cart-fly", {
+                        detail: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
+                      }));
+                    }
+                    setAddedUid(lastCartUid());
+                    setCustomization(null);
                   }
                 }}
                 findOnMenu={findOnMenu}
@@ -4874,7 +4879,22 @@ export function MenuShell({
         </div>
 
         {/* ── Toast: "X se ha agregado al carrito" — centrado en pantalla ── */}
-        {toastName && (
+        {/* ── Tablet/desktop: "Added to your order" under the header cart button ── */}
+        <AnimatePresence>
+          {addedUid && !isOpen && (
+            <AddedToOrderCard
+              key={addedUid}
+              uid={addedUid}
+              onClose={closeAddedCard}
+              onViewOrder={() => { closeAddedCard(); setOpen(true); }}
+              onCheckout={() => { closeAddedCard(); handleOpenCheckout(); }}
+              fmtPrice={fmtPrice}
+              t={t}
+            />
+          )}
+        </AnimatePresence>
+
+        {toastName && !addedUid && (
           <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] left-0 right-0 lg:bottom-8 z-[60] flex justify-center px-4 pointer-events-none">
             <div className="pointer-events-auto flex items-center gap-2.5 max-w-full min-h-[52px] pl-4 pr-1.5 py-1.5 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl">
               <span className="w-5 h-5 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
