@@ -6,6 +6,7 @@ import {
   Printer, Volume2, VolumeX, MoreVertical, X, History, Pause, Flame, LogOut, Check, Undo2, AlertTriangle, WifiOff,
 } from 'lucide-react';
 import { updateOrderStatus, undoOrderStatus, setPauseOrders, setBusyMode } from '@/lib/actions/restaurant';
+import { setKitchenStationDone } from '@/lib/actions/kitchen-stations';
 import { cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -108,7 +109,11 @@ interface Props {
   initialBusy?: { extra: number; until: string | null };
 }
 
-interface Bumped { orderId: string; num: string; prev: OrderStatus; ts: number }
+/** station: LISTO desde el filtro de una estación (deshacer también la desmarca). */
+interface Bumped { orderId: string; num: string; prev: OrderStatus; ts: number; station?: string }
+
+/** Estaciones que ya marcaron LISTO en este pedido (migración 20261127). */
+const stationsDoneOf = (o: Order): string[] => (o as { kitchen_stations_done?: string[] | null }).kitchen_stations_done ?? [];
 
 interface View {
   order: Order;
@@ -201,7 +206,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
      sino cuando llega a la cocina — ver más abajo. */
   const { soundEnabled, setSoundEnabled, updateTabTitle, playSound } = useNotifications({ defaultTitle: 'KDS — MENIUS' });
   const isLeader = useLeaderTab(`menius-kds-leader:${restaurantId}`);
-  const { orders, updateOrderLocally } = useRealtimeOrders({ restaurantId, initialOrders });
+  // Cerrados de más de 12 h fuera de memoria: el KDS queda abierto días.
+  const { orders, updateOrderLocally } = useRealtimeOrders({ restaurantId, initialOrders, pruneClosedOlderThanMs: 12 * 3600_000 });
 
   /* Lo que está en la cocina, el más urgente primero (orden estable: la hora prometida no cambia). */
   const kitchenAll = useMemo(() => orders.filter((o) =>
@@ -224,7 +230,9 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       for (const it of items) if (it.note && isAllergyText(it.note)) allergies.push(`${stripNoteLabel(it.note)} — ${it.name}`);
       return { order: o, items, counter: counterItems(raw), allergies, eta, timing: kitchenTiming(startOf(o, eta), eta, now) };
     })
-    .filter((v) => v.items.length > 0)
+    // Con filtro, lo que esta estación ya terminó sale de su pantalla (el pedido
+    // sigue en las otras estaciones hasta que terminen todas).
+    .filter((v) => v.items.length > 0 && (stationFilter === 'all' || !stationsDoneOf(v.order).includes(stationFilter)))
     .sort((a, b) => a.timing.dueAt - b.timing.dueAt), [kitchen, stationFilter, busyExtra, now]);
 
   /* Pedidos que llegan a la cocina: brillo + sonido (+ impresión si está activada).
@@ -323,7 +331,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     return () => clearInterval(iv);
   }, [queuedCount]);
 
-  const bump = useCallback(async (o: Order) => {
+  const bump = useCallback(async (o: Order, station?: string) => {
     const prev = o.status as OrderStatus;
     const next: OrderStatus = 'ready';
     updateOrderLocally(o.id, { status: next });
@@ -341,13 +349,61 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       }
     } else enqueue();
     playSound('success');
-    const b: Bumped = { orderId: o.id, num: o.order_number, prev, ts: Date.now() };
+    const b: Bumped = { orderId: o.id, num: o.order_number, prev, ts: Date.now(), station };
     setBumps((p) => [b, ...p.filter((x) => x.orderId !== o.id)].slice(0, 20));
     setStruck((p) => { const n = { ...p }; delete n[o.id]; return n; });
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setUndoFor(b);
     undoTimer.current = setTimeout(() => setUndoFor(null), 6000);
   }, [updateOrderLocally, sendStatus, friendlyError, showToast, playSound]);
+
+  /**
+   * LISTO con el filtro de una estación: solo esta estación terminó. El pedido
+   * pasa a 'ready' (bump de siempre) cuando terminaron todas; antes LISTO con
+   * filtro cerraba el pedido entero con platos de otras estaciones sin hacer.
+   */
+  const stationBump = useCallback(async (o: Order, station: string) => {
+    const before = stationsDoneOf(o);
+    updateOrderLocally(o.id, { kitchen_stations_done: Array.from(new Set([...before, station])) } as Partial<Order>);
+    const r = await setKitchenStationDone(o.id, station, true).catch(() => ({ error: T.offline }));
+    if ('unsupported' in r) {
+      // Sin la migración: como antes, el pedido entero.
+      updateOrderLocally(o.id, { kitchen_stations_done: before } as Partial<Order>);
+      return bump(o);
+    }
+    if ('error' in r) {
+      updateOrderLocally(o.id, { kitchen_stations_done: before } as Partial<Order>);
+      showToast(friendlyError(r.error), false);
+      return;
+    }
+    updateOrderLocally(o.id, { kitchen_stations_done: r.stationsDone } as Partial<Order>);
+    if (r.allDone) return bump(o, station);
+    playSound('success');
+    setStruck((p) => { const n = { ...p }; delete n[o.id]; return n; });
+    const b: Bumped = { orderId: o.id, num: o.order_number, prev: o.status as OrderStatus, ts: Date.now(), station };
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoFor(b);
+    undoTimer.current = setTimeout(() => setUndoFor(null), 6000);
+  }, [updateOrderLocally, bump, friendlyError, showToast, playSound, T]);
+
+  /** Deshace la marca de una estación (vuelve a su pantalla). */
+  const unmarkStation = useCallback(async (orderId: string, station: string) => {
+    const o = orders.find((x) => x.id === orderId);
+    const before = o ? stationsDoneOf(o) : [];
+    updateOrderLocally(orderId, { kitchen_stations_done: before.filter((s) => s !== station) } as Partial<Order>);
+    const r = await setKitchenStationDone(orderId, station, false).catch(() => ({ error: T.offline }));
+    if ('error' in r) {
+      updateOrderLocally(orderId, { kitchen_stations_done: before } as Partial<Order>);
+      showToast(friendlyError(r.error), false);
+    } else if ('stationsDone' in r) {
+      updateOrderLocally(orderId, { kitchen_stations_done: r.stationsDone } as Partial<Order>);
+    }
+  }, [orders, updateOrderLocally, friendlyError, showToast, T]);
+
+  /** LISTO desde la pantalla actual: con filtro de estación, solo esa estación. */
+  const bumpHere = useCallback((o: Order) => (
+    stationFilter !== 'all' ? stationBump(o, stationFilter) : bump(o)
+  ), [stationFilter, stationBump, bump]);
 
   /** Vuelve un pedido a la cocina (deshacer o recuperar). */
   const recall = useCallback(async (orderId: string, prev: OrderStatus = 'preparing') => {
@@ -434,7 +490,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       switch (e.key) {
         case ' ': case 'Enter': {
           e.preventDefault(); setKbUsed(true);
-          const v = views[selectedIdx]; if (v) void bump(v.order);
+          const v = views[selectedIdx]; if (v) void bumpHere(v.order);
           break;
         }
         case 'ArrowRight': case 'ArrowDown': e.preventDefault(); setKbUsed(true); setSelectedIdx((i) => Math.min(i + 1, views.length - 1)); break;
@@ -446,7 +502,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [views, selectedIdx, bump, recall, lastRecallable, sheet, oos]);
+  }, [views, selectedIdx, bumpHere, recall, lastRecallable, sheet, oos]);
 
   // Todo depende de la hora: hasta montar en el navegador no se pinta nada (si no, la hora
   // del servidor y la del cliente no coinciden y React descarta el HTML).
@@ -535,7 +591,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
                   struck={struck[v.order.id] ?? []}
                   onToggleItem={(i) => toggleItem(v.order.id, i)}
                   onLongPress={(it) => it.productId && setOos({ productId: it.productId, name: it.name })}
-                  onBump={() => { setSelectedIdx(idx); void bump(v.order); }} />
+                  onBump={() => { setSelectedIdx(idx); void bumpHere(v.order); }} />
               ))}
             </div>
           )}
@@ -566,7 +622,18 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       {undoFor && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 pl-5 pr-2 py-2 rounded-2xl shadow-2xl" style={{ background: '#23262b', border: `1px solid ${C.line}` }}>
           <span className="text-[16px] font-bold">#{shortOrderNumber(undoFor.num)} {T.markedReady}</span>
-          <button onClick={() => void recall(undoFor.orderId, undoFor.prev)} className="h-11 px-4 rounded-xl text-[15px] font-extrabold flex items-center gap-1.5" style={{ background: C.ink, color: C.bg }}>
+          <button onClick={() => {
+            const u = undoFor;
+            // Solo la estación (el pedido sigue en cocina): se desmarca y listo.
+            if (u.station && orders.find((x) => x.id === u.orderId)?.status !== 'ready') {
+              setUndoFor(null); if (undoTimer.current) clearTimeout(undoTimer.current);
+              void unmarkStation(u.orderId, u.station);
+              return;
+            }
+            // Cerró el pedido (era la última estación): vuelve a cocina y a esa estación.
+            if (u.station) void unmarkStation(u.orderId, u.station);
+            void recall(u.orderId, u.prev);
+          }} className="h-11 px-4 rounded-xl text-[15px] font-extrabold flex items-center gap-1.5" style={{ background: C.ink, color: C.bg }}>
             <Undo2 className="w-4 h-4" /> {T.undone}
           </button>
         </div>

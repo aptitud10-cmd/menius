@@ -89,6 +89,21 @@ export function kitchenItems(items: KitchenRawItem[] | undefined, stationId: str
   return out;
 }
 
+/**
+ * "LISTO" por estación: el pedido está listo cuando cada estación con platos
+ * de cocina en él marcó que terminó. Un plato sin estación (station_id null)
+ * solo se ve en "Todas": ese pedido se cierra desde ahí, nunca desde un filtro.
+ */
+export function allStationsDone(items: KitchenRawItem[] | undefined, done: readonly string[] | null | undefined): boolean {
+  const doneSet = new Set(done ?? []);
+  const kitchen = (items ?? []).filter(isKitchenItem);
+  if (kitchen.length === 0) return false;
+  return kitchen.every((i) => {
+    const st = i.product?.station_id ?? null;
+    return st !== null && doneSet.has(st);
+  });
+}
+
 /** Lo que se arma en el mostrador ("2 Assorted Sodas", "1 Cheesecake"). El detalle va en el ticket del Counter. */
 export function counterItems(items: KitchenRawItem[] | undefined): { qty: number; name: string }[] {
   return (items ?? [])

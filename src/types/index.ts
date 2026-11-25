@@ -296,6 +296,8 @@ export interface Order {
   payment_method?: PaymentMethod;
   delivery_address?: string;
   table_name?: string | null;
+  /** KDS: estaciones que ya marcaron LISTO (migración 20261127). */
+  kitchen_stations_done?: string[] | null;
   created_at: string;
   updated_at?: string;
   estimated_ready_minutes?: number;
