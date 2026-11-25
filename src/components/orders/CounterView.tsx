@@ -800,7 +800,7 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder, t.newScheduledOrder]);
 
-  const { orders, updateOrderLocally, rtStatus, lastSyncAt } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
+  const { orders, updateOrderLocally, rtStatus, lastSyncAt } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder, pruneClosedOlderThanMs: CLOSED_KEEP_MS });
 
   // The server refused because the order had already moved (another tablet
   // accepted it, the 15-min timeout cancelled it): show where it really is
@@ -2787,6 +2787,8 @@ function SidebarSection({
 
 // Un programado que vence dentro de este margen se trata como pedido inmediato.
 const SCHEDULED_SPLASH_LEAD_MS = SCHEDULED_LEAD_MS;
+/** Pedidos cerrados de más de 12 h salen de memoria (la tablet queda prendida días; W7). */
+const CLOSED_KEEP_MS = 12 * 3600_000;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Modales del Counter: misma escala que la hoja del pedido y la alerta

@@ -11,6 +11,20 @@ interface UseRealtimeOrdersOptions {
   initialOrders: Order[];
   onNewOrder?: (order: Order) => void;
   onOrderUpdate?: (order: Order) => void;
+  /**
+   * Counter y KDS (pantallas que quedan abiertas días): los pedidos CERRADOS
+   * más viejos que esto salen de memoria en cada sondeo. Sin esto la lista
+   * crecía sin fin hasta el próximo deploy. El panel de Pedidos no lo pasa:
+   * muestra historial.
+   */
+  pruneClosedOlderThanMs?: number;
+}
+
+/** Saca los pedidos cerrados (entregados, cancelados…) creados hace más de `maxAgeMs`. Los abiertos se quedan siempre. */
+export function pruneClosedOrders<T extends { status: string; created_at: string }>(orders: T[], now: number, maxAgeMs: number): T[] {
+  return orders.filter((o) =>
+    (OPEN_ORDER_STATUSES as string[]).includes(o.status)
+    || now - new Date(o.created_at).getTime() <= maxAgeMs);
 }
 
 export type RealtimeConnectionStatus = 'connected' | 'reconnecting' | 'disconnected';
@@ -34,6 +48,7 @@ export function useRealtimeOrders({
   initialOrders,
   onNewOrder,
   onOrderUpdate,
+  pruneClosedOlderThanMs,
 }: UseRealtimeOrdersOptions) {
   // Pedidos online sin cobrar no existen para el restaurante hasta que se
   // pagan (isAwaitingOnlinePayment). No entran a la lista ni a knownIds: cuando
@@ -169,9 +184,22 @@ export function useRealtimeOrders({
         if (!existingIds.has(o.id)) merged.push(o);
       }
       merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      if (pruneClosedOlderThanMs) {
+        const kept = pruneClosedOrders(merged, Date.now(), pruneClosedOlderThanMs);
+        if (kept.length !== merged.length) {
+          const keptIds = new Set(kept.map((o) => o.id));
+          // knownIds se queda (para no tomarlos por nuevos si vuelven); el resto se limpia.
+          for (const o of merged) {
+            if (keptIds.has(o.id)) continue;
+            lastStatusRef.current.delete(o.id);
+            touchedRef.current.delete(o.id);
+          }
+          return kept;
+        }
+      }
       return merged;
     });
-  }, [restaurantId]);
+  }, [restaurantId, pruneClosedOlderThanMs]);
 
   // ── Supabase Realtime subscription ────────────────────────────────────────
 
