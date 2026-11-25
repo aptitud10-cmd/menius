@@ -84,3 +84,41 @@ describe('getStorefrontStats', () => {
     expect(stats.customers.avgTicketReturning).toBe(18);
   });
 });
+
+describe('owner insights', () => {
+  it('ahorro vs apps: 25% delivery, 6% pickup, sobre la comida; mesa y cancelados no cuentan', async () => {
+    const { estimateAppSavings } = await import('@/lib/owner-insights');
+    const base = { status: 'confirmed', payment_method: 'cash', payment_status: null };
+    const r = estimateAppSavings([
+      { ...base, order_type: 'delivery', total: 50, tax_amount: 4, tip_amount: 3, delivery_fee: 3 }, // food 40 → 10
+      { ...base, order_type: 'pickup', total: 20, tax_amount: 0, tip_amount: 0, delivery_fee: 0 }, // 1.20
+      { ...base, order_type: 'dine_in', total: 100 },
+      { ...base, status: 'cancelled', order_type: 'delivery', total: 100 },
+    ]);
+    expect(r).toEqual({ amount: 11.2, orders: 2 });
+  });
+
+  it('ventas perdidas: solo cancelados por no aceptar a tiempo', async () => {
+    const { lostToNotAccepted } = await import('@/lib/owner-insights');
+    const r = lostToNotAccepted([
+      { status: 'cancelled', cancellation_reason: 'not_accepted', total: 18.5 },
+      { status: 'cancelled', cancellation_reason: 'customer_request', total: 40 },
+      { status: 'cancelled', cancellation_reason: 'not_accepted', total: '11.50' },
+    ]);
+    expect(r).toEqual({ orders: 2, amount: 30 });
+  });
+
+  it('tiempo hasta Listo: mediana, hora más lenta con mínimo de pedidos, sin extremos', async () => {
+    const { summarizeReadyTimes } = await import('@/lib/owner-insights');
+    const r = summarizeReadyTimes([
+      { minutes: 10, hour: 12 }, { minutes: 12, hour: 12 }, { minutes: 14, hour: 12 },
+      { minutes: 20, hour: 19 }, { minutes: 24, hour: 19 }, { minutes: 28, hour: 19 },
+      { minutes: 40, hour: 9 }, // sola: no alcanza para su hora
+      { minutes: 600, hour: 19 }, { minutes: 0.2, hour: 12 }, // extremos fuera
+    ])!;
+    expect(r.orders).toBe(7);
+    expect(r.medianMinutes).toBe(20);
+    expect(r.slowestHour).toEqual({ hour: 19, avgMinutes: 24, orders: 3 });
+    expect(r.byHour.map((h) => h.hour)).toEqual([12, 19]);
+  });
+});

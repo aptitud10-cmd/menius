@@ -5,10 +5,12 @@ import { TrendingUp, DollarSign, ShoppingBag, Loader2, Percent, Clock, XCircle, 
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { StorefrontInsights } from '@/components/dashboard/StorefrontInsights';
+import { OwnerHighlights, type OwnerInsights } from '@/components/dashboard/OwnerHighlights';
 import type { StorefrontStats } from '@/lib/storefront-analytics';
 
 interface AnalyticsData {
   storefront?: StorefrontStats | null;
+  insights?: OwnerInsights;
   currency: string;
   summary: {
     totalOrders: number;
@@ -271,6 +273,8 @@ export default function AnalyticsPage() {
         <MiniStat icon={<XCircle className="w-3.5 h-3.5" />} label={t.analytics_cancellationsLabel} value={String(summary.cancelledOrders)} />
         <MiniStat icon={<Flame className="w-3.5 h-3.5" />} label={t.analytics_discountsLabel} value={fmt(summary.totalDiscount)} />
       </div>
+
+      {data.insights && <OwnerHighlights data={data.insights} locale={locale} fmt={fmt} />}
 
       {data.storefront && <StorefrontInsights data={data.storefront} locale={locale} fmt={fmt} />}
 

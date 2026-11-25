@@ -12,17 +12,19 @@ import {
 } from '@/lib/date-utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { getStorefrontStats, type StorefrontStats } from '@/lib/storefront-analytics';
+import { estimateAppSavings, fetchReadyTimes, lostToNotAccepted, type ReadyTimes } from '@/lib/owner-insights';
 
 const logger = createLogger('tenant-analytics');
 
 const STARTER_MAX_DAYS = 30;
 const PRO_MAX_DAYS = 365;
 
-const ORDER_COLUMNS = `id, total, created_at, discount_amount, tax_amount, tip_amount, delivery_fee, order_type, customer_id, ${SALE_FIELDS}`;
+const ORDER_COLUMNS = `id, total, created_at, discount_amount, tax_amount, tip_amount, delivery_fee, order_type, customer_id, cancellation_reason, ${SALE_FIELDS}`;
 
 interface OrderRow extends SaleFields {
   id: string;
   customer_id: string | null;
+  cancellation_reason: string | null;
   total: number | string | null;
   created_at: string;
   discount_amount: number | string | null;
@@ -245,8 +247,21 @@ export async function GET(request: NextRequest) {
       logger.warn('storefront stats failed', { error: err instanceof Error ? err.message : String(err) });
     }
 
+    let readyTimes: ReadyTimes | null = null;
+    try {
+      readyTimes = await fetchReadyTimes(supabase, rid, range, timezone);
+    } catch (err) {
+      logger.warn('ready times failed', { error: err instanceof Error ? err.message : String(err) });
+    }
+    const insights = {
+      appSavings: estimateAppSavings(allOrders),
+      lostNotAccepted: lostToNotAccepted(allOrders),
+      readyTimes,
+    };
+
     return NextResponse.json({
       storefront,
+      insights,
       currency,
       period: {
         days: range.days,
