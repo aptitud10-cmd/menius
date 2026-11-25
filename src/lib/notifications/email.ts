@@ -311,6 +311,8 @@ export function buildOwnerNewOrderEmail(params: {
   dashboardUrl: string;
   notes?: string | null;
   tableNumber?: string | null;
+  /** ISO time of a scheduled order (null/undefined = as soon as possible). */
+  scheduledFor?: string | null;
   locale?: string;
   /** Zona del restaurante: el servidor corre en UTC (12:31 para un pedido de las 07:31 en NY). */
   timezone?: string;
@@ -329,6 +331,7 @@ export function buildOwnerNewOrderEmail(params: {
     dashboardUrl,
     notes,
     tableNumber,
+    scheduledFor,
     locale,
   } = params;
   const en = locale === "en";
@@ -413,6 +416,23 @@ export function buildOwnerNewOrderEmail(params: {
   metaRows.push(
     metaRow(en ? "Type" : "Tipo", pill(en ? ot.en : ot.es, ot.bg, ot.color)),
   );
+  if (scheduledFor) {
+    let when = scheduledFor;
+    try {
+      when = new Date(scheduledFor).toLocaleString(en ? "en-US" : "es-MX", {
+        weekday: "long", day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
+        ...(timezone ? { timeZone: timezone } : {}),
+      });
+    } catch {
+      /* invalid zone: raw ISO is still better than nothing */
+    }
+    metaRows.push(
+      metaRow(
+        en ? "Scheduled for" : "Programado para",
+        `<strong style="color:#b45309;">${esc(when)}</strong>`,
+      ),
+    );
+  }
   if (tableNumber)
     metaRows.push(metaRow(en ? "Table" : "Mesa", esc(tableNumber)));
   if (orderType === "delivery" && deliveryAddress)

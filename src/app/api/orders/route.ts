@@ -1853,6 +1853,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: parsed.data.payment_method || undefined,
         tableNumber: table_name || undefined,
         notes: parsed.data.notes || null,
+        scheduledFor,
         includeUtensils: utensilsRequested(body.include_utensils),
         customerToken: custToken,
         total,

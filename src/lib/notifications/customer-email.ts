@@ -50,6 +50,8 @@ export interface CustomerEmailCtx {
   mapsUrl?: string | null;
   paymentMethod?: string | null;
   paid: boolean;
+  /** ISO time of a scheduled order; null/undefined = as soon as possible. */
+  scheduledFor?: string | null;
   currency: string;
   items: CustomerEmailItem[];
   discount: number;
@@ -130,6 +132,16 @@ export function windowLabel(arrivalMs: number, locale: string, tz?: string | nul
   const mb = b.match(am)?.[0];
   const left = ma && mb && ma.trim().toLowerCase() === mb.trim().toLowerCase() ? a.replace(am, '') : a;
   return isEn(locale) ? `${left}–${b}` : `${left} y ${b}`;
+}
+
+/** "viernes 28 nov, 7:30 p. m." / "Friday, Nov 28, 7:30 PM" in the restaurant's zone. */
+export function scheduledLabel(iso: string, locale: string, tz?: string | null): string {
+  const opts: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' };
+  try {
+    return new Date(iso).toLocaleString(isEn(locale) ? 'en-US' : 'es-MX', { ...opts, ...(tz ? { timeZone: tz } : {}) });
+  } catch {
+    return new Date(iso).toLocaleString(isEn(locale) ? 'en-US' : 'es-MX', opts);
+  }
 }
 
 /** Minutos de viaje del repartidor (misma fórmula que checkout y seguimiento). */
@@ -408,7 +420,12 @@ export function buildReceiptEmail(ctx: CustomerEmailCtx): BuiltEmail {
   const what = ctx.orderType === 'delivery'
     ? (en ? 'the delivery time' : 'la hora de entrega')
     : (en ? 'the pickup time' : 'la hora para recoger');
-  const sub = ctx.orderType === 'dine_in'
+  const scheduled = ctx.scheduledFor && Date.parse(ctx.scheduledFor) > Date.now()
+    ? scheduledLabel(ctx.scheduledFor, ctx.locale, ctx.restaurant.timezone)
+    : null;
+  const sub = scheduled
+    ? (en ? `Scheduled for ${scheduled}. The restaurant will confirm it.` : `Programado para el ${scheduled}. El restaurante te lo confirma.`)
+    : ctx.orderType === 'dine_in'
     ? (en ? "The kitchen will start on it in a moment." : 'La cocina lo empieza en un momento.')
     : (en ? `The restaurant will confirm it in a moment and we'll email you ${what}.` : `El restaurante lo confirma en un momento y te mandamos ${what} por email.`);
   const place = placeLine(ctx);
@@ -438,7 +455,13 @@ export function buildEtaEmail(ctx: CustomerEmailCtx, opts: { readyAtMs?: number 
   let label: string;
   let big: string;
   let subject: string;
-  if (delivery && opts.arrivalMs) {
+  const scheduledMs = Date.parse(ctx.scheduledFor ?? '');
+  if (Number.isFinite(scheduledMs) && scheduledMs > Date.now() && !opts.isUpdate) {
+    // Scheduled order: the day matters as much as the time.
+    big = scheduledLabel(ctx.scheduledFor as string, ctx.locale, tz);
+    label = delivery ? (en ? 'Scheduled delivery' : 'Entrega programada') : (en ? 'Scheduled for' : 'Programado para');
+    subject = en ? `Order #${n} confirmed for ${big}` : `Pedido #${n} confirmado para el ${big}`;
+  } else if (delivery && opts.arrivalMs) {
     big = windowLabel(opts.arrivalMs, ctx.locale, tz);
     label = en ? 'Arrives' : 'Llega entre';
     subject = opts.isUpdate
@@ -457,12 +480,15 @@ export function buildEtaEmail(ctx: CustomerEmailCtx, opts: { readyAtMs?: number 
     label = en ? 'Order accepted' : 'Pedido aceptado';
     subject = en ? `Order #${n} accepted — ${ctx.restaurant.name}` : `Pedido #${n} aceptado — ${ctx.restaurant.name}`;
   }
+  const isScheduled = Number.isFinite(scheduledMs) && scheduledMs > Date.now() && !opts.isUpdate;
   const heroSub = opts.isUpdate
     ? (en ? 'The kitchen needs a few more minutes. Sorry for the wait.' : 'La cocina necesita unos minutos más. Perdón por la espera.')
+    : isScheduled
+    ? (en ? 'The restaurant has it on the schedule.' : 'El restaurante ya lo tiene agendado.')
     : (en ? "We're making your order now." : 'Ya estamos preparando tu pedido.');
   const preheader = opts.isUpdate
     ? (en ? 'Sorry for the wait · here is the new time' : 'Perdón por la espera · aquí está la nueva hora')
-    : `${en ? "We're making it now · " : 'Ya lo estamos preparando · '}${itemsTxt} · ${total}`;
+    : `${isScheduled ? (en ? 'Scheduled · ' : 'Programado · ') : (en ? "We're making it now · " : 'Ya lo estamos preparando · ')}${itemsTxt} · ${total}`;
   const place = placeLine(ctx);
   const blocks = [
     hero(trackerBrand(ctx.restaurant.brandColor), esc(label), esc(big), esc(heroSub)),

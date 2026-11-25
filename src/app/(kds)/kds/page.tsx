@@ -13,7 +13,7 @@ export default async function KDSFullscreenPage() {
     return <PlanUpgradeWall requiredPlan="pro" locale={locale} featureEs="Pantalla de Cocina (KDS)" featureEn="Kitchen Display (KDS)" />;
   }
 
-  const [{ data: restaurant }, { data: orders }, { data: kdsStations }] = await Promise.all([
+  const [{ data: restaurant }, { data: orders }, { data: kdsStations }, { data: stationProducts }] = await Promise.all([
     supabase
       .from('restaurants')
       .select('name, currency, phone, address, slug, tax_label, tax_included, orders_paused_until, busy_extra_minutes, busy_until')
@@ -37,7 +37,13 @@ export default async function KDSFullscreenPage() {
       .order('created_at', { ascending: false })
       .limit(200),
     supabase.from('kds_stations').select('*').eq('restaurant_id', restaurantId).order('position'),
+    supabase.from('products').select('station_id').eq('restaurant_id', restaurantId).not('station_id', 'is', null).limit(5000),
   ]);
+
+  // Only stations with at least one dish: picking an empty one left the
+  // kitchen screen blank (a station created but never assigned).
+  const usedStations = new Set(((stationProducts ?? []) as { station_id: string }[]).map((p) => p.station_id));
+  const activeStations = (kdsStations ?? []).filter((s: { id: string }) => usedStations.has(s.id));
 
   const mappedOrders = (orders ?? []).map((o: any) => ({
     ...o,
@@ -55,7 +61,7 @@ export default async function KDSFullscreenPage() {
       restaurantSlug={restaurant?.slug ?? ''}
       taxLabel={(restaurant as any)?.tax_label ?? undefined}
       taxIncluded={(restaurant as any)?.tax_included ?? false}
-      kdsStations={(kdsStations ?? []) as { id: string; name: string; color: string; position: number }[]}
+      kdsStations={activeStations as { id: string; name: string; color: string; position: number }[]}
       initialPausedUntil={restaurant?.orders_paused_until ?? null}
         initialBusy={{ extra: Number(restaurant?.busy_extra_minutes) || 0, until: restaurant?.busy_until ?? null }}
     />

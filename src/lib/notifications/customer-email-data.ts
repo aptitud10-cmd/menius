@@ -39,7 +39,7 @@ export interface CustomerEmailOrder {
 const ORDER_SELECT = `
   id, restaurant_id, order_number, status, customer_name, customer_email, customer_locale, customer_token, customer_id,
   order_type, payment_method, payment_status, total, tax_amount, tip_amount, delivery_fee, discount_amount,
-  delivery_address, delivery_lat, delivery_lng, table_name, estimated_ready_minutes, prepared_at, created_at,
+  delivery_address, delivery_lat, delivery_lng, table_name, estimated_ready_minutes, prepared_at, created_at, scheduled_for,
   driver_name, cancellation_reason, batch_id, batch_seq, driver_at_door_at,
   restaurants ( name, slug, address, phone, logo_url, email, notifications_enabled, timezone, currency, locale,
     tax_label, tax_rate, tax_included, latitude, longitude, brand_color )
@@ -130,6 +130,7 @@ export async function loadCustomerEmailOrder(orderId: string): Promise<CustomerE
     mapsUrl: address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.name ?? ''} ${address}`)}` : null,
     paymentMethod: (o.payment_method as string | null) ?? null,
     paid: o.payment_status === 'paid',
+    scheduledFor: (o.scheduled_for as string | null) ?? null,
     currency: String(r.currency ?? 'USD'),
     items,
     // discount_amount ya incluye la lealtad (order-pricing: totalDiscountAmt).

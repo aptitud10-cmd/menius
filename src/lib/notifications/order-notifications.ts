@@ -40,6 +40,8 @@ interface OrderNotificationPayload {
   paymentMethod?: string;
   tableNumber?: string | null;
   notes?: string | null;
+  /** ISO time of a scheduled order; null = as soon as possible. */
+  scheduledFor?: string | null;
   includeUtensils?: boolean;
   /** View-only customer_token — appended to tracking links so the customer sees
    *  their own PII (address/name) when opening from their email. */
@@ -115,7 +117,7 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
  * Non-blocking — errors are logged but don't affect the order flow.
  */
 export async function notifyNewOrder(payload: OrderNotificationPayload) {
-  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, tableNumber, notes, total, items } = payload;
+  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, deliveryAddress, tableNumber, notes, scheduledFor, total, items } = payload;
 
   try {
     let restaurant = restaurantData ?? null;
@@ -182,11 +184,13 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         customerPhone,
         customerEmail,
         orderType: orderType ?? 'dine_in',
+        deliveryAddress,
         total: totalFormatted,
         items: richItems,
         dashboardUrl: `${appUrl}/app/orders`,
         notes,
         tableNumber,
+        scheduledFor,
         locale,
         timezone: restaurant.timezone ?? undefined,
       });
@@ -300,7 +304,17 @@ async function sendStatusEmail(opts: {
     } else if (order.estimatedReadyMinutes && order.estimatedReadyMinutes > 0) {
       readyAtMs = now + order.estimatedReadyMinutes * 60_000;
     }
-    const arrivalMs = order.ctx.orderType === 'delivery' && readyAtMs != null ? readyAtMs + travelMs : null;
+    let arrivalMs = order.ctx.orderType === 'delivery' && readyAtMs != null ? readyAtMs + travelMs : null;
+    // Scheduled order: never promise it before the time the customer chose.
+    const scheduledMs = Date.parse(order.ctx.scheduledFor ?? '');
+    if (Number.isFinite(scheduledMs) && scheduledMs > now) {
+      if (order.ctx.orderType === 'delivery') {
+        arrivalMs = Math.max(arrivalMs ?? scheduledMs, scheduledMs);
+        readyAtMs = arrivalMs - travelMs;
+      } else {
+        readyAtMs = Math.max(readyAtMs ?? scheduledMs, scheduledMs);
+      }
+    }
     email = buildEtaEmail(order.ctx, { readyAtMs, arrivalMs, isUpdate: opts.etaUpdate });
   } else if (kind === 'ready' || kind === 'ready_reminder') {
     email = buildReadyEmail(order.ctx, { reminder: kind === 'ready_reminder' });
@@ -452,7 +466,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
     .from('orders')
     .select(`
       id, restaurant_id, order_number, total, customer_name, customer_email, customer_phone,
-      order_type, delivery_address,
+      order_type, delivery_address, notes, table_name, scheduled_for,
       restaurants ( name, slug, currency, locale, notification_email, notifications_enabled, timezone )
     `)
     .eq('id', orderId)
@@ -465,6 +479,9 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
     customer_phone: string | null;
     order_type: string | null;
     delivery_address: string | null;
+    notes: string | null;
+    table_name: string | null;
+    scheduled_for: string | null;
     restaurants: RestaurantRow[] | RestaurantRow | null;
   };
   const typedOrder = order as unknown as OrderRow;
@@ -519,6 +536,9 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
       customerEmail: order.customer_email ?? undefined,
       orderType: typedOrder.order_type ?? 'dine_in',
       deliveryAddress: typedOrder.delivery_address ?? undefined,
+      notes: typedOrder.notes?.trim() || null,
+      tableNumber: typedOrder.table_name ?? null,
+      scheduledFor: typedOrder.scheduled_for ?? null,
       total: totalFormatted,
       items: emailItems,
       dashboardUrl: `${appUrl}/app/orders`,

@@ -141,3 +141,16 @@ describe('customer emails', () => {
     expect(prettyPhone('+17184295188')).toBe('(718) 429-5188');
   });
 });
+
+describe('pedidos programados', () => {
+  it('recibo y email de hora muestran el día y la hora programados', async () => {
+    const { buildReceiptEmail: receipt, buildEtaEmail: eta } = await import('@/lib/notifications/customer-email');
+    const tomorrow = new Date(Date.now() + 26 * 3600_000).toISOString();
+    const ctx = { ...base, scheduledFor: tomorrow };
+    const r = receipt(ctx);
+    expect(r.html).toMatch(/Scheduled for|Programado para/);
+    const e = eta(ctx, { readyAtMs: Date.now() + 15 * 60_000 });
+    expect(e.subject).toMatch(/confirmed for|confirmado para/);
+    expect(e.html).not.toMatch(/We're making your order now|Ya estamos preparando tu pedido/);
+  });
+});
