@@ -4462,7 +4462,11 @@ export function MenuShell({
                     </section>
                   )}
 
-                  {/* Powered by MENIUS — todas las tiendas */}
+                  {/* Powered by MENIUS — todas las tiendas salvo Pro que lo oculta en Ajustes.
+                      Oculto deja el mismo alto para que el final del menú no cambie. */}
+                  {restaurant.hide_menius_branding ? (
+                    <div className="mt-8 mb-4 h-5" aria-hidden="true" />
+                  ) : (
                   <div className="mt-8 mb-4 flex justify-center">
                     <a
                       href="https://menius.app?ref=menu-footer"
@@ -4481,6 +4485,7 @@ export function MenuShell({
                       </span>
                     </a>
                   </div>
+                  )}
                 </div>
                 {/* end px wrapper */}
               </main>

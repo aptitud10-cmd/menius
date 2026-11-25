@@ -434,10 +434,20 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       ...rest
     } = restaurant as Record<string, unknown>;
     // The checkout only checks that a Stripe account exists — never send the id.
+    // Pro can hide the "Powered by MENIUS" footer (Settings). Paid tiers only:
+    // onlinePaymentsAllowed is false exactly on the free tier, so a lapsed
+    // subscription brings the footer back without touching the saved choice.
+    const overrides = (restaurant as { config_overrides?: unknown }).config_overrides;
+    const hideMeniusBranding =
+      onlinePaymentsAllowed &&
+      !!overrides &&
+      typeof overrides === 'object' &&
+      (overrides as Record<string, unknown>).hide_menius_branding === true;
     const publicRestaurant = {
       ...rest,
       stripe_account_id: stripeAccountId ? 'connected' : null,
       online_payments_allowed: onlinePaymentsAllowed,
+      hide_menius_branding: hideMeniusBranding,
     };
 
     return {

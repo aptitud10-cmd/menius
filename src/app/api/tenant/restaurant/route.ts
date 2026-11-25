@@ -71,6 +71,27 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
+    // "Powered by MENIUS" en la tienda: Pro puede ocultarlo. Se guarda dentro de
+    // config_overrides (jsonb) sin pisar las otras claves que haya.
+    if (body.hide_menius_branding !== undefined) {
+      if (typeof body.hide_menius_branding !== 'boolean') {
+        return NextResponse.json({ error: 'INVALID_VALUE' }, { status: 400 });
+      }
+      if (body.hide_menius_branding && !(await hasPlanAccess(tenant.restaurantId, 'pro'))) {
+        return NextResponse.json({ error: 'BRANDING_REQUIRES_PRO' }, { status: 403 });
+      }
+      const { data: current, error: readError } = await supabase
+        .from('restaurants')
+        .select('config_overrides')
+        .eq('id', tenant.restaurantId)
+        .maybeSingle();
+      if (readError) return NextResponse.json({ error: readError.message }, { status: 500 });
+      const prev = current?.config_overrides;
+      const base =
+        prev && typeof prev === 'object' && !Array.isArray(prev) ? (prev as Record<string, unknown>) : {};
+      updates.config_overrides = { ...base, hide_menius_branding: body.hide_menius_branding };
+    }
+
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'NO_CHANGES' }, { status: 400 });
     }

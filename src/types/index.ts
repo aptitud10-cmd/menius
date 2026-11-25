@@ -49,6 +49,10 @@ export interface Restaurant {
   wompi_connected?: boolean;
   /** Derived in menu-data (not a DB column): the plan allows online payments. */
   online_payments_allowed?: boolean;
+  /** Owner/internal flags (jsonb). `hide_menius_branding` lives here. */
+  config_overrides?: Record<string, unknown> | null;
+  /** Derived in menu-data (not a DB column): paid plan + owner chose to hide the footer. */
+  hide_menius_branding?: boolean;
   is_active?: boolean;
   created_at: string;
   // CFDI / fiscal data (Mexico)

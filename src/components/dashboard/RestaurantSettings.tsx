@@ -121,6 +121,29 @@ export function RestaurantSettings({
   }, [brandColor]);
   const logoRef = useRef<HTMLInputElement>(null);
 
+  // "Powered by MENIUS" al pie de la tienda: Pro lo puede ocultar. Se guarda al tocar.
+  const [hideBranding, setHideBranding] = useState<boolean>(
+    initialData.config_overrides?.hide_menius_branding === true,
+  );
+  const [brandingSaving, setBrandingSaving] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const toggleBranding = async () => {
+    const next = !hideBranding;
+    setHideBranding(next);
+    setBrandingSaving('saving');
+    try {
+      const res = await fetch('/api/tenant/restaurant', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hide_menius_branding: next }),
+      });
+      if (!res.ok) setHideBranding(!next);
+      setBrandingSaving(res.ok ? 'saved' : 'error');
+    } catch {
+      setHideBranding(!next);
+      setBrandingSaving('error');
+    }
+  };
+
   const [coverUrl, setCoverUrl] = useState(initialData.cover_image_url ?? '');
   const [uploadingCover, setUploadingCover] = useState(false);
   const coverRef = useRef<HTMLInputElement>(null);
@@ -741,6 +764,50 @@ export function RestaurantSettings({
         domainVerified={!!(initialData as any).domain_verified}
         onChange={(v) => handleChange('custom_domain', v.toLowerCase().replace(/[^a-z0-9.\-]/g, ''))}
       />
+
+      {/* "Powered by MENIUS" footer */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-semibold text-sm text-gray-900">
+              {locale === 'en' ? 'Hide "Powered by MENIUS"' : 'Ocultar "Powered by MENIUS"'}
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              {onlinePaymentsAllowed
+                ? locale === 'en'
+                  ? 'Removes the small MENIUS line at the bottom of your online menu.'
+                  : 'Quita la línea pequeña de MENIUS al final de tu menú online.'
+                : locale === 'en'
+                  ? 'Available on the Pro plan.'
+                  : 'Disponible en el plan Pro.'}
+            </p>
+            {brandingSaving === 'error' && (
+              <p className="text-xs text-red-600 mt-1">
+                {locale === 'en' ? 'Could not save. Try again.' : 'No se pudo guardar. Intenta de nuevo.'}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hideBranding}
+            aria-label={locale === 'en' ? 'Hide Powered by MENIUS' : 'Ocultar Powered by MENIUS'}
+            disabled={!onlinePaymentsAllowed || brandingSaving === 'saving'}
+            onClick={toggleBranding}
+            className={cn(
+              'relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50',
+              hideBranding ? 'bg-emerald-600' : 'bg-gray-300',
+            )}
+          >
+            <span
+              className={cn(
+                'inline-block h-5 w-5 rounded-full bg-white shadow transition-transform',
+                hideBranding ? 'translate-x-6' : 'translate-x-1',
+              )}
+            />
+          </button>
+        </div>
+      </div>
 
       {/* Basic info */}
       <div id="profile" className="bg-white rounded-2xl border border-gray-200 p-5 scroll-mt-20">
