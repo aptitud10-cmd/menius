@@ -20,6 +20,7 @@ import { PrinterConfig } from '@/lib/printing/PrinterConfig';
 import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import type { Order } from '@/types';
 import { cn } from '@/lib/utils';
+import { escapeHtml } from '@/lib/sanitize';
 import { isRevenueStatus } from '@/lib/order-state';
 import { C, RAISED, counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
 import {
@@ -2559,9 +2560,9 @@ export function CounterView({
                     .url{font-size:7px;word-break:break-all;margin-top:4px;color:#333}
                     .hint{font-size:9px;color:#555;margin-top:6px}</style></head>
                     <body><div class="title">🛵 ${t.en ? 'DRIVER SHEET' : 'FICHA DEL REPARTIDOR'}</div>
-                    <div>${driverModal.address ?? ''}</div>
-                    <div class="qr"><img src="${qrSrc}" width="180" height="180" /></div>
-                    <div class="url">${trackingUrl}</div>
+                    <div>${escapeHtml(driverModal.address ?? '')}</div>
+                    <div class="qr"><img src="${escapeHtml(qrSrc)}" width="180" height="180" /></div>
+                    <div class="url">${escapeHtml(trackingUrl)}</div>
                     <div class="hint">${t.en ? 'Scan to start live tracking' : 'Escanea para activar rastreo'}</div>
                     <script>window.onload=()=>{window.print();window.close();}</script></body></html>`;
                   const w = window.open('', '_blank', 'width=320,height=480');

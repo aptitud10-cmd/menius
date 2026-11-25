@@ -15,6 +15,7 @@ import {
   type ReceiptData,
 } from '@/lib/thermal-printer';
 import { formatPrice, cn } from '@/lib/utils';
+import { escapeHtml } from '@/lib/sanitize';
 import type { Order } from '@/types';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
@@ -386,6 +387,9 @@ export async function quickPrintOrder(
 }
 
 function buildBrowserReceiptHtml(data: ReceiptData, isEn = false): string {
+  // Everything typed by a customer or a restaurant goes into this HTML as text,
+  // never as markup.
+  const e = (v: unknown) => escapeHtml(String(v ?? ''));
   const fmt = (n: number) => {
     try { return new Intl.NumberFormat(isEn ? 'en-US' : 'es-MX', { style: 'currency', currency: data.currency }).format(n); }
     catch { return `$${n.toFixed(2)}`; }
@@ -399,39 +403,39 @@ function buildBrowserReceiptHtml(data: ReceiptData, isEn = false): string {
 
   const itemsHtml = data.items.map(item => `
     <div style="margin-bottom:4px">
-      <b>${item.qty}x ${item.name}</b>
+      <b>${item.qty}x ${e(item.name)}</b>
       <div style="display:flex;justify-content:space-between">
         <span>&nbsp;&nbsp;${fmt(item.unitPrice)} ${isEn ? 'ea.' : 'c/u'}</span>
         <span>${fmt(item.lineTotal)}</span>
       </div>
-      ${item.notes ? `<div style="font-size:10px;color:#666;padding-left:16px">&gt; ${item.notes}</div>` : ''}
+      ${item.notes ? `<div style="font-size:10px;color:#666;padding-left:16px">&gt; ${e(item.notes)}</div>` : ''}
     </div>
   `).join('');
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${isEn ? 'Order' : 'Orden'} #${data.orderNumber}</title>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${isEn ? 'Order' : 'Orden'} #${e(data.orderNumber)}</title>
     <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:4mm}
     .c{text-align:center}.b{font-weight:bold}.bg{font-size:16px}.ln{border-top:1px dashed #000;margin:6px 0}
     .r{display:flex;justify-content:space-between}.mt{margin-top:4px}
     @media print{body{width:80mm;margin:0;padding:2mm}@page{size:80mm auto;margin:0}}</style></head>
     <body>
-    <div class="c b bg">${data.restaurantName}</div>
-    ${data.restaurantAddress ? `<div class="c">${data.restaurantAddress}</div>` : ''}
-    ${data.restaurantPhone ? `<div class="c">Tel: ${data.restaurantPhone}</div>` : ''}
+    <div class="c b bg">${e(data.restaurantName)}</div>
+    ${data.restaurantAddress ? `<div class="c">${e(data.restaurantAddress)}</div>` : ''}
+    ${data.restaurantPhone ? `<div class="c">Tel: ${e(data.restaurantPhone)}</div>` : ''}
     <div class="ln"></div>
-    <div class="c b bg">${isEn ? 'ORDER' : 'ORDEN'} #${data.orderNumber}</div>
-    <div class="c mt">${data.date}</div>
+    <div class="c b bg">${isEn ? 'ORDER' : 'ORDEN'} #${e(data.orderNumber)}</div>
+    <div class="c mt">${e(data.date)}</div>
     <div class="ln"></div>
-    ${data.customerName ? `<div class="r"><span>${isEn ? 'Customer' : 'Cliente'}:</span><span>${data.customerName}</span></div>` : ''}
-    ${data.customerPhone ? `<div class="r"><span>${isEn ? 'Phone' : 'Tel'}:</span><span>${data.customerPhone}</span></div>` : ''}
-    ${data.orderType ? `<div class="r"><span>${isEn ? 'Type' : 'Tipo'}:</span><span>${orderTypeLabels[data.orderType] || data.orderType}</span></div>` : ''}
-    ${data.tableName ? `<div class="r"><span>${isEn ? 'Table' : 'Mesa'}:</span><span>${data.tableName}</span></div>` : ''}
+    ${data.customerName ? `<div class="r"><span>${isEn ? 'Customer' : 'Cliente'}:</span><span>${e(data.customerName)}</span></div>` : ''}
+    ${data.customerPhone ? `<div class="r"><span>${isEn ? 'Phone' : 'Tel'}:</span><span>${e(data.customerPhone)}</span></div>` : ''}
+    ${data.orderType ? `<div class="r"><span>${isEn ? 'Type' : 'Tipo'}:</span><span>${e(orderTypeLabels[data.orderType] || data.orderType)}</span></div>` : ''}
+    ${data.tableName ? `<div class="r"><span>${isEn ? 'Table' : 'Mesa'}:</span><span>${e(data.tableName)}</span></div>` : ''}
     <div class="ln"></div>
     ${itemsHtml}
     <div class="ln"></div>
     ${data.tip && data.tip > 0 ? `<div class="r"><span>${isEn ? 'Tip' : 'Propina'}</span><span>${fmt(data.tip)}</span></div>` : ''}
-    ${data.tax && data.tax > 0 ? `<div class="r"><span>${data.taxLabel ?? 'Tax'}${data.taxIncluded ? ' (inc.)' : ''}</span><span>${fmt(data.tax)}</span></div>` : ''}
+    ${data.tax && data.tax > 0 ? `<div class="r"><span>${e(data.taxLabel ?? 'Tax')}${data.taxIncluded ? ' (inc.)' : ''}</span><span>${fmt(data.tax)}</span></div>` : ''}
     <div class="r b bg"><span>TOTAL</span><span>${fmt(data.total)}</span></div>
-    ${data.notes ? `<div class="ln"></div><div>${isEn ? 'Notes' : 'Notas'}: ${data.notes}</div>` : ''}
+    ${data.notes ? `<div class="ln"></div><div>${isEn ? 'Notes' : 'Notas'}: ${e(data.notes)}</div>` : ''}
     <div class="ln"></div>
     <div class="c mt">${isEn ? 'Thank you for your order!' : '¡Gracias por tu compra!'}</div>
     <div class="c" style="font-size:9px;color:#999">Powered by MENIUS</div>
