@@ -23,11 +23,13 @@ import {
 } from './data';
 
 /**
- * Markup that exists only in the portrait-phone "app" layout: dock, Menu / Visit sheets, hero
- * extras and the story-led sections (copy approved 2026-11-24; mockup in
- * scripts/.product-output/app-mobile/v3). Everything here is
- * `display:none` outside `APP_MQ` (see buccaneer-v2.css), so tablet and desktop never see it
- * and its images (lazy) are never requested there. Behavior lives in AppBehavior.tsx.
+ * The story-led page (copy approved 2026-11-24; mockup in scripts/.product-output/app-mobile/v3):
+ * hero extras (chip, seal, sub + buttons) and the sections Story, Where to start, A day, Reviews,
+ * Catering, Visit. They render at every size and each size lays them out in buccaneer-v2.css
+ * (portrait phones: APP LAYOUT; tablet and desktop: STORY-LED LAYOUT). Only the dock and the
+ * Menu / Visit sheets are phone-only: `display:none` outside `APP_MQ`. Phones in landscape keep
+ * the older chapters. Images are lazy, so what a layout hides is never requested. Behavior lives
+ * in AppBehavior.tsx.
  */
 
 const ICON = {
@@ -70,8 +72,16 @@ function CloseIcon() {
   );
 }
 
-/** D05 (calamari in the jukebox booth) cut to the 4:5 scene box; stands in when the hero already shows the scene's own dish. */
+/** D05 (calamari in the jukebox booth) cut to the 4:5 scene box; stands in on phones when the hero already shows the scene's own dish. Tablet and desktop use S05b there (D05 shows a third-party ad card). */
 const BOOTH_SCENE = '/buccaneer/v2/app-scene-booth.webp';
+
+/**
+ * `sizes` of the scene photos: horizontal scenes (1, 3), the tall one (2) and the last one (4).
+ * Phones: 85vw as before. On a tablet the boxes are ~60% of the width (they bleed off the edge).
+ */
+const SCENE_WIDE = '(max-width: 719px) 85vw, (max-width: 1023px) 62vw, (max-width: 1919px) 55vw, 800px';
+const SCENE_TALL = '(max-width: 719px) 85vw, 480px';
+const SCENE_LAST = '(max-width: 719px) 85vw, (max-width: 1023px) 62vw, 40vw';
 
 // --------------------------------------------------------------------- dock
 export function AppDock() {
@@ -355,7 +365,7 @@ export function AppHeroText() {
   );
 }
 
-/** next/image filling its box; lazy (app sections never render outside APP_MQ). */
+/** next/image filling its box; lazy. */
 function Img({
   src,
   alt,
@@ -397,7 +407,7 @@ export function AppStory() {
       </p>
       <figure className="b2-story__fig">
         <div className="b2-story__ph">
-          <Photo slot="S05a" sizes="80vw" />
+          <Photo slot="S05a" sizes="(max-width: 719px) 80vw, 800px" />
         </div>
         <figcaption>The counter, Astoria Blvd.</figcaption>
       </figure>
@@ -450,7 +460,7 @@ function DishBig({ d, price }: { d: Fav; price: string }) {
   return (
     <article className="b2-dish b2-dish--big">
       <div className="b2-dish__ph">
-        <Img src={d.img} alt={d.name} sizes="100vw" contain />
+        <Img src={d.img} alt={d.name} sizes="(max-width: 719px) 100vw, 492px" contain />
         {'tag' in d ? <span className="b2-dish__tag">{d.tag}</span> : null}
       </div>
       <div className="b2-dish__b">
@@ -471,7 +481,7 @@ function DishSm({ d, price }: { d: Fav; price: string }) {
   return (
     <article className="b2-dish b2-dish--sm">
       <div className="b2-dish__ph">
-        <Img src={d.img} alt={d.name} sizes="50vw" contain />
+        <Img src={d.img} alt={d.name} sizes="(max-width: 719px) 50vw, 300px" contain />
       </div>
       <h3 className="b2-dish__n">{d.name}</h3>
       <p className="b2-dish__d">{d.line}</p>
@@ -579,7 +589,7 @@ export function AppDays() {
         pal="day"
         side="l"
       >
-        <Photo slot="D02" file="/buccaneer/v2/app-scene-morning.webp" sizes="85vw" />
+        <Photo slot="D02" file="/buccaneer/v2/app-scene-morning.webp" sizes={SCENE_WIDE} />
       </Scene>
       <Scene
         n={2}
@@ -591,13 +601,16 @@ export function AppDays() {
         pal="day"
         side="r"
       >
-        {/* One burger per page: at midday the hero already shows it, so a booth takes its place
-            (not the counter: the story right above already shows it). */}
+        {/* One burger per page: at midday the hero already shows it, so a counter place setting
+            (S05b; on phones a booth, D05) takes its place. */}
         <div className="b2-sv b2-sv--morning b2-sv--evening b2-sv--night b2-fill">
-          <Photo slot="D04" file="/buccaneer/v2/app-scene-lunch.webp" sizes="85vw" />
+          <Photo slot="D04" file="/buccaneer/v2/app-scene-lunch.webp" sizes={SCENE_TALL} />
         </div>
-        <div className="b2-sv b2-sv--midday b2-fill">
-          <Photo slot="D05" file={BOOTH_SCENE} sizes="85vw" />
+        <div className="b2-sv b2-sv--midday b2-fill b2-app-only">
+          <Photo slot="D05" file={BOOTH_SCENE} sizes="(max-width: 719px) 85vw, 480px" />
+        </div>
+        <div className="b2-sv b2-sv--midday b2-fill b2-wide-only">
+          <Photo slot="S05b" sizes="(max-width: 719px) 85vw, 480px" />
         </div>
       </Scene>
       <Scene
@@ -610,16 +623,20 @@ export function AppDays() {
         pal="yolk"
         side="l"
       >
-        {/* In the evening the hero already shows the lobster: the booth takes its place. */}
+        {/* In the evening the hero already shows the lobster: a different photo takes its place. */}
         <div className="b2-sv b2-sv--morning b2-sv--midday b2-sv--night b2-fill">
-          <Img
-            src="/buccaneer/v2/app-scene-dinner.webp"
-            alt="A booth table set for dinner: broiled lobster tails and a glass of white wine"
-            sizes="85vw"
+          <Photo
+            slot="D06"
+            file="/buccaneer/v2/app-scene-dinner.webp"
+            position="50% 85%"
+            sizes={SCENE_WIDE}
           />
         </div>
-        <div className="b2-sv b2-sv--evening b2-fill">
-          <Photo slot="D05" file={BOOTH_SCENE} sizes="85vw" />
+        <div className="b2-sv b2-sv--evening b2-fill b2-app-only">
+          <Photo slot="D05" file={BOOTH_SCENE} sizes="(max-width: 719px) 85vw, 800px" />
+        </div>
+        <div className="b2-sv b2-sv--evening b2-fill b2-wide-only">
+          <Photo slot="S05b" position="50% 60%" sizes={SCENE_WIDE} />
         </div>
       </Scene>
       <Scene
@@ -632,7 +649,7 @@ export function AppDays() {
         pal="sign"
         side="r"
       >
-        <Photo slot="S06" sizes="85vw" />
+        <Photo slot="S06" sizes={SCENE_LAST} />
       </Scene>
     </section>
   );
@@ -707,7 +724,7 @@ export function AppCatering() {
   return (
     <section className="b2-as b2-acat" data-pal="yolk" aria-labelledby="b2-acat-t">
       <div className="b2-acat__ph">
-        <Photo slot="S04" sizes="100vw" />
+        <Photo slot="S04" sizes="(max-width: 719px) 100vw, 700px" rawWide />
       </div>
       <div className="b2-acat__b">
         <p className="b2-eyebrow">Parties, offices &amp; gifts</p>
@@ -732,7 +749,7 @@ export function AppVisit() {
     <section className="b2-as b2-avisit" data-pal="sign" aria-labelledby="b2-avisit-t">
       {/* At night the hero is already the facade: no second one. */}
       <div className="b2-sv b2-sv--morning b2-sv--midday b2-sv--evening b2-avisit__ph">
-        <Photo slot="S02" sizes="100vw" />
+        <Photo slot="S02" sizes="(max-width: 1023px) 100vw, 66vw" rawWide />
       </div>
       <div className="b2-avisit__b">
         <p className="b2-eyebrow b2-eyebrow--rule">Visit</p>

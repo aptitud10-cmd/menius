@@ -8,6 +8,8 @@
      @media (min-width:1024px) and (min-height:501px), (min-width:1280px) ... "wide"
                                          (T2 split + desktop share hero/Morning/Midday)
      @media (min-width:1280px) ......... desktop
+     APP LAYOUT (portrait phones) and STORY-LED LAYOUT (tablet + desktop, last block) lay out
+     the same story-led markup (AppMobile.tsx): the second one re-declares the shared look.
    Only transform / opacity are ever animated. No glow, no shadows, no blur.
    ========================================================================== */
 
@@ -2446,7 +2448,8 @@
    landscape never match, so none of this touches them. Same query in
    data.ts (APP_MQ) and AppBehavior.tsx. Only transform / opacity animate.
    =========================================================================== */
-/* markup that exists only for the app layout: hidden everywhere else */
+/* markup that exists for the app layout: hidden by default. Tablet and desktop show the story-led
+   blocks (.b2-chip stays phone-only) in the STORY-LED LAYOUT block at the end of this file. */
 .b2-dock,
 .b2-sheet,
 .b2-scrim,
@@ -3609,5 +3612,1648 @@
   }
   .b2-scrim:not([hidden]) {
     transition: none;
+  }
+}
+
+/* ===========================================================================
+   STORY-LED LAYOUT — tablet (720–1023) and desktop (>= 1024)
+   DESIGN_TABLET_APP_BUCCANEER_V2.md + DESIGN_DESKTOP_APP_BUCCANEER_V2.md (2026-11-25).
+   Same copy, same order as the phone page (Hero > Story > Where to start > A day >
+   Reviews > Catering > Visit > Close > footer); each size lays out the same markup
+   (AppMobile.tsx) its own way. The Mornings / Lunchtime / Dinner / After dark chapters,
+   the phrase and the old Visit stay in the DOM for phones in landscape and are hidden here.
+   Nothing above is edited: the phone rules live inside APP_MQ and never reach these sizes
+   (so the shared look below is declared again, once, for tablet + desktop).
+   Only transform / opacity animate (nothing new does).
+   =========================================================================== */
+
+/* Variant markup that exists for one family of layouts only (see AppDays in AppMobile.tsx):
+   on phones D05 (the booth) stands in; tablet and desktop get S05b because D05 shows a
+   third-party ad card. [data-bd-state] keeps these above the .b2-sv state rules. */
+@media not all and (max-width: 719px) and (min-height: 501px) {
+  .b2-root[data-bd-state] .b2-sv.b2-app-only {
+    display: none;
+  }
+}
+@media (max-width: 719px) and (min-height: 501px) {
+  .b2-root[data-bd-state] .b2-sv.b2-wide-only {
+    display: none;
+  }
+}
+
+/* ---- shared by tablet and desktop: what shows, what hides, the type system --------- */
+@media (min-width: 720px) and (min-height: 501px), (min-width: 1280px) {
+  .b2-root {
+    --hdr-total: calc(var(--hdr-h) + env(safe-area-inset-top));
+    --nc: 8; /* grid columns of the story sections (12 from 1024) */
+    --cw: calc((100vw - var(--gl) - var(--gr) - 7 * var(--gut)) / 8); /* one column */
+  }
+  .b2-root .b2-morning,
+  .b2-root .b2-mid,
+  .b2-root .b2-eve,
+  .b2-root .b2-night,
+  .b2-root .b2-visit,
+  .b2-root .b2-phrase,
+  .b2-root .b2-bar,
+  .b2-root .b2-close .b2-cards,
+  .b2-root .b2-close__cap,
+  .b2-root .b2-foot__data > span,
+  .b2-root .b2-foot__data > a:not(.b2-foot__ig) {
+    display: none;
+  }
+  .b2-root .b2-foot__ig {
+    display: inline-flex;
+  }
+  .b2-root .b2-as {
+    display: block;
+    background: var(--g);
+    color: var(--ink);
+    --hair: color-mix(in srgb, var(--ink) 22%, transparent);
+  }
+  /* underlines are never red: Boulevard on Paper / Yolk, Yolk on Boulevard (Pedro, 2026-11-25) */
+  .b2-root .b2-as[data-pal='day'],
+  .b2-root .b2-as [data-pal='day'],
+  .b2-root .b2-as[data-pal='yolk'],
+  .b2-root .b2-as [data-pal='yolk'] {
+    --acc: var(--b2-bou);
+  }
+  .b2-root .b2-as[data-pal='sign'],
+  .b2-root .b2-as [data-pal='sign'] {
+    --acc: var(--b2-yolk);
+  }
+  .b2-root .b2-photo--contain {
+    object-fit: contain;
+  }
+
+  /* sentence case, no wide tracking */
+  .b2-root .b2-eyebrow {
+    font-weight: 600;
+    font-size: var(--a-eb);
+    line-height: 1.4;
+    letter-spacing: 0;
+    color: var(--ink2);
+  }
+  .b2-root .b2-eyebrow--rule {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .b2-root .b2-eyebrow--rule::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hair);
+  }
+  .b2-root .b2-ah2 {
+    margin-top: 20px;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: var(--a-h2);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .b2-root .b2-ah3 {
+    margin-top: 12px;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: var(--a-h3);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .b2-root .b2-alede {
+    margin-top: 14px;
+    max-width: 46ch;
+    font-size: var(--a-lede);
+    line-height: 1.5;
+    color: var(--ink2);
+    text-wrap: pretty;
+  }
+  /* inline-block, not flex: one continuous underline under text + arrow; 44px+ tall */
+  .b2-root .b2-alnk,
+  .b2-root .b2-dish__o {
+    display: inline-block;
+    padding: 14px 0;
+    font-weight: 600;
+    font-size: var(--a-link);
+    line-height: 1.2;
+    text-decoration: underline;
+    text-decoration-color: var(--acc);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+  }
+  .b2-root .b2-alnk:active,
+  .b2-root .b2-dish__o:active {
+    background: color-mix(in srgb, var(--ink) 10%, transparent);
+  }
+  .b2-root .b2-alnk > span,
+  .b2-root .b2-dish__o > span {
+    display: inline-block;
+    transition: transform 0.16s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .b2-root .b2-abtn {
+    --sv-d: inline-flex;
+    height: 56px;
+    padding: 0 24px;
+    font-size: var(--a-btn);
+  }
+  .b2-root .b2-abtn:not(.b2-sv) {
+    display: inline-flex;
+  }
+
+  /* ---- the 50-year seal (decorative) */
+  .b2-root .b2-seal {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    width: var(--sd);
+    height: var(--sd);
+    border-radius: 50%;
+    background: var(--b2-yolk);
+    color: var(--b2-bou);
+  }
+  /* at night Yolk is only for what you tap: the seal turns Paper */
+  .b2-root[data-bd-state='night'] .b2-seal {
+    background: var(--b2-paper);
+  }
+  .b2-root .b2-seal svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .b2-root .b2-seal text {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 9.4px; /* in viewBox units: scales with the seal */
+    letter-spacing: 0.16em;
+    fill: var(--b2-bou);
+  }
+  .b2-root .b2-seal__n {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: calc(var(--sd) * 0.346);
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+  }
+  .b2-root .b2-seal__y {
+    margin-top: 1px;
+    font-weight: 600;
+    font-size: calc(var(--sd) * 0.096);
+    line-height: 1.2;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* ---- Story */
+  .b2-root .b2-story {
+    display: grid;
+    grid-template-columns: repeat(var(--nc), minmax(0, 1fr));
+    grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
+    column-gap: var(--gut);
+    padding: var(--a-pad) var(--gr) var(--a-pad) var(--gl);
+  }
+  /* day: the hero above is Paper too, so a rule marks the cut; night: a clean cut to Paper */
+  .b2-root[data-bd-state='morning'] .b2-story,
+  .b2-root[data-bd-state='midday'] .b2-story,
+  .b2-root[data-bd-state='evening'] .b2-story {
+    border-top: 1px solid var(--hair);
+  }
+  .b2-root .b2-story > .b2-eyebrow {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .b2-root .b2-story .b2-ah2 {
+    grid-row: 2;
+    max-width: 14ch;
+  }
+  .b2-root .b2-story__p {
+    margin-top: 20px;
+    max-width: 58ch;
+    font-size: var(--a-sp);
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+  .b2-root .b2-story__p--lead {
+    grid-row: 3;
+    margin-top: var(--a-gap);
+    font-size: var(--a-sl);
+    line-height: 1.55;
+  }
+  .b2-root .b2-story__fig + .b2-story__p {
+    grid-row: 4;
+  }
+  .b2-root .b2-story__fig + .b2-story__p + .b2-story__p {
+    grid-row: 5;
+  }
+  /* the cap is 3 lines of the lead tall at most, so the 4th line starts under it */
+  .b2-root .b2-drop {
+    float: left;
+    margin: 2px 10px 0 -2px;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: var(--a-drop);
+    line-height: 0.8;
+    color: var(--b2-roof);
+  }
+  .b2-root .b2-story__p em {
+    font-style: normal;
+    font-family: var(--serif);
+    font-weight: 600;
+  }
+  /* the photo takes the height of the text column (min 4:5) and bleeds off the left edge */
+  .b2-root .b2-story__fig {
+    grid-row: 3 / 7;
+    display: flex;
+    flex-direction: column;
+    margin: var(--a-gap) 0 0 calc(-1 * var(--gl));
+  }
+  .b2-root .b2-story__ph {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+  }
+  .b2-root .b2-story__ph::before {
+    content: '';
+    display: block;
+    padding-top: 125%;
+  }
+  .b2-root .b2-story__fig figcaption {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--ink2);
+  }
+  /* 2×2 figures, based on the photo's base (the caption is ~28px) */
+  .b2-root .b2-stats {
+    grid-row: 6;
+    align-self: end;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 32px 0 28px;
+    border-top: 1px solid var(--hair);
+  }
+  .b2-root .b2-stats div {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--hair);
+  }
+  .b2-root .b2-stats div:nth-child(odd) {
+    padding-right: 14px;
+    border-right: 1px solid var(--hair);
+  }
+  .b2-root .b2-stats div:nth-child(even) {
+    padding-left: 18px;
+  }
+  .b2-root .b2-stats dt {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: var(--a-stat);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--b2-roof);
+  }
+  .b2-root .b2-stats dt small {
+    margin-left: 2px;
+    font-size: 24px;
+    vertical-align: 6px;
+    color: var(--b2-bou);
+  }
+  .b2-root .b2-stats dd {
+    margin-top: 6px;
+    font-size: var(--a-statd);
+    line-height: 1.35;
+    color: var(--ink2);
+  }
+
+  /* ---- Where to start: a board in zig-zag, one big plate and two small ones per row */
+  .b2-root .b2-fav {
+    display: grid;
+    grid-template-columns: repeat(var(--nc), minmax(0, 1fr));
+    column-gap: var(--gut);
+    align-content: start;
+    padding: var(--a-pad) var(--gr) var(--a-pad) var(--gl);
+  }
+  .b2-root .b2-fav > .b2-eyebrow {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .b2-root .b2-fav .b2-ah2 {
+    grid-column: 1 / 8;
+    grid-row: 2;
+  }
+  .b2-root .b2-fav .b2-alede {
+    grid-column: 1 / 7;
+    grid-row: 3;
+  }
+  .b2-root .b2-fav > .b2-dish--big:nth-of-type(1) {
+    grid-column: var(--fa-big);
+    grid-row: 4;
+  }
+  .b2-root .b2-fav > .b2-fpair:nth-of-type(1) {
+    grid-column: var(--fa-pair);
+    grid-row: 4;
+  }
+  .b2-root .b2-fav > .b2-fpair:nth-of-type(2) {
+    grid-column: var(--fb-pair);
+    grid-row: 6;
+  }
+  .b2-root .b2-fav > .b2-dish--big:nth-of-type(2) {
+    grid-column: var(--fb-big);
+    grid-row: 6;
+  }
+  .b2-root .b2-fav > .b2-dish--big,
+  .b2-root .b2-fav > .b2-fpair {
+    align-self: start;
+  }
+  .b2-root .b2-fav > .b2-fpair:nth-of-type(1),
+  .b2-root .b2-fav > .b2-dish--big:nth-of-type(1) {
+    margin-top: var(--a-gap);
+  }
+  /* between the two rows: 56 + a hairline across the whole board + 56 */
+  .b2-root .b2-fav::before {
+    content: '';
+    grid-column: 1 / -1;
+    grid-row: 5;
+    height: 1px;
+    margin: 56px 0;
+    background: var(--hair);
+  }
+  .b2-root .b2-fav__all {
+    grid-column: 1 / -1;
+    grid-row: 7;
+    justify-self: start;
+    margin-top: 56px;
+  }
+  .b2-root .b2-dish {
+    margin: 0;
+  }
+  .b2-root .b2-dish__ph {
+    position: relative;
+  }
+  .b2-root .b2-dish--big {
+    width: 100%;
+    max-width: 492px;
+  }
+  .b2-root .b2-dish--big .b2-dish__ph {
+    aspect-ratio: var(--a-dish-ar);
+  }
+  .b2-root .b2-dish__tag {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 6px 10px;
+    background: var(--b2-yolk);
+    color: var(--b2-bou);
+    font-weight: 600;
+    font-size: var(--a-tag);
+    line-height: 16px;
+    letter-spacing: 0;
+  }
+  .b2-root .b2-dish--big .b2-dish__b {
+    padding-top: 18px;
+  }
+  .b2-root .b2-dish__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .b2-root .b2-dish__n {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: var(--a-nsm);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .b2-root .b2-dish__n--big {
+    margin-top: 0;
+    font-size: var(--a-nbig);
+  }
+  .b2-root .b2-price {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: var(--a-psm);
+    line-height: 1;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    color: var(--b2-yolk);
+  }
+  .b2-root .b2-dish--big .b2-price {
+    font-size: var(--a-pbig);
+  }
+  .b2-root .b2-price sup {
+    margin-right: 1px;
+    font-size: 0.55em;
+    vertical-align: 0.6em;
+  }
+  .b2-root .b2-dish__d {
+    margin-top: 8px;
+    max-width: 46ch;
+    font-size: var(--a-dsm);
+    line-height: 1.45;
+    color: var(--ink2);
+    text-wrap: pretty;
+  }
+  .b2-root .b2-dish--big .b2-dish__d {
+    font-size: var(--a-dbig);
+  }
+  .b2-root .b2-dish--big .b2-dish__o {
+    margin-top: 2px;
+  }
+  .b2-root .b2-fpair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .b2-root .b2-dish--sm + .b2-dish--sm {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+  }
+  .b2-root .b2-dish__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  /* ---- A day at Buccaneer: four bands, photo and text trade sides and formats */
+  .b2-root .b2-days {
+    padding: 0;
+  }
+  .b2-root .b2-days__hd {
+    display: grid;
+    grid-template-columns: repeat(var(--nc), minmax(0, 1fr));
+    column-gap: var(--gut);
+    padding: var(--a-pad) var(--gr) 40px var(--gl);
+  }
+  .b2-root .b2-days__hd > .b2-eyebrow,
+  .b2-root .b2-days__hd .b2-ah2 {
+    grid-column: 1 / -1;
+  }
+  .b2-root .b2-days__hd .b2-alede {
+    grid-column: 1 / 7;
+  }
+  .b2-root .b2-scene {
+    --hh: calc(var(--a-hour) * 0.9 + 8px); /* height of the hour plate */
+    --hpisa: 24px; /* how far it overlaps the photo */
+    display: grid;
+    grid-template-columns: repeat(var(--nc), minmax(0, 1fr));
+    column-gap: var(--gut);
+    align-items: end;
+    padding: var(--sc-pad) var(--gr) var(--sc-pad) var(--gl);
+    background: var(--g);
+    color: var(--ink);
+  }
+  /* the hour is a plate in the band's colour on the photo's corner that faces the text:
+     it overlaps the photo by --hpisa and hangs below by the rest; the margin leaves it room */
+  .b2-root .b2-scene__ph {
+    position: relative;
+    grid-row: 1;
+    aspect-ratio: 3 / 2;
+    margin-bottom: calc(var(--hh) - var(--hpisa));
+  }
+  .b2-root .b2-scene__h {
+    position: absolute;
+    bottom: calc(var(--hpisa) - var(--hh));
+    z-index: 1;
+    padding: 8px 16px 0;
+    background: var(--g);
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: var(--a-hour);
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .b2-root .b2-scene--l .b2-scene__h {
+    right: 0;
+    padding-right: 0;
+  }
+  .b2-root .b2-scene--r .b2-scene__h {
+    left: 0;
+    padding-left: 0;
+  }
+  .b2-root .b2-scene[data-pal='sign'] .b2-scene__h {
+    color: var(--b2-yolk);
+  }
+  .b2-root .b2-scene__b {
+    grid-row: 1;
+  }
+  .b2-root .b2-scene__i {
+    display: block;
+    font-size: var(--a-idx);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0;
+    color: var(--ink2);
+  }
+  .b2-root .b2-scene__b p {
+    margin: 12px 0 8px;
+    max-width: 46ch;
+    font-size: var(--a-scp);
+    line-height: 1.55;
+    color: var(--ink2);
+    text-wrap: pretty;
+  }
+
+  /* ---- Reviews */
+  .b2-root .b2-rev {
+    display: grid;
+    grid-template-columns: repeat(var(--nc), minmax(0, 1fr));
+    column-gap: var(--gut);
+    padding: var(--a-pad) var(--gr) var(--a-pad) var(--gl);
+  }
+  .b2-root .b2-rev__score {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .b2-root .b2-rev__n {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: var(--a-score);
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+    color: var(--b2-roof);
+  }
+  .b2-root .b2-stars {
+    display: block;
+    width: var(--a-starw);
+    height: auto;
+  }
+  /* Boulevard stars: filled ones solid, the empty / partial one outlined (Pedro, 2026-11-25) */
+  .b2-root .b2-stars__on {
+    fill: var(--b2-bou);
+    stroke: var(--b2-bou);
+    stroke-width: 1.5px;
+    vector-effect: non-scaling-stroke;
+  }
+  .b2-root .b2-stars__bg {
+    fill: none;
+    stroke: var(--b2-bou);
+    stroke-width: 1.5px;
+    vector-effect: non-scaling-stroke;
+  }
+  .b2-root .b2-rev__c {
+    margin-top: 6px;
+    font-size: 16px;
+    color: var(--ink2);
+  }
+  .b2-root .b2-q {
+    margin: 0;
+  }
+  .b2-root .b2-q blockquote {
+    margin: 0;
+  }
+  .b2-root .b2-q p {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: var(--a-qsm);
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    text-wrap: pretty;
+  }
+  .b2-root .b2-q figcaption {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--ink2);
+  }
+  .b2-root .b2-q:not(.b2-q--big) {
+    padding-top: 28px;
+    border-top: 1px solid var(--hair);
+  }
+  .b2-root .b2-q__m {
+    display: block;
+    height: calc(var(--a-qm) * 0.64);
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: var(--a-qm);
+    line-height: 0.6;
+    color: var(--b2-roof);
+  }
+  .b2-root .b2-q--big blockquote {
+    max-width: 880px;
+  }
+  .b2-root .b2-q--big p {
+    font-size: var(--a-qbig);
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+  }
+
+  /* ---- Catering: text and the dining room, the room bleeding off the right edge */
+  .b2-root .b2-acat {
+    display: grid;
+  }
+  .b2-root .b2-acat__ph {
+    position: relative;
+    grid-column: 2;
+    grid-row: 1;
+    overflow: hidden;
+  }
+  .b2-root .b2-acat__ph .b2-photo {
+    object-position: 62% 50%; /* window x≈700–2000 of salon.webp: no "choking" poster, no third-party card */
+  }
+  .b2-root .b2-acat__b {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    padding: var(--a-pad) 24px var(--a-pad) var(--gl);
+  }
+  .b2-root .b2-acat .b2-ah2 {
+    margin-top: 12px;
+  }
+  .b2-root .b2-acat__p {
+    margin: 14px 0 24px;
+    max-width: 46ch;
+    font-size: var(--a-sp);
+    line-height: 1.55;
+  }
+
+  /* ---- Visit */
+  .b2-root .b2-avisit__sub {
+    margin-top: 12px;
+    font-size: var(--a-scp);
+    line-height: 1.5;
+    color: var(--ink2);
+  }
+  .b2-root .b2-facts {
+    margin-top: 28px;
+    border-top: 1px solid var(--hair);
+  }
+  .b2-root .b2-facts div {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--hair);
+  }
+  .b2-root .b2-facts dt {
+    padding-top: 4px;
+    font-size: var(--a-dt);
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0;
+    color: var(--ink2);
+  }
+  .b2-root .b2-facts dd {
+    font-size: var(--a-dd);
+    line-height: 1.4;
+  }
+  .b2-root .b2-facts a {
+    display: inline-block;
+    padding: 11px 0;
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 4px;
+  }
+  .b2-root .b2-avisit__map {
+    width: 100%;
+    margin: 0;
+  }
+  .b2-root .b2-avisit__attr {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .b2-root .b2-avisit__btns {
+    display: grid;
+    gap: 12px;
+  }
+  .b2-root .b2-avisit__btns .b2-abtn {
+    display: flex;
+  }
+
+  /* ---- Close: the farewell. The actions live in Visit and in the header. */
+  .b2-root .b2-close {
+    display: grid;
+    grid-template-columns: repeat(var(--nc), minmax(0, 1fr));
+    grid-template-rows: auto;
+    column-gap: var(--gut);
+    align-items: center;
+    padding: var(--a-pad) var(--gr) var(--a-pad) var(--gl);
+  }
+  .b2-root[data-bd-state='night'] .b2-close {
+    padding-top: var(--a-pad);
+    border-top: 1px solid var(--b2-fog);
+  }
+  .b2-root .b2-close__ph {
+    grid-column: 1 / 4;
+    grid-row: 1;
+    margin: 0;
+    aspect-ratio: 4 / 5;
+    max-height: 600px;
+  }
+  .b2-root .b2-close__ph .b2-photo {
+    object-position: 50% 30%;
+  }
+  .b2-root .b2-close__txt,
+  .b2-root[data-bd-state='evening'] .b2-close__txt {
+    --g: var(--b2-paper);
+    --ink2: var(--b2-harbor);
+    grid-row: 1;
+    align-self: center;
+    display: block;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+  .b2-root[data-bd-state='night'] .b2-close__txt {
+    --g: var(--b2-bou);
+    --ink2: var(--b2-fog);
+  }
+  .b2-root .b2-close .b2-clock {
+    height: auto;
+    font-size: var(--a-cclock);
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .b2-root .b2-close .b2-clock__s {
+    font-size: calc(var(--a-cclock) * 0.42);
+    letter-spacing: 0;
+  }
+  .b2-root .b2-close .b2-open {
+    margin-top: 8px;
+    height: auto;
+    line-height: 1.4;
+    font-size: 17px;
+  }
+  .b2-root .b2-close__cta .b2-lg {
+    margin: 20px 0 0;
+    max-width: 22ch;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: var(--a-cline);
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  /* ---- Footer: the signature only; address, phones and the full-menu link live in Visit */
+  .b2-root .b2-foot {
+    display: grid;
+    grid-template-columns: repeat(var(--nc), minmax(0, 1fr));
+    column-gap: var(--gut);
+    align-items: end;
+    padding: var(--a-pad) var(--gr) max(40px, env(safe-area-inset-bottom)) var(--gl);
+  }
+  .b2-root[data-bd-state='night'] .b2-foot {
+    border-top: 1px solid var(--b2-fog);
+  }
+  .b2-root .b2-foot__brand {
+    grid-column: 1 / 5;
+    grid-row: 1;
+  }
+  .b2-root .b2-foot__data {
+    grid-row: 1;
+    margin: 0;
+  }
+  .b2-root .b2-foot__fine {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 24px;
+    margin: 0;
+  }
+}
+
+@media (hover: hover) and (min-width: 720px) and (min-height: 501px), (hover: hover) and (min-width: 1280px) {
+  .b2-root .b2-alnk:hover,
+  .b2-root .b2-dish__o:hover {
+    text-decoration-thickness: 3px;
+  }
+  .b2-root .b2-alnk:hover > span,
+  .b2-root .b2-dish__o:hover > span {
+    transform: translateX(4px);
+  }
+}
+
+/* ===========================================================================
+   Tablet 720–1023 (DESIGN_TABLET_APP_BUCCANEER_V2.md): a reading container of 800px,
+   8 columns, gutter 20, margin 32. The fixed header keeps its 32px margin.
+   =========================================================================== */
+@media (min-width: 720px) and (max-width: 1023px) and (min-height: 501px) {
+  .b2-root {
+    --gl: max(32px, env(safe-area-inset-left), calc((100vw - 800px) / 2));
+    --gr: max(32px, env(safe-area-inset-right), calc((100vw - 800px) / 2));
+    --bl: var(--gl);
+    --br: var(--gr);
+    --nc: 8;
+    --sd: clamp(104px, 11.7vw, 120px);
+    --a-pad: 72px;
+    --sc-pad: 80px;
+    --a-gap: 48px;
+    --a-dish-ar: 4 / 3;
+
+    --a-eb: 13px;
+    --a-h2: clamp(40px, calc(2.7vw + 21px), 44px);
+    --a-h3: 27px;
+    --a-lede: 18px;
+    --a-sp: 17px;
+    --a-sl: 20px;
+    --a-drop: 96px;
+    --a-stat: 44px;
+    --a-statd: 14px;
+    --a-nbig: 26px;
+    --a-nsm: 19px;
+    --a-pbig: 24px;
+    --a-psm: 18px;
+    --a-dbig: 16px;
+    --a-dsm: 15px;
+    --a-tag: 13px;
+    --a-hour: clamp(56px, 7vw, 72px);
+    --a-idx: 13px;
+    --a-scp: 17px;
+    --a-link: 16px;
+    --a-score: clamp(104px, 11.7vw, 120px);
+    --a-starw: 150px;
+    --a-qbig: clamp(30px, calc(2.4vw + 12px), 34px);
+    --a-qsm: 20px;
+    --a-qm: 88px;
+    --a-dt: 13px;
+    --a-dd: 17px;
+    --a-cclock: 48px;
+    --a-cline: 28px;
+    --a-btn: 17px;
+
+    /* Where to start: the big plate takes 5 columns, two small ones a list of 3; row B mirrored */
+    --fa-big: 1 / 6;
+    --fa-pair: 6 / 9;
+    --fb-pair: 1 / 4;
+    --fb-big: 4 / 9;
+  }
+  .b2-root .b2-hdr {
+    padding-left: max(32px, env(safe-area-inset-left));
+    padding-right: max(32px, env(safe-area-inset-right));
+  }
+}
+@media (min-width: 820px) and (max-width: 1023px) and (min-height: 501px) {
+  .b2-root {
+    --a-h3: 28px;
+    --a-lede: 19px;
+    --a-sp: 18px;
+    --a-sl: 21px;
+    --a-drop: 104px;
+    --a-stat: 46px;
+    --a-statd: 15px;
+    --a-nbig: 28px;
+    --a-nsm: 20px;
+    --a-pbig: 26px;
+    --a-psm: 19px;
+    --a-dbig: 17px;
+    --a-link: 17px;
+    --a-qm: 96px;
+    --a-dd: 18px;
+    --a-cline: 30px;
+  }
+}
+
+/* tablet layouts of each section (8 columns) */
+@media (min-width: 720px) and (max-width: 1023px) and (min-height: 501px) {
+  /* Story: photo cols 1–4 bleeding left, text cols 5–8 */
+  .b2-root .b2-story .b2-ah2 {
+    grid-column: 1 / 7;
+  }
+  .b2-root .b2-story__fig {
+    grid-column: 1 / 5;
+  }
+  .b2-root .b2-story__p,
+  .b2-root .b2-stats {
+    grid-column: 5 / 9;
+  }
+  .b2-root .b2-story__ph .b2-photo {
+    object-position: center 60%;
+  }
+
+  /* Where to start: the small plates are a vertical list (image on top) */
+  .b2-root .b2-dish--sm {
+    display: flex;
+    flex-direction: column;
+  }
+  .b2-root .b2-dish--sm .b2-dish__ph {
+    aspect-ratio: 2.08 / 1;
+  }
+  .b2-root .b2-dish--sm .b2-dish__n {
+    margin-top: 14px;
+  }
+  .b2-root .b2-dish--sm .b2-dish__d {
+    flex: 1;
+  }
+
+  /* A day: 1 and 3 horizontal 3:2 cols 1–5 bleeding left; 2 vertical 4:5 cols 4–8 (cap 480);
+     4 vertical 4:5 cols 4–8 bleeding right */
+  .b2-root .b2-scene--l .b2-scene__ph {
+    grid-column: 1 / 6;
+    margin-left: calc(-1 * var(--gl));
+  }
+  .b2-root .b2-scene--l .b2-scene__b {
+    grid-column: 6 / 9;
+  }
+  .b2-root .b2-scene--r .b2-scene__ph {
+    grid-column: 4 / 9;
+    aspect-ratio: 4 / 5;
+  }
+  .b2-root .b2-scene--r .b2-scene__b {
+    grid-column: 1 / 4;
+  }
+  .b2-root .b2-days > .b2-scene:nth-of-type(2) .b2-scene__ph {
+    width: min(100%, 480px);
+    margin-left: auto;
+  }
+  .b2-root .b2-days > .b2-scene:nth-of-type(4) .b2-scene__ph {
+    margin-right: calc(-1 * var(--gr));
+  }
+
+  /* Reviews: score cols 1–3 + big quote cols 4–8, then two quotes, then the link */
+  .b2-root .b2-rev__score {
+    grid-column: 1 / 4;
+    grid-row: 1;
+  }
+  .b2-root .b2-q--big {
+    grid-column: 4 / 9;
+    grid-row: 1;
+  }
+  .b2-root .b2-q:nth-of-type(2) {
+    grid-column: 1 / 5;
+    grid-row: 2;
+  }
+  .b2-root .b2-q:nth-of-type(3) {
+    grid-column: 5 / 9;
+    grid-row: 2;
+  }
+  .b2-root .b2-q:not(.b2-q--big) {
+    margin-top: 48px;
+  }
+  .b2-root .b2-rev .b2-alnk {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: start;
+    margin-top: 28px;
+  }
+
+  /* Catering: halves; the text column is ~300–376 wide */
+  .b2-root .b2-acat {
+    grid-template-columns: 1fr 1fr;
+  }
+  .b2-root .b2-acat__ph {
+    min-height: 460px;
+  }
+
+  /* Visit: a band of facade, then text + map in two columns, the buttons across */
+  .b2-root .b2-avisit__ph {
+    position: relative;
+    height: clamp(240px, 34vw, 340px);
+    overflow: hidden;
+  }
+  .b2-root .b2-avisit__ph .b2-photo {
+    object-position: 50% 38%;
+  }
+  .b2-root .b2-avisit__b {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    column-gap: var(--gut);
+    padding: var(--a-pad) var(--gr) var(--a-pad) var(--gl);
+  }
+  .b2-root .b2-avisit__b > .b2-eyebrow {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .b2-root .b2-avisit__b .b2-ah2 {
+    grid-column: 1 / 5;
+    grid-row: 2;
+  }
+  .b2-root .b2-avisit__sub {
+    grid-column: 1 / 5;
+    grid-row: 3;
+  }
+  .b2-root .b2-facts {
+    grid-column: 1 / 5;
+    grid-row: 4;
+  }
+  .b2-root .b2-avisit__map {
+    grid-column: 5 / 9;
+    grid-row: 2 / 5;
+    align-self: stretch;
+    aspect-ratio: auto;
+    min-height: 400px;
+  }
+  .b2-root .b2-avisit__attr {
+    grid-column: 5 / 9;
+    grid-row: 5;
+  }
+  .b2-root .b2-avisit__btns {
+    grid-column: 1 / -1;
+    grid-row: 6;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 36px;
+  }
+
+  /* Close: S10 cols 1–3, the clock and the line cols 4–8 */
+  .b2-root .b2-close__txt {
+    grid-column: 4 / 9;
+  }
+
+  /* Footer: lockup B left, Instagram right, small print under */
+  .b2-root .b2-wm--b {
+    width: 300px;
+  }
+  .b2-root .b2-foot__data {
+    grid-column: 5 / 9;
+    justify-self: end;
+  }
+  .b2-root .b2-foot__fine {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 40px;
+  }
+}
+
+/* ===========================================================================
+   Hero, tablet + compact desktop (720–1279): "what changes" (clock + the hour's line) and
+   "what stays" (H1, sub, buttons). Split by default (photo bleeding off the left, text on the
+   right); stacked (a wide photo, the text under it) on a tablet held upright and tall.
+   The old hero's Order / Come in cards, lockup B and "Full menu" link give way to the
+   story-led sub + buttons (phone markup).
+   =========================================================================== */
+@media (min-width: 720px) and (max-width: 1279px) and (min-height: 501px) {
+  .b2-root {
+    --hero-h: max(calc(100svh - var(--hdr-total)), 560px);
+    --hpw: calc(var(--gl) + 4 * var(--cw) + 3 * var(--gut)); /* photo: off the left edge to the end of col 4 */
+  }
+  .b2-root .b2-hero__wm,
+  .b2-root .b2-hero .b2-more,
+  .b2-root .b2-hero .b2-cards,
+  .b2-root .b2-ahero .b2-eyebrow,
+  .b2-root .b2-ahero .b2-ah1 {
+    display: none;
+  }
+  .b2-root .b2-hero {
+    display: grid;
+    grid-template-columns: var(--hpw) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    height: calc(var(--hero-h) + var(--hdr-total));
+  }
+  .b2-root .b2-hero__photo {
+    grid-column: 1;
+    height: auto;
+    margin: 0;
+  }
+  .b2-root .b2-hero__right {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    padding: 40px var(--gr) 40px var(--gut);
+    background: var(--g);
+  }
+  /* mid + the story-led block dissolve into the column so the three zones can share the free space */
+  .b2-root .b2-hero__mid,
+  .b2-root .b2-ahero {
+    display: contents;
+  }
+  .b2-root .b2-hero__top {
+    margin-bottom: 0;
+  }
+  .b2-root .b2-hero .b2-d1 {
+    min-height: 0;
+    margin: 12px 0 20px;
+  }
+  .b2-root .b2-hero .b2-h1 {
+    margin-top: auto;
+    min-height: 0;
+    padding-top: 20px;
+    max-width: none;
+    border-top: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+  }
+  .b2-root .b2-ahero__sub {
+    margin: 10px 0 24px;
+    max-width: 58ch;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--ink2);
+    text-wrap: pretty;
+  }
+  .b2-root .b2-hero .b2-abtn {
+    --sv-d: flex;
+    margin-top: 0;
+  }
+  .b2-root .b2-hero .b2-abtn:not(.b2-sv) {
+    display: flex;
+  }
+  .b2-root .b2-hero .b2-btn--solid {
+    margin-top: auto;
+  }
+  .b2-root .b2-hero .b2-btn--line {
+    margin-top: 10px;
+  }
+  /* the seal sits inside the photo, 16px from its bottom-right corner */
+  .b2-root .b2-seal {
+    left: calc(var(--hpw) - var(--sd) - 16px);
+    bottom: 16px;
+  }
+  /* no Yolk band behind the text in the evening (parity with the phone) */
+  .b2-root[data-bd-state='evening'] .b2-hero__right {
+    --g: var(--b2-paper);
+    --ink2: var(--b2-harbor);
+    --act-bg: var(--b2-bou);
+    --act-fg: var(--b2-paper);
+    --line: var(--b2-bou);
+    background: var(--g);
+    padding: 40px var(--gr) 40px var(--gut);
+  }
+  .b2-root[data-bd-state='evening'] .b2-hero__text {
+    background: none;
+    padding: 0;
+  }
+}
+
+/* compact desktop: the photo ends with column 6 (max 560, a 1125px source at 2x), the text starts at column 8 */
+@media (min-width: 1024px) and (max-width: 1279px) and (min-height: 501px) {
+  .b2-root {
+    --hero-h: max(calc(100svh - var(--hdr-total)), 520px);
+    --hpw: min(calc(var(--gl) + 6 * var(--cw) + 5 * var(--gut)), 560px);
+  }
+  .b2-root .b2-hero__right,
+  .b2-root[data-bd-state='evening'] .b2-hero__right {
+    padding-left: calc(var(--gl) + 7 * (var(--cw) + var(--gut)) - var(--hpw));
+  }
+}
+
+/* tablet upright and tall: a wide photo inset in the container, the seal on its lower edge,
+   the text in columns 1–6 under it */
+@media (min-width: 720px) and (max-width: 1023px) and (orientation: portrait) and (min-height: 880px) {
+  .b2-root {
+    --hp: clamp(300px, calc(100svh - 88px - 460px), 480px);
+  }
+  .b2-root .b2-hero {
+    display: block;
+    height: auto;
+  }
+  .b2-root .b2-hero__photo {
+    height: var(--hp);
+    margin: 24px var(--gr) 0 var(--gl);
+  }
+  .b2-root .b2-seal {
+    left: auto;
+    right: var(--gr);
+    bottom: auto;
+    top: calc(var(--hdr-total) + 24px + var(--hp) - var(--sd) / 2);
+  }
+  .b2-root .b2-hero__right,
+  .b2-root[data-bd-state='evening'] .b2-hero__right {
+    display: block;
+    width: calc(6 * var(--cw) + 5 * var(--gut) + var(--gl));
+    padding: 32px 0 48px var(--gl);
+  }
+  .b2-root .b2-hero__mid {
+    display: block;
+  }
+  .b2-root .b2-ahero {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .b2-root .b2-ahero__sub {
+    flex: 1 0 100%;
+    margin: 10px 0 12px;
+  }
+  .b2-root .b2-hero .b2-d1 {
+    margin: 12px 0 0;
+  }
+  .b2-root .b2-hero .b2-h1 {
+    margin-top: 20px;
+  }
+  .b2-root .b2-hero .b2-abtn {
+    --sv-d: inline-flex;
+    min-width: 160px;
+  }
+  .b2-root .b2-hero .b2-abtn:not(.b2-sv) {
+    display: inline-flex;
+  }
+  .b2-root .b2-hero .b2-btn--solid {
+    min-width: 272px;
+    margin-top: 0;
+  }
+  .b2-root .b2-hero .b2-btn--line {
+    margin-top: 0;
+  }
+}
+
+/* ===========================================================================
+   Desktop >= 1024 (DESIGN_DESKTOP_APP_BUCCANEER_V2.md): 12 columns. 1024–1279 is the
+   compact desktop (margin 32, gutter 20, the tablet hero); the scale of 1280+ follows.
+   =========================================================================== */
+@media (min-width: 1024px) and (min-height: 501px), (min-width: 1280px) {
+  .b2-root {
+    --nc: 12;
+    --cw: calc((100vw - var(--gl) - var(--gr) - 11 * var(--gut)) / 12);
+    --sd: 156px;
+    --a-pad: 96px;
+    --sc-pad: 96px;
+    --a-gap: 64px;
+    --a-dish-ar: 987 / 724;
+
+    --a-eb: 14px;
+    --a-h2: 52px;
+    --a-h3: 30px;
+    --a-lede: 20px;
+    --a-sp: 18px;
+    --a-sl: 20px;
+    --a-drop: 96px;
+    --a-stat: 48px;
+    --a-statd: 15px;
+    --a-nbig: 28px;
+    --a-nsm: 21px;
+    --a-pbig: 26px;
+    --a-psm: 21px;
+    --a-dbig: 17px;
+    --a-dsm: 16px;
+    --a-tag: 14px;
+    --a-hour: 56px;
+    --a-idx: 14px;
+    --a-scp: 18px;
+    --a-link: 17px;
+    --a-score: 120px;
+    --a-starw: 160px;
+    --a-qbig: 34px;
+    --a-qsm: 22px;
+    --a-qm: 96px;
+    --a-dt: 14px;
+    --a-dd: 18px;
+    --a-cclock: 56px;
+    --a-cline: 34px;
+    --a-btn: 17px;
+
+    --fa-big: 1 / 7;
+    --fa-pair: 7 / 13;
+    --fb-pair: 1 / 7;
+    --fb-big: 7 / 13;
+  }
+  .b2-root .b2-scene {
+    --hpisa: calc(var(--hh) * 0.4);
+  }
+  .b2-root .b2-wm--b {
+    width: 300px;
+  }
+
+  /* Story: photo cols 1–5 (it takes the text's height), text cols 7–12 */
+  .b2-root .b2-story .b2-ah2 {
+    grid-column: 1 / 8;
+  }
+  .b2-root .b2-story__fig {
+    grid-column: 1 / 6;
+    margin-left: 0; /* on desktop the photo starts at the page margin; only the tablet bleeds */
+  }
+  .b2-root .b2-story__p,
+  .b2-root .b2-stats {
+    grid-column: 7 / 13;
+    max-width: 560px;
+  }
+  .b2-root .b2-story__ph .b2-photo {
+    object-position: center 60%;
+  }
+  .b2-root[data-bd-state='morning'] .b2-story,
+  .b2-root[data-bd-state='midday'] .b2-story,
+  .b2-root[data-bd-state='evening'] .b2-story {
+    border-top: 2px solid var(--b2-bou);
+    padding-top: calc(var(--a-pad) - 16px);
+  }
+  .b2-root .b2-story {
+    padding-bottom: calc(var(--a-pad) + 32px);
+  }
+
+  /* Where to start: the small plates are rows (image | text) */
+  .b2-root .b2-dish--sm {
+    display: grid;
+    grid-template-columns: minmax(0, min(300px, 50%)) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    column-gap: 24px;
+    align-items: start;
+  }
+  .b2-root .b2-dish--sm .b2-dish__ph {
+    grid-row: 1 / 4;
+    aspect-ratio: 987 / 724;
+  }
+  .b2-root .b2-dish--sm .b2-dish__n,
+  .b2-root .b2-dish--sm .b2-dish__d,
+  .b2-root .b2-dish--sm .b2-dish__foot {
+    grid-column: 2;
+  }
+  .b2-root .b2-dish--sm .b2-dish__foot {
+    justify-content: flex-start;
+    gap: 24px;
+    align-self: start;
+    margin-top: 16px;
+  }
+
+  /* A day */
+  .b2-root .b2-days__hd .b2-ah2 {
+    grid-column: 1 / 8;
+    grid-row: 2;
+  }
+  .b2-root .b2-days__hd .b2-alede {
+    grid-column: 9 / 13;
+    grid-row: 2;
+    align-self: end;
+  }
+  .b2-root .b2-scene--l .b2-scene__ph {
+    grid-column: 1 / 8;
+    max-width: 800px;
+  }
+  .b2-root .b2-scene--l .b2-scene__b {
+    grid-column: 9 / 13;
+  }
+  .b2-root .b2-scene--r .b2-scene__ph {
+    aspect-ratio: 4 / 5;
+  }
+  .b2-root .b2-days > .b2-scene:nth-of-type(2) .b2-scene__ph {
+    grid-column: 9 / 13;
+    width: min(100%, 480px);
+    margin-left: auto;
+  }
+  .b2-root .b2-days > .b2-scene:nth-of-type(2) .b2-scene__b {
+    grid-column: 4 / 8;
+  }
+  .b2-root .b2-days > .b2-scene:nth-of-type(4) .b2-scene__ph {
+    grid-column: 8 / 13;
+    width: min(100%, calc((100svh - 120px) * 0.8));
+    margin-left: auto;
+  }
+  .b2-root .b2-days > .b2-scene:nth-of-type(4) .b2-scene__b {
+    grid-column: 3 / 7;
+  }
+
+  /* Reviews: the figure signs (cols 1–3), the quote speaks (cols 5–12) */
+  .b2-root .b2-rev__score {
+    grid-column: 1 / 4;
+    grid-row: 1;
+  }
+  .b2-root .b2-q--big {
+    grid-column: 5 / 13;
+    grid-row: 1;
+  }
+  .b2-root .b2-q:nth-of-type(2) {
+    grid-column: 5 / 9;
+    grid-row: 2;
+  }
+  .b2-root .b2-q:nth-of-type(3) {
+    grid-column: 9 / 13;
+    grid-row: 2;
+  }
+  .b2-root .b2-q:not(.b2-q--big) {
+    margin-top: 48px;
+    padding-top: 32px;
+  }
+  .b2-root .b2-rev .b2-alnk {
+    grid-column: 1 / 4;
+    grid-row: 2;
+    align-self: end;
+    justify-self: start;
+  }
+
+  /* Catering: text cols 1–6 (1–5 from 1280), the room bleeding off the right edge */
+  .b2-root .b2-acat {
+    --acw: min(calc(100vw - var(--gl) - 6 * (var(--cw) + var(--gut))), 700px);
+    grid-template-columns: minmax(0, 1fr) var(--acw);
+  }
+  .b2-root .b2-acat__ph {
+    min-height: calc(var(--acw) * 0.965);
+    max-height: 675px;
+  }
+  .b2-root .b2-acat__ph .b2-photo {
+    object-position: 65% 50%;
+  }
+  .b2-root .b2-acat__b {
+    max-width: calc(6 * var(--cw) + 5 * var(--gut) + var(--gl) + 24px);
+  }
+
+  /* Visit: the facade (cols 1–8) and the title beside it; facts and map below.
+     At night the map takes the facade's place. */
+  .b2-root .b2-avisit {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+    column-gap: var(--gut);
+    padding: var(--a-pad) var(--gr) var(--a-pad) var(--gl);
+  }
+  .b2-root .b2-avisit__b {
+    display: contents;
+  }
+  .b2-root .b2-avisit__ph {
+    position: relative;
+    grid-column: 1 / 9;
+    grid-row: 1 / 5;
+    height: min(calc((8 * var(--cw) + 7 * var(--gut)) / 1.6), 535px);
+    overflow: hidden;
+  }
+  .b2-root .b2-avisit__b > .b2-eyebrow {
+    grid-column: 9 / 13;
+    grid-row: 1;
+  }
+  .b2-root .b2-avisit__b .b2-ah2 {
+    grid-column: 9 / 13;
+    grid-row: 2;
+  }
+  .b2-root .b2-avisit__sub {
+    grid-column: 9 / 13;
+    grid-row: 3;
+  }
+  .b2-root .b2-avisit__btns {
+    grid-column: 9 / 13;
+    grid-row: 4;
+    grid-template-columns: 1fr;
+    align-self: end;
+  }
+  .b2-root .b2-facts {
+    grid-column: 1 / 6;
+    grid-row: 5;
+    margin-top: 64px;
+    align-self: start;
+  }
+  .b2-root .b2-avisit__map {
+    grid-column: 7 / 13;
+    grid-row: 5;
+    margin-top: 64px;
+    aspect-ratio: 16 / 10;
+  }
+  .b2-root .b2-avisit__attr {
+    grid-column: 7 / 13;
+    grid-row: 6;
+  }
+  .b2-root[data-bd-state='night'] .b2-avisit {
+    grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  }
+  .b2-root[data-bd-state='night'] .b2-avisit__map {
+    grid-column: 1 / 9;
+    grid-row: 1 / 6;
+    margin-top: 0;
+    aspect-ratio: auto;
+    min-height: 440px;
+  }
+  .b2-root[data-bd-state='night'] .b2-avisit__attr {
+    grid-column: 1 / 9;
+    grid-row: 6;
+  }
+  .b2-root[data-bd-state='night'] .b2-facts {
+    grid-column: 9 / 13;
+    grid-row: 4;
+    margin-top: 28px;
+  }
+  .b2-root[data-bd-state='night'] .b2-avisit__btns {
+    grid-row: 5;
+  }
+
+  /* Close: S10 cols 1–3; the clock at the dial's height, the line at the photo's base */
+  .b2-root .b2-close {
+    --cph: calc(1.25 * (3 * var(--cw) + 2 * var(--gut)));
+    align-items: stretch;
+  }
+  .b2-root .b2-close__txt {
+    grid-column: 5 / 12;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 1;
+  }
+  .b2-root .b2-close__clock {
+    padding-top: calc(0.35 * var(--cph) - 0.5 * var(--a-cclock));
+  }
+  .b2-root .b2-close__cta .b2-lg {
+    margin-top: 0;
+    max-width: 24ch;
+  }
+  .b2-root .b2-close__ph {
+    max-height: none;
+  }
+
+  /* Footer: lockup B cols 1–4, Instagram cols 7–9, small print cols 10–12 */
+  .b2-root .b2-foot__brand {
+    grid-column: 1 / 5;
+  }
+  .b2-root .b2-foot__data {
+    grid-column: 7 / 10;
+  }
+  .b2-root .b2-foot__fine {
+    grid-column: 10 / 13;
+    grid-row: 1;
+    flex-direction: column;
+  }
+}
+
+/* ---- desktop 1280+: the 12-column scale of the design (margin 64 / 72 / 192, gutter 24) */
+@media (min-width: 1280px) {
+  .b2-root {
+    --a-pad: 128px;
+    --a-eb: 15px;
+    --a-sp: 20px;
+    --a-sl: 22px;
+    --a-drop: 124px;
+    --a-stat: 56px;
+    --a-nbig: 30px;
+    --a-nsm: 22px;
+    --a-pbig: 28px;
+    --a-psm: 22px;
+    --a-dbig: 18px;
+    --a-tag: 15px;
+    --a-hour: 64px;
+    --a-scp: 20px;
+    --a-link: 18px;
+    --a-score: 144px;
+    --a-qbig: 44px;
+    --a-qm: 120px;
+    --a-dt: 15px;
+    --a-dd: 20px;
+    --a-cclock: 88px;
+    --a-cline: 44px;
+    --a-btn: 18px;
+  }
+  .b2-root .b2-wm--b {
+    width: 320px;
+  }
+  .b2-root .b2-acat {
+    --acw: min(calc(100vw - var(--axis)), 700px);
+  }
+  .b2-root .b2-acat__b {
+    max-width: calc(5 * var(--cw) + 4 * var(--gut) + var(--gl) + 24px);
+  }
+  .b2-root .b2-story {
+    padding-bottom: 128px;
+  }
+  .b2-root[data-bd-state='evening'] .b2-close::before {
+    left: calc(var(--gl) + 4 * (var(--cw) + var(--gut)) - 24px);
+  }
+  .b2-root[data-bd-state='evening'] .b2-close__txt {
+    --ink2: var(--b2-bou);
+  }
+
+  /* Hero: photo, text, lockup B and seal are composed as one piece inside a 1440px frame
+     (D-1 of the design: the sources only give 2x up to 800px of photo; 560px for the vertical
+     facade). The photo, the gap and the text never leave more than 66px of colour between them;
+     what the frame does not use is the state's ground on both sides. At night the composition
+     (photo 560 + gap 66 + text) is centred in the frame. */
+  .b2-root {
+    --hx0: max(0px, calc((100vw - 1440px) / 2));
+    --hF: min(100vw, 1440px);
+    --ht: clamp(442px, calc(442px + (100vw - 1280px) * 0.375), 502px);
+    --hg: clamp(24px, calc(24px + (100vw - 1280px) * 0.2625), 66px);
+    --hm: clamp(64px, calc(64px + (100vw - 1280px) * 0.05), 72px);
+    --hpw: calc(var(--hF) - var(--hm) - var(--ht) - var(--hg));
+    --hl: var(--hx0);
+    --hr: calc(var(--hx0) + var(--hm));
+  }
+  .b2-root[data-bd-state='night'] {
+    --hpw: 560px;
+    --hg: 66px;
+    --hl: calc(var(--hx0) + (var(--hF) - 560px - 66px - var(--ht)) / 2);
+    --hr: var(--hl);
+  }
+  .b2-root .b2-hero {
+    grid-template-columns: var(--hl) var(--hpw) minmax(0, 1fr);
+  }
+  .b2-root .b2-hero__photo {
+    grid-column: 2;
+  }
+  .b2-root .b2-hero__right,
+  .b2-root[data-bd-state='evening'] .b2-hero__right {
+    grid-column: 3;
+    padding: 0 var(--hr) 64px var(--hg);
+  }
+  .b2-root .b2-hero__wm {
+    padding: 104px var(--hr) 56px var(--hg);
+    margin: 0 calc(-1 * var(--hr)) 0 calc(-1 * var(--hg));
+  }
+  /* the seal: bottom-left on the photo, on the text block's baseline */
+  .b2-root .b2-seal {
+    left: calc(var(--hl) + var(--hm));
+    bottom: 64px;
+  }
+}
+@media (min-width: 1440px) {
+  .b2-root {
+    --a-hour: 72px;
+    --a-score: 160px;
+    --fa-big: 1 / 6;
+    --fb-big: 8 / 13;
+  }
+}
+@media (min-width: 1920px) {
+  .b2-root {
+    --fa-big: 1 / 5;
+    --fa-pair: 6 / 13;
+    --fb-pair: 1 / 8;
+    --fb-big: 9 / 13;
+  }
+}
+
+/* Days, desktop 1280+: the text is centred on the photo in all four scenes, not anchored to
+   its base (anchored, the tall photos left ~450px of empty band above it, and at 1920 the
+   dinner scene left ~360px of empty Yolk; Pedro 2026-11-25). */
+@media (min-width: 1280px) {
+  .b2-root .b2-days > .b2-scene .b2-scene__b {
+    align-self: center;
   }
 }

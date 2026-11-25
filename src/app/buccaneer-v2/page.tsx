@@ -64,6 +64,13 @@ const HERO_SLOT: Record<DayState, SlotId> = {
   night: 'S01',
 };
 
+/**
+ * Hero photo `sizes`. Phones, and phones in landscape, as before (100vw / 60vw); tablet and desktop
+ * never draw it wider than 800px (the sources are 1600px wide: 2x at 800).
+ */
+const HERO_SIZES =
+  '(max-width: 719px) 100vw, (max-width: 1023px) and (max-height: 500px) 100vw, (max-width: 1279px) and (max-height: 500px) 60vw, 800px';
+
 /** `<span data-b2-digits>` etc. are filled by Behavior; SSR renders them empty. */
 function Clock() {
   return (
@@ -240,7 +247,7 @@ export default async function BuccaneerV2Page() {
             {/* Night on mobile (AD 7.2): close crop of the word "Buccaneer" + LED line. */}
             {STATES.map((s) => (
               <div key={s} className={`b2-sv b2-sv--${s} b2-fill`}>
-                <Photo slot={HERO_SLOT[s]} priority={s === state} sizes="(max-width: 1023px) 100vw, 60vw" />
+                <Photo slot={HERO_SLOT[s]} priority={s === state} sizes={HERO_SIZES} />
               </div>
             ))}
             {/* App layout only: live time + the hour's line, and the 50-year seal. */}
@@ -265,7 +272,7 @@ export default async function BuccaneerV2Page() {
                     {STATE_COPY[s].phrase}
                   </p>
                 ))}
-                <h1 className="b2-h1">Buccaneer, a 24-hour diner on Astoria Blvd, Queens.</h1>
+                <h1 className="b2-h1">Fifty years on Astoria Boulevard.</h1>
                 <Cards id="b2-hero-cta" />
               </div>
             </div>
