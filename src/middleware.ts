@@ -15,7 +15,10 @@ export async function middleware(request: NextRequest) {
   if (!request.cookies.get('menius_locale')?.value) {
     const acceptLang = request.headers.get('accept-language') || '';
     const primaryLang = acceptLang.split(',')[0]?.split(';')[0]?.split('-')[0]?.trim().toLowerCase();
-    detectedLocale = primaryLang === 'en' ? 'en' : 'es';
+    // Spanish only when the device asks for it. Everything else — crawlers that
+    // send no Accept-Language (Googlebot, link previews) and owners whose phone
+    // is in Chinese, Korean, Greek… — gets English, the main market.
+    detectedLocale = primaryLang === 'es' ? 'es' : 'en';
     request.cookies.set({ name: 'menius_locale', value: detectedLocale });
     response = NextResponse.next({ request: { headers: request.headers } });
     response.cookies.set('menius_locale', detectedLocale, {
