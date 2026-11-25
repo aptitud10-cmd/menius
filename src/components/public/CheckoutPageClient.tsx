@@ -992,7 +992,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         setConfirmedTotal(typeof data.total === 'number' ? data.total : displayTotal);
         setAwaitingPayment(true);
         setStep('confirmation');
-        if (isColombianRestaurant) void handlePayWompi(data.order_id);
+        if (isColombianRestaurant) void handlePayWompi(data.order_id, data.tracking_token);
         return;
       }
       saveLastOrder();
@@ -1142,14 +1142,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     }
   };
 
-  const handlePayWompi = async (id?: unknown) => {
+  // Right after placing the order the state hasn't caught up yet, so the
+  // caller passes the id and token it just received.
+  const handlePayWompi = async (id?: unknown, token?: string) => {
     const oid = typeof id === 'string' ? id : orderId;
     setPayLoading(true);
     try {
       const res = await fetch('/api/payments/wompi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: oid, slug: restaurant.slug }),
+        body: JSON.stringify({ order_id: oid, slug: restaurant.slug, t: token ?? trackingToken }),
       });
       const text = await res.text();
       const parsed = safeParseJson<{
@@ -1307,7 +1309,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             <span className="text-sm font-medium">{t.backToMenu}</span>
           </button>
         </header>
-        <div className="flex-1 flex flex-col items-center justify-center px-8">
+        {/* <main>: target of the skip link, and a new node instead of reusing the
+            loading skeleton's (which Lighthouse counted as a layout shift). */}
+        <main id="main-content" className="flex-1 flex flex-col items-center justify-center px-8">
           <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mb-5">
             <ShoppingCart className="w-8 h-8 text-gray-300" />
           </div>
@@ -1316,7 +1320,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           <button onClick={goBack} className="px-6 py-3 rounded-xl bg-[#05c8a7] text-[#04241E] font-semibold text-sm active:scale-[0.98] transition-all">
             {t.backToMenu}
           </button>
-        </div>
+        </main>
       </div>
     );
   }
@@ -2174,7 +2178,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       </header>
 
       {/* Scroll en un contenedor (no en el root): iOS respeta overscroll-behavior. */}
-      <div {...behindSheet} className={cn('flex-1 overflow-y-auto overscroll-contain', activeSheet && 'overflow-hidden')}>
+      <main id="main-content" {...behindSheet} className={cn('flex-1 overflow-y-auto overscroll-contain', activeSheet && 'overflow-hidden')}>
         <div className="max-w-lg mx-auto min-[860px]:max-w-[1060px] min-[860px]:flex min-[860px]:items-start min-[860px]:gap-14 min-[860px]:px-10">
 
           {/* Resumen: el total manda */}
@@ -2458,7 +2462,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             )}
           </section>
         </div>
-      </div>
+      </main>
 
       {/* Botón fijo: barra opaca, nada asoma por detrás */}
       {!isDesktop && (

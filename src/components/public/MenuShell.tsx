@@ -133,6 +133,9 @@ interface CustomizationTarget {
  * the LCP photo lazy-loading late.
  */
 const PRIORITY_CARD_IMAGES = 2;
+// With a cover photo, the cover is what a phone shows on load (and the LCP);
+// the first row of dishes sits below it, off screen. Preloading those photos
+// at high priority only took bandwidth from the cover on slow connections.
 
 const POPULAR_ID = "__popular__";
 /** Hoja del día (TodaySheet): botón "Today" de la barra, la hoja "Menu" y la columna de escritorio. */
@@ -1137,6 +1140,18 @@ export function MenuShell({
     clearTimeout(toastTimer.current);
     setToastName(null);
   }, []);
+
+  // The open cart already shows the new line with its own controls, so the
+  // "added · Undo" toast would only cover its footer (subtotal). Hidden while
+  // the cart is open and dropped when it closes: it was seen in the cart.
+  const cartWasOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (cartWasOpenRef.current && !isOpen) {
+      clearTimeout(toastTimer.current);
+      setToastName(null);
+    }
+    cartWasOpenRef.current = isOpen;
+  }, [isOpen]);
 
   const handleQuickAdd = useCallback(
     (product: Product) => {
@@ -3848,6 +3863,7 @@ export function MenuShell({
                         })()}
                         {(() => {
                           let globalProductIdx = 0;
+                          const priorityCardImages = restaurant.cover_image_url ? 0 : PRIORITY_CARD_IMAGES;
                           return displayedGroups.map(
                             ({ category, items, available }, groupIdx) => {
                               const isPopular = category.id === POPULAR_ID;
@@ -3962,7 +3978,7 @@ export function MenuShell({
                                       >
                                         {cardItems.map((product) => {
                                           const isPriority =
-                                            globalProductIdx < PRIORITY_CARD_IMAGES;
+                                            globalProductIdx < priorityCardImages;
                                           globalProductIdx++;
                                           return (
                                             <ProductListItem
@@ -3998,7 +4014,7 @@ export function MenuShell({
                                       >
                                         {cardItems.map((product) => {
                                           const isPriority =
-                                            globalProductIdx < PRIORITY_CARD_IMAGES;
+                                            globalProductIdx < priorityCardImages;
                                           globalProductIdx++;
                                           return (
                                             <div
@@ -4071,7 +4087,7 @@ export function MenuShell({
                                           // mobile en el LCP de tiendas nuevas sin CDN
                                           // caliente; el resto carga lazy al scrollear.
                                           const isPriority =
-                                            globalProductIdx < PRIORITY_CARD_IMAGES;
+                                            globalProductIdx < priorityCardImages;
                                           globalProductIdx++;
                                           return (
                                             <motion.div
@@ -4942,7 +4958,7 @@ export function MenuShell({
           )}
         </AnimatePresence>
 
-        {toastName && !addedUid && (
+        {toastName && !addedUid && !isOpen && (
           <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] left-0 right-0 lg:bottom-8 z-[60] flex justify-center px-4 pointer-events-none">
             <div className="pointer-events-auto flex items-center gap-2.5 max-w-full min-h-[52px] pl-4 pr-1.5 py-1.5 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl">
               <span className="w-5 h-5 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">

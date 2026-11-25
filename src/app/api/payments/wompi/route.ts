@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { order_id, slug } = body;
+    const { order_id, slug, t } = body;
 
     if (!order_id || typeof order_id !== 'string' || !/^[0-9a-f-]{36}$/.test(order_id)) {
       return NextResponse.json({ error: 'Valid order_id required' }, { status: 400 });
@@ -40,12 +40,18 @@ export async function POST(request: NextRequest) {
     const adminDb = createAdminClient();
     const { data: order, error } = await adminDb
       .from('orders')
-      .select('id, status, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, customer_token, restaurants ( currency, country_code, wompi_connected, wompi_public_key, wompi_integrity_secret_enc )')
+      .select('id, status, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, payment_method, customer_token, restaurants ( currency, country_code, wompi_connected, wompi_public_key, wompi_integrity_secret_enc )')
       .eq('id', order_id)
       .maybeSingle();
 
-    if (error || !order) {
+    // Only whoever placed the order (holds its tracking token) can start its
+    // payment, and only for orders placed to be paid online.
+    const orderToken = (order as { customer_token?: string | null } | null)?.customer_token;
+    if (error || !order || typeof t !== 'string' || !orderToken || t !== orderToken) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+    }
+    if ((order as { payment_method?: string | null }).payment_method === 'cash') {
+      return NextResponse.json({ error: 'Este pedido se paga en efectivo.' }, { status: 409 });
     }
 
     // Prevent generating a new payment session for an already-paid order
