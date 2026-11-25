@@ -17,7 +17,7 @@ import type {
 import type { Translations, Locale } from "@/lib/translations";
 import { DIETARY_TAGS } from "@/lib/dietary-tags";
 import { DietIcon } from "./DietIcon";
-import { tName, tDesc } from "@/lib/i18n";
+import { tName, tDesc, tHint } from "@/lib/i18n";
 import {
   visibleGroups,
   pruneHiddenSelections,
@@ -1177,6 +1177,13 @@ export function CustomizationSheet({
               guests.some((g) => g.id === hoursNotice.groupId))
               ? hoursNotice.text
               : null;
+          // A picked option can carry a note for exactly that choice: Bacon on
+          // the Beef Burger costs $1.25 more than ordering the Bacon Burger, so
+          // the diner is told when (and only when) they pick it.
+          const optionHints = [group, ...guests]
+            .flatMap((g) => selections[g.id] ?? [])
+            .map((o) => tHint(o, locale, defaultLocale))
+            .filter((h, i, all): h is string => h !== null && all.indexOf(h) === i);
 
           return (
             <div
@@ -1353,6 +1360,15 @@ export function CustomizationSheet({
               >
                 {notice}
               </p>
+              <div aria-live="polite">
+                {optionHints.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[14px] leading-snug text-amber-900">
+                    {optionHints.map((h) => (
+                      <p key={h}>{h}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
               </div>
             </div>
           );

@@ -43,6 +43,22 @@ export function tName(
 }
 
 /**
+ * Note a modifier option shows once it is picked, or null. Unlike names there
+ * is no plain column behind it: the default-locale text lives in translations
+ * too, so the diner's locale wins and the restaurant's default is the fallback.
+ */
+export function tHint(
+  item: { translations?: Record<string, ContentTranslation> | null },
+  locale: string,
+  defaultLocale: string,
+): string | null {
+  const tr = item.translations;
+  if (!tr) return null;
+  const value = tr[locale]?.hint?.trim() || tr[defaultLocale]?.hint?.trim();
+  return value || null;
+}
+
+/**
  * Resolve translated description for a product.
  */
 export function tDesc(

@@ -676,6 +676,27 @@ function sanitizeTranslations(
 }
 
 /**
+ * Carries an option's `hint` ("Tip: the Bacon Burger already comes with
+ * bacon…") across a dashboard save. The editor only knows translated names and
+ * sends them back without hints, so without this every save would drop them.
+ * Only for the edited row: a hint is about that dish, it must not fan out.
+ */
+function keepOptionHints(
+  next: Record<string, { name?: string }> | null,
+  prev: unknown,
+): Record<string, { name?: string; hint?: string }> | null {
+  const out: Record<string, { name?: string; hint?: string }> = { ...(next ?? {}) };
+  if (prev && typeof prev === "object") {
+    for (const [locale, value] of Object.entries(prev as Record<string, { hint?: unknown }>)) {
+      if (!TRANSLATABLE_LOCALES.has(locale)) continue;
+      const hint = typeof value?.hint === "string" ? sanitizeText(value.hint, 200).trim() : "";
+      if (hint) out[locale] = { ...out[locale], hint };
+    }
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+/**
  * Whether a modifier option belongs to the given product.
  *
  * Guards conditional groups: `depends_on_option_id` is deliberately not a
@@ -1135,7 +1156,7 @@ export async function updateModifierOption(
   const { data: owned } = await supabase
     .from("modifier_options")
     .select(
-      "id, group_id, sort_order, modifier_groups!inner(id, product_id, shared_origin_id, products!inner(restaurant_id))",
+      "id, group_id, sort_order, translations, modifier_groups!inner(id, product_id, shared_origin_id, products!inner(restaurant_id))",
     )
     .eq("id", id)
     .eq("modifier_groups.products.restaurant_id", restaurantId)
@@ -1153,7 +1174,11 @@ export async function updateModifierOption(
 
   const { error } = await supabase
     .from("modifier_options")
-    .update({ ...payload, sort_order: data.sort_order })
+    .update({
+      ...payload,
+      translations: keepOptionHints(payload.translations, owned.translations),
+      sort_order: data.sort_order,
+    })
     .eq("id", id);
 
   if (error) return { error: error.message };

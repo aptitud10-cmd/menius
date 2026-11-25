@@ -90,6 +90,9 @@ export interface Profile {
 export interface ContentTranslation {
   name?: string;
   description?: string;
+  /** Modifier options only: a note shown under the group once the diner picks
+   *  this option ("Tip: the Bacon Burger already comes with bacon…"). */
+  hint?: string;
 }
 
 export interface Category {
