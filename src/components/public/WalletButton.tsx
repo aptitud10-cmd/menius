@@ -18,6 +18,8 @@ interface WalletButtonProps {
   /** Fires when the wallet sheet opens/closes so the parent can disable its own
    *  submit button and avoid a parallel order. */
   onPayingChange?: (paying: boolean) => void;
+  /** Fires once when the device can pay with a wallet (the button shows). */
+  onAvailable?: (wallet: 'applePay' | 'googlePay' | 'link') => void;
   disabled?: boolean;
   /** Store/diner locale for error messages ('es' | 'en'). */
   locale?: string;
@@ -44,6 +46,7 @@ export function WalletButton({
   onError,
   onCreateOrder,
   onPayingChange,
+  onAvailable,
   disabled,
   locale = 'es',
 }: WalletButtonProps) {
@@ -53,8 +56,8 @@ export function WalletButton({
   const prRef = useRef<PaymentRequest | null>(null);
   const stripeRef = useRef<Stripe | null>(null);
 
-  const callbacksRef = useRef({ onSuccess, onError, onCreateOrder, amount, currency, locale });
-  callbacksRef.current = { onSuccess, onError, onCreateOrder, amount, currency, locale };
+  const callbacksRef = useRef({ onSuccess, onError, onCreateOrder, onAvailable, amount, currency, locale });
+  callbacksRef.current = { onSuccess, onError, onCreateOrder, onAvailable, amount, currency, locale };
 
   // Surface the paying state to the parent (to disable its submit button).
   const onPayingChangeRef = useRef(onPayingChange);
@@ -159,9 +162,11 @@ export function WalletButton({
       paymentRequest.canMakePayment().then((result) => {
         if (cancelled) return;
         if (result) {
+          const wallet = result.applePay ? 'applePay' : result.googlePay ? 'googlePay' : 'link';
           setCanPay(true);
-          setWalletType(result.applePay ? 'applePay' : result.googlePay ? 'googlePay' : 'link');
+          setWalletType(wallet);
           prRef.current = paymentRequest;
+          callbacksRef.current.onAvailable?.(wallet);
         }
       });
     });

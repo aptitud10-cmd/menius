@@ -376,6 +376,32 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       ? (tipPresets[tipChoice.index]?.amount ?? 0)
       : customTipAmount(parseFloat(tipChoice.value.replace(',', '.')), tipChoice.mode, cartTotal);
 
+  // Checkout funnel (spec CA-15): only what the customer changes, not the
+  // initial state. Demo stores are not tracked.
+  const trackFunnel = useCallback((event: string, props: Record<string, unknown>) => {
+    if (restaurant.id.startsWith('demo')) return;
+    trackEvent(event, { restaurant_id: restaurant.id, restaurant_slug: restaurant.slug, ...props });
+  }, [restaurant.id, restaurant.slug]);
+  useEffect(() => {
+    if (activeSheet) trackFunnel('checkout_sheet_opened', { sheet: activeSheet });
+  }, [activeSheet, trackFunnel]);
+  const tipKey = tipChoice === null ? 'none' : tipChoice.kind === 'preset' ? `preset_${tipChoice.index}` : 'custom';
+  const tipKeyRef = useRef(tipKey);
+  const tipAmountRef = useRef(tipAmount);
+  tipAmountRef.current = tipAmount;
+  useEffect(() => {
+    if (tipKeyRef.current === tipKey) return;
+    tipKeyRef.current = tipKey;
+    trackFunnel('tip_selected', { option: tipKey, amount: tipAmountRef.current });
+  }, [tipKey, trackFunnel]);
+  const paymentMethodRef = useRef(paymentMethod);
+  useEffect(() => {
+    if (paymentMethodRef.current === paymentMethod) return;
+    paymentMethodRef.current = paymentMethod;
+    trackFunnel('payment_method_selected', { payment_method: paymentMethod });
+  }, [paymentMethod, trackFunnel]);
+  const walletShownRef = useRef(false);
+
   const [serverQuote, setServerQuote] = useState<CartQuoteResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
 
@@ -2130,7 +2156,15 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             onSuccess={(oid, onum) => { setWalletPaying(false); handleWalletSuccess(oid, onum); }}
             onError={(msg) => { setWalletPaying(false); setOrderErrorAction(null); setOrderError(msg); }}
             locale={locale}
-            onPayingChange={setWalletPaying}
+            onPayingChange={(paying) => {
+              setWalletPaying(paying);
+              if (paying) trackFunnel('express_checkout_clicked', {});
+            }}
+            onAvailable={(wallet) => {
+              if (walletShownRef.current) return;
+              walletShownRef.current = true;
+              trackFunnel('express_checkout_shown', { wallet });
+            }}
             disabled={submitting || items.length === 0}
           />
           <div className="flex items-center gap-3 py-0.5" aria-hidden="true">

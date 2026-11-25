@@ -38,6 +38,17 @@ function enqueue(fn: (ph: PostHog) => void) {
   if (queue.length < MAX_QUEUED) queue.push(fn);
 }
 
+/**
+ * Staff screens (Counter, KDS, driver, admin) are not measured: they stay open
+ * all day on tablets, where the extra script cost performance.
+ */
+const UNTRACKED_PREFIXES = ['/app/counter', '/app/kds', '/counter', '/kds', '/driver', '/admin', '/preview-counter', '/preview-kds'];
+
+export function isTrackedPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  return !UNTRACKED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 export function initAnalytics() {
   if (loadPromise || !POSTHOG_KEY || typeof window === 'undefined') return;
 
@@ -47,10 +58,18 @@ export function initAnalytics() {
       ph.init(POSTHOG_KEY, {
         api_host: POSTHOG_HOST,
         person_profiles: 'identified_only',
-        capture_pageview: true,
+        // Page views are sent by PostHogProvider on every route change.
+        capture_pageview: false,
         capture_pageleave: true,
-        autocapture: true,
-        persistence: 'localStorage+cookie',
+        // Only the named events (trackEvent). Autocapture sent every click,
+        // filled the free quota with noise and cost CPU on slow phones.
+        autocapture: false,
+        // Sentry already records sessions.
+        disable_session_recording: true,
+        // No cookies (the cookie policy says MENIUS sets no analytics
+        // cookies). sessionStorage lives in the tab, so one visit is still one
+        // funnel, also after coming back from paying on Stripe.
+        persistence: 'sessionStorage',
         loaded: (loaded) => {
           if (process.env.NODE_ENV === 'development') {
             loaded.debug();

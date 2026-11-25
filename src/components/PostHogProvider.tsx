@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { initAnalytics, trackPageView } from '@/lib/analytics';
+import { initAnalytics, isTrackedPath, trackPageView } from '@/lib/analytics';
 
 /**
  * Renders nothing — it only initialises analytics and reports page views.
@@ -15,12 +15,13 @@ export function PostHogProvider() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Loaded on the first tracked page; a staff screen never downloads it.
   useEffect(() => {
-    initAnalytics();
-  }, []);
+    if (isTrackedPath(pathname)) initAnalytics();
+  }, [pathname]);
 
   useEffect(() => {
-    if (pathname) {
+    if (pathname && isTrackedPath(pathname)) {
       const url = searchParams?.toString()
         ? `${pathname}?${searchParams.toString()}`
         : pathname;
