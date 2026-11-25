@@ -11,16 +11,18 @@ import {
   lastLocalDaysRange, previousLocalDayRange, type LocalDayRange,
 } from '@/lib/date-utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { getStorefrontStats, type StorefrontStats } from '@/lib/storefront-analytics';
 
 const logger = createLogger('tenant-analytics');
 
 const STARTER_MAX_DAYS = 30;
 const PRO_MAX_DAYS = 365;
 
-const ORDER_COLUMNS = `id, total, created_at, discount_amount, tax_amount, tip_amount, delivery_fee, order_type, ${SALE_FIELDS}`;
+const ORDER_COLUMNS = `id, total, created_at, discount_amount, tax_amount, tip_amount, delivery_fee, order_type, customer_id, ${SALE_FIELDS}`;
 
 interface OrderRow extends SaleFields {
   id: string;
+  customer_id: string | null;
   total: number | string | null;
   created_at: string;
   discount_amount: number | string | null;
@@ -235,7 +237,16 @@ export async function GET(request: NextRequest) {
         }));
     }
 
+    // "Tu tienda online": never takes the whole page down.
+    let storefront: StorefrontStats | null = null;
+    try {
+      storefront = await getStorefrontStats(supabase, rid, range, prevRange, currentRes.rows);
+    } catch (err) {
+      logger.warn('storefront stats failed', { error: err instanceof Error ? err.message : String(err) });
+    }
+
     return NextResponse.json({
+      storefront,
       currency,
       period: {
         days: range.days,

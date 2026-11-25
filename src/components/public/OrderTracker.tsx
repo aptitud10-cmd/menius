@@ -18,6 +18,7 @@ import { trackerBrand } from '@/lib/tracker-brand';
 import { formatPhoneNumber, formatPhoneNumberIntl } from 'react-phone-number-input';
 import { NOT_ACCEPTED_MINS } from '@/lib/orders/order-timeouts';
 import { paymentErrorText } from '@/lib/payments/payment-errors';
+import { trackStoreEvent } from '@/lib/store-traffic';
 
 // Datos "de máquina" (n.º de pedido, horas de los pasos, "Actualizado…") van
 // en Inter con cifras tabulares: la DM Mono con cero tachado se leía como una
@@ -374,6 +375,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     if (!order?.id || order.payment_status !== 'paid') return;
     const pending = readPendingPayment();
     if (!pending || pending.orderId !== order.id) return;
+    // Paid card order from this tab: it counts as "ordered" in the owner's
+    // Analytics (cash and wallet orders are counted by the checkout).
+    trackStoreEvent(pending.restaurantId, 'order', { orderId: order.id });
     const cart = useCartStore.getState();
     if (cart.restaurantId === pending.restaurantId) cart.clearCart();
     clearPendingPayment();

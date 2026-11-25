@@ -36,6 +36,7 @@ import { tName, tDesc } from "@/lib/i18n";
 import { searchMenu, suggestedCategories } from "@/lib/menu-search";
 import { cartSuggestions } from "@/lib/cart-suggestions";
 import { trackEvent } from "@/lib/analytics";
+import { trackStoreEvent } from "@/lib/store-traffic";
 
 import { useCheckoutStore } from "@/lib/store/checkoutStore";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
@@ -189,6 +190,14 @@ export function MenuShell({
       // malformed URL in the free-text column: no arrow
     }
   }, [restaurantWebsite, backUrl]);
+  // Owner's Analytics ("Tu tienda online"): one visit per tab, and the first
+  // dish added to the cart (from any add button: the store, the sheet, pairings).
+  useEffect(() => {
+    trackStoreEvent(restaurant.id, 'visit');
+    return useCartStore.subscribe((state, prev) => {
+      if (state.items.length > prev.items.length) trackStoreEvent(restaurant.id, 'cart');
+    });
+  }, [restaurant.id]);
   // The root layout can't know the menu's language (no cookies() there, to
   // keep ISR) and sets <html lang> from the MENIUS UI preference, so an
   // English menu was announced as Spanish to screen readers (WCAG 3.1.1).
@@ -1062,6 +1071,7 @@ export function MenuShell({
         restaurant_id: restaurant.id,
         has_modifiers: product.has_modifiers,
       });
+      trackStoreEvent(restaurant.id, 'product_view', { productId: product.id });
       setCustomization({ product, editIndex: null });
     },
     [restaurant.id],

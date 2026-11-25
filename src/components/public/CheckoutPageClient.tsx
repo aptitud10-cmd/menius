@@ -22,6 +22,7 @@ import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { usablePaymentMethods } from '@/lib/payments/online-ready';
 import { trackEvent } from '@/lib/analytics';
+import { trackStoreEvent } from '@/lib/store-traffic';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 import { computeTaxAmount } from '@/lib/tax-presets';
 import {
@@ -158,6 +159,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     // Fire begin_checkout once — tracks how many users enter the checkout page
     const cartItems = useCartStore.getState().items;
     if (cartItems.length > 0 && !restaurant.id.startsWith('demo')) {
+      trackStoreEvent(restaurant.id, 'checkout');
       trackEvent('begin_checkout', {
         restaurant_id: restaurant.id,
         restaurant_slug: restaurant.slug,
@@ -775,7 +777,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   // Wallet success: order already created + charged. Mirror the confirmation
   // bookkeeping from handleSubmitOrder (snapshot, save customer, track, confetti).
-  const handleWalletSuccess = useCallback((_orderId: string, orderNum: string) => {
+  const handleWalletSuccess = useCallback((walletOrderId: string, orderNum: string) => {
+    trackStoreEvent(restaurant.id, 'order', { orderId: walletOrderId });
     saveLastOrder();
     setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
     setConfirmedEta(estimateMinutes({ items, orderType, restaurant, to: deliveryCoords }));
@@ -1047,6 +1050,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           localStorage.removeItem('menius_customer_phone');
         }
       } catch {}
+      trackStoreEvent(restaurant.id, 'order', { orderId: data.order_id });
       trackEvent('order_placed', {
         restaurant_id: restaurant.id,
         restaurant_slug: restaurant.slug,
