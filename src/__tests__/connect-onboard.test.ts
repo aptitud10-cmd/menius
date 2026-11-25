@@ -20,8 +20,13 @@ vi.mock('@/lib/auth/check-plan', () => ({ hasPlanAccess: (...a: unknown[]) => mo
 
 const mockAccountCreate = vi.fn();
 const mockLinkCreate = vi.fn();
+const mockRetrieve = vi.fn();
+const mockDel = vi.fn();
 vi.mock('@/lib/stripe', () => ({
-  getStripe: () => ({ accounts: { create: mockAccountCreate }, accountLinks: { create: mockLinkCreate } }),
+  getStripe: () => ({
+    accounts: { create: mockAccountCreate, retrieve: mockRetrieve, del: mockDel },
+    accountLinks: { create: mockLinkCreate },
+  }),
 }));
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -106,5 +111,31 @@ describe('POST /api/connect/onboard — owner-facing errors', () => {
     const res = await POST(post() as never);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ url: 'https://connect.stripe.com/setup/x' });
+  });
+
+  it('B1: cuenta sin terminar en otro país → se borra y se crea en el país de la tienda', async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { ...restaurant, stripe_account_id: 'acct_mx' }, error: null });
+    mockRetrieve.mockResolvedValue({ id: 'acct_mx', country: 'MX', details_submitted: false });
+    mockDel.mockResolvedValue({ deleted: true });
+    mockAccountCreate.mockResolvedValue({ id: 'acct_us' });
+    mockLinkCreate.mockResolvedValue({ url: 'https://connect.stripe.com/x' });
+    const { POST } = await import('@/app/api/connect/onboard/route');
+    const res = await POST(post() as never);
+    expect(res.status).toBe(200);
+    expect(mockDel).toHaveBeenCalledWith('acct_mx');
+    expect(mockAccountCreate.mock.calls[0][0].country).toBe('US');
+    expect(mockLinkCreate.mock.calls[0][0].account).toBe('acct_us');
+  });
+
+  it('B1: con el alta terminada, la cuenta existente no se toca', async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { ...restaurant, stripe_account_id: 'acct_mx' }, error: null });
+    mockRetrieve.mockResolvedValue({ id: 'acct_mx', country: 'MX', details_submitted: true });
+    mockLinkCreate.mockResolvedValue({ url: 'https://connect.stripe.com/x' });
+    const { POST } = await import('@/app/api/connect/onboard/route');
+    const res = await POST(post() as never);
+    expect(res.status).toBe(200);
+    expect(mockDel).not.toHaveBeenCalled();
+    expect(mockAccountCreate).not.toHaveBeenCalled();
+    expect(mockLinkCreate.mock.calls[0][0].account).toBe('acct_mx');
   });
 });

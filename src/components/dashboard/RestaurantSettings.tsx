@@ -120,6 +120,8 @@ export function RestaurantSettings({
     return () => clearTimeout(id);
   }, [brandColor]);
   const logoRef = useRef<HTMLInputElement>(null);
+  // Alta de Stripe completa: país y moneda fijos (el servidor también lo exige).
+  const regionLocked = initialData.stripe_onboarding_complete === true;
 
   // "Powered by MENIUS" al pie de la tienda: Pro lo puede ocultar. Se guarda al tocar.
   const [hideBranding, setHideBranding] = useState<boolean>(
@@ -582,6 +584,9 @@ export function RestaurantSettings({
           NO_CHANGES: t.error_noChanges,
           TAX_RATE_INVALID: t.error_taxRateInvalid,
           EMAIL_INVALID: t.error_emailInvalid,
+          REGION_LOCKED: locale === 'en'
+            ? 'Country and currency are locked because your Stripe account is active. Write to support if you need to change them.'
+            : 'El país y la moneda están fijos porque tu cuenta de Stripe está activa. Escríbenos a soporte si necesitas cambiarlos.',
           OWNER_ONLY: locale === 'en'
             ? 'Payments, tax, currency, country and domain can only be changed from your phone or computer, not from a shared tablet.'
             : 'Los cobros, el impuesto, la moneda, el país y el dominio solo se cambian desde tu celular o computadora, no desde una tablet compartida.',
@@ -858,7 +863,8 @@ export function RestaurantSettings({
             <select
               value={form.country_code}
               onChange={(e) => handleCountryChange(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              disabled={regionLocked}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
             >
               <option value="">{locale === 'en' ? '— Select country —' : '— Selecciona tu país —'}</option>
               {COUNTRY_CONFIG_LIST.map((c) => (
@@ -872,6 +878,13 @@ export function RestaurantSettings({
                 {COUNTRY_CONFIGS[form.country_code].flag}&nbsp;
                 {COUNTRY_CONFIGS[form.country_code].currency} &middot; +{COUNTRY_CONFIGS[form.country_code].phonePrefix} &middot; {formatTimezone(COUNTRY_CONFIGS[form.country_code].timezone)}
                 {locale === 'en' ? ' — auto-filled from country' : ' — autocompletado desde el país'}
+              </p>
+            )}
+            {regionLocked && (
+              <p className="text-xs text-gray-500 mt-1.5 ml-0.5">
+                {locale === 'en'
+                  ? 'Country and currency are locked: your Stripe account is active in this country. Write to support if you need to change them.'
+                  : 'País y moneda fijos: tu cuenta de Stripe está activa en este país. Escríbenos a soporte si necesitas cambiarlos.'}
               </p>
             )}
           </div>
@@ -892,7 +905,8 @@ export function RestaurantSettings({
             <select
               value={form.currency}
               onChange={(e) => handleChange('currency', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              disabled={regionLocked}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
             >
               {UNIQUE_CURRENCIES.map((c) => (
                 <option key={c.currency} value={c.currency}>
@@ -954,7 +968,8 @@ export function RestaurantSettings({
             <select
               value={form.country_code}
               onChange={(e) => handleCountryChange(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              disabled={regionLocked}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
             >
               <option value="">{locale === 'en' ? '— No country / custom —' : '— Sin país / personalizado —'}</option>
               {COUNTRY_LIST.map((c) => (

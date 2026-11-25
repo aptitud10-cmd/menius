@@ -74,6 +74,26 @@ export async function POST(request: NextRequest) {
 
     let accountId = restaurant.stripe_account_id;
 
+    // B1: una cuenta creada con el país equivocado (p. ej. México porque el
+    // navegador estaba en español) y SIN terminar el alta no sirve: Stripe no
+    // deja cambiarle el país. Si el dueño ya corrigió el país de la tienda, se
+    // descarta y se crea una nueva. Con el alta terminada no se toca.
+    if (accountId) {
+      try {
+        const existing = await stripe.accounts.retrieve(accountId);
+        if (!existing.details_submitted && existing.country && existing.country.toUpperCase() !== stripeCountry) {
+          const old = accountId;
+          accountId = null;
+          await stripe.accounts.del(old).catch((e: unknown) => {
+            captureError(e, { route: '/api/connect/onboard', step: 'delete_wrong_country', accountId: old });
+          });
+        }
+      } catch (e) {
+        // Si no se puede leer, se sigue con la que hay (como antes).
+        captureError(e, { route: '/api/connect/onboard', step: 'retrieve_existing', accountId });
+      }
+    }
+
     if (!accountId) {
       const account = await stripe.accounts.create({
         type: 'express',

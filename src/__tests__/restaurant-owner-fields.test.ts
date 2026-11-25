@@ -119,3 +119,22 @@ describe('PATCH /api/tenant/restaurant desde una tablet con PIN', () => {
     expect(state.updates[0].tax_rate).toBe(0);
   });
 });
+
+describe('PATCH /api/tenant/restaurant: país y moneda con Stripe activo', () => {
+  beforeEach(() => { state.isTablet = false; state.updates = []; state.current = { ...saved, stripe_onboarding_complete: true }; });
+
+  it('con el alta de Stripe completa no se cambia la moneda ni el país (ni el dueño)', async () => {
+    const { PATCH } = await import('@/app/api/tenant/restaurant/route');
+    const res = await PATCH(patch({ ...formAsIs, currency: 'MXN', country_code: 'MX' }) as never);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: 'REGION_LOCKED', fields: ['currency', 'country_code'] });
+    expect(state.updates).toHaveLength(0);
+  });
+
+  it('guardar el formulario con el mismo país pasa; sin alta completa se puede corregir', async () => {
+    const { PATCH } = await import('@/app/api/tenant/restaurant/route');
+    expect((await PATCH(patch(formAsIs) as never)).status).toBe(200);
+    state.current = { ...saved, stripe_onboarding_complete: false };
+    expect((await PATCH(patch({ ...formAsIs, currency: 'MXN', country_code: 'MX' }) as never)).status).toBe(200);
+  });
+});

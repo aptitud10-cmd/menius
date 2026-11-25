@@ -119,15 +119,28 @@ export async function PATCH(request: NextRequest) {
     // Tablet con el panel abierto por PIN: puede guardar horarios, fotos, etc.,
     // pero no cambiar cobros, impuesto, moneda, país, dominio ni datos fiscales.
     if (OWNER_ONLY_FIELDS.some((f) => updates[f] !== undefined)) {
-      const device = await getDeviceSession(supabase);
-      if (device.isTablet) {
-        const { data: current, error: curError } = await supabase
+      const [device, { data: currentRow, error: curError }] = await Promise.all([
+        getDeviceSession(supabase),
+        supabase
           .from('restaurants')
-          .select(OWNER_ONLY_FIELDS.join(', '))
+          .select([...OWNER_ONLY_FIELDS, 'stripe_onboarding_complete'].join(', '))
           .eq('id', tenant.restaurantId)
-          .maybeSingle();
-        if (curError || !current) return NextResponse.json({ error: 'OWNER_ONLY' }, { status: 403 });
-        const changed = ownerOnlyChanges(current as unknown as Record<string, unknown>, updates);
+          .maybeSingle(),
+      ]);
+      if (curError || !currentRow) return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+      const current = currentRow as unknown as Record<string, unknown>;
+      const changed = ownerOnlyChanges(current, updates);
+
+      // Con el alta de Stripe completa, la moneda y el país quedan fijos: la
+      // cuenta de Stripe no cambia de país, y cobrar en otra moneda por una
+      // cuenta de EE.UU. deja el procesamiento sin cubrir (el fee solo se suma
+      // en USD). Antes de completar el alta sí se pueden corregir (B1).
+      const regionChanged = changed.filter((f) => f === 'currency' || f === 'country_code');
+      if (regionChanged.length > 0 && current.stripe_onboarding_complete === true) {
+        return NextResponse.json({ error: 'REGION_LOCKED', fields: regionChanged }, { status: 409 });
+      }
+
+      if (device.isTablet) {
         if (changed.length > 0) {
           return NextResponse.json({ error: 'OWNER_ONLY', fields: changed }, { status: 403 });
         }
