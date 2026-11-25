@@ -10,6 +10,7 @@ import { sendEmail } from '@/lib/notifications/email';
 import { buildWeeklyDigestEmail } from '@/lib/notifications/retention-emails';
 import { createLogger } from '@/lib/logger';
 import { isSale, SALE_FIELDS } from '@/lib/sales';
+import { fetchProductSales } from '@/lib/sales-query';
 
 const logger = createLogger('weekly-digest', { report: true });
 
@@ -116,21 +117,10 @@ export async function GET(request: NextRequest) {
 
       const avgTicket = weekOrderCount > 0 ? weekRevenue / weekOrderCount : 0;
 
-      // Top product by revenue this week — order_items has no created_at,
-      // so filter via the order ids already fetched above (weekOrders).
-      const weekOrderIds = completedWeek.map(o => o.id);
-      const { data: topProductsRaw } = weekOrderIds.length > 0
-        ? await admin.from('order_items').select('product_id, line_total, products!inner(name, is_active)').eq('products.restaurant_id', rid).in('order_id', weekOrderIds).limit(300)
-        : { data: [] as { product_id: string; line_total: number; products: { name: string; is_active: boolean } }[] };
-
-      const productRevMap: Record<string, { name: string; revenue: number }> = {};
-      for (const item of topProductsRaw ?? []) {
-        const prod = item as unknown as { product_id: string; line_total: number; products: { name: string } };
-        if (!prod.product_id) continue;
-        if (!productRevMap[prod.product_id]) productRevMap[prod.product_id] = { name: prod.products?.name ?? prod.product_id, revenue: 0 };
-        productRevMap[prod.product_id].revenue += Number(prod.line_total);
-      }
-      const sortedProds = Object.values(productRevMap).sort((a, b) => b.revenue - a.revenue);
+      // Top product by revenue this week (sales only, every page).
+      const { byProduct } = await fetchProductSales(admin, rid, weekAgo);
+      const sortedProds = Array.from(byProduct, ([id, v]) => ({ name: v.name ?? id, revenue: v.revenue }))
+        .sort((a, b) => b.revenue - a.revenue);
       const topProduct = sortedProds[0] ?? null;
 
       const atRiskCount = (atRiskCustomers ?? []).length;

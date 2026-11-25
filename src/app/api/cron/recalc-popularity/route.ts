@@ -4,6 +4,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
+import { fetchProductSales } from '@/lib/sales-query';
 
 const logger = createLogger('recalc-popularity', { report: true });
 
@@ -34,22 +35,12 @@ export async function GET(request: NextRequest) {
 
   for (const restaurant of restaurants) {
     try {
-      // Count order_items per product in last 7 days for this restaurant
-      const { data: rows, error: countErr } = await db
-        .from('order_items')
-        .select('product_id, qty, orders!inner(restaurant_id, created_at, status)')
-        .eq('orders.restaurant_id', restaurant.id)
-        .gte('orders.created_at', since)
-        .not('orders.status', 'eq', 'cancelled');
-
-      if (countErr || !rows) continue;
-
-      // Aggregate quantities by product
+      // Units per product in the last 7 days (sales only, every page: a busy
+      // week went past the 1000-row cap and ranked on a partial count).
+      const { byProduct, error: countErr } = await fetchProductSales(db, restaurant.id, since);
+      if (countErr) continue;
       const totals = new Map<string, number>();
-      for (const row of rows as Array<{ product_id: string; qty: number }>) {
-        if (!row.product_id) continue;
-        totals.set(row.product_id, (totals.get(row.product_id) ?? 0) + (row.qty ?? 1));
-      }
+      byProduct.forEach((v, id) => totals.set(id, v.qty));
 
       // No early `continue` when there were no orders: the reset below must
       // still run, otherwise a quiet week left last week's "#1 this week" on

@@ -8,6 +8,7 @@ import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger } from '@/lib/logger';
 import { isSale, SALE_FIELDS } from '@/lib/sales';
+import { fetchProductSales } from '@/lib/sales-query';
 
 const logger = createLogger('menu-optimizer');
 
@@ -58,26 +59,10 @@ export async function POST() {
     return NextResponse.json({ error: 'No hay datos suficientes para analizar' }, { status: 400 });
   }
 
-  // Fetch order_items separately (products list is now available).
-  // order_items has no created_at — filter via order_id in the 30d orders already fetched.
-  const productIds = products.map((p) => p.id);
-  const monthOrderIds = (monthOrders ?? []).map((o) => o.id);
-  const { data: orderItems } = monthOrderIds.length > 0
-    ? await supabase
-        .from('order_items')
-        .select('product_id, qty, line_total')
-        .in('order_id', monthOrderIds)
-        .in('product_id', productIds)
-        .limit(1000)
-    : { data: [] as { product_id: string; qty: number; line_total: number }[] };
-
-  // Build product stats
+  // Units and revenue per dish over the same 30 days (sales only, every page).
+  const { byProduct } = await fetchProductSales(supabase, tenant.restaurantId, monthAgo);
   const productStats: Record<string, { qty: number; revenue: number }> = {};
-  for (const item of orderItems ?? []) {
-    if (!productStats[item.product_id]) productStats[item.product_id] = { qty: 0, revenue: 0 };
-    productStats[item.product_id].qty += item.qty;
-    productStats[item.product_id].revenue += Number(item.line_total);
-  }
+  byProduct.forEach((v, id) => { productStats[id] = { qty: v.qty, revenue: v.revenue }; });
 
   const totalRevenue = (monthOrders ?? []).reduce((s, o) => s + Number(o.total), 0);
   const avgTicket = monthOrders && monthOrders.length > 0 ? totalRevenue / monthOrders.length : 0;

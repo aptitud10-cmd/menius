@@ -10,6 +10,7 @@ import {
 } from "@/lib/notifications/email";
 import { createLogger } from "@/lib/logger";
 import { isSale, SALE_FIELDS } from "@/lib/sales";
+import { fetchProductSales } from "@/lib/sales-query";
 import { withRestaurants } from "@/lib/billing/with-restaurants";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { OptimizerInsight } from "@/app/api/ai/menu-optimizer/route";
@@ -144,26 +145,10 @@ export async function GET(request: NextRequest) {
 
           if (!products || products.length === 0) return false;
 
-          // order_items has no created_at — filter via order_id in the 30d orders already fetched.
-          const productIds = products.map((p) => p.id);
-          const monthOrderIds = (monthOrders ?? []).map((o) => o.id);
-          const { data: orderItems } = monthOrderIds.length > 0
-            ? await supabase
-                .from("order_items")
-                .select("product_id, qty, line_total")
-                .in("order_id", monthOrderIds)
-                .in("product_id", productIds)
-                .limit(1000)
-            : { data: [] as { product_id: string; qty: number; line_total: number }[] };
-
-          const productStats: Record<string, { qty: number; revenue: number }> =
-            {};
-          for (const item of orderItems ?? []) {
-            if (!productStats[item.product_id])
-              productStats[item.product_id] = { qty: 0, revenue: 0 };
-            productStats[item.product_id].qty += item.qty;
-            productStats[item.product_id].revenue += Number(item.line_total);
-          }
+          // Units and revenue per dish (sales only, every page).
+          const { byProduct } = await fetchProductSales(supabase, restaurantId, monthAgo);
+          const productStats: Record<string, { qty: number; revenue: number }> = {};
+          byProduct.forEach((v, id) => { productStats[id] = { qty: v.qty, revenue: v.revenue }; });
 
           const totalRevenue = (monthOrders ?? []).reduce(
             (s, o) => s + Number(o.total),

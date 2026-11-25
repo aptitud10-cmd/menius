@@ -10,6 +10,7 @@ import { getPlan } from "@/lib/plans";
 import { createLogger } from "@/lib/logger";
 import { isReceivedOrder, isSale, SALE_FIELDS } from "@/lib/sales";
 import { getStartOfDayUTC, resolveTimezone } from "@/lib/date-utils";
+import { fetchProductSales } from "@/lib/sales-query";
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -189,18 +190,8 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
 
   const allMonth = monthOrders ?? [];
 
-  // Top products by revenue in last 30 days — order_items has no created_at,
-  // so filter by the order ids already fetched above (monthOrders).
-  const monthOrderIds = allMonth.map((o) => o.id);
-  const { data: topProductsRaw } =
-    monthOrderIds.length > 0
-      ? await supabase
-          .from("order_items")
-          .select("product_id, line_total, products!inner(name, is_active)")
-          .eq("products.restaurant_id", restaurantId)
-          .in("order_id", monthOrderIds)
-          .limit(500)
-      : { data: [] as { product_id: string; line_total: number; products: { name: string; is_active: boolean } }[] };
+  // Top products by revenue in last 30 days (sales only, every page).
+  const { byProduct: monthProductSales } = await fetchProductSales(supabase, restaurantId, monthAgo);
   const completedMonth = allMonth.filter(isSale);
   const monthRevenue = completedMonth.reduce((s, o) => s + Number(o.total), 0);
   const monthDiscount = allMonth.reduce(
@@ -238,23 +229,9 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     string,
     { name: string; revenue: number; qty: number }
   > = {};
-  for (const item of topProductsRaw ?? []) {
-    const prod = item as unknown as {
-      product_id: string;
-      line_total: number;
-      products: { name: string; is_active: boolean };
-    };
-    if (!prod.product_id) continue;
-    if (!productRevMap[prod.product_id]) {
-      productRevMap[prod.product_id] = {
-        name: prod.products?.name ?? prod.product_id,
-        revenue: 0,
-        qty: 0,
-      };
-    }
-    productRevMap[prod.product_id].revenue += Number(prod.line_total);
-    productRevMap[prod.product_id].qty++;
-  }
+  monthProductSales.forEach((v, id) => {
+    productRevMap[id] = { name: v.name ?? id, revenue: v.revenue, qty: v.qty };
+  });
   const sortedProducts = Object.values(productRevMap).sort(
     (a, b) => b.revenue - a.revenue,
   );
