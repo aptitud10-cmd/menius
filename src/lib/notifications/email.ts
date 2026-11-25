@@ -52,6 +52,25 @@ function esc(s: string | null | undefined): string {
 
 // ---------- Transport ----------
 
+/** Tipo de email para los logs (el tag "category"), nunca el asunto. */
+function emailCategory(tags?: { name: string; value: string }[]): string {
+  return tags?.find((t) => t.name === "category")?.value ?? "untagged";
+}
+
+/** "validation_error: Invalid `to` field" a partir del JSON de Resend, con los emails tapados. */
+export function resendErrorSummary(body: string): string {
+  let text = body;
+  try {
+    const j = JSON.parse(body) as { name?: unknown; message?: unknown };
+    text = [j.name, j.message].filter((x) => typeof x === "string" && x).join(": ") || body;
+  } catch {
+    /* no era JSON: se usa el texto, recortado */
+  }
+  return text
+    .replace(/[^\s@<>"',;:()]+@[^\s@<>"',;:()]+/g, (m) => maskEmail(m) ?? "[email]")
+    .slice(0, 200);
+}
+
 export async function sendEmail({
   to,
   from,
@@ -67,12 +86,22 @@ export async function sendEmail({
     return false;
   }
 
-  logger.info("Sending email", { subject, to: maskEmail(to) });
+  // ADMIN_EMAIL puede ser una lista "a@x.com,b@x.com" (regla 10): cada
+  // dirección va como destinatario propio. Antes iba entera como una sola y
+  // Resend rechazaba el envío (soporte, registro nuevo, alertas de salud).
+  const recipients = String(to ?? "").split(",").map((e) => e.trim()).filter(Boolean);
+  if (recipients.length === 0) {
+    logger.error("sendEmail without recipient", { category: emailCategory(tags) });
+    return false;
+  }
+  const maskedTo = recipients.map((e) => maskEmail(e)).join(",");
+  // Sin el asunto: lleva nombres de clientes y repartidores ("Nuevo pedido — Ana").
+  logger.info("Sending email", { category: emailCategory(tags), to: maskedTo });
 
   try {
     const payload: Record<string, unknown> = {
       from: from ?? "MENIUS <noreply@menius.app>",
-      to: [to],
+      to: recipients,
       subject,
       html,
     };
@@ -92,30 +121,34 @@ export async function sendEmail({
     });
 
     if (!res.ok) {
+      // Solo el tipo de error de Resend, sin el cuerpo entero: puede repetir
+      // direcciones y datos del email.
       const errBody = await res.text();
+      const reason = resendErrorSummary(errBody);
       logger.error("Resend HTTP error", {
         status: res.status,
-        to: maskEmail(to),
-        errBody,
+        to: maskedTo,
+        reason,
+        category: emailCategory(tags),
       });
-      captureError(new Error(`Resend HTTP ${res.status}: ${errBody}`), {
+      captureError(new Error(`Resend HTTP ${res.status}: ${reason}`), {
         context: "sendEmail",
-        to: maskEmail(to),
+        to: maskedTo,
       });
       return false;
     }
     const body = await res.json().catch(() => ({}));
     logger.info("Email sent", {
-      to: maskEmail(to),
+      to: maskedTo,
       id: (body as Record<string, unknown>)?.id ?? "unknown",
     });
     return true;
   } catch (err) {
     logger.error("Network error sending email", {
-      to: maskEmail(to),
+      to: maskedTo,
       error: err instanceof Error ? err.message : String(err),
     });
-    captureError(err, { context: "sendEmail", to: maskEmail(to) });
+    captureError(err, { context: "sendEmail", to: maskedTo });
     return false;
   }
 }
@@ -608,9 +641,15 @@ export function buildTrialEndingEmail(params: {
   daysLeft: number;
   billingUrl: string;
   locale?: string;
+  /**
+   * Ya se suscribió durante la prueba (tarjeta en Stripe, cobro automático):
+   * no se le pide "suscríbete", se le avisa cuándo y cuánto se cobra.
+   */
+  subscribed?: { chargeDateLabel: string; amountLabel: string };
 }): string {
-  const { ownerName, restaurantName, daysLeft, billingUrl, locale } = params;
+  const { ownerName, restaurantName, daysLeft, billingUrl, locale, subscribed } = params;
   const en = locale === "en";
+  if (subscribed) return buildTrialEndingSubscribedEmail({ ownerName, restaurantName, billingUrl, en, ...subscribed });
 
   const urgent = daysLeft <= 1;
   const accentColor = urgent ? "#dc2626" : "#d97706";
@@ -674,6 +713,54 @@ export function buildTrialEndingEmail(params: {
       </td>
     </tr>
   </table>`;
+
+  const footer = `MENIUS &nbsp;·&nbsp; <a href="${billingUrl}" style="color:#7c3aed;text-decoration:none;">${en ? "Manage subscription" : "Gestionar suscripción"}</a>`;
+
+  return shell(accentColor, header, body, footer);
+}
+
+/** Variante para quien ya se suscribió: aviso de cobro, sin "suscríbete" ni plan Gratis. */
+function buildTrialEndingSubscribedEmail(p: {
+  ownerName: string;
+  restaurantName: string;
+  billingUrl: string;
+  en: boolean;
+  chargeDateLabel: string;
+  amountLabel: string;
+}): string {
+  const { ownerName, restaurantName, billingUrl, en, chargeDateLabel, amountLabel } = p;
+  const accentColor = "#7c3aed";
+  const font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const header =
+    meniusLogoHeader() +
+    `
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
+        <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:#111827;font-family:${font};">${en ? `Your trial ends on ${esc(chargeDateLabel)}` : `Tu prueba termina el ${esc(chargeDateLabel)}`}</p>
+        <p style="margin:0;font-size:13px;color:#9ca3af;font-family:${font};">${esc(restaurantName)}</p>
+      </td>
+    </tr>
+  </table>`;
+
+  const body = `
+  <p style="margin:0 0 20px;font-size:15px;color:#374151;font-family:${font};line-height:1.6;">
+    ${
+      en
+        ? `Hi <strong>${esc(ownerName)}</strong> — you're already subscribed to Pro. On <strong>${esc(chargeDateLabel)}</strong> we'll charge <strong>${esc(amountLabel)}</strong> to the card you added. You don't need to do anything.`
+        : `Hola <strong>${esc(ownerName)}</strong> — ya estás suscrito a Pro. El <strong>${esc(chargeDateLabel)}</strong> cobramos <strong>${esc(amountLabel)}</strong> a la tarjeta que registraste. No tienes que hacer nada.`
+    }
+  </p>
+  <p style="margin:0 0 24px;font-size:13px;color:#6b7280;font-family:${font};line-height:1.6;">
+    ${
+      en
+        ? "If you'd rather not continue, cancel before that date from Billing and you won't be charged."
+        : "Si prefieres no seguir, cancela antes de esa fecha desde Facturación y no se te cobra."
+    }
+  </p>
+
+  ${ctaButton(billingUrl, en ? "View my subscription" : "Ver mi suscripción", accentColor)}
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td style="height:16px;line-height:16px;font-size:0;">&nbsp;</td></tr></table>`;
 
   const footer = `MENIUS &nbsp;·&nbsp; <a href="${billingUrl}" style="color:#7c3aed;text-decoration:none;">${en ? "Manage subscription" : "Gestionar suscripción"}</a>`;
 

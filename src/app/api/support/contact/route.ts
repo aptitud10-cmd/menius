@@ -95,25 +95,28 @@ export async function POST(request: NextRequest) {
   </div>
 </body></html>`;
 
-  const [adminSent, confirmSent] = await Promise.all([
-    sendEmail({
-      to: adminEmail,
-      from: 'Soporte MENIUS <soporte@menius.app>',
-      subject: `[MENIUS Support] New message from ${safeName}`,
-      html: adminHtml,
-      replyTo: email,
-    }),
-    sendEmail({
-      to: email,
-      from: 'Soporte MENIUS <soporte@menius.app>',
-      subject: 'Recibimos tu mensaje · We received your message — MENIUS',
-      html: confirmHtml,
-    }),
-  ]);
-
-  if (!adminSent && !confirmSent) {
+  // Primero a soporte. Si ese no sale, el mensaje se perdería: se responde
+  // error (antes bastaba con que saliera la confirmación al usuario, y el
+  // usuario creía que lo habíamos recibido).
+  const adminSent = await sendEmail({
+    to: adminEmail,
+    from: 'Soporte MENIUS <soporte@menius.app>',
+    subject: `[MENIUS Support] New message from ${safeName}`,
+    html: adminHtml,
+    replyTo: email,
+    tags: [{ name: 'category', value: 'support_inbound' }],
+  });
+  if (!adminSent) {
+    logger.error('Support message not delivered to admin');
     return NextResponse.json({ error: 'Failed to send' }, { status: 500 });
   }
+  await sendEmail({
+    to: email,
+    from: 'Soporte MENIUS <soporte@menius.app>',
+    subject: 'Recibimos tu mensaje · We received your message — MENIUS',
+    html: confirmHtml,
+    tags: [{ name: 'category', value: 'support_confirmation' }],
+  });
 
   return NextResponse.json({ ok: true });
 }

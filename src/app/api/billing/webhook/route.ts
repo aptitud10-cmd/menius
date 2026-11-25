@@ -440,98 +440,12 @@ export async function POST(request: NextRequest) {
         }
 
         case "customer.subscription.trial_will_end": {
-          // Stripe fires this ~3 days before trial ends
-          const sub = event.data.object as any;
-          const restaurantId = sub.metadata?.restaurant_id;
-          const customerId = sub.customer as string;
-
-          // Find restaurant + owner email
-          let restaurantData: any = null;
-          if (restaurantId) {
-            const { data } = await supabase
-              .from("restaurants")
-              .select("id, name, owner_user_id, locale")
-              .eq("id", restaurantId)
-              .maybeSingle();
-            restaurantData = data;
-          } else {
-            const { data: subRow } = await supabase
-              .from("subscriptions")
-              .select("restaurant_id")
-              .eq("stripe_customer_id", customerId)
-              .maybeSingle();
-            if (subRow) {
-              const { data } = await supabase
-                .from("restaurants")
-                .select("id, name, owner_user_id, locale")
-                .eq("id", subRow.restaurant_id)
-                .maybeSingle();
-              restaurantData = data;
-            }
-          }
-
-          if (restaurantData?.owner_user_id) {
-            try {
-              const adminClient = createAdminClient();
-              const { data: userData } =
-                await adminClient.auth.admin.getUserById(
-                  restaurantData.owner_user_id,
-                );
-              const ownerEmail = userData?.user?.email;
-              const ownerName =
-                userData?.user?.user_metadata?.full_name || restaurantData.name;
-
-              if (ownerEmail) {
-                const trialEnd = sub.trial_end
-                  ? new Date(sub.trial_end * 1000)
-                  : new Date();
-                const daysLeft = Math.max(
-                  1,
-                  Math.ceil(
-                    (trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-                  ),
-                );
-                const appUrl =
-                  process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";
-
-                const rLocale = restaurantData.locale ?? "es";
-                const isEn = rLocale === "en";
-                const { sendEmail, buildTrialEndingEmail } =
-                  await import("@/lib/notifications/email");
-                const html = buildTrialEndingEmail({
-                  ownerName,
-                  restaurantName: restaurantData.name,
-                  daysLeft,
-                  billingUrl: `${appUrl}/app/billing`,
-                  locale: rLocale,
-                });
-
-                await sendEmail({
-                  to: ownerEmail,
-                  subject: isEn
-                    ? `${daysLeft <= 1 ? "🚨" : "⏰"} Your MENIUS trial ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`
-                    : `${daysLeft <= 1 ? "🚨" : "⏰"} Tu prueba de MENIUS termina en ${daysLeft} día${daysLeft !== 1 ? "s" : ""}`,
-                  html,
-                });
-
-                // Mark as sent so the daily cron (trial-ending-reminders) skips this restaurant
-                await supabase
-                  .from("subscriptions")
-                  .update({
-                    trial_ending_reminder_sent_at: new Date().toISOString(),
-                  })
-                  .eq("restaurant_id", restaurantData.id);
-              }
-            } catch (emailErr) {
-              logger.error("Failed to send trial_will_end email", {
-                error:
-                  emailErr instanceof Error
-                    ? emailErr.message
-                    : String(emailErr),
-                restaurantId: restaurantData?.id,
-              });
-            }
-          }
+          // El aviso de fin de prueba lo manda SOLO el cron diario
+          // (cron/trial-ending-reminders), con la versión correcta para quien
+          // ya se suscribió. Antes este webhook mandaba otro igual: llegaban
+          // dos, al email de login en vez de notification_email, se marcaba
+          // como enviado aunque fallara, y le decía "suscríbete" a quien ya
+          // estaba suscrito.
           break;
         }
 

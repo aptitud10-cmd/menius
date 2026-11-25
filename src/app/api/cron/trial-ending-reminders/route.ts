@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, buildTrialEndingEmail } from "@/lib/notifications/email";
 import { createLogger } from "@/lib/logger";
 import { withRestaurants } from "@/lib/billing/with-restaurants";
+import { trialChargeNotice } from "@/lib/billing/trial-charge";
 
 const logger = createLogger("cron:trial-ending-reminders", { report: true });
 
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     const { data: rawSubs, error: subsError } = await adminDb
       .from("subscriptions")
-      .select("restaurant_id, trial_end")
+      .select("restaurant_id, trial_end, stripe_subscription_id, stripe_price_id")
       .eq("status", "trialing")
       // Floor at now: an already-expired trial shouldn't be told it has 3 days
       // left. billing-reconciliation flips those to canceled anyway.
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
     const { rows: subs, error: restError } = await withRestaurants(
       adminDb,
       rawSubs ?? [],
-      "name, slug, locale, notification_email",
+      "name, slug, locale, notification_email, timezone",
     );
     if (restError) {
       logger.error("Failed to fetch restaurants for trial reminders", { error: restError });
@@ -95,6 +96,7 @@ export async function GET(request: NextRequest) {
             slug: string;
             locale: string;
             notification_email: string;
+            timezone: string | null;
           };
           const en = rest.locale === "en";
           // Real remaining days, not a hardcoded 3. The window now spans up to
@@ -107,17 +109,27 @@ export async function GET(request: NextRequest) {
           const dayWord = en
             ? `${daysLeft} day${daysLeft === 1 ? "" : "s"}`
             : `${daysLeft} día${daysLeft === 1 ? "" : "s"}`;
+          // Se suscribió durante la prueba (Stripe la deja en trialing con cobro
+          // automático): antes recibía "suscríbete o pasas a Gratis", falso.
+          const subscribed = sub.stripe_subscription_id
+            ? trialChargeNotice(sub.trial_end as string, sub.stripe_price_id as string | null, en, rest.timezone)
+            : undefined;
           return sendEmail({
             to: rest.notification_email,
-            subject: en
-              ? `Your MENIUS trial ends in ${dayWord} — ${rest.name}`
-              : `Tu prueba de MENIUS termina en ${dayWord} — ${rest.name}`,
+            subject: subscribed
+              ? (en
+                ? `Your Pro plan starts ${subscribed.chargeDateLabel} — ${rest.name}`
+                : `Tu plan Pro empieza el ${subscribed.chargeDateLabel} — ${rest.name}`)
+              : en
+                ? `Your MENIUS trial ends in ${dayWord} — ${rest.name}`
+                : `Tu prueba de MENIUS termina en ${dayWord} — ${rest.name}`,
             html: buildTrialEndingEmail({
               ownerName: rest.name,
               restaurantName: rest.name,
               daysLeft,
               billingUrl,
               locale: rest.locale,
+              subscribed,
             }),
           }).then(async (ok) => {
             // sendEmail NEVER rejects — it returns a boolean. Stamping
