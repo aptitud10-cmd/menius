@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { isSameOriginJson } from '@/lib/device-pairing';
 import { revalidatePublicMenuForRestaurant } from '@/lib/revalidate-public-menu';
 import { addDays, businessDay, DAILY_LIMITS, type DailyKind } from '@/lib/daily-menu';
 import { runDailyReset, syncSpecialCategories } from '@/lib/daily-reset';
@@ -108,6 +109,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Solo la propia página (JSON + mismo origen): un formulario de otro sitio no
+    // puede usar la sesión abierta de la tablet para agotar o cambiar platos.
+    if (!isSameOriginJson(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 });
     const tenant = await getTenant({ allowDevice: true });
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 

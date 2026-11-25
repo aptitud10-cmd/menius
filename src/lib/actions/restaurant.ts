@@ -2338,7 +2338,11 @@ export async function sendOrderNotification(
   }
 }
 
-export async function updateOrderETA(orderId: string, etaMinutes: number) {
+export async function updateOrderETA(orderId: string, etaInput: number) {
+  // Mismo rango que al aceptar (updateOrderStatus): 1–240 min. Sin esto un
+  // valor roto llegaba tal cual al email del cliente ("listo en 9999 min").
+  if (typeof etaInput !== "number" || !Number.isFinite(etaInput)) return { error: "Tiempo inválido" };
+  const etaMinutes = Math.max(1, Math.min(240, Math.round(etaInput)));
   const {
     supabase,
     restaurantId,

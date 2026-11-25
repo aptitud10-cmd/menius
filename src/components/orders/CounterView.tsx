@@ -24,7 +24,7 @@ import { escapeHtml } from '@/lib/sanitize';
 import { isSale } from '@/lib/sales';
 import { C, RAISED, counterText, nearestChoice, suggestedPrep, waitingSince, SCHEDULED_LEAD_MS } from './counter/ui';
 import {
-  getAudioCtx, unlockWithGesture, loadTheme, setSoundTheme, setVolume as setAudioVolume, resumeAudio,
+  getAudioCtx, unlockWithGesture, loadTheme, setSoundTheme, setVolume as setAudioVolume, resumeAudio, isAudioRunning,
   playRing, stopRing, playAccepted, ringKind, loopIntervalMs, msUntilNextRing,
   setAlertActive, playEvent, eventForChange,
 } from './counter/audio';
@@ -382,6 +382,46 @@ export function CounterView({
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
+  // Sonido que se apagó DESPUÉS de activarlo (Android suspende o interrumpe el
+  // contexto: otra app toma el audio, cambia la salida). Antes la banda "Sonido
+  // apagado" no volvía y los pedidos "sonaban" mudos. Se intenta reanudar; si a
+  // los 1.5 s sigue sin sonar, vuelve la banda (también en la app) y el primer
+  // toque en cualquier parte lo reactiva.
+  const [audioStuck, setAudioStuck] = useState(false);
+  useEffect(() => {
+    if (!audioUnlocked) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const check = () => {
+      if (t) clearTimeout(t);
+      if (isAudioRunning()) { setAudioStuck(false); return; }
+      // Oculta: el navegador la frena a propósito; se revisa al volver.
+      if (document.visibilityState !== 'visible') return;
+      resumeAudio();
+      t = setTimeout(() => setAudioStuck(!isAudioRunning()), 1500);
+    };
+    ctx.addEventListener('statechange', check);
+    document.addEventListener('visibilitychange', check);
+    const poll = setInterval(check, 30_000);
+    return () => {
+      if (t) clearTimeout(t);
+      ctx.removeEventListener('statechange', check);
+      document.removeEventListener('visibilitychange', check);
+      clearInterval(poll);
+    };
+  }, [audioUnlocked]);
+  useEffect(() => {
+    if (!audioStuck) return;
+    const onGesture = () => {
+      unlockWithGesture();
+      setTimeout(() => { if (isAudioRunning()) setAudioStuck(false); }, 300);
+    };
+    const evs = ['click', 'touchend', 'keydown'] as const;
+    evs.forEach(e => window.addEventListener(e, onGesture, { capture: true }));
+    return () => evs.forEach(e => window.removeEventListener(e, onGesture, { capture: true }));
+  }, [audioStuck]);
+
   // ── UI state ──
   const [activeTab, setActiveTab] = useState<Tab>('new');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -417,7 +457,7 @@ export function CounterView({
   const setBusyIfChanged = useCallback((b: BusyState) => {
     setBusy((prev) => (prev.extra === b.extra && prev.until === b.until ? prev : b));
   }, []);
-  const pauseSync = usePauseSync(setPausedUntil, setBusyIfChanged, { heartbeat: true });
+  const pauseSync = usePauseSync(setPausedUntil, setBusyIfChanged, { heartbeat: true, heartbeatOnlyVisible: getCounterAppBridge() != null });
 
   // ── Auto-print on accept ──
   const [autoPrint, setAutoPrint] = useState(() =>
@@ -432,7 +472,7 @@ export function CounterView({
   // ── Impresora CloudPRNT (SPEC impresión §1b regla 3) ──
   // Con una impresora del mostrador activa, la tablet NO imprime por su cuenta:
   // el ticket lo saca la impresora sola al aceptar. Si no, saldría doble (CA-17).
-  const cloud = useCloudPrnt();
+  const cloud = useCloudPrnt(true, restaurantId);
   const cloudRef = useRef(false);
   cloudRef.current = cloud.active;
 
@@ -581,11 +621,11 @@ export function CounterView({
   // ── History search ──
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showError = (msg: string) => {
+  const showError = (msg: string, ms = 4500) => {
     setSuccessToast(null); setToastAction(null);
     setErrorToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setErrorToast(null), 4500);
+    toastTimer.current = setTimeout(() => setErrorToast(null), ms);
   };
   const showSuccess = (msg: string, action?: { label: string; run: () => void }, ms?: number) => {
     setErrorToast(null);
@@ -735,10 +775,14 @@ export function CounterView({
     if (isLeaderRef.current) {
       playRing('alert');
       try { getCounterAppBridge()?.vibrateNewOrder?.(); } catch { /* not in the app */ }
-      sendPushNotification(
-        `🔔 ${isFutureScheduled ? t.newScheduledOrder : t.newOrder} · ${restaurantName}`,
-        `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`
-      );
+      const pushTitle = `🔔 ${isFutureScheduled ? t.newScheduledOrder : t.newOrder} · ${restaurantName}`;
+      const pushBody = `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`;
+      sendPushNotification(pushTitle, pushBody);
+      // En la app con otra app encima, la alerta de la web casi no suena (timers
+      // frenados): Android avisa y sigue sonando hasta que vuelven al Counter.
+      if (!isFutureScheduled) {
+        try { getCounterAppBridge()?.notifyNewOrder?.(pushTitle, pushBody); } catch { /* app vieja */ }
+      }
       // Print immediately on arrival if enabled
       if (printOnArrivalRef.current && !cloudRef.current && !isFutureScheduled) {
         // Se marca solo si salió: si la impresora falló al llegar, aceptar reimprime.
@@ -852,12 +896,25 @@ export function CounterView({
     const prev = statusSeenRef.current;
     statusSeenRef.current = snap;
     if (!prev) return; // primera pasada: solo registra
+    const cancelledElsewhere: string[] = [];
     for (const [id, next] of Array.from(snap.entries())) {
       const ev = eventForChange(prev.get(id), next);
       if (!ev) continue;
       const mine = selfChangeRef.current.get(id);
       if (mine && mine.status === next.status && Date.now() - mine.at < 60_000) { selfChangeRef.current.delete(id); continue; }
       if (soundsHere()) void playEvent(ev);
+      if (next.status === 'cancelled') {
+        const o = ordersView.find(x => x.id === id);
+        if (o) cancelledElsewhere.push(shortOrderNumber(o.order_number));
+      }
+    }
+    // El sonido lo da solo la tablet líder; el aviso escrito, todas: quien está
+    // armando ese pedido tiene que verlo aunque su tablet no suene.
+    if (cancelledElsewhere.length > 0) {
+      const list = cancelledElsewhere.map(n => `#${n}`).join(', ');
+      showError(cancelledElsewhere.length === 1
+        ? (t.en ? `Order ${list} was cancelled` : `Se canceló el pedido ${list}`)
+        : (t.en ? `Orders ${list} were cancelled` : `Se cancelaron los pedidos ${list}`), 12_000);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ordersView]);
@@ -1355,6 +1412,7 @@ export function CounterView({
         return;
       }
       if (res?.error) { showError(res.error); return; }
+      { const id = cancelModal.orderId; setSplashQueue(q => q.filter(x => x.id !== id)); }
       setCancelModal(null);
       setCancelReason('');
       if (incident) void loadCustomerFlags();
@@ -1377,6 +1435,7 @@ export function CounterView({
       const data = await res.json().catch(() => ({}));
       // Translate by the route's stable `code`; its `error` text is Spanish-only.
       if (!res.ok) { showError(refundErrorText(data.code, t.en ? 'en' : 'es') ?? (t.en ? "The refund didn't go through. Try again." : 'El reembolso no se completó. Inténtalo de nuevo.')); return; }
+      { const id = cancelModal.orderId; setSplashQueue(q => q.filter(x => x.id !== id)); }
       setCancelModal(null);
       setCancelReason('');
       setRefundRequired(false);
@@ -1690,9 +1749,12 @@ export function CounterView({
           defaultMins={defaultMinsFor}
           autoAcceptSecs={autoAcceptOn && !seededIdsRef.current.has(alertQueue[0].id) ? 30 : null}
           onAccept={(o, m) => handleAccept(o, m)}
+          paused={cancelModal != null}
           onReject={(o) => {
-            setSplashQueue(q => q.filter(x => x.id !== o.id));
-            if (isDemoId(o.id)) { markSelf(o.id, 'cancelled'); demoUpdate(o.id, { status: 'cancelled' }); stopRing(); return; }
+            if (isDemoId(o.id)) { setSplashQueue(q => q.filter(x => x.id !== o.id)); markSelf(o.id, 'cancelled'); demoUpdate(o.id, { status: 'cancelled' }); stopRing(); return; }
+            // Sale de la alerta recién cuando el rechazo se confirma (handleCancel).
+            // Antes salía al tocar "Rechazar": si cerrabas el motivo, el pedido
+            // quedaba sin aceptar y sin alerta, y a los 15 min se cancelaba solo.
             setCancelModal({ orderId: o.id, type: 'reject' });
             setCancelReason('');
           }}
@@ -1718,8 +1780,8 @@ export function CounterView({
         </a>
       )}
 
-      {/* ── Sonido bloqueado por el navegador (tras recargar) ── */}
-      {!audioUnlocked && !inApp && (
+      {/* ── Sonido bloqueado por el navegador (tras recargar) o apagado después ── */}
+      {((!audioUnlocked && !inApp) || audioStuck) && (
         <button
           type="button"
           onClick={() => unlockAudio()}

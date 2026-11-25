@@ -164,6 +164,8 @@ type CounterAppBridge = {
   openPrinterSettings?: () => void;
   disconnectDevice?: () => void;
   vibrateNewOrder?: () => void;
+  /** Aviso de Android que suena hasta abrir el Counter; solo actúa con otra app encima. */
+  notifyNewOrder?: (title: string, body: string) => void;
   getAppVersion?: () => string;
   /** >= 1.0.8: versionCode mínimo; por debajo, la app se actualiza sola (obligatorio). */
   setMinAppVersion?: (versionCode: number) => void;

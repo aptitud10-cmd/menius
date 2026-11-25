@@ -107,6 +107,11 @@ export function resumeAudio() {
   if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
 }
 
+/** El contexto existe y está sonando de verdad (no suspendido ni interrumpido). */
+export function isAudioRunning(): boolean {
+  return _ctx?.state === 'running';
+}
+
 /** Toque silencioso dentro de un gesto: deja el contexto desbloqueado para siempre. */
 export function unlockWithGesture() {
   const ctx = getAudioCtx();
@@ -159,11 +164,17 @@ export function setSoundTheme(id: SoundThemeId) {
 function play(buffer: AudioBuffer, track = false): number {
   const ctx = getAudioCtx();
   if (!ctx) return 0;
+  // Android puede suspender el contexto (otra app toma el audio, cambia la
+  // salida). Se intenta reanudar en cada sonido.
+  const running = ctx.state === 'running';
+  if (!running) ctx.resume().catch(() => {});
   try {
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     src.connect(out(ctx));
-    if (track) {
+    // Con el contexto suspendido `onended` nunca llega: anotarlo dejaba _ringing
+    // lleno para siempre y todos los eventos esperando en cola.
+    if (track && running) {
       _ringing.add(src);
       src.onended = () => { _ringing.delete(src); };
     }
@@ -198,6 +209,7 @@ function synthChime(): number {
  * del tema → new-order.mp3 → acorde sintetizado. Devuelve la duración (s).
  */
 export function playRing(kind: 'alert' | 'urgent' = 'alert'): number {
+  resumeAudio();
   const u = soundUrls(_theme);
   const buf = (kind === 'urgent' ? _buffers.get(u.urgent) : undefined)
     ?? _buffers.get(u.alert)

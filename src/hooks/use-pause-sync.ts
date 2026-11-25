@@ -12,13 +12,18 @@ import type { BusyState } from '@/lib/busy-mode';
  * También trae el modo ocupado (setBusy), que vive al lado en restaurants.
  * heartbeat: la consulta además avisa "esta tablet del Counter sigue conectada"
  * (si deja de llegar con la tienda abierta, el dueño recibe un email).
+ * heartbeatOnlyVisible (la app Android): con otra app encima la señal no sale.
+ * Así el dueño recibe el email: los pedidos casi no suenan con el Counter tapado.
+ * En un navegador no se usa: una pestaña de fondo sigue sonando.
  */
 export function usePauseSync(
   setPausedUntil: (ms: number | null) => void,
   setBusy?: (b: BusyState) => void,
-  opts?: { heartbeat?: boolean },
+  opts?: { heartbeat?: boolean; heartbeatOnlyVisible?: boolean },
 ) {
   const url = opts?.heartbeat ? '/api/counter/pause?counter=1' : '/api/counter/pause';
+  const onlyVisibleRef = useRef(Boolean(opts?.heartbeatOnlyVisible));
+  onlyVisibleRef.current = Boolean(opts?.heartbeatOnlyVisible);
   const lastLocal = useRef(0);
   const setRef = useRef(setPausedUntil);
   setRef.current = setPausedUntil;
@@ -31,8 +36,10 @@ export function usePauseSync(
       // La señal tiene que salir aunque se acabe de tocar la pausa; lo que se
       // salta en esos 10 s es pisar el estado local con la respuesta.
       if (!opts?.heartbeat && Date.now() - lastLocal.current < 10_000) return;
+      const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+      const target = opts?.heartbeat && hidden && onlyVisibleRef.current ? '/api/counter/pause' : url;
       try {
-        const r = await fetch(url, { cache: 'no-store' });
+        const r = await fetch(target, { cache: 'no-store' });
         if (!r.ok) return;
         const d = (await r.json()) as { pausedUntil?: string | null; busyExtra?: number; busyUntil?: string | null };
         if (!alive || Date.now() - lastLocal.current < 10_000) return;

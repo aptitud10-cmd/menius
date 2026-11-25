@@ -21,7 +21,7 @@ import { AllergyBlock, CustomerFlagLine } from './CounterBoard';
  * "Aceptar" se ven y se tocan desde el primer instante (el color va detrás).
  */
 export function NewOrdersAlert({
-  queue, T, currency, defaultMins, autoAcceptSecs, onAccept, onReject, onSeeAll,
+  queue, T, currency, defaultMins, autoAcceptSecs, paused = false, onAccept, onReject, onSeeAll,
 }: {
   queue: Order[];
   T: CounterText;
@@ -29,6 +29,8 @@ export function NewOrdersAlert({
   defaultMins: (o: Order) => number;
   /** null = auto-aceptar apagado (por defecto). */
   autoAcceptSecs: number | null;
+  /** Hay un modal encima (el motivo de "Rechazar"): la cuenta de auto-aceptar se congela. */
+  paused?: boolean;
   onAccept: (o: Order, mins: number) => void;
   onReject: (o: Order) => void;
   onSeeAll: () => void;
@@ -71,6 +73,7 @@ export function NewOrdersAlert({
         currency={currency}
         initialMins={defaultMins(order)}
         autoAcceptSecs={autoAcceptSecs}
+        paused={paused}
         onAccept={onAccept}
         onReject={onReject}
         onSeeAll={onSeeAll}
@@ -84,10 +87,10 @@ export function NewOrdersAlert({
 const FLASH_MS = 2000;
 
 function AlertBody({
-  order, index, total, T, currency, initialMins, autoAcceptSecs, onAccept, onReject, onSeeAll, flashing,
+  order, index, total, T, currency, initialMins, autoAcceptSecs, paused, onAccept, onReject, onSeeAll, flashing,
 }: {
   order: Order; index: number; total: number; T: CounterText; currency: string;
-  initialMins: number; autoAcceptSecs: number | null;
+  initialMins: number; autoAcceptSecs: number | null; paused: boolean;
   onAccept: (o: Order, mins: number) => void; onReject: (o: Order) => void; onSeeAll: () => void;
   /** Fondo en color de acento: el texto que va directo sobre el fondo pasa a onAccent. */
   flashing: boolean;
@@ -101,14 +104,16 @@ function AlertBody({
   const paidOnline = (order as { payment_status?: string }).payment_status === 'paid';
 
   useEffect(() => {
-    if (left == null) return;
+    // Congelada mientras se elige el motivo del rechazo: antes, a los 30 s
+    // aceptaba sola el pedido que estabas rechazando.
+    if (left == null || paused) return;
     if (left <= 0) {
       if (!fired) { setFired(true); onAccept(order, mins); }
       return;
     }
     const id = setTimeout(() => setLeft((s) => (s == null ? s : s - 1)), 1000);
     return () => clearTimeout(id);
-  }, [left, fired, onAccept, order, mins]);
+  }, [left, fired, paused, onAccept, order, mins]);
 
   const choices = PREP_CHOICES.includes(mins as (typeof PREP_CHOICES)[number])
     ? PREP_CHOICES

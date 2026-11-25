@@ -22,9 +22,19 @@ export interface CloudPrntState {
  * Estado de las impresoras CloudPRNT del restaurante, para el Counter y el
  * panel de pedidos. Si la consulta falla, se mantiene el último estado
  * conocido: un corte de red no reactiva la impresión local (imprimiría doble).
+ *
+ * `cacheKey` (el id del restaurante): guarda si hay CloudPRNT en la tablet. Al
+ * abrir el Counter, hasta que responde la primera consulta, `active` sale de
+ * ahí y no de "no sé" = false: un pedido que entraba en ese segundo se
+ * imprimía en la tablet Y en la impresora del mostrador.
  */
-export function useCloudPrnt(enabled = true): CloudPrntState {
+export function useCloudPrnt(enabled = true, cacheKey?: string): CloudPrntState {
+  const storageKey = cacheKey ? `menius:cloudprnt-active:${cacheKey}` : null;
   const [status, setStatus] = useState<PrintersStatusResponse | null>(null);
+  const [cachedActive] = useState<boolean>(() => {
+    if (!storageKey || typeof window === 'undefined') return false;
+    try { return window.localStorage.getItem(storageKey) === '1'; } catch { return false; }
+  });
   const alive = useRef(true);
 
   const refresh = useCallback(async () => {
@@ -32,9 +42,13 @@ export function useCloudPrnt(enabled = true): CloudPrntState {
       const res = await fetch('/api/tenant/printers/status', { cache: 'no-store' });
       if (!res.ok) return;
       const data = (await res.json()) as PrintersStatusResponse;
-      if (alive.current) setStatus(data);
+      if (!alive.current) return;
+      setStatus(data);
+      if (storageKey) {
+        try { window.localStorage.setItem(storageKey, data.cloudprntActive ? '1' : '0'); } catch { /* modo privado */ }
+      }
     } catch { /* sin red: queda el último estado */ }
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     alive.current = true;
@@ -52,7 +66,7 @@ export function useCloudPrnt(enabled = true): CloudPrntState {
 
   const printers = status?.printers ?? [];
   return {
-    active: Boolean(status?.cloudprntActive),
+    active: status ? Boolean(status.cloudprntActive) : cachedActive,
     offline: printers.some((p) => p.state === 'offline'),
     queued: printers.reduce((n, p) => n + p.queuedCount, 0),
     failed: printers.reduce((n, p) => n + p.failedCount, 0),
