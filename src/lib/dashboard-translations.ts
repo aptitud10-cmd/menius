@@ -2102,7 +2102,7 @@ const es: DashboardTranslations = {
   settings_dnsName: "Nombre",
   settings_dnsValue: "Valor",
   settings_dnsPropagation:
-    "Agrega este registro CNAME en tu proveedor de dominio (GoDaddy, Namecheap, Cloudflare, etc.). La propagación puede tardar hasta 48 horas.",
+    "Agrega estos registros en tu proveedor de dominio (GoDaddy, Namecheap, Cloudflare, etc.). La propagación puede tardar hasta 48 horas.",
   settings_domainActive: "Dominio verificado y activo",
   settings_domainVerifyDNS: "Verificar DNS",
   settings_domainVerifying: "Verificando...",
@@ -3494,7 +3494,7 @@ const en: DashboardTranslations = {
   settings_dnsName: "Name",
   settings_dnsValue: "Value",
   settings_dnsPropagation:
-    "Add this CNAME record in your domain provider (GoDaddy, Namecheap, Cloudflare, etc.). Propagation can take up to 48 hours.",
+    "Add these records at your domain provider (GoDaddy, Namecheap, Cloudflare, etc.). Propagation can take up to 48 hours.",
   settings_domainActive: "Domain verified and active",
   settings_domainVerifyDNS: "Verify DNS",
   settings_domainVerifying: "Verifying...",

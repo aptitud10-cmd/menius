@@ -8,6 +8,8 @@ import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { revalidatePublicMenuForRestaurant } from '@/lib/revalidate-public-menu';
 import { normalizeBrandColor } from '@/lib/tracker-brand';
+import { removeDomainFromProject } from '@/lib/vercel-domains';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getDeviceSession } from '@/lib/auth/device-session';
 import { OWNER_ONLY_FIELDS, ownerOnlyChanges, stripRestaurantSecrets } from '@/lib/restaurant-owner-fields';
 
@@ -46,6 +48,10 @@ export async function PATCH(request: NextRequest) {
     // Only allow specific fields to be updated
     const allowed = ['name', 'description', 'address', 'phone', 'email', 'website', 'timezone', 'currency', 'locale', 'available_locales', 'logo_url', 'cover_image_url', 'operating_hours', 'notification_whatsapp', 'notification_email', 'notifications_enabled', 'order_types_enabled', 'payment_methods_enabled', 'custom_domain', 'fiscal_rfc', 'fiscal_razon_social', 'fiscal_regimen_fiscal', 'fiscal_lugar_expedicion', 'delivery_fee', 'estimated_delivery_minutes', 'latitude', 'longitude', 'google_business_url', 'country_code', 'state_code', 'tax_rate', 'tax_included', 'tax_label', 'delivery_radius_km', 'delivery_min_order', 'mp_access_token', 'mp_enabled', 'instagram_url', 'brand_color'] as const;
     const updates: Record<string, any> = {};
+    // Columns the owner's session cannot write (no column grant, see
+    // 20261110f): validated here, then written with the service role.
+    const serverUpdates: Record<string, unknown> = {};
+    let domainToRelease: string | null = null;
     for (const key of allowed) {
       if (body[key] !== undefined) {
         updates[key] = body[key];
@@ -61,6 +67,18 @@ export async function PATCH(request: NextRequest) {
       // El dominio propio es del plan Pro (antes no tenía ningún control de plan).
       if (d && !(await hasPlanAccess(tenant.restaurantId, 'pro'))) {
         return NextResponse.json({ error: 'DOMAIN_REQUIRES_PRO' }, { status: 403 });
+      }
+      // Otro dominio = hay que volver a verificarlo (antes seguía "Activo" el
+      // nuevo dominio con la verificación del viejo). El viejo se libera en Vercel.
+      const { data: before } = await supabase
+        .from('restaurants')
+        .select('custom_domain')
+        .eq('id', tenant.restaurantId)
+        .maybeSingle();
+      const previous = (before?.custom_domain as string | null) ?? null;
+      if (previous !== updates.custom_domain) {
+        serverUpdates.domain_verified = false;
+        if (previous) domainToRelease = previous;
       }
     }
 
@@ -83,6 +101,9 @@ export async function PATCH(request: NextRequest) {
       if (body.hide_menius_branding && !(await hasPlanAccess(tenant.restaurantId, 'pro'))) {
         return NextResponse.json({ error: 'BRANDING_REQUIRES_PRO' }, { status: 403 });
       }
+      if ((await getDeviceSession(supabase)).isTablet) {
+        return NextResponse.json({ error: 'OWNER_ONLY', fields: ['hide_menius_branding'] }, { status: 403 });
+      }
       const { data: current, error: readError } = await supabase
         .from('restaurants')
         .select('config_overrides')
@@ -92,10 +113,10 @@ export async function PATCH(request: NextRequest) {
       const prev = current?.config_overrides;
       const base =
         prev && typeof prev === 'object' && !Array.isArray(prev) ? (prev as Record<string, unknown>) : {};
-      updates.config_overrides = { ...base, hide_menius_branding: body.hide_menius_branding };
+      serverUpdates.config_overrides = { ...base, hide_menius_branding: body.hide_menius_branding };
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && Object.keys(serverUpdates).length === 0) {
       return NextResponse.json({ error: 'NO_CHANGES' }, { status: 400 });
     }
 
@@ -146,20 +167,35 @@ export async function PATCH(request: NextRequest) {
         }
         // Lo que no cambió no se reescribe desde la tablet.
         for (const f of OWNER_ONLY_FIELDS) delete updates[f];
-        if (Object.keys(updates).length === 0) {
+        if (Object.keys(updates).length === 0 && Object.keys(serverUpdates).length === 0) {
           return NextResponse.json({ error: 'NO_CHANGES' }, { status: 400 });
         }
       }
     }
 
-    const { data: restaurant, error } = await supabase
-      .from('restaurants')
-      .update(updates)
-      .eq('id', tenant.restaurantId)
-      .select()
-      .single();
+    let restaurant: Record<string, unknown> | null = null;
+    if (Object.keys(updates).length > 0) {
+      const { data, error } = await supabase
+        .from('restaurants')
+        .update(updates)
+        .eq('id', tenant.restaurantId)
+        .select()
+        .single();
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      restaurant = data;
+    }
+    if (Object.keys(serverUpdates).length > 0) {
+      const { data, error } = await createAdminClient()
+        .from('restaurants')
+        .update(serverUpdates)
+        .eq('id', tenant.restaurantId)
+        .select()
+        .single();
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      restaurant = data;
+    }
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (domainToRelease) await removeDomainFromProject(domainToRelease);
     if (restaurant?.slug) await revalidatePublicMenuForRestaurant(supabase, tenant.restaurantId);
     return NextResponse.json({ restaurant: restaurant ? stripRestaurantSecrets(restaurant) : null });
   } catch (err) {

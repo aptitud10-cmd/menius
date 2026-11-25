@@ -1860,24 +1860,68 @@ function Field({
   );
 }
 
-function DomainSection({ domain, domainVerified, onChange }: { domain: string; domainVerified: boolean; onChange: (v: string) => void }) {
-  const { t } = useDashboardLocale();
-  const [verifying, setVerifying] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{ verified: boolean; error?: string } | null>(null);
+type DomainRecord = { type: 'A' | 'CNAME' | 'TXT'; name: string; value: string };
+type DomainVerifyResult = {
+  verified: boolean;
+  code?: 'NEEDS_RECORDS' | 'ISSUING_CERT' | 'PENDING_ACTIVATION' | 'NO_DOMAIN' | 'DOMAIN_REQUIRES_PRO';
+  records?: DomainRecord[];
+  error?: string;
+};
 
-  const isVerified = domainVerified || verifyResult?.verified;
+/** Same rule as lib/vercel-domains: example.com needs an A record, www.example.com a CNAME. */
+function defaultDomainRecord(domain: string): DomainRecord {
+  const parts = domain.split('.').filter(Boolean);
+  return parts.length === 2
+    ? { type: 'A', name: '@', value: '76.76.21.21' }
+    : { type: 'CNAME', name: parts[0] ?? domain, value: 'cname.vercel-dns.com' };
+}
+
+function DomainSection({ domain, domainVerified, onChange }: { domain: string; domainVerified: boolean; onChange: (v: string) => void }) {
+  const { t, locale } = useDashboardLocale();
+  const en = locale === 'en';
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<DomainVerifyResult | null>(null);
+
+  // The saved "verified" belongs to the saved domain: typing a new one hides it
+  // until it is saved and verified again.
+  const [savedDomain] = useState(domain);
+  const isVerified = verifyResult?.verified || (domainVerified && domain === savedDomain);
+  const records = verifyResult?.records?.length ? verifyResult.records : domain ? [defaultDomainRecord(domain)] : [];
 
   const handleVerify = async () => {
     setVerifying(true);
     setVerifyResult(null);
     try {
       const res = await fetch('/api/domain/verify', { method: 'POST' });
-      const data = await res.json();
+      const data = (await res.json()) as DomainVerifyResult;
       setVerifyResult(data);
     } catch {
       setVerifyResult({ verified: false, error: t.settings_domainNetworkError });
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const statusText = (r: DomainVerifyResult): string => {
+    switch (r.code) {
+      case 'NEEDS_RECORDS':
+        return en
+          ? "Your domain doesn't point to MENIUS yet. Create the records above at your domain provider; it can take up to 48 hours."
+          : 'Tu dominio todavía no apunta a MENIUS. Crea los registros de arriba en tu proveedor de dominio; puede tardar hasta 48 horas.';
+      case 'ISSUING_CERT':
+        return en
+          ? 'DNS is correct. We are issuing the security certificate (HTTPS); try again in a few minutes.'
+          : 'El DNS está bien. Estamos emitiendo el certificado de seguridad (HTTPS); vuelve a verificar en unos minutos.';
+      case 'PENDING_ACTIVATION':
+        return en
+          ? "DNS is correct. We're activating your domain; it'll be live within 24 hours."
+          : 'El DNS está bien. Estamos activando tu dominio; queda listo en menos de 24 horas.';
+      case 'NO_DOMAIN':
+        return en ? 'Save your domain first.' : 'Primero guarda tu dominio.';
+      case 'DOMAIN_REQUIRES_PRO':
+        return en ? 'Custom domains are part of the Pro plan.' : 'El dominio propio es parte del plan Pro.';
+      default:
+        return r.error ?? t.settings_domainNetworkError;
     }
   };
 
@@ -1900,27 +1944,37 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
       {domain && (
         <>
           {/* DNS instructions */}
-          <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-            <p className="text-xs font-semibold text-emerald-700 mb-2">{t.settings_dnsRequired}</p>
-            <div className="bg-white rounded-lg p-2.5 border border-emerald-200">
-              <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
-                <div><span className="text-gray-500">{t.settings_dnsType}</span><br /><span className="text-gray-900">CNAME</span></div>
-                <div><span className="text-gray-500">{t.settings_dnsName}</span><br /><span className="text-gray-900">{domain}</span></div>
-                <div><span className="text-gray-500">{t.settings_dnsValue}</span><br /><span className="text-gray-900">cname.vercel-dns.com</span></div>
+          {!isVerified && (
+            <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+              <p className="text-xs font-semibold text-emerald-700 mb-2">{t.settings_dnsRequired}</p>
+              <div className="space-y-2">
+                {records.map((r) => (
+                  <div key={`${r.type}-${r.name}-${r.value}`} className="bg-white rounded-lg p-2.5 border border-emerald-200">
+                    <div className="grid grid-cols-[auto_1fr_2fr] gap-3 text-[11px] font-mono">
+                      <div><span className="text-gray-500">{t.settings_dnsType}</span><br /><span className="text-gray-900">{r.type}</span></div>
+                      <div className="min-w-0"><span className="text-gray-500">{t.settings_dnsName}</span><br /><span className="text-gray-900 break-all">{r.name}</span></div>
+                      <div className="min-w-0"><span className="text-gray-500">{t.settings_dnsValue}</span><br /><span className="text-gray-900 break-all">{r.value}</span></div>
+                    </div>
+                  </div>
+                ))}
               </div>
+              <p className="text-[11px] text-gray-500 mt-2">
+                {t.settings_dnsPropagation}
+              </p>
             </div>
-            <p className="text-[11px] text-gray-500 mt-2">
-              {t.settings_dnsPropagation}
-            </p>
-          </div>
+          )}
 
           {/* Verification status */}
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3 flex items-center gap-3 flex-wrap">
             {isVerified ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-medium text-emerald-300">{t.settings_domainActive}</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-medium text-emerald-700">{t.settings_domainActive}</span>
               </div>
+            ) : domain !== savedDomain ? (
+              <span className="text-[11px] text-gray-500">
+                {en ? 'Save your changes, then verify the domain.' : 'Guarda los cambios y después verifica el dominio.'}
+              </span>
             ) : (
               <>
                 <button
@@ -1933,9 +1987,11 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
                 </button>
 
                 {verifyResult && !verifyResult.verified && (
-                  <div className="flex items-center gap-1.5">
-                    <XCircle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                    <span className="text-[11px] text-amber-400">{verifyResult.error}</span>
+                  <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                    {verifyResult.code === 'PENDING_ACTIVATION' || verifyResult.code === 'ISSUING_CERT'
+                      ? <Clock className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      : <XCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />}
+                    <span className={cn('text-[11px]', verifyResult.code === 'PENDING_ACTIVATION' || verifyResult.code === 'ISSUING_CERT' ? 'text-emerald-700' : 'text-amber-700')}>{statusText(verifyResult)}</span>
                   </div>
                 )}
               </>
