@@ -507,7 +507,8 @@ CREATE TABLE public.orders (
   delivery_failure_reason text,
   batch_id uuid,
   batch_seq smallint,
-  incident text CHECK (incident = ANY (ARRAY['not_received'::text, 'not_paid'::text]))
+  incident text CHECK (incident = ANY (ARRAY['not_received'::text, 'not_paid'::text])),
+  kitchen_stations_done uuid[] NOT NULL DEFAULT '{}'::uuid[]
 );
 
 CREATE TABLE public.device_pairings (

@@ -430,6 +430,11 @@ CREATE POLICY owners_read_product_views ON public.product_views_daily FOR SELECT
 CREATE POLICY owners_read_store_traffic ON public.store_traffic_daily FOR SELECT TO authenticated
   USING (user_owns_restaurant(restaurant_id));
 
+-- ── kds_set_station_done (2026-11-25) ──────────────────────────────────
+-- LISTO por estación en el KDS, migración 20261127_kds_stations_done.
+-- SECURITY INVOKER: la RLS de orders (owners_manage_orders) decide. EXECUTE
+-- solo authenticated; anon y public sin permiso (verificado 2026-11-25).
+
 -- ── style_anchors ──────────────────────────────────────────────────────
 CREATE POLICY "Owners manage their style anchors" ON public.style_anchors FOR ALL TO public
   USING ((restaurant_id IN ( SELECT restaurants.id
