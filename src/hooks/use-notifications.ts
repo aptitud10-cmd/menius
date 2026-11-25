@@ -53,12 +53,48 @@ function playSuccessDing() {
 
 interface UseNotificationsOptions {
   defaultTitle?: string;
+  /**
+   * KDS: vigila si el navegador tiene el sonido bloqueado (tras recargar no
+   * deja sonar hasta el primer toque) y lo reactiva con el primer toque.
+   */
+  watchAudio?: boolean;
 }
 
 export function useNotifications(opts: UseNotificationsOptions = {}) {
-  const { defaultTitle = 'MENIUS' } = opts;
+  const { defaultTitle = 'MENIUS', watchAudio = false } = opts;
   const soundEnabled = useSoundStore((s) => s.soundEnabled);
   const setSoundEnabled = useSoundStore((s) => s.setSoundEnabled);
+
+  // Sonido bloqueado: con el sonido prendido pero el contexto sin correr, los
+  // pedidos que entran a cocina no suenan y nada lo decía.
+  const [audioBlocked, setAudioBlocked] = useState(false);
+  useEffect(() => {
+    if (!watchAudio || !soundEnabled) { setAudioBlocked(false); return; }
+    let ctx: AudioContext | null = null;
+    try { ctx = getAudioContext(); } catch { return; }
+    if (!ctx) return;
+    const c = ctx;
+    const check = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (c.state === 'running') { setAudioBlocked(false); return; }
+      c.resume().catch(() => {}).finally(() => setAudioBlocked(c.state !== 'running'));
+    };
+    const onGesture = () => { c.resume().then(() => setAudioBlocked(c.state !== 'running')).catch(() => {}); };
+    const evs = ['click', 'touchend', 'keydown'] as const;
+    evs.forEach((e) => window.addEventListener(e, onGesture, { capture: true }));
+    c.addEventListener('statechange', check);
+    document.addEventListener('visibilitychange', check);
+    const poll = setInterval(check, 30_000);
+    // Chromium no informa el bloqueo al instante: se mira después de intentar.
+    const first = setTimeout(check, 800);
+    return () => {
+      evs.forEach((e) => window.removeEventListener(e, onGesture, { capture: true }));
+      c.removeEventListener('statechange', check);
+      document.removeEventListener('visibilitychange', check);
+      clearInterval(poll);
+      clearTimeout(first);
+    };
+  }, [watchAudio, soundEnabled]);
   const [pendingCount, setPendingCount] = useState(0);
   const [hasPermission, setHasPermission] = useState(false);
   const originalTitleRef = useRef(defaultTitle);
@@ -172,6 +208,8 @@ export function useNotifications(opts: UseNotificationsOptions = {}) {
   return {
     soundEnabled,
     setSoundEnabled,
+    /** Solo con watchAudio: el sonido está prendido pero el navegador no deja sonar. */
+    audioBlocked,
     pendingCount,
     hasPermission,
     requestPermission,

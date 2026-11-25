@@ -55,7 +55,7 @@ const TXT = {
     recall: 'Recuperar', empty: 'Cocina al día', emptyDesc: 'Los pedidos aparecen acá cuando el Counter los acepta.',
     undone: 'Deshacer', markedReady: 'listo', cancelled: 'CANCELADO', ok: 'OK', history: 'Historial',
     historyDesc: 'Pedidos que salieron de la cocina en las últimas 6 horas.', noHistory: 'Todavía no salió ningún pedido.',
-    autoPrint: 'Imprimir al entrar a cocina', sound: 'Sonido', pause: 'Pausar pedidos online', busy: 'Modo ocupado',
+    autoPrint: 'Imprimir al entrar a cocina', soundBlocked: 'Sin sonido: toca la pantalla para activarlo', sound: 'Sonido', pause: 'Pausar pedidos online', busy: 'Modo ocupado',
     busyDesc: 'Suma minutos al tiempo prometido para que los tickets no se pongan rojos en un pico. Dura 1 hora y se apaga solo; se ve también en el mostrador.',
     busyFailed: 'No se pudo cambiar el modo ocupado. Revisá la conexión.',
     stations: 'Estación', all: 'Todas', exit: 'Salir de la cocina', paused: 'Pausado', resume: 'Reanudar',
@@ -76,7 +76,7 @@ const TXT = {
     recall: 'Recall', empty: 'All caught up', emptyDesc: 'Orders show up here once the Counter accepts them.',
     undone: 'Undo', markedReady: 'ready', cancelled: 'CANCELLED', ok: 'OK', history: 'History',
     historyDesc: 'Orders that left the kitchen in the last 6 hours.', noHistory: 'No orders have left the kitchen yet.',
-    autoPrint: 'Print when it reaches the kitchen', sound: 'Sound', pause: 'Pause online orders', busy: 'Busy mode',
+    autoPrint: 'Print when it reaches the kitchen', soundBlocked: 'No sound: tap the screen to turn it on', sound: 'Sound', pause: 'Pause online orders', busy: 'Busy mode',
     busyDesc: 'Adds minutes to the promised time so tickets don’t turn red during a rush. Lasts 1 hour and turns off on its own; the counter sees it too.',
     busyFailed: 'Couldn’t change busy mode. Check the connection.',
     stations: 'Station', all: 'All', exit: 'Leave kitchen', paused: 'Paused', resume: 'Resume',
@@ -204,7 +204,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
   /* Tiempo real. El aviso no es al entrar el pedido (todavía 'pending', es del Counter)
      sino cuando llega a la cocina — ver más abajo. */
-  const { soundEnabled, setSoundEnabled, updateTabTitle, playSound } = useNotifications({ defaultTitle: 'KDS — MENIUS' });
+  const { soundEnabled, setSoundEnabled, updateTabTitle, playSound, audioBlocked } = useNotifications({ defaultTitle: 'KDS — MENIUS', watchAudio: true });
   const isLeader = useLeaderTab(`menius-kds-leader:${restaurantId}`);
   // Cerrados de más de 12 h fuera de memoria: el KDS queda abierto días.
   const { orders, updateOrderLocally } = useRealtimeOrders({ restaurantId, initialOrders, pruneClosedOlderThanMs: 12 * 3600_000 });
@@ -562,6 +562,14 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         </IconBtn>
         <IconBtn onClick={() => setSheet('menu')} label="Menu"><MoreVertical className="w-5 h-5" /></IconBtn>
       </header>
+
+      {audioBlocked && (
+        <button type="button" onClick={() => playSound('success')}
+          className="flex items-center justify-center gap-2 py-2 text-[15px] font-bold flex-shrink-0 w-full"
+          style={{ background: C.warn, color: '#0c0d0f' }}>
+          <VolumeX className="w-4 h-4" /> {T.soundBlocked}
+        </button>
+      )}
 
       {(!online || queuedCount > 0) && (
         <div className="flex items-center justify-center gap-2 py-2 text-[15px] font-bold flex-shrink-0" style={{ background: C.late, color: '#fff' }}>

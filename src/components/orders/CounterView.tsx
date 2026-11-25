@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { X, Bell, CheckCircle, Printer, History, AlertTriangle, WifiOff, ChevronRight, ChevronDown, Settings2, Plus, Ban, BellOff, Palette, Wallet, LifeBuoy, Languages } from 'lucide-react';
+import { X, Bell, CheckCircle, Printer, History, AlertTriangle, WifiOff, ChevronRight, ChevronDown, Settings2, Plus, Ban, BellOff, Palette, Wallet, LifeBuoy, Languages, QrCode } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useLeaderTab } from '@/hooks/use-leader-tab';
 import {
@@ -491,6 +491,9 @@ export function CounterView({
 
   // ── Driver modal ──
   const [driverModal, setDriverModal] = useState<{ orderId: string; address?: string; trackingToken?: string } | null>(null);
+  // QR del repartidor en pantalla (app Android); se borra al cambiar de pedido o de token.
+  const [driverQr, setDriverQr] = useState<string | null>(null);
+  useEffect(() => { setDriverQr(null); }, [driverModal?.orderId, driverModal?.trackingToken]);
   const [driverName, setDriverName] = useState('');
   const [driverPhone, setDriverPhone] = useState('');
   // FK to drivers table — set only when picking from the pool, cleared on manual
@@ -2554,11 +2557,15 @@ export function CounterView({
               </div>
             )}
           </div>
-          <div className="px-6 pt-4 pb-6 flex-shrink-0" style={{ boxShadow: `0 -1px 0 ${C.line}` }}>
-            <ModalButton tone="fill" className="w-full" onClick={() => { window.print(); }}>
-              <Printer className="w-5 h-5" /> {t.shiftPrint}
-            </ModalButton>
-          </div>
+          {/* En la app Android window.print() no hace nada (el WebView no imprime):
+              el botón solo aparece en el navegador. */}
+          {!inApp && (
+            <div className="px-6 pt-4 pb-6 flex-shrink-0" style={{ boxShadow: `0 -1px 0 ${C.line}` }}>
+              <ModalButton tone="fill" className="w-full" onClick={() => { window.print(); }}>
+                <Printer className="w-5 h-5" /> {t.shiftPrint}
+              </ModalButton>
+            </div>
+          )}
         </CounterModal>
       )}
 
@@ -2614,8 +2621,40 @@ export function CounterView({
                 {assigningDriver ? '…' : t.assignDriver}
               </ModalButton>
             </div>
-            {/* Print driver sheet with QR */}
-            {driverModal?.trackingToken && (
+            {/* En la app (sin window.open/print): el QR en pantalla para que el repartidor lo escanee. */}
+            {driverModal?.trackingToken && inApp && (
+              driverQr ? (
+                <div className="flex flex-col items-center gap-2 pt-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={driverQr} alt="" width={220} height={220} className="rounded-xl bg-white p-2" />
+                  <p className="text-[15px] text-center" style={{ color: C.sub }}>
+                    {t.en ? 'Driver: scan with your phone camera to start live tracking' : 'Repartidor: escanéalo con la cámara del celular para activar el rastreo'}
+                  </p>
+                </div>
+              ) : (
+                <ModalButton
+                  tone="fill"
+                  className="w-full"
+                  onClick={async () => {
+                    const base = `${window.location.origin}/driver/track/${driverModal.trackingToken}`;
+                    const url = locale === 'en' ? `${base}?lang=en` : base;
+                    try {
+                      const { generateQRDataUrl } = await import('@/lib/styled-qr');
+                      const dataUrl = await generateQRDataUrl(url, 440);
+                      if (!dataUrl) throw new Error('empty QR');
+                      setDriverQr(dataUrl);
+                    } catch {
+                      showError(t.en ? 'Could not create the QR. Try again.' : 'No se pudo crear el QR. Intenta de nuevo.');
+                    }
+                  }}
+                >
+                  <QrCode className="w-5 h-5" />
+                  {t.en ? 'Show QR to the driver' : 'Mostrar QR al repartidor'}
+                </ModalButton>
+              )
+            )}
+            {/* Print driver sheet with QR (navegador) */}
+            {driverModal?.trackingToken && !inApp && (
               <ModalButton
                 tone="fill"
                 className="w-full"
