@@ -18,10 +18,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stripe = getStripe();
-
     const body = await request.json();
-    const { order_id, slug } = body;
+    const { order_id, slug, t } = body;
     if (!order_id || typeof order_id !== 'string' || !/^[0-9a-f-]{36}$/.test(order_id)) {
       return NextResponse.json({ error: 'Valid order_id required' }, { status: 400 });
     }
@@ -36,14 +34,20 @@ export async function POST(request: NextRequest) {
     const { data: order, error } = await adminDb
       .from('orders')
       .select(`
-        id, order_number, status, total, tip_amount, customer_name, restaurant_id, payment_status, customer_token,
+        id, order_number, status, total, tip_amount, customer_name, restaurant_id, payment_status, customer_token, payment_method,
         restaurants ( currency, stripe_account_id, stripe_onboarding_complete, name, commission_plan )
       `)
       .eq('id', order_id)
       .maybeSingle();
 
-    if (error || !order) {
+    // Only whoever placed the order (holds its tracking token) can start its
+    // payment, and only for orders placed to be paid online.
+    const orderToken = (order as { customer_token?: string | null } | null)?.customer_token;
+    if (error || !order || typeof t !== 'string' || !orderToken || t !== orderToken) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+    }
+    if ((order as { payment_method?: string }).payment_method === 'cash') {
+      return NextResponse.json({ error: 'Este pedido se paga en efectivo.' }, { status: 409 });
     }
 
     // Don't create a new Stripe session if already paid
@@ -135,6 +139,7 @@ export async function POST(request: NextRequest) {
     // Idempotency: a double-click (or network retry) with the same order must not
     // create a second Checkout Session — that risks charging the customer twice.
     // Keying on order_id makes Stripe return the same session for repeat requests.
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.create(sessionParams, {
       idempotencyKey: `checkout:${order.id}`,
     });

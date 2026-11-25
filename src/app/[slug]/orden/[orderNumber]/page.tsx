@@ -88,7 +88,13 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         const authorized = !!token && ((!!custToken && token === custToken) || (!!drvToken && token === drvToken));
         // La ruta (batch) nunca sale: solo cuántas paradas hay antes de la suya.
         // Internal request keys stay on the server.
-        const { driver_tracking_token: _omit, customer_token: _omit2, idempotency_key: _ik, batch_id: _b, batch_seq: _s, ...safeOrder } = orderData as any;
+        // Also never needed by the tracker (it doesn't read them): restaurant-side
+        // flags, payment internals and shift data.
+        const {
+          driver_tracking_token: _omit, customer_token: _omit2, idempotency_key: _ik, batch_id: _b, batch_seq: _s,
+          incident: _inc, delivery_failure_reason: _dfr, payment_breakdown: _pb, customer_coming_at: _cca, shift_id: _sh,
+          ...safeOrder
+        } = orderData as any;
         const stopsAheadN = authorized ? await fetchStopsAhead(adminDb, orderData as any) : 0;
         // select('*') trae también coordenadas de la casa del cliente, GPS del
         // repartidor, foto de la puerta, notas e ids internos: sin token, fuera.

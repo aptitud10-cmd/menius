@@ -1328,7 +1328,8 @@ export async function POST(request: NextRequest) {
             qty: item.qty,
             unit_price: item.unit_price,
             line_total: item.line_total,
-            notes: item.notes,
+            // Same treatment as the order note: no markup, bounded (the sheet caps at 200).
+            notes: sanitizeMultiline(item.notes, 300),
             // Snapshot current names so historical orders are not affected by future menu edits
             product_name: dbProd?.name ?? "",
             variant_name: dbVar?.name ?? "",
@@ -1556,17 +1557,18 @@ export async function POST(request: NextRequest) {
           .from("customers")
           .select("id, tags")
           .eq("restaurant_id", restaurant_id)
-          .ilike("email", customer_email)
+          // Case-insensitive but literal: "%" and "_" in an address are not wildcards.
+          .ilike("email", customer_email.replace(/[\\%_]/g, (c) => "\\" + c))
           .maybeSingle();
         if (!cust) return;
         const tags = (cust.tags ?? []) as string[];
         let newTags = tags.filter((t) => t !== "reactivation_sent");
-        // Consentimiento de marketing: lo marcó en ESTE pedido. Si antes se había
-        // dado de baja, marcarlo de nuevo es volver a suscribirse (lo eligió él).
-        // Sin marcar no se toca: no destildar no es darse de baja.
-        if (marketing_opt_in) {
-          newTags = newTags.filter((t) => t !== "unsubscribed");
-          if (!newTags.includes("marketing_opt_in")) newTags.push("marketing_opt_in");
+        // Consentimiento de marketing: lo marcó en ESTE pedido. Sin marcar no se
+        // toca: no destildar no es darse de baja. Una baja solo se revierte con el
+        // link firmado de /api/unsubscribe: el email de un pedido no prueba que
+        // quien pide sea el dueño de esa casilla.
+        if (marketing_opt_in && !newTags.includes("unsubscribed") && !newTags.includes("marketing_opt_in")) {
+          newTags.push("marketing_opt_in");
         }
         if (newTags.length === tags.length && newTags.every((t, i) => t === tags[i])) return;
         const { error: tagErr } = await adminDb.from("customers").update({ tags: newTags }).eq("id", cust.id);

@@ -32,14 +32,15 @@ const ORDER_ID = '11111111-2222-3333-4444-555555555555';
 const baseOrder = {
   id: ORDER_ID, status: 'pending', total: 29, tip_amount: 0, order_number: 'BUC-0001',
   payment_intent_id: null as string | null, payment_status: 'pending', restaurant_id: 'r1',
+  customer_token: 'tok-cliente', payment_method: 'wallet',
   restaurants: { currency: 'usd', stripe_account_id: 'acct_1', stripe_onboarding_complete: true, commission_plan: false },
 };
 
-function post() {
+function post(t: string | null = 'tok-cliente') {
   return new Request('http://localhost/api/payments/intent', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ order_id: ORDER_ID }),
+    body: JSON.stringify({ order_id: ORDER_ID, t: t ?? undefined }),
   });
 }
 
@@ -48,6 +49,21 @@ describe('POST /api/payments/intent', () => {
     vi.clearAllMocks();
     mockUpdateEq.mockResolvedValue({ error: null });
     mockPICancel.mockResolvedValue({});
+  });
+
+  it('sin el token del pedido (o con otro) responde 404 y no cobra', async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { ...baseOrder }, error: null });
+    const { POST } = await import('@/app/api/payments/intent/route');
+    expect((await POST(post(null) as never)).status).toBe(404);
+    expect((await POST(post('otro-token') as never)).status).toBe(404);
+    expect(mockPICreate).not.toHaveBeenCalled();
+  });
+
+  it('pedido en efectivo: no se cobra con tarjeta', async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { ...baseOrder, payment_method: 'cash' }, error: null });
+    const { POST } = await import('@/app/api/payments/intent/route');
+    expect((await POST(post() as never)).status).toBe(409);
+    expect(mockPICreate).not.toHaveBeenCalled();
   });
 
   it('pedido ya pagado: responde alreadyPaid (no 409) y no crea otro cobro', async () => {

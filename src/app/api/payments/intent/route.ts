@@ -39,15 +39,24 @@ export async function POST(request: NextRequest) {
     const { data: order } = await adminDb
       .from("orders")
       .select(
-        "id, status, total, tip_amount, order_number, payment_intent_id, payment_status, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
+        "id, status, total, tip_amount, order_number, payment_intent_id, payment_status, restaurant_id, customer_token, payment_method, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
       )
       .eq("id", order_id)
       .maybeSingle();
 
-    if (!order) {
+    // Only whoever placed the order (holds its tracking token) can charge it,
+    // and only orders placed to be paid online.
+    const orderToken = (order as { customer_token?: string | null } | null)?.customer_token;
+    if (!order || typeof body.t !== "string" || !orderToken || body.t !== orderToken) {
       return NextResponse.json(
         { error: "Orden no encontrada" },
         { status: 404 },
+      );
+    }
+    if ((order as { payment_method?: string }).payment_method === "cash") {
+      return NextResponse.json(
+        { error: "Este pedido se paga en efectivo." },
+        { status: 409 },
       );
     }
 

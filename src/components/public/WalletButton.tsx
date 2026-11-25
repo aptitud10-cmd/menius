@@ -13,7 +13,7 @@ interface WalletButtonProps {
   label: string;
   onSuccess: (orderId: string, orderNumber: string) => void;
   onError: (msg: string) => void;
-  onCreateOrder: () => Promise<{ orderId: string; orderNumber: string } | { error: string }>;
+  onCreateOrder: () => Promise<{ orderId: string; orderNumber: string; trackingToken: string } | { error: string }>;
   /** Fires when the wallet sheet opens/closes so the parent can disable its own
    *  submit button and avoid a parallel order. */
   onPayingChange?: (paying: boolean) => void;
@@ -83,7 +83,7 @@ export function WalletButton({
           const res = await fetch('/api/payments/intent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order_id: orderResult.orderId }),
+            body: JSON.stringify({ order_id: orderResult.orderId, t: orderResult.trackingToken }),
           });
           const data = await res.json();
 

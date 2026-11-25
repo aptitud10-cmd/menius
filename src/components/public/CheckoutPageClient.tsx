@@ -662,7 +662,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // Wallet (Apple/Google Pay) path: creates the order WITHOUT advancing the step,
   // returning ids so WalletButton can charge the PaymentIntent. The standard flow
   // (handleSubmitOrder) is untouched and still used by the main CTA / cash / redirect.
-  const createOrderForWallet = useCallback(async (): Promise<{ orderId: string; orderNumber: string } | { error: string }> => {
+  const createOrderForWallet = useCallback(async (): Promise<{ orderId: string; orderNumber: string; trackingToken: string } | { error: string }> => {
     if (addressNeedsPick()) return { error: t.deliveryPickFromList };
     try {
       const res = await fetch('/api/orders', {
@@ -706,7 +706,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       setOrderNumber(parsed.data.order_number);
       setOrderId(parsed.data.order_id);
       if (parsed.data.tracking_token) setTrackingToken(parsed.data.tracking_token);
-      return { orderId: parsed.data.order_id, orderNumber: parsed.data.order_number };
+      return { orderId: parsed.data.order_id, orderNumber: parsed.data.order_number, trackingToken: parsed.data.tracking_token ?? '' };
     } catch {
       return { error: t.noConnectionRetry };
     }
@@ -1120,7 +1120,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       const res = await fetch('/api/payments/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: oid, slug: restaurant.slug }),
+        body: JSON.stringify({ order_id: oid, slug: restaurant.slug, t: trackingToken }),
       });
       const text = await res.text();
       const parsed = safeParseJson<{ error?: string; url?: string | null }>(text);

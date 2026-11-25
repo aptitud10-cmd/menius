@@ -1267,7 +1267,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       <main className="flex-1 w-full max-w-[1060px] mx-auto px-4 min-[860px]:px-10 pt-1 min-[860px]:pt-4 pb-0 min-[860px]:pb-10 flex flex-col min-[860px]:flex-row min-[860px]:items-start gap-4 min-[860px]:gap-14">
         <div className="px-1 min-[860px]:px-0 min-[860px]:flex-1 min-[860px]:sticky min-[860px]:top-6 grid gap-0">
           {awaitingPayment ? (
-            <PaymentPendingCard orderId={o.id} restaurantSlug={restaurantSlug} paidParam={paidParam}
+            <PaymentPendingCard orderId={o.id} trackingToken={trackingToken ?? ''} restaurantSlug={restaurantSlug} paidParam={paidParam}
               createdAt={o.created_at} paymentMethod={o.payment_method} currency={currency} t={t} />
           ) : heroBlock}
           {isDesktop && (
@@ -1543,8 +1543,8 @@ function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tab
 // Pay no hay ?paid=true): en esa ventana se dice "Confirmando", nunca
 // "no se cobró", para no invitar a pagar dos veces.
 const CONFIRM_WINDOW_MS = 3 * 60_000;
-function PaymentPendingCard({ orderId, restaurantSlug, paidParam, createdAt, paymentMethod, currency, t }: {
-  orderId: string; restaurantSlug: string; paidParam?: string; createdAt: string;
+function PaymentPendingCard({ orderId, trackingToken, restaurantSlug, paidParam, createdAt, paymentMethod, currency, t }: {
+  orderId: string; trackingToken: string; restaurantSlug: string; paidParam?: string; createdAt: string;
   paymentMethod?: string | null; currency: string; t: ReturnType<typeof getT>;
 }) {
   const [busy, setBusy] = useState(false);
@@ -1589,7 +1589,7 @@ function PaymentPendingCard({ orderId, restaurantSlug, paidParam, createdAt, pay
       const res = await fetch('/api/payments/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId, slug: restaurantSlug }),
+        body: JSON.stringify({ order_id: orderId, slug: restaurantSlug, t: trackingToken }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.url) { window.location.href = data.url; return; }
