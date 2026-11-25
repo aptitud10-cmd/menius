@@ -11,15 +11,24 @@ import java.nio.charset.Charset
  */
 enum class EscPosCodePage(
     val escPosCode: Int,
-    private val charsetName: String,
+    private vararg val charsetNames: String,
 ) {
     /** CP437 — US/original IBM PC. What printers boot into. No Spanish accents beyond a few. */
     CP437(0, "IBM437"),
 
-    /** CP850 — Western European (Latin-1 style): full á é í ó ú ñ ü ¿ ¡ set. */
-    CP850(2, "IBM850"),
+    /**
+     * CP850 — Western European: full á é í ó ú ñ ü ¿ ¡ set. DEFAULT since 1.0.10.
+     * `n = 2` is the same on Epson, Star and every clone we know of. If the JVM lacks
+     * IBM850 it encodes with IBM00858, which has the same bytes for every Spanish
+     * letter (it only swaps one slot for "€", and "€" is transliterated anyway).
+     */
+    CP850(2, "IBM850", "IBM00858"),
 
-    /** CP858 — CP850 plus the euro sign. Default: widest support, all we need. */
+    /**
+     * CP858 — CP850 plus the euro sign. Was the default until 1.0.9, but `n = 19` is
+     * NOT universal: Pedro's MUNBYN (2026-11-25) maps 19 to CP737 Greek, so
+     * "ñ á é í ó ú" printed as "ν ι Γ κ λ μ".
+     */
     CP858(19, "IBM00858"),
 
     /** CP1252 — Windows Latin-1. Some cheap clones only implement this one. */
@@ -30,7 +39,7 @@ enum class EscPosCodePage(
      * Android ships a trimmed charset set, so this must never be assumed present.
      */
     val charset: Charset? by lazy {
-        runCatching { Charset.forName(charsetName) }.getOrNull()
+        charsetNames.firstNotNullOfOrNull { runCatching { Charset.forName(it) }.getOrNull() }
     }
 }
 

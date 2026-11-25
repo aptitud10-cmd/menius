@@ -11,11 +11,11 @@ import java.io.ByteArrayOutputStream
  * customer names, addresses and dish names are full of them.
  *
  * So we do two things: select a code page with `ESC t n`, and encode the text to
- * that same code page instead of UTF-8. CP858 is the default because it's CP850
- * (Western European: the full Spanish accent set) plus the euro sign, and it's
- * the most widely supported page across Epson/Star/Xprinter clones.
+ * that same code page instead of UTF-8. CP850 (Western European: the full Spanish
+ * accent set) is the default: its number, 2, means the same on Epson, Star and the
+ * clones. CP858 (19) was the default until 1.0.9 and printed Greek on a MUNBYN.
  */
-class EscPosEncoder(private val codePage: EscPosCodePage = EscPosCodePage.CP858) {
+class EscPosEncoder(private val codePage: EscPosCodePage = EscPosCodePage.CP850) {
     private val out = ByteArrayOutputStream()
 
     private fun write(vararg bytes: Int) {

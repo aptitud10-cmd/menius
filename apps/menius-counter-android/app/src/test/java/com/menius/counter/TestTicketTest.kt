@@ -31,4 +31,11 @@ class TestTicketTest {
         assertFalse(BluetoothThermalPrinter.isPaperStatusReply(0x10)) // ASB first byte
         assertEquals(15_000L, BluetoothThermalPrinter.ackTimeoutMs(100_000))
     }
+
+    /** ESC t 2 (CP850): 19 printed Greek on the MUNBYN. The accents keep their CP850 bytes. */
+    @Test fun paginaDeCodigosCp850() {
+        val bytes = EscPosEncoder().init().text("ñ á é í ó ú").toByteArray()
+        assertEquals(listOf(0x1b, 0x40, 0x1b, 0x74, 0x02), bytes.take(5).map { it.toInt() and 0xff })
+        assertEquals(listOf(0xa4, 0x20, 0xa0, 0x20, 0x82, 0x20, 0xa1, 0x20, 0xa2, 0x20, 0xa3), bytes.drop(5).map { it.toInt() and 0xff })
+    }
 }
