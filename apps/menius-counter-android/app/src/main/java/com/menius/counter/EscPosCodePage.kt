@@ -57,6 +57,27 @@ private val TRANSLITERATIONS: List<Pair<String, String>> = listOf(
 )
 
 /**
+ * Customer text (name, notes, address) must never reach the printer as a
+ * command: ESC (0x1B), GS (0x1D), DLE, NUL… would cut the paper, open the
+ * drawer or change the code page mid-ticket. Line feed stays (multi-line
+ * notes), tab becomes a space, every other C0/C1 control character and DEL is
+ * dropped. The web (lib/sanitize.ts, native-bridge.ts) strips them too; this is
+ * the last line before the bytes leave the tablet.
+ */
+fun stripControlChars(input: String): String {
+    val out = StringBuilder(input.length)
+    for (ch in input) {
+        when {
+            ch == '\n' -> out.append(ch)
+            ch == '\t' -> out.append(' ')
+            ch.code < 0x20 || ch.code in 0x7F..0x9F -> Unit
+            else -> out.append(ch)
+        }
+    }
+    return out.toString()
+}
+
+/**
  * Encodes receipt text for a thermal printer.
  *
  * Order matters: transliterate first (so "€" becomes "EUR" rather than an
@@ -65,7 +86,7 @@ private val TRANSLITERATIONS: List<Pair<String, String>> = listOf(
  * one, and otherwise dropped, so a stray character can never desync the stream.
  */
 fun encodeForPrinter(input: String, codePage: EscPosCodePage): ByteArray {
-    var s = input
+    var s = stripControlChars(input)
     for ((from, to) in TRANSLITERATIONS) s = s.replace(from, to)
 
     val charset = codePage.charset

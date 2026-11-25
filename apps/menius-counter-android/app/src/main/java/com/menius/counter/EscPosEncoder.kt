@@ -79,7 +79,7 @@ class EscPosEncoder(private val codePage: EscPosCodePage = EscPosCodePage.CP858)
      * Datos en ASCII (es una URL).
      */
     fun qr(data: String, moduleSize: Int = 6): EscPosEncoder {
-        val bytes = data.toByteArray(Charsets.US_ASCII)
+        val bytes = stripControlChars(data).filter { it.code < 0x80 }.toByteArray(Charsets.US_ASCII)
         val len = bytes.size + 3
         write(0x1d, 0x28, 0x6b, 4, 0, 0x31, 0x41, 0x32, 0)                 // modelo 2
         write(0x1d, 0x28, 0x6b, 3, 0, 0x31, 0x43, moduleSize.coerceIn(1, 16)) // tamaño del módulo
