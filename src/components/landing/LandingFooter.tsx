@@ -1,6 +1,41 @@
 import Link from 'next/link';
 import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
 import { LocaleSwitcher } from './LocaleSwitcher';
+import { SUPPORT_CONTACT, supportWhatsAppUrl } from '@/lib/support-contact';
+
+/** Where we are and how to reach a person: the in-person service is the point. */
+function ContactBlock({ locale, compact }: { locale: LandingLocale; compact?: boolean }) {
+  const en = locale === 'en';
+  const wa = supportWhatsAppUrl(en ? 'Hi! I have a question about MENIUS.' : '¡Hola! Tengo una pregunta sobre MENIUS.');
+  const link = compact
+    ? 'text-[13px] text-gray-400 hover:text-white transition-colors'
+    : 'text-sm text-gray-300 hover:text-white transition-colors';
+  return (
+    <div className={compact ? 'mt-5 space-y-1.5' : 'space-y-2'}>
+      <p className={compact ? 'text-[13px] text-gray-300' : 'text-sm text-gray-200 font-medium'}>
+        {en ? 'Queens, New York' : 'Queens, Nueva York'}
+      </p>
+      <p className={compact ? 'text-[12px] text-gray-500' : 'text-xs text-gray-500'}>
+        {en ? 'We set it up with you, in person.' : 'Lo instalamos contigo, en persona.'}
+      </p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1">
+        {SUPPORT_CONTACT.phoneE164 && (
+          <a href={`tel:${SUPPORT_CONTACT.phoneE164}`} className={`${link} tabular-nums`}>
+            {SUPPORT_CONTACT.phoneDisplay}
+          </a>
+        )}
+        {wa && (
+          <a href={wa} target="_blank" rel="noopener noreferrer" className={link}>
+            WhatsApp
+          </a>
+        )}
+        <a href={`mailto:${SUPPORT_CONTACT.email}`} className={link}>
+          {SUPPORT_CONTACT.email}
+        </a>
+      </div>
+    </div>
+  );
+}
 
 const SOCIALS = [
   {
@@ -94,6 +129,8 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
               </div>
             </div>
 
+            <ContactBlock locale={locale} />
+
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{f.product}</h3>
@@ -142,6 +179,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                     <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-400 font-medium tracking-wide">{b}</span>
                   ))}
                 </div>
+                <ContactBlock locale={locale} compact />
                 <SocialLinks />
               </div>
               <div>

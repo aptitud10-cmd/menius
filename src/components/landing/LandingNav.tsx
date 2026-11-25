@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
+import { SUPPORT_CONTACT } from '@/lib/support-contact';
 
 export function LandingNav({ locale }: { locale: LandingLocale }) {
   const [open, setOpen] = useState(false);
@@ -86,6 +87,14 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
             <Link href="/demo" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
           </nav>
           <div className="flex items-center justify-end gap-4">
+            {SUPPORT_CONTACT.phoneE164 && (
+              <a
+                href={`tel:${SUPPORT_CONTACT.phoneE164}`}
+                className="hidden lg:flex items-center text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap tabular-nums"
+              >
+                {SUPPORT_CONTACT.phoneDisplay}
+              </a>
+            )}
             <div className="flex items-center gap-1 text-xs">
               <button onClick={() => switchLocale('es')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'es' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>ES</button>
               <span className="text-gray-600">|</span>
@@ -165,6 +174,18 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
               >
                 {n.startFree}
               </Link>
+              {SUPPORT_CONTACT.phoneE164 && (
+                <a
+                  href={`tel:${SUPPORT_CONTACT.phoneE164}`}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-center w-full mt-3 py-3.5 rounded-2xl border border-white/[0.12] text-white text-base font-semibold tracking-tight active:scale-[0.98] transition-transform duration-150"
+                >
+                  {locale === 'en' ? 'Call us' : 'Llámanos'} · <span className="ml-1 tabular-nums">{SUPPORT_CONTACT.phoneDisplay}</span>
+                </a>
+              )}
+              <p className="mt-3 text-center text-xs text-gray-500">
+                {locale === 'en' ? 'Queens, NY · We set it up with you in person' : 'Queens, NY · Lo instalamos contigo en persona'}
+              </p>
               <div className="flex items-center gap-3 border-t border-white/[0.06] mt-6 pt-6">
                 <button type="button" onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>ES</button>
                 <button type="button" onClick={() => switchLocale('en')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'en' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>EN</button>
