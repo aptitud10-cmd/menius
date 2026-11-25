@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickNoteChips, chipsPlaceholder, noteHasChip, toggleNoteChip, type NoteChipRule } from '@/lib/note-chips';
+import { pickNoteChips, noteHasChip, toggleNoteChip, type NoteChipRule } from '@/lib/note-chips';
 
 const RULES: NoteChipRule[] = [
   {
@@ -27,17 +27,14 @@ describe('pickNoteChips', () => {
     expect(pickNoteChips(RULES, 'burgers', [], 'es')).toEqual(['Cortada a la mitad', 'Pan bien tostado']);
   });
 
+  it('skips dishes the rule excludes (pasta that is only oil and garlic)', () => {
+    const rules: NoteChipRule[] = [{ categoryIds: ['pastas'], exceptProductIds: ['aglio'], chips: [{ en: 'Light sauce', es: 'Poca salsa' }] }];
+    expect(pickNoteChips(rules, 'pastas', [], 'en', 'vodka')).toEqual(['Light sauce']);
+    expect(pickNoteChips(rules, 'pastas', [], 'en', 'aglio')).toEqual([]);
+  });
+
   it('returns nothing without rules', () => {
     expect(pickNoteChips(undefined, 'burgers', [], 'en')).toEqual([]);
-  });
-});
-
-describe('chipsPlaceholder', () => {
-  it('builds the example from the first two chips', () => {
-    expect(chipsPlaceholder(['Cut in half', 'Bun well toasted', 'Extra pickles'], 'en')).toBe('e.g. cut in half, bun well toasted…');
-    expect(chipsPlaceholder(['Picada', 'Aderezo mezclado'], 'es')).toBe('Ej: picada, aderezo mezclado…');
-    expect(chipsPlaceholder(['Chopped'], 'en')).toBe('e.g. chopped…');
-    expect(chipsPlaceholder([], 'en')).toBeNull();
   });
 });
 

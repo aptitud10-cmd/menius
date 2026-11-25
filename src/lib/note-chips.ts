@@ -18,6 +18,9 @@ export interface NoteChipRule {
   categoryIds?: string[];
   /** ...or to any dish with a group whose name contains this text. */
   whenGroup?: string;
+  /** Dishes the rule matches but where the chips make no sense
+   *  (e.g. "Light sauce" on a pasta that is only oil and garlic). */
+  exceptProductIds?: string[];
   chips: NoteChip[];
 }
 
@@ -31,6 +34,7 @@ export function pickNoteChips(
   categoryId: string | null | undefined,
   groups: GroupLike[],
   locale: string,
+  productId?: string,
 ): string[] {
   if (!rules?.length) return [];
   const names = groups.map((g) => g.name.toLowerCase());
@@ -40,17 +44,10 @@ export function pickNoteChips(
       (r.whenGroup ? has(r.whenGroup) : false) ||
       (!!categoryId && !!r.categoryIds?.includes(categoryId)),
   );
-  if (!rule) return [];
+  if (!rule || (productId && rule.exceptProductIds?.includes(productId))) return [];
   return rule.chips
     .filter((c) => !c.hideIfGroups?.some(has))
     .map((c) => (locale === "es" ? c.es : c.en));
-}
-
-/** Placeholder built from the first one or two chips: "e.g. 1 sugar, extra hot…". */
-export function chipsPlaceholder(chips: string[], locale: string): string | null {
-  if (chips.length === 0) return null;
-  const sample = chips.slice(0, 2).map((c) => c.toLowerCase()).join(", ");
-  return locale === "es" ? `Ej: ${sample}…` : `e.g. ${sample}…`;
 }
 
 const splitNote = (notes: string) =>

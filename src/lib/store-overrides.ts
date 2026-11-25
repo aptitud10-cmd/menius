@@ -91,6 +91,9 @@ const EGGS = [
   'c1000001-0000-0000-0000-000000000005', // 3 Egg Specialty Omelettes
 ];
 const SALADS = ['c1000001-0000-0000-0000-000000000021'];
+const SAUTEED = ['c1000001-0000-0000-0000-000000000035']; // todas llevan salsa
+const PASTAS = ['c1000001-0000-0000-0000-000000000032'];
+const AGLIO_E_OLIO = '281793e7-ab8d-4dcc-8a43-7eb24f7a5342'; // solo aceite y ajo
 
 const BUCCANEER_NOTE_CHIPS: NoteChipRule[] = [
   // Café y té (no la categoría entera: ahí también están las sodas).
@@ -133,6 +136,13 @@ const BUCCANEER_NOTE_CHIPS: NoteChipRule[] = [
       // La Caesar ya lo pregunta; BBQ Ranch y Buffalo vienen mezcladas.
       { en: 'Dressing in the salad', es: 'Aderezo mezclado', hideIfGroups: ['in the salad or on the side', 'dressing on the side'] },
     ],
+  },
+  // Pancakes/waffles/French toast no tienen: syrup y mantequilla ya van aparte siempre.
+  { categoryIds: SAUTEED, chips: [{ en: 'Sauce on the side', es: 'Salsa aparte' }] },
+  {
+    categoryIds: PASTAS,
+    exceptProductIds: [AGLIO_E_OLIO],
+    chips: [{ en: 'Light sauce', es: 'Poca salsa' }],
   },
 ];
 

@@ -29,7 +29,7 @@ import { showsAsRow } from "@/lib/product-display";
 import { planGroupLayout, splitOptionName } from "@/lib/modifier-layout";
 import { AddonSearch } from "./AddonSearch";
 import { useStoreConfig } from "@/lib/store-config-context";
-import { pickNoteChips, chipsPlaceholder, noteHasChip, toggleNoteChip } from "@/lib/note-chips";
+import { pickNoteChips, noteHasChip, toggleNoteChip } from "@/lib/note-chips";
 
 /** Height of the compact header that replaces the floating X on scroll. */
 const COMPACT_HEADER_PX = 52;
@@ -176,8 +176,8 @@ export function CustomizationSheet({
     lazyModifiers?.modifier_groups ?? product.modifier_groups ?? [];
   const { noteChips: noteChipRules } = useStoreConfig();
   const noteChips = useMemo(
-    () => pickNoteChips(noteChipRules, product.category_id, groups, locale),
-    [noteChipRules, product.category_id, groups, locale],
+    () => pickNoteChips(noteChipRules, product.category_id, groups, locale, product.id),
+    [noteChipRules, product.category_id, groups, locale, product.id],
   );
   /** Producto con opciones cuya carga perezosa todavía no terminó (o falló). */
   const optionsPending = needsLazyLoad && !lazyModifiers;
@@ -1426,7 +1426,7 @@ export function CustomizationSheet({
             }}
             maxLength={200}
             rows={2}
-            placeholder={chipsPlaceholder(noteChips, locale) ?? t.itemNotesPlaceholder}
+            placeholder={t.itemNotesPlaceholder}
             /* text-base (16px) is not a style choice: iOS Safari zooms the whole
                page when a focused input is under 16px, and the diner lands back
                on a menu they have to pinch out of. */
