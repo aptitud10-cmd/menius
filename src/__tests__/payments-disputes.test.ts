@@ -213,6 +213,11 @@ describe('aviso temprano de fraude', () => {
     expect(mockRefund).toHaveBeenCalledWith('pi_1', expect.objectContaining({ reason: 'fraudulent', idempotencyKey: 'efw-refund:issfr_1' }));
     expect(mockOrderUpdateEq2).toHaveBeenCalledWith('payment_status', 'paid');
     expect(mockEmailAdmins).toHaveBeenCalledTimes(1);
+    // El dueño se entera: el reembolso sale de sus pagos.
+    expect(mockEmailOwner).toHaveBeenCalledTimes(1);
+    const mail = mockEmailOwner.mock.calls[0][1](false);
+    expect(mail.subject).toContain('Cobro devuelto por posible fraude');
+    expect(mail.intro).toContain('12.00 USD');
   });
 
   it('más de $15: no devuelve, avisa para decidir', async () => {
@@ -221,6 +226,9 @@ describe('aviso temprano de fraude', () => {
     await handleEarlyFraudWarning(stripe as never, { id: 'issfr_2', actionable: true, charge: 'ch_1' });
     expect(mockRefund).not.toHaveBeenCalled();
     expect(mockEmailAdmins).toHaveBeenCalledWith(expect.objectContaining({ intro: expect.stringContaining('No se devolvió solo') }));
+    const mail = mockEmailOwner.mock.calls[0][1](true);
+    expect(mail.subject).toContain('Possible fraud');
+    expect(mail.intro).toContain('refunding it now from Orders');
   });
 
   it('no accionable (ya tiene disputa o está devuelto): no hace nada más que avisar', async () => {
@@ -230,5 +238,6 @@ describe('aviso temprano de fraude', () => {
     await handleEarlyFraudWarning(stripe as never, { id: 'issfr_3', actionable: false, charge: 'ch_1' });
     expect(mockRefund).not.toHaveBeenCalled();
     expect(mockEmailAdmins).toHaveBeenCalledTimes(1);
+    expect(mockEmailOwner).not.toHaveBeenCalled();
   });
 });

@@ -427,6 +427,8 @@ export async function handleEarlyFraudWarning(stripe: StripeClient, efw: EarlyFr
   let action = '';
   let order: Awaited<ReturnType<typeof findOrderForAlert>> = null;
   let amount = '—';
+  /** Qué le pasó al pedido, para el aviso al dueño (null = nada que contarle). */
+  let ownerOutcome: 'refunded' | 'flagged' | null = null;
   try {
     const chargeId = idOf(efw.charge);
     if (!chargeId) throw new Error('early fraud warning without charge');
@@ -455,8 +457,10 @@ export async function handleEarlyFraudWarning(stripe: StripeClient, efw: EarlyFr
           .eq('payment_status', 'paid');
       }
       action = 'Devuelto solo: con $15 o menos, devolver sale más barato que una disputa ($15 de multa + el monto).';
+      ownerOutcome = 'refunded';
     } else {
       action = 'No se devolvió solo (más de $15). Si el pedido parece fraude, devolverlo ahora evita la disputa y la multa; ~40% de estos avisos terminan en disputa.';
+      ownerOutcome = 'flagged';
     }
   } catch (err) {
     action = `Error al procesar el aviso: ${err instanceof Error ? err.message : String(err)}. Revisarlo en Stripe.`;
@@ -478,4 +482,30 @@ export async function handleEarlyFraudWarning(stripe: StripeClient, efw: EarlyFr
     ],
     link: { href: `https://dashboard.stripe.com/payments/${encodeURIComponent(idOf(efw.charge) ?? '')}`, label: 'Abrir el pago en Stripe' },
   });
+  // El dueño se entera: el reembolso sale de sus pagos, y con más de $15 la
+  // decisión de devolverlo (para evitar la disputa) es suya.
+  if (order && ownerOutcome) {
+    const n = order.order_number;
+    const refunded = ownerOutcome === 'refunded';
+    await emailRestaurantOwner(order.id, (en) => ({
+      subject: refunded
+        ? (en ? `Card charge refunded for possible fraud — order #${n}` : `Cobro devuelto por posible fraude — pedido #${n}`)
+        : (en ? `Possible fraud on a card charge — order #${n}` : `Posible fraude en un cobro con tarjeta — pedido #${n}`),
+      title: refunded
+        ? (en ? 'We refunded a charge the bank flagged as fraud' : 'Devolvimos un cobro que el banco marcó como fraude')
+        : (en ? 'The bank flagged a charge as possible fraud' : 'El banco marcó un cobro como posible fraude'),
+      intro: refunded
+        ? (en
+          ? `The cardholder's bank flagged the ${amount} charge on order #${n} as possible fraud. Because it is a small amount, we refunded it automatically: a chargeback would cost a $15 fee plus the amount. The ${amount} comes out of your payouts.`
+          : `El banco del titular de la tarjeta marcó como posible fraude el cobro de ${amount} del pedido #${n}. Como es un monto chico, lo devolvimos automáticamente: un contracargo costaría $15 de comisión más el monto. Los ${amount} se descuentan de tus pagos.`)
+        : (en
+          ? `The cardholder's bank flagged the ${amount} charge on order #${n} as possible fraud. About 4 in 10 of these become chargebacks ($15 fee plus the amount). If the order looks suspicious (a name or address you don't recognize, never picked up), refunding it now from Orders avoids the chargeback. If you know the customer, you can leave it.`
+          : `El banco del titular de la tarjeta marcó como posible fraude el cobro de ${amount} del pedido #${n}. Cerca de 4 de cada 10 terminan en contracargo ($15 de comisión más el monto). Si el pedido te parece raro (nombre o dirección que no conoces, nadie lo retiró), devolverlo ahora desde Pedidos evita el contracargo. Si conoces al cliente, puedes dejarlo así.`),
+      rows: [
+        [en ? 'Order' : 'Pedido', `#${n}`],
+        [en ? 'Customer' : 'Cliente', order?.customer_name ?? '—'],
+        [en ? 'Amount' : 'Monto', amount],
+      ],
+    }));
+  }
 }
