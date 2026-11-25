@@ -52,7 +52,9 @@ export function FiscalSettings({ restaurantId, initialData }: FiscalSettingsProp
         });
         if (!res.ok) {
           const data = await res.json();
-          setError(data.error ?? 'Error al guardar');
+          setError(data.error === 'OWNER_ONLY'
+            ? 'Los datos fiscales solo se cambian desde tu celular o computadora, no desde una tablet compartida.'
+            : data.error ?? 'Error al guardar');
           return;
         }
         setSaved(true);

@@ -8,11 +8,12 @@ import { MercadoPagoSettings } from '@/components/dashboard/MercadoPagoSettings'
 import { WidgetCode } from './WidgetCode';
 import { getDashboardTranslations } from '@/lib/dashboard-translations';
 import { onlinePaymentsAllowedByPlan } from '@/lib/payments/online-ready';
+import { stripRestaurantSecrets } from '@/lib/restaurant-owner-fields';
 
 export default async function SettingsPage() {
   const { supabase, restaurantId } = await getDashboardContext();
 
-  const [{ data: restaurant }, { data: kdsStations }, subResult] = await Promise.all([
+  const [{ data: restaurantRow }, { data: kdsStations }, subResult] = await Promise.all([
     supabase.from('restaurants').select('*').eq('id', restaurantId).maybeSingle(),
     supabase.from('kds_stations').select('*').eq('restaurant_id', restaurantId).order('position'),
     supabase
@@ -22,7 +23,10 @@ export default async function SettingsPage() {
       .maybeSingle(),
   ]);
 
-  if (!restaurant) redirect('/onboarding/create-restaurant');
+  if (!restaurantRow) redirect('/onboarding/create-restaurant');
+  // Lo que viaja a los componentes de cliente va sin llaves: antes el token de
+  // Mercado Pago iba en texto plano dentro del payload de la página.
+  const restaurant = stripRestaurantSecrets(restaurantRow);
 
   const isMxn = restaurant?.currency === 'MXN';
   const locale = (restaurant?.locale === 'en' ? 'en' : 'es') as 'es' | 'en';
@@ -73,7 +77,7 @@ export default async function SettingsPage() {
           <MercadoPagoSettings
             restaurantId={restaurantId}
             mpEnabled={(restaurant as any).mp_enabled ?? false}
-            hasMpToken={!!(restaurant as any).mp_access_token}
+            hasMpToken={restaurant.has_mp_token}
             locale={locale}
           />
         </div>

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
+import { stripRestaurantSecrets } from '@/lib/restaurant-owner-fields';
 import { DashboardHome } from '@/components/dashboard/DashboardHome';
 import { resolveTimezone, localDateString, localDayStartUTC, addDaysToDateString } from '@/lib/date-utils';
 import { isSale, isReceivedOrder, SALE_FIELDS, type SaleFields } from '@/lib/sales';
@@ -340,7 +341,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardHome
-      restaurant={restaurant}
+      restaurant={stripRestaurantSecrets(restaurant)}
       stats={stats}
       recentOrders={recentOrdersRes.data ?? []}
       lowStockProducts={lowStockRes.data ?? []}

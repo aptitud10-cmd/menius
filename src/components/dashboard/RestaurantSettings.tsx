@@ -582,6 +582,9 @@ export function RestaurantSettings({
           NO_CHANGES: t.error_noChanges,
           TAX_RATE_INVALID: t.error_taxRateInvalid,
           EMAIL_INVALID: t.error_emailInvalid,
+          OWNER_ONLY: locale === 'en'
+            ? 'Payments, tax, currency, country and domain can only be changed from your phone or computer, not from a shared tablet.'
+            : 'Los cobros, el impuesto, la moneda, el país y el dominio solo se cambian desde tu celular o computadora, no desde una tablet compartida.',
         };
         throw new Error(API_ERROR_MAP[data.error] ?? data.error ?? t.settings_errorSaving);
       }

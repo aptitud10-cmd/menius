@@ -8,6 +8,8 @@ import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { revalidatePublicMenuForRestaurant } from '@/lib/revalidate-public-menu';
 import { normalizeBrandColor } from '@/lib/tracker-brand';
+import { getDeviceSession } from '@/lib/auth/device-session';
+import { OWNER_ONLY_FIELDS, ownerOnlyChanges, stripRestaurantSecrets } from '@/lib/restaurant-owner-fields';
 
 const logger = createLogger('tenant-restaurant');
 
@@ -24,7 +26,8 @@ export async function GET() {
       .maybeSingle();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ restaurant });
+    // Sin llaves: el token de Mercado Pago y los secretos de Wompi no salen al navegador.
+    return NextResponse.json({ restaurant: restaurant ? stripRestaurantSecrets(restaurant) : null });
   } catch (err) {
     logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
     captureError(err, { route: '/api/tenant/restaurant' });
@@ -50,7 +53,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (updates.custom_domain !== undefined) {
-      const d = (updates.custom_domain as string).trim().toLowerCase();
+      const d = String(updates.custom_domain ?? '').trim().toLowerCase();
       updates.custom_domain = d || null;
       if (d && !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(d)) {
         return NextResponse.json({ error: 'DOMAIN_INVALID' }, { status: 400 });
@@ -113,6 +116,29 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
+    // Tablet con el panel abierto por PIN: puede guardar horarios, fotos, etc.,
+    // pero no cambiar cobros, impuesto, moneda, país, dominio ni datos fiscales.
+    if (OWNER_ONLY_FIELDS.some((f) => updates[f] !== undefined)) {
+      const device = await getDeviceSession(supabase);
+      if (device.isTablet) {
+        const { data: current, error: curError } = await supabase
+          .from('restaurants')
+          .select(OWNER_ONLY_FIELDS.join(', '))
+          .eq('id', tenant.restaurantId)
+          .maybeSingle();
+        if (curError || !current) return NextResponse.json({ error: 'OWNER_ONLY' }, { status: 403 });
+        const changed = ownerOnlyChanges(current as unknown as Record<string, unknown>, updates);
+        if (changed.length > 0) {
+          return NextResponse.json({ error: 'OWNER_ONLY', fields: changed }, { status: 403 });
+        }
+        // Lo que no cambió no se reescribe desde la tablet.
+        for (const f of OWNER_ONLY_FIELDS) delete updates[f];
+        if (Object.keys(updates).length === 0) {
+          return NextResponse.json({ error: 'NO_CHANGES' }, { status: 400 });
+        }
+      }
+    }
+
     const { data: restaurant, error } = await supabase
       .from('restaurants')
       .update(updates)
@@ -122,7 +148,7 @@ export async function PATCH(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (restaurant?.slug) await revalidatePublicMenuForRestaurant(supabase, tenant.restaurantId);
-    return NextResponse.json({ restaurant });
+    return NextResponse.json({ restaurant: restaurant ? stripRestaurantSecrets(restaurant) : null });
   } catch (err) {
     logger.error('PATCH failed', { error: err instanceof Error ? err.message : String(err) });
     captureError(err, { route: '/api/tenant/restaurant' });
