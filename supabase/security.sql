@@ -61,6 +61,7 @@ ALTER TABLE public.processed_webhook_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_extras ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_pairings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_variants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_views_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promotions ENABLE ROW LEVEL SECURITY;
@@ -71,6 +72,7 @@ ALTER TABLE public.restaurants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staff_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.store_traffic_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.style_anchors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscription_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
@@ -417,6 +419,16 @@ CREATE POLICY owners_manage_staff ON public.staff_members FOR ALL TO public
   WHERE (restaurants.owner_user_id = ( SELECT auth.uid() AS uid)))));
 CREATE POLICY staff_read_own ON public.staff_members FOR SELECT TO public
   USING ((user_id = ( SELECT auth.uid() AS uid)));
+
+-- ── store_traffic_daily / product_views_daily (2026-11-25) ─────────────
+-- Analítica del dueño ("Tu tienda online"), migración 20261126_store_traffic.
+-- Solo lectura del dueño. Nadie escribe con la anon key: suma el servidor vía
+-- track_store_event() (SECURITY DEFINER, EXECUTE solo service_role; anon y
+-- authenticated sin permiso — verificado 2026-11-25).
+CREATE POLICY owners_read_product_views ON public.product_views_daily FOR SELECT TO authenticated
+  USING (user_owns_restaurant(restaurant_id));
+CREATE POLICY owners_read_store_traffic ON public.store_traffic_daily FOR SELECT TO authenticated
+  USING (user_owns_restaurant(restaurant_id));
 
 -- ── style_anchors ──────────────────────────────────────────────────────
 CREATE POLICY "Owners manage their style anchors" ON public.style_anchors FOR ALL TO public

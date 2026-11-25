@@ -1,7 +1,7 @@
 -- MENIUS - schema real de produccion (menius-prod)
 -- Generado desde information_schema via MCP de Supabase.
 -- FUENTE DE VERDAD del schema. NO editar a mano: regenerar desde prod.
--- Tablas: 58  (actualizado 2026-11-18: merge de main — + print_jobs, printers, counter_settings)
+-- Tablas: 60  (actualizado 2026-11-25: + store_traffic_daily, product_views_daily — migración 20261126_store_traffic; antes: Tablas: 58  (actualizado 2026-11-18: merge de main — + print_jobs, printers, counter_settings))
 --
 -- ESTE ARCHIVO SOLO TIENE COLUMNAS. No sirve para auditar seguridad: no
 -- contiene ni una linea de RLS, POLICY o GRANT. Para eso esta
@@ -544,6 +544,13 @@ CREATE TABLE public.panel_access_log (
   created_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
+CREATE TABLE public.product_views_daily (
+  restaurant_id uuid NOT NULL,
+  day date NOT NULL,
+  product_id uuid NOT NULL,
+  views integer NOT NULL DEFAULT 0
+);
+
 CREATE TABLE public.restaurant_panel_pins (
   restaurant_id uuid NOT NULL,
   pin_hash text NOT NULL,
@@ -847,6 +854,16 @@ CREATE TABLE public.staff_members (
   invited_at timestamp with time zone DEFAULT now(),
   accepted_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE public.store_traffic_daily (
+  restaurant_id uuid NOT NULL,
+  day date NOT NULL,
+  source text NOT NULL CHECK (source = ANY (ARRAY['table_qr'::text, 'google'::text, 'social'::text, 'direct'::text, 'other'::text])),
+  visits integer NOT NULL DEFAULT 0,
+  carts integer NOT NULL DEFAULT 0,
+  checkouts integer NOT NULL DEFAULT 0,
+  orders integer NOT NULL DEFAULT 0
 );
 
 CREATE TABLE public.style_anchors (
