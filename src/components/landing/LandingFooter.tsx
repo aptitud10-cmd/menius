@@ -3,7 +3,7 @@ import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
 import { LocaleSwitcher } from './LocaleSwitcher';
 import { SUPPORT_CONTACT, supportWhatsAppUrl } from '@/lib/support-contact';
 
-/** Where we are and how to reach a person: the in-person service is the point. */
+/** How to reach a person. Location-neutral: customers can be anywhere in the US. */
 function ContactBlock({ locale, compact }: { locale: LandingLocale; compact?: boolean }) {
   const en = locale === 'en';
   const wa = supportWhatsAppUrl(en ? 'Hi! I have a question about MENIUS.' : '¡Hola! Tengo una pregunta sobre MENIUS.');
@@ -13,10 +13,7 @@ function ContactBlock({ locale, compact }: { locale: LandingLocale; compact?: bo
   return (
     <div className={compact ? 'mt-5 space-y-1.5' : 'space-y-2'}>
       <p className={compact ? 'text-[13px] text-gray-300' : 'text-sm text-gray-200 font-medium'}>
-        {en ? 'Queens, New York' : 'Queens, Nueva York'}
-      </p>
-      <p className={compact ? 'text-[12px] text-gray-500' : 'text-xs text-gray-500'}>
-        {en ? 'We set it up with you, in person.' : 'Lo instalamos contigo, en persona.'}
+        {en ? 'Talk to a real person' : 'Habla con una persona'}
       </p>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1">
         {SUPPORT_CONTACT.phoneE164 && (

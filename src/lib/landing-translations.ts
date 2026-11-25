@@ -332,7 +332,7 @@ const es = {
   finalCta: {
     line1: 'Tus pedidos online.',
     line2: 'Sin comisión de apps.',
-    subtitle: 'Tienda online propia, tablet de pedidos y soporte en persona. 14 días de Pro gratis, sin tarjeta.',
+    subtitle: 'Tienda online propia, tablet de pedidos y soporte de personas reales. 14 días de Pro gratis, sin tarjeta.',
     ctaPrimary: 'Prueba Pro 14 días gratis',
     ctaSecondary: 'Ver demo en vivo',
   },
@@ -692,7 +692,7 @@ const en: LandingT = {
   finalCta: {
     line1: 'Your online orders.',
     line2: 'No app commission.',
-    subtitle: 'Your own ordering page, an order tablet and in-person support. 14 days of Pro free, no card.',
+    subtitle: 'Your own ordering page, an order tablet and support from real people. 14 days of Pro free, no card.',
     ctaPrimary: 'Try Pro free for 14 days',
     ctaSecondary: 'View live demo',
   },

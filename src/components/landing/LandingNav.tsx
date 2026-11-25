@@ -183,9 +183,6 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
                   {locale === 'en' ? 'Call us' : 'Llámanos'} · <span className="ml-1 tabular-nums">{SUPPORT_CONTACT.phoneDisplay}</span>
                 </a>
               )}
-              <p className="mt-3 text-center text-xs text-gray-500">
-                {locale === 'en' ? 'Queens, NY · We set it up with you in person' : 'Queens, NY · Lo instalamos contigo en persona'}
-              </p>
               <div className="flex items-center gap-3 border-t border-white/[0.06] mt-6 pt-6">
                 <button type="button" onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>ES</button>
                 <button type="button" onClick={() => switchLocale('en')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'en' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>EN</button>
