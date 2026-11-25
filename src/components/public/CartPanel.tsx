@@ -96,9 +96,9 @@ function SwipeableItem({
 }
 
 // ── "Complete your order" carousel ──────────────────────────────────────────
-// Same controls as "Goes well with" in CustomizationSheet: swipe on touch; on
-// desktop arrows + the mouse wheel move it sideways (without them the last
-// cards were unreachable in the 340px sidebar — no scrollbar, wheel = vertical).
+// Swipe on touch, sideways trackpad swipe, and arrows on desktop (without them
+// the last cards were unreachable in the 340px sidebar). The vertical wheel is
+// never hijacked: over the cart it always scrolls the menu.
 function CartSuggestionRow({
   products,
   onAdd,
@@ -111,20 +111,6 @@ function CartSuggestionRow({
   t: Translations;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // already horizontal
-      const max = el.scrollWidth - el.clientWidth;
-      // At either end, let the wheel scroll the cart as usual.
-      if ((e.deltaY > 0 && el.scrollLeft >= max - 1) || (e.deltaY < 0 && el.scrollLeft <= 0)) return;
-      e.preventDefault();
-      el.scrollLeft += e.deltaY;
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
   const scroll = (dir: -1 | 1) => ref.current?.scrollBy({ left: dir * 244, behavior: 'smooth' });
   const arrow =
     'hidden md:flex absolute top-[56px] -translate-y-1/2 w-8 h-8 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 transition-opacity opacity-0 group-hover/cs:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]';
@@ -563,7 +549,10 @@ export function CartPanel({
       {renderUndoToast('0.5rem')}
       <div
         className={cn(
-          'flex-1 overflow-y-auto overscroll-contain px-4 min-h-0',
+          // contain only in the mobile/tablet sheet (stops the menu behind it from
+          // moving). In the xl sidebar it trapped the wheel: over the cart the
+          // menu didn't scroll at all (Pedro 2026-11-25).
+          'flex-1 overflow-y-auto overscroll-contain xl:overscroll-auto px-4 min-h-0',
           // Extra room while the toast is up so the last line can scroll clear of it.
           pendingUndo ? 'pb-16' : 'pb-3'
         )}
