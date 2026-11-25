@@ -1256,7 +1256,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       const res = await fetch('/api/payments/mercadopago', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
+        body: JSON.stringify({ order_id: orderId, slug: restaurant.slug, t: trackingToken }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.error) {
