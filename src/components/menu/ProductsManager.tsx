@@ -727,6 +727,7 @@ function SortableProductList({
   duplicatingId,
   onMore,
   curr,
+  products,
   setProducts,
   startTransition,
 }: {
@@ -756,9 +757,14 @@ function SortableProductList({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = catProducts.findIndex((p) => p.id === active.id);
-    const newIndex = catProducts.findIndex((p) => p.id === over.id);
-    const reordered = arrayMove(catProducts, oldIndex, newIndex);
+    // Move inside the WHOLE category: with a search or filter on, catProducts
+    // is only what's visible, and renumbering just those collided with the
+    // hidden ones (two dishes with the same sort_order).
+    const full = products.filter((p) => p.category_id === catId);
+    const oldIndex = full.findIndex((p) => p.id === active.id);
+    const newIndex = full.findIndex((p) => p.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(full, oldIndex, newIndex);
 
     let snapshot: Product[] | null = null;
     setProducts((prev) => {

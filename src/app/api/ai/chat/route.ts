@@ -8,7 +8,21 @@ import { hasPlanAccess } from "@/lib/auth/check-plan";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { getPlan } from "@/lib/plans";
 import { createLogger } from "@/lib/logger";
-import { isSale, SALE_FIELDS } from "@/lib/sales";
+import { isReceivedOrder, isSale, SALE_FIELDS } from "@/lib/sales";
+import { getStartOfDayUTC, resolveTimezone } from "@/lib/date-utils";
+
+type ServerClient = Awaited<ReturnType<typeof createClient>>;
+
+/** The restaurant's timezone: "today" and hours are the restaurant's, not the server's (UTC). */
+async function restaurantTimezone(supabase: ServerClient, restaurantId: string): Promise<string> {
+  const { data } = await supabase.from("restaurants").select("timezone").eq("id", restaurantId).maybeSingle();
+  return resolveTimezone((data as { timezone?: string | null } | null)?.timezone);
+}
+
+function localHour(iso: string, tz: string): number {
+  const h = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: tz }).format(new Date(iso)));
+  return Number.isFinite(h) ? h % 24 : 0;
+}
 
 const logger = createLogger("ai-chat");
 
@@ -46,19 +60,17 @@ function neutralizeUserText(input: unknown, maxLength = 140): string {
 async function gatherRestaurantContext(restaurantId: string): Promise<{
   context: string;
   locale: string;
+  timezone: string;
   restaurantName: string;
   restaurantSlug: string;
   atRiskCount: number;
   zeroSalesNames: string[];
 }> {
   const supabase = await createClient();
+  const tz = await restaurantTimezone(supabase, restaurantId);
 
   const now = new Date();
-  const todayStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  ).toISOString();
+  const todayStart = getStartOfDayUTC(tz).toISOString();
   const weekAgo = new Date(
     now.getTime() - 7 * 24 * 60 * 60 * 1000,
   ).toISOString();
@@ -212,7 +224,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
   // Peak hour from last 30 days of completed orders
   const hourCounts: number[] = new Array(24).fill(0);
   for (const o of (hourlyRaw ?? []).filter(isSale)) {
-    const h = new Date(o.created_at).getHours();
+    const h = localHour(o.created_at, tz);
     hourCounts[h]++;
   }
   const peakHour = hourCounts.indexOf(Math.max(...hourCounts));
@@ -473,6 +485,7 @@ ${
     locale,
     restaurantName: restaurant?.name ?? "",
     restaurantSlug: restaurant?.slug ?? "",
+    timezone: tz,
     atRiskCount: (atRiskCustomers ?? []).length,
     zeroSalesNames: zeroSalesProducts.map((p) => p.name),
   };
@@ -857,23 +870,21 @@ async function executeTool(
 
   if (name === "get_orders_live") {
     const now = new Date();
-    const todayStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    ).toISOString();
+    const todayStart = getStartOfDayUTC(await restaurantTimezone(supabase, restaurantId)).toISOString();
 
-    const { data: orders } = await supabase
+    // Whole day (not the last 30): the revenue line must match Home.
+    const { data: rawOrders } = await supabase
       .from("orders")
       .select(
-        "id, order_number, status, total, order_type, customer_name, customer_phone, created_at",
+        "id, order_number, status, total, order_type, customer_name, customer_phone, created_at, payment_method, payment_status",
       )
       .eq("restaurant_id", restaurantId)
       .gte("created_at", todayStart)
-      .order("created_at", { ascending: false })
-      .limit(30);
+      .order("created_at", { ascending: false });
 
-    if (!orders || orders.length === 0) return "No orders today yet.";
+    // Unpaid online checkouts never reached the kitchen.
+    const orders = (rawOrders ?? []).filter(isReceivedOrder);
+    if (orders.length === 0) return "No orders today yet.";
 
     const pending = orders.filter((o) => o.status === "pending");
     const confirmed = orders.filter((o) => o.status === "confirmed");
@@ -883,7 +894,7 @@ async function executeTool(
       ["completed", "delivered"].includes(o.status),
     );
     const cancelled = orders.filter((o) => o.status === "cancelled");
-    const revenue = completed.reduce((s, o) => s + Number(o.total), 0);
+    const revenue = orders.filter(isSale).reduce((s, o) => s + Number(o.total), 0);
 
     const lines = [
       `TODAY: ${orders.length} orders | Revenue: $${revenue.toFixed(2)}`,
@@ -1124,6 +1135,7 @@ export async function POST(request: NextRequest) {
     restaurantSlug,
     atRiskCount,
     zeroSalesNames,
+    timezone,
   } = await gatherRestaurantContext(tenant.restaurantId);
 
   const proactiveTips = buildProactiveTips(
@@ -1136,6 +1148,9 @@ export async function POST(request: NextRequest) {
   const menuUrl = `${(process.env.NEXT_PUBLIC_APP_URL ?? "https://menius.app").replace(/\/$/, "")}/${restaurantSlug}`;
 
   const now = new Date();
+  const localDate = now.toLocaleDateString("en-CA", { timeZone: timezone });
+  const localTime = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: timezone }).format(now);
+  const localDay = new Date(`${localDate}T12:00:00Z`).getUTCDay();
   const dayNames =
     restaurantLocale === "en"
       ? [
@@ -1158,8 +1173,8 @@ export async function POST(request: NextRequest) {
         ];
   const temporalCtx =
     restaurantLocale === "en"
-      ? `=== CURRENT MOMENT ===\nDate: ${now.toISOString().slice(0, 10)} (${dayNames[now.getUTCDay()]})\nUTC time: ${now.toISOString().slice(11, 16)} — adjust for restaurant's local timezone when giving time-sensitive advice.`
-      : `=== MOMENTO ACTUAL ===\nFecha: ${now.toISOString().slice(0, 10)} (${dayNames[now.getUTCDay()]})\nHora UTC: ${now.toISOString().slice(11, 16)} — ajustá para la zona horaria local del restaurante cuando des consejos sensibles al tiempo.`;
+      ? `=== CURRENT MOMENT ===\nDate: ${localDate} (${dayNames[localDay]})\nLocal time at the restaurant: ${localTime} (${timezone}). All hours in the data below are local too.`
+      : `=== MOMENTO ACTUAL ===\nFecha: ${localDate} (${dayNames[localDay]})\nHora local del restaurante: ${localTime} (${timezone}). Todas las horas de los datos de abajo también son locales.`;
 
   const fullSystemPrompt = `${systemPrompt}\n\n${temporalCtx}\n\n${restaurantLocale === "en" ? "CURRENT RESTAURANT DATA" : "DATOS ACTUALES DEL RESTAURANTE"}:\n${context}${proactiveTips}`;
 

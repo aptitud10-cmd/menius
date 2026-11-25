@@ -8,6 +8,7 @@ import { createLogger } from '@/lib/logger';
 import { isSale, isReceivedOrder, summarizeSales, SALE_FIELDS, type SaleFields } from '@/lib/sales';
 import { resolveTimezone, localDayRange, lastLocalDaysRange, type LocalDayRange } from '@/lib/date-utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { csvRow } from '@/lib/csv';
 
 const ORDER_COLUMNS = `id, order_number, customer_name, customer_phone, customer_email, order_type, total, discount_amount, tax_amount, tip_amount, delivery_fee, delivery_address, notes, created_at, ${SALE_FIELDS}`;
 
@@ -120,11 +121,11 @@ export async function GET(request: NextRequest) {
       // "Venta" marks the rows that add up to the report's sales total (lib/sales.ts).
       const header = 'Número,Fecha,Hora,Cliente,Teléfono,Email,Estado,Tipo,Pago,Estado del pago,Venta,Total,Impuesto,Propina,Envío,Descuento,Dirección,Notas';
       const rows = allOrders.map(o => {
-        return [
+        return csvRow([
           o.order_number,
           localDate(o.created_at),
           localTime(o.created_at),
-          `"${(o.customer_name || '').replace(/"/g, '""')}"`,
+          o.customer_name || '',
           o.customer_phone || '',
           o.customer_email || '',
           o.status,
@@ -137,9 +138,9 @@ export async function GET(request: NextRequest) {
           money(o.tip_amount),
           money(o.delivery_fee),
           money(o.discount_amount),
-          `"${(o.delivery_address || '').replace(/"/g, '""')}"`,
-          `"${(o.notes || '').replace(/"/g, '""')}"`,
-        ].join(',');
+          o.delivery_address || '',
+          o.notes || '',
+        ]);
       });
 
       const csv = [header, ...rows].join('\n');

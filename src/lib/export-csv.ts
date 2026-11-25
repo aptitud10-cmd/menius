@@ -1,21 +1,15 @@
+import { csvRow } from '@/lib/csv';
+
 export function downloadCSV(rows: Record<string, unknown>[], filename: string) {
   if (rows.length === 0) return;
 
   const headers = Object.keys(rows[0]);
   const csvContent = [
-    headers.join(','),
-    ...rows.map((row) =>
-      headers.map((h) => {
-        const val = row[h];
-        const str = val === null || val === undefined ? '' : String(val);
-        return str.includes(',') || str.includes('"') || str.includes('\n')
-          ? `"${str.replace(/"/g, '""')}"`
-          : str;
-      }).join(',')
-    ),
+    csvRow(headers),
+    ...rows.map((row) => csvRow(headers.map((h) => row[h]))),
   ].join('\n');
 
-  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
