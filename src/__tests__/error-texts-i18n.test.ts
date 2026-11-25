@@ -102,3 +102,13 @@ describe('signup / login / wizard schemas', () => {
     if (ok.success) expect(ok.data.locale).toBe('en');
   });
 });
+
+describe('onboardErrorText (Configuración → Pagos)', () => {
+  it('traduce por código al idioma del panel y no inventa textos', async () => {
+    const { onboardErrorText } = await import('@/lib/payments/payment-errors');
+    expect(onboardErrorText('plan_required', 'en')).toMatch(/Pro plan/);
+    expect(onboardErrorText('plan_required', 'es')).toMatch(/plan Pro/);
+    expect(onboardErrorText('nope', 'es')).toBeNull();
+    expect(onboardErrorText(undefined, 'en')).toBeNull();
+  });
+});

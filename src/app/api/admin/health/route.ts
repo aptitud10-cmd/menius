@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { PLANS } from '@/lib/plans';
+import { fetchSalesSince } from '@/lib/sales-query';
 
 const logger = createLogger('admin-health');
 
@@ -68,19 +69,9 @@ export async function GET() {
         .select('plan_id, status, stripe_price_id')
         .limit(5000),
 
-      // Orders last 7d revenue
-      supabase
-        .from('orders')
-        .select('total, restaurant_id')
-        .in('status', ['completed', 'delivered', 'ready'])
-        .gte('created_at', d7ago),
-
-      // Orders last 30d revenue
-      supabase
-        .from('orders')
-        .select('total, restaurant_id')
-        .in('status', ['completed', 'delivered', 'ready'])
-        .gte('created_at', d30ago),
+      // Sales last 7d / 30d: lib/sales.ts rule, every page (not the first 1000)
+      fetchSalesSince(supabase, d7ago).then((r) => ({ data: r.rows })),
+      fetchSalesSince(supabase, d30ago).then((r) => ({ data: r.rows })),
 
       // All active restaurants
       supabase

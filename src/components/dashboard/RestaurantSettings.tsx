@@ -6,6 +6,7 @@ import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, U
 import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, UNIQUE_CURRENCIES, US_TIMEZONES, formatTimezone } from '@/lib/country-config';
 import { crossesMidnight, dayHoursError } from '@/lib/orders/business-hours';
 import type { ConnectAccountState } from '@/lib/payments/connect-account';
+import { onboardErrorText } from '@/lib/payments/payment-errors';
 import { SUPPORTED_LOCALES } from '@/lib/i18n';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -296,7 +297,7 @@ export function RestaurantSettings({
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setStripeStatus((prev) => ({ ...prev, connecting: false, error: data.error ?? 'Error connecting Stripe' }));
+        setStripeStatus((prev) => ({ ...prev, connecting: false, error: onboardErrorText(data.code, locale) ?? data.error ?? (locale === 'en' ? 'Could not connect Stripe' : 'No se pudo conectar Stripe') }));
       }
     } catch {
       setStripeStatus((prev) => ({ ...prev, connecting: false, error: locale === 'en' ? 'Connection error' : 'Error de conexión' }));

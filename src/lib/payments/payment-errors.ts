@@ -141,3 +141,52 @@ export function refundErrorText(code: unknown, locale: string | null | undefined
   if (typeof code !== 'string' || !Object.prototype.hasOwnProperty.call(REFUND_ERROR_TEXT, code)) return null;
   return pick(locale, REFUND_ERROR_TEXT[code as RefundErrorCode]);
 }
+
+// ── Owner-facing: /api/connect/onboard (Settings → Payments) ────────────────
+
+export type OnboardErrorCode =
+  | 'rate_limited'
+  | 'unauthenticated'
+  | 'restaurant_not_found'
+  | 'plan_required'
+  | 'wompi_only'
+  | 'account_not_saved'
+  | 'stripe_error';
+
+// `error` is written in restaurants.locale; the dashboard translates by `code`
+// into the language the panel is shown in.
+export const ONBOARD_ERROR_TEXT: Record<OnboardErrorCode, Bilingual> = {
+  rate_limited: {
+    es: 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.',
+    en: 'Too many attempts. Wait a minute and try again.',
+  },
+  unauthenticated: {
+    es: 'Solo el dueño puede conectar Stripe. Inicia sesión con la cuenta del dueño.',
+    en: 'Only the owner can connect Stripe. Sign in with the owner account.',
+  },
+  restaurant_not_found: {
+    es: 'No encontramos tu restaurante. Recarga la página.',
+    en: "We couldn't find your restaurant. Reload the page.",
+  },
+  plan_required: {
+    es: 'Los pagos en línea requieren el plan Pro. Actívalo en Facturación.',
+    en: 'Online payments require the Pro plan. Upgrade in Billing.',
+  },
+  wompi_only: {
+    es: 'Este restaurante cobra en línea con Wompi, no con Stripe.',
+    en: 'This restaurant takes online payments with Wompi, not Stripe.',
+  },
+  account_not_saved: {
+    es: 'No se pudo guardar la cuenta de Stripe. Intenta de nuevo.',
+    en: "We couldn't save your Stripe account. Please try again.",
+  },
+  stripe_error: {
+    es: 'No pudimos abrir Stripe en este momento. Inténtalo de nuevo en unos minutos.',
+    en: "We couldn't open Stripe right now. Try again in a few minutes.",
+  },
+};
+
+export function onboardErrorText(code: unknown, locale: string | null | undefined): string | null {
+  if (typeof code !== 'string' || !Object.prototype.hasOwnProperty.call(ONBOARD_ERROR_TEXT, code)) return null;
+  return pick(locale, ONBOARD_ERROR_TEXT[code as OnboardErrorCode]);
+}

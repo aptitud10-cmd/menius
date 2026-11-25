@@ -7,6 +7,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger } from '@/lib/logger';
+import { isSale, SALE_FIELDS } from '@/lib/sales';
 
 const logger = createLogger('menu-optimizer');
 
@@ -42,13 +43,16 @@ export async function POST() {
     { data: restaurant },
     { data: categories },
     { data: products },
-    { data: monthOrders },
+    { data: monthOrdersRaw },
   ] = await Promise.all([
     supabase.from('restaurants').select('name, currency, locale').eq('id', tenant.restaurantId).maybeSingle(),
     supabase.from('categories').select('id, name, is_active').eq('restaurant_id', tenant.restaurantId),
     supabase.from('products').select('id, name, price, cost_price, image_url, is_active, is_featured, popularity_rank, orders_last_7d, category_id').eq('restaurant_id', tenant.restaurantId).eq('is_active', true),
-    supabase.from('orders').select('id, total, status').eq('restaurant_id', tenant.restaurantId).gte('created_at', monthAgo).in('status', ['completed', 'delivered', 'ready']),
+    supabase.from('orders').select(`id, total, ${SALE_FIELDS}`).eq('restaurant_id', tenant.restaurantId).gte('created_at', monthAgo).not('status', 'in', '(pending,cancelled)'),
   ]);
+
+  // Same sale rule as Home and Analytics (lib/sales.ts).
+  const monthOrders = (monthOrdersRaw ?? []).filter(isSale);
 
   if (!restaurant || !products || products.length === 0) {
     return NextResponse.json({ error: 'No hay datos suficientes para analizar' }, { status: 400 });

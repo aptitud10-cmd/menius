@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { sendEmail } from '@/lib/notifications/email';
 import { PLANS } from '@/lib/plans';
+import { fetchSalesSince } from '@/lib/sales-query';
 
 const logger = createLogger('health-alerts', { report: true });
 
@@ -71,11 +72,8 @@ export async function GET(request: NextRequest) {
       .from('subscriptions')
       .select('plan_id, status'),
 
-    supabase
-      .from('orders')
-      .select('total')
-      .in('status', ['completed', 'delivered', 'ready'])
-      .gte('created_at', d7ago),
+    // Sales (lib/sales.ts rule), every page; a failed read is reported below.
+    fetchSalesSince(supabase, d7ago).then((r) => ({ data: r.rows, error: r.error ? { message: r.error } : null })),
   ]);
 
   // A failed query here reads as "zero stuck orders, zero churn, zero MRR" —

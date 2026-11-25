@@ -9,6 +9,7 @@ import {
   buildMenuOptimizerAlertEmail,
 } from "@/lib/notifications/email";
 import { createLogger } from "@/lib/logger";
+import { isSale, SALE_FIELDS } from "@/lib/sales";
 import { withRestaurants } from "@/lib/billing/with-restaurants";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { OptimizerInsight } from "@/app/api/ai/menu-optimizer/route";
@@ -70,13 +71,13 @@ export async function GET(request: NextRequest) {
 
     const { data: orderCounts } = await supabase
       .from("orders")
-      .select("restaurant_id")
+      .select(`restaurant_id, ${SALE_FIELDS}`)
       .in("restaurant_id", restIds)
-      .in("status", ["completed", "delivered", "ready"])
+      .not("status", "in", "(pending,cancelled)")
       .gte("created_at", monthAgo);
 
     const orderCountByRest = new Map<string, number>();
-    for (const o of orderCounts ?? []) {
+    for (const o of (orderCounts ?? []).filter(isSale)) {
       orderCountByRest.set(
         o.restaurant_id,
         (orderCountByRest.get(o.restaurant_id) ?? 0) + 1,
@@ -119,7 +120,7 @@ export async function GET(request: NextRequest) {
           const [
             { data: categories },
             { data: products },
-            { data: monthOrders },
+            { data: monthOrdersRaw },
           ] = await Promise.all([
             supabase
               .from("categories")
@@ -134,11 +135,12 @@ export async function GET(request: NextRequest) {
               .eq("is_active", true),
             supabase
               .from("orders")
-              .select("id, total, status")
+              .select(`id, total, ${SALE_FIELDS}`)
               .eq("restaurant_id", restaurantId)
               .gte("created_at", monthAgo)
-              .in("status", ["completed", "delivered", "ready"]),
+              .not("status", "in", "(pending,cancelled)"),
           ]);
+          const monthOrders = (monthOrdersRaw ?? []).filter(isSale);
 
           if (!products || products.length === 0) return false;
 

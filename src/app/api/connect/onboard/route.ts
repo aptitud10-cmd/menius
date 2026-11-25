@@ -8,49 +8,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { captureError } from '@/lib/error-reporting';
-
-type OnboardErrorCode =
-  | 'rate_limited'
-  | 'unauthenticated'
-  | 'restaurant_not_found'
-  | 'plan_required'
-  | 'wompi_only'
-  | 'account_not_saved'
-  | 'stripe_error';
-
-// The dashboard shows `error` as-is, so it is written in the panel's default
-// language (restaurants.locale, same default as DashboardLocaleProvider).
-// `code` stays stable for clients that translate on their side.
-const ONBOARD_TEXT: Record<OnboardErrorCode, { es: string; en: string }> = {
-  rate_limited: {
-    es: 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.',
-    en: 'Too many attempts. Wait a minute and try again.',
-  },
-  unauthenticated: {
-    es: 'Solo el dueño puede conectar Stripe. Inicia sesión con la cuenta del dueño.',
-    en: 'Only the owner can connect Stripe. Sign in with the owner account.',
-  },
-  restaurant_not_found: {
-    es: 'No encontramos tu restaurante. Recarga la página.',
-    en: "We couldn't find your restaurant. Reload the page.",
-  },
-  plan_required: {
-    es: 'Los pagos en línea requieren el plan Pro. Actívalo en Facturación.',
-    en: 'Online payments require the Pro plan. Upgrade in Billing.',
-  },
-  wompi_only: {
-    es: 'Este restaurante cobra en línea con Wompi, no con Stripe.',
-    en: 'This restaurant takes online payments with Wompi, not Stripe.',
-  },
-  account_not_saved: {
-    es: 'No se pudo guardar la cuenta de Stripe. Intenta de nuevo.',
-    en: "We couldn't save your Stripe account. Please try again.",
-  },
-  stripe_error: {
-    es: 'No pudimos abrir Stripe en este momento. Inténtalo de nuevo en unos minutos.',
-    en: "We couldn't open Stripe right now. Try again in a few minutes.",
-  },
-};
+import { ONBOARD_ERROR_TEXT as ONBOARD_TEXT, type OnboardErrorCode } from '@/lib/payments/payment-errors';
 
 export async function POST(request: NextRequest) {
   // Spanish until the restaurant (and its locale) is known.
