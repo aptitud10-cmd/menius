@@ -757,6 +757,20 @@ export function CounterView({
 
   const { orders, updateOrderLocally, rtStatus, lastSyncAt } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
+  // The server refused because the order had already moved (another tablet
+  // accepted it, the 15-min timeout cancelled it): show where it really is
+  // instead of putting the card back in New, silent, with a technical error.
+  const handleStaleStatus = (order: Order, res: { currentStatus?: string }): boolean => {
+    const real = res.currentStatus;
+    if (!real) return false;
+    updateOrderLocally(order.id, { status: real } as Partial<Order>);
+    const n = shortOrderNumber(order.order_number);
+    showError(real === 'cancelled'
+      ? (t.en ? `Order #${n} was already cancelled` : `El pedido #${n} ya estaba cancelado`)
+      : (t.en ? `Order #${n} was already updated on another device` : `El pedido #${n} ya se actualizó en otro dispositivo`));
+    return true;
+  };
+
   // ── Modo demo: pedidos falsos SOLO en memoria (ver counter/demo.ts) ──
   // Suenan y se ven como reales, pero toda acción de servidor (estado, impresión,
   // avisos, push, reembolsos) se corta antes para los ids demo-*.
@@ -1096,6 +1110,7 @@ export function CounterView({
       // evento realtime de la primera devolvía la tarjeta a Nuevos un instante).
       const res = await updateOrderStatus(order.id, 'preparing', undefined, { etaMinutes: eff });
       if (res?.error) {
+        if (handleStaleStatus(order, res)) return;
         updateOrderLocally(order.id, { status: order.status }); // revert
         showError(res.error);
         return;
@@ -1159,7 +1174,7 @@ export function CounterView({
       setUpdatingId(order.id);
       try {
         const res = await updateOrderStatus(order.id, next);
-        if (res?.error) { showError(res.error); return; }
+        if (res?.error) { if (!handleStaleStatus(order, res)) showError(res.error); return; }
         updateOrderLocally(order.id, { status: next });
         if (res.notification) showNotif(res.notification, order.id);
       } catch {
@@ -1210,7 +1225,7 @@ export function CounterView({
       setUpdatingId(order.id);
       try {
         const res = await updateOrderStatus(order.id, 'cancelled', undefined, { incident: 'not_received' });
-        if (res?.error) { showError(res.error); return; }
+        if (res?.error) { if (!handleStaleStatus(order, res)) showError(res.error); return; }
         updateOrderLocally(order.id, { status: 'cancelled' });
         void loadCustomerFlags();
       } catch {

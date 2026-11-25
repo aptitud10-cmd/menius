@@ -25,7 +25,7 @@ import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import type { getStripe } from '@/lib/stripe';
 import { refundStripePayment, isAlreadyRefundedError } from '@/lib/payments/stripe-refund';
-import { idOf, formatCents, findOrderForAlert, emailAdmins } from '@/lib/payments/admin-alerts';
+import { idOf, formatCents, findOrderForAlert, emailAdmins, emailRestaurantOwner } from '@/lib/payments/admin-alerts';
 
 const logger = createLogger('payments-disputes');
 
@@ -279,6 +279,28 @@ export async function stageDisputeEvidence(stripe: StripeClient, disputeId: stri
   }
 }
 
+// ─── Aviso al dueño ─────────────────────────────────────────────────────────
+
+/** Motivo de Stripe en palabras del dueño. */
+function reasonText(reason: string | undefined, en: boolean): string {
+  const map: Record<string, [string, string]> = {
+    fraudulent: ['Says they did not make the purchase', 'Dice que no hizo la compra'],
+    unrecognized: ["Doesn't recognize the charge", 'No reconoce el cobro'],
+    product_not_received: ['Says the order never arrived', 'Dice que no recibió el pedido'],
+    product_unacceptable: ['Says the order was wrong or in bad condition', 'Dice que el pedido llegó mal'],
+    duplicate: ['Says they were charged twice', 'Dice que le cobraron dos veces'],
+    credit_not_processed: ['Says a promised refund never came', 'Dice que no le llegó un reembolso prometido'],
+  };
+  const m = reason ? map[reason] : undefined;
+  return m ? (en ? m[0] : m[1]) : (reason ?? '—');
+}
+
+function dueByText(dispute: DisputeLike, en: boolean): string {
+  const due = dispute.evidence_details?.due_by;
+  if (!due) return en ? 'as soon as possible' : 'lo antes posible';
+  return new Date(due * 1000).toLocaleDateString(en ? 'en-US' : 'es', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric' });
+}
+
 // ─── Eventos ────────────────────────────────────────────────────────────────
 
 /** charge.dispute.created: multa al restaurante + evidencia precargada + email. */
@@ -315,18 +337,54 @@ export async function handleDisputeCreated(stripe: StripeClient, dispute: Disput
     ],
     link: disputeLink(dispute.id),
   });
+
+  // The restaurant pays the fee and, if lost, the amount: it must hear about it.
+  if (order) {
+    const n = order.order_number;
+    await emailRestaurantOwner(order.id, (en) => ({
+      subject: en ? `A customer disputed a card charge — order #${n}` : `Un cliente desconoció un cobro — pedido #${n}`,
+      title: en ? 'A customer disputed a card charge' : 'Un cliente desconoció un cobro con tarjeta',
+      intro: en
+        ? `A customer's bank opened a chargeback for ${amount} on order #${n}. If the bank sides with the customer, that amount is deducted from your payouts. ${fee.ok ? 'The $15 fee the bank charges to open the case has already been deducted.' : 'The bank charges $15 to open the case; it will be deducted from your payouts.'} MENIUS answers the bank with the order details. If you have anything that helps (a delivery photo, messages with the customer, a signed receipt), reply to this email before ${dueByText(dispute, true)}.`
+        : `El banco de un cliente abrió un contracargo por ${amount} del pedido #${n}. Si el banco le da la razón al cliente, ese monto se descuenta de tus pagos. ${fee.ok ? 'La comisión de $15 que cobra el banco por abrir el caso ya se descontó.' : 'El banco cobra $15 por abrir el caso; se descontará de tus pagos.'} MENIUS le responde al banco con los datos del pedido. Si tienes algo que ayude (foto de la entrega, mensajes con el cliente, un ticket firmado), responde a este email antes del ${dueByText(dispute, false)}.`,
+      rows: [
+        [en ? 'Order' : 'Pedido', `#${n}`],
+        [en ? 'Customer' : 'Cliente', order.customer_name ?? '—'],
+        [en ? 'Amount' : 'Monto', amount],
+        [en ? 'Reason' : 'Motivo', reasonText(dispute.reason, en)],
+      ],
+    }));
+  }
 }
 
 /** charge.dispute.closed: si se perdió, el monto y (si se contestó) la segunda multa van al restaurante. */
 export async function handleDisputeClosed(stripe: StripeClient, dispute: DisputeLike) {
+  const pi = idOf(dispute.payment_intent);
+  const order = pi ? await findOrderForAlert({ paymentIntentId: pi }) : null;
+  const amount = formatCents(dispute.amount, dispute.currency);
+
   if (dispute.status !== 'lost') {
     logger.info('Dispute closed without loss', { disputeId: dispute.id, status: dispute.status });
+    if (dispute.status === 'won' && order) {
+      const n = order.order_number;
+      await emailRestaurantOwner(order.id, (en) => ({
+        subject: en ? `Chargeback won — order #${n}` : `Contracargo ganado — pedido #${n}`,
+        title: en ? 'The bank sided with you' : 'El banco te dio la razón',
+        intro: en
+          ? `The chargeback for ${amount} on order #${n} was resolved in your favor: nothing else is deducted. The bank does not refund the $15 fee for opening the case.`
+          : `El contracargo de ${amount} del pedido #${n} se resolvió a tu favor: no se descuenta nada más. La comisión de $15 por abrir el caso el banco no la devuelve.`,
+        rows: [[en ? 'Order' : 'Pedido', `#${n}`], [en ? 'Amount' : 'Monto', amount]],
+      }));
+    }
     return;
   }
   await reverseTransferForLostDispute(stripe, dispute);
 
-  if ((dispute.evidence_details?.submission_count ?? 0) > 0) {
+  const countered = (dispute.evidence_details?.submission_count ?? 0) > 0;
+  let counteredFeeCharged = false;
+  if (countered) {
     const fee = await chargeDisputeFeeToRestaurant(stripe, dispute, 'countered');
+    counteredFeeCharged = fee.ok;
     if (!fee.ok) {
       await emailAdmins({
         subject: `⚠️ Multa de disputa sin cobrar: ${dispute.id}`,
@@ -336,6 +394,20 @@ export async function handleDisputeClosed(stripe: StripeClient, dispute: Dispute
         link: disputeLink(dispute.id),
       });
     }
+  }
+
+  // Last, once the amount was really deducted (the reversal above throws and
+  // Stripe retries the whole event if it fails).
+  if (order) {
+    const n = order.order_number;
+    await emailRestaurantOwner(order.id, (en) => ({
+      subject: en ? `Chargeback lost — order #${n}` : `Contracargo perdido — pedido #${n}`,
+      title: en ? 'The bank sided with the customer' : 'El banco le dio la razón al cliente',
+      intro: en
+        ? `The chargeback for order #${n} was resolved in the customer's favor. ${amount} was deducted from your payouts${counteredFeeCharged ? ', plus a $15 fee for contesting the case' : ''}.`
+        : `El contracargo del pedido #${n} se resolvió a favor del cliente. Se descontaron ${amount} de tus pagos${counteredFeeCharged ? ', más $15 por haber contestado el caso' : ''}.`,
+      rows: [[en ? 'Order' : 'Pedido', `#${n}`], [en ? 'Amount' : 'Monto', amount]],
+    }));
   }
 }
 

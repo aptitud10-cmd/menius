@@ -3,6 +3,7 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/notifications/email';
+import { ownerListUnsubscribeHeaders, ownerMarketingOff, withOwnerMarketingFooter } from '@/lib/marketing/owner-marketing';
 import { createLogger } from '@/lib/logger';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     let query = supabase
       .from('restaurants')
-      .select('id, name, slug, notification_email, owner_user_id')
+      .select('id, name, slug, notification_email, owner_user_id, locale, tags')
       .not('notification_email', 'is', null)
       .neq('notification_email', '');
 
@@ -55,6 +56,8 @@ export async function POST(request: NextRequest) {
 
     for (const r of restaurants ?? []) {
       if (!r.notification_email) continue;
+      // Unsubscribed from MENIUS tips and offers (CAN-SPAM).
+      if (ownerMarketingOff(r.tags)) continue;
 
       const personalizedSubject = subject
         .replace(/\{restaurante\}/gi, r.name)
@@ -68,18 +71,24 @@ export async function POST(request: NextRequest) {
       const finalCtaUrl = (ctaUrl || `${appUrl}/app`)
         .replace(/\{slug\}/gi, r.slug);
 
-      const html = buildAdminCampaignEmail(
-        r.name,
-        personalizedSubject,
-        personalizedMessage,
-        ctaText || 'Ir a mi dashboard',
-        finalCtaUrl,
+      const html = withOwnerMarketingFooter(
+        buildAdminCampaignEmail(
+          r.name,
+          personalizedSubject,
+          personalizedMessage,
+          ctaText || 'Ir a mi dashboard',
+          finalCtaUrl,
+        ),
+        appUrl,
+        r.id,
+        r.locale === 'en',
       );
 
       const success = await sendEmail({
         to: r.notification_email,
         subject: personalizedSubject,
         html,
+        headers: ownerListUnsubscribeHeaders(appUrl, r.id),
       });
 
       if (success) sent++;
@@ -130,7 +139,6 @@ function buildAdminCampaignEmail(
     </div>
     <div style="text-align:center;margin-top:24px;">
       <p style="font-size:11px;color:#4b5563;margin:0;">MENIUS — Menú digital inteligente para restaurantes</p>
-      <p style="font-size:10px;color:#374151;margin:6px 0 0;">¿No quieres recibir estos emails? Responde con "UNSUB"</p>
     </div>
   </div>
 </body>

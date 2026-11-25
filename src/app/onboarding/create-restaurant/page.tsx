@@ -29,6 +29,7 @@ const WIZARD_TEXT = {
     menuLanguage: 'Idioma del menú / Menu language',
     currency: 'Moneda',
     timezone: 'Zona horaria',
+    chooseCountry: 'Elige el país de tu restaurante',
     continue: 'Continuar →',
     creating: 'Creando tu restaurante...',
     seedNote: 'Se generará un menú de ejemplo con categorías, productos y mesas para que veas cómo funciona.',
@@ -84,6 +85,7 @@ const WIZARD_TEXT = {
     menuLanguage: 'Menu language',
     currency: 'Currency',
     timezone: 'Timezone',
+    chooseCountry: "Choose your restaurant's country",
     continue: 'Continue →',
     creating: 'Creating your restaurant...',
     seedNote: "A sample menu with categories, products and tables will be generated so you can see how it works.",
@@ -153,10 +155,13 @@ function CreateRestaurantPageInner() {
   const [businessType, setBusinessType] = useState('');
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [countryCode, setCountryCode] = useState<string>('MX');
+  // No default country: a default (it used to be Mexico for every non-English
+  // browser) went unnoticed and the Stripe account was then created in that
+  // country for good. The owner picks it.
+  const [countryCode, setCountryCode] = useState<string>('');
   const [locale, setLocale] = useState<string>('es');
-  const [currency, setCurrency] = useState<string>('MXN');
-  const [timezone, setTimezone] = useState<string>('America/Mexico_City');
+  const [currency, setCurrency] = useState<string>('');
+  const [timezone, setTimezone] = useState<string>('');
 
   const handleCountryChange = (code: string) => {
     const config = COUNTRY_CONFIGS[code];
@@ -169,10 +174,7 @@ function CreateRestaurantPageInner() {
 
   useEffect(() => {
     const match = document.cookie.match(/menius_locale=(\w+)/);
-    if (match?.[1] === 'en') {
-      setUiLocale('en');
-      handleCountryChange('US');
-    }
+    if (match?.[1] === 'en') setUiLocale('en');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -229,6 +231,10 @@ function CreateRestaurantPageInner() {
     e.preventDefault();
     setError('');
 
+    if (!COUNTRY_CONFIGS[countryCode]) {
+      setError(ui.chooseCountry);
+      return;
+    }
     const parsed = createRestaurantSchema.safeParse({ name, slug, country_code: countryCode, timezone, currency, locale });
     if (!parsed.success) {
       setError(parsed.error.errors[0].message);
@@ -509,9 +515,13 @@ function CreateRestaurantPageInner() {
                   </label>
                   <select
                     value={countryCode}
+                    required
                     onChange={(e) => handleCountryChange(e.target.value)}
                     className="w-full px-3.5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
                   >
+                    <option value="" disabled className="bg-[#0a0a0a] text-white">
+                      {ui.chooseCountry}
+                    </option>
                     {COUNTRY_CONFIG_LIST.map((c) => (
                       <option key={c.code} value={c.code} className="bg-[#0a0a0a] text-white">
                         {c.flag} {c.name} — {c.currency}
@@ -526,7 +536,7 @@ function CreateRestaurantPageInner() {
 
                 <button
                   type="submit"
-                  disabled={loading || !name.trim() || slugStatus === 'taken' || slugStatus === 'checking'}
+                  disabled={loading || !name.trim() || !countryCode || slugStatus === 'taken' || slugStatus === 'checking'}
                   className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {loading ? (

@@ -218,7 +218,16 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
 
     startTransition(async () => {
       if (editingId) {
-        const result = await updateCategory(editingId, { name, sort_order: 0, is_active: true, available_from: from, available_to: to });
+        // Keep the category's place and visibility: this form only edits the
+        // name and hours (sending 0/true moved it to the top and unhid it).
+        const current = categories.find((c) => c.id === editingId);
+        const result = await updateCategory(editingId, {
+          name,
+          sort_order: current?.sort_order ?? 0,
+          is_active: current?.is_active ?? true,
+          available_from: from,
+          available_to: to,
+        });
         if (result.error) { setError(result.error); return; }
         setCategories((prev) => prev.map((c) => c.id === editingId ? { ...c, name, available_from: from, available_to: to } : c));
       } else {
@@ -301,7 +310,9 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
     setCategories((prev) => {
       const oldIndex = prev.findIndex((c) => c.id === active.id);
       const newIndex = prev.findIndex((c) => c.id === over.id);
-      reordered = arrayMove(prev, oldIndex, newIndex);
+      // Renumber like reorderCategories does on the server (sort_order = index):
+      // the other buttons send sort_order back and would restore the old order.
+      reordered = arrayMove(prev, oldIndex, newIndex).map((c, i) => ({ ...c, sort_order: i }));
       return reordered;
     });
     startTransition(async () => {

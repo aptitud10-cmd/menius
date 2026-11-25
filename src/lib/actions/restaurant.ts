@@ -1997,7 +1997,9 @@ export async function updateOrderStatus(
   // Enforce valid state transitions via the shared state machine
   const currentStatus = order.status as string;
   if (!canTransition(currentStatus, status)) {
-    return { error: `Transición inválida: ${currentStatus} → ${status}` };
+    // currentStatus: the order already moved (another tablet, the timeout
+    // cron). The Counter shows the real state instead of reverting blindly.
+    return { error: `Transición inválida: ${currentStatus} → ${status}`, currentStatus };
   }
 
   // A paid order must be refunded, not silently cancelled — otherwise the

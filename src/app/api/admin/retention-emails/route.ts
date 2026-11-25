@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { sendEmail } from '@/lib/notifications/email';
 import { buildTrialEndingEmail, buildEngagementEmail, buildOnboardingGuideEmail } from '@/lib/notifications/retention-emails';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { ownerListUnsubscribeHeaders, ownerMarketingOff, withOwnerMarketingFooter } from '@/lib/marketing/owner-marketing';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest) {
 
   let html: string;
   let subject: string;
+  let headers: Record<string, string> | undefined;
 
   if (type === 'trial_ending') {
     html = buildTrialEndingEmail({
@@ -57,6 +60,18 @@ export async function POST(request: NextRequest) {
       menuUrl: `${APP_URL}/${restaurantSlug}`,
     });
     subject = `${ownerName.split(' ')[0]}, ¿ya exploraste todo lo que MENIUS puede hacer por ${restaurantName}? ✨`;
+    // Promotional (CAN-SPAM): respects the opt-out and carries address + unsubscribe.
+    const { data: rest } = await createAdminClient()
+      .from('restaurants')
+      .select('id, locale, tags')
+      .eq('slug', restaurantSlug ?? '')
+      .maybeSingle();
+    if (!rest) return NextResponse.json({ error: 'Restaurant not found for restaurantSlug' }, { status: 400 });
+    if (ownerMarketingOff(rest.tags)) {
+      return NextResponse.json({ ok: false, to, type, reason: 'unsubscribed' }, { status: 409 });
+    }
+    html = withOwnerMarketingFooter(html, APP_URL, rest.id, rest.locale === 'en');
+    headers = ownerListUnsubscribeHeaders(APP_URL, rest.id);
   } else if (type === 'onboarding_guide') {
     html = buildOnboardingGuideEmail({
       ownerName,
@@ -71,7 +86,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });
   }
 
-  const sent = await sendEmail({ to, subject, html });
+  const sent = await sendEmail({ to, subject, html, headers });
 
   return NextResponse.json({ ok: sent, to, type, subject });
 }

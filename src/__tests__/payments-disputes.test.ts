@@ -2,9 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockFindOrder = vi.fn();
 const mockEmailAdmins = vi.fn();
+const mockEmailOwner = vi.fn();
 vi.mock('@/lib/payments/admin-alerts', async () => {
   const actual = await vi.importActual<typeof import('@/lib/payments/admin-alerts')>('@/lib/payments/admin-alerts');
-  return { ...actual, findOrderForAlert: (...a: unknown[]) => mockFindOrder(...a), emailAdmins: (...a: unknown[]) => mockEmailAdmins(...a) };
+  return {
+    ...actual,
+    findOrderForAlert: (...a: unknown[]) => mockFindOrder(...a),
+    emailAdmins: (...a: unknown[]) => mockEmailAdmins(...a),
+    emailRestaurantOwner: (...a: unknown[]) => mockEmailOwner(...a),
+  };
 });
 
 const mockRefund = vi.fn();
@@ -114,6 +120,51 @@ describe('multa de disputa al restaurante', () => {
     const stripe = fakeStripe([]);
     await handleDisputeClosed(stripe as never, dispute({ status: 'won', evidence_details: { submission_count: 1 } }) as never);
     expect(stripe.transfers.createReversal).not.toHaveBeenCalled();
+  });
+});
+
+describe('aviso al dueño del restaurante', () => {
+  type Build = (en: boolean) => { subject: string; intro: string; rows: [string, string][] };
+  const lastOwnerEmail = (en: boolean) => {
+    const call = mockEmailOwner.mock.calls.at(-1) as [string, Build];
+    return { orderId: call[0], ...call[1](en) };
+  };
+  beforeEach(() => {
+    mockEmailOwner.mockReset();
+    mockFindOrder.mockResolvedValue({ id: 'order-1', order_number: 'ORD-1', restaurantName: 'Buccaneer', customer_name: 'Ana' });
+  });
+
+  it('disputa abierta: le avisa el monto, la multa y hasta cuándo mandar pruebas', async () => {
+    const { handleDisputeCreated } = await import('@/lib/payments/disputes');
+    const stripe = fakeStripe([{ id: 'tr_old', amount: 3000, amount_reversed: 0, created: now - 5 * day }]);
+    await handleDisputeCreated(stripe as never, dispute() as never);
+    const es = lastOwnerEmail(false);
+    expect(es.orderId).toBe('order-1');
+    expect(es.subject).toContain('#ORD-1');
+    expect(es.intro).toContain('29.00 USD');
+    expect(es.intro).toContain('ya se descontó');
+    expect(es.rows).toContainEqual(['Motivo', 'Dice que no hizo la compra']);
+    expect(lastOwnerEmail(true).subject).toBe('A customer disputed a card charge — order #ORD-1');
+  });
+
+  it('perdida tras contestarla: monto + la segunda multa', async () => {
+    const { handleDisputeClosed } = await import('@/lib/payments/disputes');
+    const stripe = fakeStripe([{ id: 'tr_old', amount: 3000, amount_reversed: 0, created: now - 5 * day }]);
+    await handleDisputeClosed(stripe as never, dispute({ status: 'lost', evidence_details: { submission_count: 1 } }) as never);
+    expect(lastOwnerEmail(false).intro).toContain('Se descontaron 29.00 USD de tus pagos, más $15 por haber contestado el caso.');
+  });
+
+  it('ganada: le avisa que no se descuenta nada más', async () => {
+    const { handleDisputeClosed } = await import('@/lib/payments/disputes');
+    await handleDisputeClosed(fakeStripe([]) as never, dispute({ status: 'won' }) as never);
+    expect(lastOwnerEmail(false).subject).toBe('Contracargo ganado — pedido #ORD-1');
+  });
+
+  it('sin pedido identificado: no le escribe a nadie', async () => {
+    const { handleDisputeCreated } = await import('@/lib/payments/disputes');
+    mockFindOrder.mockResolvedValue(null);
+    await handleDisputeCreated(fakeStripe([]) as never, dispute() as never);
+    expect(mockEmailOwner).not.toHaveBeenCalled();
   });
 });
 

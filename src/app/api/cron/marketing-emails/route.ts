@@ -46,7 +46,7 @@ import {
   type MarketingRestaurant,
   type OrderItemRow,
 } from '@/lib/marketing/lifecycle-data';
-import { listUnsubscribeHeaders, unsubscribeUrl } from '@/lib/marketing/unsubscribe-token';
+import { listUnsubscribeHeaders, signRepeat, unsubscribeUrl } from '@/lib/marketing/unsubscribe-token';
 
 const logger = createLogger('marketing-emails', { report: true });
 
@@ -70,7 +70,6 @@ interface OrderRow {
   created_at: string;
   customer_locale: string | null;
   customer_name: string | null;
-  customer_token: string | null;
 }
 
 function chunks<T>(arr: T[], size: number): T[][] {
@@ -161,7 +160,7 @@ async function runRestaurant(
   for (const part of chunks(customers.map((c) => c.id), 100)) {
     const { data, error } = await db
       .from('orders')
-      .select('id, customer_id, created_at, customer_locale, customer_name, customer_token')
+      .select('id, customer_id, created_at, customer_locale, customer_name')
       .eq('restaurant_id', r.id)
       .in('customer_id', part)
       .neq('status', 'cancelled')
@@ -278,14 +277,15 @@ async function runRestaurant(
 
       const locale = (c.anchor.customer_locale ?? r.locale) === 'en' ? 'en' : 'es';
       const { picks, picksAreNew } = choosePicks(pool, c.kind, orderedBy.get(c.customer.id) ?? new Set(), c.anchor.created_at);
-      const token = c.anchor.customer_token ? `&t=${encodeURIComponent(c.anchor.customer_token)}` : '';
+      // Repeat-only signature, not the customer_token (which also opens the tracking page).
+      const repeatSig = signRepeat(c.anchor.id);
       const email = buildLifecycleEmail({
         kind: c.kind,
         locale,
         restaurant,
         customerName: c.customer.name || c.anchor.customer_name || '',
         menuUrl,
-        repeatUrl: `${menuUrl}?repeat=${c.anchor.id}${token}`,
+        repeatUrl: `${menuUrl}?repeat=${c.anchor.id}${repeatSig ? `&r=${encodeURIComponent(repeatSig)}` : ''}`,
         unsubscribeUrl: unsubscribeUrl(appUrl, c.customer.id),
         lastItems,
         heroDish,

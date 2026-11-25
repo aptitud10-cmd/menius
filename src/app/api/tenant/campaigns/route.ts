@@ -41,8 +41,10 @@ function buildCampaignEmail(params: {
   ctaUrl?: string;
   locale?: string;
   unsubscribeUrl?: string;
+  /** Restaurant's postal address: CAN-SPAM requires it in every marketing email. */
+  address: string;
 }): string {
-  const { restaurantName, body, ctaText, ctaUrl, locale, unsubscribeUrl } = params;
+  const { restaurantName, body, ctaText, ctaUrl, locale, unsubscribeUrl, address } = params;
   const en = locale === 'en';
   // Escape HTML in restaurant-provided content to prevent XSS
   const bodyHtml = body.split('\n').map(line => `<p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${escapeHtml(line)}</p>`).join('');
@@ -70,6 +72,7 @@ function buildCampaignEmail(params: {
       ${en ? `Sent by ${safeRestaurantName} via MENIUS` : `Enviado por ${safeRestaurantName} a través de MENIUS`}
       ${unsubscribeUrl ? `&nbsp;·&nbsp;<a href="${unsubscribeUrl}" style="color:#9ca3af;">${en ? 'Unsubscribe' : 'Darse de baja'}</a>` : ''}
     </p>
+    <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:6px;">${safeRestaurantName} · ${escapeHtml(address)}</p>
   </div>
 </body>
 </html>`;
@@ -110,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('name, slug, currency, locale, email')
+      .select('name, slug, currency, locale, email, address')
       .eq('id', tenant.restaurantId)
       .maybeSingle();
 
@@ -118,6 +121,17 @@ export async function POST(request: NextRequest) {
 
     const rLocale = restaurant.locale ?? 'es';
     const en = rLocale === 'en';
+
+    // CAN-SPAM: every marketing email carries the sender's postal address (the
+    // automatic marketing cron skips restaurants without one, too).
+    const address = typeof restaurant.address === 'string' ? restaurant.address.trim() : '';
+    if (!address) {
+      return NextResponse.json({
+        error: en
+          ? "Add your restaurant's address in Settings first: the law requires it in every marketing email."
+          : 'Primero agrega la dirección del restaurante en Configuración: la ley la exige en todo email de marketing.',
+      }, { status: 400 });
+    }
 
     let query = supabase
       .from('customers')
@@ -162,6 +176,7 @@ export async function POST(request: NextRequest) {
       ctaUrl: ctaUrl || menuUrl,
       locale: rLocale,
       unsubscribeUrl: '{unsubscribeUrl}',
+      address,
     });
 
     const rawReply = typeof restaurant.email === 'string' ? restaurant.email.trim() : '';

@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { sendEmail } from '@/lib/notifications/email';
+import { SUPPORT_CONTACT } from '@/lib/support-contact';
 
 const logger = createLogger('payments-admin-alerts');
 
@@ -73,5 +74,53 @@ export async function emailAdmins(opts: {
     } catch (err) {
       logger.error('Admin alert email threw', { subject: opts.subject, error: err instanceof Error ? err.message : String(err) });
     }
+  }
+}
+
+type OwnerEmail = { subject: string; title: string; intro: string; rows: [string, string][] };
+
+/**
+ * Email al dueño del restaurante de un pedido (disputas: a él se le descuentan
+ * la multa y el monto). Va a la dirección de avisos del restaurante o, si no
+ * hay, al email de su cuenta; en el idioma del restaurante. Nunca lanza.
+ */
+export async function emailRestaurantOwner(orderId: string, build: (en: boolean) => OwnerEmail) {
+  try {
+    const db = createAdminClient();
+    const { data: order } = await db
+      .from('orders')
+      .select('restaurant_id, restaurants(name, locale, notification_email, owner_user_id)')
+      .eq('id', orderId)
+      .maybeSingle();
+    const rel = (order as { restaurants?: unknown } | null)?.restaurants;
+    const rest = (Array.isArray(rel) ? rel[0] : rel) as
+      | { name?: string | null; locale?: string | null; notification_email?: string | null; owner_user_id?: string | null }
+      | undefined;
+    if (!rest) return;
+    let to = rest.notification_email?.trim() || '';
+    if (!to && rest.owner_user_id) {
+      const { data } = await db.auth.admin.getUserById(rest.owner_user_id);
+      to = data.user?.email ?? '';
+    }
+    if (!to) {
+      logger.error('Owner alert not sent: no email', { orderId });
+      return;
+    }
+    const msg = build(rest.locale === 'en');
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const row = ([k, v]: [string, string]) =>
+      `<tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">${esc(k)}</td><td style="padding:6px 0;font-size:14px;font-weight:600;">${esc(v)}</td></tr>`;
+    const html = `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:20px;">
+      <h2 style="color:#111827;margin:0 0 8px;">${esc(msg.title)}</h2>
+      <p style="font-size:14px;line-height:1.5;color:#374151;margin:0 0 16px;">${esc(msg.intro)}</p>
+      <table style="width:100%;border-collapse:collapse;">
+        ${msg.rows.map(row).join('')}
+      </table>
+    </div>`;
+    const sent = await sendEmail({ to, replyTo: SUPPORT_CONTACT.email, subject: msg.subject, html });
+    if (!sent) logger.error('Owner alert email not sent', { orderId });
+  } catch (err) {
+    logger.error('Owner alert email threw', { orderId, error: err instanceof Error ? err.message : String(err) });
   }
 }

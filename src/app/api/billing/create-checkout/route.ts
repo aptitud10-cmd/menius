@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { PLANS, isSellablePlan, type PlanId, type BillingInterval } from '@/lib/plans';
 import { getTenant } from '@/lib/auth/get-tenant';
@@ -81,9 +82,13 @@ export async function POST(request: NextRequest) {
       // is given, so folding them together would stamp plan_id/status onto an
       // existing row — overwriting a live trial with whatever plan the owner
       // happens to be looking at on the pricing page.
+      // Admin client: owners only have SELECT on subscriptions (the session
+      // client's write matched nothing and failed silently). The owner was
+      // verified above with getTenant({ ownerOnly: true }).
+      const adminDb = createAdminClient();
       const { error: linkError } = subscription
         // Row exists: touch nothing but the customer id.
-        ? await supabase
+        ? await adminDb
             .from('subscriptions')
             .update({ stripe_customer_id: customerId })
             .eq('restaurant_id', tenant.restaurantId)
@@ -91,7 +96,7 @@ export async function POST(request: NextRequest) {
         // so they have to be supplied. 'canceled' is what
         // billing-reconciliation assigns to a restaurant with no live
         // subscription; the webhook promotes both once Stripe confirms payment.
-        : await supabase
+        : await adminDb
             .from('subscriptions')
             .insert({
               restaurant_id: tenant.restaurantId,

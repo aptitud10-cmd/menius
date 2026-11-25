@@ -1,4 +1,5 @@
 import type { ReceiptData } from './types';
+import { stripControlChars } from '@/lib/sanitize';
 
 type MeniusAndroidBridge = {
   /** Bloquea la página hasta que la impresora responde (todas las versiones de la app). */
@@ -134,7 +135,9 @@ export async function nativePrintReceipt(data: ReceiptData, ticketType: NativeTi
       : {}),
   };
 
-  const json = JSON.stringify(payload);
+  // Control characters are printer commands on ESC/POS: none reach the app,
+  // whatever an older order may have stored.
+  const json = JSON.stringify(payload, (_k, v) => (typeof v === 'string' ? stripControlChars(v) : v));
 
   if (typeof M.printReceiptAsync === 'function') {
     const run = () => callAsync(M, json);

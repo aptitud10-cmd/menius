@@ -163,6 +163,9 @@ export async function POST(request: NextRequest) {
           const { startIso, endIso } = getSubscriptionPeriod(sub);
 
           const updateData: Record<string, any> = {
+            // Also the customer id: it is what the portal and the invoice
+            // events look the row up by, and it was not always saved at checkout.
+            ...(customerId ? { stripe_customer_id: customerId } : {}),
             stripe_subscription_id: sub.id,
             status,
             stripe_price_id: priceId ?? null,

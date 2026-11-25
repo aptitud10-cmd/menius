@@ -4,6 +4,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/notifications/email";
+import { ownerListUnsubscribeHeaders, ownerMarketingOff, withOwnerMarketingFooter } from "@/lib/marketing/owner-marketing";
 import { buildReviewEmail } from "@/lib/notifications/customer-email";
 import { loadCustomerEmailOrder, sendCustomerEmail } from "@/lib/notifications/customer-email-data";
 import { createLogger } from "@/lib/logger";
@@ -168,6 +169,7 @@ export async function GET(request: NextRequest) {
           if (hasRecentOrders.has(restaurant.id)) return false;
           if ((restaurant.tags ?? []).includes("no_orders_email_sent"))
             return false;
+          if (ownerMarketingOff(restaurant.tags)) return false;
 
           const en = restaurant.locale === "en";
           const tipsUrl = `${appUrl}/app`;
@@ -177,12 +179,18 @@ export async function GET(request: NextRequest) {
             subject: en
               ? `📊 Tips to get your first order at ${restaurant.name}`
               : `📊 Tips para recibir tu primer pedido en ${restaurant.name}`,
-            html: buildNoOrdersEmail(
-              restaurant.name,
-              `${appUrl}/${restaurant.slug}`,
-              tipsUrl,
+            html: withOwnerMarketingFooter(
+              buildNoOrdersEmail(
+                restaurant.name,
+                `${appUrl}/${restaurant.slug}`,
+                tipsUrl,
+                en,
+              ),
+              appUrl,
+              restaurant.id,
               en,
             ),
+            headers: ownerListUnsubscribeHeaders(appUrl, restaurant.id),
           });
 
           if (sent) {
@@ -217,18 +225,21 @@ export async function GET(request: NextRequest) {
         key: "onboarding_d1" as const,
         tag: "onboarding_d1_sent",
         builder: buildOnboardingDay1Email,
+        promo: false,
       },
       {
         days: 3,
         key: "onboarding_d3" as const,
         tag: "onboarding_d3_sent",
         builder: buildOnboardingDay3Email,
+        promo: true,
       },
       {
         days: 7,
         key: "onboarding_d7" as const,
         tag: "onboarding_d7_sent",
         builder: buildOnboardingDay7Email,
+        promo: true,
       },
     ];
 
@@ -257,6 +268,8 @@ export async function GET(request: NextRequest) {
           (targetRestaurants ?? []).map(async (restaurant) => {
             if (!restaurant.notification_email) return false;
             if ((restaurant.tags ?? []).includes(step.tag)) return false;
+            // Tips / Pro plan: promotional (CAN-SPAM) — respects the opt-out.
+            if (step.promo && ownerMarketingOff(restaurant.tags)) return false;
 
             const en = restaurant.locale === "en";
             const dashUrl = `${appUrl}/app`;
@@ -271,7 +284,10 @@ export async function GET(request: NextRequest) {
                 undefined,
                 en,
               ),
-              html: step.builder("html", restaurant.name, dashUrl, menuUrl, en),
+              html: step.promo
+                ? withOwnerMarketingFooter(step.builder("html", restaurant.name, dashUrl, menuUrl, en), appUrl, restaurant.id, en)
+                : step.builder("html", restaurant.name, dashUrl, menuUrl, en),
+              ...(step.promo ? { headers: ownerListUnsubscribeHeaders(appUrl, restaurant.id) } : {}),
             });
 
             if (sent) {

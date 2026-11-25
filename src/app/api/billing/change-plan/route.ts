@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { PLANS, isSellablePlan, type PlanId, type BillingInterval } from '@/lib/plans';
 import { getTenant } from '@/lib/auth/get-tenant';
@@ -71,7 +72,8 @@ export async function POST(request: NextRequest) {
       { context: 'update-subscription' },
     );
 
-    const { error: dbError } = await supabase
+    // Admin client: owners only have SELECT on subscriptions.
+    const { error: dbError } = await createAdminClient()
       .from('subscriptions')
       .update({
         plan_id: planId,

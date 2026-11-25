@@ -25,10 +25,19 @@ export function stripTags(str: string): string {
   return str.replace(/<[^>]*>/g, '');
 }
 
-/** Sanitize a text input: strip tags, trim, and limit length */
+/**
+ * Remove control characters except tab and newline. Nobody types them, and on
+ * a receipt printer (ESC/POS) they are commands: open the drawer, cut, reset.
+ */
+const CONTROL_CHARS = /[\u0000-\u0008\u000B-\u001F\u007F]/g;
+export function stripControlChars(str: string): string {
+  return str.replace(CONTROL_CHARS, '');
+}
+
+/** Sanitize a text input: strip tags and control characters, trim, and limit length */
 export function sanitizeText(input: unknown, maxLength = 500): string {
   if (typeof input !== 'string') return '';
-  return stripTags(input).trim().slice(0, maxLength);
+  return stripControlChars(stripTags(input)).trim().slice(0, maxLength);
 }
 
 /** Sanitize an email input */
@@ -40,7 +49,7 @@ export function sanitizeEmail(input: unknown): string {
 /** Sanitize a multiline text input (notes, descriptions, addresses) */
 export function sanitizeMultiline(input: unknown, maxLength = 1000): string {
   if (typeof input !== 'string') return '';
-  return stripTags(input).trim().slice(0, maxLength);
+  return stripControlChars(stripTags(input)).trim().slice(0, maxLength);
 }
 
 /** Sanitize an object's string fields */

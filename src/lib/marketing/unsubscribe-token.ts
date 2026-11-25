@@ -26,6 +26,25 @@ export function verifyCustomerSig(customerId: string, sig: string | null | undef
   return timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
 }
 
+/**
+ * Firma del botón "Pedir lo mismo" de los emails de marketing. Solo sirve para
+ * leer los platos de ESE pedido (/api/public/order-repeat). Antes el link
+ * llevaba el customer_token, que además abre el seguimiento con los datos del
+ * cliente: un email reenviado los exponía.
+ */
+export function signRepeat(orderId: string): string {
+  const key = secret();
+  if (!key) return '';
+  return createHmac('sha256', key).update(`repeat:${orderId}`).digest('base64url').slice(0, 24);
+}
+
+export function verifyRepeatSig(orderId: string, sig: string | null | undefined): boolean {
+  if (!sig) return false;
+  const expected = signRepeat(orderId);
+  if (!expected || expected.length !== sig.length) return false;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
+}
+
 /** Link de baja firmado (lo usan el pie del email y el header List-Unsubscribe). */
 export function unsubscribeUrl(appUrl: string, customerId: string): string {
   return `${appUrl}/api/unsubscribe?c=${encodeURIComponent(customerId)}&s=${encodeURIComponent(signCustomer(customerId))}`;

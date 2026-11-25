@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { computeTaxAmount } from '@/lib/tax-presets';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
@@ -109,7 +110,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const unitPrice = Number(product.price);
     const lineTotal = unitPrice * qty;
 
-    const { data: newItem, error: insertErr } = await supabase
+    // order_items is read-only for owners (RLS): the write goes through the
+    // admin client, only after checking above that the order and the product
+    // belong to this restaurant.
+    const { data: newItem, error: insertErr } = await createAdminClient()
       .from('order_items')
       .insert({
         order_id: orderId,
@@ -122,7 +126,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .select('id, product_id, qty, unit_price, line_total, notes')
       .single();
 
-    if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 });
+    if (insertErr) {
+      logger.error('add item failed', { orderId, error: insertErr.message });
+      captureError(new Error(insertErr.message), { route: 'tenant/orders/items', orderId });
+      return NextResponse.json({ error: 'Could not add the item. Try again.' }, { status: 500 });
+    }
 
     const { total, tax } = await recalcOrderTotals(supabase, orderId, restaurantId);
 
@@ -173,13 +181,20 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: 'Cannot remove the last item. Cancel the order instead.' }, { status: 400 });
     }
 
-    const { error: delErr } = await supabase
+    // Same as POST: admin client after the ownership check above. Counted, so
+    // an id from another order is a 404 instead of a silent "success".
+    const { error: delErr, count: deleted } = await createAdminClient()
       .from('order_items')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', item_id)
       .eq('order_id', orderId);
 
-    if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+    if (delErr) {
+      logger.error('remove item failed', { orderId, error: delErr.message });
+      captureError(new Error(delErr.message), { route: 'tenant/orders/items', orderId });
+      return NextResponse.json({ error: 'Could not remove the item. Try again.' }, { status: 500 });
+    }
+    if (!deleted) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
 
     const { total, tax } = await recalcOrderTotals(supabase, orderId, restaurantId);
 

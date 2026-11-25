@@ -1,4 +1,5 @@
 import { stripTablePrefix } from './printing/table-label';
+import { stripControlChars } from './sanitize';
 /**
  * ESC/POS thermal printer encoder.
  * Supports 80mm and 58mm thermal printers via:
@@ -107,7 +108,8 @@ class ESCPOSEncoder {
 
   text(str: string) {
     const encoder = new TextEncoder();
-    const encoded = encoder.encode(str);
+    // Text only: control characters would be printer commands (drawer, cut…).
+    const encoded = encoder.encode(stripControlChars(str));
     for (let i = 0; i < encoded.length; i++) {
       this.buffer.push(encoded[i]);
     }

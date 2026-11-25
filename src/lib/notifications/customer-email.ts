@@ -554,10 +554,12 @@ export function buildCancelledEmail(ctx: CustomerEmailCtx, opts: { reason?: stri
   const reason = (opts.reason ?? '').trim();
   // Motivos del sistema: nunca se muestran como "Motivo del restaurante".
   const notAccepted = reason === 'not_accepted';
+  // A paid order gets the refund block below; "you weren't charged" would contradict it.
+  const charged = !!(opts.refunded || opts.refundPending);
   const showReason = reason && reason !== 'auto_closed' && !notAccepted;
   const blocks = [
     pill(en ? 'Cancelled' : 'Cancelado', 'red'),
-    `${heading(name ? (en ? `Sorry, ${esc(name)}. Your order was cancelled.` : `Lo sentimos, ${esc(name)}. Tu pedido fue cancelado.`) : (en ? 'Sorry. Your order was cancelled.' : 'Lo sentimos. Tu pedido fue cancelado.'))}${notAccepted ? `<div style="height:6px;line-height:6px;">&nbsp;</div>${para(en ? `${esc(ctx.restaurant.name)} didn't accept it within ${NOT_ACCEPTED_MINS} minutes, so we cancelled it. You weren't charged.` : `${esc(ctx.restaurant.name)} no lo aceptó en ${NOT_ACCEPTED_MINS} minutos, así que lo cancelamos. No se te cobró nada.`)}` : ''}${showReason ? `<div style="height:6px;line-height:6px;">&nbsp;</div>${para(`${en ? 'Reason from the restaurant' : 'Motivo del restaurante'}: “${esc(reason)}”`)}` : ''}`,
+    `${heading(name ? (en ? `Sorry, ${esc(name)}. Your order was cancelled.` : `Lo sentimos, ${esc(name)}. Tu pedido fue cancelado.`) : (en ? 'Sorry. Your order was cancelled.' : 'Lo sentimos. Tu pedido fue cancelado.'))}${notAccepted ? `<div style="height:6px;line-height:6px;">&nbsp;</div>${para(en ? `${esc(ctx.restaurant.name)} didn't accept it within ${NOT_ACCEPTED_MINS} minutes, so we cancelled it.${charged ? '' : " You weren't charged."}` : `${esc(ctx.restaurant.name)} no lo aceptó en ${NOT_ACCEPTED_MINS} minutos, así que lo cancelamos.${charged ? '' : ' No se te cobró nada.'}`)}` : ''}${showReason ? `<div style="height:6px;line-height:6px;">&nbsp;</div>${para(`${en ? 'Reason from the restaurant' : 'Motivo del restaurante'}: “${esc(reason)}”`)}` : ''}`,
     opts.refunded
       ? infoBlock([{ k: en ? 'Refund' : 'Reembolso', v: `<b>${esc(total)}</b> ${en ? 'back to your card' : 'vuelven a tu tarjeta'}` }, { v: en ? 'Usually arrives in 5–10 business days.' : 'Suele llegar en 5 a 10 días hábiles.' }])
       : opts.refundPending

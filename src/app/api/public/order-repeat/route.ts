@@ -4,13 +4,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
+import { verifyRepeatSig } from '@/lib/marketing/unsubscribe-token';
 
 const logger = createLogger('public:order-repeat');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * GET /api/public/order-repeat?o=<orderId>&t=<customer_token>
+ * GET /api/public/order-repeat?o=<orderId>&r=<firma> (o &t=<customer_token>)
  *
  * El botón "Pedir lo mismo" de los emails de marketing abre el menú con
  * ?repeat=…&t=…; el menú pide acá las líneas del pedido y las vuelve a armar
@@ -27,19 +28,22 @@ export async function GET(request: NextRequest) {
 
   const sp = new URL(request.url).searchParams;
   const orderId = sp.get('o');
+  // r = repeat-only signature (marketing emails); t = the order's customer_token.
+  const sig = sp.get('r');
   const token = sp.get('t');
-  if (!orderId || !UUID_RE.test(orderId) || !token || !UUID_RE.test(token)) {
+  if (!orderId || !UUID_RE.test(orderId)) {
+    return NextResponse.json({ error: 'Invalid link' }, { status: 400 });
+  }
+  const signed = verifyRepeatSig(orderId, sig);
+  if (!signed && (!token || !UUID_RE.test(token))) {
     return NextResponse.json({ error: 'Invalid link' }, { status: 400 });
   }
 
   try {
     const db = createAdminClient();
-    const { data: order, error } = await db
-      .from('orders')
-      .select('id, restaurant_id, created_at')
-      .eq('id', orderId)
-      .eq('customer_token', token)
-      .maybeSingle();
+    let q = db.from('orders').select('id, restaurant_id, created_at').eq('id', orderId);
+    if (!signed) q = q.eq('customer_token', token as string);
+    const { data: order, error } = await q.maybeSingle();
     if (error) throw new Error(error.message);
     if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 

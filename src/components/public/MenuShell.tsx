@@ -1463,9 +1463,12 @@ export function MenuShell({
     if (!hasMounted) return;
     const sp = new URLSearchParams(window.location.search);
     const orderId = sp.get("repeat");
+    // r: repeat-only signature (current emails); t: older links with the order token.
+    const sig = sp.get("r");
     const token = sp.get("t");
-    if (!orderId || !token) return;
+    if (!orderId || (!sig && !token)) return;
     sp.delete("repeat");
+    sp.delete("r");
     sp.delete("t");
     const qs = sp.toString();
     window.history.replaceState(
@@ -1482,7 +1485,8 @@ export function MenuShell({
     } catch {
       // Modo privado: se agrega igual.
     }
-    fetch(`/api/public/order-repeat?o=${encodeURIComponent(orderId)}&t=${encodeURIComponent(token)}`)
+    const key = sig ? `r=${encodeURIComponent(sig)}` : `t=${encodeURIComponent(token as string)}`;
+    fetch(`/api/public/order-repeat?o=${encodeURIComponent(orderId)}&${key}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { restaurantId?: string; date?: string; items?: unknown[] } | null) => {
         if (!d || d.restaurantId !== restaurant.id || !Array.isArray(d.items) || d.items.length === 0) return;

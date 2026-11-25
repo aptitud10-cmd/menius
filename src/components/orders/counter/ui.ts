@@ -520,7 +520,16 @@ export function kindLabel(order: Order, T: CounterText) {
 
 // ── Notas y alergias ──────────────────────────────────────────────────────────
 
-const ALLERGY_RE = /alerg|allerg|al[eé]rgi|celiac|cel[ií]ac|gluten|nut|nuez|nueces|man[ií]|peanut|lactos|lactose|dairy|mariscos|shellfish|sesam|s[eé]samo|soy|soya|egg allergy|huevo/i;
+// Whole words, like the printed ticket (lib/printing/allergy.ts): as a
+// substring "nut" fired on "minutes"/"donut" and "maní" on "many"/"mango",
+// so the red block showed up on ordinary notes. Stems still match
+// ("allergic", "lactose-free"). A false positive beats a missed allergy.
+const ALLERGY_WORDS = [
+  'alerg\\p{L}*', 'allerg\\p{L}*', 'al[eé]rgi\\p{L}*', 'celiac\\p{L}*', 'cel[ií]ac\\p{L}*',
+  'gluten', 'nuts?', 'nuez', 'nueces', 'man[ií]', 'peanuts?', 'lactos\\p{L}*', 'dairy',
+  'mariscos?', 'shellfish', 'sesam\\p{L}*', 's[eé]samo', 'soy', 'soya', 'egg allergy', 'huevos?',
+];
+const ALLERGY_RE = new RegExp(`(?<!\\p{L})(?:${ALLERGY_WORDS.join('|')})(?!\\p{L})`, 'iu');
 
 export function isAllergyText(text: string | null | undefined) {
   return !!text && ALLERGY_RE.test(text);
