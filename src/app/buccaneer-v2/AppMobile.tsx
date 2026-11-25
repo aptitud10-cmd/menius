@@ -4,6 +4,7 @@ import Photo from './Photo';
 import type { FavoritePrices } from './favorites';
 import { MapPin, PhoneIcon } from './Wordmark';
 import {
+  ADDRESS_1,
   ADDRESS_2,
   DIRECTIONS_URL,
   FAVORITES,
@@ -68,6 +69,9 @@ function CloseIcon() {
     </svg>
   );
 }
+
+/** D05 (calamari in the jukebox booth) cut to the 4:5 scene box; stands in when the hero already shows the scene's own dish. */
+const BOOTH_SCENE = '/buccaneer/v2/app-scene-booth.webp';
 
 // --------------------------------------------------------------------- dock
 export function AppDock() {
@@ -332,7 +336,8 @@ export function AppSeal() {
 export function AppHeroText() {
   return (
     <div className="b2-ahero">
-      <p className="b2-eyebrow">Since 1976 · Open 24/7 · Queens</p>
+      {/* "Since 1976" lives on the seal right above; the line must stay clear of it */}
+      <p className="b2-eyebrow">Open 24/7 · Queens, NY</p>
       <h1 className="b2-ah1">Fifty years on Astoria Boulevard.</h1>
       <p className="b2-ahero__sub">
         A Greek-American diner that never turns the lights off. 400+ dishes, cakes baked in-house, free
@@ -586,12 +591,13 @@ export function AppDays() {
         pal="day"
         side="r"
       >
-        {/* One burger per page: at midday the hero already shows it, so the counter takes its place. */}
+        {/* One burger per page: at midday the hero already shows it, so a booth takes its place
+            (not the counter: the story right above already shows it). */}
         <div className="b2-sv b2-sv--morning b2-sv--evening b2-sv--night b2-fill">
           <Photo slot="D04" file="/buccaneer/v2/app-scene-lunch.webp" sizes="85vw" />
         </div>
         <div className="b2-sv b2-sv--midday b2-fill">
-          <Photo slot="S05b" sizes="85vw" />
+          <Photo slot="D05" file={BOOTH_SCENE} sizes="85vw" />
         </div>
       </Scene>
       <Scene
@@ -604,11 +610,17 @@ export function AppDays() {
         pal="yolk"
         side="l"
       >
-        <Img
-          src="/buccaneer/v2/app-scene-dinner.webp"
-          alt="A booth table set for dinner: broiled lobster tails and a glass of white wine"
-          sizes="85vw"
-        />
+        {/* In the evening the hero already shows the lobster: the booth takes its place. */}
+        <div className="b2-sv b2-sv--morning b2-sv--midday b2-sv--night b2-fill">
+          <Img
+            src="/buccaneer/v2/app-scene-dinner.webp"
+            alt="A booth table set for dinner: broiled lobster tails and a glass of white wine"
+            sizes="85vw"
+          />
+        </div>
+        <div className="b2-sv b2-sv--evening b2-fill">
+          <Photo slot="D05" file={BOOTH_SCENE} sizes="85vw" />
+        </div>
       </Scene>
       <Scene
         n={4}
@@ -679,7 +691,7 @@ export function AppReviews() {
       </figure>
       <figure className="b2-q">
         <blockquote>
-          <p>“…one of my top diners in Queens! Not only is the food delicious, theres parking, drinks, great service.”</p>
+          <p>“…one of my top diners in Queens! Not only is the food delicious, there’s parking, drinks, great service.”</p>
         </blockquote>
         <figcaption>Krishana M. · Google</figcaption>
       </figure>
@@ -718,13 +730,14 @@ export function AppCatering() {
 export function AppVisit() {
   return (
     <section className="b2-as b2-avisit" data-pal="sign" aria-labelledby="b2-avisit-t">
-      <div className="b2-avisit__ph">
+      {/* At night the hero is already the facade: no second one. */}
+      <div className="b2-sv b2-sv--morning b2-sv--midday b2-sv--evening b2-avisit__ph">
         <Photo slot="S02" sizes="100vw" />
       </div>
       <div className="b2-avisit__b">
         <p className="b2-eyebrow b2-eyebrow--rule">Visit</p>
         <h2 className="b2-ah2" id="b2-avisit-t">
-          93-01 Astoria Boulevard.
+          {ADDRESS_1}.
         </h2>
         <p className="b2-avisit__sub">East Elmhurst, Queens · just down the road from LaGuardia</p>
         <dl className="b2-facts">
@@ -754,7 +767,7 @@ export function AppVisit() {
           href={DIRECTIONS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Open 93-01 Astoria Boulevard in Google Maps"
+          aria-label={`Open ${ADDRESS_1} in Google Maps`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- static SVG, nothing to optimize */}
           <img

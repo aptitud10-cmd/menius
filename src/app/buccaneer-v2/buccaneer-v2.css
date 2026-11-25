@@ -146,7 +146,7 @@
 .b2-root *::after {
   box-sizing: border-box;
 }
-.b2-root :where(h1, h2, p, ul, dl, dd, figure) {
+.b2-root :where(h1, h2, h3, p, ul, dl, dd, figure) {
   margin: 0;
 }
 .b2-root :where(a) {
@@ -2467,6 +2467,14 @@
     --hdr-total: calc(var(--hdr-h) + env(safe-area-inset-top));
     --dock-h: calc(64px + max(8px, env(safe-area-inset-bottom)));
   }
+  /* The scroller and the fixed dock share one box. With height:100dvh, iOS 26 Safari
+     (floating toolbar) sized the scroller taller than the box the dock is pinned to,
+     so the end of the page ("Powered by MENIUS") ended up under the dock (2026-11-25). */
+  .b2-root.b2-scroll {
+    position: fixed;
+    inset: 0;
+    height: auto;
+  }
   .b2-root[data-sheet] {
     overflow-y: hidden; /* freezes the page behind a sheet without losing scrollTop */
   }
@@ -2603,6 +2611,10 @@
     display: block;
     padding: 28px var(--gr) 32px var(--gl);
   }
+  /* the seal hangs 52px into this block on the right: the eyebrow never runs under it */
+  .b2-ahero .b2-eyebrow {
+    max-width: calc(100% - 116px);
+  }
   .b2-ah1 {
     margin-top: 12px;
     max-width: 300px;
@@ -2690,7 +2702,7 @@
   .b2-alnk,
   .b2-dish__o {
     display: inline-block;
-    padding: 12px 0;
+    padding: 13px 0; /* 44px tall */
     font-weight: 600;
     font-size: 16px;
     line-height: 1.2;
@@ -2913,6 +2925,7 @@
     font-size: 19px;
   }
   .b2-dish__foot .b2-dish__o {
+    padding: 14px 0; /* 44px at 14px type */
     font-size: 14px;
   }
   .b2-fav__all {
@@ -2975,7 +2988,7 @@
     color: var(--ink2);
   }
   .b2-scene__b p {
-    margin: 10px 0 8px;
+    margin: 12px 0 8px;
     font-size: 16px;
     line-height: 1.55;
     color: var(--ink2);
@@ -3122,14 +3135,14 @@
   }
   .b2-facts a {
     display: inline-block;
-    padding: 4px 0;
+    padding: 10px 0; /* two numbers stacked: each one a 44px target */
     text-decoration: underline;
     text-decoration-thickness: 1.5px;
     text-underline-offset: 4px;
   }
-  .b2-avisit__map {
+  .b2-root .b2-avisit__map {
     width: 100%;
-    margin-top: 28px;
+    margin: 28px 0 0; /* .b2-map bleeds past the gutters for the old Visit; here it sits inside them */
   }
   .b2-avisit__attr {
     margin-top: 6px;
