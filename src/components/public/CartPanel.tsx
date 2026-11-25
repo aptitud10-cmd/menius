@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Pencil, Trash2, Clock, RotateCcw, X, Banknote } from 'lucide-react';
+import { Minus, Plus, Pencil, Trash2, Clock, RotateCcw, X, Banknote, ChevronLeft, ChevronRight } from 'lucide-react';
 import { estimateMinutes, type EtaRestaurant } from '@/lib/orders/eta';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
@@ -91,6 +91,86 @@ function SwipeableItem({
       >
         {children}
       </motion.div>
+    </div>
+  );
+}
+
+// ── "Complete your order" carousel ──────────────────────────────────────────
+// Same controls as "Goes well with" in CustomizationSheet: swipe on touch; on
+// desktop arrows + the mouse wheel move it sideways (without them the last
+// cards were unreachable in the 340px sidebar — no scrollbar, wheel = vertical).
+function CartSuggestionRow({
+  products,
+  onAdd,
+  fmtPrice,
+  t,
+}: {
+  products: Product[];
+  onAdd: (p: Product) => void;
+  fmtPrice: (n: number) => string;
+  t: Translations;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // already horizontal
+      const max = el.scrollWidth - el.clientWidth;
+      // At either end, let the wheel scroll the cart as usual.
+      if ((e.deltaY > 0 && el.scrollLeft >= max - 1) || (e.deltaY < 0 && el.scrollLeft <= 0)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+  const scroll = (dir: -1 | 1) => ref.current?.scrollBy({ left: dir * 244, behavior: 'smooth' });
+  const arrow =
+    'hidden md:flex absolute top-[56px] -translate-y-1/2 w-8 h-8 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 transition-opacity opacity-0 group-hover/cs:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]';
+
+  return (
+    <div className="relative group/cs -mx-4">
+      <div
+        ref={ref}
+        className="px-4 flex gap-2.5 overflow-x-auto pb-1 scroll-smooth"
+        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+      >
+        {products.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onAdd(p)}
+            aria-label={`${t.addToOrder} ${p.name}`}
+            className="flex-shrink-0 flex flex-col w-[112px] text-left rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+          >
+            <div className="relative w-full aspect-square bg-gray-100">
+              {!showsAsRow(p) && p.image_url ? (
+                <Image src={p.image_url} alt="" fill sizes="112px" className="object-cover" />
+              ) : (
+                <ProductGlyph name={p.name} className="w-full h-full" iconClassName="w-6 h-6" />
+              )}
+              <span className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-white border-[1.5px] border-[#05c8a7] flex items-center justify-center shadow-sm" aria-hidden>
+                <Plus className="w-4 h-4 text-[#047a65]" />
+              </span>
+            </div>
+            <div className="px-2 py-1.5">
+              <p className="text-[13px] font-medium text-gray-900 line-clamp-2 leading-tight">{p.name}</p>
+              <p className="text-[13px] font-semibold text-gray-800 tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+      {products.length > 2 && (
+        <>
+          <button type="button" onClick={() => scroll(-1)} aria-label="Scroll left" className={cn(arrow, 'left-1.5')}>
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={() => scroll(1)} aria-label="Scroll right" className={cn(arrow, 'right-1.5')}>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -638,35 +718,7 @@ export function CartPanel({
             <h3 id="cart-complete-title" className="text-[15px] font-semibold text-gray-900 mb-2">
               {t.completeYourOrder}
             </h3>
-            <div
-              className="-mx-4 px-4 flex gap-2.5 overflow-x-auto pb-1"
-              style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-            >
-              {fullSuggestions.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => onSuggestionAdd(p)}
-                  aria-label={`${t.addToOrder} ${p.name}`}
-                  className="flex-shrink-0 w-[112px] text-left rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-                >
-                  <div className="relative w-full aspect-square bg-gray-100">
-                    {!showsAsRow(p) && p.image_url ? (
-                      <Image src={p.image_url} alt="" fill sizes="112px" className="object-cover" />
-                    ) : (
-                      <ProductGlyph name={p.name} className="w-full h-full" iconClassName="w-6 h-6" />
-                    )}
-                    <span className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-white border-[1.5px] border-[#05c8a7] flex items-center justify-center shadow-sm" aria-hidden>
-                      <Plus className="w-4 h-4 text-[#047a65]" />
-                    </span>
-                  </div>
-                  <div className="px-2 py-1.5">
-                    <p className="text-[13px] font-medium text-gray-900 line-clamp-2 leading-tight">{p.name}</p>
-                    <p className="text-[13px] font-semibold text-gray-800 tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <CartSuggestionRow products={fullSuggestions} onAdd={onSuggestionAdd} fmtPrice={fmtPrice} t={t} />
           </section>
         )}
       </div>
