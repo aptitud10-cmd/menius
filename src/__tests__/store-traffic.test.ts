@@ -122,3 +122,30 @@ describe('owner insights', () => {
     expect(r.byHour.map((h) => h.hour)).toEqual([12, 19]);
   });
 });
+
+describe('mejor día y reseñas', () => {
+  it('promedia por cantidad de ese día en el período (un día cerrado cuenta como $0)', async () => {
+    const { weekdaySales } = await import('@/lib/owner-insights');
+    // 2026-11-02 (lunes) … 2026-11-15 (domingo): 2 de cada día.
+    const dates = Array.from({ length: 14 }, (_, i) => `2026-11-${String(i + 2).padStart(2, '0')}`);
+    const sale = (day: string, total: number) => ({ status: 'confirmed', payment_method: 'cash', payment_status: null, total, created_at: `${day}T18:00:00Z` });
+    const r = weekdaySales(
+      [sale('2026-11-06', 300), sale('2026-11-13', 500), sale('2026-11-03', 40), sale('2026-11-02', 100)],
+      dates,
+      (iso) => iso.slice(0, 10),
+    )!;
+    expect(r.best).toEqual({ dow: 5, avg: 400 }); // viernes
+    expect(r.worst.avg).toBe(0);
+    expect(r.days[1].avg).toBe(50); // lunes: 100 / 2
+    expect(weekdaySales([], dates.slice(0, 7), (iso) => iso)).toBeNull();
+  });
+
+  it('reseñas: promedio, anterior y malas sin responder', async () => {
+    const { summarizeReviews } = await import('@/lib/owner-insights');
+    expect(summarizeReviews(
+      [{ rating: 5, owner_response: null }, { rating: 2, owner_response: null }, { rating: 3, owner_response: 'Gracias' }, { rating: 4, owner_response: '  ' }],
+      [{ rating: 4 }, { rating: 5 }],
+    )).toEqual({ avg: 3.5, count: 4, prevAvg: 4.5, lowUnanswered: 1 });
+    expect(summarizeReviews([], [])).toBeNull();
+  });
+});

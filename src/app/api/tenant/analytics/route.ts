@@ -12,7 +12,7 @@ import {
 } from '@/lib/date-utils';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { getStorefrontStats, type StorefrontStats } from '@/lib/storefront-analytics';
-import { estimateAppSavings, fetchReadyTimes, lostToNotAccepted, type ReadyTimes } from '@/lib/owner-insights';
+import { estimateAppSavings, fetchReadyTimes, fetchReviewsSummary, lostToNotAccepted, weekdaySales, type ReadyTimes, type ReviewsSummary } from '@/lib/owner-insights';
 
 const logger = createLogger('tenant-analytics');
 
@@ -253,10 +253,19 @@ export async function GET(request: NextRequest) {
     } catch (err) {
       logger.warn('ready times failed', { error: err instanceof Error ? err.message : String(err) });
     }
+    let reviews: ReviewsSummary | null = null;
+    try {
+      reviews = await fetchReviewsSummary(supabase, rid, range, prevRange);
+    } catch (err) {
+      logger.warn('reviews summary failed', { error: err instanceof Error ? err.message : String(err) });
+    }
+    const rangeDates = Array.from({ length: range.days }, (_, i) => addDaysToDateString(range.startDate, i));
     const insights = {
       appSavings: estimateAppSavings(allOrders),
       lostNotAccepted: lostToNotAccepted(allOrders),
       readyTimes,
+      weekdays: weekdaySales(allOrders, rangeDates, toLocalDate),
+      reviews,
     };
 
     return NextResponse.json({

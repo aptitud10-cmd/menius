@@ -154,3 +154,92 @@ export async function fetchReadyTimes(
   }));
   return summarizeReadyTimes(samples);
 }
+
+// ── Best and worst day of the week ──────────────────────────────────────────
+
+export interface WeekdaySales {
+  /** 0 = Sunday … 6 = Saturday; average sales on that weekday in the period. */
+  days: Array<{ dow: number; avg: number }>;
+  best: { dow: number; avg: number };
+  worst: { dow: number; avg: number };
+}
+
+/** Below this many days the weekday averages mean little (one Monday is not a pattern). */
+export const MIN_DAYS_FOR_WEEKDAYS = 14;
+
+/**
+ * Average sales per weekday: total sold on that weekday divided by how many
+ * of that weekday the period has (a closed Monday counts as $0, on purpose).
+ */
+export function weekdaySales(
+  orders: ReadonlyArray<InsightOrder & { created_at: string }>,
+  dates: ReadonlyArray<string>,
+  localDate: (iso: string) => string,
+): WeekdaySales | null {
+  if (dates.length < MIN_DAYS_FOR_WEEKDAYS) return null;
+  const dowOf = (d: string) => new Date(`${d}T12:00:00Z`).getUTCDay();
+  const occurrences = new Array(7).fill(0);
+  for (const d of dates) occurrences[dowOf(d)]++;
+  const inRange = new Set(dates);
+  const totals = new Array(7).fill(0);
+  let any = false;
+  for (const o of orders) {
+    if (!isSale(o)) continue;
+    const d = localDate(o.created_at);
+    if (!inRange.has(d)) continue;
+    totals[dowOf(d)] += num(o.total);
+    any = true;
+  }
+  if (!any) return null;
+  const days = totals.map((t, dow) => ({ dow, avg: occurrences[dow] ? Math.round((t / occurrences[dow]) * 100) / 100 : 0 }));
+  const best = days.reduce((a, b) => (b.avg > a.avg ? b : a));
+  const worst = days.reduce((a, b) => (b.avg < a.avg ? b : a));
+  return { days, best, worst };
+}
+
+// ── Reviews ─────────────────────────────────────────────────────────────────
+
+export interface ReviewsSummary {
+  avg: number | null;
+  count: number;
+  prevAvg: number | null;
+  /** 3★ or less, in the period, still without an answer. */
+  lowUnanswered: number;
+}
+
+export function summarizeReviews(
+  current: ReadonlyArray<{ rating: number; owner_response: string | null }>,
+  previous: ReadonlyArray<{ rating: number }>,
+): ReviewsSummary | null {
+  if (current.length === 0 && previous.length === 0) return null;
+  const avg = (rs: ReadonlyArray<{ rating: number }>) =>
+    rs.length ? Math.round((rs.reduce((s, r) => s + r.rating, 0) / rs.length) * 10) / 10 : null;
+  return {
+    avg: avg(current),
+    count: current.length,
+    prevAvg: avg(previous),
+    lowUnanswered: current.filter((r) => r.rating <= 3 && !(r.owner_response ?? '').trim()).length,
+  };
+}
+
+export async function fetchReviewsSummary(
+  db: SupabaseClient,
+  restaurantId: string,
+  range: LocalDayRange,
+  prevRange: LocalDayRange,
+): Promise<ReviewsSummary | null> {
+  const q = (r: LocalDayRange) =>
+    db
+      .from('reviews')
+      .select('rating, owner_response')
+      .eq('restaurant_id', restaurantId)
+      .gte('created_at', r.start.toISOString())
+      .lt('created_at', r.end.toISOString())
+      .limit(5000);
+  const [cur, prev] = await Promise.all([q(range), q(prevRange)]);
+  if (cur.error) throw new Error(cur.error.message);
+  return summarizeReviews(
+    (cur.data ?? []) as Array<{ rating: number; owner_response: string | null }>,
+    prev.error ? [] : ((prev.data ?? []) as Array<{ rating: number }>),
+  );
+}

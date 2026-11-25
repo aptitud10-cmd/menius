@@ -1,14 +1,25 @@
 'use client';
 
-import { PiggyBank, AlarmClockOff, Timer, CheckCircle2 } from 'lucide-react';
-import type { AppSavings, LostSales, ReadyTimes } from '@/lib/owner-insights';
+import Link from 'next/link';
+import { PiggyBank, AlarmClockOff, Timer, CheckCircle2, Star, CalendarDays } from 'lucide-react';
+import type { AppSavings, LostSales, ReadyTimes, ReviewsSummary, WeekdaySales } from '@/lib/owner-insights';
 import { APP_COMMISSION } from '@/lib/owner-insights';
 
 export interface OwnerInsights {
   appSavings: AppSavings;
   lostNotAccepted: LostSales;
   readyTimes: ReadyTimes | null;
+  weekdays?: WeekdaySales | null;
+  reviews?: ReviewsSummary | null;
 }
+
+const DAY_NAMES = {
+  es: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
+  en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+};
+const DAY_INITIALS = { es: ['D', 'L', 'M', 'M', 'J', 'V', 'S'], en: ['S', 'M', 'T', 'W', 'T', 'F', 'S'] };
+/** Monday first. */
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 /** "7–8 pm" / "19–20 h" for a local hour 0-23. */
 function hourRange(hour: number, en: boolean): string {
@@ -22,10 +33,13 @@ function hourRange(hour: number, en: boolean): string {
 export function OwnerHighlights({ data, locale, fmt }: { data: OwnerInsights; locale: string; fmt: (v: number) => string }) {
   const en = locale === 'en';
   const L = (es: string, enText: string) => (en ? enText : es);
-  const { appSavings, lostNotAccepted, readyTimes } = data;
+  const { appSavings, lostNotAccepted, readyTimes, weekdays, reviews } = data;
   const pctLabel = (r: number) => `${Math.round(r * 100)}%`;
+  const lang = en ? 'en' : 'es';
+  const rating = (v: number) => v.toLocaleString(en ? 'en-US' : 'es', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
   return (
+    <div className="space-y-3">
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {/* 1. Commissions not paid to the apps */}
       <section className="bg-white rounded-2xl border border-gray-200 p-5">
@@ -119,6 +133,77 @@ export function OwnerHighlights({ data, locale, fmt }: { data: OwnerInsights; lo
           <p className="text-sm text-gray-500 mt-2">{L('Todavía no hay pedidos marcados como “Listo” en este período.', 'No orders marked “Ready” in this period yet.')}</p>
         )}
       </section>
+    </div>
+
+    {(reviews || weekdays) && (
+      <div className={reviews && weekdays ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
+        {reviews && (
+          <section className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div className="flex items-center gap-2 text-gray-700">
+              <Star className="w-4 h-4 text-amber-500" aria-hidden="true" />
+              <h3 className="text-xs font-semibold">{L('Reseñas', 'Reviews')}</h3>
+            </div>
+            {reviews.avg != null ? (
+              <p className="text-2xl font-bold text-gray-900 mt-2 tabular-nums">
+                {rating(reviews.avg)} <span className="text-amber-500" aria-hidden="true">★</span>
+                <span className="ml-2 text-sm font-medium text-gray-500">
+                  {reviews.count === 1 ? L('1 reseña', '1 review') : L(`${reviews.count} reseñas`, `${reviews.count} reviews`)}
+                </span>
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500 mt-2">{L('Sin reseñas nuevas en este período.', 'No new reviews in this period.')}</p>
+            )}
+            {reviews.prevAvg != null && (
+              <p className="text-xs text-gray-500 mt-2">
+                {L('Período anterior: ', 'Previous period: ')}{rating(reviews.prevAvg)} ★
+                {reviews.avg != null && reviews.avg !== reviews.prevAvg && (
+                  <span className={reviews.avg > reviews.prevAvg ? 'ml-1 font-semibold text-emerald-600' : 'ml-1 font-semibold text-red-600'} aria-hidden="true">
+                    {reviews.avg > reviews.prevAvg ? '▲' : '▼'}
+                  </span>
+                )}
+              </p>
+            )}
+            {reviews.lowUnanswered > 0 && (
+              <p className="text-xs text-amber-700 mt-2">
+                {reviews.lowUnanswered === 1
+                  ? L('1 reseña de 3★ o menos sin responder. ', '1 review of 3★ or less without an answer. ')
+                  : L(`${reviews.lowUnanswered} reseñas de 3★ o menos sin responder. `, `${reviews.lowUnanswered} reviews of 3★ or less without an answer. `)}
+                <Link href="/app/reviews" className="font-semibold underline underline-offset-2">{L('Responder', 'Reply')}</Link>
+              </p>
+            )}
+          </section>
+        )}
+
+        {weekdays && (
+          <section className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div className="flex items-center gap-2 text-gray-700">
+              <CalendarDays className="w-4 h-4" aria-hidden="true" />
+              <h3 className="text-xs font-semibold">{L('Mejor y peor día', 'Best and worst day')}</h3>
+            </div>
+            <p className="text-sm text-gray-700 mt-2 leading-relaxed">
+              {L('Tu mejor día es el ', 'Your best day is ')}
+              <strong className="text-gray-900">{DAY_NAMES[lang][weekdays.best.dow]}</strong>
+              {L(` (${fmt(weekdays.best.avg)} en promedio). El más flojo, el `, ` (${fmt(weekdays.best.avg)} on average). The slowest is `)}
+              <strong className="text-gray-900">{DAY_NAMES[lang][weekdays.worst.dow]}</strong>
+              {` (${fmt(weekdays.worst.avg)}).`}
+            </p>
+            <div className="flex items-end gap-1.5 h-16 mt-3" aria-hidden="true">
+              {WEEK_ORDER.map((dow) => {
+                const d = weekdays.days[dow];
+                const max = Math.max(1, ...weekdays.days.map((x) => x.avg));
+                const tone = dow === weekdays.best.dow ? 'bg-emerald-500' : dow === weekdays.worst.dow ? 'bg-red-400' : 'bg-gray-300';
+                return (
+                  <div key={dow} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                    <div className={`w-full rounded-sm ${tone}`} style={{ height: `${Math.max(4, (d.avg / max) * 100)}%` }} title={`${DAY_NAMES[lang][dow]} · ${fmt(d.avg)}`} />
+                    <span className="text-[10px] text-gray-500">{DAY_INITIALS[lang][dow]}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
+    )}
     </div>
   );
 }
