@@ -69,26 +69,22 @@ export async function POST(request: NextRequest) {
     const escHtml = (s: string) =>
       s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-    logger.info('Email received', { from, to, subject, emailId });
+    logger.info('Email received', { emailId, recipients: to.length });
 
     if (!forwardTo) {
       logger.warn('FORWARD_TO_EMAIL not set — skipping forward');
       return NextResponse.json({ ok: true, forwarded: false });
     }
 
-    // Forward via Resend API
-    const forwardRes = await fetch(`https://api.resend.com/emails/${emailId}/forward`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ to: forwardTo }),
-    });
+    // Forward with the content. Resend's "forward" is an SDK helper, not a REST
+    // endpoint (the old POST /emails/{id}/forward always failed and only the
+    // subject-only notice below went out): fetch the received email and send
+    // it on, with Reply-To set to the original sender so a reply goes to them.
+    const forwarded = await forwardReceivedEmail({ apiKey, emailId, forwardTo, from, to, subject, escHtml });
 
-    if (!forwardRes.ok) {
-      // Fallback: send a notification email if forward API fails
-      logger.warn('Forward API failed, sending notification email', { status: forwardRes.status });
+    if (!forwarded) {
+      // Fallback: send a notification email if the forward fails
+      logger.warn('Forward failed, sending notification email', { emailId });
 
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -125,5 +121,73 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     logger.error('Inbound email webhook error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+
+/** Email address inside "Name <addr>" (or the string itself). */
+function bareAddress(v: string): string {
+  const m = v.match(/<([^>]+)>/);
+  return (m ? m[1] : v).trim();
+}
+
+/**
+ * Fetch a received email (GET /emails/receiving/{id}) and send it to `forwardTo`
+ * with its body. Attachments stay in Resend (listed by name). Never throws.
+ */
+async function forwardReceivedEmail(opts: {
+  apiKey: string;
+  emailId: string;
+  forwardTo: string;
+  from: string;
+  to: string[];
+  subject: string;
+  escHtml: (s: string) => string;
+}): Promise<boolean> {
+  const { apiKey, emailId, forwardTo, from, to, subject, escHtml } = opts;
+  try {
+    if (!emailId) return false;
+    const res = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}?html_format=cid`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) {
+      logger.warn('Could not fetch received email', { status: res.status });
+      return false;
+    }
+    const mail = (await res.json()) as {
+      html?: string | null;
+      text?: string | null;
+      attachments?: { filename?: string | null }[] | null;
+    };
+    const files = (mail.attachments ?? []).map((a) => a.filename).filter(Boolean) as string[];
+    const body = mail.html
+      ? mail.html
+      : `<pre style="white-space:pre-wrap;font-family:inherit;font-size:14px;">${escHtml(mail.text ?? '')}</pre>`;
+    const header = `
+      <div style="font-family:sans-serif;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;padding:0 0 12px;margin:0 0 16px;">
+        <div><b>De:</b> ${escHtml(from)}</div>
+        <div><b>Para:</b> ${escHtml(to.join(', '))}</div>
+        ${files.length ? `<div><b>Adjuntos (en Resend → Receiving):</b> ${escHtml(files.join(', '))}</div>` : ''}
+        <div style="color:#9ca3af;margin-top:6px;">Responder a este email le contesta directo al remitente.</div>
+      </div>`;
+    const replyTo = bareAddress(from);
+    const sendRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'MENIUS Soporte <soporte@menius.app>',
+        to: forwardTo,
+        subject: `Fwd: ${subject}`,
+        html: header + body,
+        ...(replyTo.includes('@') ? { reply_to: [replyTo] } : {}),
+      }),
+    });
+    if (!sendRes.ok) {
+      logger.warn('Forward send failed', { status: sendRes.status });
+      return false;
+    }
+    return true;
+  } catch (err) {
+    logger.warn('Forward threw', { error: err instanceof Error ? err.message : String(err) });
+    return false;
   }
 }
