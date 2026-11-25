@@ -340,7 +340,7 @@ export function AppHeroText() {
       <p className="b2-eyebrow">Open 24/7 · Queens, NY</p>
       <h1 className="b2-ah1">Fifty years on Astoria Boulevard.</h1>
       <p className="b2-ahero__sub">
-        A Greek-American diner that never turns the lights off. 400+ dishes, cakes baked in-house, free
+        A diner that never turns the lights off. 400+ dishes, cakes baked in-house, free
         parking.
       </p>
       {STATES.map((s) => (
@@ -392,7 +392,7 @@ export function AppStory() {
           B
         </span>
         <span className="b2-sr">B</span>uccaneer opened on Astoria Boulevard in 1976. Fifty years later it is
-        still a Greek-American diner in the classic New York sense: big menu, bottomless coffee, and a kitchen
+        still a diner in the classic New York sense: big menu, bottomless coffee, and a kitchen
         that never closes.
       </p>
       <figure className="b2-story__fig">

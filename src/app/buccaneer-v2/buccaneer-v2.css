@@ -2579,6 +2579,10 @@
     background: var(--b2-yolk);
     color: var(--b2-bou);
   }
+  /* at night Yolk is only for what you tap: the seal turns Paper */
+  .b2-root[data-bd-state='night'] .b2-seal {
+    background: var(--b2-paper);
+  }
   .b2-seal svg {
     position: absolute;
     inset: 0;
@@ -2654,12 +2658,12 @@
     color: var(--ink);
     --hair: color-mix(in srgb, var(--ink) 22%, transparent);
   }
+  /* sentence case, no wide tracking (AD: spaced capitals on every section read as a generated site; Pedro 2026-11-25) */
   .b2-eyebrow {
     font-weight: 600;
-    font-size: 12px;
-    line-height: 16px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    font-size: 14px;
+    line-height: 18px;
+    letter-spacing: 0;
     color: var(--ink2);
   }
   .b2-eyebrow--rule {
@@ -2715,7 +2719,7 @@
   .b2-as [data-pal='day'],
   .b2-as[data-pal='yolk'],
   .b2-as [data-pal='yolk'] {
-    --acc: var(--b2-roof);
+    --acc: var(--b2-bou); /* underlines never red (AD 4.2): Boulevard on Paper / Yolk, Yolk on Boulevard */
   }
   .b2-as[data-pal='sign'],
   .b2-as [data-pal='sign'] {
@@ -2806,7 +2810,7 @@
     margin-left: 2px;
     font-size: 24px;
     vertical-align: 6px;
-    color: var(--b2-yolk);
+    color: var(--b2-bou); /* Yolk on Paper is 1.7:1 */
   }
   .b2-stats dd {
     margin-top: 6px;
@@ -2839,10 +2843,9 @@
     background: var(--b2-yolk);
     color: var(--b2-bou);
     font-weight: 600;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 16px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    letter-spacing: 0;
   }
   .b2-dish--big .b2-dish__b {
     padding-top: 18px;
@@ -3021,7 +3024,7 @@
     fill: color-mix(in srgb, var(--b2-bou) 18%, transparent);
   }
   .b2-stars__on {
-    fill: var(--b2-yolk);
+    fill: var(--b2-bou); /* Yolk on Paper is 1.7:1 (AD) */
   }
   .b2-rev__c {
     margin-top: 6px;
@@ -3062,7 +3065,7 @@
     font-weight: 700;
     font-size: 88px;
     line-height: 0.6;
-    color: var(--b2-neon);
+    color: var(--b2-roof); /* Neon on Paper is 2.9:1 */
   }
   .b2-q--big p {
     font-size: 27px;
@@ -3122,11 +3125,10 @@
   }
   .b2-facts dt {
     padding-top: 3px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
-    line-height: 16px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    line-height: 18px;
+    letter-spacing: 0;
     color: var(--ink2);
   }
   .b2-facts dd {
