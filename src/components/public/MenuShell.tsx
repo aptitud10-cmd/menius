@@ -772,6 +772,11 @@ export function MenuShell({
   // Tablet/desktop "Added to your order" card under the header cart button
   // (AddedToOrderCard). Phones keep the toast and the bottom bar.
   const [addedUid, setAddedUid] = useState<string | null>(null);
+  // Added with the keyboard: the card takes focus so its buttons are reachable
+  // (it sits at the end of the DOM and would close before Tab got there).
+  const [addedByKeyboard, setAddedByKeyboard] = useState(false);
+  const focusIsKeyboard = () =>
+    !!(document.activeElement as HTMLElement | null)?.matches?.(":focus-visible");
   // The card stands in for the toast: closing it must not reveal the toast
   // still pending behind it.
   const closeAddedCard = useCallback(() => {
@@ -1141,6 +1146,7 @@ export function MenuShell({
       addItem(product, null, [], 1, "");
       showToast(product.name);
       if (isTabletUp && !customizationRef.current && !useCartStore.getState().isOpen) {
+        setAddedByKeyboard(focusIsKeyboard());
         setAddedUid(lastCartUid());
       }
       trackEvent("product_added_to_cart", {
@@ -1181,6 +1187,44 @@ export function MenuShell({
   }, [customization, setOpen]);
 
   const openCart = useCallback(() => setOpen(true), [setOpen]);
+
+  // Cart drawer (tablet/desktop) as a real dialog for the keyboard: focus moves
+  // in when it opens, Tab stays inside, and closing returns focus to where it
+  // was (or the header cart button). The phone sheet is left as it was.
+  const cartPanelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isOpen || !isTabletUp) return;
+    const returnTo = document.activeElement as HTMLElement | null;
+    const raf = requestAnimationFrame(() => cartPanelRef.current?.focus({ preventScroll: true }));
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const panel = cartPanelRef.current;
+      if (!panel) return;
+      const focusable = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const inside = panel.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === first || document.activeElement === panel)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", onKey);
+      const target = returnTo && document.contains(returnTo) && returnTo !== document.body ? returnTo : getCartPill();
+      target?.focus({ preventScroll: true });
+    };
+  }, [isOpen, isTabletUp]);
 
   const handleViewCartFromCustomization = useCallback(() => {
     setCustomization(null);
@@ -4535,7 +4579,9 @@ export function MenuShell({
                 onClick={() => setOpen(false)}
               />
               <motion.div
-                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col md:rounded-none md:w-[400px] xl:w-[440px] md:h-full md:pt-[max(12px,env(safe-area-inset-top))]"
+                ref={cartPanelRef}
+                tabIndex={-1}
+                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col outline-none md:rounded-none md:w-[400px] xl:w-[440px] md:h-full md:pt-[max(12px,env(safe-area-inset-top))]"
                 style={
                   isTabletUp
                     ? undefined
@@ -4654,6 +4700,7 @@ export function MenuShell({
                         detail: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
                       }));
                     }
+                    setAddedByKeyboard(focusIsKeyboard());
                     setAddedUid(lastCartUid());
                     setCustomization(null);
                   }
@@ -4885,6 +4932,7 @@ export function MenuShell({
             <AddedToOrderCard
               key={addedUid}
               uid={addedUid}
+              takeFocus={addedByKeyboard}
               onClose={closeAddedCard}
               onViewOrder={() => { closeAddedCard(); setOpen(true); }}
               onCheckout={() => { closeAddedCard(); handleOpenCheckout(); }}

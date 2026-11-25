@@ -16,6 +16,8 @@ const VISIBLE_MS = 6000;
 interface AddedToOrderCardProps {
   /** Cart line just added (addItem always appends a new line with its own uid). */
   uid: string;
+  /** Added with the keyboard: move focus to "View order" (paused while focused). */
+  takeFocus?: boolean;
   onClose: () => void;
   onViewOrder: () => void;
   onCheckout: () => void;
@@ -29,7 +31,7 @@ interface AddedToOrderCardProps {
  * itself (DoorDash's mini-cart; Shopify Horizon's auto_open_cart_drawer: false).
  * Stays while the pointer or focus is on it; Esc or ✕ closes it.
  */
-export function AddedToOrderCard({ uid, onClose, onViewOrder, onCheckout, fmtPrice, t }: AddedToOrderCardProps) {
+export function AddedToOrderCard({ uid, takeFocus = false, onClose, onViewOrder, onCheckout, fmtPrice, t }: AddedToOrderCardProps) {
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
   const index = items.findIndex((i) => i.uid === uid);
@@ -49,6 +51,24 @@ export function AddedToOrderCard({ uid, onClose, onViewOrder, onCheckout, fmtPri
     window.addEventListener('resize', place);
     return () => window.removeEventListener('resize', place);
   }, []);
+
+  const viewOrderRef = useRef<HTMLButtonElement>(null);
+  // Closing while focus is inside (Esc, ✕, Undo, timeout): back to the header
+  // cart button instead of losing focus to the page. Mouse users never focus
+  // the card, so nothing moves for them.
+  const hasFocusRef = useRef(false);
+  useEffect(() => () => {
+    if (!hasFocusRef.current) return;
+    // "View order" already moved focus into the cart drawer: leave it there.
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+    Array.from(document.querySelectorAll<HTMLElement>('[data-cart-pill]'))
+      .find((e) => e.offsetParent)
+      ?.focus({ preventScroll: true });
+  }, []);
+  useEffect(() => {
+    if (takeFocus && pos) viewOrderRef.current?.focus({ preventScroll: true });
+  }, [takeFocus, pos]);
 
   // Auto-close, paused while hovered or focused.
   const [paused, setPaused] = useState(false);
@@ -89,8 +109,15 @@ export function AddedToOrderCard({ uid, onClose, onViewOrder, onCheckout, fmtPri
       transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
+      onFocus={() => {
+        hasFocusRef.current = true;
+        setPaused(true);
+      }}
+      onBlur={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        hasFocusRef.current = false;
+        setPaused(false);
+      }}
       style={{ top: pos.top, right: pos.right }}
       className="hidden md:block fixed z-[45] w-[360px] rounded-[18px] bg-white border border-gray-100 shadow-[0_18px_48px_rgba(0,0,0,0.16)] p-3.5"
     >
@@ -136,6 +163,7 @@ export function AddedToOrderCard({ uid, onClose, onViewOrder, onCheckout, fmtPri
 
       <div className="flex gap-2 mt-3">
         <button
+          ref={viewOrderRef}
           type="button"
           onClick={onViewOrder}
           className="flex-1 h-11 rounded-[14px] border-[1.5px] border-gray-300 bg-white text-[14px] font-semibold text-gray-900 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
