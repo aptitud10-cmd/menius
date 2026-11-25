@@ -1,3 +1,5 @@
+import type { NoteChipRule } from './note-chips';
+
 /**
  * Per-store UI overrides.
  *
@@ -66,7 +68,73 @@ export interface StoreOverrides {
    * hay, el email usa el logo redondo + nombre.
    */
   emailHeaderImageUrl?: string;
+
+  /** Botoncitos bajo "Special instructions": un toque escribe el pedido en la
+   *  nota. Para lo ocasional; lo que se pide seguido va como opción. */
+  noteChips?: NoteChipRule[];
 }
+
+const BURGERS = ['c1000001-0000-0000-0000-000000000014', 'c1000001-0000-0000-0000-000000000015'];
+const SANDWICHES = [
+  'c1000001-0000-0000-0000-000000000016', // Carving Board
+  'c1000001-0000-0000-0000-000000000017', // Classic Fish
+  'c1000001-0000-0000-0000-000000000018', // Classic Egg
+  'c1000001-0000-0000-0000-000000000019', // Triple Decker Clubs
+  'c1000001-0000-0000-0000-000000000022', // Chicken Breast
+  'c1000001-0000-0000-0000-000000000023', // Classic Meat
+  'c1000001-0000-0000-0000-000000000024', // Classic Cheese
+  'c1000001-0000-0000-0000-000000000025', // Signature
+];
+const EGGS = [
+  'c1000001-0000-0000-0000-000000000003', // Farm Fresh Eggs
+  'c1000001-0000-0000-0000-000000000004', // Egg Omelettes
+  'c1000001-0000-0000-0000-000000000005', // 3 Egg Specialty Omelettes
+];
+const SALADS = ['c1000001-0000-0000-0000-000000000021'];
+
+const BUCCANEER_NOTE_CHIPS: NoteChipRule[] = [
+  // Café y té (no la categoría entera: ahí también están las sodas).
+  {
+    whenGroup: 'Sugar in it?',
+    chips: [
+      { en: '1 sugar', es: '1 de azúcar' },
+      { en: '3 sugars', es: '3 de azúcar' },
+      { en: 'Extra hot', es: 'Bien caliente', hideIfGroups: ['Iced coffee or iced tea'] },
+      { en: 'Light milk', es: 'Poca leche' },
+    ],
+  },
+  {
+    categoryIds: BURGERS,
+    chips: [
+      { en: 'Cut in half', es: 'Cortada a la mitad' },
+      { en: 'Bun well toasted', es: 'Pan bien tostado' },
+      { en: 'Extra pickles', es: 'Pepinillos extra' },
+    ],
+  },
+  {
+    categoryIds: SANDWICHES,
+    chips: [
+      { en: 'Cut in half', es: 'Cortado a la mitad' },
+      { en: 'Well toasted', es: 'Bien tostado' },
+      { en: 'Extra pickles', es: 'Pepinillos extra' },
+    ],
+  },
+  {
+    categoryIds: EGGS,
+    chips: [
+      { en: 'Extra crispy home fries', es: 'Home fries bien doradas' },
+      { en: 'Well done', es: 'Bien cocido' },
+    ],
+  },
+  {
+    categoryIds: SALADS,
+    chips: [
+      { en: 'Chopped', es: 'Picada' },
+      // La Caesar ya lo pregunta; BBQ Ranch y Buffalo vienen mezcladas.
+      { en: 'Dressing in the salad', es: 'Aderezo mezclado', hideIfGroups: ['in the salad or on the side', 'dressing on the side'] },
+    ],
+  },
+];
 
 const OVERRIDES: Record<string, StoreOverrides> = {
   buccaneer: {
@@ -81,6 +149,7 @@ const OVERRIDES: Record<string, StoreOverrides> = {
     noindex: true,
     /** El letrero del techo de noche (wordmark del sitio, buccaneer-v2). */
     emailHeaderImageUrl: 'https://menius.app/email/buccaneer-header-v1.png',
+    noteChips: BUCCANEER_NOTE_CHIPS,
   },
   // Configuración para el nuevo modo de alta conversión (ejemplo)
   // ¡Recuerda reemplazar los IDs de producto con IDs reales de tu base de datos!

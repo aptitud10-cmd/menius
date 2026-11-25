@@ -28,6 +28,8 @@ import { inTimeZone } from "@/lib/orders/business-hours";
 import { showsAsRow } from "@/lib/product-display";
 import { planGroupLayout, splitOptionName } from "@/lib/modifier-layout";
 import { AddonSearch } from "./AddonSearch";
+import { useStoreConfig } from "@/lib/store-config-context";
+import { pickNoteChips, chipsPlaceholder, noteHasChip, toggleNoteChip } from "@/lib/note-chips";
 
 /** Height of the compact header that replaces the floating X on scroll. */
 const COMPACT_HEADER_PX = 52;
@@ -172,6 +174,11 @@ export function CustomizationSheet({
 
   const groups =
     lazyModifiers?.modifier_groups ?? product.modifier_groups ?? [];
+  const { noteChips: noteChipRules } = useStoreConfig();
+  const noteChips = useMemo(
+    () => pickNoteChips(noteChipRules, product.category_id, groups, locale),
+    [noteChipRules, product.category_id, groups, locale],
+  );
   /** Producto con opciones cuya carga perezosa todavía no terminó (o falló). */
   const optionsPending = needsLazyLoad && !lazyModifiers;
   const hasModifierGroups = groups.length > 0;
@@ -1419,7 +1426,7 @@ export function CustomizationSheet({
             }}
             maxLength={200}
             rows={2}
-            placeholder={t.itemNotesPlaceholder}
+            placeholder={chipsPlaceholder(noteChips, locale) ?? t.itemNotesPlaceholder}
             /* text-base (16px) is not a style choice: iOS Safari zooms the whole
                page when a focused input is under 16px, and the diner lands back
                on a menu they have to pinch out of. */
@@ -1429,6 +1436,37 @@ export function CustomizationSheet({
             <p className="mt-1 text-[12px] text-gray-500 text-right tabular-nums">
               {notes.length}/200
             </p>
+          )}
+          {noteChips.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {noteChips.map((chip) => {
+                const on = noteHasChip(notes, chip);
+                return (
+                  <button
+                    key={chip}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      resetAdded();
+                      setNotes((n) => toggleNoteChip(n, chip));
+                    }}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-full border text-[14px] transition-colors",
+                      on
+                        ? "border-[#05c8a7] bg-[#e6faf7] text-[#04241E] font-semibold"
+                        : "border-gray-200 bg-white text-gray-700 font-medium hover:bg-gray-50 active:bg-gray-100",
+                    )}
+                  >
+                    {on ? (
+                      <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden="true" />
+                    ) : (
+                      <Plus className="w-3.5 h-3.5 text-gray-400" strokeWidth={3} aria-hidden="true" />
+                    )}
+                    {chip}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
 
