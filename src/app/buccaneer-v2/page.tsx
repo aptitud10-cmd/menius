@@ -119,7 +119,7 @@ function Cards({ id }: { id: string }) {
           Come in
           <span aria-hidden="true">→</span>
         </span>
-        <span className="b2-card__m">9301 Astoria Blvd</span>
+        <span className="b2-card__m">93-01 Astoria Blvd</span>
         <span className="b2-sr">, opens Google Maps</span>
       </a>
     </div>
@@ -480,7 +480,7 @@ export default async function BuccaneerV2Page() {
             <Photo slot="S02" sizes="100vw" />
           </div>
           <div className="b2-visit__info">
-            <h2 className="b2-d2">9301 Astoria Boulevard.</h2>
+            <h2 className="b2-d2">93-01 Astoria Boulevard.</h2>
             <dl className="b2-dl">
               <div>
                 <dt className="b2-meta">Address</dt>
@@ -525,7 +525,7 @@ export default async function BuccaneerV2Page() {
             </div>
           </div>
           <div className="b2-visit__map">
-            <a className="b2-map" href={DIRECTIONS_URL} target="_blank" rel="noopener noreferrer" aria-label="Open 9301 Astoria Boulevard in Google Maps">
+            <a className="b2-map" href={DIRECTIONS_URL} target="_blank" rel="noopener noreferrer" aria-label="Open 93-01 Astoria Boulevard in Google Maps">
               {/* Own static map from OpenStreetMap data (AD 7.5): scripts/.product-output/mapa-osm.mjs. */}
               {/* eslint-disable-next-line @next/next/no-img-element -- static SVG, nothing to optimize */}
               <img className="b2-map__img" src="/buccaneer/v2/mapa-astoria.svg" alt="" width={1000} height={1000} loading="lazy" decoding="async" />

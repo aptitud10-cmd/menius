@@ -225,7 +225,7 @@ export function AppSheets({ counts }: { counts: Counts }) {
           <div className="b2-grab" aria-hidden="true" />
           <div className="b2-v-title">
             <h2 className="b2-d2" id="b2-visit-t" tabIndex={-1}>
-              9301 Astoria Boulevard.
+              93-01 Astoria Boulevard.
             </h2>
             <button type="button" className="b2-x" data-b2-close aria-label="Close visit">
               <CloseIcon />
@@ -256,7 +256,7 @@ export function AppSheets({ counts }: { counts: Counts }) {
             href={DIRECTIONS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Open 9301 Astoria Boulevard in Google Maps"
+            aria-label="Open 93-01 Astoria Boulevard in Google Maps"
           >
             {/* High-contrast copy of the site map (streets at 0.85/1 opacity); static SVG, nothing to optimize. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}

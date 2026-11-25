@@ -26,8 +26,8 @@ export const PHONE_HREF = 'tel:+17184295188';
 export const PHONE2_TEXT = '(718) 457-6803';
 export const PHONE2_HREF = 'tel:+17184576803';
 export const DIRECTIONS_URL =
-  'https://maps.google.com/?q=9301+Astoria+Blvd,+East+Elmhurst,+NY+11369';
-export const ADDRESS_1 = '9301 Astoria Boulevard';
+  'https://maps.google.com/?q=93-01+Astoria+Blvd,+East+Elmhurst,+NY+11369';
+export const ADDRESS_1 = '93-01 Astoria Boulevard';
 export const ADDRESS_2 = 'East Elmhurst, NY 11369';
 
 /**
