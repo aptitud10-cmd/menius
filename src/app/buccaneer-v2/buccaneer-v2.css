@@ -5288,3 +5288,15 @@
     align-self: center;
   }
 }
+
+/* Performance (Lighthouse mobile 2026-11-25: layout ~1.2s at 4x CPU, the page's own long task
+   ~450ms). Sections below the hero are skipped by style/layout/paint until they come near the
+   viewport; `auto` remembers each one's real height after its first render, so the scrollbar
+   does not jump. Observers and anchors keep working (the box keeps its size). */
+.b2-root .b2-as,
+.b2-root .b2-ch,
+.b2-root .b2-close,
+.b2-root .b2-foot {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
