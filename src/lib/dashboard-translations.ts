@@ -2269,7 +2269,7 @@ const es: DashboardTranslations = {
   // Marketing
   marketing_title: "Marketing",
   marketing_subtitle:
-    "Campañas de email, redes sociales, SMS y automatizaciones con IA",
+    "Campañas de email, redes sociales y automatizaciones",
   marketing_tabEmail: "Email",
   marketing_tabSocial: "Redes Sociales",
   marketing_tabSms: "SMS",
@@ -3657,7 +3657,7 @@ const en: DashboardTranslations = {
 
   // Marketing
   marketing_title: "Marketing",
-  marketing_subtitle: "Email campaigns, social media, SMS and AI automations",
+  marketing_subtitle: "Email campaigns, social media and automations",
   marketing_tabEmail: "Email",
   marketing_tabSocial: "Social Media",
   marketing_tabSms: "SMS",

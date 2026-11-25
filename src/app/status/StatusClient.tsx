@@ -145,6 +145,8 @@ export function StatusClient({ locale }: { locale: LandingLocale }) {
   const services = data?.services ?? [];
   const allOperational = services.length > 0 && services.every((s) => s.status === 'operational');
   const hasOutage = services.some((s) => s.status === 'outage');
+  // Sin datos (falló /api/status) no se afirma ningún estado: banner neutro.
+  const unknown = !loading && (error || services.length === 0);
 
   const checkedAt = data?.checkedAt
     ? new Date(data.checkedAt).toLocaleTimeString(en ? 'en-US' : 'es-MX', {
@@ -160,7 +162,7 @@ export function StatusClient({ locale }: { locale: LandingLocale }) {
       {/* Hero banner */}
       <div
         className={`rounded-2xl p-8 text-center mb-10 transition-colors duration-500 ${
-          loading
+          loading || unknown
             ? 'bg-gray-50 border border-gray-200'
             : hasOutage
             ? 'bg-red-50 border border-red-200'
@@ -171,7 +173,7 @@ export function StatusClient({ locale }: { locale: LandingLocale }) {
       >
         <div
           className={`inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 ${
-            loading
+            loading || unknown
               ? 'bg-gray-100'
               : hasOutage
               ? 'bg-red-100'
@@ -182,6 +184,8 @@ export function StatusClient({ locale }: { locale: LandingLocale }) {
         >
           {loading ? (
             <RefreshCw className="w-7 h-7 text-gray-400 animate-spin" />
+          ) : unknown ? (
+            <Clock className="w-7 h-7 text-gray-400" />
           ) : allOperational ? (
             <CheckCircle className="w-7 h-7 text-emerald-600" />
           ) : (
@@ -191,7 +195,7 @@ export function StatusClient({ locale }: { locale: LandingLocale }) {
 
         <h1
           className={`text-2xl font-bold mb-2 ${
-            loading
+            loading || unknown
               ? 'text-gray-400'
               : hasOutage
               ? 'text-red-800'
@@ -202,6 +206,8 @@ export function StatusClient({ locale }: { locale: LandingLocale }) {
         >
           {loading
             ? (en ? 'Checking services…' : 'Verificando servicios…')
+            : unknown
+            ? (en ? 'Could not check services right now' : 'No pudimos verificar los servicios ahora')
             : allOperational
             ? (en ? 'All systems operational' : 'Todos los sistemas operativos')
             : hasOutage
@@ -209,7 +215,7 @@ export function StatusClient({ locale }: { locale: LandingLocale }) {
             : (en ? 'Some services degraded' : 'Algunos servicios degradados')}
         </h1>
 
-        {!loading && checkedAt && (
+        {!loading && !unknown && checkedAt && (
           <p
             className={`text-sm ${
               hasOutage ? 'text-red-600' : !allOperational ? 'text-amber-600' : 'text-emerald-600'
@@ -297,16 +303,13 @@ export function StatusClient({ locale }: { locale: LandingLocale }) {
         )}
       </section>
 
-      {/* Incident history */}
+      {/* Qué mide esta página (no hay registro histórico de incidentes) */}
       <section className="mb-10">
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
-          {en ? 'Incident history' : 'Historial de incidentes'}
-        </h2>
         <div className="flex items-center gap-3 text-sm text-gray-500 border border-gray-200 rounded-xl px-5 py-4 bg-white">
           <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
           {en
-            ? 'No incidents reported in the last 90 days.'
-            : 'Sin incidentes reportados en los últimos 90 días.'}
+            ? 'This page checks each service when you open it and every 60 seconds. It does not keep an incident history.'
+            : 'Esta página verifica cada servicio al abrirla y cada 60 segundos. No guarda un historial de incidentes.'}
         </div>
       </section>
 

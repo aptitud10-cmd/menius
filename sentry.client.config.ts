@@ -90,11 +90,15 @@ if (dsn) {
         if (!client) return;
         client.addIntegration(
           replayIntegration({
-            maskAllText: false,      // Show text so we can debug layout issues
-            maskAllInputs: true,     // But always mask form inputs (passwords, emails)
+            // Staff pages show text so we can debug layout issues. Public pages
+            // (menus, checkout, order tracking) mask it: they show diners'
+            // names and addresses.
+            maskAllText: !isStaffPage,
+            maskAllInputs: true,     // Always mask form inputs (passwords, emails)
             blockAllMedia: false,
-            // Don't record payment or auth pages
-            networkDetailAllowUrls: [window.location.origin],
+            // Request/response bodies only on staff pages: on public pages they
+            // would carry the diner's order (name, phone, address).
+            networkDetailAllowUrls: isStaffPage ? [window.location.origin] : [],
           }),
         );
       })

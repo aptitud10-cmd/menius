@@ -73,7 +73,7 @@ function ContentEs() {
         <li>Control de inventario por producto con alertas de stock bajo.</li>
         <li>
           Generación de imágenes de productos mediante inteligencia artificial
-          (Google Gemini).
+          (Google Gemini y fal.ai).
         </li>
         <li>Importación de menú desde foto con OCR inteligente.</li>
         <li>
@@ -166,9 +166,30 @@ function ContentEs() {
         procesamiento en los pagos reembolsados.
       </p>
       <p>
-        <strong>Contracargos y disputas:</strong> los contracargos y disputas
-        de pagos son responsabilidad del restaurante. Si se pierde una disputa,
-        el monto se descuenta del restaurante.
+        <strong>Contracargos y disputas:</strong> en los pagos con tarjeta el
+        comerciante es el restaurante, y los contracargos, disputas y reclamos
+        de fraude de esos pagos son su responsabilidad. Cuando un comensal abre
+        una disputa, Stripe cobra una tarifa de disputa (hoy USD 15 en pagos en
+        dólares) que no devuelve aunque la disputa se gane; esa tarifa se le
+        traslada al restaurante. Si la disputa se contesta y se pierde, Stripe
+        cobra una segunda tarifa (hoy USD 15) que también se traslada al
+        restaurante, además del monto disputado.
+      </p>
+      <p>
+        Para cobrar estos importes, MENIUS puede descontarlos de los pagos y
+        transferencias del restaurante, incluso revirtiendo parte de la
+        transferencia de otro pedido; el monto de una disputa perdida se
+        recupera revirtiendo la transferencia del pedido disputado. Si no se
+        pueden descontar así, siguen a cargo del restaurante y MENIUS puede
+        pedirle que los pague. MENIUS le avisa al restaurante por email cuando
+        se abre una disputa y cuando se resuelve, y puede preparar la respuesta
+        al banco con los datos del pedido.
+      </p>
+      <p>
+        Si el banco de un comensal avisa a Stripe de un posible fraude en un
+        pago de USD 15 o menos, MENIUS puede reembolsar ese pago
+        automáticamente para evitar la disputa y su tarifa. Ese reembolso se
+        descuenta del restaurante como cualquier otro reembolso.
       </p>
       <p>
         Si cancelas el plan Pro y regresas al plan Free, los pagos online
@@ -225,7 +246,7 @@ function ContentEs() {
       </p>
       <h3>6.3 Imágenes Generadas por IA</h3>
       <p>
-        Las imágenes generadas mediante nuestra función de IA (Google Gemini)
+        Las imágenes generadas mediante nuestra función de IA (Google Gemini y fal.ai)
         son para uso exclusivo en tu menú dentro de MENIUS. Estas imágenes se
         generan bajo demanda y no representan fotografías reales de tus
         productos. Es tu responsabilidad asegurarte de que las imágenes
@@ -310,9 +331,11 @@ function ContentEs() {
         </li>
         <li>
           <strong>Efecto de la terminación:</strong> al terminar, perderás
-          acceso al dashboard. Tus datos se retendrán durante 90 días para
-          permitir la recuperación, después de lo cual serán eliminados conforme
-          a nuestra Política de Privacidad.
+          acceso al dashboard. Conservamos tus datos para que puedas recuperar la
+          cuenta si vuelves. Puedes pedirnos que los borremos escribiendo a{" "}
+          <a href="mailto:soporte@menius.app">soporte@menius.app</a>, salvo lo
+          que debamos conservar por obligación legal (ver nuestra Política de
+          Privacidad).
         </li>
       </ul>
 
@@ -436,7 +459,7 @@ function ContentEn() {
         <li>Per-product inventory control with low-stock alerts.</li>
         <li>
           Product image generation using artificial intelligence (Google
-          Gemini).
+          Gemini and fal.ai).
         </li>
         <li>Smart menu import from photo using OCR.</li>
         <li>
@@ -527,9 +550,32 @@ function ContentEn() {
         fee on refunded payments.
       </p>
       <p>
-        <strong>Chargebacks and disputes:</strong> payment chargebacks and
-        disputes are the restaurant&apos;s responsibility. If a dispute is
-        lost, the amount is deducted from the restaurant.
+        <strong>Chargebacks and disputes:</strong> for card payments the
+        restaurant is the merchant, and chargebacks, disputes and fraud claims
+        on those payments are the restaurant&apos;s responsibility. When a
+        diner opens a dispute, Stripe charges a dispute fee (currently USD 15
+        on U.S. dollar payments) that it does not return even if the dispute is
+        won; that fee is passed on to the restaurant. If the dispute is
+        contested and lost, Stripe charges a second fee (currently USD 15) that
+        is also passed on to the restaurant, in addition to the disputed
+        amount.
+      </p>
+      <p>
+        To collect these amounts, MENIUS may deduct them from the
+        restaurant&apos;s payments and transfers, including by reversing part
+        of the transfer for another order; the amount of a lost dispute is
+        recovered by reversing the transfer for the disputed order. If they
+        cannot be deducted that way, they remain the restaurant&apos;s
+        responsibility and MENIUS may ask the restaurant to pay them. MENIUS
+        notifies the restaurant by email when a dispute is opened and when it
+        is resolved, and may prepare the response to the bank with the order
+        details.
+      </p>
+      <p>
+        If a diner&apos;s bank warns Stripe of possible fraud on a payment of
+        USD 15 or less, MENIUS may refund that payment automatically to avoid
+        the dispute and its fee. That refund is deducted from the restaurant
+        like any other refund.
       </p>
       <p>
         If you cancel the Pro plan and return to the Free plan, online payments
@@ -583,7 +629,7 @@ function ContentEn() {
       </p>
       <h3>6.3 AI-Generated Images</h3>
       <p>
-        Images generated through our AI feature (Google Gemini) are for
+        Images generated through our AI feature (Google Gemini and fal.ai) are for
         exclusive use in your menu within MENIUS. These images are generated on
         demand and do not represent actual photographs of your products. It is
         your responsibility to ensure that generated images adequately represent
@@ -662,9 +708,11 @@ function ContentEn() {
         </li>
         <li>
           <strong>Effect of termination:</strong> upon termination, you will
-          lose access to the dashboard. Your data will be retained for 90 days
-          to allow recovery, after which it will be deleted in accordance with
-          our Privacy Policy.
+          lose access to the dashboard. We keep your data so you can recover the
+          account if you come back. You can ask us to delete it by writing to{" "}
+          <a href="mailto:soporte@menius.app">soporte@menius.app</a>, except
+          for what we must keep to meet legal obligations (see our Privacy
+          Policy).
         </li>
       </ul>
 
@@ -732,12 +780,12 @@ function getHero(locale: LandingLocale) {
     return {
       badge: "Legal",
       title: "Terms & Conditions",
-      date: "Last updated: November 17, 2026",
+      date: "Last updated: November 25, 2026",
     };
   return {
     badge: "Legal",
     title: "Términos y Condiciones",
-    date: "Última actualización: 17 de noviembre de 2026",
+    date: "Última actualización: 25 de noviembre de 2026",
   };
 }
 

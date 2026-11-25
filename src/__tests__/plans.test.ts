@@ -144,8 +144,8 @@ describe('plan único a la venta', () => {
 
   it('Pro cuesta $149/mes o $1,490/año e incluye dominio propio', () => {
     expect(ALL_PLANS.pro.price).toEqual({ monthly: 149, annual: 1490 });
-    expect(ALL_PLANS.pro.features).toContain('Dominio propio');
-    expect(ALL_PLANS.pro.features_en).toContain('Custom domain');
+    expect(ALL_PLANS.pro.features).toContain('Dominio propio (lo configuramos por ti)');
+    expect(ALL_PLANS.pro.features_en).toContain('Custom domain (we set it up for you)');
   });
 
   it('Pro ya no remite a Starter en su lista de funciones', () => {

@@ -17,7 +17,7 @@ const FAQS_ES = [
   },
   {
     q: '¿Qué pasa cuando termina mi periodo de prueba?',
-    a: 'Tu cuenta pasa automáticamente al plan gratuito para siempre. Tu menú digital seguirá funcionando con hasta 5 mesas y 50 pedidos por mes. No se requiere tarjeta de crédito.',
+    a: 'Si no te suscribes a Pro, tu cuenta pasa al plan Free, que no vence: hasta 5 mesas, hasta 15 productos y pedidos en mesa ilimitados pagados en efectivo. No se requiere tarjeta de crédito.',
   },
   {
     q: '¿Puedo tener delivery y pickup con el plan gratuito?',
@@ -29,7 +29,7 @@ const FAQS_ES = [
   },
   {
     q: '¿Mis datos y menú están seguros?',
-    a: 'Sí, usamos Supabase con cifrado de extremo a extremo. Tus datos nunca se comparten con terceros. Puedes exportar o eliminar tu cuenta en cualquier momento desde Configuración.',
+    a: 'Sí. Tus datos viajan por una conexión cifrada (HTTPS) y se guardan en Supabase; cada restaurante solo ve lo suyo. No vendemos tus datos. Puedes exportar o eliminar tu cuenta en cualquier momento desde Configuración.',
   },
   {
     q: '¿Cómo cambio el idioma de mi menú?',
@@ -37,7 +37,7 @@ const FAQS_ES = [
   },
   {
     q: '¿MENIUS tiene app móvil para recibir pedidos?',
-    a: 'El panel de pedidos está optimizado para funcionar desde el navegador en cualquier dispositivo, incluyendo tablets y teléfonos. Agrega menius.app/app a tu pantalla de inicio para una experiencia tipo app. Una app nativa está en el roadmap.',
+    a: 'Sí. MENIUS Counter, la app para tablets Android, está en Google Play. En iPad, teléfono o computadora, el panel de pedidos funciona desde el navegador; puedes agregar menius.app/app a tu pantalla de inicio.',
   },
 ];
 
@@ -52,7 +52,7 @@ const FAQS_EN = [
   },
   {
     q: 'What happens when my trial period ends?',
-    a: 'Your account automatically moves to the free plan forever. Your digital menu will keep working with up to 5 tables and 50 orders per month. No credit card required.',
+    a: 'If you do not subscribe to Pro, your account moves to the Free plan, which never expires: up to 5 tables, up to 15 products and unlimited dine-in orders paid in cash. No credit card required.',
   },
   {
     q: 'Can I have delivery and pickup on the free plan?',
@@ -64,7 +64,7 @@ const FAQS_EN = [
   },
   {
     q: 'Are my data and menu secure?',
-    a: 'Yes, we use Supabase with end-to-end encryption. Your data is never shared with third parties. You can export or delete your account at any time from Settings.',
+    a: 'Yes. Your data travels over an encrypted connection (HTTPS) and is stored in Supabase; each restaurant only sees its own data. We never sell your data. You can export or delete your account at any time from Settings.',
   },
   {
     q: 'How do I change my menu language?',
@@ -72,7 +72,7 @@ const FAQS_EN = [
   },
   {
     q: 'Does MENIUS have a mobile app for receiving orders?',
-    a: 'The orders panel is optimized to work from the browser on any device, including tablets and phones. Add menius.app/app to your home screen for an app-like experience. A native app is on the roadmap.',
+    a: 'Yes. MENIUS Counter, our app for Android tablets, is on Google Play. On an iPad, phone or computer, the orders panel works in the browser; you can add menius.app/app to your home screen.',
   },
 ];
 
@@ -123,7 +123,7 @@ const T = {
     emailDesc: 'Enviamos respuesta en menos de 24 horas hábiles.',
     scheduleTitle: 'Horario',
     scheduleDesc: 'Lunes a viernes, 9:00 am – 7:00 pm (GMT-5). Fines de semana por email.',
-    available: 'Disponibles ahora 🟢',
+    available: 'Respondemos en horario hábil',
     guidesTitle: 'Guías rápidas',
     faqTitle: 'Preguntas frecuentes',
     faqSearch: 'Buscar preguntas…',
@@ -165,7 +165,7 @@ const T = {
     emailDesc: 'We reply within 24 business hours.',
     scheduleTitle: 'Hours',
     scheduleDesc: 'Monday–Friday, 9:00 am – 7:00 pm (GMT-5). Weekends by email.',
-    available: 'Available now 🟢',
+    available: 'We reply during business hours',
     guidesTitle: 'Quick guides',
     faqTitle: 'Frequently asked questions',
     faqSearch: 'Search questions…',

@@ -239,50 +239,70 @@ function useCountUp(target: number): number {
   return display;
 }
 
-function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
-  const [revenue, setRevenue] = useState(15000);
-  const commissionLoss = Math.round(revenue * 0.25);
+// Supuestos de la calculadora (se explican en t.savings.footnote):
+// - el input son las ventas que HOY entran por apps de delivery, no las totales;
+// - la app cobra 20% (rango real 15–30%);
+// - con pedido directo el restaurante paga ~3% de procesamiento con tarjeta.
+const APP_COMMISSION_RATE = 0.2;
+const CARD_PROCESSING_RATE = 0.03;
+const SLIDER_MIN = 1000;
+const SLIDER_MAX = 50000;
+
+// Separador de miles por idioma: en → 15,000 · es → 15.000. 'es-AR' y no 'es':
+// con 'es'/'es-ES' Intl no agrupa números de 4 cifras ("3750").
+function makeNumberFormatter(locale: LandingLocale): (n: number) => string {
+  const nf = new Intl.NumberFormat(locale === 'es' ? 'es-AR' : 'en-US', { maximumFractionDigits: 0 });
+  return (n: number) => nf.format(n);
+}
+
+function SavingsCalculator({ t, locale }: { t: LandingT['savings']; locale: LandingLocale }) {
+  const [revenue, setRevenue] = useState(10000);
+  const fmt = makeNumberFormatter(locale);
+  const commissionLoss = Math.round(revenue * APP_COMMISSION_RATE);
   const recommendedPlan = getRecommendedPlan(revenue);
-  const meniusCost = recommendedPlan.price.monthly;
-  const annualSavings = (commissionLoss - meniusCost) * 12;
+  const cardProcessing = Math.round(revenue * CARD_PROCESSING_RATE);
+  const meniusCost = recommendedPlan.price.monthly + cardProcessing;
+  const monthlySavings = commissionLoss - meniusCost;
+  const annualSavings = monthlySavings * 12;
   const animatedSavings = useCountUp(annualSavings);
   const withMeniusLabel = `${t.withMeniusPrefix ?? 'Con MENIUS'} ${recommendedPlan.name}`;
+  const money = (n: number) => `${n < 0 ? '-' : ''}$${fmt(Math.abs(n))}`;
 
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-10 text-center">
         <label htmlFor="savings-revenue-slider" className="text-sm text-gray-400 mb-4 block font-medium">{t.sliderLabel}</label>
         <p className="text-4xl md:text-5xl font-bold text-white mb-8 tracking-tight">
-          ${revenue.toLocaleString()}
+          {money(revenue)}
           <span className="text-lg text-gray-500 font-normal ml-1">{t.perMonth}</span>
         </p>
         <input
           id="savings-revenue-slider"
           type="range"
-          min={3000}
-          max={80000}
-          step={1000}
+          min={SLIDER_MIN}
+          max={SLIDER_MAX}
+          step={500}
           value={revenue}
           onChange={(e) => setRevenue(Number(e.target.value))}
           aria-label={t.sliderLabel}
-          aria-valuetext={`$${revenue.toLocaleString()} ${t.perMonth}`}
+          aria-valuetext={`${money(revenue)} ${t.perMonth}`}
           className="calc-slider w-full max-w-md"
         />
         <div className="flex justify-between max-w-md mx-auto mt-2">
-          <span className="text-xs text-gray-600">$3,000</span>
-          <span className="text-xs text-gray-600">$80,000</span>
+          <span className="text-xs text-gray-600">{money(SLIDER_MIN)}</span>
+          <span className="text-xs text-gray-600">{money(SLIDER_MAX)}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-6 text-center">
           <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">{t.withApps}</p>
-          <p className="text-3xl md:text-4xl font-bold text-red-400">${commissionLoss.toLocaleString()}</p>
+          <p className="text-3xl md:text-4xl font-bold text-red-400">{money(commissionLoss)}</p>
           <p className="text-sm text-gray-500 mt-1.5">{t.commissionsLabel}</p>
         </div>
         <div className="rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.04] p-6 text-center">
           <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">{withMeniusLabel}</p>
-          <p className="text-3xl md:text-4xl font-bold text-[#05c8a7]">${meniusCost}</p>
+          <p className="text-3xl md:text-4xl font-bold text-[#05c8a7]">{money(meniusCost)}</p>
           <p className="text-sm text-gray-500 mt-1.5">{t.flatFeeLabel}</p>
         </div>
       </div>
@@ -290,9 +310,11 @@ function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
       <div className="rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.06] p-6 md:p-8 text-center">
         <p className="text-sm text-gray-400 mb-2 font-medium">{t.savingsLabel}</p>
         <p className="font-display font-black text-white tracking-tight tabular-nums text-[clamp(3rem,15vw,4.5rem)] md:text-6xl leading-none">
-          ${animatedSavings.toLocaleString()}
+          {money(animatedSavings)}
         </p>
-        <p className="text-lg text-[#05c8a7] font-semibold mt-1">{t.perYear}</p>
+        <p className="text-lg text-[#05c8a7] font-semibold mt-1">
+          {t.perYear} · {money(monthlySavings)}{t.perMonth}
+        </p>
       </div>
       <p className="mt-4 text-xs text-gray-300 text-center leading-relaxed max-w-md mx-auto">{t.footnote}</p>
     </div>
@@ -888,7 +910,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
           <SectionHeading index="03" label={t.savings.sectionLabel} title={t.savings.sectionTitle} desc={t.savings.sectionDesc} />
 
           <div className="d-fade-up d-delay-2">
-            <SavingsCalculator t={t.savings} />
+            <SavingsCalculator t={t.savings} locale={locale} />
           </div>
         </div>
       </section>

@@ -30,8 +30,8 @@ function getLocale(): 'es' | 'en' {
 
 const t = {
   es: {
-    text: 'Usamos cookies esenciales para que la plataforma funcione correctamente (autenticacion y sesion). No usamos cookies de rastreo ni publicidad.',
-    link: 'Mas informacion',
+    text: 'Usamos cookies esenciales para que la plataforma funcione correctamente (autenticación y sesión). No usamos cookies de rastreo ni publicidad.',
+    link: 'Más información',
     accept: 'Entendido',
   },
   en: {

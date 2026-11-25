@@ -210,7 +210,7 @@ export function buildTrialEndingEmail(params: {
           <p style="margin:0;font-size:14px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
             Gracias por confiar en MENIUS para digitalizar <strong>${safeRestaurantName}</strong>.<br/>
             Cualquier pregunta, responde este email directamente. 🙌<br/><br/>
-            — William<br/>
+            — Pedro<br/>
             <span style="color:#9ca3af;font-size:13px;">Fundador, MENIUS</span>
           </p>
         </td>
@@ -341,7 +341,7 @@ export function buildOnboardingGuideEmail(params: {
         <td style="padding:24px 40px 32px;border-top:1px solid #f3f4f6;">
           <p style="margin:0;font-size:14px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
             ¡Éxito con <strong>${safeRestaurantName}</strong>! 🎉<br/><br/>
-            — William<br/>
+            — Pedro<br/>
             <span style="color:#9ca3af;font-size:13px;">Fundador, MENIUS · soporte@menius.app</span>
           </p>
         </td>
@@ -527,7 +527,7 @@ export function buildWeeklyDigestEmail(params: {
         <td style="padding:20px 40px 32px;border-top:1px solid #f3f4f6;">
           <p style="margin:0;font-size:14px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
             ${en ? `Keep it up, ${firstName}! 🚀` : `¡Sigue así, ${firstName}! 🚀`}<br/><br/>
-            — William<br/>
+            — Pedro<br/>
             <span style="color:#9ca3af;font-size:13px;">${en ? 'Founder, MENIUS' : 'Fundador, MENIUS'} · soporte@menius.app</span>
           </p>
         </td>
@@ -619,7 +619,7 @@ export function buildEngagementEmail(params: {
         <td style="padding:24px 40px 32px;border-top:1px solid #f3f4f6;">
           <p style="margin:0;font-size:14px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
             ¡Mucho éxito con <strong>${safeRestaurantName}</strong>! 🍽️<br/><br/>
-            — William<br/>
+            — Pedro<br/>
             <span style="color:#9ca3af;font-size:13px;">Fundador, MENIUS · soporte@menius.app</span>
           </p>
         </td>

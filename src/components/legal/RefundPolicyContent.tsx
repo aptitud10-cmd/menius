@@ -8,6 +8,10 @@ import { LEGAL_PROSE_LIGHT } from "./PrivacyPolicyContent";
 // Si cambia el sistema, cambia esto:
 // - cancelación automática a los 15 min de un pedido SIN PAGAR que no se acepta
 //   (cron order-timeouts);
+// - un pedido PAGADO con tarjeta (Stripe) que no se acepta en 15 min se cancela
+//   y se reembolsa el total solo (mismo cron, Fase C; corre cada 10 min, por eso
+//   "unos 15 minutos"). Wompi/Mercado Pago NO se reembolsan solos: si una tienda
+//   con Wompi sale a producción, esta frase no le aplica;
 // - "No vino a buscarlo" marca al cliente y, si la tienda cobra con tarjeta, le
 //   pide pagar por adelantado (PREPAY_REQUIRED en /api/orders);
 // - un pedido pagado no se cancela sin reembolsarlo, y el reembolso es por el
@@ -17,7 +21,7 @@ import { LEGAL_PROSE_LIGHT } from "./PrivacyPolicyContent";
 // banco y disputas (una política de efectivo que habla de tarjetas confunde).
 // Los textos van como strings para no perder espacios en los saltos de JSX.
 
-export const REFUND_POLICY_UPDATED = { es: "17 de noviembre de 2026", en: "November 17, 2026" };
+export const REFUND_POLICY_UPDATED = { es: "25 de noviembre de 2026", en: "November 25, 2026" };
 
 interface Props {
   locale: "es" | "en";
@@ -53,7 +57,10 @@ function sectionsEn(R: string, cashOnly: boolean): Section[] {
   if (!cashOnly) {
     s.push({
       title: "If the restaurant cancels your order",
-      body: [`If ${R} cancels an order you paid by card (for example, an item ran out or the kitchen closed), ${R} refunds everything you paid: food, tax, delivery fee and tip. You'll see it on your order tracking page.`],
+      body: [
+        `If ${R} cancels an order you paid by card (for example, an item ran out or the kitchen closed), ${R} refunds everything you paid: food, tax, delivery fee and tip. You'll see it on your order tracking page.`,
+        `If ${R} doesn't confirm an order you paid by card within about 15 minutes, the order is cancelled automatically and the full amount goes back to your card, without you having to ask. For an order scheduled for later, the clock starts when the order reaches the restaurant.`,
+      ],
     });
   }
   s.push(
@@ -107,7 +114,10 @@ function sectionsEs(R: string, cashOnly: boolean): Section[] {
   if (!cashOnly) {
     s.push({
       title: "Si el restaurante cancela tu pedido",
-      body: [`Si ${R} cancela un pedido que pagaste con tarjeta (por ejemplo, porque se acabó un plato o la cocina cerró), ${R} te devuelve todo lo que pagaste: comida, impuestos, envío y propina. Lo verás en la página de seguimiento de tu pedido.`],
+      body: [
+        `Si ${R} cancela un pedido que pagaste con tarjeta (por ejemplo, porque se acabó un plato o la cocina cerró), ${R} te devuelve todo lo que pagaste: comida, impuestos, envío y propina. Lo verás en la página de seguimiento de tu pedido.`,
+        `Si ${R} no confirma en unos 15 minutos un pedido que pagaste con tarjeta, el pedido se cancela automáticamente y se te devuelve el total a la tarjeta, sin que tengas que pedirlo. En un pedido programado para más tarde, el plazo empieza a contar cuando el pedido llega al restaurante.`,
+      ],
     });
   }
   s.push(

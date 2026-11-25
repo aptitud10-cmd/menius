@@ -92,6 +92,10 @@ function ContentEs({ className }: { className: string }) {
         <li>
           Registros de servidor (logs) con fines de seguridad y diagnóstico.
         </li>
+        <li>
+          Grabaciones de algunas sesiones para detectar errores (ver Sentry en
+          la sección 4).
+        </li>
       </ul>
 
       <h2>3. Cómo Usamos la Información</h2>
@@ -162,19 +166,63 @@ function ContentEs({ className }: { className: string }) {
           .
         </li>
         <li>
-          <strong>Google (Gemini AI):</strong> para la generación de imágenes de
-          productos. Las descripciones de texto se envían a la API; no se envían
-          datos personales de usuarios.
+          <strong>Vercel:</strong> aloja nuestro sitio y las tiendas de los
+          restaurantes, y procesa cada visita. Sus registros técnicos incluyen
+          la dirección IP, el navegador y la página solicitada.
         </li>
         <li>
-          <strong>Anthropic (Claude AI):</strong> para el asistente de
-          inteligencia artificial del panel de control del restaurante. Cuando
-          un propietario de restaurante usa el chat AI, enviamos métricas
-          agregadas del negocio (totales de ventas, conteos de pedidos,
-          segmentos de clientes) a la API de Anthropic. No se transmiten
-          nombres, correos electrónicos, teléfonos ni ningún otro dato
-          identificable de los consumidores finales. Anthropic actúa como
-          sub-procesador de datos conforme a su{" "}
+          <strong>Sentry:</strong> para detectar y diagnosticar errores. Recibe
+          datos técnicos del error (página, navegador, dispositivo y dirección
+          IP). Además, en alrededor del 5% de las visitas, y en las sesiones del
+          panel, el Counter, la cocina y las páginas de acceso en las que ocurre
+          un error, graba cómo se ve y se usa la página. En los menús, el pago y
+          el seguimiento de pedidos todo el texto queda enmascarado y no se
+          guarda el contenido de las solicitudes a nuestros servidores. En el
+          panel, el Counter y la cocina se enmascara lo que se escribe en los
+          campos de formulario, pero puede verse el resto del texto en pantalla
+          y el contenido de las solicitudes a nuestros servidores.
+        </li>
+        <li>
+          <strong>Crisp:</strong> para el chat de soporte de nuestro sitio y del
+          panel. Recibe los mensajes que nos escribes y, si tienes sesión
+          iniciada en el panel, tu nombre y tu email.
+        </li>
+        <li>
+          <strong>Google Maps Platform:</strong> para autocompletar la
+          dirección al hacer un pedido con entrega (y en la configuración del
+          restaurante) y para mostrar el mapa de la entrega. Recibe lo que
+          escribes en el campo de dirección y la dirección de entrega.
+        </li>
+        <li>
+          <strong>Google (Gemini):</strong> para las funciones de IA del panel:
+          generar y mejorar fotos de productos, escribir descripciones, importar
+          el menú desde una foto y sugerir textos de campañas y publicaciones
+          para redes. Recibe descripciones y fotos de productos, fotos del menú
+          y textos del restaurante. Para sugerir campañas y publicaciones
+          también puede recibir el texto de reseñas de clientes (en las
+          publicaciones, con el nombre que puso quien la escribió). Si Gemini no
+          responde, esos textos se piden a <strong>OpenRouter</strong> como
+          respaldo, con los mismos datos.
+        </li>
+        <li>
+          <strong>fal.ai:</strong> para generar y mejorar fotos de productos con
+          IA. Recibe descripciones y fotos de productos; no recibe datos de los
+          clientes del restaurante.
+        </li>
+        <li>
+          <strong>Anthropic (Claude):</strong> para el asistente de IA del panel
+          (MENIUS AI) y para sugerir respuestas a reseñas. Cuando el restaurante
+          usa el asistente, enviamos a la API de Anthropic lo que escribe en el
+          chat y los datos del negocio necesarios para responder: menú, ventas,
+          pedidos, promociones, mesas, equipo y las reseñas recientes (texto,
+          calificación y el nombre que puso quien la escribió). Si pregunta por
+          sus clientes o por los pedidos del día, también se envían el nombre
+          del cliente, su historial de pedidos (cantidad, total gastado y
+          fechas) y las etiquetas y notas que el restaurante le haya puesto.{" "}
+          <strong>No se envían el teléfono ni el email de los clientes.</strong>{" "}
+          Para sugerir la respuesta a una reseña se envían su texto, su
+          calificación y el nombre de quien la escribió. Anthropic procesa estos
+          datos como proveedor nuestro, conforme a su{" "}
           <a
             href="https://www.anthropic.com/legal/privacy"
             target="_blank"
@@ -197,14 +245,18 @@ function ContentEs({ className }: { className: string }) {
           cuenta esté activa.
         </li>
         <li>
-          <strong>Cuentas canceladas:</strong> eliminamos los datos personales
-          dentro de los 90 días posteriores a la cancelación, excepto lo
-          requerido por ley (registros fiscales, por ejemplo).
+          <strong>Cuentas cerradas:</strong> si un restaurante cierra su cuenta,
+          conservamos sus datos para que pueda recuperarla si vuelve. Puede
+          pedirnos que los borremos en cualquier momento escribiendo a{" "}
+          <a href="mailto:soporte@menius.app">soporte@menius.app</a>; los
+          borraremos, salvo lo que debamos conservar por obligación legal (por
+          ejemplo, registros fiscales).
         </li>
         <li>
-          <strong>Pedidos de consumidores:</strong> los datos de pedidos se
-          retienen según la configuración del restaurante, hasta un máximo de 12
-          meses.
+          <strong>Pedidos de consumidores:</strong> se conservan como parte del
+          historial del restaurante mientras su cuenta exista. Si hiciste un
+          pedido y quieres que borremos tus datos, escríbenos a{" "}
+          <a href="mailto:soporte@menius.app">soporte@menius.app</a>.
         </li>
         <li>
           <strong>Logs de seguridad:</strong> se retienen por 30 días.
@@ -397,6 +449,10 @@ function ContentEn({ className }: { className: string }) {
           <Link href="/cookies">Cookie Policy</Link>).
         </li>
         <li>Server logs for security and diagnostic purposes.</li>
+        <li>
+          Recordings of some sessions to detect errors (see Sentry in section
+          4).
+        </li>
       </ul>
 
       <h2>3. How We Use Information</h2>
@@ -464,17 +520,62 @@ function ContentEn({ className }: { className: string }) {
           .
         </li>
         <li>
-          <strong>Google (Gemini AI):</strong> for product image generation.
-          Text descriptions are sent to the API; no personal user data is
-          transmitted.
+          <strong>Vercel:</strong> hosts our website and the restaurants&apos;
+          stores, and processes every visit. Its technical logs include the IP
+          address, the browser and the page requested.
         </li>
         <li>
-          <strong>Anthropic (Claude AI):</strong> for the AI assistant in the
-          restaurant dashboard. When a restaurant owner uses the AI chat, we
-          send aggregated business metrics (sales totals, order counts, customer
-          segments) to the Anthropic API. No names, emails, phone numbers, or
-          any other identifying information of end consumers is transmitted.
-          Anthropic acts as a data sub-processor under their{" "}
+          <strong>Sentry:</strong> to detect and diagnose errors. It receives
+          technical data about the error (page, browser, device and IP
+          address). In addition, on about 5% of visits, and on dashboard,
+          Counter, kitchen and sign-in sessions where an error occurs, it
+          records how the page looks and is used. On menus, checkout and order
+          tracking, all text is masked and the content of requests to our
+          servers is not stored. On the dashboard, Counter and kitchen, what you
+          type into form fields is masked, but the rest of the on-screen text
+          may be visible, as well as the content of requests to our servers.
+        </li>
+        <li>
+          <strong>Crisp:</strong> for the support chat on our website and in
+          the dashboard. It receives the messages you send us and, if you are
+          signed in to the dashboard, your name and email.
+        </li>
+        <li>
+          <strong>Google Maps Platform:</strong> to autocomplete the address
+          when you place a delivery order (and in the restaurant&apos;s
+          settings) and to show the delivery map. It receives what you type in
+          the address field and the delivery address.
+        </li>
+        <li>
+          <strong>Google (Gemini):</strong> for the AI features in the
+          dashboard: generating and enhancing product photos, writing
+          descriptions, importing the menu from a photo, and suggesting copy
+          for campaigns and social media posts. It receives product
+          descriptions and photos, menu photos and the restaurant&apos;s text.
+          To suggest campaigns and posts it may also receive the text of
+          customer reviews (for posts, with the name the reviewer entered). If
+          Gemini does not respond, that copy is requested from{" "}
+          <strong>OpenRouter</strong> as a backup, with the same data.
+        </li>
+        <li>
+          <strong>fal.ai:</strong> to generate and enhance product photos with
+          AI. It receives product descriptions and photos; it does not receive
+          data about the restaurant&apos;s customers.
+        </li>
+        <li>
+          <strong>Anthropic (Claude):</strong> for the dashboard AI assistant
+          (MENIUS AI) and to suggest replies to reviews. When the restaurant
+          uses the assistant, we send the Anthropic API what it types in the
+          chat and the business data needed to answer: menu, sales, orders,
+          promotions, tables, team, and recent reviews (text, rating and the
+          name the reviewer entered). If it asks about its customers or
+          today&apos;s orders, we also send the customer&apos;s name, their
+          order history (number of orders, total spent and dates) and any tags
+          and notes the restaurant added.{" "}
+          <strong>Customers&apos; phone numbers and emails are not sent.</strong>{" "}
+          To suggest a reply to a review, we send its text, its rating and the
+          reviewer&apos;s name. Anthropic processes this data as our service
+          provider, under its{" "}
           <a
             href="https://www.anthropic.com/legal/privacy"
             target="_blank"
@@ -497,13 +598,18 @@ function ContentEn({ className }: { className: string }) {
           account is active.
         </li>
         <li>
-          <strong>Canceled accounts:</strong> we delete personal data within 90
-          days of cancellation, except as required by law (tax records, for
-          example).
+          <strong>Closed accounts:</strong> if a restaurant closes its account,
+          we keep its data so it can recover the account if it comes back. It
+          can ask us to delete the data at any time by writing to{" "}
+          <a href="mailto:soporte@menius.app">soporte@menius.app</a>; we will
+          delete it, except for what we must keep to meet legal obligations
+          (tax records, for example).
         </li>
         <li>
-          <strong>Consumer orders:</strong> order data is retained according to
-          the restaurant&apos;s settings, up to a maximum of 12 months.
+          <strong>Consumer orders:</strong> kept as part of the
+          restaurant&apos;s order history for as long as its account exists. If
+          you placed an order and want us to delete your data, write to us at{" "}
+          <a href="mailto:soporte@menius.app">soporte@menius.app</a>.
         </li>
         <li>
           <strong>Security logs:</strong> retained for 30 days.

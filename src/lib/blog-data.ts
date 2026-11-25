@@ -795,26 +795,19 @@ Don't put all your eggs in one basket. Combine your own digital menu with delive
     content: `
 ## Los márgenes en restaurantes son estrechos
 
-El margen neto promedio en restaurantes es de solo **3-9%**. Cada dólar que ahorras va directamente a tu bolsillo. La tecnología puede ayudarte a reducir costos significativamente.
+En muchos restaurantes el margen neto es de un solo dígito. Cada dólar que ahorras va directamente a tu bolsillo, y la tecnología puede ayudarte a recortar varios gastos.
 
 ## 1. Elimina costos de impresión de menús
 
-| Concepto | Costo anual |
-|---|---|
-| Menús impresos (4 reimpresiones/año) | $500-$2,000 |
-| Menú digital | $0 adicional |
-
-Un menú digital se actualiza al instante sin costo de impresión.
+Cada cambio de precio o de plato en un menú impreso significa reimprimir. Un menú digital se actualiza al instante y sin costo de impresión.
 
 ## 2. Reduce errores en pedidos
 
-Los errores en pedidos cuestan dinero: ingredientes desperdiciados, platillos rehechos, clientes insatisfechos. Con pedidos digitales directos, el error humano en la toma de pedido **se reduce hasta un 90%**.
-
-Costo estimado de errores en pedidos: **$200-$800/mes** en restaurantes medianos.
+Los errores en pedidos cuestan dinero: ingredientes desperdiciados, platillos rehechos, clientes insatisfechos. Cuando el cliente arma su propio pedido en el menú digital, desaparecen los errores de oído o de letra al tomarlo, y la cocina recibe exactamente lo que se pidió.
 
 ## 3. Elimina comisiones de delivery
 
-Si vendes $5,000/mes a través de apps de delivery con 25% de comisión, estás perdiendo $1,250/mes. Con un menú digital propio y sistema de pickup/delivery, ese costo baja a una **tarifa fija mensual**.
+Si vendes $5,000/mes a través de apps de delivery con 25% de comisión, estás pagando $1,250/mes en comisiones. Con un menú digital propio y sistema de pickup/delivery, ese costo pasa a ser una **tarifa fija mensual**, más la tarifa de procesamiento de Stripe en los pagos con tarjeta.
 
 ## 4. Optimiza tu equipo
 
@@ -832,21 +825,9 @@ Los analytics te muestran:
 - **Horas de baja demanda** donde puedes reducir personal
 - **Productos con mejor margen** que puedes promover más
 
-## El ROI de la digitalización
+## Haz tu propia cuenta
 
-Para un restaurante promedio que vende $15,000/mes:
-
-| Ahorro | Monto mensual |
-|---|---|
-| Impresión de menús | $100 |
-| Reducción de errores | $400 |
-| Menos comisiones delivery | $1,500 |
-| Mejor rotación de mesas | $750 |
-| **Total ahorro mensual** | **$2,750** |
-| **Costo de MENIUS Pro** | **$149** |
-| **ROI mensual** | **$2,601** |
-
-Eso es un retorno de inversión de **1,746%**.
+No hace falta una tabla de ahorros inventada: la cuenta que importa la puedes hacer con tus números. Si hoy pagas 25% de comisión sobre $X en pedidos por apps que podrías recibir directo, compara $X × 0.25 contra $149/mes de MENIUS Pro (o $1,490/año) más la tarifa de Stripe por cada pago con tarjeta. MENIUS no cobra comisión por pedido.
 
 ## Conclusión
 
@@ -860,26 +841,19 @@ La tecnología no es un gasto, es una inversión. Y en un negocio con márgenes 
     content_en: `
 ## Restaurant Margins Are Tight
 
-The average net margin in restaurants is only **3-9%**. Every dollar you save goes directly to your pocket. Technology can help you reduce costs significantly.
+Many restaurants run on single-digit net margins. Every dollar you save goes straight to your pocket, and technology can help you cut several costs.
 
 ## 1. Eliminate Menu Printing Costs
 
-| Concept | Annual Cost |
-|---|---|
-| Printed menus (4 reprints/year) | $500-$2,000 |
-| Digital menu | $0 additional |
-
-A digital menu updates instantly at no printing cost.
+Every price or dish change on a printed menu means reprinting. A digital menu updates instantly, with no printing cost.
 
 ## 2. Reduce Order Errors
 
-Order errors cost money: wasted ingredients, remade dishes, unhappy customers. With direct digital orders, human error in order taking **is reduced by up to 90%**.
-
-Estimated cost of order errors: **$200-$800/month** in medium-sized restaurants.
+Order errors cost money: wasted ingredients, remade dishes, unhappy customers. When customers build their own order on the digital menu, there's no mishearing or bad handwriting at order-taking, and the kitchen gets exactly what was ordered.
 
 ## 3. Eliminate Delivery Commissions
 
-If you sell $5,000/month through delivery apps at 25% commission, you're losing $1,250/month. With your own digital menu and pickup/delivery system, that cost drops to a **fixed monthly fee**.
+If you sell $5,000/month through delivery apps at 25% commission, you're paying $1,250/month in commissions. With your own digital menu and pickup/delivery system, that cost becomes a **fixed monthly fee**, plus Stripe's processing fee on card payments.
 
 ## 4. Optimize Your Team
 
@@ -897,21 +871,9 @@ Analytics show you:
 - **Low-demand hours** where you can reduce staff
 - **Higher-margin products** you can promote more
 
-## The ROI of Digitization
+## Do Your Own Math
 
-For an average restaurant selling $15,000/month:
-
-| Savings | Monthly Amount |
-|---|---|
-| Menu printing | $100 |
-| Error reduction | $400 |
-| Less delivery commissions | $1,500 |
-| Better table turnover | $750 |
-| **Total monthly savings** | **$2,750** |
-| **MENIUS Pro cost** | **$149** |
-| **Monthly ROI** | **$2,601** |
-
-That's a return on investment of **1,746%**.
+You don't need a made-up savings table: the math that matters uses your own numbers. If you pay 25% commission today on $X of app orders you could take directly, compare $X × 0.25 against $149/month for MENIUS Pro (or $1,490/year) plus Stripe's fee on each card payment. MENIUS charges no per-order commission.
 
 ## Conclusion
 
@@ -1407,14 +1369,14 @@ Hasta hace poco, las herramientas de IA eran exclusivas de grandes corporaciones
 
 ## ¿Qué es MENIUS AI?
 
-MENIUS AI es un asistente inteligente integrado directamente en el dashboard de tu restaurante. No es un chatbot genérico — tiene acceso a **todos los datos de tu negocio en tiempo real**: ventas, pedidos, clientes, menú, reseñas, promociones y más.
+MENIUS AI es un asistente inteligente integrado directamente en el dashboard de tu restaurante. No es un chatbot genérico — responde con **los datos de tu negocio**: ventas, pedidos, clientes, menú, reseñas, promociones y más. Solo consulta: los cambios los haces tú desde el dashboard.
 
 Puedes hacerle preguntas como:
 
 - "¿Cuánto vendí hoy?"
 - "¿Cuál es mi producto más vendido esta semana?"
 - "¿Tengo pedidos pendientes?"
-- "¿Quién es mi mejor cliente?"
+- "¿Cuántos pedidos lleva Juan y cuándo pidió por última vez?"
 - "Sugiéreme una promoción para el fin de semana"
 - "¿Cómo configuro delivery?"
 
@@ -1422,11 +1384,11 @@ Puedes hacerle preguntas como:
 
 ### 1. Análisis instantáneo de ventas
 
-En lugar de revisar gráficas y números, simplemente pregunta: "¿Cómo van las ventas esta semana?" y MENIUS AI te da un resumen claro con comparaciones vs la semana anterior, ticket promedio, y tendencias.
+En lugar de revisar gráficas y números, simplemente pregunta: "¿Cómo van las ventas esta semana?" y MENIUS AI te da un resumen claro de hoy, los últimos 7 días y los últimos 30: ingresos, pedidos, ticket promedio y hora pico.
 
 ### 2. Conoce a tus clientes
 
-MENIUS AI analiza los datos de tus pedidos para identificar a tus clientes más frecuentes, sus preferencias, y cuánto gastan. Información que antes requería un CRM costoso.
+MENIUS AI analiza tus pedidos para mostrarte cuántos clientes vuelven, cuáles llevan tiempo sin pedir y cuánto gastan. Y si le preguntas por un cliente por su nombre, te dice cuántos pedidos lleva, cuánto ha gastado y cuándo pidió por última vez. Sus datos de contacto no se comparten con la IA: los ves en la sección Clientes.
 
 ### 3. Guía paso a paso del dashboard
 
@@ -1442,7 +1404,7 @@ A diferencia de un consultor que cobra por hora, MENIUS AI está siempre disponi
 
 ## ¿Cuánto cuesta?
 
-Nada adicional. MENIUS AI está incluido en el plan Pro de MENIUS ($149/mes). Usa tecnología Google Gemini optimizada para ser eficiente y económica.
+Nada adicional. MENIUS AI está incluido en el plan Pro de MENIUS ($149/mes o $1,490/año). Funciona con Claude, un modelo de IA de Anthropic.
 
 ## Conclusión
 
@@ -1460,14 +1422,14 @@ Until recently, AI tools were exclusive to large corporations with million-dolla
 
 ## What Is MENIUS AI?
 
-MENIUS AI is an intelligent assistant integrated directly into your restaurant's dashboard. It's not a generic chatbot — it has access to **all your business data in real time**: sales, orders, customers, menu, reviews, promotions, and more.
+MENIUS AI is an intelligent assistant integrated directly into your restaurant's dashboard. It's not a generic chatbot — it answers with **your business data**: sales, orders, customers, menu, reviews, promotions, and more. It only reads: you make changes yourself in the dashboard.
 
 You can ask questions like:
 
 - "How much did I sell today?"
 - "What's my best-selling product this week?"
 - "Do I have pending orders?"
-- "Who's my best customer?"
+- "How many orders has John placed, and when was his last one?"
 - "Suggest a weekend promotion"
 - "How do I set up delivery?"
 
@@ -1475,11 +1437,11 @@ You can ask questions like:
 
 ### 1. Instant Sales Analysis
 
-Instead of reviewing charts and numbers, simply ask: "How are sales this week?" and MENIUS AI gives you a clear summary with comparisons vs the previous week, average ticket, and trends.
+Instead of reviewing charts and numbers, simply ask: "How are sales this week?" and MENIUS AI gives you a clear summary of today, the last 7 days, and the last 30: revenue, orders, average ticket, and peak hour.
 
 ### 2. Know Your Customers
 
-MENIUS AI analyzes your order data to identify your most frequent customers, their preferences, and how much they spend. Information that used to require an expensive CRM.
+MENIUS AI analyzes your orders to show you how many customers come back, which ones haven't ordered in a while, and how much they spend. Ask about a customer by name and it tells you how many orders they've placed, how much they've spent, and when they last ordered. Their contact details are not shared with the AI: you see them in the Customers section.
 
 ### 3. Step-by-Step Dashboard Guide
 
@@ -1495,7 +1457,7 @@ Unlike a consultant who charges by the hour, MENIUS AI is always available and c
 
 ## How Much Does It Cost?
 
-Nothing additional. MENIUS AI is included in the MENIUS Pro plan ($149/month). It uses Google Gemini technology optimized to be efficient and economical.
+Nothing additional. MENIUS AI is included in the MENIUS Pro plan ($149/month or $1,490/year). It runs on Claude, an AI model from Anthropic.
 
 ## Conclusion
 
@@ -1751,9 +1713,9 @@ A KDS is not a luxury — it's an operational necessity. It eliminates errors, s
     content: `
 ## La realidad de las reseñas negativas
 
-El 97% de los consumidores lee reviews antes de elegir un restaurante. Y un restaurante con solo reseñas positivas parece falso. Lo que importa no es solo el rating — es **cómo respondes**.
+La mayoría de la gente lee reseñas antes de elegir dónde comer. Y un restaurante con solo reseñas positivas parece falso. Lo que importa no es solo el rating — es **cómo respondes**.
 
-Un estudio de Harvard Business School encontró que **una estrella más en Yelp aumenta los ingresos entre 5% y 9%**. Pero más revelador aún: los restaurantes que responden a reviews negativas de forma profesional mejoran su rating más rápido que los que las ignoran.
+Un estudio de Michael Luca (Harvard Business School, 2011, "Reviews, Reputation, and Revenue: The Case of Yelp.com") encontró que, en restaurantes independientes de Seattle, **una estrella más en Yelp se asoció con un aumento de ingresos de entre 5% y 9%**. Y tu respuesta a una crítica la leen todos los clientes que vienen después.
 
 ## Los 5 errores más comunes al responder críticas
 
@@ -1763,7 +1725,7 @@ Un estudio de Harvard Business School encontró que **una estrella más en Yelp 
 Esto destruye tu marca públicamente. Los lectores futuros ven que el restaurante no acepta retroalimentación.
 
 **Error 2: No responder**
-Ignorar una review negativa es como colgar el teléfono a un cliente insatisfecho. El 53% de los clientes espera respuesta en menos de 7 días.
+Ignorar una review negativa es como colgar el teléfono a un cliente insatisfecho. Responde pronto, mientras la experiencia sigue fresca.
 
 **Error 3: Respuesta genérica copiada**
 > "Gracias por tu comentario, lamentamos tu experiencia..."
@@ -1803,7 +1765,7 @@ Menciona qué vas a hacer diferente. Sé específico. Y cumple.
 >
 > Esta semana tuvimos una situación inusual en cocina que afectó nuestros tiempos. Ya hablamos con el equipo sobre protocolos de comunicación con los clientes cuando hay demoras.
 >
-> Te gustaría que nos escribas a soporte@menius.app con tu nombre para poder compensarte en tu próxima visita. Queremos tener la oportunidad de mostrarte el servicio que realmente mereces.
+> Nos gustaría que nos escribas a [email de tu restaurante] con tu nombre para poder compensarte en tu próxima visita. Queremos tener la oportunidad de mostrarte el servicio que realmente mereces.
 >
 > — El equipo de [Tu Restaurante]
 
@@ -1850,9 +1812,9 @@ El objetivo no es el 5.0 — es ser el restaurante que mejor responde cuando alg
     content_en: `
 ## The Reality of Negative Reviews
 
-97% of consumers read reviews before choosing a restaurant. And a restaurant with only positive reviews seems fake. What matters isn't just the rating — it's **how you respond**.
+Most people read reviews before choosing where to eat. And a restaurant with only positive reviews seems fake. What matters isn't just the rating — it's **how you respond**.
 
-A Harvard Business School study found that **one more star on Yelp increases revenue by 5% to 9%**. But even more revealing: restaurants that respond to negative reviews professionally improve their rating faster than those that ignore them.
+A study by Michael Luca (Harvard Business School, 2011, "Reviews, Reputation, and Revenue: The Case of Yelp.com") found that, for independent restaurants in Seattle, **one more star on Yelp was associated with a 5% to 9% increase in revenue**. And every future customer reads how you answer a complaint.
 
 ## The 5 Most Common Mistakes When Responding to Criticism
 
@@ -1862,7 +1824,7 @@ A Harvard Business School study found that **one more star on Yelp increases rev
 This publicly destroys your brand. Future readers see that the restaurant doesn't accept feedback.
 
 **Mistake 2: Not responding**
-Ignoring a negative review is like hanging up on a dissatisfied customer. 53% of customers expect a response within 7 days.
+Ignoring a negative review is like hanging up on a dissatisfied customer. Respond soon, while the experience is still fresh.
 
 **Mistake 3: Copied generic response**
 If all your responses are identical, they seem automated. Readers notice.
@@ -1900,7 +1862,7 @@ Mention what you're going to do differently. Be specific. And follow through.
 >
 > This week we had an unusual situation in the kitchen that affected our timing. We've already spoken with our team about communication protocols with customers when there are delays.
 >
-> We'd love for you to write us at support@menius.app with your name so we can make it up to you on your next visit. We want the chance to show you the service you truly deserve.
+> We'd love for you to write us at [your restaurant's email] with your name so we can make it up to you on your next visit. We want the chance to show you the service you truly deserve.
 >
 > — The [Your Restaurant] Team
 
@@ -2484,7 +2446,7 @@ Target: 70-80% direct orders, 20-30% apps for new customer acquisition.
       "Marketing Hub: Cómo automatizar el marketing de tu restaurante sin ser experto",
     seoTitle: "Marketing Hub para tu restaurante",
     description:
-      "Descubre cómo usar campañas de email, SMS, generador de posts con IA y las 9 automatizaciones preconfiguradas de MENIUS para atraer y retener clientes en piloto automático.",
+      "Descubre cómo usar las campañas de email, el generador de posts con IA y las automatizaciones de MENIUS para traer de vuelta a tus clientes sin dedicarle horas.",
     category: "Marketing",
     readTime: 7,
     date: "2026-03-08",
@@ -2492,7 +2454,7 @@ Target: 70-80% direct orders, 20-30% apps for new customer acquisition.
     title_en:
       "Marketing Hub: How to Automate Your Restaurant Marketing Without Being an Expert",
     description_en:
-      "Discover how to use email campaigns, SMS, AI post generator, and the 9 pre-built automations in MENIUS to attract and retain customers on autopilot.",
+      "Discover how to use email campaigns, the AI post generator, and MENIUS automations to bring your customers back without spending hours on it.",
     category_en: "Marketing",
     content: `
 ## El problema del marketing en restaurantes
@@ -2513,7 +2475,7 @@ El Marketing Hub es un panel centralizado dentro de tu dashboard de MENIUS que a
 
 ## Módulo 1: Campañas de Email
 
-El email marketing tiene el ROI más alto de cualquier canal digital: **$42 por cada $1 invertido** (según Litmus, 2024).
+El email es un canal que controlas tú: llega directo a la bandeja de tus clientes, sin depender del algoritmo de una red social.
 
 ### ¿Qué puedes enviar?
 - Newsletter semanal con platillos nuevos o especiales del día
@@ -2524,11 +2486,11 @@ El email marketing tiene el ROI más alto de cualquier canal digital: **$42 por 
 ### Cómo funciona en MENIUS
 
 1. Ve a **Marketing > Campañas de Email** en tu dashboard
-2. Elige a quién enviar: todos los clientes, o segmentos (frecuentes, VIP, nuevos)
+2. Elige a quién enviar: todos, VIP (5 pedidos o más), recientes, inactivos (30+ días sin pedir) o los que más gastan. Solo les llega a los clientes que marcaron "Quiero recibir ofertas" al pedir
 3. Escribe el asunto y el contenido
 4. Envía — el envío es inmediato, no hay opción de programar fecha/hora
 
-> **Tip profesional:** Los emails con nombre del cliente en el asunto tienen un 26% más de tasa de apertura. MENIUS personaliza automáticamente el saludo.
+> **Tip profesional:** escribe {nombre} en el asunto o en el mensaje y MENIUS lo cambia por el nombre de cada cliente.
 
 ## Módulo 2: Generador de Posts con IA para Redes Sociales
 
@@ -2550,45 +2512,42 @@ Publicar en Instagram, Facebook y TikTok de forma consistente es difícil. Con e
 **TikTok:**
 *"¿Quién más necesita una hamburguesa los lunes? 🤤 Tenemos la oferta que buscabas... link en bio 🔗"*
 
-## Módulo 3: Campañas SMS (próximamente)
+## Módulo 3: Automatizaciones
 
-El SMS tiene la tasa de apertura más alta de cualquier canal: **98%** en los primeros 3 minutos. Es un canal que tiene sentido para avisos urgentes de corta duración (happy hour de hoy, cierre de emergencia).
+Aquí es donde el marketing empieza a trabajar solo. Las automatizaciones son emails que salen solos, con el nombre de tu restaurante. Hay dos tipos.
 
-Hoy este módulo todavía no está disponible en MENIUS — el Marketing Hub actual cubre email y redes sociales. Si te interesa, hablá con soporte para que te avisemos cuando esté listo.
+### Avisos del pedido (siempre activos)
 
-## Módulo 4: Las 9 Automatizaciones
+Le llegan al cliente que dejó su email al pedir:
 
-Aquí es donde la magia ocurre. Las automatizaciones son notificaciones automáticas por email que se disparan según eventos del negocio o el comportamiento del cliente. Vienen preconfiguradas — no armás secuencias ni las personalizás, se activan solas apenas tenés notificaciones y un email configurados.
+- Recibo del pedido
+- Hora para recoger o entregar
+- Listo / en camino
+- Pedido de reseña (uno por semana como mucho)
 
-### Las 9 automatizaciones disponibles en MENIUS
+### Emails que traen clientes de vuelta (los prendes tú)
 
-| # | Nombre | Trigger | Para quién |
-|---|---|---|---|
-| 1 | Confirmación de pedido | Cada nuevo pedido | Cliente |
-| 2 | Actualización de estado | Cambio de estado del pedido | Cliente |
-| 3 | Alerta de nuevo pedido | Cada nuevo pedido | Dueño del restaurante |
-| 4 | Bienvenida a nuevos clientes | Cliente hace su primer pedido | Cliente |
-| 5 | Reactivación de inactivos | 30+ días sin ordenar | Cliente |
-| 6 | Solicitud de reseña | 1-2 días después de entregado | Cliente |
-| 7 | Trial por vencer | Quedan 3 días o menos de prueba | Dueño (MENIUS) |
-| 8 | Menú vacío | 2+ días sin productos configurados | Dueño (MENIUS) |
-| 9 | Sin pedidos | Productos configurados pero sin pedidos en 14 días | Dueño (MENIUS) |
+Vienen apagados. Los prendes uno por uno en **Marketing > Automatizaciones**, y solo les llegan a los clientes que marcaron "Quiero recibir ofertas" al pedir.
 
-### Cómo funcionan
+| Automatización | Cuándo sale |
+|---|---|
+| **¿Repetimos?** | Unos días después del primer pedido, con su plato y un botón para repetirlo |
+| **Lo de siempre** | Cuando un cliente frecuente se atrasa respecto a su ritmo habitual |
+| **Te extrañamos** | A los 45 días sin pedir, una sola vez |
 
-1. Ve a **Marketing > Automatizaciones** para ver el estado de cada una (activa o inactiva)
-2. Si están inactivas, revisá que tengas las notificaciones por email habilitadas y un email configurado
-3. No hay toggle ni edición de mensaje — el panel es informativo, las automatizaciones ya corren solas en segundo plano
+Reglas que cuidan a tus clientes: como máximo un email de ofertas por persona por semana; si el cliente vuelve a pedir, la secuencia se corta; llega a la hora en que esa persona suele pedir, nunca de noche; después de 75 días sin pedir, no se le escribe más; y cada email trae un enlace para darse de baja.
+
+Para que salgan, necesitas los avisos por email activados en **Configuración > Notificaciones** y la dirección del restaurante cargada (la ley CAN-SPAM de EE. UU. exige una dirección física en todo email de ofertas).
 
 ## Plan de acción: tu semana 1 con Marketing Hub
 
-**Día 1:** Verificá en **Marketing > Automatizaciones** que las notificaciones por email estén habilitadas y con tu dirección configurada — así arrancan a correr Bienvenida, Reactivación y las demás.
+**Día 1:** Entra a **Marketing > Automatizaciones**, revisa que los avisos por email estén activados y prende las automatizaciones que quieras usar.
 
 **Día 2:** Crea tu primer post con el generador de IA y publícalo en Instagram.
 
 **Día 3:** Diseña tu primera campaña de email con la promoción de la semana.
 
-**Semana 2 en adelante:** Las automatizaciones ya trabajan solas en segundo plano.
+**Semana 2 en adelante:** Las automatizaciones que prendiste trabajan solas en segundo plano.
 
 ## Conclusión
 
@@ -2615,7 +2574,7 @@ The Marketing Hub is a centralized panel inside your MENIUS dashboard that bring
 
 ## Module 1: Email Campaigns
 
-Email marketing has the highest ROI of any digital channel: **$42 for every $1 spent** (Litmus, 2024).
+Email is a channel you control: it lands straight in your customers' inbox, without depending on a social media algorithm.
 
 ### What can you send?
 - Weekly newsletter with new dishes or daily specials
@@ -2627,15 +2586,19 @@ Email marketing has the highest ROI of any digital channel: **$42 for every $1 s
 
 Posting consistently on Instagram, Facebook, and TikTok is hard. With MENIUS AI's generator, in 10 seconds you have an optimized caption ready to publish.
 
-## Module 3: SMS Campaigns (coming soon)
+## Module 3: Automations
 
-SMS has the highest open rate of any channel: **98% within the first 3 minutes**. It's not available in MENIUS yet — today the Marketing Hub covers email and social media.
+Automations are emails that go out on their own, under your restaurant's name. There are two kinds.
 
-## Module 4: The 9 Automations
+**Order updates (always on):** order receipt, pickup or delivery time, ready / on the way, and a review request (at most one a week). They go to customers who left their email when ordering.
 
-Automations are automatic email notifications tied to specific events. You don't build or edit sequences — they're pre-built and turn on automatically once notifications and an email address are configured.
+**Emails that bring customers back (you turn them on):** they come switched off. You turn each one on in **Marketing > Automations**, and they only reach customers who checked "Email me offers" when ordering:
 
-The 9 automations: order confirmation, order status updates, new order alert (for the owner), welcome email for new customers, reactivation for customers inactive 30+ days, review request after delivery, trial-expiring reminder (MENIUS to the owner), empty-menu reminder (MENIUS to the owner), and no-orders-in-14-days tips (MENIUS to the owner).
+- **Order again?** — a few days after the first order, with their dish and a one-tap reorder button
+- **The usual** — when a regular falls behind their own ordering rhythm
+- **We miss you** — after 45 days without ordering, only once
+
+At most one offers email per person per week, the sequence stops if they order again, and every email has an unsubscribe link. For them to go out, email notifications must be on in **Settings > Notifications** and your restaurant's address must be filled in (the U.S. CAN-SPAM Act requires a physical address in every marketing email).
     `,
   },
   {
@@ -2644,7 +2607,7 @@ The 9 automations: order confirmation, order status updates, new order alert (fo
       "Cómo crear un programa de lealtad para tu restaurante (sin tarjetas físicas)",
     seoTitle: "Programa de lealtad para tu restaurante",
     description:
-      "Un programa de puntos bien diseñado puede aumentar la frecuencia de visita hasta un 30%. Aprende cómo configurarlo en minutos con MENIUS y por qué es más efectivo que los descuentos.",
+      "Un programa de puntos bien diseñado le da a tus clientes una razón para volver. Aprende cómo configurarlo en minutos con MENIUS y por qué funciona mejor que los descuentos.",
     category: "Estrategia",
     readTime: 6,
     date: "2026-03-10",
@@ -2652,12 +2615,12 @@ The 9 automations: order confirmation, order status updates, new order alert (fo
     title_en:
       "How to Create a Loyalty Program for Your Restaurant (Without Physical Cards)",
     description_en:
-      "A well-designed points program can increase visit frequency by up to 30%. Learn how to set it up in minutes with MENIUS and why it's more effective than discounts.",
+      "A well-designed points program gives your customers a reason to come back. Learn how to set it up in minutes with MENIUS and why it works better than discounts.",
     category_en: "Strategy",
     content: `
 ## ¿Por qué los programas de lealtad funcionan?
 
-Retener a un cliente existente cuesta **5 veces menos** que adquirir uno nuevo. Y un cliente fiel gasta en promedio **67% más** que uno nuevo.
+Conseguir un cliente nuevo cuesta más que hacer volver a uno que ya te conoce. Y el cliente que vuelve ya sabe qué pedir.
 
 Sin embargo, la mayoría de los restaurantes solo compiten por precio con descuentos. El problema: los descuentos enseñan a los clientes a esperar promociones. La lealtad enseña a los clientes a volver porque les gusta tu restaurante.
 
@@ -2694,8 +2657,6 @@ Es un sistema de puntos por compra que puedes configurar directamente desde tu d
 ### Paso 1: Accede al módulo
 Ve a tu dashboard > **Lealtad** en el menú lateral.
 
-*Nota: Si ves un mensaje de migración pendiente, deberás aplicar el SQL de migration-loyalty.sql en tu base de datos Supabase antes de continuar.*
-
 ### Paso 2: Define la tasa de puntos
 Ejemplo recomendado para un restaurante con ticket promedio de $150:
 - 1 punto por cada $10 gastados
@@ -2729,20 +2690,13 @@ Desde la sección **Lealtad** en tu dashboard puedes:
 
 Esta flexibilidad es importante para casos reales: cliente que tuvo un problema con su pedido, cliente fiel que quieres reconocer, evento especial donde das puntos dobles.
 
-## Combinando lealtad con automatizaciones
+## Combinando lealtad con el Marketing Hub
 
-El verdadero poder está en combinar el módulo de Lealtad con las Automatizaciones del Marketing Hub:
+El programa rinde más si lo combinas con el Marketing Hub:
 
-1. **Automatización VIP:** Cuando un cliente llega a 500 puntos, envíale un email especial reconociéndolo como VIP
-2. **Automatización Reactivación:** Si un cliente con muchos puntos no ha pedido en 30 días, recuérdale que tiene puntos por usar
-3. **Email mensual:** Envía a cada cliente su saldo actual de puntos ("Tienes 85 puntos — ¡casi llegas!")
-
-## Resultados esperados
-
-Los programas de lealtad bien implementados reportan:
-- **Aumento del 30% en frecuencia de visita** (Harvard Business Review)
-- **Clientes del programa gastan 12-18% más** por visita que clientes sin programa
-- **Reducción del 20% en tasa de abandono** de clientes frecuentes
+1. **Anúncialo por email:** envía una campaña a los clientes que aceptaron recibir ofertas.
+2. **Reconoce a tus frecuentes:** en las campañas de email puedes enviar solo a tus clientes VIP (5 pedidos o más).
+3. **Trae de vuelta a quien se fue:** prende la automatización "Te extrañamos" en **Marketing > Automatizaciones**; le escribe una sola vez a quien lleva 45 días sin pedir.
 
 ## El error más común
 
@@ -2758,7 +2712,7 @@ El programa trabaja solo — pero primero tienes que conseguir que el cliente se
     content_en: `
 ## Why Loyalty Programs Work
 
-Retaining an existing customer costs **5x less** than acquiring a new one. And a loyal customer spends on average **67% more** than a new one.
+Winning a new customer costs more than bringing back one who already knows you. And returning customers already know what to order.
 
 Points programs achieve something different from discounts: they **turn visits into habit**.
 
@@ -2780,13 +2734,7 @@ Discounts attract deal-hunters who leave when the offer ends. Points attract loy
 1. Go to your dashboard > **Loyalty** in the sidebar
 2. Set your points rate (e.g., 1 point per $10 spent)
 3. Define the redemption benefit (discount, free item, VIP access)
-4. Announce it: email to customers + social media post with MENIUS AI generator
-
-## Expected Results
-
-- **30% increase in visit frequency** (Harvard Business Review)
-- **Loyalty members spend 12-18% more** per visit than non-members
-- **20% reduction in churn** among frequent customers
+4. Announce it: email to customers who accepted offers + social media post with the MENIUS AI generator
     `,
   },
   {
@@ -3000,26 +2948,21 @@ Al hacer clic en "Pagar con Wompi", el cliente es redirigido al checkout seguro 
 
 En el dashboard de Wompi → **Desarrollo → Programadores**, encontrarás:
 
-| Llave | Dónde usarla |
-|---|---|
-| **Llave pública** (\`pub_test_...\` o \`pub_prod_...\`) | Variable \`WOMPI_PUBLIC_KEY\` en Vercel |
-| **Secreto de Integridad** | Variable \`WOMPI_INTEGRITY_SECRET\` en Vercel |
-| **Secreto de Eventos** | Variable \`WOMPI_EVENTS_SECRET\` en Vercel |
+- **Llave pública** (empieza con \`pub_test_\` o \`pub_prod_\`)
+- **Secreto de Integridad**
+- **Secreto de Eventos**
 
-## Paso 3: Configurar las variables en MENIUS
+## Paso 3: Conectar Wompi en MENIUS
 
-1. Inicia sesión en **vercel.com** → tu proyecto MENIUS
-2. Ve a **Settings → Environment Variables**
-3. Agrega las 3 variables con sus valores
-4. Haz **Redeploy** para aplicar los cambios
+1. En tu dashboard de MENIUS, ve a **Configuración → Métodos de pago**
+2. En la sección **Wompi (Colombia)**, pega las 3 llaves
+3. Haz clic en **Conectar Wompi**
 
-## Paso 4: Configurar el webhook
+Los secretos se guardan cifrados y no se vuelven a mostrar.
 
-En el campo **"URL de Eventos"** en el dashboard de Wompi (Programadores), ingresa:
+## Paso 4: Configurar la URL de eventos
 
-\`\`\`
-https://tudominio.menius.app/api/payments/wompi-webhook
-\`\`\`
+En esa misma pantalla, MENIUS te muestra la **URL de eventos**. Cópiala y pégala en el campo **"URL de Eventos"** del dashboard de Wompi (Programadores).
 
 Esto permite que MENIUS marque automáticamente los pedidos como pagados cuando Wompi confirma la transacción.
 
@@ -3038,8 +2981,8 @@ Wompi maneja sus tarifas directamente con cada comercio según el volumen de ven
 
 1. ✅ Crea cuenta en comercios.wompi.co
 2. ✅ Copia tus 3 llaves (Pública, Integridad, Eventos)
-3. ✅ Agrégalas en Vercel como variables de entorno
-4. ✅ Configura el webhook URL en Wompi
+3. ✅ Pégalas en MENIUS: Configuración → Métodos de pago → Wompi
+4. ✅ Copia la URL de eventos que te muestra MENIUS y pégala en Wompi
 5. ✅ Tu restaurante ya acepta PSE, Nequi, Daviplata y tarjetas colombianas
 
 Con MENIUS + Wompi, tus clientes colombianos pueden pagar exactamente como prefieren, sin necesidad de tarjeta internacional.
@@ -3069,8 +3012,8 @@ MENIUS automatically detects your restaurant's currency. If you use **COP**, the
 
 1. **Create account** at comercios.wompi.co
 2. **Copy your keys** (Public Key, Integrity Secret, Events Secret) from Dashboard → Developers
-3. **Add to Vercel**: \`WOMPI_PUBLIC_KEY\`, \`WOMPI_INTEGRITY_SECRET\`, \`WOMPI_EVENTS_SECRET\`
-4. **Set webhook URL**: \`https://yourdomain.menius.app/api/payments/wompi-webhook\`
+3. **Paste them in MENIUS**: Settings → Payment methods → Wompi (Colombia), then click Connect Wompi
+4. **Set the events URL**: copy the events URL shown on that same MENIUS screen and paste it into Wompi's "Events URL" field
 
 MENIUS auto-marks orders as paid when Wompi confirms the transaction via webhook.
     `,
@@ -3238,8 +3181,8 @@ Cuando el repartidor comparte su GPS y pierde señal, la app guarda la última u
 La instalación es automática y no requiere intervención técnica:
 
 1. El encargado en el Counter asigna el pedido al repartidor.
-2. El repartidor recibe un enlace por WhatsApp o SMS.
-3. El repartidor abre el enlace en Chrome (Android) o Safari (iOS).
+2. El repartidor escanea el QR de la ficha que imprime el Counter (o abre el enlace que le compartes).
+3. El enlace se abre en Chrome (Android) o Safari (iOS).
 4. Aparece un banner de instalación: "Instalar MENIUS Repartidor".
 5. Con un toque, la app queda en la pantalla de inicio del celular.
 
@@ -3298,8 +3241,8 @@ When the driver shares GPS and loses signal, the app saves the last known locati
 Installation is automatic and requires no technical effort:
 
 1. The Counter operator assigns the order to the driver.
-2. The driver receives a link via WhatsApp or SMS.
-3. The driver opens the link in Chrome (Android) or Safari (iOS).
+2. The driver scans the QR code on the sheet the Counter prints (or opens the link you share).
+3. The link opens in Chrome (Android) or Safari (iOS).
 4. An install banner appears: "Install MENIUS Driver".
 5. One tap and the app is on the phone's home screen.
 

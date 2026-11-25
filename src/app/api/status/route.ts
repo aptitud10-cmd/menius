@@ -193,7 +193,7 @@ export async function GET() {
     { id: 'stripe',   name: 'Pagos (Stripe)',              nameEn: 'Payments (Stripe)',      ...stripe },
     { id: 'email',    name: 'Notificaciones (Email)',      nameEn: 'Email Notifications',   ...email },
     { id: 'menu',     name: 'Menú digital (QR)',           nameEn: 'Digital Menu (QR)',      ...menu },
-    { id: 'ai',       name: 'Asistente IA (Gemini)',       nameEn: 'AI Assistant (Gemini)', ...ai },
+    { id: 'ai',       name: 'IA de imágenes (Gemini)',     nameEn: 'AI images (Gemini)', ...ai },
   ];
 
   // Kept out of `services` on purpose: /status is a public page, and its green

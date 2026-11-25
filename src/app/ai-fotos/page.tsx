@@ -53,17 +53,17 @@ const PRICING_PLANS = [
   {
     name: 'Free',
     price: 0,
-    desc: 'Para probar el producto',
+    desc: 'Para seguir gratis después de la prueba',
     features: ['Menú digital + QR (hasta 5 mesas)', 'Hasta 15 productos', 'Pedidos en mesa ilimitados (efectivo)', 'Soporte por email'],
-    cta: 'Empezar gratis',
+    cta: 'Crear cuenta gratis',
     href: '/signup',
   },
   {
     name: 'Pro',
     price: 149,
-    desc: 'Todo incluido · 14 días gratis',
+    desc: 'Todo incluido · 14 días gratis, sin tarjeta',
     features: ['Generación de fotos con IA', 'Importar menú desde foto con IA', 'Pedidos en mesa, para recoger y delivery', 'Pagos online (0% comisión de MENIUS)', 'Promociones, reseñas y lealtad', 'Soporte por chat (respuesta en 2 h)'],
-    cta: 'Probar Pro gratis',
+    cta: 'Prueba Pro 14 días gratis',
     href: '/signup',
     popular: true,
   },
@@ -264,6 +264,7 @@ export default function AIFotosPage() {
       fd.append('image', file);
       fd.append('locale', 'es');
       const res = await fetch('/api/ai/describe', { method: 'POST', body: fd });
+      if (res.status === 401) throw new Error('Para generar descripciones necesitas una cuenta gratis. Regístrate en menius.app/signup.');
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Error al describir imagen');
       setDescription(data);
@@ -298,7 +299,7 @@ export default function AIFotosPage() {
               Iniciar sesión
             </Link>
             <Link href="/signup" className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-sm font-bold text-white transition-colors">
-              Empezar gratis <ChevronRight className="w-3.5 h-3.5" />
+              Prueba Pro gratis <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
@@ -469,7 +470,7 @@ export default function AIFotosPage() {
               <p className="text-center text-xs text-gray-400">
                 {mode === 'enhance' ? '3 mejoras gratis por hora · Sin registro requerido' :
                  mode === 'generate' ? '2 generaciones gratis por hora · Sin registro' :
-                 'Gratis · Sin registro'}
+                 'Gratis · Requiere cuenta gratis'}
               </p>
             </div>
 
@@ -675,10 +676,10 @@ export default function AIFotosPage() {
       <section className="bg-orange-500 py-16 px-4">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-3">
-            Empieza gratis hoy
+            Prueba Pro 14 días gratis
           </h2>
           <p className="text-orange-100 mb-8">
-            Incluido en el plan Pro de MENIUS, con 14 días gratis. Sin costo adicional.
+            Las fotos con IA vienen incluidas en el plan Pro, sin costo adicional. Después de la prueba sigues en Pro o pasas al plan Free.
           </p>
           <Link
             href="/signup"

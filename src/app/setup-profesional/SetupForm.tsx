@@ -181,7 +181,7 @@ export function SetupForm({ packages, locale = 'es' }: { packages: PackageOption
             >
               <p className={`text-sm font-semibold ${form.package_id === pkg.id ? 'text-white' : 'text-gray-300'}`}>{pkg.name}</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                ${pkg.price} {pkg.id === 'soporte-mensual' ? s.priceMonthly : s.priceOneTime}
+                ${pkg.price.toLocaleString('en-US')} {s.priceOneTime}
               </p>
             </button>
           ))}

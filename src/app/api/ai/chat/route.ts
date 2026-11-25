@@ -118,7 +118,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     supabase
       .from("orders")
       .select(
-        "id, order_number, status, total, order_type, payment_method, payment_status, customer_name, customer_phone, delivery_address, discount_amount, created_at",
+        "id, order_number, status, total, order_type, payment_method, payment_status, discount_amount, created_at",
       )
       .eq("restaurant_id", restaurantId)
       .gte("created_at", todayStart)
@@ -126,7 +126,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     supabase
       .from("orders")
       .select(
-        "id, status, total, order_type, payment_method, payment_status, customer_name, customer_phone, created_at",
+        "id, status, total, order_type, payment_method, payment_status, created_at",
       )
       .eq("restaurant_id", restaurantId)
       .gte("created_at", weekAgo)
@@ -166,7 +166,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     supabase
       .from("customers")
       .select(
-        "id, name, phone, email, total_orders, total_spent, last_order_at, tags",
+        "id, name, total_orders, total_spent, last_order_at, tags",
       )
       .eq("restaurant_id", restaurantId)
       .order("total_spent", { ascending: false })
@@ -174,7 +174,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
     // Customers at churn risk: haven't ordered in 21+ days but have 2+ orders
     supabase
       .from("customers")
-      .select("name, phone, total_orders, last_order_at")
+      .select("name, total_orders, last_order_at")
       .eq("restaurant_id", restaurantId)
       .lt("last_order_at", riskThreshold)
       .gte("total_orders", 2)
@@ -600,7 +600,7 @@ Signs a restaurant needs onboarding help: no address, no phone, no schedule, 0 p
 PLANS, PRICING & PAYMENTS (source of truth — answer exactly this; never invent other plans, prices, discounts or features):
 Plans on sale:
   · Free — $0. Digital menu + QR (up to 5 tables), up to 15 products, unlimited orders. Dine-in orders paid in cash only. Email support. Shows "Powered by MENIUS" branding. Does NOT include pickup, delivery, online payments, AI features, analytics or email notifications.
-  · Pro — $149/month or $1,490/year (2 months free). In Colombia the price is the same, in US dollars: $149 USD/month or $1,490 USD/year (never quote COP prices). Includes: unlimited products and categories, QR for up to 50 tables, dine-in + pickup + delivery orders, online card payments (0% MENIUS commission), custom domain, no MENIUS branding on the menu, import menu from a photo with AI, AI image generation, MENIUS AI (this assistant), full analytics, real-time kitchen KDS, sound and email notifications, promotions and coupons, customer reviews, loyalty program, 5 users, PDF/CSV report export, chat support (2h response).
+  · Pro — $149/month or $1,490/year (2 months free). In Colombia the price is the same, in US dollars: $149 USD/month or $1,490 USD/year (never quote COP prices). Includes: unlimited products and categories, QR for up to 50 tables, dine-in + pickup + delivery orders, online card payments (0% MENIUS commission), custom domain, no MENIUS branding on the menu, import menu from a photo with AI, AI image generation, MENIUS AI (this assistant), full analytics, real-time kitchen KDS, sound and email notifications, promotions and coupons, customer reviews, loyalty program, order tablet for the staff (linked with a code, no per-employee accounts), PDF/CSV report export, chat support (2h response).
   · Pro does NOT include multiple branches or API access.
   · Pro is the ONLY paid plan sold. If CURRENT DATA shows another plan name (e.g. Starter or Business), it is a legacy plan the account already has: you may describe it as their current plan, but never offer, price or recommend it.
 Trial:
@@ -647,7 +647,7 @@ INVENTORY GUIDE:
 MARKETING:
 - Email campaigns: best for reactivating lapsed customers and rewarding VIPs. Segment first.
 - Social media AI generator: pick platform + post type → caption, hashtags, posting tips.
-- Automations: the panel is informational. They activate on their own once the restaurant has email notifications enabled and an email on file — there is no on/off switch to flip.
+- Automations: order status emails are always on. The marketing automations (reorder reminders, "we miss you", etc.) come OFF by default: the owner turns each one on in Marketing → Automations, and they only go to customers who accepted offers.
 
 PROMOTION STRATEGY:
 - "Free dessert with order over $X" beats "10% off" (higher perceived value, lower cost).
@@ -853,7 +853,7 @@ async function executeTool(
     const { data: rawOrders } = await supabase
       .from("orders")
       .select(
-        "id, order_number, status, total, order_type, customer_name, customer_phone, created_at, payment_method, payment_status",
+        "id, order_number, status, total, order_type, customer_name, created_at, payment_method, payment_status",
       )
       .eq("restaurant_id", restaurantId)
       .gte("created_at", todayStart)
@@ -909,7 +909,7 @@ async function executeTool(
     const { data: customers } = await supabase
       .from("customers")
       .select(
-        "id, name, phone, email, total_orders, total_spent, last_order_at, tags, notes, created_at",
+        "id, name, total_orders, total_spent, last_order_at, tags, notes, created_at",
       )
       .eq("restaurant_id", restaurantId)
       .or(
@@ -936,9 +936,10 @@ async function executeTool(
             ? "VIP"
             : "regular";
 
+      // Teléfono y email del comensal NO salen hacia Anthropic (minimización
+      // de datos; la política de privacidad lo promete). El dueño los ve en
+      // Clientes. La búsqueda sigue aceptando un teléfono que él mismo escriba.
       lines.push(`--- ${c.name || "No name"} ---`);
-      if (c.phone) lines.push(`Phone: ${c.phone}`);
-      if (c.email) lines.push(`Email: ${c.email}`);
       lines.push(
         `Orders: ${c.total_orders} | Spent: $${Number(c.total_spent).toFixed(2)} | Segment: ${segment}`,
       );
@@ -1181,7 +1182,7 @@ export async function POST(request: NextRequest) {
     {
       name: "get_customer_detail",
       description:
-        "Look up one customer by name or phone: order history, total spent, tags. Use when the owner asks about a specific customer.",
+        "Look up one customer by name or phone: order history, total spent, tags. Use when the owner asks about a specific customer. Contact details (phone, email) are never returned: for those, point the owner to Customers in the dashboard.",
       input_schema: {
         type: "object" as const,
         properties: {
