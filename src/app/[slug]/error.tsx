@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState } from 'react';
 
 export default function MenuError({
@@ -12,7 +11,7 @@ export default function MenuError({
 }) {
   useEffect(() => {
     console.error('[MenuPage] rendering error:', error);
-    Sentry.captureException(error);
+    void import('@sentry/nextjs').then((S) => S.captureException(error)).catch(() => {});
   }, [error]);
   // Idioma del cliente (no sabemos el del restaurante si el menú no cargó).
   const [en, setEn] = useState(false);

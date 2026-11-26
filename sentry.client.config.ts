@@ -1,4 +1,9 @@
-import * as Sentry from '@sentry/nextjs';
+// Sentry se importa aparte (no fijo): en las páginas públicas eran ~88 KB
+// comprimidos que el celular bajaba antes de pintar la portada del menú.
+// Panel, Counter, KDS y demás pantallas del staff lo arrancan enseguida; las
+// públicas, cuando la página terminó de cargar. Un error en esos primeros
+// segundos de una página pública no se reporta: es el precio, chico.
+type SentryModule = typeof import('@sentry/nextjs');
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
@@ -17,7 +22,7 @@ const STAFF_PATH =
 const isStaffPage = STAFF_PATH.test(window.location.pathname);
 const publicReplaySampled = !isStaffPage && Math.random() < REPLAY_SESSION_RATE;
 
-if (dsn) {
+function initSentry(Sentry: SentryModule) {
   Sentry.init({
     dsn,
     environment: process.env.NODE_ENV,
@@ -116,5 +121,27 @@ if (dsn) {
     } else {
       window.setTimeout(loadReplay, 3000);
     }
+  }
+}
+
+function startSentry() {
+  import('@sentry/nextjs').then(initSentry).catch(() => {
+    // Bloqueado (adblock) u offline: la página sigue igual, sin reportes.
+  });
+}
+
+if (dsn) {
+  if (isStaffPage) {
+    startSentry();
+  } else {
+    const whenIdle = () => {
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(startSentry, { timeout: 3000 });
+      } else {
+        window.setTimeout(startSentry, 1500);
+      }
+    };
+    if (document.readyState === 'complete') whenIdle();
+    else window.addEventListener('load', whenIdle, { once: true });
   }
 }

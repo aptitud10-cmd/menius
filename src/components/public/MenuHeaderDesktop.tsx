@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Search, X, ArrowLeft, LayoutDashboard, Clock, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { loadSupabaseBrowser } from '@/lib/supabase/browser-lazy';
 import { getTranslations } from '@/lib/translations';
 import { LanguageMenu } from './LanguageMenu';
 import type { MenuHeaderProps } from './MenuHeader';
@@ -20,8 +20,8 @@ import { HeaderCartButton } from './HeaderCartButton';
 let _sessionCache: Promise<boolean> | null = null;
 function checkIsLoggedIn(): Promise<boolean> {
   if (!_sessionCache) {
-    _sessionCache = getSupabaseBrowser()
-      .auth.getSession()
+    _sessionCache = loadSupabaseBrowser()
+      .then((s) => s.auth.getSession())
       .then(({ data }) => !!data.session)
       .catch(() => false);
   }

@@ -2,7 +2,6 @@
 
 import { Component, type ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
-import { captureError } from '@/lib/error-reporting';
 
 interface Props {
   children: ReactNode;
@@ -44,11 +43,12 @@ export class MenuErrorBoundary extends Component<Props, State> {
       console.error(`[MenuErrorBoundary] section="${this.props.section}"`, error, info);
     }
     // React error boundaries don't report to Sentry automatically — do it explicitly.
-    captureError(error, {
+    // Import diferido: error-reporting trae Sentry, que no va en el JS inicial del menú.
+    void import('@/lib/error-reporting').then(({ captureError }) => captureError(error, {
       route: 'MenuErrorBoundary',
       section: this.props.section,
       componentStack: info.componentStack,
-    });
+    })).catch(() => {});
   }
 
   private handleRetry = () => {

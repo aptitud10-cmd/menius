@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { RefreshCw } from 'lucide-react';
-import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { loadSupabaseBrowser } from '@/lib/supabase/browser-lazy';
 import { getTranslations } from '@/lib/translations';
 
 interface MenuUpdateBannerProps {
@@ -24,8 +24,10 @@ export function MenuUpdateBanner({ restaurantId, locale, initialPausedUntil = nu
   useEffect(() => {
     if (!restaurantId) return;
 
-    const supabase = getSupabaseBrowser();
-
+    let cancelled = false;
+    let off: (() => void) | null = null;
+    void loadSupabaseBrowser().then((supabase) => {
+    if (cancelled) return;
     const channel = supabase
       .channel(`menu-updates:${restaurantId}`)
       .on(
@@ -51,8 +53,10 @@ export function MenuUpdateBanner({ restaurantId, locale, initialPausedUntil = nu
         () => setHasUpdate(true)
       )
       .subscribe();
+    off = () => { void supabase.removeChannel(channel); };
+    }).catch(() => { /* sin red */ });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { cancelled = true; off?.(); };
   }, [restaurantId]);
 
   const handleRefresh = useCallback(() => {

@@ -9,7 +9,7 @@ import { memo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { loadSupabaseBrowser } from '@/lib/supabase/browser-lazy';
 import { getTranslations } from '@/lib/translations';
 import { LanguageMenu } from './LanguageMenu';
 import { HeaderCartButton } from './HeaderCartButton';
@@ -19,8 +19,8 @@ import { isRestaurantOpen } from './MenuHeader';
 let _sessionCache: Promise<boolean> | null = null;
 function checkIsLoggedIn(): Promise<boolean> {
   if (!_sessionCache) {
-    _sessionCache = getSupabaseBrowser()
-      .auth.getSession()
+    _sessionCache = loadSupabaseBrowser()
+      .then((s) => s.auth.getSession())
       .then(({ data }) => !!data.session)
       .catch(() => false);
   }

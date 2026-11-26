@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import * as Sentry from "@sentry/nextjs";
 
 /**
  * notFound() señaliza el 404 lanzando un error especial (NEXT_NOT_FOUND). Este
@@ -29,7 +28,7 @@ export default function Error({
 
   useEffect(() => {
     if (isNotFoundError(error)) return; // no es un fallo: es un 404
-    Sentry.captureException(error);
+    void import('@sentry/nextjs').then((S) => S.captureException(error)).catch(() => {});
     setIsEs(!navigator.language.toLowerCase().startsWith("en"));
   }, [error]);
 

@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 
 export default function TableMenuError({
@@ -12,7 +11,7 @@ export default function TableMenuError({
 }) {
   useEffect(() => {
     console.error('[TableMenuPage] rendering error:', error);
-    Sentry.captureException(error);
+    void import('@sentry/nextjs').then((S) => S.captureException(error)).catch(() => {});
   }, [error]);
 
   return (

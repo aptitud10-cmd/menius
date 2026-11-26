@@ -39,8 +39,9 @@ import { trackEvent } from "@/lib/analytics";
 import { trackStoreEvent } from "@/lib/store-traffic";
 
 import { useCheckoutStore } from "@/lib/store/checkoutStore";
-import { getSupabaseBrowser } from "@/lib/supabase/browser";
-import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+// Supabase se carga después de pintar (no va en el JS inicial del menú).
+import { loadSupabaseBrowser, type BrowserSupabase } from "@/lib/supabase/browser-lazy";
+import type { RealtimePostgresChangesPayload, RealtimeChannel } from "@supabase/supabase-js";
 import { supabaseLoader } from "@/lib/image-loader";
 import { wheelToHorizontal } from "@/lib/wheel-to-horizontal";
 import { StoreConfigProvider } from "@/lib/store-config-context";
@@ -559,7 +560,10 @@ export function MenuShell({
   useEffect(() => {
     if (!restaurant.id) return;
 
-    const supabase = getSupabaseBrowser();
+    let cancelled = false;
+    let off: (() => void) | null = null;
+    void loadSupabaseBrowser().then((supabase) => {
+    if (cancelled) return;
     const channel = supabase
       .channel(`products-stock-${restaurant.id}`)
       .on(
@@ -609,9 +613,12 @@ export function MenuShell({
         },
       )
       .subscribe();
+    off = () => { void supabase.removeChannel(channel); };
+    }).catch(() => { /* sin red: los badges se actualizan al recargar */ });
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      off?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurant.id]);
@@ -625,12 +632,15 @@ export function MenuShell({
   useEffect(() => {
     if (!restaurant.id) return;
 
-    let channel: ReturnType<ReturnType<typeof getSupabaseBrowser>["channel"]> | null = null;
+    let channel: RealtimeChannel | null = null;
+    let client: BrowserSupabase | null = null;
     let cancelled = false;
 
     const open = () => {
       if (cancelled) return;
-      const supabase = getSupabaseBrowser();
+      void loadSupabaseBrowser().then((supabase) => {
+      if (cancelled) return;
+      client = supabase;
       channel = supabase
         .channel(`restaurant-pause:${restaurant.id}`)
         .on(
@@ -653,6 +663,7 @@ export function MenuShell({
           },
         )
         .subscribe();
+      }).catch(() => { /* sin red: la pausa se ve al recargar */ });
     };
 
     const hasIdle = typeof window.requestIdleCallback === "function";
@@ -667,7 +678,7 @@ export function MenuShell({
       } else {
         window.clearTimeout(idleId as number);
       }
-      if (channel) getSupabaseBrowser().removeChannel(channel);
+      if (channel && client) void client.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurant.id]);
@@ -736,10 +747,10 @@ export function MenuShell({
       return;
     }
     let cancelled = false;
-    const supabase = getSupabaseBrowser();
 
     async function fetchSuggestions() {
       try {
+        const supabase = await loadSupabaseBrowser();
         // Fetch pairings and co-occurrence in parallel
         const [{ data: pairingRows }, { data: coRows }] = await Promise.all([
           supabase
@@ -1785,7 +1796,7 @@ export function MenuShell({
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await getSupabaseBrowser()
+        const { data } = await (await loadSupabaseBrowser())
           .from("product_pairings")
           .select("product_id, paired_id, sort_order")
           .in("product_id", ids)
