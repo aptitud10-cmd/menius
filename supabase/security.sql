@@ -435,6 +435,19 @@ CREATE POLICY owners_read_store_traffic ON public.store_traffic_daily FOR SELECT
 -- SECURITY INVOKER: la RLS de orders (owners_manage_orders) decide. EXECUTE
 -- solo authenticated; anon y public sin permiso (verificado 2026-11-25).
 
+-- ── Tablet y plata (2026-11-26, migración 20261128_tablet_money_guard) ────
+-- Las políticas de arriba no distinguen la tablet del dueño. Triggers BEFORE
+-- (no políticas) lo hacen en las columnas de plata:
+--   guard_tablet_orders_money        orders: montos/pago y DELETE → ninguna tablet
+--   guard_tablet_order_items         order_items: toda escritura → ninguna tablet
+--   guard_tablet_restaurant_payments restaurants: cobro/impuesto/moneda/país/
+--                                    stripe/mp/wompi/plan/dominio y DELETE → ninguna tablet
+--   guard_tablet_menu_prices         products/product_variants/product_extras/
+--                                    modifier_options: precios y alta/baja → solo con panel PIN
+-- Funciones: current_session_is_device(), current_session_is_locked_tablet()
+-- (SECURITY DEFINER, EXECUTE solo authenticated). Verificado 2026-11-26 en prod
+-- con una sesión de tablet simulada en transacción deshecha: 11/11 casos OK.
+
 -- ── style_anchors ──────────────────────────────────────────────────────
 CREATE POLICY "Owners manage their style anchors" ON public.style_anchors FOR ALL TO public
   USING ((restaurant_id IN ( SELECT restaurants.id
