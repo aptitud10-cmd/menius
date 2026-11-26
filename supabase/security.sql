@@ -445,8 +445,17 @@ CREATE POLICY owners_read_store_traffic ON public.store_traffic_daily FOR SELECT
 --   guard_tablet_menu_prices         products/product_variants/product_extras/
 --                                    modifier_options: precios y alta/baja → solo con panel PIN
 -- Funciones: current_session_is_device(), current_session_is_locked_tablet()
--- (SECURITY DEFINER, EXECUTE solo authenticated). Verificado 2026-11-26 en prod
--- con una sesión de tablet simulada en transacción deshecha: 11/11 casos OK.
+-- (SECURITY DEFINER, EXECUTE authenticated y service_role; anon no). Verificado
+-- 2026-11-26 en prod con una sesión de tablet simulada en transacción deshecha:
+-- 11/11 casos OK.
+
+-- ── Tablet: clientes y caja (2026-11-26, migración 20261129) ────────────
+--   customers_no_locked_tablet  RESTRICTIVE FOR ALL TO authenticated: la tablet
+--                               sin PIN no lee ni escribe customers (se suma a
+--                               customers_owner_access). Las marcas de "cliente
+--                               problema" del Counter las lee/escribe el servidor.
+--   guard_tablet_shifts         shifts: toda escritura → ninguna tablet. Abrir y
+--                               cerrar turno lo hace el servidor (service role).
 
 -- ── style_anchors ──────────────────────────────────────────────────────
 CREATE POLICY "Owners manage their style anchors" ON public.style_anchors FOR ALL TO public

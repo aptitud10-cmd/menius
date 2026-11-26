@@ -2175,14 +2175,17 @@ export async function updateOrderStatus(
   // El cliente queda marcado desde el primer incidente (decisión de Pedro).
   const customerId = (order as { customer_id?: string | null }).customer_id ?? null;
   if (incident && customerId) {
-    const { data: cust } = await supabase
+    // Admin: la tablet sin PIN no lee ni escribe customers (migración 20261129).
+    // El pedido ya se verificó contra el restaurante autenticado.
+    const custDb = createAdminClient();
+    const { data: cust } = await custDb
       .from("customers")
       .select("incident_count")
       .eq("id", customerId)
       .eq("restaurant_id", restaurantId)
       .maybeSingle();
     if (cust) {
-      const { error: custErr } = await supabase
+      const { error: custErr } = await custDb
         .from("customers")
         .update({
           incident_count: (cust.incident_count ?? 0) + 1,
@@ -2651,7 +2654,13 @@ export async function switchRestaurant(restaurantId: string) {
 
 // ── Shifts (Cierre de Caja) ─────────────────────────────────────────────
 
+/** Efectivo de caja: número finito, 0 a 1.000.000 (lo escribe el admin client). */
+function validCashAmount(n: unknown): n is number {
+  return typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1_000_000;
+}
+
 export async function openShift(openingCash: number) {
+  if (!validCashAmount(openingCash)) return { error: "Monto inválido" };
   const {
     supabase,
     restaurantId,
@@ -2677,7 +2686,8 @@ export async function openShift(openingCash: number) {
   if (openErr) return { error: openErr.message };
   if (open) return { success: true, shift: open, existing: true };
 
-  const { data, error } = await supabase
+  // Admin: ninguna tablet escribe turnos directo (migración 20261129).
+  const { data, error } = await createAdminClient()
     .from("shifts")
     .insert({
       restaurant_id: restaurantId,
@@ -2692,6 +2702,8 @@ export async function openShift(openingCash: number) {
 }
 
 export async function closeShift(closingCash: number, notes?: string) {
+  if (!validCashAmount(closingCash)) return { error: "Monto inválido" };
+  if (notes !== undefined && typeof notes !== "string") return { error: "Nota inválida" };
   const {
     supabase,
     restaurantId,
@@ -2768,7 +2780,9 @@ export async function closeShift(closingCash: number, notes?: string) {
   const expectedCash = Number(shift.opening_cash) + totalCash;
   const cashDifference = closingCash - expectedCash;
 
-  const { data: closed, error: closeErr } = await supabase
+  // Admin: los totales los calcula el servidor; ninguna tablet escribe turnos
+  // directo (migración 20261129).
+  const { data: closed, error: closeErr } = await createAdminClient()
     .from("shifts")
     .update({
       closed_by: user?.id,
@@ -2780,12 +2794,16 @@ export async function closeShift(closingCash: number, notes?: string) {
       total_revenue: totalRevenue,
       total_cash: totalCash,
       total_card: totalCard,
-      notes: notes ?? null,
+      notes: notes ? notes.slice(0, 1000) : null,
     })
     .eq("id", shift.id)
+    .eq("restaurant_id", restaurantId)
+    .is("closed_at", null)
     .select()
     .single();
 
+  // 0 filas: otro dispositivo lo cerró entre la lectura y este update.
+  if (closeErr?.code === "PGRST116") return { error: "No open shift found", noOpenShift: true as const };
   if (closeErr) return { error: closeErr.message };
   return {
     success: true,
@@ -2873,7 +2891,9 @@ export async function getFlaggedCustomers(): Promise<
     allowDevice: true,
   });
   if (authErr) return { error: authErr };
-  const { data, error } = await supabase
+  // Admin: la tablet sin PIN no lee customers (migración 20261129); acá solo
+  // salen el id y la marca, nunca nombre, teléfono ni dirección.
+  const { data, error } = await createAdminClient()
     .from("customers")
     .select("id, incident_count, last_incident, last_incident_at")
     .eq("restaurant_id", restaurantId)
