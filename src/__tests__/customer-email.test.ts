@@ -115,6 +115,9 @@ describe('customer emails', () => {
     const e = buildReviewEmail(base, { reviewUrl: 'https://menius.app/buccaneer/review/abc', unsubscribeUrl: 'https://menius.app/api/unsubscribe?id=c1' });
     for (let r = 1; r <= 5; r++) expect(e.html).toContain(`review/abc?r=${r}`);
     expect(e.html).toContain('Unsubscribe');
+    // "Something wrong?" goes to the private complaint, never to the tracking link with the token.
+    expect(e.html).toContain('review/abc?issue=1');
+    expect(e.html).not.toContain('t=tok');
   });
 
   it('escapes user text', () => {

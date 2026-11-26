@@ -7,7 +7,7 @@ import ReviewPageClient from '@/components/public/ReviewPageClient';
 
 interface PageProps {
   params: { slug: string; orderId: string };
-  searchParams?: { r?: string };
+  searchParams?: { r?: string; issue?: string };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -30,7 +30,7 @@ export default async function ReviewPage({ params, searchParams }: PageProps) {
 
   const { data: order } = await adminDb
     .from('orders')
-    .select('id, status, customer_name, customer_locale, restaurant_id, restaurants(id, name, slug, locale, google_business_url)')
+    .select('id, status, order_type, customer_name, customer_locale, restaurant_id, restaurants(id, name, slug, locale, google_business_url)')
     .eq('id', params.orderId)
     .maybeSingle();
 
@@ -57,6 +57,10 @@ export default async function ReviewPage({ params, searchParams }: PageProps) {
       locale={order.customer_locale ?? restaurant.locale ?? 'es'}
       initialRating={initialRating}
       googleReviewUrl={restaurant.google_business_url ?? null}
+      // "¿Algo salió mal?" del email: queja privada para el restaurante, sin el
+      // link de seguimiento (que lleva nombre, teléfono y dirección del cliente).
+      startWithIssue={searchParams?.issue === '1'}
+      orderType={order.order_type ?? null}
     />
   );
 }

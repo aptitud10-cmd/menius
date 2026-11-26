@@ -613,7 +613,9 @@ export function buildReviewEmail(ctx: CustomerEmailCtx, opts: { reviewUrl: strin
   const blocks = [
     `${heading(name ? (en ? `How was your order, ${esc(name)}?` : `¿Qué tal estuvo tu pedido, ${esc(name)}?`) : (en ? 'How was your order?' : '¿Qué tal estuvo tu pedido?'), 'center')}${summary ? `<div style="height:6px;line-height:6px;">&nbsp;</div><p class="sub" style="margin:0;text-align:center;font-family:${BODY};font-size:15px;color:${T.sub};">${esc(summary)}</p>` : ''}`,
     `<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr>${stars}</tr>${scale}</table>`,
-    `<div style="text-align:center;font-family:${BODY};font-size:14px;">${link(ctx.trackingUrl, en ? 'Something wrong? Tell the restaurant privately' : '¿Algo salió mal? Díselo al restaurante en privado')}</div>`,
+    // A la queja privada de la página de reseñas, no al seguimiento: ese link
+    // lleva el token del pedido (nombre, teléfono, dirección) y este email sale días después.
+    `<div style="text-align:center;font-family:${BODY};font-size:14px;">${link(`${opts.reviewUrl}${sep}issue=1`, en ? 'Something wrong? Tell the restaurant privately' : '¿Algo salió mal? Díselo al restaurante en privado')}</div>`,
   ];
   const footerExtra = opts.unsubscribeUrl
     ? link(opts.unsubscribeUrl, en ? 'Unsubscribe from review requests' : 'No recibir más pedidos de reseña')

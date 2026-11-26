@@ -16,6 +16,9 @@ interface Props {
   initialRating?: number;
   /** restaurants.google_business_url: offered after sending, to EVERYONE. */
   googleReviewUrl?: string | null;
+  /** Vino de "¿Algo salió mal?": abre la queja privada en vez de las estrellas. */
+  startWithIssue?: boolean;
+  orderType?: string | null;
 }
 
 const STAR_LABEL_KEYS = ['starLabel1', 'starLabel2', 'starLabel3', 'starLabel4', 'starLabel5'] as const;
@@ -23,9 +26,15 @@ const STAR_LABEL_KEYS = ['starLabel1', 'starLabel2', 'starLabel3', 'starLabel4',
 const STAR_PATH =
   'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z';
 
-export default function ReviewPageClient({ restaurantId, restaurantName, restaurantSlug, orderId, customerName, locale, initialRating = 0, googleReviewUrl }: Props) {
+export default function ReviewPageClient({ restaurantId, restaurantName, restaurantSlug, orderId, customerName, locale, initialRating = 0, googleReviewUrl, startWithIssue = false, orderType }: Props) {
   const t = getTranslations(locale);
   const en = locale === 'en';
+  const [issueMode, setIssueMode] = useState(startWithIssue);
+  const [reason, setReason] = useState<string | null>(null);
+  // Mismos motivos que "Hubo un problema" en el seguimiento.
+  const reasons = orderType === 'delivery'
+    ? (en ? ['Something was missing', 'It arrived cold', 'It arrived late', 'Other'] : ['Faltó algo', 'Llegó frío', 'Llegó tarde', 'Otra cosa'])
+    : (en ? ['Something was missing', "It wasn't what I ordered", 'Other'] : ['Faltó algo', 'No era lo que pedí', 'Otra cosa']);
   const [rating, setRating] = useState(initialRating);
   const [hovered, setHovered] = useState(0);
   const [name, setName] = useState(customerName);
@@ -41,7 +50,11 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (rating === 0) {
+    if (issueMode && !reason && !comment.trim()) {
+      setError(en ? 'Pick what happened or write a few words.' : 'Elige qué pasó o escribe unas palabras.');
+      return;
+    }
+    if (!issueMode && rating === 0) {
       setError(t.reviewSelectRating);
       return;
     }
@@ -55,8 +68,10 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
           restaurant_id: restaurantId,
           order_id: orderId,
           customer_name: name.trim() || t.reviewAnonymous,
-          rating,
-          comment: comment.trim(),
+          // Queja privada: va al dueño (is_visible=false), no al menú público.
+          rating: issueMode ? 2 : rating,
+          comment: issueMode ? [reason, comment.trim()].filter(Boolean).join(': ') : comment.trim(),
+          ...(issueMode ? { issue: true } : {}),
           _hp: '',
         }),
       });
@@ -74,6 +89,27 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (submitted && issueMode) {
+    return (
+      <div lang={en ? 'en' : 'es'} className="min-h-[100dvh] bg-[#f5f5f3] flex flex-col items-center justify-center px-6 text-center">
+        <div className="max-w-sm w-full">
+          <h1 className="font-menu text-[34px] leading-tight text-gray-900 mb-2">{en ? 'Thanks for telling us' : 'Gracias por contarnos'}</h1>
+          <p className="text-[15px] text-gray-600 mb-8">
+            {en
+              ? `We sent it to ${restaurantName}. It stays private: it isn't published on the menu.`
+              : `Se lo enviamos a ${restaurantName}. Queda privado: no se publica en el menú.`}
+          </p>
+          <Link
+            href={`/${restaurantSlug}`}
+            className="flex items-center justify-center w-full h-12 rounded-full bg-[#05c8a7] text-[#04241E] font-semibold text-[15px] hover:bg-[#04b096] transition-colors"
+          >
+            {t.backToMenu}
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (submitted) {
@@ -142,11 +178,33 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
 
       <div className="flex-1 flex flex-col items-center justify-start px-5 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] max-w-md mx-auto w-full">
         <div className="text-center mb-6 w-full">
-          <h1 className="font-menu text-[34px] leading-tight text-gray-900 mb-1">{t.whatDidYouThink}</h1>
-          <p className="text-[15px] text-gray-600">{t.reviewHelp}</p>
+          <h1 className="font-menu text-[34px] leading-tight text-gray-900 mb-1">{issueMode ? (en ? 'What happened?' : '¿Qué pasó?') : t.whatDidYouThink}</h1>
+          <p className="text-[15px] text-gray-600">
+            {issueMode
+              ? (en ? `Tell ${restaurantName} privately. It isn't published.` : `Cuéntaselo a ${restaurantName} en privado. No se publica.`)
+              : t.reviewHelp}
+          </p>
         </div>
 
         <form ref={formRef} onSubmit={handleSubmit} className="w-full space-y-4">
+          {issueMode ? (
+          <fieldset className="bg-white rounded-2xl p-4 border border-gray-200">
+            <legend className="sr-only">{en ? 'What happened' : 'Qué pasó'}</legend>
+            <div className="flex flex-wrap gap-2">
+              {reasons.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => { setReason(reason === r ? null : r); setError(''); }}
+                  aria-pressed={reason === r}
+                  className={`min-h-[44px] px-4 rounded-full text-[15px] font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] ${reason === r ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'}`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          ) : (
           <fieldset className="bg-white rounded-2xl p-5 border border-gray-200 text-center">
             <legend className="sr-only">{en ? 'Rating' : 'Calificación'}</legend>
             <div className="flex justify-center gap-1.5 mb-2" onMouseLeave={() => setHovered(0)}>
@@ -173,7 +231,9 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
               {starLabel || t.reviewTapStar}
             </p>
           </fieldset>
+          )}
 
+          {!issueMode && (
           <div className="bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#05c8a7] focus-within:ring-2 focus-within:ring-[#05c8a7]/20">
             <label htmlFor="review-name" className="block text-[13px] font-semibold text-gray-600 mb-1">
               {t.reviewYourName}
@@ -189,10 +249,11 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
               className="w-full text-base text-gray-900 placeholder:text-[#6B6B74] bg-transparent focus:outline-none"
             />
           </div>
+          )}
 
           <div className="bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#05c8a7] focus-within:ring-2 focus-within:ring-[#05c8a7]/20">
             <label htmlFor="review-comment" className="block text-[13px] font-semibold text-gray-600 mb-1">
-              {t.reviewComments}
+              {issueMode ? (en ? 'Anything else? (optional)' : '¿Algo más? (opcional)') : t.reviewComments}
             </label>
             <textarea
               id="review-comment"
@@ -200,7 +261,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
               onChange={(e) => setComment(e.target.value)}
               maxLength={500}
               rows={3}
-              placeholder={t.reviewTellUs}
+              placeholder={issueMode ? (en ? 'e.g. the fries were missing' : 'Ej.: faltaron las papas') : t.reviewTellUs}
               className="w-full text-base text-gray-900 placeholder:text-[#6B6B74] bg-transparent focus:outline-none resize-none"
             />
           </div>
@@ -211,11 +272,17 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
 
           <button
             type="submit"
-            disabled={submitting || rating === 0}
+            disabled={submitting || (!issueMode && rating === 0)}
             className="w-full h-[52px] rounded-full bg-[#05c8a7] text-[#04241E] font-semibold text-base hover:bg-[#04b096] active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? t.reviewSubmitting : t.reviewSubmit}
+            {submitting ? t.reviewSubmitting : issueMode ? (en ? 'Send to the restaurant' : 'Enviar al restaurante') : t.reviewSubmit}
           </button>
+          {issueMode && (
+            <button type="button" onClick={() => { setIssueMode(false); setError(''); }}
+              className="w-full min-h-[44px] text-[15px] font-medium text-gray-600 underline underline-offset-2">
+              {en ? 'Everything was fine? Rate your order' : '¿Estuvo todo bien? Califica tu pedido'}
+            </button>
+          )}
         </form>
       </div>
     </div>
