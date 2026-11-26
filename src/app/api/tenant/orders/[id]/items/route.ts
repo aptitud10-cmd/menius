@@ -35,7 +35,9 @@ async function recalcOrderTotals(supabase: SupabaseClient, orderId: string, rest
   const base = Math.max(0, subtotal - discount);
   const tax = computeTaxAmount(base, Number(rest?.tax_rate) || 0, taxIncluded);
   const total = Math.round(Math.max(0, base + tip + deliveryFee + (taxIncluded ? 0 : tax)) * 100) / 100;
-  const { error } = await supabase
+  // Con service role: la base no deja que una tablet cambie montos del pedido
+  // (migración 20261128). El pedido ya se verificó del restaurante arriba.
+  const { error } = await createAdminClient()
     .from('orders')
     .update({ total, tax_amount: tax })
     .eq('id', orderId)
