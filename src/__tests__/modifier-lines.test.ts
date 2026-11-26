@@ -213,3 +213,30 @@ describe('nameWithChoice — el plato se llama por la alternativa elegida', () =
     expect(r.lines).toHaveLength(1);
   });
 });
+
+// Pedro 2026-11-26: el KDS decía "Bacon" aunque el cliente lo pidió crispy, y "Regular"
+// en la cocción de la carne era ruido. El Regular de las burgers sí se queda.
+describe('cocción de la carne elegida', () => {
+  const meat = g('Which meat would you like?', 0, { is_required: true });
+  const cook = g('How would you like your bacon?', 1, { ticket_layout: 'inline', is_required: true, depends_on_option_id: 'Bacon' });
+  const alts = ['Bacon', 'Sausage', 'Ham', 'Turkey Sausage'];
+  const order = (how: string, of = alts) => orderItemModLines({ modifier_lines: JSON.parse(JSON.stringify(buildModLines([
+    { group: meat, options: [o('Bacon')], allOptions: of },
+    { group: cook, options: [o(how)], allOptions: ['Soft', 'Regular', 'Crispy', 'Extra Crispy'] },
+  ]))) });
+
+  it('la cocción queda en el nombre del plato', () => {
+    expect(withTitle('Side of Bacon, Sausage, Ham or Turkey Sausage', order('Crispy')))
+      .toEqual({ name: 'Side of Bacon / Crispy', lines: [], price: 0 });
+    expect(withTitle('Ham, Bacon or Sausage Omelette', order('Extra Crispy', ['Ham', 'Bacon', 'Sausage'])).name).toBe('Bacon Omelette / Extra Crispy');
+  });
+
+  it('Regular no se escribe', () => {
+    expect(withTitle('Side of Bacon, Sausage, Ham or Turkey Sausage', order('Regular')).name).toBe('Side of Bacon');
+  });
+
+  it('el Regular de la burger (pregunta del plato) se sigue escribiendo', () => {
+    const style = g('Regular or Deluxe?', 0, { ticket_layout: 'inline' });
+    expect(withTitle('Cheeseburger', buildModLines([{ group: style, options: [o('Regular')] }])).name).toBe('Cheeseburger Regular');
+  });
+});

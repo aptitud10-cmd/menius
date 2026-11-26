@@ -111,7 +111,11 @@ export function buildModLines(selections: LineSelection[]): ModLine[] {
         continue;
       }
       if (parent && layout === 'inline') {
-        parent.text += ` / ${text}`;
+        // "Regular" en la cocción de una carne es lo normal y en cocina no se escribe:
+        // "Side of Bacon", y solo lo distinto ("Side of Bacon / Crispy"). Pedro 2026-11-26.
+        // Ojo: el Regular de las burgers es una pregunta del plato (no cuelga de otra
+        // opción) y sí se imprime, porque significa sin lettuce & tomato y sin papas.
+        if (!/^regular$/i.test(o.name.trim())) parent.text += ` / ${text}`;
         parent.price = round2(parent.price + price);
         if (addon && price > 0) parent.addon = true;
         nodeByOption.set(o.id, parent);
@@ -220,11 +224,23 @@ export function withTitle(name: string, lines: ModLine[]): { name: string; lines
   }
   const parts = lines.filter((l) => l.title);
   if (parts.length === 0 && !chosen) return { name, lines, price: 0 };
+  // Lo que va pegado a la elección ("Bacon / Crispy") pasa al nombre: antes se perdía y
+  // el KDS decía solo "Bacon" aunque el cliente lo pidió crispy.
+  if (chosen) base += attachedTo(chosen);
   return {
     name: [base, ...parts.map((p) => p.text)].join(' '),
     lines: lines.filter((l) => !l.title && l !== chosen),
     price: linesTotal(chosen ? [...parts, chosen] : parts),
   };
+}
+
+/** " / Crispy" de "Bacon / Crispy" (la elección es "Bacon"); "" si no hay nada pegado. */
+function attachedTo(line: ModLine): string {
+  if (!line.choice) return '';
+  const option = renderTicketLabel(null, line.choice.option);
+  if (line.text.startsWith(option)) return line.text.slice(option.length);
+  const i = line.text.indexOf(' / ');
+  return i >= 0 ? line.text.slice(i) : '';
 }
 
 function isChoice(c: unknown): c is { option: string; of: string[] } {
