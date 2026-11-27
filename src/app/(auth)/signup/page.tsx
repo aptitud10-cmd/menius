@@ -219,10 +219,11 @@ export default function SignupPage() {
               ) : (
                 <div className="form">
                   {/* Google first — como Vercel / Linear */}
-                  <Link href="/auth/google?flow=signup" className="btn-google">
+                  {/* <a>, no <Link>: ver login/page.tsx (el prefetch arrancaba el OAuth). */}
+                  <a href="/auth/google?flow=signup" className="btn-google">
                     <GoogleIcon />
                     {t.google}
-                  </Link>
+                  </a>
                   <div className="or" role="separator">{t.or}</div>
 
                   <form onSubmit={handleSubmit} className="form-contents">

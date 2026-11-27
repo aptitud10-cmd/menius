@@ -89,13 +89,16 @@ export default function LoginPage() {
               {/* Google first — not offered inside the Counter app (see inCounterApp) */}
               {!inCounterApp && (
                 <>
-                  <Link
+                  {/* <a>, no <Link>: /auth/google es un route handler que redirige a
+                      Google. Link lo precargaba al verse el botón, arrancando el OAuth
+                      en cada visita (y el navegador bloqueaba el salto por CSP). */}
+                  <a
                     href={next ? `/auth/google?flow=login&next=${encodeURIComponent(next)}` : '/auth/google?flow=login'}
                     className="btn-google"
                   >
                     <GoogleIcon />
                     {t.google}
-                  </Link>
+                  </a>
                   <div className="or" role="separator">{t.or}</div>
                 </>
               )}
