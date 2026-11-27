@@ -68,9 +68,15 @@ export function V2Nav({
               { href: how, label: c.nav.how },
               { href: pricing, label: c.nav.pricing },
               { href: '/demo', label: c.nav.demo },
-              { href: '/login', label: c.nav.signIn },
-              { href: TEL, label: SUPPORT_CONTACT.phoneDisplay, className: 'menu-phone' },
             ]}
+            signIn={{ href: '/login', label: c.nav.signIn }}
+            cta={ctaSlot ? null : { href: '/signup', label: c.nav.tryPro }}
+            contact={{
+              label: c.hero.talk,
+              phoneDisplay: SUPPORT_CONTACT.phoneDisplay,
+              tel: TEL,
+              whatsapp: supportWhatsAppUrl(),
+            }}
           />
         </div>
       </div>

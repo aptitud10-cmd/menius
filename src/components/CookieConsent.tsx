@@ -12,7 +12,7 @@ const COOKIE_KEY = 'menius-cookie-consent';
 // Allowlist en vez de blocklist: una tienda nueva nunca dispara el banner, y
 // las áreas logueadas (dashboard, counter, kds, driver) tampoco lo necesitan.
 const MARKETING_PATHS = new Set([
-  '/', '/blog', '/demo', '/faq', '/changelog', '/cookies',
+  '/', '/blog', '/demo', '/faq', '/changelog', '/cookies', '/accessibility',
   '/privacy', '/terms', '/status', '/support', '/setup-profesional', '/ai-fotos',
 ]);
 
@@ -22,10 +22,11 @@ function isMarketingPath(pathname: string): boolean {
   return pathname.startsWith('/blog/');
 }
 
+// Mismo criterio que el middleware y la landing: inglés salvo que la cookie diga es.
 function getLocale(): 'es' | 'en' {
-  if (typeof document === 'undefined') return 'es';
+  if (typeof document === 'undefined') return 'en';
   const match = document.cookie.match(/menius_locale=(\w+)/);
-  return match?.[1] === 'en' ? 'en' : 'es';
+  return match?.[1] === 'es' ? 'es' : 'en';
 }
 
 const t = {
@@ -43,7 +44,7 @@ const t = {
 
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false);
-  const [locale, setLocale] = useState<'es' | 'en'>('es');
+  const [locale, setLocale] = useState<'es' | 'en'>('en');
   const pathname = usePathname();
 
   useEffect(() => {
@@ -65,20 +66,23 @@ export default function CookieConsent() {
 
   const s = t[locale];
 
+  // Estilo claro de la landing: papel, tinta y el verde de la marca (#047A65).
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-fade-in-up">
-      <div className="max-w-xl mx-auto bg-brand-950 border border-white/10 rounded-2xl shadow-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-300 leading-relaxed">
-            {s.text}{' '}
-            <Link href="/cookies" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">
-              {s.link}
-            </Link>
-          </p>
-        </div>
+    <div
+      role="region"
+      aria-label={locale === 'en' ? 'Cookie notice' : 'Aviso de cookies'}
+      className="fixed bottom-0 left-0 right-0 z-[9999] px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-fade-in-up"
+    >
+      <div className="max-w-xl mx-auto bg-[#FFFDF8] border border-[#DAD0BF] rounded-2xl shadow-[0_1px_2px_rgba(28,25,21,.06),0_18px_40px_-16px_rgba(28,25,21,.28)] p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <p className="flex-1 min-w-0 text-[15px] leading-relaxed text-[#4E473E]">
+          {s.text}{' '}
+          <Link href="/cookies" className="whitespace-nowrap font-semibold text-[#1C1915] underline underline-offset-4 decoration-[1.5px]">
+            {s.link}
+          </Link>
+        </p>
         <button
           onClick={accept}
-          className="flex-shrink-0 px-5 py-2 rounded-xl bg-brand-500 text-brand-950 text-sm font-bold hover:bg-brand-400 transition-all"
+          className="flex-shrink-0 min-h-[44px] px-6 rounded-xl bg-[#047A65] text-white text-[15px] font-semibold hover:bg-[#035E4E] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#047A65]"
         >
           {s.accept}
         </button>
