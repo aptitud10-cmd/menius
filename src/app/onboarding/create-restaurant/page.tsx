@@ -254,7 +254,7 @@ function CreateRestaurantPageInner() {
     }
     const parsed = getCreateRestaurantSchema(uiLocale).safeParse({ name, slug, country_code: countryCode, timezone, currency, locale });
     if (!parsed.success) {
-      setError(parsed.error.errors[0].message);
+      setError(parsed.error.issues[0].message);
       return;
     }
 

@@ -6,10 +6,10 @@ import { computeTaxAmount } from '@/lib/tax-presets';
 import { z } from 'zod';
 
 const quoteItemSchema = z.object({
-  product_id: z.string().uuid(),
-  variant_id: z.string().uuid().nullable().optional(),
+  product_id: z.guid(),
+  variant_id: z.guid().nullable().optional(),
   qty: z.number().int().min(1).max(99),
-  extras: z.array(z.object({ extra_id: z.string().uuid() })).default([]),
+  extras: z.array(z.object({ extra_id: z.guid() })).default([]),
   modifiers: z.array(z.object({
     group_id: z.string(),
     option_id: z.string(),
@@ -17,11 +17,11 @@ const quoteItemSchema = z.object({
 });
 
 const quoteSchema = z.object({
-  restaurant_id: z.string().uuid(),
+  restaurant_id: z.guid(),
   order_type: z.enum(['dine_in', 'pickup', 'delivery']).default('dine_in'),
   items: z.array(quoteItemSchema).min(1).max(50),
   promo_code: z.string().max(50).optional(),
-  loyalty_account_id: z.string().uuid().nullable().optional(),
+  loyalty_account_id: z.guid().nullable().optional(),
   loyalty_points_redeemed: z.number().min(0).default(0),
   tip_amount: z.number().min(0).max(1000).default(0),
 });
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = quoteSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
 
     const { restaurant_id, order_type, items, promo_code, loyalty_account_id, loyalty_points_redeemed, tip_amount } = parsed.data;

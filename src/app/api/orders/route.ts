@@ -233,13 +233,13 @@ export async function POST(request: NextRequest) {
     });
     if (!parsed.success) {
       logger.warn("Order validation failed", {
-        errors: parsed.error.errors,
+        errors: parsed.error.issues,
         restaurant_id,
       });
       // Mensaje en el idioma del cliente (antes salía el texto de Zod en
       // español también en tiendas en inglés) y, si es un dato de contacto,
       // con código para que el checkout ofrezca "Edit contact".
-      const field = String(parsed.error.errors[0].path[0] ?? "");
+      const field = String(parsed.error.issues[0].path[0] ?? "");
       const enMsg = sentLocale === "en";
       const contactMsg: Record<string, [string, string]> = {
         customer_name: ["Please enter your name.", "Escribe tu nombre."],

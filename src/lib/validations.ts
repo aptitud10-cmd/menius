@@ -107,9 +107,12 @@ export const tableSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
 });
 
+// z.guid(), no z.uuid(): Zod 4 exige el formato RFC 4122 en uuid(), y en la base hay
+// ids que no lo cumplen (26 platos, 41 categorías y ~2.900 opciones de Buccaneer,
+// p. ej. c1000001-0000-0000-0000-000000000001). Con uuid() esos pedidos fallarían.
 const uuidOrNull = z.preprocess(
   (v) => (v === '' || v === undefined ? null : v),
-  z.string().uuid().nullable()
+  z.guid().nullable()
 );
 
 const PHONE_RE = /^[+\d\s\-().]+$/;
@@ -125,7 +128,7 @@ export const publicOrderSchema = z.object({
   notes: z.string().default(''),
   tip_amount: z.number().min(0, 'La propina no puede ser negativa').max(1000, 'Propina máxima: $1,000').optional(),
   items: z.array(z.object({
-    product_id: z.string().uuid(),
+    product_id: z.guid(),
     variant_id: uuidOrNull,
     qty: z.number().int('La cantidad debe ser un número entero').min(1).max(99, 'Cantidad máxima por producto: 99'),
     // unit_price and line_total are optional — server always recalculates from DB
@@ -133,7 +136,7 @@ export const publicOrderSchema = z.object({
     line_total: z.number().optional().default(0),
     notes: z.string().default(''),
     extras: z.array(z.object({
-      extra_id: z.string().uuid(),
+      extra_id: z.guid(),
       price: z.number().optional().default(0), // server recalculates from DB
     })).default([]),
     modifiers: z.array(z.object({
@@ -147,8 +150,8 @@ export const publicOrderSchema = z.object({
 }).superRefine((d, ctx) => {
   const phone = d.customer_phone.trim();
   if (d.order_type === 'dine_in' && phone === '') return;
-  if (phone.length < 7) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['customer_phone'], message: 'Teléfono requerido' });
-  else if (!PHONE_RE.test(phone)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['customer_phone'], message: 'Teléfono inválido' });
+  if (phone.length < 7) ctx.addIssue({ code: "custom", path: ['customer_phone'], message: 'Teléfono requerido' });
+  else if (!PHONE_RE.test(phone)) ctx.addIssue({ code: "custom", path: ['customer_phone'], message: 'Teléfono inválido' });
 });
 
 // ── Billing schemas ──
@@ -193,9 +196,9 @@ export const promotionSchema = z.object({
 }).superRefine((data, ctx) => {
   if (data.discount_type === 'percentage' && data.discount_value > 100) {
     ctx.addIssue({
-      code: z.ZodIssueCode.too_big,
+      code: 'too_big',
       maximum: 100,
-      type: 'number',
+      origin: 'number',
       inclusive: true,
       path: ['discount_value'],
       message: 'El descuento porcentual no puede superar el 100%',
@@ -204,8 +207,8 @@ export const promotionSchema = z.object({
 });
 
 export const reviewSubmitSchema = z.object({
-  restaurant_id: z.string().uuid(),
-  order_id: z.string().uuid().optional(),
+  restaurant_id: z.guid(),
+  order_id: z.guid().optional(),
   customer_name: z.string().min(1).max(100),
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(500).default(''),
@@ -236,14 +239,14 @@ export const restaurantUpdateSchema = z.object({
 // ── Payment schemas ──
 
 export const paymentIntentSchema = z.object({
-  order_id: z.string().uuid(),
+  order_id: z.guid(),
   amount: z.number().int().min(1),
   currency: z.string().min(3).max(3).default('usd'),
 });
 
 export const paymentCheckoutSchema = z.object({
-  order_id: z.string().uuid(),
-  restaurant_id: z.string().uuid(),
+  order_id: z.guid(),
+  restaurant_id: z.guid(),
   amount: z.number().int().min(1),
   currency: z.string().min(3).max(3).default('usd'),
   customer_email: z.string().email().optional(),

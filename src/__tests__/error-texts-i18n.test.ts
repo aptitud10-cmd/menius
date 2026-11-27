@@ -80,8 +80,8 @@ describe('/api/orders message language', () => {
 });
 
 describe('signup / login / wizard schemas', () => {
-  const firstMessage = (r: { success: boolean; error?: { errors: { message: string }[] } }) =>
-    r.success ? null : r.error!.errors[0].message;
+  const firstMessage = (r: { success: boolean; error?: { issues: { message: string }[] } }) =>
+    r.success ? null : r.error!.issues[0].message;
 
   it('English messages for the English interface', () => {
     expect(firstMessage(getSignupSchema('en').safeParse({ email: 'nope', password: '12345678' }))).toBe('Enter a valid email.');

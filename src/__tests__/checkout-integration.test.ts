@@ -402,7 +402,7 @@ describe('publicOrderSchema — request validation', () => {
     // Si en mesa lo escribe, igual tiene que ser válido.
     expect(publicOrderSchema.safeParse({ ...validBaseOrder, customer_phone: 'abc', order_type: 'dine_in' }).success).toBe(false);
     const bad = publicOrderSchema.safeParse({ ...noPhone, order_type: 'pickup' });
-    expect(!bad.success && bad.error.errors[0].path[0]).toBe('customer_phone');
+    expect(!bad.success && bad.error.issues[0].path[0]).toBe('customer_phone');
   });
 
   it('rejects a malformed email when one is sent', () => {

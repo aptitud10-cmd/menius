@@ -20,7 +20,7 @@ const logger = createLogger('printers');
 type Err = 'invalid' | 'unauthorized' | 'not_found' | 'no_printer' | 'db';
 export type ActionResult<T> = ({ ok: true } & T) | { ok: false; error: Err };
 
-const uuid = z.string().uuid();
+const uuid = z.guid();
 const nameSchema = z.string().trim().min(1).max(40);
 
 export async function createPrinter(input: unknown): Promise<ActionResult<{ printer: Printer; serverUrl: string }>> {

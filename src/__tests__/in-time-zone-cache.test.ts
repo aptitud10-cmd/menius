@@ -4,15 +4,15 @@ import { formatCurrency, formatCurrencyByCode } from '@/lib/country-config';
 import { compactMenuProducts, expandMenuProducts } from '@/lib/menu-product-wire';
 import type { Product } from '@/types';
 
-// La implementación anterior: el resultado nuevo tiene que ser idéntico.
+// La implementaciÃ³n anterior: el resultado nuevo tiene que ser idÃ©ntico.
 const legacy = (instant: Date, tz: string) => new Date(instant.toLocaleString('en-US', { timeZone: tz }));
 
 describe('inTimeZone con formateador reutilizado', () => {
   const zones = ['America/New_York', 'America/Bogota', 'America/Mexico_City', 'Europe/Madrid', 'Pacific/Honolulu', 'Asia/Kolkata', 'UTC'];
-  it('da lo mismo que toLocaleString en todo el año, incluidos los cambios de hora', () => {
+  it('da lo mismo que toLocaleString en todo el aÃ±o, incluidos los cambios de hora', () => {
     const start = Date.UTC(2026, 0, 1);
     const instants: number[] = [];
-    // cada ~4 h durante un año (cruza medianoches a distintas horas)...
+    // cada ~4 h durante un aÃ±o (cruza medianoches a distintas horas)...
     for (let t = start; t < start + 366 * 86_400_000; t += 247 * 60_000) instants.push(t + 12_345);
     // ...y cada 5 min alrededor de los cambios de hora de EE.UU. y Europa
     for (const day of [Date.UTC(2026, 2, 8), Date.UTC(2026, 10, 1), Date.UTC(2026, 2, 29), Date.UTC(2026, 9, 25)]) {
@@ -25,10 +25,10 @@ describe('inTimeZone con formateador reutilizado', () => {
       }
     }
   }, 30_000);
-  it('fecha inválida → Invalid Date, como antes', () => {
+  it('fecha invÃ¡lida â†’ Invalid Date, como antes', () => {
     expect(Number.isNaN(inTimeZone(new Date('x'), 'UTC').getTime())).toBe(true);
   });
-  it('zona inválida tira RangeError, como antes', () => {
+  it('zona invÃ¡lida tira RangeError, como antes', () => {
     expect(() => inTimeZone(new Date(), 'Nowhere/Nada')).toThrow(RangeError);
   });
 });
@@ -73,5 +73,23 @@ describe('platos compactos de la tienda', () => {
   it('un producto completo (demo) pasa sin cambios', () => {
     const p = full();
     expect(expandMenuProducts([p], R)).toEqual([p]);
+  });
+});
+
+describe('ids de la base en las validaciones (Zod 4)', () => {
+  it('acepta ids que no son UUID RFC 4122 (hay 26 platos asÃ­ en Buccaneer)', async () => {
+    const { publicOrderSchema, promotionSchema } = await import('@/lib/validations');
+    const r = publicOrderSchema.safeParse({
+      customer_name: 'Ana', customer_phone: '+1 347 555 0100', order_type: 'pickup',
+      items: [{ product_id: 'c1000001-0000-0000-0000-000000000001', variant_id: '', qty: 1,
+        extras: [{ extra_id: 'c1000001-0000-0000-0000-000000000002' }], modifiers: [] }],
+    });
+    expect(r.success).toBe(true);
+    expect(publicOrderSchema.safeParse({ customer_name: 'Ana', customer_phone: '+1 347 555 0100', order_type: 'pickup',
+      items: [{ product_id: 'no-es-un-id', qty: 1 }] }).success).toBe(false);
+    // el refine de promociones sigue marcando el campo correcto
+    const p = promotionSchema.safeParse({ code: 'PROMO', discount_type: 'percentage', discount_value: 150 });
+    expect(p.success).toBe(false);
+    if (!p.success) expect(p.error.issues.some((i) => i.path[0] === 'discount_value')).toBe(true);
   });
 });
