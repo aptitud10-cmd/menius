@@ -1,10 +1,9 @@
 
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { LandingNav } from "@/components/landing/LandingNav";
-import { LandingFooter } from "@/components/landing/LandingFooter";
-import type { LandingLocale } from "@/lib/landing-translations";
-import { PrivacyPolicyContent } from "@/components/legal/PrivacyPolicyContent";
+import { V2LegalDoc } from "@/components/landing-v2/V2LegalDoc";
+import { resolveLandingV2Locale, type LandingV2Locale } from "@/lib/landing-v2-copy";
+import { privacyPolicyElement } from "@/components/legal/PrivacyPolicyContent";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -13,15 +12,13 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-function getHero(locale: LandingLocale) {
+function getHero(locale: LandingV2Locale) {
   if (locale === "en")
     return {
-      badge: "Legal",
       title: "Privacy Policy",
       date: "Last updated: November 25, 2026",
     };
   return {
-    badge: "Legal",
     title: "Política de Privacidad",
     date: "Última actualización: 25 de noviembre de 2026",
   };
@@ -29,35 +26,16 @@ function getHero(locale: LandingLocale) {
 
 export default async function PrivacyPage() {
   const cookieStore = await cookies();
-  const locale = (
-    cookieStore.get("menius_locale")?.value === "en" ? "en" : "es"
-  ) as LandingLocale;
+  const locale = resolveLandingV2Locale(cookieStore.get("menius_locale")?.value);
   const hero = getHero(locale);
 
   return (
-    <div className="min-h-screen landing-bg overflow-x-hidden relative noise-overlay">
-      <LandingNav locale={locale} />
-
-      <section className="relative pt-32 pb-12 md:pt-40 md:pb-16 overflow-hidden">
-        <div className="section-glow section-glow-purple" />
-        <div className="relative z-10 max-w-3xl mx-auto px-6">
-          <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">
-            {hero.badge}
-          </p>
-          <h1 className="text-4xl md:text-5xl font-semibold text-white tracking-tight mb-3">
-            {hero.title}
-          </h1>
-          <p className="text-sm text-gray-500">{hero.date}</p>
-        </div>
-      </section>
-
-      <div className="separator-gradient max-w-3xl mx-auto" />
-
-      <main className="relative z-10 max-w-3xl mx-auto px-6 py-12 md:py-16">
-        <PrivacyPolicyContent locale={locale === "en" ? "en" : "es"} />
-      </main>
-
-      <LandingFooter locale={locale} />
-    </div>
+    <V2LegalDoc
+      locale={locale}
+      doc="privacy"
+      title={hero.title}
+      updated={hero.date}
+      content={privacyPolicyElement(locale)}
+    />
   );
 }

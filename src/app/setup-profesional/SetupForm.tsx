@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Loader2, CheckCircle2, Send } from 'lucide-react';
+import { Alert, Spinner } from '@/components/landing-v2/auth-bits';
 import { PhoneField } from '@/components/ui/PhoneField';
 
 interface PackageOption {
@@ -147,146 +147,140 @@ export function SetupForm({ packages, locale = 'es' }: { packages: PackageOption
 
   if (sent) {
     return (
-      <div className="text-center py-16 px-6">
-        <div className="w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-5">
-          <CheckCircle2 className="w-8 h-8 text-purple-400" />
+      <div className="auth-card req-card">
+        <div className="sent" role="status">
+          <div className="env">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 13l4 4L19 7" /></svg>
+          </div>
+          <h2>{s.successTitle}</h2>
+          <p>
+            {s.successPrefix} <b>{s.successHours}</b> {s.successMid} <b>{form.email}</b> {s.successSuffix}
+          </p>
         </div>
-        <h3 className="text-xl font-semibold text-white mb-2">{s.successTitle}</h3>
-        <p className="text-sm text-gray-400 max-w-md mx-auto">
-          {s.successPrefix} <strong className="text-white">{s.successHours}</strong> {s.successMid}{' '}
-          <strong className="text-white">{form.email}</strong> {s.successSuffix}
-        </p>
       </div>
     );
   }
 
-  const inputClasses = 'w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/30 transition-all';
+  // Etiquetas sin el " *" / " (optional)" del texto: la maqueta los muestra aparte.
+  const plain = (label: string) => label.replace(/\s*\*$/, '').replace(/\s*\((optional|opcional)\)$/i, '');
+  const optional = locale === 'es' ? '(opcional)' : '(optional)';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Package selector */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">{s.serviceLabel}</label>
-        <div className="grid grid-cols-2 gap-2">
-          {packages.map((pkg) => (
-            <button
-              key={pkg.id}
-              type="button"
-              onClick={() => handleChange('package_id', pkg.id)}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                form.package_id === pkg.id
-                  ? 'border-purple-500/40 bg-purple-500/10'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15]'
-              }`}
-            >
-              <p className={`text-sm font-semibold ${form.package_id === pkg.id ? 'text-white' : 'text-gray-300'}`}>{pkg.name}</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                ${pkg.price.toLocaleString('en-US')} {s.priceOneTime}
-              </p>
-            </button>
-          ))}
-        </div>
-      </div>
+    <form onSubmit={handleSubmit} className="auth-card req-card">
+      <div className="form">
+        <fieldset className="fld svc-set">
+          <legend className="lbl">
+            {plain(s.serviceLabel)} <span className="req">*</span>
+          </legend>
+          <div className="svc">
+            {packages.map((pkg) => (
+              <label key={pkg.id}>
+                <input
+                  type="radio"
+                  name="package_id"
+                  value={pkg.id}
+                  checked={form.package_id === pkg.id}
+                  onChange={() => handleChange('package_id', pkg.id)}
+                />
+                {pkg.name}
+                <small>${pkg.price.toLocaleString('en-US')} {s.priceOneTime}</small>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.nameLabel}</label>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => handleChange('name', e.target.value)}
-            placeholder={s.namePlaceholder}
-            className={inputClasses}
-            required
+        <div className="two">
+          <div className="fld">
+            <label htmlFor="sf-name">{plain(s.nameLabel)} <span className="req">*</span></label>
+            <input
+              id="sf-name"
+              className="inp"
+              type="text"
+              value={form.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              placeholder={s.namePlaceholder}
+              autoComplete="name"
+              required
+            />
+          </div>
+          <div className="fld">
+            <label htmlFor="sf-email">{plain(s.emailLabel)} <span className="req">*</span></label>
+            <input
+              id="sf-email"
+              className="inp"
+              type="email"
+              value={form.email}
+              onChange={(e) => handleChange('email', e.target.value)}
+              placeholder={s.emailPlaceholder}
+              autoComplete="email"
+              required
+            />
+          </div>
+          <div className="fld">
+            <label htmlFor="sf-rest">{plain(s.restaurantLabel)} <span className="req">*</span></label>
+            <input
+              id="sf-rest"
+              className="inp"
+              type="text"
+              value={form.restaurant_name}
+              onChange={(e) => handleChange('restaurant_name', e.target.value)}
+              placeholder={s.restaurantPlaceholder}
+              autoComplete="organization"
+              required
+            />
+          </div>
+          <div className="fld tel-fld-wrap">
+            <label htmlFor="sf-phone">{plain(s.phoneLabel)} <span className="opt">{optional}</span></label>
+            <PhoneField
+              id="sf-phone"
+              value={form.phone}
+              onChange={(v) => handleChange('phone', v)}
+              dark={false}
+              locale={locale}
+            />
+          </div>
+        </div>
+
+        <div className="fld">
+          <label htmlFor="sf-menu">{s.menuLabel}</label>
+          <select
+            id="sf-menu"
+            className="sel"
+            value={form.current_menu}
+            onChange={(e) => handleChange('current_menu', e.target.value)}
+          >
+            <option value="">{s.menuDefault}</option>
+            {s.menuOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="fld">
+          <label htmlFor="sf-msg">{plain(s.messageLabel)} <span className="opt">{optional}</span></label>
+          <textarea
+            id="sf-msg"
+            className="txt"
+            value={form.message}
+            onChange={(e) => handleChange('message', e.target.value)}
+            placeholder={s.messagePlaceholder}
+            rows={4}
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.emailLabel}</label>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => handleChange('email', e.target.value)}
-            placeholder={s.emailPlaceholder}
-            className={inputClasses}
-            required
-          />
-        </div>
+
+        {error && <Alert>{error}</Alert>}
+
+        <button type="submit" disabled={sending} className="btn btn-primary btn-block">
+          {sending ? (
+            <>
+              <Spinner />
+              {s.submitSending}
+            </>
+          ) : s.submitButton}
+        </button>
+
+        <p className="foot-note">{s.submitFooter}</p>
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.restaurantLabel}</label>
-          <input
-            type="text"
-            value={form.restaurant_name}
-            onChange={(e) => handleChange('restaurant_name', e.target.value)}
-            placeholder={s.restaurantPlaceholder}
-            className={inputClasses}
-            required
-          />
-        </div>
-        <div>
-          <PhoneField
-            label={s.phoneLabel}
-            value={form.phone}
-            onChange={(v) => handleChange('phone', v)}
-            dark={true}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.menuLabel}</label>
-        <select
-          value={form.current_menu}
-          onChange={(e) => handleChange('current_menu', e.target.value)}
-          className={`${inputClasses} bg-[#0a0a0a]`}
-        >
-          <option value="">{s.menuDefault}</option>
-          {s.menuOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.messageLabel}</label>
-        <textarea
-          value={form.message}
-          onChange={(e) => handleChange('message', e.target.value)}
-          placeholder={s.messagePlaceholder}
-          rows={4}
-          className={`${inputClasses} resize-none`}
-        />
-      </div>
-
-      {error && (
-        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-          <p className="text-sm text-red-400">{error}</p>
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={sending}
-        className="w-full py-4 rounded-xl bg-white text-black font-medium text-sm hover:bg-gray-100 transition-all btn-glow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {sending ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            {s.submitSending}
-          </>
-        ) : (
-          <>
-            <Send className="w-4 h-4" />
-            {s.submitButton}
-          </>
-        )}
-      </button>
-
-      <p className="text-xs text-center text-gray-600">
-        {s.submitFooter}
-      </p>
     </form>
   );
 }

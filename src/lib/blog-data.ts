@@ -20,6 +20,14 @@ export interface BlogPost {
   description_en?: string;
   category_en?: string;
   content_en?: string;
+  /**
+   * Oculto (2026-11-26, recorte para EE.UU.): fuera del índice, de "related",
+   * del sitemap y de generateStaticParams; su URL da 404. El contenido se
+   * conserva. Decisión por slug: .specify/docs/landing-rediseno/fase2/CONTENIDO-BLOG.md
+   */
+  hidden?: boolean;
+  /** Destacado del índice del blog (va primero). */
+  featured?: boolean;
 }
 
 type Locale = "es" | "en";
@@ -40,15 +48,27 @@ export function getLocalizedPost(post: BlogPost, locale: Locale): BlogPost {
   return post;
 }
 
+/** Posts publicados (sin los ocultos), en el orden del archivo. */
+export function getVisibleBlogPosts(): BlogPost[] {
+  return blogPosts.filter((p) => !p.hidden);
+}
+
+/** Índice del blog: el destacado primero, el resto en el orden del archivo. */
 export function getLocalizedBlogPosts(locale: Locale): BlogPost[] {
-  return blogPosts.map((p) => getLocalizedPost(p, locale));
+  const visible = getVisibleBlogPosts();
+  const byDateDesc = (a: BlogPost, b: BlogPost) => b.date.localeCompare(a.date);
+  const ordered = [
+    ...visible.filter((p) => p.featured),
+    ...visible.filter((p) => !p.featured).sort(byDateDesc),
+  ];
+  return ordered.map((p) => getLocalizedPost(p, locale));
 }
 
 export function getLocalizedBlogPost(
   slug: string,
   locale: Locale,
 ): BlogPost | undefined {
-  const post = blogPosts.find((p) => p.slug === slug);
+  const post = getVisibleBlogPosts().find((p) => p.slug === slug);
   if (!post) return undefined;
   return getLocalizedPost(post, locale);
 }
@@ -58,9 +78,10 @@ export function getLocalizedRelatedPosts(
   locale: Locale,
   limit = 3,
 ): BlogPost[] {
-  const current = blogPosts.find((p) => p.slug === slug);
-  if (!current) return getLocalizedBlogPosts(locale).slice(0, limit);
-  return blogPosts
+  const visible = getVisibleBlogPosts();
+  const current = visible.find((p) => p.slug === slug);
+  if (!current) return visible.slice(0, limit).map((p) => getLocalizedPost(p, locale));
+  return visible
     .filter((p) => p.slug !== slug)
     .sort((a, b) =>
       a.category === current.category
@@ -75,13 +96,14 @@ export function getLocalizedRelatedPosts(
 
 export function getLocalizedCategories(locale: Locale): string[] {
   return Array.from(
-    new Set(getLocalizedBlogPosts(locale).map((p) => p.category)),
+    new Set(getVisibleBlogPosts().map((p) => getLocalizedPost(p, locale).category)),
   );
 }
 
 export const blogPosts: BlogPost[] = [
   {
     slug: "como-crear-menu-digital-restaurante",
+    hidden: true,
     title:
       "Cómo crear un menú digital para tu restaurante en 2026: Guía completa",
     seoTitle: "Cómo crear un menú digital para tu restaurante",
@@ -235,6 +257,7 @@ Digitizing your menu is one of the best investments you can make for your restau
   },
   {
     slug: "menu-digital-vs-apps-delivery",
+    hidden: true,
     title: "Menú digital propio vs Apps de delivery: ¿Cuál conviene más?",
     description:
       "Comparamos los costos, beneficios y desventajas de tener tu propio menú digital vs depender de apps de delivery como Uber Eats, Rappi o DoorDash.",
@@ -571,6 +594,7 @@ Too many options create paralysis. Fewer options = faster decisions = more sales
   },
   {
     slug: "fotos-comida-inteligencia-artificial",
+    hidden: true,
     title:
       "Fotos de comida con inteligencia artificial: Guía para restaurantes",
     seoTitle: "Fotos de comida con IA: guía para restaurantes",
@@ -1010,6 +1034,7 @@ Restaurants that adopt these trends today will be better positioned for the futu
   },
   {
     slug: "configurar-pedidos-online-restaurante",
+    hidden: true,
     title: "Cómo configurar pedidos online para tu restaurante paso a paso",
     seoTitle: "Cómo configurar pedidos online paso a paso",
     description:
@@ -1215,6 +1240,7 @@ Once everything works correctly:
   },
   {
     slug: "restaurantes-abandonan-apps-delivery",
+    featured: true,
     title:
       "Por qué cada vez más restaurantes están abandonando las apps de delivery",
     seoTitle: "Por qué los restaurantes dejan el delivery",
@@ -1353,6 +1379,7 @@ Delivery apps will continue to exist and have their place in a restaurant's stra
   },
   {
     slug: "asistente-ia-restaurantes-menius-ai",
+    hidden: true,
     title:
       "MENIUS AI: Cómo un asistente inteligente está transformando la gestión de restaurantes",
     seoTitle: "MENIUS AI: asistente para restaurantes",
@@ -1466,6 +1493,7 @@ AI is no longer the future — it's the present. Restaurants that adopt intellig
   },
   {
     slug: "google-maps-menu-digital-restaurante",
+    hidden: true,
     title:
       "Por qué Google Maps en tu menú digital es clave para atraer más clientes",
     seoTitle: "Google Maps en tu menú digital: por qué importa",
@@ -1696,6 +1724,7 @@ A KDS is not a luxury — it's an operational necessity. It eliminates errors, s
   // ── Post 14: Manejar reviews negativas ──────────────────────────────────
   {
     slug: "como-manejar-reviews-negativas-restaurante",
+    hidden: true,
     title:
       "Cómo responder reviews negativas en tu restaurante (y convertirlas en clientes fieles)",
     seoTitle: "Cómo responder reviews negativas",
@@ -2274,6 +2303,7 @@ Opening a successful restaurant requires preparation, not just good food. This c
   // ── Post 17: Fidelizar sin apps delivery ──────────────────────────────────
   {
     slug: "fidelizar-clientes-restaurante-sin-apps-delivery",
+    hidden: true,
     title:
       "Cómo fidelizar clientes de tu restaurante sin depender de apps de delivery",
     seoTitle: "Cómo fidelizar clientes sin apps de delivery",
@@ -2442,6 +2472,7 @@ Target: 70-80% direct orders, 20-30% apps for new customer acquisition.
   },
   {
     slug: "marketing-hub-automatizaciones-restaurante",
+    hidden: true,
     title:
       "Marketing Hub: Cómo automatizar el marketing de tu restaurante sin ser experto",
     seoTitle: "Marketing Hub para tu restaurante",
@@ -2603,6 +2634,7 @@ At most one offers email per person per week, the sequence stops if they order a
   },
   {
     slug: "programa-lealtad-puntos-restaurante",
+    hidden: true,
     title:
       "Cómo crear un programa de lealtad para tu restaurante (sin tarjetas físicas)",
     seoTitle: "Programa de lealtad para tu restaurante",
@@ -2739,6 +2771,7 @@ Discounts attract deal-hunters who leave when the offer ends. Points attract loy
   },
   {
     slug: "counter-pos-pedidos-manuales-restaurante",
+    hidden: true,
     title:
       "Counter MENIUS: el punto de venta que necesita tu restaurante (sin hardware costoso)",
     seoTitle: "Counter MENIUS: punto de venta sin hardware",
@@ -2910,6 +2943,7 @@ The Counter is the central nervous system of your operation: it receives, filter
   },
   {
     slug: "pagos-con-wompi-bancolombia-restaurante",
+    hidden: true,
     title: "Cómo recibir pagos con Wompi (Bancolombia) en tu restaurante",
     description:
       "Guía completa para activar pagos con Wompi en MENIUS: tarjetas, PSE, Nequi y Daviplata para restaurantes en Colombia con pesos colombianos (COP).",
@@ -3020,11 +3054,12 @@ MENIUS auto-marks orders as paid when Wompi confirms the transaction via webhook
   },
   {
     slug: "sistema-reservaciones-digitales-restaurante",
+    hidden: true,
     title: "Reservaciones digitales para tu restaurante: la guía completa 2026",
     seoTitle: "Reservaciones digitales para restaurantes",
     description:
       "Cómo activar el sistema de reservas en MENIUS para que tus clientes reserven mesa desde el menú digital, sin llamadas ni apps externas.",
-    category: "Operaciones",
+    category: "Operación",
     readTime: 4,
     date: "2026-03-19",
     author: "MENIUS",
@@ -3143,7 +3178,7 @@ Activate MENIUS Reservations and start filling your tables with less phone calls
     seoTitle: "App de repartidor offline para tu delivery",
     description:
       "MENIUS lanzó la PWA para repartidores con soporte offline. Tus repartidores pueden confirmar entregas, compartir GPS y actualizar el estado del pedido aunque estén en un túnel o zona sin señal.",
-    category: "Operaciones",
+    category: "Operación",
     readTime: 5,
     date: "2026-04-10",
     author: "MENIUS",
@@ -3267,14 +3302,15 @@ Delivery happens in the real world, where signal isn't always perfect. The MENIU
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
-  return blogPosts.find((p) => p.slug === slug);
+  return getVisibleBlogPosts().find((p) => p.slug === slug);
 }
 
 export function getRelatedPosts(slug: string, limit = 3): BlogPost[] {
+  const visible = getVisibleBlogPosts();
   const current = getBlogPost(slug);
-  if (!current) return blogPosts.slice(0, limit);
+  if (!current) return visible.slice(0, limit);
 
-  return blogPosts
+  return visible
     .filter((p) => p.slug !== slug)
     .sort((a, b) =>
       a.category === current.category

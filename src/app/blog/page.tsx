@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getLocalizedBlogPosts, getLocalizedCategories } from '@/lib/blog-data';
-import { LandingNav } from '@/components/landing/LandingNav';
-import { LandingFooter } from '@/components/landing/LandingFooter';
-import type { LandingLocale } from '@/lib/landing-translations';
-import { BlogGrid } from '@/components/blog/BlogGrid';
+import { resolveLandingV2Locale, type LandingV2Locale } from '@/lib/landing-v2-copy';
+import { V2Page } from '@/components/landing-v2/V2Page';
+import { V2BlogIndex } from '@/components/blog/V2BlogIndex';
 
 export const metadata: Metadata = {
   title: 'Blog — Recursos para restaurantes',
@@ -17,7 +16,7 @@ export const metadata: Metadata = {
   },
 };
 
-function getPageText(locale: LandingLocale) {
+function getPageText(locale: LandingV2Locale) {
   if (locale === 'en') return {
     badge: 'Blog',
     title: 'Restaurant Resources',
@@ -32,27 +31,25 @@ function getPageText(locale: LandingLocale) {
 
 export default async function BlogPage() {
   const cookieStore = await cookies();
-  const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
+  const locale = resolveLandingV2Locale(cookieStore.get('menius_locale')?.value);
   const pt = getPageText(locale);
   const posts = getLocalizedBlogPosts(locale);
   const categories = getLocalizedCategories(locale);
 
   return (
-    <div className="min-h-screen landing-bg overflow-x-hidden relative noise-overlay">
-      <LandingNav locale={locale} />
-
-      <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 overflow-hidden">
-        <div className="section-glow section-glow-purple" />
-        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-          <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">{pt.badge}</p>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight mb-5">{pt.title}</h1>
-          <p className="text-gray-400 text-lg leading-relaxed max-w-xl mx-auto font-light">{pt.subtitle}</p>
-        </div>
-      </section>
-
-      <BlogGrid posts={posts} categories={categories} locale={locale} />
-
-      <LandingFooter locale={locale} />
-    </div>
+    <V2Page locale={locale}>
+      <main id="main-content">
+        <header className="ph ph-split">
+          <div className="wrap">
+            <div>
+              <span className="stamp label">{pt.badge}</span>
+              <h1>{pt.title}</h1>
+            </div>
+            <p className="lead">{pt.subtitle}</p>
+          </div>
+        </header>
+        <V2BlogIndex posts={posts} categories={categories} locale={locale} />
+      </main>
+    </V2Page>
   );
 }

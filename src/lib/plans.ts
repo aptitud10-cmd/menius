@@ -200,7 +200,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Programa de lealtad para clientes',
       'Tablet de pedidos para tu equipo',
       'Exportar reportes PDF / CSV',
-      'Soporte por chat (respuesta en 2h)',
+      'Soporte de una persona real por teléfono, WhatsApp o email',
     ],
     features_en: [
       'Unlimited products and categories',
@@ -220,7 +220,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Customer loyalty program',
       'Order tablet for your staff',
       'Export PDF / CSV reports',
-      'Chat support (2h response)',
+      'Support from a real person by phone, WhatsApp or email',
     ],
     excluded: [],
     excluded_en: [],

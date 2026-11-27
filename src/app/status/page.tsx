@@ -1,13 +1,12 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import { LandingNav } from '@/components/landing/LandingNav';
-import { LandingFooter } from '@/components/landing/LandingFooter';
-import type { LandingLocale } from '@/lib/landing-translations';
+import { resolveLandingV2Locale } from '@/lib/landing-v2-copy';
+import { V2Page } from '@/components/landing-v2/V2Page';
 import { StatusClient } from './StatusClient';
 
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
-  const locale = cookieStore.get('menius_locale')?.value ?? 'es';
+  const locale = resolveLandingV2Locale(cookieStore.get('menius_locale')?.value);
   return {
     title: locale === 'en' ? 'System Status — MENIUS' : 'Estado del sistema — MENIUS',
     description: locale === 'en'
@@ -19,15 +18,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function StatusPage() {
   const cookieStore = await cookies();
-  const locale = (cookieStore.get('menius_locale')?.value ?? 'es') as LandingLocale;
+  const locale = resolveLandingV2Locale(cookieStore.get('menius_locale')?.value);
 
   return (
-    <>
-      <LandingNav locale={locale} />
-      <main className="min-h-screen bg-white pt-24 pb-20">
-        <StatusClient locale={locale} />
-      </main>
-      <LandingFooter locale={locale} />
-    </>
+    <V2Page locale={locale}>
+      <StatusClient locale={locale} />
+    </V2Page>
   );
 }

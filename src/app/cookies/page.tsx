@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { LandingNav } from "@/components/landing/LandingNav";
-import { LandingFooter } from "@/components/landing/LandingFooter";
-import type { LandingLocale } from "@/lib/landing-translations";
+import { V2LegalDoc } from "@/components/landing-v2/V2LegalDoc";
+import { resolveLandingV2Locale, type LandingV2Locale } from "@/lib/landing-v2-copy";
 
 export const metadata: Metadata = {
   // Sin la marca: el layout raíz la agrega con template '%s | MENIUS'.
@@ -551,15 +550,13 @@ function ContentEn() {
   );
 }
 
-function getHero(locale: LandingLocale) {
+function getHero(locale: LandingV2Locale) {
   if (locale === "en")
     return {
-      badge: "Legal",
       title: "Cookie Policy",
       date: "Last updated: April 22, 2026",
     };
   return {
-    badge: "Legal",
     title: "Política de Cookies",
     date: "Última actualización: 22 de abril de 2026",
   };
@@ -567,35 +564,16 @@ function getHero(locale: LandingLocale) {
 
 export default async function CookiesPage() {
   const cookieStore = await cookies();
-  const locale = (
-    cookieStore.get("menius_locale")?.value === "en" ? "en" : "es"
-  ) as LandingLocale;
+  const locale = resolveLandingV2Locale(cookieStore.get("menius_locale")?.value);
   const hero = getHero(locale);
 
   return (
-    <div className="min-h-screen landing-bg overflow-x-hidden relative noise-overlay">
-      <LandingNav locale={locale} />
-
-      <section className="relative pt-32 pb-12 md:pt-40 md:pb-16 overflow-hidden">
-        <div className="section-glow section-glow-purple" />
-        <div className="relative z-10 max-w-3xl mx-auto px-6">
-          <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">
-            {hero.badge}
-          </p>
-          <h1 className="text-4xl md:text-5xl font-semibold text-white tracking-tight mb-3">
-            {hero.title}
-          </h1>
-          <p className="text-sm text-gray-500">{hero.date}</p>
-        </div>
-      </section>
-
-      <div className="separator-gradient max-w-3xl mx-auto" />
-
-      <main className="relative z-10 max-w-3xl mx-auto px-6 py-12 md:py-16">
-        {locale === "en" ? <ContentEn /> : <ContentEs />}
-      </main>
-
-      <LandingFooter locale={locale} />
-    </div>
+    <V2LegalDoc
+      locale={locale}
+      doc="cookies"
+      title={hero.title}
+      updated={hero.date}
+      content={locale === "en" ? ContentEn() : ContentEs()}
+    />
   );
 }

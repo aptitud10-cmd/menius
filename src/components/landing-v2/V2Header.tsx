@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Image, { getImageProps } from 'next/image';
 import Link from 'next/link';
 import type { LandingV2Copy, LandingV2Locale } from '@/lib/landing-v2-copy';
@@ -28,27 +29,44 @@ export function Logo() {
   );
 }
 
-export function V2Nav({ c, locale }: { c: LandingV2Copy; locale: LandingV2Locale }) {
+/**
+ * Nav de la landing. En las demás páginas (V2Page) los anclajes apuntan a la
+ * landing (`base="/"`), y el CTA puede cambiar: en /signup el formulario ya es
+ * el CTA, así que el nav muestra "Sign in" (`ctaSlot`).
+ */
+export function V2Nav({
+  c,
+  locale,
+  base = '',
+  ctaSlot,
+}: {
+  c: LandingV2Copy;
+  locale: LandingV2Locale;
+  base?: '' | '/';
+  ctaSlot?: ReactNode;
+}) {
+  const how = `${base}#how`;
+  const pricing = `${base}#pricing`;
   return (
     <header className="nav">
       <div className="wrap">
         <Logo />
         <nav className="nav-links" aria-label={c.nav.mainNav}>
-          <a href="#how">{c.nav.how}</a>
-          <a href="#pricing">{c.nav.pricing}</a>
+          {base ? <Link href={how}>{c.nav.how}</Link> : <a href={how}>{c.nav.how}</a>}
+          {base ? <Link href={pricing}>{c.nav.pricing}</Link> : <a href={pricing}>{c.nav.pricing}</a>}
           <Link href="/demo">{c.nav.demo}</Link>
         </nav>
         <div className="nav-right">
           <a className="nav-phone" href={TEL}>{SUPPORT_CONTACT.phoneDisplay}</a>
-          <Link className="btn btn-primary btn-sm" href="/signup">{c.nav.tryPro}</Link>
+          {ctaSlot ?? <Link className="btn btn-primary btn-sm" href="/signup">{c.nav.tryPro}</Link>}
           <V2MobileMenu
             locale={locale}
             openLabel={c.nav.openMenu}
             closeLabel={c.nav.closeMenu}
             languageLabel={c.footer.language}
             links={[
-              { href: '#how', label: c.nav.how },
-              { href: '#pricing', label: c.nav.pricing },
+              { href: how, label: c.nav.how },
+              { href: pricing, label: c.nav.pricing },
               { href: '/demo', label: c.nav.demo },
               { href: '/login', label: c.nav.signIn },
               { href: TEL, label: SUPPORT_CONTACT.phoneDisplay, className: 'menu-phone' },

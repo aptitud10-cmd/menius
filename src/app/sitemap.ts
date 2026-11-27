@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { blogPosts } from "@/lib/blog-data";
+import { getVisibleBlogPosts } from "@/lib/blog-data";
 import { url } from "@/lib/site-url";
 import { getStoreOverrides } from "@/lib/store-overrides";
 import type { MetadataRoute } from "next";
@@ -95,7 +95,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+  // Los posts ocultos (recorte EE.UU.) no van al sitemap: su URL da 404.
+  const blogPages: MetadataRoute.Sitemap = getVisibleBlogPosts().map((post) => ({
     url: url(`blog/${post.slug}`),
     lastModified: new Date(post.date),
     changeFrequency: "monthly" as const,

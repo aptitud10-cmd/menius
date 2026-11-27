@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { login } from '@/lib/actions/auth';
 import { getLoginSchema } from '@/lib/validations';
 import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
+import { Alert, EyeToggle, GoogleIcon, Spinner, eyeLabels } from '@/components/landing-v2/auth-bits';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
 const IS_VERCEL_PREVIEW = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
@@ -21,7 +21,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string>('');
   const [turnstileError, setTurnstileError] = useState(false);
   const [turnstileReady, setTurnstileReady] = useState(false);
@@ -66,192 +65,144 @@ export default function LoginPage() {
     }
   };
 
+  const ui = locale === 'es'
+    ? {
+        tsFail: 'No se pudo cargar la verificación anti-bot. Desactiva el bloqueador de anuncios o los escudos de Brave y recarga la página.',
+        tsReload: 'Recargar página',
+        tsPending: 'Completa la verificación anti-bot para habilitar el botón.',
+        connect: '← Conectar con un código',
+      }
+    : {
+        tsFail: 'Could not load anti-bot verification. Disable ad blockers/Brave shields and reload the page.',
+        tsReload: 'Reload page',
+        tsPending: 'Complete anti-bot verification to enable the button.',
+        connect: '← Connect with a code',
+      };
+
   return (
-    <div className="min-h-[100dvh] md:flex md:items-center md:justify-center px-5 md:px-4 landing-bg noise-overlay relative overflow-x-hidden overflow-y-auto w-full max-w-[100vw]">
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
-      <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
-
-      <div className="relative z-10 w-full max-w-[440px] mx-auto pt-20 md:pt-0">
-        <div className="text-center mb-8 md:mb-10">
-          <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
-            <span className="text-white">MENIUS</span>
-          </Link>
-          <h1 className="text-2xl md:text-3xl font-black text-white mt-4 leading-tight tracking-tight">{t.subtitle}</h1>
-        </div>
-
-        <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-          <div className="bg-[#0a0a0a] rounded-2xl p-8 md:p-10 space-y-6">
-
-            {/* Google first — not offered inside the Counter app (see inCounterApp) */}
-            {!inCounterApp && (<>
-            <Link
-              href={next ? `/auth/google?flow=login&next=${encodeURIComponent(next)}` : '/auth/google?flow=login'}
-              className="w-full py-3.5 rounded-xl border border-white/[0.08] bg-white/[0.02] text-gray-300 font-medium text-sm hover:bg-white/[0.06] hover:text-white transition-all flex items-center justify-center gap-2.5"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 2.09 2.27 3.87l3.57 2.77C6.71 4.42 9.14 3.84 12 5.38z"/></svg>
-              {t.google}
-            </Link>
-
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-white/[0.06]" />
-              <span className="text-[11px] text-gray-600 uppercase tracking-widest">{t.or}</span>
-              <div className="flex-1 h-px bg-white/[0.06]" />
-            </div>
-            </>)}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
-                  <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                  </svg>
-                  <span className="text-red-400 text-sm">{error}</span>
-                </div>
+    <main id="main-content" className="auth">
+      <div className="wrap">
+        <div className="auth-solo">
+          <h1>{t.subtitle}</h1>
+          <div className="auth-card">
+            <div className="form">
+              {/* Google first — not offered inside the Counter app (see inCounterApp) */}
+              {!inCounterApp && (
+                <>
+                  <Link
+                    href={next ? `/auth/google?flow=login&next=${encodeURIComponent(next)}` : '/auth/google?flow=login'}
+                    className="btn-google"
+                  >
+                    <GoogleIcon />
+                    {t.google}
+                  </Link>
+                  <div className="or" role="separator">{t.or}</div>
+                </>
               )}
 
-              <div>
-                <label htmlFor="login-email" className="block text-sm font-medium text-gray-400 mb-2">{t.email}</label>
-                <div className={`relative rounded-xl transition-all duration-300 ${focused === 'email' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
+              <form onSubmit={handleSubmit} className="form-contents">
+                {error && <Alert>{error}</Alert>}
+
+                <div className="fld">
+                  <label htmlFor="login-email">{t.email}</label>
                   <input
                     id="login-email"
+                    className="inp"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onFocus={() => setFocused('email')}
-                    onBlur={() => setFocused(null)}
-                    className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                    placeholder="tu@email.com"
+                    placeholder={locale === 'es' ? 'tu@email.com' : 'you@email.com'}
                     autoComplete="email"
                     autoFocus
                   />
                 </div>
-              </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="login-password" className="text-sm font-medium text-gray-400">{t.password}</label>
-                  <Link href="/forgot-password" className="text-[12px] text-gray-600 hover:text-emerald-400 transition-colors">
-                    {t.forgotPassword}
-                  </Link>
+                <div className="fld">
+                  <div className="lbl-row">
+                    <label htmlFor="login-password">{t.password}</label>
+                    <Link href="/forgot-password">{t.forgotPassword}</Link>
+                  </div>
+                  <div className="inp-wrap">
+                    <input
+                      id="login-password"
+                      className="inp"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                    />
+                    <EyeToggle shown={showPassword} onToggle={() => setShowPassword(!showPassword)} {...eyeLabels(locale)} />
+                  </div>
                 </div>
-                <div className={`relative rounded-xl transition-all duration-300 ${focused === 'password' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
-                  <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setFocused('password')}
-                    onBlur={() => setFocused(null)}
-                    className="w-full px-4 pr-12 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300 transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
 
-              {requiresTurnstile && (
-                <div className="space-y-2">
-                  <Turnstile
-                    siteKey={TURNSTILE_SITE_KEY}
-                    onLoadScript={() => setTurnstileError(false)}
-                    onWidgetLoad={() => {
-                      setTurnstileReady(true);
-                      setTurnstileError(false);
-                    }}
-                    onSuccess={(token) => {
-                      setTurnstileError(false);
-                      setTurnstileToken(token);
-                    }}
-                    onExpire={() => setTurnstileToken('')}
-                    onError={() => {
-                      setTurnstileToken('');
-                      setTurnstileError(true);
-                    }}
-                    onUnsupported={() => {
-                      setTurnstileToken('');
-                      setTurnstileError(true);
-                    }}
-                    scriptOptions={{
-                      onError: () => {
+                {requiresTurnstile && (
+                  <div className="ts-box">
+                    <Turnstile
+                      siteKey={TURNSTILE_SITE_KEY}
+                      onLoadScript={() => setTurnstileError(false)}
+                      onWidgetLoad={() => {
+                        setTurnstileReady(true);
+                        setTurnstileError(false);
+                      }}
+                      onSuccess={(token) => {
+                        setTurnstileError(false);
+                        setTurnstileToken(token);
+                      }}
+                      onExpire={() => setTurnstileToken('')}
+                      onError={() => {
                         setTurnstileToken('');
                         setTurnstileError(true);
-                        setTurnstileReady(false);
-                      },
-                    }}
-                    options={{ theme: 'dark', size: 'flexible' }}
-                  />
-                  {turnstileError ? (
-                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-                      <p className="text-[12px] text-amber-300">
-                        {locale === 'es'
-                          ? 'No se pudo cargar la verificacion anti-bot. Desactiva adblock/Brave shields y recarga la pagina.'
-                          : 'Could not load anti-bot verification. Disable ad blockers/Brave shields and reload the page.'}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => window.location.reload()}
-                        className="mt-2 text-[12px] text-white underline underline-offset-2 hover:text-emerald-300 transition-colors"
-                      >
-                        {locale === 'es' ? 'Recargar pagina' : 'Reload page'}
-                      </button>
-                    </div>
-                  ) : (
-                    !turnstileToken && (
-                      <p className="text-[12px] text-gray-500">
-                        {locale === 'es'
-                          ? 'Completa la verificacion anti-bot para habilitar el boton.'
-                          : 'Complete anti-bot verification to enable the button.'}
-                      </p>
-                    )
-                  )}
-                </div>
-              )}
+                      }}
+                      onUnsupported={() => {
+                        setTurnstileToken('');
+                        setTurnstileError(true);
+                      }}
+                      scriptOptions={{
+                        onError: () => {
+                          setTurnstileToken('');
+                          setTurnstileError(true);
+                          setTurnstileReady(false);
+                        },
+                      }}
+                      options={{ theme: 'light', size: 'flexible' }}
+                    />
+                    {turnstileError ? (
+                      <div className="ts-warn">
+                        <p>{ui.tsFail}</p>
+                        <button type="button" className="tlink" onClick={() => window.location.reload()}>
+                          {ui.tsReload}
+                        </button>
+                      </div>
+                    ) : (
+                      !turnstileToken && <p className="hint">{ui.tsPending}</p>
+                    )}
+                  </div>
+                )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                    {t.loading}
-                  </span>
-                ) : t.submit}
-              </button>
-            </form>
+                <button type="submit" disabled={loading} className="btn btn-primary btn-block">
+                  {loading ? (
+                    <>
+                      <Spinner />
+                      {t.loading}
+                    </>
+                  ) : t.submit}
+                </button>
+              </form>
+            </div>
+          </div>
 
+          <div className="auth-after">
+            {inCounterApp ? (
+              <a href="/connect">{ui.connect}</a>
+            ) : (
+              <div className="row">
+                {t.noAccount} <Link href="/signup">{t.register}</Link>
+              </div>
+            )}
           </div>
         </div>
-
-        {inCounterApp ? (
-          <div className="mt-8 text-center">
-            <a href="/connect" className="text-[13px] text-white font-medium hover:text-emerald-400 transition-colors">
-              {locale === 'es' ? '← Conectar con un código' : '← Connect with a code'}
-            </a>
-          </div>
-        ) : (
-        <div className="mt-8 space-y-3 text-center">
-          <p className="text-[13px] text-gray-500">
-            {t.noAccount}{' '}
-            <Link href="/signup" className="text-white font-medium hover:text-emerald-400 transition-colors">
-              {t.register}
-            </Link>
-          </p>
-          <Link href="/" className="inline-block text-[12px] text-gray-600 hover:text-gray-400 transition-colors">
-            {t.backHome}
-          </Link>
-        </div>
-        )}
       </div>
-    </div>
+    </main>
   );
 }

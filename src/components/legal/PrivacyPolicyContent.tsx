@@ -722,3 +722,12 @@ export function PrivacyPolicyContent({ locale, tone = "dark" }: { locale: "es" |
   const className = tone === "light" ? LEGAL_PROSE_LIGHT : DARK;
   return locale === "en" ? <ContentEn className={className} /> : <ContentEs className={className} />;
 }
+
+/**
+ * El mismo texto como elemento (un <div> con los h2/p/ul como hijos directos),
+ * para la plantilla Documento de /privacy (V2LegalDoc), que lo reparte en
+ * secciones. Las tiendas siguen usando PrivacyPolicyContent.
+ */
+export function privacyPolicyElement(locale: "es" | "en") {
+  return locale === "en" ? ContentEn({ className: "" }) : ContentEs({ className: "" });
+}

@@ -35,7 +35,8 @@ export function V2Closing({ c }: { c: LandingV2Copy }) {
   );
 }
 
-export function V2Footer({ c, locale }: { c: LandingV2Copy; locale: LandingV2Locale }) {
+/** Pie de la landing. `base="/"` en las demás páginas: los anclajes van a la landing. */
+export function V2Footer({ c, locale, base = '' }: { c: LandingV2Copy; locale: LandingV2Locale; base?: '' | '/' }) {
   const f = c.footer;
   const year = new Date().getFullYear();
   return (
@@ -52,8 +53,8 @@ export function V2Footer({ c, locale }: { c: LandingV2Copy; locale: LandingV2Loc
           <nav aria-labelledby="lv2-f-product">
             <h2 id="lv2-f-product">{f.product}</h2>
             <ul>
-              <li><a href="#how">{c.nav.how}</a></li>
-              <li><a href="#pricing">{c.nav.pricing}</a></li>
+              <li>{base ? <Link href="/#how">{c.nav.how}</Link> : <a href="#how">{c.nav.how}</a>}</li>
+              <li>{base ? <Link href="/#pricing">{c.nav.pricing}</Link> : <a href="#pricing">{c.nav.pricing}</a>}</li>
               <li><Link href="/demo">{c.nav.demo}</Link></li>
               <li><Link href="/login">{c.nav.signIn}</Link></li>
             </ul>

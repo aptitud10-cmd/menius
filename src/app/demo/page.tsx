@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cookies } from 'next/headers';
-import { LandingNav } from '@/components/landing/LandingNav';
-import { LandingFooter } from '@/components/landing/LandingFooter';
-import type { LandingLocale } from '@/lib/landing-translations';
+import { getLandingV2Copy, resolveLandingV2Locale } from '@/lib/landing-v2-copy';
+import { V2Page } from '@/components/landing-v2/V2Page';
 
 export const metadata: Metadata = {
   title: 'Demo',
@@ -21,25 +20,24 @@ const t = {
       {
         slug: 'la-casa-del-sabor',
         name: 'La Casa del Sabor',
-        flag: '🇲🇽',
         lang: 'Español',
         desc: 'Demo completa de un restaurante mexicano: menú en español, opciones de cada plato, carrito y pago.',
         cta: 'Ver menú en vivo',
-        cover: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=340&fit=crop&q=80',
+        shot: '/landing/v2/demo-casa-v1.webp',
+        alt: 'Página de pedidos de La Casa del Sabor, en español',
       },
       {
         slug: 'the-grill-house',
         name: 'The Grill House',
-        flag: '🇺🇸',
         lang: 'English',
         desc: 'Demo completa de un restaurante estadounidense: menú en inglés, opciones de cada plato, carrito y pago.',
         cta: 'Ver menú en vivo (inglés)',
-        cover: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&h=340&fit=crop&q=80',
+        shot: '/landing/v2/store-menu-v1.webp',
+        alt: 'Página de pedidos de The Grill House, en inglés',
       },
     ],
     poweredBy: 'Ambas demos funcionan con datos de ejemplo. No se procesan pagos reales.',
     cta: '¿Listo para digitalizar tu restaurante?',
-    ctaBtn: 'Empieza gratis',
   },
   en: {
     badge: 'Live Demos',
@@ -47,148 +45,77 @@ const t = {
     subtitle: 'Choose a sample restaurant to see the full platform — menu, cart, checkout & order tracking.',
     cards: [
       {
-        slug: 'la-casa-del-sabor',
-        name: 'La Casa del Sabor',
-        flag: '🇲🇽',
-        lang: 'Español',
-        desc: 'Full Mexican restaurant demo with a Spanish menu, add-ons, cart & checkout.',
-        cta: 'View live menu (Spanish)',
-        cover: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=340&fit=crop&q=80',
-      },
-      {
         slug: 'the-grill-house',
         name: 'The Grill House',
-        flag: '🇺🇸',
         lang: 'English',
         desc: 'Full American grill demo with an English menu, add-ons, cart & checkout.',
         cta: 'View live menu',
-        cover: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&h=340&fit=crop&q=80',
+        shot: '/landing/v2/store-menu-v1.webp',
+        alt: 'The Grill House ordering page',
+      },
+      {
+        slug: 'la-casa-del-sabor',
+        name: 'La Casa del Sabor',
+        lang: 'Español',
+        desc: 'Full Mexican restaurant demo with a Spanish menu, add-ons, cart & checkout.',
+        cta: 'View live menu (Spanish)',
+        shot: '/landing/v2/demo-casa-v1.webp',
+        alt: 'La Casa del Sabor ordering page, in Spanish',
       },
     ],
     poweredBy: 'Both demos use sample data. No real payments are processed.',
     cta: 'Ready to digitize your restaurant?',
-    ctaBtn: 'Get started for free',
   },
 } as const;
 
 export default async function DemoSelectorPage() {
   const cookieStore = await cookies();
-  const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
+  const locale = resolveLandingV2Locale(cookieStore.get('menius_locale')?.value);
   const s = t[locale];
+  const tryPro = getLandingV2Copy(locale).nav.tryPro;
 
   return (
-    <div className="min-h-screen overflow-x-hidden relative" style={{ background: '#070f0b' }}>
-      {/* Emerald ambient glow */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          backgroundImage: [
-            'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16,185,129,0.15) 0%, transparent 55%)',
-            'radial-gradient(ellipse 50% 40% at 80% 100%, rgba(16,185,129,0.06) 0%, transparent 50%)',
-            'radial-gradient(ellipse 40% 50% at 10% 60%, rgba(52,211,153,0.05) 0%, transparent 50%)',
-          ].join(','),
-        }}
-      />
-
-      <LandingNav locale={locale} />
-
-      <main className="relative z-10 pt-32 pb-20 md:pt-40 md:pb-28">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          {/* Badge */}
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold mb-6">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
-            </svg>
-            {s.badge}
-          </span>
-
-          {/* Title */}
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white tracking-tight leading-tight">
-            {s.title}
-          </h1>
-          <p className="text-base md:text-lg text-gray-400 mt-4 max-w-xl mx-auto leading-relaxed font-light">
-            {s.subtitle}
-          </p>
-
-          {/* Cards */}
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {s.cards.map((card) => (
-              <Link
-                key={card.slug}
-                href={`/${card.slug}`}
-                className="group relative rounded-2xl overflow-hidden text-left transition-all duration-300 hover:scale-[1.02]"
-                style={{
-                  background: 'rgba(16,185,129,0.03)',
-                  border: '1px solid rgba(16,185,129,0.10)',
-                }}
-              >
-                {/* Hover glow */}
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl"
-                  style={{
-                    boxShadow: '0 0 40px rgba(16,185,129,0.08), inset 0 0 40px rgba(16,185,129,0.03)',
-                    border: '1px solid rgba(16,185,129,0.25)',
-                  }}
-                />
-
-                {/* Cover image */}
-                <div className="relative w-full h-44 overflow-hidden">
-                  <Image
-                    src={card.cover}
-                    alt={card.name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#070f0b] via-transparent to-transparent" />
-
-                  {/* Language pill */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/90 backdrop-blur-sm shadow-lg shadow-emerald-500/25">
-                    <span className="text-sm leading-none">{card.flag}</span>
-                    <span className="text-xs font-bold text-white tracking-wide">{card.lang}</span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="px-5 pb-5 pt-2">
-                  <h2 className="text-lg font-semibold text-white tracking-tight">{card.name}</h2>
-                  <p className="text-sm text-gray-400 mt-1.5 leading-relaxed">{card.desc}</p>
-
-                  <div className="mt-5 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium group-hover:bg-emerald-400 transition-colors">
-                      {card.cta}
-                      <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                      </svg>
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+    <V2Page locale={locale}>
+      <main id="main-content">
+        <header className="ph">
+          <div className="wrap">
+            <span className="stamp label">{s.badge}</span>
+            <h1>{s.title}</h1>
+            <p className="lead">{s.subtitle}</p>
           </div>
+        </header>
 
-          {/* Free trial CTA */}
-          <div className="mt-14 flex flex-col items-center gap-4">
-            <p className="text-base text-gray-300 font-light">{s.cta}</p>
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20"
-            >
-              {s.ctaBtn}
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg>
-            </Link>
+        <section className="demos" aria-label={s.badge}>
+          <div className="wrap">
+            <div className="demo-grid">
+              {s.cards.map((card) => (
+                <Link key={card.slug} className="demo-card" href={`/${card.slug}`}>
+                  <div className="tile">
+                    <div className="phone">
+                      <div className="scr">
+                        <Image src={card.shot} alt={card.alt} width={600} height={1298} quality={80} sizes="(max-width: 640px) 216px, (max-width: 1100px) 226px, 274px" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="body">
+                    <p className="lang-tag">{card.lang}</p>
+                    <h2>{card.name}</h2>
+                    <p>{card.desc}</p>
+                    <span className="tlink">{card.cta} →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div className="demo-foot">
+              <p>{s.poweredBy}</p>
+              <div className="row">
+                <span className="q">{s.cta}</span>
+                <Link className="btn btn-primary" href="/signup">{tryPro}</Link>
+              </div>
+            </div>
           </div>
-
-          {/* Disclaimer */}
-          <p className="mt-8 text-xs text-gray-500 font-medium">
-            {s.poweredBy}
-          </p>
-        </div>
+        </section>
       </main>
-
-      <LandingFooter locale={locale} />
-    </div>
+    </V2Page>
   );
 }

@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { blogPosts } from '@/lib/blog-data';
+import { getVisibleBlogPosts } from '@/lib/blog-data';
 
 export const runtime = 'edge';
 export const size = { width: 1200, height: 630 };
@@ -18,7 +18,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function BlogOgImage({ params }: { params: { slug: string } }) {
-  const post = blogPosts.find((p) => p.slug === params.slug);
+  const post = getVisibleBlogPosts().find((p) => p.slug === params.slug);
 
   const title = post?.title ?? 'Blog — MENIUS';
   const description = post?.description ?? 'Menús digitales inteligentes para restaurantes.';

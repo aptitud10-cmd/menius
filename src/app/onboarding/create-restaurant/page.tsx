@@ -1,21 +1,29 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createRestaurant, createProduct } from '@/lib/actions/restaurant';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { getCreateRestaurantSchema } from '@/lib/validations';
 import { slugify } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
 import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, formatTimezone } from '@/lib/country-config';
+import { SUPPORT_CONTACT } from '@/lib/support-contact';
+import { lv2SerifItalic, lv2Stamp } from '@/components/landing-v2/fonts';
+import { Alert, Spinner } from '@/components/landing-v2/auth-bits';
+import '@/components/landing-v2/landing-v2.css';
+import '@/components/landing-v2/lv2-pages.css';
+
+type BusinessType = 'restaurante' | 'cafeteria' | 'foodtruck' | 'otro';
 
 const WIZARD_TEXT = {
   es: {
     businessType: '¿Qué tipo de negocio tienes?',
     businessTypeDesc: 'Así preparamos la mejor experiencia para ti.',
     skip: 'Omitir →',
-    types: { restaurante: 'Restaurante', cafeteria: 'Cafetería / Bar', foodtruck: 'Food Truck', otro: 'Otro' },
+    types: { restaurante: 'Restaurante', cafeteria: 'Cafetería / Bar', foodtruck: 'Food Truck', otro: 'Otro' } as Record<BusinessType, string>,
     createTitle: 'Crea tu restaurante',
     createDesc: 'Configura lo básico y te prepararemos un menú de ejemplo listo para editar.',
     restaurantName: 'Nombre del restaurante',
@@ -45,34 +53,38 @@ const WIZARD_TEXT = {
     successTitle: '¡Tu restaurante está listo!',
     successDesc: 'Ya puedes recibir pedidos, gestionar tu menú y ver todo en tiempo real desde el Counter.',
     quickWins: [
-      { icon: '🍽', title: 'Tu menú ya está en línea', sub: (s: string) => `menius.app/${s} — compártelo ahora` },
-      { icon: '📲', title: 'Clientes pueden pedir desde su celular', sub: (_s: string) => 'Escanean el QR de tu mesa y listo' },
-      { icon: '🔔', title: 'Los pedidos te llegan al instante', sub: (_s: string) => 'Te avisamos en tu celular o tablet' },
+      { title: 'Tu menú ya está en línea', sub: (s: string) => `menius.app/${s} — compártelo ahora` },
+      { title: 'Clientes pueden pedir desde su celular', sub: (_s: string) => 'Escanean el QR de tu mesa y listo' },
+      { title: 'Los pedidos te llegan al instante', sub: (_s: string) => 'Te avisamos en tu celular o tablet' },
     ],
     viewOrders: 'Ver cómo llegan mis pedidos →',
     goDashboard: 'Ir a mi panel →',
     stepOf: 'Paso',
     stepOfTotal: 'de',
     stepTime: '~2 min',
+    needHand: '¿Necesitas ayuda?',
+    yourPage: 'Tu página',
+    previewLabel: 'Vista previa de la página de pedidos',
+    previewAlt: 'Una página de pedidos de MENIUS en un celular',
     atLeastOne: 'Agrega al menos un platillo',
     invalidPrice: (name: string) => `El precio de "${name}" no es válido`,
     productPlaceholders: ['Ej: Hamburguesa clásica', 'Ej: Refresco', 'Ej: Papas fritas'],
-    planTitle: 'Elegí tu plan',
-    planDesc: 'Probá 14 días gratis. Agregás tu tarjeta hoy y no se te cobra hasta el día 14 — cancelás cuando quieras. O seguí con Free limitado, sin tarjeta.',
+    planTitle: 'Elige tu plan',
+    planDesc: 'Pro es gratis por 14 días, sin tarjeta. Antes del día 14 te pediremos una tarjeta para seguir en Pro; si no la agregas, pasas a Free.',
     planRecommended: 'Recomendado',
-    planContinue: 'Continuar',
-    planSelectFree: 'Seguir gratis (después del trial)',
-    planSubscribe: (n: string) => `Suscribirme a ${n}`,
+    planStartTrial: 'Empezar mi prueba gratis',
+    planProNote: '14 días gratis, sin tarjeta. Después, mes a mes.',
+    planFreeNote: 'Si a los 14 días no agregas una tarjeta, pasas a Free.',
     plans: [
-      { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mes', desc: 'Para probar. Hasta 5 mesas, solo dine-in en efectivo.', features: ['Menú digital + QR (5 mesas)', 'Pedidos ilimitados', 'Solo efectivo', 'Branding "Powered by MENIUS"'] },
-      { id: 'pro', name: 'Pro', price: '$149', priceSuffix: '/mes', desc: 'Todo incluido: pedidos online, pagos, KDS y marketing.', features: ['Pickup + Delivery', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio', 'Cocina KDS, lealtad y promociones', 'Sin marca MENIUS'], recommended: true },
+      { id: 'pro', name: 'Pro', price: '$149', priceSuffix: '/mes', desc: 'Todo incluido: pedidos online, pagos, KDS y marketing.', features: ['Pickup + Delivery', 'Pagos online (0% comisión de MENIUS)', 'Dominio propio', 'Pantalla de cocina y promociones', 'Sin marca MENIUS'], recommended: true },
+      { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mes', desc: 'Para probar. Hasta 5 mesas, solo dine-in en efectivo.', features: ['Menú digital + QR (5 mesas)', 'Hasta 15 productos', 'Pedidos ilimitados', 'Solo efectivo', 'Branding "Powered by MENIUS"'], recommended: false },
     ],
   },
   en: {
     businessType: 'What type of business do you have?',
     businessTypeDesc: "We'll prepare the best experience for you.",
     skip: 'Skip →',
-    types: { restaurante: 'Restaurant', cafeteria: 'Café / Bar', foodtruck: 'Food Truck', otro: 'Other' },
+    types: { restaurante: 'Restaurant', cafeteria: 'Café / Bar', foodtruck: 'Food Truck', otro: 'Other' } as Record<BusinessType, string>,
     createTitle: 'Create your restaurant',
     createDesc: "Set up the basics and we'll prepare a sample menu ready to edit.",
     restaurantName: 'Restaurant name',
@@ -102,27 +114,31 @@ const WIZARD_TEXT = {
     successTitle: 'Your restaurant is ready!',
     successDesc: 'You can now receive orders, manage your menu and see everything in real time from the Counter.',
     quickWins: [
-      { icon: '🍽', title: 'Your menu is live', sub: (s: string) => `menius.app/${s} — share it now` },
-      { icon: '📲', title: 'Customers can order from their phone', sub: (_s: string) => 'They scan the QR on your table and go' },
-      { icon: '🔔', title: 'Orders arrive instantly', sub: (_s: string) => "We'll notify you on your phone or tablet" },
+      { title: 'Your menu is live', sub: (s: string) => `menius.app/${s} — share it now` },
+      { title: 'Customers can order from their phone', sub: (_s: string) => 'They scan the QR on your table and go' },
+      { title: 'Orders arrive instantly', sub: (_s: string) => "We'll notify you on your phone or tablet" },
     ],
     viewOrders: 'See how orders come in →',
     goDashboard: 'Go to my dashboard →',
     stepOf: 'Step',
     stepOfTotal: 'of',
     stepTime: '~2 min',
+    needHand: 'Need a hand?',
+    yourPage: 'Your page',
+    previewLabel: 'Preview of the ordering page',
+    previewAlt: 'A MENIUS ordering page on a phone',
     atLeastOne: 'Add at least one item',
     invalidPrice: (name: string) => `The price for "${name}" is not valid`,
     productPlaceholders: ['e.g. Classic Burger', 'e.g. Soft Drink', 'e.g. French Fries'],
     planTitle: 'Choose your plan',
-    planDesc: 'Try 14 days free. Add your card today and you won\'t be charged until day 14 — cancel anytime. Or stay on limited Free, no card needed.',
+    planDesc: 'Pro is free for 14 days, no card required. Before day 14 we’ll ask for a card to keep Pro; if you don’t add one, you move to Free.',
     planRecommended: 'Recommended',
-    planContinue: 'Continue',
-    planSelectFree: 'Stay on Free (after trial)',
-    planSubscribe: (n: string) => `Subscribe to ${n}`,
+    planStartTrial: 'Start my free trial',
+    planProNote: '14 days free, no card. Month-to-month after that.',
+    planFreeNote: 'After 14 days without a card, you move to Free.',
     plans: [
-      { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mo', desc: 'Try it out. Up to 5 tables, cash dine-in only.', features: ['Digital menu + QR (5 tables)', 'Unlimited orders', 'Cash only', '"Powered by MENIUS" branding'] },
-      { id: 'pro', name: 'Pro', price: '$149', priceSuffix: '/mo', desc: 'Everything included: online orders, payments, KDS and marketing.', features: ['Pickup + Delivery', 'Online payments (0% MENIUS commission)', 'Custom domain', 'Kitchen KDS, loyalty and promotions', 'No MENIUS branding'], recommended: true },
+      { id: 'pro', name: 'Pro', price: '$149', priceSuffix: '/mo', desc: 'Everything included: online orders, payments, KDS and marketing.', features: ['Pickup + Delivery', 'Online payments (0% MENIUS commission)', 'Custom domain', 'Kitchen display screen and promotions', 'No MENIUS branding'], recommended: true },
+      { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mo', desc: 'Try it out. Up to 5 tables, cash dine-in only.', features: ['Digital menu + QR (5 tables)', 'Up to 15 products', 'Unlimited orders', 'Cash only', '"Powered by MENIUS" branding'], recommended: false },
     ],
   },
 };
@@ -132,9 +148,15 @@ const LANGUAGES = [
   { code: 'en', label: 'English' },
 ];
 
+const ICON = { width: 26, height: 26, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, 'aria-hidden': true } as const;
 
-
-const WIZARD_PLAN_IDS = new Set(['free', 'pro']);
+/** Íconos de línea en lugar de los emojis de antes (maqueta fase 2). */
+const BUSINESS_TYPES: { type: BusinessType; icon: ReactNode }[] = [
+  { type: 'restaurante', icon: <svg {...ICON}><path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M17 21V3c-2.2 0-4 2.5-4 6s1.3 4 4 4" /></svg> },
+  { type: 'cafeteria', icon: <svg {...ICON}><path d="M4 8h13v5a6 6 0 01-6 6h-1a6 6 0 01-6-6V8zM17 9h1.5a2.5 2.5 0 010 5H17M7 3v2M11 3v2M15 3v2" /></svg> },
+  { type: 'foodtruck', icon: <svg {...ICON}><path d="M2 6h12v10H2zM14 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></svg> },
+  { type: 'otro', icon: <svg {...ICON}><path d="M3 4h2l2.4 11.2a2 2 0 002 1.6h8.2a2 2 0 002-1.5L21 8H6" /><circle cx="10" cy="20" r="1.4" /><circle cx="17" cy="20" r="1.4" /></svg> },
+];
 
 export default function CreateRestaurantPage() {
   return (
@@ -149,7 +171,8 @@ function CreateRestaurantPageInner() {
   const searchParams = useSearchParams();
 
   // Detect browser/cookie locale after hydration to avoid SSR mismatch
-  const [uiLocale, setUiLocale] = useState<'es' | 'en'>('es');
+  // EN por defecto (como la landing); ES si la cookie lo dice.
+  const [uiLocale, setUiLocale] = useState<'es' | 'en'>('en');
   const ui = WIZARD_TEXT[uiLocale];
 
   // Step 0 (intent) + Step 1–4 state
@@ -176,13 +199,12 @@ function CreateRestaurantPageInner() {
 
   useEffect(() => {
     const match = document.cookie.match(/menius_locale=(\w+)/);
-    if (match?.[1] === 'en') setUiLocale('en');
+    if (match?.[1] === 'es') setUiLocale('es');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState<string | null>(null);
 
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const slugDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -197,13 +219,6 @@ function CreateRestaurantPageInner() {
   ]);
   const [productError, setProductError] = useState('');
   const [productLoading, setProductLoading] = useState(false);
-
-  // Step 4 state — plan selection (preselected from ?plan= URL param if it's in wizard)
-  const intendedPlanParam = searchParams.get('plan');
-  const initialIntendedPlan = intendedPlanParam && WIZARD_PLAN_IDS.has(intendedPlanParam)
-    ? intendedPlanParam
-    : 'pro';
-  const [selectedPlan, setSelectedPlan] = useState<string>(initialIntendedPlan);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -313,482 +328,378 @@ function CreateRestaurantPageInner() {
     setStep(4);
   };
 
-  const inputClass = (field: string) =>
-    `w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors ${
-      focused === field ? 'border-emerald-500/40' : ''
-    }`;
+  // Progreso: pasos reales 1, 3 y 4 = "1 de 3", "2 de 3", "3 de 3". En el 0 y
+  // el 5 la barra no se muestra (queda su lugar, sin salto).
+  const progIndex = step === 1 ? 1 : step === 3 ? 2 : step === 4 ? 3 : 0;
+  const progLabel = `${ui.stepOf} ${progIndex || 1} ${ui.stepOfTotal} 3`;
+  const pageUrl = `menius.app/${slug || 'my-restaurant'}`;
 
-  const wrapClass = (field: string) =>
-    `relative rounded-xl transition-all duration-300 ${
-      focused === field ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''
-    }`;
+  const preview = (
+    <figure className="ob-shot" aria-label={ui.previewLabel}>
+      <div className="tile">
+        <div className="phone">
+          <div className="scr">
+            <Image src="/landing/v2/store-menu-v1.webp" alt={ui.previewAlt} width={600} height={1298} quality={80} sizes="216px" />
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <span>{ui.yourPage}</span>
+        <b>{pageUrl}</b>
+      </figcaption>
+    </figure>
+  );
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center px-5 py-10 landing-bg noise-overlay relative overflow-x-hidden">
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
-      <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
-
-      <div className="relative z-10 w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
-            <span className="text-white">MENIUS</span>
+    <div className={`lv2 lv2p root-scroll ${lv2SerifItalic.variable} ${lv2Stamp.variable}`} lang={uiLocale}>
+      <header className="ob-head">
+        <div className="wrap">
+          <Link className="logo" href="/" aria-label="MENIUS">
+            MENIUS<i aria-hidden="true" />
           </Link>
-
-          {/* Step indicator — hidden in step 0 and final celebration; visible during 1, 3, 4 */}
-          {step > 0 && step < 5 && (
-            <>
-              <div className="flex items-center justify-center gap-2 mt-6 mb-4">
-                {[1, 3, 4].map((s) => (
-                  <div
-                    key={s}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      s === step ? 'w-10 bg-emerald-500' : s < step ? 'w-8 bg-emerald-500/40' : 'w-8 bg-white/[0.08]'
-                    }`}
-                  />
-                ))}
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                <p className="text-xs text-gray-600 tabular-nums">
-                  {ui.stepOf} {step === 1 ? 1 : step === 3 ? 2 : 3} {ui.stepOfTotal} 3
-                </p>
-                <span className="text-[10px] text-gray-700">·</span>
-                <p className="text-[10px] text-gray-600">{ui.stepTime}</p>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* ── STEP 0: Business type ── */}
-        {step === 0 && (
-          <>
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">{ui.businessType}</h1>
-              <p className="text-gray-400 text-sm mt-3 max-w-sm mx-auto leading-relaxed">
-                {ui.businessTypeDesc}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {[
-                { type: 'restaurante', icon: '🍽', label: ui.types.restaurante },
-                { type: 'cafeteria', icon: '☕', label: ui.types.cafeteria },
-                { type: 'foodtruck', icon: '🚚', label: ui.types.foodtruck },
-                { type: 'otro', icon: '🛒', label: ui.types.otro },
-              ].map(({ type, icon, label }) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => { setBusinessType(type); setStep(1); }}
-                  className="flex flex-col items-center gap-3 p-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] hover:border-emerald-500/30 transition-all duration-200 group"
-                >
-                  <span className="text-3xl">{icon}</span>
-                  <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">{label}</span>
-                </button>
+          <div className="prog" aria-label={progLabel} style={progIndex ? undefined : { visibility: 'hidden' }}>
+            <span className="bars" aria-hidden="true">
+              {[1, 2, 3].map((n) => (
+                <i key={n} className={n < progIndex ? 'on' : n === progIndex ? 'now' : undefined} />
               ))}
+            </span>
+            <span>{progLabel}</span>
+            <small>{ui.stepTime}</small>
+          </div>
+          <p className="ob-help">
+            <span>{ui.needHand}</span>
+            <a href={`tel:${SUPPORT_CONTACT.phoneE164}`}>{SUPPORT_CONTACT.phoneDisplay}</a>
+          </p>
+        </div>
+      </header>
+
+      <main id="main-content" className="ob">
+        <div className="wrap">
+          {/* ── STEP 0: Business type ── */}
+          {step === 0 && (
+            <div className="ob-grid">
+              <div className="ob-copy">
+                <h1>{ui.businessType}</h1>
+                <p className="lead">{ui.businessTypeDesc}</p>
+              </div>
+              <div>
+                <div className="types">
+                  {BUSINESS_TYPES.map(({ type, icon }) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => { setBusinessType(type); setStep(1); }}
+                    >
+                      {icon}
+                      {ui.types[type]}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className="skip" onClick={() => setStep(1)}>
+                  {ui.skip}
+                </button>
+              </div>
             </div>
+          )}
 
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="text-[12px] text-gray-600 hover:text-gray-400 transition-colors"
-              >
-                {ui.skip}
-              </button>
-            </div>
-          </>
-        )}
+          {/* ── STEP 1: Restaurant info ── */}
+          {step === 1 && (
+            <div className="ob-grid">
+              <div className="ob-copy">
+                <h1>{ui.createTitle}</h1>
+                <p className="lead">{ui.createDesc}</p>
+                {preview}
+              </div>
+              <form onSubmit={handleStep1Submit} className="auth-card">
+                <div className="form">
+                  {error && <Alert>{error}</Alert>}
 
-        {/* ── STEP 1: Restaurant info ── */}
-        {step === 1 && (
-          <>
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">{ui.createTitle}</h1>
-              <p className="text-gray-400 text-base mt-3 max-w-sm mx-auto leading-relaxed">
-                {ui.createDesc}
-              </p>
-            </div>
-
-            <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-              <form onSubmit={handleStep1Submit} className="bg-[#0a0a0a] rounded-2xl p-8 space-y-6">
-                {error && (
-                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
-                    <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                    </svg>
-                    <span className="text-red-400 text-[13px]">{error}</span>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">{ui.restaurantName}</label>
-                  <div className={wrapClass('name')}>
+                  <div className="fld">
+                    <label htmlFor="ob-name">{ui.restaurantName}</label>
                     <input
+                      id="ob-name"
+                      className="inp"
                       type="text"
                       value={name}
                       onChange={(e) => handleNameChange(e.target.value)}
-                      onFocus={() => setFocused('name')}
-                      onBlur={() => setFocused(null)}
-                      className={inputClass('name')}
                       placeholder={ui.restaurantNamePlaceholder}
+                      autoComplete="organization"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-400">{ui.menuUrl}</label>
-                    {slugStatus === 'checking' && (
-                      <span className="text-[11px] text-gray-500 flex items-center gap-1">
-                        <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                        {ui.checking}
-                      </span>
-                    )}
-                    {slugStatus === 'available' && (
-                      <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        {ui.available}
-                      </span>
-                    )}
-                    {slugStatus === 'taken' && (
-                      <span className="text-[11px] text-red-400 flex items-center gap-1 font-medium">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                        {ui.unavailable}
-                      </span>
-                    )}
-                  </div>
-                  <div className={`flex items-center rounded-xl overflow-hidden transition-all duration-300 ${
-                    focused === 'slug' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' :
-                    slugStatus === 'available' ? 'ring-1 ring-emerald-500/20' :
-                    slugStatus === 'taken' ? 'ring-1 ring-red-500/20' : ''
-                  }`}>
-                    <span className="px-3.5 py-3.5 text-[15px] md:text-sm text-gray-500 border-r border-white/[0.08] bg-white/[0.04] flex-shrink-0">
-                      menius.app/
-                    </span>
-                    <input
-                      type="text"
-                      value={slug}
-                      onChange={(e) => {
-                        const v = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-                        setSlug(v);
-                        triggerSlugCheck(v);
-                      }}
-                      onFocus={() => setFocused('slug')}
-                      onBlur={() => setFocused(null)}
-                      className="flex-1 px-3 py-3.5 text-[15px] md:text-sm bg-white/[0.04] border-y border-r border-white/[0.08] rounded-r-xl text-white placeholder-gray-500 focus:outline-none"
-                      placeholder="my-restaurant"
-                    />
-                  </div>
-                  {slug && slugStatus !== 'taken' && (
-                    <p className="text-[11px] text-gray-600 mt-1.5 ml-1">
-                      {ui.slugPrefix} <span className="text-gray-400">menius.app/{slug}</span>
-                    </p>
-                  )}
-                  {slugStatus === 'taken' && (
-                    <p className="text-[11px] text-red-400 mt-1.5 ml-1">
-                      {ui.slugTaken}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">{ui.menuLanguage}</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {LANGUAGES.map((l) => (
-                      <button
-                        key={l.code}
-                        type="button"
-                        onClick={() => setLocale(l.code)}
-                        className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                          locale === l.code
-                            ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400'
-                            : 'bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.06]'
-                        }`}
-                      >
-                        {l.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Country — auto-fills currency, timezone and language */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    {uiLocale === 'en' ? 'Country' : 'País'}
-                  </label>
-                  <select
-                    value={countryCode}
-                    required
-                    onChange={(e) => handleCountryChange(e.target.value)}
-                    className="w-full px-3.5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="" disabled className="bg-[#0a0a0a] text-white">
-                      {ui.chooseCountry}
-                    </option>
-                    {COUNTRY_CONFIG_LIST.map((c) => (
-                      <option key={c.code} value={c.code} className="bg-[#0a0a0a] text-white">
-                        {c.flag} {c.name} — {c.currency}
-                      </option>
-                    ))}
-                  </select>
-                  {COUNTRY_CONFIGS[countryCode] && (
-                    <p className="text-[11px] text-gray-600 mt-1.5 ml-1">
-                      {COUNTRY_CONFIGS[countryCode].flag} {COUNTRY_CONFIGS[countryCode].currency} · +{COUNTRY_CONFIGS[countryCode].phonePrefix} · {formatTimezone(COUNTRY_CONFIGS[countryCode].timezone)}
-                    </p>
-                  )}</div>
-
-                <button
-                  type="submit"
-                  disabled={loading || !name.trim() || !countryCode || slugStatus === 'taken' || slugStatus === 'checking'}
-                  className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                      {ui.creating}
-                    </span>
-                  ) : ui.continue}
-                </button>
-
-                <p className="text-center text-[11px] text-gray-600 leading-relaxed">
-                  {ui.seedNote}
-                </p>
-              </form>
-            </div>
-          </>
-        )}
-
-
-        {/* ── STEP 3: First products (up to 3) ── */}
-        {step === 3 && (
-          <>
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-1.5-.75M8.25 15l1.5.75M8.25 15l-1.5.75m0 0L5.25 15M15.75 15.75 14.25 15m1.5.75-1.5-.75M15.75 15.75l1.5-.75" />
-                </svg>
-              </div>
-              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">{ui.productsTitle}</h1>
-              <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
-                {ui.productsDesc}
-              </p>
-            </div>
-
-            <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-              <form onSubmit={handleStep3Submit} className="bg-[#0a0a0a] rounded-2xl p-8 space-y-5">
-                {productError && (
-                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
-                    <span className="text-red-400 text-[13px]">{productError}</span>
-                  </div>
-                )}
-
-                {products.map((p, idx) => (
-                  <div key={idx} className="space-y-3">
-                    {idx === 0 && (
-                      <p className="text-[11px] text-gray-600 uppercase tracking-wider font-semibold">
-                        {ui.productLabel} {idx + 1}
-                      </p>
-                    )}
-                    {idx > 0 && products[idx - 1].name.trim() && (
-                      <p className="text-[11px] text-gray-600 uppercase tracking-wider font-semibold">
-                        {ui.productLabel} {idx + 1} <span className="text-gray-700 normal-case font-normal">({ui.productOptional})</span>
-                      </p>
-                    )}
-                    {(idx === 0 || products[idx - 1].name.trim()) && (
-                      <div className="flex gap-2">
-                        <div className={`flex-1 ${wrapClass(`prod-${idx}`)}`}>
-                          <input
-                            type="text"
-                            value={p.name}
-                            onChange={(e) => {
-                              const updated = [...products];
-                              updated[idx] = { ...updated[idx], name: e.target.value };
-                              setProducts(updated);
-                            }}
-                            onFocus={() => setFocused(`prod-${idx}`)}
-                            onBlur={() => setFocused(null)}
-                            className={inputClass(`prod-${idx}`)}
-                            placeholder={ui.productPlaceholders[idx]}
-                            autoFocus={idx === 0}
-                          />
-                        </div>
-                        <div className={`w-28 ${wrapClass(`price-${idx}`)}`}>
-                          <input
-                            type="number"
-                            value={p.price}
-                            onChange={(e) => {
-                              const updated = [...products];
-                              updated[idx] = { ...updated[idx], price: e.target.value };
-                              setProducts(updated);
-                            }}
-                            onFocus={() => setFocused(`price-${idx}`)}
-                            onBlur={() => setFocused(null)}
-                            className={inputClass(`price-${idx}`)}
-                            placeholder={ui.pricePlaceholder}
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                <button
-                  type="submit"
-                  disabled={productLoading || !products[0].name.trim()}
-                  className="w-full py-3.5 rounded-xl bg-emerald-500 text-white font-semibold text-[15px] md:text-sm hover:bg-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {productLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                      {ui.launching}
-                    </span>
-                  ) : ui.launch}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    trackEvent('onboarding_step_skipped', { step: 3, step_name: 'first_products' });
-                    trackEvent('onboarding_completed', { completed_all_steps: false });
-                    setStep(4);
-                  }}
-                  className="w-full py-2.5 text-[13px] text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {ui.skipProducts}
-                </button>
-              </form>
-            </div>
-          </>
-        )}
-
-        {/* ── STEP 4: Choose plan ── */}
-        {step === 4 && (
-          <>
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">{ui.planTitle}</h1>
-              <p className="text-gray-400 text-sm mt-3 max-w-sm mx-auto leading-relaxed">{ui.planDesc}</p>
-            </div>
-
-            <div className="space-y-3 mb-6">
-              {ui.plans.map((p) => {
-                const isSelected = selectedPlan === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setSelectedPlan(p.id)}
-                    className={`w-full text-left rounded-2xl p-5 border transition-all ${
-                      isSelected
-                        ? 'bg-emerald-500/[0.06] border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.08)]'
-                        : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.15]'
-                    }`}
-                  >
-                    <div className="flex items-baseline justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-base font-bold ${isSelected ? 'text-white' : 'text-gray-200'}`}>{p.name}</span>
-                        {p.recommended && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
-                            {ui.planRecommended}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-baseline gap-0.5">
-                        <span className={`text-lg font-bold ${isSelected ? 'text-emerald-400' : 'text-gray-300'}`}>{p.price}</span>
-                        <span className="text-[11px] text-gray-500">{p.priceSuffix}</span>
-                      </div>
+                  <div className="fld">
+                    <div className="lbl-row">
+                      <label htmlFor="ob-slug">{ui.menuUrl}</label>
+                      {slugStatus === 'checking' && (
+                        <span key="checking" className="hint slug-st" aria-live="polite">
+                          <Spinner />
+                          {ui.checking}
+                        </span>
+                      )}
+                      {slugStatus === 'available' && (
+                        <span key="available" className="hint is-ok slug-st" aria-live="polite">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M5 13l4 4L19 7" /></svg>
+                          {ui.available}
+                        </span>
+                      )}
+                      {slugStatus === 'taken' && (
+                        <span key="taken" className="hint is-bad slug-st" aria-live="polite">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
+                          {ui.unavailable}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-400 mb-2.5">{p.desc}</p>
-                    <ul className="space-y-1">
-                      {p.features.map((f) => (
-                        <li key={f} className="flex items-start gap-1.5 text-[11px] text-gray-500">
-                          <svg className="w-3 h-3 mt-0.5 text-emerald-500/60 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                          {f}
-                        </li>
+                    <div className="prefix-fld" data-state={slugStatus}>
+                      <span>menius.app/</span>
+                      <input
+                        id="ob-slug"
+                        type="text"
+                        value={slug}
+                        onChange={(e) => {
+                          const v = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                          setSlug(v);
+                          triggerSlugCheck(v);
+                        }}
+                        placeholder="my-restaurant"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                      />
+                    </div>
+                    {slug && slugStatus !== 'taken' && (
+                      <p className="hint">
+                        {ui.slugPrefix} <b>menius.app/{slug}</b>
+                      </p>
+                    )}
+                    {slugStatus === 'taken' && <p className="hint is-bad">{ui.slugTaken}</p>}
+                  </div>
+
+                  <div className="fld">
+                    <span className="lbl" id="ob-lang">{ui.menuLanguage}</span>
+                    <div className="seg2" role="group" aria-labelledby="ob-lang">
+                      {LANGUAGES.map((l) => (
+                        <button key={l.code} type="button" aria-pressed={locale === l.code} onClick={() => setLocale(l.code)}>
+                          {l.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Country — auto-fills currency, timezone and language */}
+                  <div className="fld">
+                    <label htmlFor="ob-country">{uiLocale === 'en' ? 'Country' : 'País'}</label>
+                    <select
+                      id="ob-country"
+                      className="sel"
+                      value={countryCode}
+                      required
+                      onChange={(e) => handleCountryChange(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        {ui.chooseCountry}
+                      </option>
+                      {COUNTRY_CONFIG_LIST.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.name} — {c.currency}
+                        </option>
+                      ))}
+                    </select>
+                    {COUNTRY_CONFIGS[countryCode] && (
+                      <p className="hint">
+                        {COUNTRY_CONFIGS[countryCode].currency} · +{COUNTRY_CONFIGS[countryCode].phonePrefix} · {formatTimezone(COUNTRY_CONFIGS[countryCode].timezone)}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-block"
+                    disabled={loading || !name.trim() || !countryCode || slugStatus === 'taken' || slugStatus === 'checking'}
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner />
+                        {ui.creating}
+                      </>
+                    ) : ui.continue}
+                  </button>
+                  <p className="hint seed-note">{ui.seedNote}</p>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ── STEP 3: First products (up to 3) ── */}
+          {step === 3 && (
+            <div className="ob-grid">
+              <div className="ob-copy">
+                <h1>{ui.productsTitle}</h1>
+                <p className="lead">{ui.productsDesc}</p>
+                {preview}
+              </div>
+              <form onSubmit={handleStep3Submit} className="auth-card">
+                <div className="form">
+                  {productError && <Alert>{productError}</Alert>}
+
+                  <div className="items">
+                    {products.map((p, idx) => {
+                      if (idx > 0 && !products[idx - 1].name.trim()) return null;
+                      return (
+                        <div key={idx}>
+                          <p className="item-k">
+                            {ui.productLabel} {idx + 1}
+                            {idx > 0 && <span className="opt"> {ui.productOptional}</span>}
+                          </p>
+                          <div className="item-row">
+                            <input
+                              className="inp"
+                              type="text"
+                              aria-label={`${ui.productLabel} ${idx + 1}`}
+                              value={p.name}
+                              onChange={(e) => {
+                                const updated = [...products];
+                                updated[idx] = { ...updated[idx], name: e.target.value };
+                                setProducts(updated);
+                              }}
+                              placeholder={ui.productPlaceholders[idx]}
+                              autoFocus={idx === 0}
+                            />
+                            <input
+                              className="inp"
+                              type="number"
+                              inputMode="decimal"
+                              aria-label={`${ui.productLabel} ${idx + 1} · ${ui.pricePlaceholder}`}
+                              value={p.price}
+                              onChange={(e) => {
+                                const updated = [...products];
+                                updated[idx] = { ...updated[idx], price: e.target.value };
+                                setProducts(updated);
+                              }}
+                              placeholder={ui.pricePlaceholder}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-block"
+                    disabled={productLoading || !products[0].name.trim()}
+                  >
+                    {productLoading ? (
+                      <>
+                        <Spinner />
+                        {ui.launching}
+                      </>
+                    ) : ui.launch}
+                  </button>
+                  <button
+                    type="button"
+                    className="skip"
+                    onClick={() => {
+                      trackEvent('onboarding_step_skipped', { step: 3, step_name: 'first_products' });
+                      trackEvent('onboarding_completed', { completed_all_steps: false });
+                      setStep(4);
+                    }}
+                  >
+                    {ui.skipProducts}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ── STEP 4: Plan ──
+              La prueba de Pro ya está activa desde el paso 1 (createRestaurant →
+              RPC create_restaurant_with_subscription: plan 'pro', status
+              'trialing', 14 días, sin tarjeta). "Empezar mi prueba" no manda a
+              Stripe: sigue al paso final con la prueba corriendo. Free no es un
+              botón porque haría exactamente lo mismo; se muestra como lo que
+              pasa al día 14 si no se agrega tarjeta. */}
+          {step === 4 && (
+            <div className="ob-grid">
+              <div className="ob-copy">
+                <h1>{ui.planTitle}</h1>
+                <p className="lead">{ui.planDesc}</p>
+                {preview}
+              </div>
+              <div className="plans">
+                {ui.plans.map((pl) => (
+                  <div key={pl.id} className={pl.recommended ? 'pl rec' : 'pl'}>
+                    <div className="top">
+                      {pl.name}
+                      {pl.recommended && <span className="stamp label">{ui.planRecommended}</span>}
+                    </div>
+                    <div className="pr">
+                      {pl.price}
+                      <span>{pl.priceSuffix}</span>
+                    </div>
+                    <p>{pl.desc}</p>
+                    <ul>
+                      {pl.features.map((f) => (
+                        <li key={f}>{f}</li>
                       ))}
                     </ul>
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                trackEvent('onboarding_plan_selected', { plan: selectedPlan });
-                if (selectedPlan === 'free') {
-                  setStep(5);
-                } else {
-                  router.push(`/app/billing?autoCheckout=${selectedPlan}`);
-                }
-              }}
-              className="w-full py-3.5 rounded-xl bg-emerald-500 text-white font-semibold text-[15px] md:text-sm hover:bg-emerald-400 transition-colors"
-            >
-              {selectedPlan === 'free'
-                ? ui.planSelectFree
-                : ui.planSubscribe(ui.plans.find((p) => p.id === selectedPlan)?.name ?? '')}
-            </button>
-          </>
-        )}
-
-        {/* ── STEP 5: First win celebration ── */}
-        {step === 5 && (
-          <>
-            <div className="text-center mb-6">
-              {/* Animated success icon with pulsing ring */}
-              <div className="relative w-24 h-24 mx-auto mb-6">
-                <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" style={{ animationDuration: '2s' }} />
-                <div className="absolute inset-2 rounded-full bg-emerald-500/10 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.3s' }} />
-                <div className="relative w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
-                  <svg className="w-12 h-12 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">{ui.successTitle}</h1>
-              <p className="text-gray-400 text-sm mt-3 max-w-sm mx-auto leading-relaxed">
-                {ui.successDesc}
-              </p>
-            </div>
-
-            <div className="rounded-2xl p-[1px] bg-gradient-to-b from-emerald-500/[0.12] to-white/[0.02]">
-              <div className="bg-[#0a0a0a] rounded-2xl p-8 space-y-4">
-                {/* Quick wins with plain language */}
-                {ui.quickWins.map((item) => ({ ...item, sub: item.sub(slug || 'my-restaurant') })).map((item) => (
-                  <div key={item.icon} className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                    <span className="text-xl flex-shrink-0">{item.icon}</span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{item.title}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{item.sub}</p>
-                    </div>
+                    {pl.recommended ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-block"
+                          onClick={() => {
+                            trackEvent('onboarding_plan_selected', {
+                              plan: 'pro',
+                              trial: true,
+                              card: false,
+                              intended_plan: searchParams.get('plan') ?? undefined,
+                            });
+                            setStep(5);
+                          }}
+                        >
+                          {ui.planStartTrial}
+                        </button>
+                        <p className="pl-note">{ui.planProNote}</p>
+                      </>
+                    ) : (
+                      <p className="pl-note">{ui.planFreeNote}</p>
+                    )}
                   </div>
                 ))}
-
-                <a
-                  href="/app/counter/tablet"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3.5 rounded-xl bg-emerald-500 text-white font-semibold text-[15px] md:text-sm hover:bg-emerald-400 transition-colors flex items-center justify-center gap-2"
-                >
-                  {ui.viewOrders}
-                </a>
-
-                <button
-                  type="button"
-                  onClick={() => router.push('/app')}
-                  className="w-full py-2.5 text-[13px] text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {ui.goDashboard}
-                </button>
               </div>
             </div>
-          </>
-        )}
-      </div>
+          )}
+
+          {/* ── STEP 5: First win ── */}
+          {step === 5 && (
+            <div className="ob-grid">
+              <div className="ob-copy">
+                <h1>{ui.successTitle}</h1>
+                <p className="lead">{ui.successDesc}</p>
+              </div>
+              <div>
+                <ul className="wins">
+                  {ui.quickWins.map((item) => (
+                    <li key={item.title}>
+                      <b>{item.title}</b>
+                      <span>{item.sub(slug || 'my-restaurant')}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="ob-done">
+                  <a className="btn btn-primary" href="/app/counter/tablet" target="_blank" rel="noopener noreferrer">
+                    {ui.viewOrders}
+                  </a>
+                  <button type="button" className="tlink" onClick={() => router.push('/app')}>
+                    {ui.goDashboard}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

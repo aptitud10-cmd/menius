@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { cookies } from "next/headers";
-import { LandingNav } from "@/components/landing/LandingNav";
-import { LandingFooter } from "@/components/landing/LandingFooter";
-import type { LandingLocale } from "@/lib/landing-translations";
 import {
   getFaqCategories,
   getFaqPageText,
   extractFaqText,
 } from "@/lib/faq-data";
-import { FaqClient } from "@/components/faq/FaqClient";
+import { resolveLandingV2Locale } from "@/lib/landing-v2-copy";
+import { SUPPORT_CONTACT } from "@/lib/support-contact";
+import { V2Page } from "@/components/landing-v2/V2Page";
+import { V2ScrollSpy } from "@/components/landing-v2/V2ScrollSpy";
 
 export const metadata: Metadata = {
   // Sin '| MENIUS': el layout raíz lo agrega con template '%s | MENIUS'.
@@ -24,11 +25,14 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * FAQ (fase 2 del rediseño): las 7 categorías en una sola página con anclas
+ * (Google y Ctrl+F ven todo). Desktop: lista de categorías fija con
+ * scroll-spy. Tablet/celular: chips fijos arriba. Acordeón <details> sin JS.
+ */
 export default async function FaqPage() {
   const cookieStore = await cookies();
-  const locale = (
-    cookieStore.get("menius_locale")?.value === "en" ? "en" : "es"
-  ) as LandingLocale;
+  const locale = resolveLandingV2Locale(cookieStore.get("menius_locale")?.value);
 
   const categories = getFaqCategories(locale);
   const pt = getFaqPageText(locale);
@@ -37,7 +41,7 @@ export default async function FaqPage() {
     0,
   );
 
-  // JSON-LD schema for SEO (all questions, regardless of active category)
+  // JSON-LD schema for SEO (all questions)
   const allQuestions = categories.flatMap((cat) => cat.questions);
   const faqLd = {
     "@context": "https://schema.org",
@@ -50,34 +54,79 @@ export default async function FaqPage() {
   };
 
   return (
-    <div className="min-h-screen landing-bg relative noise-overlay">
+    <V2Page locale={locale}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
       />
-      <LandingNav locale={locale} />
+      <main id="main-content">
+        <header className="ph ph-split">
+          <div className="wrap">
+            <div>
+              <span className="stamp label">{pt.badge}</span>
+              <h1>{pt.title}</h1>
+            </div>
+            <p className="lead">
+              {totalQuestions}
+              {pt.subtitleSuffix}
+            </p>
+          </div>
+        </header>
 
-      {/* Hero */}
-      <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 overflow-hidden">
-        <div className="section-glow section-glow-purple" />
-        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-          <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-5">
-            {pt.badge}
-          </p>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight mb-5">
-            {pt.title}
-          </h1>
-          <p className="text-gray-400 text-lg leading-relaxed max-w-xl mx-auto font-light">
-            {totalQuestions}
-            {pt.subtitleSuffix}
-          </p>
+        <div className="faqp">
+          <div className="wrap faqp-grid">
+            <nav className="cats" aria-label={pt.categoriesLabel} data-toc>
+              <h2>{pt.categories}</h2>
+              <ul>
+                {categories.map((cat, i) => (
+                  <li key={cat.id}>
+                    <a href={`#${cat.id}`} aria-current={i === 0 ? "true" : undefined}>
+                      {cat.title}
+                      <b>{cat.questions.length}</b>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <div>
+              <nav className="chips" aria-label={pt.categoriesLabel}>
+                {categories.map((cat, i) => (
+                  <a key={cat.id} href={`#${cat.id}`} aria-current={i === 0 ? "true" : undefined}>
+                    {cat.title} <b>{cat.questions.length}</b>
+                  </a>
+                ))}
+              </nav>
+
+              {categories.map((cat, ci) => (
+                <section className="cat" id={cat.id} key={cat.id} aria-labelledby={`faq-${cat.id}`}>
+                  <div className="cat-h">
+                    <h2 id={`faq-${cat.id}`}>{cat.title}</h2>
+                    <span>{pt.questions(cat.questions.length)}</span>
+                  </div>
+                  {cat.questions.map((item, qi) => (
+                    <details className="q" key={item.q} open={ci === 0 && qi === 0}>
+                      <summary>{item.q}</summary>
+                      <div className="a">{item.a}</div>
+                    </details>
+                  ))}
+                </section>
+              ))}
+
+              <section className="ask band-dark" aria-labelledby="faq-ask">
+                <div>
+                  <h2 id="faq-ask">{pt.ctaTitle}</h2>
+                  <p>{pt.ctaSubtitle}</p>
+                </div>
+                <div className="acts">
+                  <a className="big" href={`mailto:${SUPPORT_CONTACT.email}`}>{SUPPORT_CONTACT.email}</a>
+                  <Link className="tlink" href="/demo">{pt.ctaDemo}</Link>
+                </div>
+              </section>
+            </div>
+          </div>
         </div>
-      </section>
-
-      {/* Interactive nav + filtered content */}
-      <FaqClient categories={categories} pt={pt} />
-
-      <LandingFooter locale={locale} />
-    </div>
+      </main>
+      <V2ScrollSpy ids={categories.map((c) => c.id)} />
+    </V2Page>
   );
 }

@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
-import { LandingNav } from "@/components/landing/LandingNav";
-import { LandingFooter } from "@/components/landing/LandingFooter";
-import type { LandingLocale } from "@/lib/landing-translations";
+import Image from "next/image";
+import { V2Page } from "@/components/landing-v2/V2Page";
+import { resolveLandingV2Locale } from "@/lib/landing-v2-copy";
+import { SUPPORT_CONTACT, supportWhatsAppUrl } from "@/lib/support-contact";
 import { SetupForm } from "./SetupForm";
 
 export const metadata: Metadata = {
   title: "Professional Setup",
   description:
-    "Our team sets up your digital menu, uploads your products with AI photos, and gets your restaurant ready to receive orders.",
+    "Professional setup for your restaurant: we load your menu, set up the tablet and printer and train your staff. One-time fee by menu size.",
   alternates: { canonical: "/setup-profesional" },
   openGraph: {
     title: "Professional Setup — MENIUS",
     description:
-      "Professional setup service for your digital restaurant. Your menu ready in 48 hours.",
+      "Professional setup for your restaurant: we load your menu, set up the tablet and printer and train your staff. One-time fee by menu size.",
     type: "website",
   },
 };
@@ -25,7 +26,7 @@ const t = {
     heroLine1: "Tú cocinas.",
     heroLine2: "Nosotros digitalizamos.",
     heroDesc:
-      "Nuestro equipo se encarga de crear tu menú digital, subir todos tus productos con fotos profesionales generadas por IA, y dejar tu restaurante listo para recibir pedidos online.",
+      "Nuestro equipo carga tu menú, instala la tablet y la impresora, y capacita a tu equipo, para que tu restaurante quede listo para recibir pedidos en línea. Las fotos son opcionales: $10 por plato.",
     processTitle: "¿Cómo funciona?",
     processSteps: [
       {
@@ -38,7 +39,7 @@ const t = {
       },
       {
         title: "Configuración",
-        desc: "Nuestro equipo configura tu menú digital con fotos IA, tu marca y todos tus productos.",
+        desc: "Nuestro equipo configura tu menú, tu marca y todos tus productos.",
       },
       {
         title: "¡Listo!",
@@ -47,7 +48,7 @@ const t = {
     ],
     packagesTitle: "Elige tu paquete",
     packagesDesc:
-      "Pago único según el tamaño de tu menú. Gratis si eliges el plan anual. Garantía de satisfacción o te devolvemos el dinero.",
+      "Pago único según el tamaño de tu menú. Gratis si eliges el plan anual. Si algo no quedó como querías, lo corregimos sin costo.",
     packages: [
       {
         id: "setup-esencial",
@@ -126,10 +127,14 @@ const t = {
     formDesc: "Llena el formulario y te contactamos en menos de 24 horas.",
     formLoading: "Cargando formulario...",
     faqTitle: "Preguntas sobre el servicio",
+    heroCta: "Solicitar Setup Profesional",
+    seePackages: "Ver los paquetes",
+    talk: "Habla con una persona real",
+    freeAnnual: "Gratis con el plan anual.",
     faqs: [
       {
         q: "¿Qué necesito para empezar?",
-        a: "Solo tu menú (foto, PDF o lista) y tu logo. Nosotros nos encargamos de todo lo demás: categorías, productos, fotos, precios, QR y configuración completa.",
+        a: "Solo tu menú (foto, PDF o lista) y tu logo. Nosotros nos encargamos de todo lo demás: categorías, productos, precios, QR y configuración completa.",
       },
       {
         q: "¿Cómo generan las fotos de los platos?",
@@ -140,8 +145,8 @@ const t = {
         a: "Sí. Una vez configurado, tienes acceso completo a tu dashboard para editar cualquier cosa. Y si prefieres, nos escribes y lo cambiamos por ti: está incluido en Pro.",
       },
       {
-        q: "¿Ofrecen garantía?",
-        a: "Sí. Si no estás satisfecho con el setup, te devolvemos el 100% de tu dinero. Sin preguntas ni letras pequeñas.",
+        q: "¿Y si algo no queda bien?",
+        a: "Si algo no quedó como querías, lo corregimos sin costo.",
       },
       {
         q: "¿Tengo que comprar equipo?",
@@ -158,7 +163,7 @@ const t = {
     heroLine1: "You cook.",
     heroLine2: "We handle the tech.",
     heroDesc:
-      "Our team creates your digital menu, uploads all your products with AI-generated professional photos, and gets your restaurant ready to receive online orders.",
+      "Our team loads your menu, sets up the tablet and printer, and trains your staff, so your restaurant is ready to take online orders. Photos are optional: $10 per dish.",
     processTitle: "How does it work?",
     processSteps: [
       {
@@ -171,7 +176,7 @@ const t = {
       },
       {
         title: "Setup",
-        desc: "Our team sets up your digital menu with AI photos, your branding, and all your products.",
+        desc: "Our team sets up your menu, your branding and all your products.",
       },
       {
         title: "Done!",
@@ -180,7 +185,7 @@ const t = {
     ],
     packagesTitle: "Choose your package",
     packagesDesc:
-      "One-time fee based on the size of your menu. Free with the annual plan. Satisfaction guaranteed or your money back.",
+      "One-time fee based on the size of your menu. Free with the annual plan. If anything isn't right, we fix it at no cost.",
     packages: [
       {
         id: "setup-esencial",
@@ -259,10 +264,14 @@ const t = {
     formDesc: "Fill out the form and we'll contact you within 24 hours.",
     formLoading: "Loading form...",
     faqTitle: "Service FAQ",
+    heroCta: "Request Professional Setup",
+    seePackages: "See the packages",
+    talk: "Talk to a real person",
+    freeAnnual: "Free with the annual plan.",
     faqs: [
       {
         q: "What do I need to get started?",
-        a: "Just your menu (photo, PDF, or list) and your logo. We handle everything else: categories, products, photos, prices, QR codes, and full setup.",
+        a: "Just your menu (photo, PDF, or list) and your logo. We handle everything else: categories, products, prices, QR codes, and full setup.",
       },
       {
         q: "How do you generate the food photos?",
@@ -273,8 +282,8 @@ const t = {
         a: "Yes. Once set up, you have full access to your dashboard to edit anything. Or just message us and we'll change it for you: it's included in Pro.",
       },
       {
-        q: "Do you offer a guarantee?",
-        a: "Yes. If you're not satisfied with the setup, we refund 100% of your money. No questions asked.",
+        q: "What if something isn't right?",
+        a: "If anything isn't right, we fix it at no cost.",
       },
       {
         q: "Do I need to buy equipment?",
@@ -288,242 +297,168 @@ const t = {
   },
 } as const;
 
+const CLOCK = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);
+
 export default async function SetupProfesionalPage() {
   const cookieStore = await cookies();
-  const locale = (
-    cookieStore.get("menius_locale")?.value === "en" ? "en" : "es"
-  ) as LandingLocale;
+  const locale = resolveLandingV2Locale(cookieStore.get("menius_locale")?.value);
   const s = t[locale];
+  const tiers = s.packages.filter((p) => p.id !== "sitio-web");
+  const site = s.packages.find((p) => p.id === "sitio-web");
+  const wa = supportWhatsAppUrl();
 
   return (
-    <div className="min-h-screen landing-bg overflow-x-hidden relative noise-overlay">
-      <LandingNav locale={locale} />
-
-      {/* Hero */}
-      <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 overflow-hidden">
-        <div className="section-glow section-glow-purple" />
-        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold mb-6">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"
-              />
-            </svg>
-            {s.badge}
-          </span>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight leading-tight">
-            {s.heroLine1} <br className="hidden sm:block" />
-            <span className="text-gradient-premium">{s.heroLine2}</span>
-          </h1>
-          <p className="text-lg text-gray-400 mt-6 max-w-2xl mx-auto leading-relaxed font-light">
-            {s.heroDesc}
-          </p>
-        </div>
-      </section>
-
-      {/* Process */}
-      <section className="relative z-10 py-16">
-        <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-2xl md:text-3xl font-semibold text-white text-center mb-12 tracking-tight">
-            {s.processTitle}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {s.processSteps.map((step, i) => (
-              <div key={i} className="text-center">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-lg font-semibold text-emerald-400">
-                    {i + 1}
-                  </span>
-                </div>
-                <h3 className="text-sm font-semibold text-white mb-1.5">
-                  {step.title}
-                </h3>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  {step.desc}
-                </p>
+    <V2Page locale={locale}>
+      <main id="main-content">
+        <header className="ph setup-hero">
+          <div className="wrap">
+            <div>
+              <span className="stamp label">{s.badge}</span>
+              <h1>
+                {s.heroLine1} <span className="voice">{s.heroLine2}</span>
+              </h1>
+              <p className="lead">{s.heroDesc}</p>
+              <div className="row">
+                <a className="btn btn-primary" href="#solicitar">{s.heroCta}</a>
+                <a className="tlink" href="#packages">{s.seePackages}</a>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="separator-gradient max-w-4xl mx-auto" />
-
-      {/* Packages */}
-      <section className="relative z-10 py-20">
-        <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-2xl md:text-3xl font-semibold text-white text-center mb-4 tracking-tight">
-            {s.packagesTitle}
-          </h2>
-          <p className="text-sm text-gray-500 text-center mb-12 max-w-lg mx-auto">
-            {s.packagesDesc}
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {s.packages.map((pkg) => (
-              <div
-                key={pkg.id}
-                className={`relative rounded-2xl p-7 flex flex-col transition-all duration-300 ${
-                  pkg.tagHighlight
-                    ? "card-gradient-border shimmer-border bg-[#0a0a0a] ring-1 ring-emerald-500/30"
-                    : "card-premium"
-                }`}
-              >
-                {pkg.tag && (
-                  <span
-                    className={`absolute -top-3 right-6 px-3 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider ${
-                      pkg.tagHighlight
-                        ? "bg-white text-black shadow-lg shadow-white/10"
-                        : "bg-white/[0.06] text-gray-400 border border-white/[0.08]"
-                    }`}
-                  >
-                    {pkg.tag}
-                  </span>
+            </div>
+            {/* Tarjeta oscura del pliegue: solo contacto + "gratis con el plan anual" (los precios van en los paquetes). */}
+            <aside className="contact">
+              <p className="k">{s.talk}</p>
+              <a className="big" href={`tel:${SUPPORT_CONTACT.phoneE164}`}>{SUPPORT_CONTACT.phoneDisplay}</a>
+              <div className="alt">
+                {wa && (
+                  <a className="tlink" href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>
                 )}
-
-                <h3 className="text-lg font-semibold text-white">{pkg.name}</h3>
-                <p className="text-sm mt-1 text-gray-500">{pkg.desc}</p>
-
-                <div className="mt-5 mb-6">
-                  <span className="text-4xl font-semibold text-white">
-                    ${pkg.price.toLocaleString("en-US")}
-                  </span>
-                  <span className="text-sm ml-1 text-gray-500">
-                    {pkg.monthly ? s.priceMonthly : s.priceOneTime}
-                  </span>
-                </div>
-
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium mb-5 w-fit bg-white/[0.04] text-gray-400 border border-white/[0.06]">
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                    />
-                  </svg>
-                  {pkg.timeline}
-                </div>
-
-                <ul className="space-y-2.5 flex-1">
-                  {pkg.includes.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5">
-                      <svg
-                        className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2.5}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span className="text-sm leading-snug text-gray-400">
-                        {f}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <a
-                  href="#solicitar"
-                  className={`mt-6 text-center py-3 rounded-xl text-sm font-medium transition-all ${
-                    pkg.tagHighlight
-                      ? "bg-white text-black hover:bg-gray-100 btn-glow"
-                      : "bg-white/[0.06] text-gray-300 hover:bg-white/[0.1] border border-white/[0.06]"
-                  }`}
-                >
-                  {s.ctaPrefix} {pkg.name}
-                </a>
+                <a className="tlink" href={`mailto:${SUPPORT_CONTACT.email}`}>{SUPPORT_CONTACT.email}</a>
               </div>
-            ))}
+              <p className="free">{s.freeAnnual}</p>
+            </aside>
           </div>
-        </div>
-      </section>
+        </header>
 
-      <div className="separator-gradient max-w-4xl mx-auto" />
+        <section className="chap tight alt" id="packages" aria-labelledby="pk-h">
+          <div className="wrap">
+            <div className="pk-head">
+              <h2 id="pk-h" className="h-a">{s.packagesTitle}</h2>
+              <p className="lead">{s.packagesDesc}</p>
+            </div>
+            <div className="pkgs">
+              {tiers.map((pkg) => (
+                <article key={pkg.id} className={pkg.tagHighlight ? "pkg rec" : "pkg"}>
+                  {pkg.tag && <span className="tag stamp label">{pkg.tag}</span>}
+                  <h3>{pkg.name}</h3>
+                  <p className="for">{pkg.desc}</p>
+                  <div className="price">
+                    <b>${pkg.price.toLocaleString("en-US")}</b>
+                    <span>{pkg.monthly ? s.priceMonthly : s.priceOneTime}</span>
+                  </div>
+                  <p className="when">{CLOCK}{pkg.timeline}</p>
+                  <ul>
+                    {pkg.includes.map((f, i) => (
+                      <li key={f} className={i === 0 && pkg.id !== "setup-esencial" ? "inh" : undefined}>{f}</li>
+                    ))}
+                  </ul>
+                  <div className="go">
+                    <a className="btn btn-primary" href="#solicitar">
+                      {s.ctaPrefix} {pkg.name}
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
 
-      {/* Request Form */}
-      <section
-        id="solicitar"
-        className="relative z-10 py-20 md:py-28 scroll-mt-20"
-      >
-        <div className="max-w-2xl mx-auto px-6">
-          <h2 className="text-2xl md:text-3xl font-semibold text-white text-center mb-3 tracking-tight">
-            {s.formTitle}
-          </h2>
-          <p className="text-sm text-gray-500 text-center mb-10">
-            {s.formDesc}
-          </p>
-          <Suspense
-            fallback={
-              <div className="py-12 text-center text-gray-500">
-                {s.formLoading}
-              </div>
-            }
-          >
-            <SetupForm
-              packages={s.packages.map((p) => ({
-                id: p.id,
-                name: p.name,
-                price: p.price,
-              }))}
-              locale={locale}
-            />
-          </Suspense>
-        </div>
-      </section>
-
-      <div className="separator-gradient max-w-4xl mx-auto" />
-
-      {/* FAQ mini */}
-      <section className="relative z-10 py-16">
-        <div className="max-w-3xl mx-auto px-6">
-          <h2 className="text-xl font-semibold text-white text-center mb-8">
-            {s.faqTitle}
-          </h2>
-          <div className="space-y-3">
-            {s.faqs.map((faq) => (
-              <details
-                key={faq.q}
-                className="group rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden hover:border-emerald-500/20 transition-colors duration-300"
-              >
-                <summary className="flex items-center justify-between px-6 py-5 cursor-pointer">
-                  <span className="text-[15px] font-medium text-gray-200 pr-4">
-                    {faq.q}
-                  </span>
-                  <span className="faq-icon text-emerald-400 text-xl font-light transition-transform duration-200 flex-shrink-0">
-                    +
-                  </span>
-                </summary>
-                <div className="faq-answer px-6 pb-5">
-                  <p className="text-sm text-gray-400 leading-relaxed">
-                    {faq.a}
-                  </p>
+            {site && (
+              <article className="site-pkg">
+                <div className="browser">
+                  <div className="browser-bar">
+                    <i /><i /><i />
+                    <span>thegrillhouse.com</span>
+                  </div>
+                  <Image
+                    src="/landing/v2/site-desktop-v1.webp"
+                    alt={locale === "es" ? "Un sitio web de restaurante hecho con MENIUS, en computadora" : "A restaurant website made with MENIUS, on desktop"}
+                    width={1600}
+                    height={1000}
+                    quality={78}
+                    sizes="(max-width: 1100px) calc(100vw - 104px), 460px"
+                  />
                 </div>
-              </details>
-            ))}
+                <div className="pkg site-copy">
+                  {site.tag && <span className="stamp label site-tag">{site.tag}</span>}
+                  <h3>{site.name}</h3>
+                  <p className="for">{site.desc}</p>
+                  <div className="price">
+                    <b>${site.price.toLocaleString("en-US")}</b>
+                    <span>{s.priceOneTime}</span>
+                  </div>
+                  <p className="when">{CLOCK}{site.timeline}</p>
+                  <ul>
+                    {site.includes.map((f) => (
+                      <li key={f}>{f}</li>
+                    ))}
+                  </ul>
+                  <div className="go">
+                    <a className="tlink" href="#solicitar">
+                      {s.ctaPrefix} {site.name}
+                    </a>
+                  </div>
+                </div>
+              </article>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <LandingFooter locale={locale} />
-    </div>
+        <section className="chap" id="solicitar" aria-labelledby="rq-h">
+          <div className="wrap req-grid">
+            <div>
+              <h2 id="rq-h" className="h-b">{s.formTitle}</h2>
+              <p className="lead req-lead">{s.formDesc}</p>
+              <ol className="steps req-steps" aria-label={s.processTitle}>
+                {s.processSteps.map((step, i) => (
+                  <li key={step.title}>
+                    <span className="n" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+                    <div>
+                      <h3>{step.title}</h3>
+                      <p>{step.desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <Suspense fallback={<div className="auth-card req-card"><p className="hint">{s.formLoading}</p></div>}>
+              <SetupForm
+                packages={s.packages.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  price: p.price,
+                }))}
+                locale={locale}
+              />
+            </Suspense>
+          </div>
+        </section>
+
+        <section className="chap tight alt" aria-labelledby="sfaq-h">
+          <div className="wrap">
+            <div className="sfaq">
+              <h2 id="sfaq-h" className="h-b">{s.faqTitle}</h2>
+              {s.faqs.map((faq, i) => (
+                <details key={faq.q} className="q" open={i === 0}>
+                  <summary>{faq.q}</summary>
+                  <div className="a">{faq.a}</div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+    </V2Page>
   );
 }
