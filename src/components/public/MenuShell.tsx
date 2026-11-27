@@ -1175,11 +1175,12 @@ export function MenuShell({
   }, [isOpen]);
 
   const handleQuickAdd = useCallback(
-    (product: Product) => {
+    (product: Product, modifierSelections?: ModifierSelection[]) => {
       const { items, reorderSkipped } = useCartStore.getState();
       undoCartRef.current = { items, reorderSkipped };
       undoUidRef.current = null;
-      addItem(product, null, [], 1, "");
+      // Con selecciones: elegido ahí mismo desde el buscador de otro plato (Sprite).
+      addItem(product, null, [], 1, "", modifierSelections);
       showToast(product.name);
       if (isTabletUp && !customizationRef.current && !useCartStore.getState().isOpen) {
         setAddedByKeyboard(focusIsKeyboard());
@@ -4753,8 +4754,10 @@ export function MenuShell({
                 }}
                 findOnMenu={findOnMenu}
                 queuedNext={queuedNext}
-                onQueueNext={(p) => {
-                  if ((p.variants?.length ?? 0) > 0 || (p.extras?.length ?? 0) > 0 || p.has_modifiers) {
+                onQueueNext={(p, selections) => {
+                  if (selections) {
+                    handleQuickAdd(p, selections);
+                  } else if ((p.variants?.length ?? 0) > 0 || (p.extras?.length ?? 0) > 0 || p.has_modifiers) {
                     setQueuedNext(p);
                   } else {
                     handleQuickAdd(p);

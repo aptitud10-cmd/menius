@@ -1,11 +1,12 @@
 "use client";
 
 import { useId, useMemo, useRef, useState } from "react";
-import { Search, X, Plus, Check, ArrowUp } from "lucide-react";
+import { Search, X, Plus, Check, ArrowUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tName } from "@/lib/i18n";
 import { searchAddons } from "@/lib/addon-search";
-import type { ModifierGroup, ModifierOption, Product } from "@/types";
+import { quickPickStep } from "@/lib/quick-pick";
+import type { ModifierGroup, ModifierOption, ModifierSelection, Product } from "@/types";
 import type { Translations, Locale } from "@/lib/translations";
 
 interface AddonSearchProps {
@@ -29,8 +30,11 @@ interface AddonSearchProps {
   findOnMenu?: (query: string) => Product[];
   /** Producto que se abre cuando el cliente agrega este plato. */
   queued?: Product | null;
-  onQueue?: (product: Product) => void;
+  /** Con `selections` ya se eligió acá mismo (Sprite): va directo al carrito. */
+  onQueue?: (product: Product, selections?: ModifierSelection[]) => void;
   onUnqueue?: () => void;
+  /** Agotada u otra hora (grits después de las 11): no se ofrece al elegir acá. */
+  isOptionAvailable?: (o: ModifierOption) => boolean;
   fmtPrice: (n: number) => string;
   t: Translations;
   locale: Locale;
@@ -55,6 +59,7 @@ export function AddonSearch({
   queued = null,
   onQueue,
   onUnqueue,
+  isOptionAvailable,
   fmtPrice,
   t,
   locale,
@@ -63,6 +68,8 @@ export function AddonSearch({
   const [query, setQuery] = useState("");
   // Lo que se mandó directo al pedido desde acá (sin preguntas): se confirma abajo.
   const [sentToOrder, setSentToOrder] = useState<string[]>([]);
+  // Producto del menú que se está eligiendo acá mismo (Sodas → Sprite).
+  const [pick, setPick] = useState<PickState | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
   const resultsId = useId();
@@ -110,6 +117,54 @@ export function AddonSearch({
     const g = groupById.get(r.groupId);
     if (r.direct && g) onToggle(g, r.option);
     else onRevealGroup(r.groupId);
+  };
+
+  const available = isOptionAvailable ?? ((o: ModifierOption) => !o.sold_out);
+
+  /** Lo agregado se confirma abajo: "Sodas (Sprite) added to your order". */
+  const confirmAdded = (p: Product, chosen: ModifierOption[] = []) => {
+    const short = tName(p, locale, defaultLocale).split(" — ")[0];
+    const opts = chosen.map((o) => tName(o, locale, defaultLocale)).join(", ");
+    setSentToOrder((prev) => [...prev, opts ? `${short} (${opts})` : short]);
+  };
+
+  /** Contesta el paso que toca; si ya no falta nada, al carrito. */
+  const advance = (p: Product, groups: ModifierGroup[], picks: Record<string, ModifierOption[]>) => {
+    const step = quickPickStep(groups, picks, available);
+    if (step.kind === "ask") {
+      setPick({ product: p, status: "ready", groups, picks, step });
+      return;
+    }
+    setPick(null);
+    if (step.kind === "full") {
+      // Un plato con varias preguntas propias se abre entero después de este.
+      onQueue?.(p);
+      return;
+    }
+    onQueue?.(p, step.selections);
+    confirmAdded(p, Object.values(picks).flat());
+    setQuery("");
+  };
+
+  const startPick = (p: Product) => {
+    if (pick?.product.id === p.id) {
+      setPick(null);
+      return;
+    }
+    setPick({ product: p, status: "loading", groups: [], picks: {}, step: null });
+    loadModifiers(p.id)
+      .then((data) => {
+        // Formato viejo (variantes/extras sueltos): se elige en su propia hoja.
+        if (data.variants.length > 0 || data.extras.length > 0) {
+          setPick(null);
+          onQueue?.(p);
+          return;
+        }
+        advance(p, data.modifier_groups, {});
+      })
+      .catch(() => {
+        setPick((cur) => (cur?.product.id === p.id ? { ...cur, status: "error" } : cur));
+      });
   };
 
   return (
@@ -254,31 +309,111 @@ export function AddonSearch({
             <div className="mt-2 rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
               {menuHits.map((p) => {
                 const choose = needsChoices(p);
+                const open = pick?.product.id === p.id ? pick : null;
+                const panelId = `${resultsId}-${p.id}`;
                 return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      onQueue(p);
-                      if (!choose) setSentToOrder((prev) => [...prev, tName(p, locale, defaultLocale)]);
-                      setQuery("");
-                    }}
-                    className="w-full min-h-[52px] flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 active:bg-gray-100"
-                  >
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[15px] leading-snug text-gray-900 font-medium">
-                        {tName(p, locale, defaultLocale)}
+                  <div key={p.id}>
+                    <button
+                      type="button"
+                      aria-expanded={choose ? !!open : undefined}
+                      aria-controls={choose ? panelId : undefined}
+                      onClick={() => {
+                        if (choose) {
+                          startPick(p);
+                          return;
+                        }
+                        onQueue(p);
+                        confirmAdded(p);
+                        setQuery("");
+                      }}
+                      className="w-full min-h-[52px] flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 active:bg-gray-100"
+                    >
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[15px] leading-snug text-gray-900 font-medium">
+                          {tName(p, locale, defaultLocale)}
+                        </span>
+                        <span className="block text-[13px] leading-snug text-gray-600 tabular-nums">
+                          {fmtPrice(Number(p.price))}
+                        </span>
                       </span>
-                      <span className="block text-[13px] leading-snug text-gray-600">
-                        {choose ? `${t.addonSearchChooseAfter} · ` : ""}
-                        {fmtPrice(Number(p.price))}
-                      </span>
-                    </span>
-                    <span className="inline-flex items-center gap-1 min-h-[36px] px-3.5 rounded-full bg-[#e6faf7] text-[14px] font-semibold text-[#047a65] flex-shrink-0">
-                      <Plus className="w-4 h-4" aria-hidden="true" />
-                      {t.addonSearchAddToOrder}
-                    </span>
-                  </button>
+                      {open ? (
+                        <span className="inline-flex items-center gap-1 min-h-[36px] px-3.5 rounded-full bg-gray-100 text-[14px] font-semibold text-gray-700 flex-shrink-0">
+                          <X className="w-4 h-4" aria-hidden="true" />
+                          {t.addonSearchPickCancel}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 min-h-[36px] px-3.5 rounded-full bg-[#e6faf7] text-[14px] font-semibold text-[#047a65] flex-shrink-0">
+                          <Plus className="w-4 h-4" aria-hidden="true" />
+                          {t.addonSearchAddToOrder}
+                        </span>
+                      )}
+                    </button>
+
+                    {open && (
+                      <div id={panelId} className="bg-gray-50 px-4 pt-1 pb-3.5">
+                        {open.status === "loading" && (
+                          <p className="flex items-center gap-2 min-h-[44px] text-[14px] text-gray-600" role="status">
+                            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                            {t.addonSearchPickLoading}
+                          </p>
+                        )}
+                        {open.status === "error" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPick(null);
+                              startPick(p);
+                            }}
+                            className="min-h-[44px] text-left text-[14px] text-gray-700"
+                          >
+                            {t.addonSearchPickError}{" "}
+                            <span className="font-semibold text-gray-900 underline underline-offset-2">
+                              {t.addonSearchPickRetry}
+                            </span>
+                          </button>
+                        )}
+                        {open.status === "ready" && open.step && (
+                          <div role="group" aria-labelledby={`${panelId}-q`}>
+                            {Object.values(open.picks).flat().length > 0 && (
+                              <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] text-[#047a65] font-semibold">
+                                <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden="true" />
+                                {Object.values(open.picks)
+                                  .flat()
+                                  .map((o) => tName(o, locale, defaultLocale))
+                                  .join(" · ")}
+                              </p>
+                            )}
+                            <p id={`${panelId}-q`} className="pt-2 text-[14px] font-semibold text-gray-900">
+                              {tName(open.step.group, locale, defaultLocale)}
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {open.step.options.map((o) => {
+                                const delta = Number(o.price_delta);
+                                return (
+                                  <button
+                                    key={o.id}
+                                    type="button"
+                                    onClick={() =>
+                                      advance(p, open.groups, { ...open.picks, [open.step!.group.id]: [o] })
+                                    }
+                                    className="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-full border border-gray-300 bg-white text-[15px] font-medium text-gray-900 hover:border-gray-900 active:bg-gray-100"
+                                  >
+                                    {tName(o, locale, defaultLocale)}
+                                    {delta !== 0 && (
+                                      <span className="text-[14px] text-gray-600 tabular-nums">
+                                        {delta > 0 ? "+" : ""}
+                                        {fmtPrice(delta)}
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -359,3 +494,40 @@ export function AddonSearch({
 
 /** Título chico de cada lista: lo que va en el plato y lo que va al pedido. */
 const SECTION = "mt-4 text-[12px] font-bold uppercase tracking-[0.06em] text-gray-600";
+
+interface PickState {
+  product: Product;
+  status: "loading" | "ready" | "error";
+  groups: ModifierGroup[];
+  picks: Record<string, ModifierOption[]>;
+  step: Extract<ReturnType<typeof quickPickStep>, { kind: "ask" }> | null;
+}
+
+interface LoadedModifiers {
+  modifier_groups: ModifierGroup[];
+  variants: unknown[];
+  extras: unknown[];
+}
+
+// Las opciones de un producto no cambian mientras el cliente arma el pedido:
+// abrir y cerrar la soda dos veces no vuelve a pedirlas.
+const modifiersCache = new Map<string, Promise<LoadedModifiers>>();
+
+function loadModifiers(productId: string): Promise<LoadedModifiers> {
+  const cached = modifiersCache.get(productId);
+  if (cached) return cached;
+  const req = fetch(`/api/product-modifiers?productId=${encodeURIComponent(productId)}`)
+    .then((r) => {
+      if (!r.ok) throw new Error(`product-modifiers ${r.status}`);
+      return r.json();
+    })
+    .then((data: Partial<LoadedModifiers>) => ({
+      modifier_groups: Array.isArray(data?.modifier_groups) ? data.modifier_groups : [],
+      variants: Array.isArray(data?.variants) ? data.variants : [],
+      extras: Array.isArray(data?.extras) ? data.extras : [],
+    }));
+  // Un error no queda guardado: "Try again" vuelve a pedir.
+  req.catch(() => modifiersCache.delete(productId));
+  modifiersCache.set(productId, req);
+  return req;
+}

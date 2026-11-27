@@ -188,7 +188,10 @@ export interface Translations {
   addonSearchOnDish: string;
   addonSearchToOrder: string;
   addonSearchAddToOrder: string;
-  addonSearchChooseAfter: string;
+  addonSearchPickCancel: string;
+  addonSearchPickLoading: string;
+  addonSearchPickError: string;
+  addonSearchPickRetry: string;
   addonSearchSentToOrder: (names: string) => string;
   goesWellWithSub: string;
   menuSheetTitle: string;
@@ -698,7 +701,10 @@ const es: Translations = {
   addonSearchOnDish: 'En este plato',
   addonSearchToOrder: 'Agregar a tu pedido',
   addonSearchAddToOrder: 'Agregar',
-  addonSearchChooseAfter: 'Eliges después',
+  addonSearchPickCancel: 'Cerrar',
+  addonSearchPickLoading: 'Cargando opciones…',
+  addonSearchPickError: 'No se pudieron cargar las opciones.',
+  addonSearchPickRetry: 'Reintentar',
   addonSearchSentToOrder: (names) => `${names}: agregado a tu pedido`,
   goesWellWithSub: 'Toca + para sumarlo a tu pedido',
   menuSheetTitle: 'Menú',
@@ -1190,7 +1196,10 @@ const en: Translations = {
   addonSearchOnDish: 'On this dish',
   addonSearchToOrder: 'Add to your order',
   addonSearchAddToOrder: 'Add',
-  addonSearchChooseAfter: 'Choose after',
+  addonSearchPickCancel: 'Close',
+  addonSearchPickLoading: 'Loading options…',
+  addonSearchPickError: "Couldn't load the options.",
+  addonSearchPickRetry: 'Try again',
   addonSearchSentToOrder: (names) => `${names} added to your order`,
   goesWellWithSub: 'Tap + to add it to your order',
   menuSheetTitle: 'Menu',

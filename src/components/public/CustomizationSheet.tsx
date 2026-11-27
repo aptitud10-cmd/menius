@@ -72,7 +72,8 @@ interface CustomizationSheetProps {
   findOnMenu?: (query: string) => Product[];
   /** Product to open once this dish is added ("Add after this"). */
   queuedNext?: Product | null;
-  onQueueNext?: (product: Product) => void;
+  /** Con `selections`: ya elegido ahí mismo (Sprite), va directo al carrito. */
+  onQueueNext?: (product: Product, selections?: ModifierSelection[]) => void;
   onUnqueueNext?: () => void;
 }
 
@@ -1400,6 +1401,7 @@ export function CustomizationSheet({
               queued={queuedNext}
               onQueue={onQueueNext}
               onUnqueue={onUnqueueNext}
+              isOptionAvailable={isAvailableNow}
               fmtPrice={fmtPrice}
               t={t}
               locale={locale}
