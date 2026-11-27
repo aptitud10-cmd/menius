@@ -4,10 +4,11 @@ import type { Metadata } from 'next';
 import { OrderHistoryClient } from './OrderHistoryClient';
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   // In the store's language: it was a fixed "Mis pedidos" on English menus.
   const { data } = await createAdminClient()
     .from('restaurants')
@@ -21,7 +22,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function MisPedidosPage({ params }: PageProps) {
+export default async function MisPedidosPage(props: PageProps) {
+  const params = await props.params;
   const adminDb = createAdminClient();
 
   const { data: restaurant } = await adminDb

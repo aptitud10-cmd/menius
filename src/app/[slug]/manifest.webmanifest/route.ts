@@ -27,10 +27,8 @@ const DEMO_MANIFESTS: Record<string, { name: string; description: string; logo_u
   },
 };
 
-export async function GET(
-  _request: Request,
-  { params }: { params: { slug: string } },
-) {
+export async function GET(_request: Request, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const { slug } = params;
 
   // Serve demo manifests without a DB round-trip

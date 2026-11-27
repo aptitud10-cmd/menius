@@ -13,7 +13,7 @@ import { V2Closing } from "@/components/landing-v2/V2Closing";
 import { getLandingV2Copy, resolveLandingV2Locale } from "@/lib/landing-v2-copy";
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 // Los posts ocultos (recorte EE.UU.) no se generan y su URL da 404.
@@ -21,9 +21,8 @@ export function generateStaticParams() {
   return getVisibleBlogPosts().map((post) => ({ slug: post.slug }));
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   const cookieStore = await cookies();
   const locale = resolveLandingV2Locale(cookieStore.get("menius_locale")?.value);
   const post = getLocalizedBlogPost(params.slug, locale);
@@ -71,7 +70,8 @@ function getUiText(locale: string) {
   };
 }
 
-export default async function BlogPostPage({ params }: PageProps) {
+export default async function BlogPostPage(props: PageProps) {
+  const params = await props.params;
   const cookieStore = await cookies();
   const locale = resolveLandingV2Locale(cookieStore.get("menius_locale")?.value);
   const post = getLocalizedBlogPost(params.slug, locale);

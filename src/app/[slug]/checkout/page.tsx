@@ -13,10 +13,11 @@ const DEMO_RESTAURANTS: Record<string, { restaurant: typeof demoRestaurant; loca
 };
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export default async function CheckoutPage({ params }: PageProps) {
+export default async function CheckoutPage(props: PageProps) {
+  const params = await props.params;
   const demo = DEMO_RESTAURANTS[params.slug];
   if (demo) {
     return <CheckoutPageClient restaurant={demo.restaurant} locale={demo.locale} slug={params.slug} orderToken="" />;

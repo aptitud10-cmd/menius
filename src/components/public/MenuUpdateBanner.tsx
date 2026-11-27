@@ -33,7 +33,7 @@ export function MenuUpdateBanner({ restaurantId, locale, initialPausedUntil = nu
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'restaurants', filter: `id=eq.${restaurantId}` },
-        (payload) => {
+        (payload: { new: unknown }) => {
           const next = (payload.new as { orders_paused_until?: string | null }).orders_paused_until ?? null;
           if (next !== pausedRef.current) {
             pausedRef.current = next;

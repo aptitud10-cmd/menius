@@ -7,10 +7,8 @@ import { revalidatePublicMenuForRestaurant } from '@/lib/revalidate-public-menu'
 
 const ALLOWED_PATCH_FIELDS = ['in_stock', 'stock_qty', 'low_stock_threshold', 'track_inventory'];
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });

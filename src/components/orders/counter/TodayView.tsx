@@ -126,7 +126,7 @@ export function TodayView({ en, restaurantName }: { en: boolean; restaurantName:
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'recent' | 'az'>('recent');
   const [toast, setToast] = useState<null | { msg: string; kick?: string | null; undo?: Op[] }>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const load = useCallback(async () => {
     try {

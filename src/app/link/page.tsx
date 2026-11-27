@@ -24,7 +24,8 @@ export const viewport: Viewport = {
  * menius.app/link — where the owner approves a tablet's pairing code. The tablet's
  * QR points here with ?code=…, so a scan pre-fills it and approving is one tap.
  */
-export default async function LinkPage({ searchParams }: { searchParams: { code?: string } }) {
+export default async function LinkPage(props: { searchParams: Promise<{ code?: string }> }) {
+  const searchParams = await props.searchParams;
   const code = normalizePairingCode(searchParams.code) ?? '';
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

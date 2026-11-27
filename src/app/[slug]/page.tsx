@@ -66,7 +66,7 @@ const RESERVED_PATHS = new Set([
 ]);
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 const DEMO_SLUGS: Record<
@@ -94,9 +94,8 @@ const DEMO_SLUGS: Record<
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://menius.app";
 
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   if (RESERVED_PATHS.has(params.slug)) {
     return { title: "MENIUS" };
   }
@@ -236,7 +235,8 @@ export async function generateMetadata({
   };
 }
 
-export default async function SlugMenuPage({ params }: PageProps) {
+export default async function SlugMenuPage(props: PageProps) {
+  const params = await props.params;
   // Skip reserved paths — let Next.js handle them via their own routes
   if (RESERVED_PATHS.has(params.slug)) notFound();
 

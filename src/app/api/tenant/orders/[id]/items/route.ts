@@ -52,7 +52,8 @@ async function recalcOrderTotals(supabase: SupabaseClient, orderId: string, rest
 }
 
 // POST — add a product to an existing order
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { supabase, restaurantId } = await getDashboardContext(true);
     const orderId = params.id;
@@ -147,7 +148,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 // DELETE — remove an order_item from an existing order
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { supabase, restaurantId } = await getDashboardContext(true);
     const orderId = params.id;

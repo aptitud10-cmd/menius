@@ -72,7 +72,7 @@ export function AddedToOrderCard({ uid, takeFocus = false, onClose, onViewOrder,
 
   // Auto-close, paused while hovered or focused.
   const [paused, setPaused] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     if (paused) return;
     timer.current = setTimeout(onClose, VISIBLE_MS);

@@ -11,11 +11,12 @@ import { OrderTracker } from '@/components/public/OrderTracker';
 import { customerItemLines } from '@/lib/modifier-lines';
 
 interface PageProps {
-  params: { slug: string; orderNumber: string };
-  searchParams: { paid?: string; t?: string };
+  params: Promise<{ slug: string; orderNumber: string }>;
+  searchParams: Promise<{ paid?: string; t?: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   return {
     title: `Order ${params.orderNumber}`,
     description: 'Track your order in real time',
@@ -23,7 +24,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function OrderTrackingPage({ params, searchParams }: PageProps) {
+export default async function OrderTrackingPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const paidSuccess = searchParams.paid === 'true';
   const token = searchParams.t ?? null;
 

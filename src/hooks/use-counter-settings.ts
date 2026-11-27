@@ -24,14 +24,14 @@ export function useCounterSettings(restaurantId: string, initial: CounterSetting
     const supabase = getSupabaseBrowser();
     const refetch = () => {
       supabase.from('counter_settings').select(COUNTER_SETTINGS_COLUMNS).eq('restaurant_id', restaurantId).maybeSingle()
-        .then(({ data, error }) => { if (!error) setSettings(rowToSettings(data as CounterSettingsRow | null)); });
+        .then(({ data, error }: { data: unknown; error: unknown }) => { if (!error) setSettings(rowToSettings(data as CounterSettingsRow | null)); });
     };
     const channel = supabase
       .channel(`counter-settings:${restaurantId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'counter_settings', filter: `restaurant_id=eq.${restaurantId}` },
-        (payload) => {
+        (payload: { new: unknown }) => {
           const row = payload.new as CounterSettingsRow | null;
           if (row && row.restaurant_id) setSettings(rowToSettings(row));
         },

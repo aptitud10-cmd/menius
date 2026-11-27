@@ -23,7 +23,7 @@ export const dynamic = 'force-dynamic';
 
 const logger = createLogger('cloudprnt');
 
-type Ctx = { params: { token: string } };
+type Ctx = { params: Promise<{ token: string }> };
 
 const PRINTER_COLUMNS = 'id, restaurant_id, mac_address, last_poll_at, last_asb_status, last_client_info';
 
@@ -109,7 +109,8 @@ async function renderJob(job: ClaimedJob): Promise<Buffer | null> {
   return d ? renderTicketPng(d) : null;
 }
 
-export async function POST(req: NextRequest, { params }: Ctx) {
+export async function POST(req: NextRequest, props: Ctx) {
+  const params = await props.params;
   const printer = await findPrinter(params.token);
   if (!printer) return notFound();
   const body: unknown = await req.json().catch(() => ({}));
@@ -123,7 +124,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   }
 }
 
-export async function GET(req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, props: Ctx) {
+  const params = await props.params;
   const printer = await findPrinter(params.token);
   if (!printer) return notFound();
 
@@ -155,7 +157,8 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: Ctx) {
+export async function DELETE(req: NextRequest, props: Ctx) {
+  const params = await props.params;
   const printer = await findPrinter(params.token);
   if (!printer) return notFound();
   const status = await handleDelete(printer, req.nextUrl.searchParams, req.headers.get('x-star-token'), makeStore());

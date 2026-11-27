@@ -98,7 +98,7 @@ export function PanelTabletBar({ restaurantId }: { restaurantId: string }) {
         .eq('restaurant_id', restaurantId)
         .eq('status', 'pending')
         .limit(20);
-      if (!stop && data) setPending(data.filter(o => !isAwaitingOnlinePayment(o)).length);
+      if (!stop && data) setPending(data.filter((o: Parameters<typeof isAwaitingOnlinePayment>[0]) => !isAwaitingOnlinePayment(o)).length);
     };
     void poll();
     const id = setInterval(poll, POLL_MS);

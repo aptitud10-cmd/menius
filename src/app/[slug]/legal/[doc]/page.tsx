@@ -80,10 +80,11 @@ const COPY = {
 const PRIVACY_UPDATED = { es: '25 de noviembre de 2026', en: 'November 25, 2026' };
 
 interface PageProps {
-  params: { slug: string; doc: string };
+  params: Promise<{ slug: string; doc: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   const store = DOCS.includes(params.doc as Doc) ? await getStore(params.slug) : null;
   if (!store) return { robots: { index: false } };
   const c = COPY[store.locale];
@@ -94,7 +95,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function StoreLegalPage({ params }: PageProps) {
+export default async function StoreLegalPage(props: PageProps) {
+  const params = await props.params;
   if (!DOCS.includes(params.doc as Doc)) notFound();
   const doc = params.doc as Doc;
   const store = await getStore(params.slug);

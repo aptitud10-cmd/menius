@@ -3,7 +3,7 @@ import { StoreScrollFix } from '@/components/public/StoreScrollFix';
 
 interface Props {
   children: React.ReactNode;
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export default function SlugMenuLayout({ children }: Props) {

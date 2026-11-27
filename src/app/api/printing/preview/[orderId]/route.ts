@@ -18,7 +18,8 @@ export const dynamic = 'force-dynamic';
 const logger = createLogger('printing-preview');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function GET(req: NextRequest, { params }: { params: { orderId: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   const { orderId } = params;
   if (!UUID_RE.test(orderId)) return NextResponse.json({ error: 'Invalid order id' }, { status: 400 });
   const kind = req.nextUrl.searchParams.get('kind') === 'reprint' ? 'reprint' : 'order';

@@ -8,11 +8,13 @@ import { DriverRouteClient } from './DriverRouteClient';
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  params: { token: string };
-  searchParams: { lang?: string };
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }
 
-export default function DriverTrackPage({ params, searchParams }: PageProps) {
+export default async function DriverTrackPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const lang = searchParams?.lang === 'en' ? 'en' : 'es';
   return <DriverRouteClient token={params.token} lang={lang} />;
 }

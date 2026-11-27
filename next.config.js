@@ -7,17 +7,17 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', '@dnd-kit/core', '@dnd-kit/sortable'],
-    // Ensure CLAUDE.md is bundled with serverless functions (needed for stream route)
-    outputFileTracingIncludes: {
-      '/api/admin/dev/stream': ['./CLAUDE.md'],
-      '/api/admin/dev/chat': ['./CLAUDE.md'],
-      // Fonts del ticket impreso (se leen con fs en runtime, el tracer no los ve solo).
-      '/api/printing/**': ['./src/lib/printing/fonts/*.ttf'],
-      '/api/cloudprnt/**': ['./src/lib/printing/fonts/*.ttf'],
-    },
-    // resvg es un binario nativo (.node) y satori carga yoga en wasm: sin bundlear.
-    serverComponentsExternalPackages: ['@resvg/resvg-js', 'satori'],
   },
+  // Ensure CLAUDE.md is bundled with serverless functions (needed for stream route)
+  outputFileTracingIncludes: {
+    '/api/admin/dev/stream': ['./CLAUDE.md'],
+    '/api/admin/dev/chat': ['./CLAUDE.md'],
+    // Fonts del ticket impreso (se leen con fs en runtime, el tracer no los ve solo).
+    '/api/printing/**': ['./src/lib/printing/fonts/*.ttf'],
+    '/api/cloudprnt/**': ['./src/lib/printing/fonts/*.ttf'],
+  },
+  // resvg es un binario nativo (.node) y satori carga yoga en wasm: sin bundlear.
+  serverExternalPackages: ['@resvg/resvg-js', 'satori'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },

@@ -117,7 +117,10 @@ const ORDERS: Order[] = [
   }),
 ];
 
-export default function PreviewCounterPage({ searchParams }: { searchParams: { empty?: string; lang?: string; alert?: string; z?: string; theme?: string; owner?: string; panel?: string; modal?: string; name?: string; busy?: string } }) {
+export default async function PreviewCounterPage(
+  props: { searchParams: Promise<{ empty?: string; lang?: string; alert?: string; z?: string; theme?: string; owner?: string; panel?: string; modal?: string; name?: string; busy?: string }> }
+) {
+  const searchParams = await props.searchParams;
   // ?name=... cambia el nombre del local (capturas públicas para Google Play sin un restaurante real).
   // ?theme=midnight (oscuro; los ids viejos se mapean) · ?owner=1 (muestra el modo demo y el permiso de tablets)
   // · ?panel=1 (botón "Panel del dueño" al final del menú; sin owner=1 pide el PIN)

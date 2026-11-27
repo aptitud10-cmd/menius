@@ -6,11 +6,12 @@ import type { Metadata } from 'next';
 import ReviewPageClient from '@/components/public/ReviewPageClient';
 
 interface PageProps {
-  params: { slug: string; orderId: string };
-  searchParams?: { r?: string; issue?: string };
+  params: Promise<{ slug: string; orderId: string }>;
+  searchParams?: Promise<{ r?: string; issue?: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   // In the store's language (it was "Leave a review" on Spanish stores too).
   const { data } = await createAdminClient()
     .from('restaurants')
@@ -25,7 +26,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ReviewPage({ params, searchParams }: PageProps) {
+export default async function ReviewPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const adminDb = createAdminClient();
 
   const { data: order } = await adminDb

@@ -124,13 +124,13 @@ export const MenuView = memo(function MenuView({ T, currency, onGoToday }: {
   const [undoPin, setUndoPin] = useState<(() => void) | null>(null);
   const itemsRef = useRef<MenuItem[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pendingRef = useRef(0);
   // Sube en cada guardado: una respuesta del polling que salió antes de un cambio se descarta.
   const versionRef = useRef(0);
   /** Última respuesta del menú que se aplicó, y con qué versión local. */
   const lastApplied = useRef<{ text: string; v: number } | null>(null);
-  const spyTimer = useRef<ReturnType<typeof setTimeout>>();
+  const spyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const listRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const railRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -297,7 +297,7 @@ export const MenuView = memo(function MenuView({ T, currency, onGoToday }: {
   // abre más que precios. Por eso, si se puso el PIN acá, se vuelve a bloquear al terminar:
   // al cerrar el diálogo, o al vencer el "Deshacer" (8 s) si se guardó.
   const pinUsedRef = useRef(false);
-  const relockTimer = useRef<ReturnType<typeof setTimeout>>();
+  const relockTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const markPinUsed = useCallback(() => { pinUsedRef.current = true; }, []);
   const relockSoon = useCallback((ms: number) => {
     clearTimeout(relockTimer.current);
