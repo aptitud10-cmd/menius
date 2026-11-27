@@ -1638,8 +1638,13 @@ export function MenuShell({
     return isLargeCatalog ? merged.slice(0, 10) : merged;
   }, [filteredProducts, isLargeCatalog]);
 
-  const cartProductIds = useCartStore(
-    (s) => new Set(s.items.map((i) => i.product.id)),
+  // El selector devuelve texto (estable entre lecturas) y el Set se arma aparte:
+  // con zustand 5 un selector que crea un objeto nuevo en cada lectura entra en
+  // un bucle de renders (React #185) y tira abajo toda la tienda.
+  const cartProductIdsKey = useCartStore((s) => s.items.map((i) => i.product.id).join(","));
+  const cartProductIds = useMemo(
+    () => new Set(cartProductIdsKey ? cartProductIdsKey.split(",") : []),
+    [cartProductIdsKey],
   );
 
   // Classifier shared between suggestedProducts and the data-merge below.
