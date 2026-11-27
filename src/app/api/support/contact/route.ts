@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       <p style="margin:0;font-size:13px;color:#6b7280;">We received your message · Recibimos tu mensaje</p>
     </div>
     <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.6;">
-      Hola <strong>${safeName}</strong>, gracias por escribirnos. Tu mensaje fue recibido y nuestro equipo te responderá en menos de <strong>24 horas hábiles</strong>.
+      Hola <strong>${safeName}</strong>, gracias por escribirnos. Tu mensaje fue recibido y te responde una persona del equipo en horario de atención: <strong>lunes a viernes, de 9 am a 7 pm, hora del Este</strong>.
     </p>
     <div style="background:#f9fafb;border-radius:12px;padding:16px 20px;margin-bottom:24px;border-left:4px solid #05c8a7;">
       <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;">Tu mensaje</p>

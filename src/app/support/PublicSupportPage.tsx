@@ -1,563 +1,377 @@
-'use client';
-
-import { useState, useMemo } from 'react';
+import { Fragment } from 'react';
 import Link from 'next/link';
-import { Mail, ChevronDown, ChevronUp, Send, Loader2, CheckCircle, AlertCircle, ArrowRight, Zap, BookOpen, HelpCircle, Shield, Clock, Search, Bot, X } from 'lucide-react';
+import { V2Page } from '@/components/landing-v2/V2Page';
+import '@/components/landing-v2/lv2-help.css';
+import type { LandingV2Locale } from '@/lib/landing-v2-copy';
+import { TRIAL_DAYS } from '@/lib/plans';
+import { SUPPORT_CONTACT, supportWhatsAppUrl } from '@/lib/support-contact';
+import { SupportForm, type SupportFormText } from './SupportForm';
 
-type Locale = 'es' | 'en';
+/**
+ * /support (fase 3 del rediseño): soporte de una persona real. Arriba el
+ * teléfono, WhatsApp, email y el horario (el mismo que figuraba antes en esta
+ * página); el asistente del panel queda como canal secundario para quien ya
+ * tiene cuenta. Las guías rápidas solo nombran lo que existe hoy en el panel.
+ */
 
-const FAQS_ES = [
-  {
-    q: '¿Cómo creo mi primer menú?',
-    a: 'Ve a tu dashboard en menius.app/app y haz clic en "Agregar categoría" y luego en "Agregar producto". También puedes importar todo tu menú automáticamente desde una foto con nuestra función de IA. ¡Es muy rápido!',
-  },
-  {
-    q: '¿Cómo genero el código QR para mis mesas?',
-    a: 'En tu dashboard ve a "Mesas" → selecciona una mesa → haz clic en "Ver QR". Puedes descargarlo en PDF e imprimirlo directamente.',
-  },
-  {
-    q: '¿Qué pasa cuando termina mi periodo de prueba?',
-    a: 'Si no te suscribes a Pro, tu cuenta pasa al plan Free, que no vence: hasta 5 mesas, hasta 15 productos y pedidos en mesa ilimitados pagados en efectivo. No se requiere tarjeta de crédito.',
-  },
-  {
-    q: '¿Puedo tener delivery y pickup con el plan gratuito?',
-    a: 'El plan gratuito incluye órdenes de dine-in (en restaurante). Para habilitar pickup, delivery y pagos con tarjeta necesitas el plan Pro ($149/mes).',
-  },
-  {
-    q: '¿Cómo agrego fotos a mis productos?',
-    a: 'Edita cualquier producto en tu dashboard → haz clic en "Cambiar foto" → sube desde tu computadora o usa "Generar con IA" para que MENIUS cree una foto automáticamente basada en el nombre de tu platillo.',
-  },
-  {
-    q: '¿Mis datos y menú están seguros?',
-    a: 'Sí. Tus datos viajan por una conexión cifrada (HTTPS) y se guardan en Supabase; cada restaurante solo ve lo suyo. No vendemos tus datos. Puedes exportar o eliminar tu cuenta en cualquier momento desde Configuración.',
-  },
-  {
-    q: '¿Cómo cambio el idioma de mi menú?',
-    a: 'En tu dashboard ve a "Configuración" → "Idioma". Puedes tener tu menú en español o inglés, y también activar la detección automática por ubicación del cliente.',
-  },
-  {
-    q: '¿MENIUS tiene app móvil para recibir pedidos?',
-    a: 'Sí. MENIUS Counter, la app para tablets Android, está en Google Play. En iPad, teléfono o computadora, el panel de pedidos funciona desde el navegador; puedes agregar menius.app/app a tu pantalla de inicio.',
-  },
-];
+type Guide = { n: string; title: string; where: string[]; desc: string; link: { href: string; label: string } };
+type Qa = { q: string; a: string };
 
-const FAQS_EN = [
-  {
-    q: 'How do I create my first menu?',
-    a: 'Go to your dashboard at menius.app/app and click "Add category" then "Add product". You can also import your entire menu automatically from a photo using our AI feature. It\'s very fast!',
-  },
-  {
-    q: 'How do I generate a QR code for my tables?',
-    a: 'In your dashboard go to "Tables" → select a table → click "View QR". You can download it as a PDF and print it directly.',
-  },
-  {
-    q: 'What happens when my trial period ends?',
-    a: 'If you do not subscribe to Pro, your account moves to the Free plan, which never expires: up to 5 tables, up to 15 products and unlimited dine-in orders paid in cash. No credit card required.',
-  },
-  {
-    q: 'Can I have delivery and pickup on the free plan?',
-    a: 'The free plan includes dine-in orders. To enable pickup, delivery and card payments you need the Pro plan ($149/mo).',
-  },
-  {
-    q: 'How do I add photos to my products?',
-    a: 'Edit any product in your dashboard → click "Change photo" → upload from your computer or use "Generate with AI" to let MENIUS automatically create a photo based on the dish name.',
-  },
-  {
-    q: 'Are my data and menu secure?',
-    a: 'Yes. Your data travels over an encrypted connection (HTTPS) and is stored in Supabase; each restaurant only sees its own data. We never sell your data. You can export or delete your account at any time from Settings.',
-  },
-  {
-    q: 'How do I change my menu language?',
-    a: 'In your dashboard go to "Settings" → "Language". You can have your menu in Spanish or English, and also enable automatic detection based on customer location.',
-  },
-  {
-    q: 'Does MENIUS have a mobile app for receiving orders?',
-    a: 'Yes. MENIUS Counter, our app for Android tablets, is on Google Play. On an iPad, phone or computer, the orders panel works in the browser; you can add menius.app/app to your home screen.',
-  },
-];
-
-const GUIDES_ES = [
-  { icon: '🚀', title: 'Primeros pasos', desc: 'Crea tu menú en menos de 10 minutos', href: 'https://menius.app/app' },
-  { icon: '📸', title: 'Agregar fotos con IA', desc: 'Genera imágenes automáticas de tus platillos', href: 'https://menius.app/app' },
-  { icon: '📦', title: 'Importar menú desde foto', desc: 'Sube una foto de tu carta y MENIUS la digitaliza', href: 'https://menius.app/app' },
-  { icon: '📊', title: 'Ver analytics', desc: 'Descubre tus platillos más populares', href: 'https://menius.app/app' },
-];
-
-const GUIDES_EN = [
-  { icon: '🚀', title: 'Getting started', desc: 'Create your menu in less than 10 minutes', href: 'https://menius.app/app' },
-  { icon: '📸', title: 'Add photos with AI', desc: 'Auto-generate images for your dishes', href: 'https://menius.app/app' },
-  { icon: '📦', title: 'Import menu from photo', desc: 'Upload a photo of your menu and MENIUS digitizes it', href: 'https://menius.app/app' },
-  { icon: '📊', title: 'View analytics', desc: 'Discover your most popular dishes', href: 'https://menius.app/app' },
-];
-
-const CATEGORIES_ES = [
-  { id: 'billing', label: 'Facturación / Planes' },
-  { id: 'technical', label: 'Problema técnico' },
-  { id: 'menu', label: 'Mi menú o productos' },
-  { id: 'account', label: 'Mi cuenta' },
-  { id: 'feature', label: 'Sugerencia o mejora' },
-  { id: 'other', label: 'Otro' },
-];
-
-const CATEGORIES_EN = [
-  { id: 'billing', label: 'Billing / Plans' },
-  { id: 'technical', label: 'Technical issue' },
-  { id: 'menu', label: 'My menu or products' },
-  { id: 'account', label: 'My account' },
-  { id: 'feature', label: 'Feature request' },
-  { id: 'other', label: 'Other' },
-];
-
-const T = {
-  es: {
-    helpBadge: 'Centro de ayuda',
-    heroTitle1: '¿En qué te podemos',
-    heroTitle2: 'ayudar hoy?',
-    heroSub: 'Respondemos en menos de 24 horas. El asistente IA en tu dashboard puede resolver dudas al instante.',
-    sendMsg: 'Enviar mensaje',
-    channelsTitle: 'Canales de atención',
-    chatTitle: 'Asistente IA',
-    chatDesc: 'Resuelve dudas al instante con el asistente IA disponible en tu dashboard.',
-    chatCta: 'Abrir asistente',
-    emailTitle: 'Email',
-    emailDesc: 'Enviamos respuesta en menos de 24 horas hábiles.',
-    scheduleTitle: 'Horario',
-    scheduleDesc: 'Lunes a viernes, 9:00 am – 7:00 pm (GMT-5). Fines de semana por email.',
-    available: 'Respondemos en horario hábil',
-    guidesTitle: 'Guías rápidas',
-    faqTitle: 'Preguntas frecuentes',
-    faqSearch: 'Buscar preguntas…',
-    faqNoResults: 'No encontramos resultados para esa búsqueda.',
-    categoryLabel: 'Tipo de consulta',
-    categoryPlaceholder: 'Selecciona una categoría (opcional)',
-    contactTeam: 'Contacta al equipo',
-    contactDesc: '¿Necesitas ayuda con tu cuenta, un bug o tienes una idea para mejorar MENIUS? Escríbenos y te respondemos en menos de 24 horas.',
-    privacy: 'Tu información es privada y nunca se comparte.',
-    responseTime: 'Respondemos en menos de 24 horas hábiles.',
-    urgency: 'Para respuesta rápida, usa el Asistente IA en tu dashboard.',
-    namePlaceholder: 'María García',
-    nameLabel: 'Tu nombre',
-    emailLabel: 'Tu email',
-    emailPlaceholder: 'maria@mirestaurante.com',
-    messageLabel: '¿En qué te podemos ayudar?',
-    messagePlaceholder: 'Describe tu duda o problema lo mejor que puedas…',
-    sending: 'Enviando…',
-    send: 'Enviar mensaje',
-    successTitle: '¡Mensaje enviado!',
-    successMsg: '¡Mensaje recibido! Te respondemos en menos de 24 horas.',
-    anotherMsg: 'Enviar otro mensaje',
-    errorDefault: 'Error al enviar. Por favor escríbenos a soporte@menius.app directamente.',
-    errorNetwork: 'Error de red. Escríbenos a soporte@menius.app directamente.',
-    footerCopy: 'Menús digitales para restaurantes',
-    myDashboard: 'Mi dashboard',
-  },
+const T: Record<LandingV2Locale, {
+  badge: string;
+  h1: string;
+  h1Voice: string;
+  lead: string;
+  ctaWrite: string;
+  myDashboard: string;
+  cardK: string;
+  hours: string;
+  weekends: string;
+  guidesTitle: string;
+  guidesLead: string;
+  guides: Guide[];
+  assistB: string;
+  assistT: string;
+  assistCta: string;
+  faqTitle: string;
+  faqAll: string;
+  faqs: Qa[];
+  formTitle: string;
+  formLead: string;
+  points: { b: string; t: string }[];
+  form: SupportFormText;
+  statusQ: string;
+  statusLink: string;
+  talkQ: string;
+}> = {
   en: {
-    helpBadge: 'Help Center',
-    heroTitle1: 'How can we',
-    heroTitle2: 'help you today?',
-    heroSub: 'We respond in under 24 hours. The AI assistant in your dashboard can resolve questions instantly.',
-    sendMsg: 'Send a message',
-    channelsTitle: 'Support channels',
-    chatTitle: 'AI Assistant',
-    chatDesc: 'Resolve questions instantly with the AI assistant available in your dashboard.',
-    chatCta: 'Open assistant',
-    emailTitle: 'Email',
-    emailDesc: 'We reply within 24 business hours.',
-    scheduleTitle: 'Hours',
-    scheduleDesc: 'Monday–Friday, 9:00 am – 7:00 pm (GMT-5). Weekends by email.',
-    available: 'We reply during business hours',
+    badge: 'Support',
+    h1: 'Talk to a real person.',
+    h1Voice: 'In English or Spanish.',
+    lead: 'Call us, send a WhatsApp or write an email. We help with your menu, the Counter tablet, the printer and card payments.',
+    ctaWrite: 'Send us a message',
+    myDashboard: 'Go to my dashboard',
+    cardK: 'Call or WhatsApp',
+    hours: 'Monday to Friday, 9 am to 7 pm ET',
+    weekends: 'Weekends, by email.',
     guidesTitle: 'Quick guides',
-    faqTitle: 'Frequently asked questions',
-    faqSearch: 'Search questions…',
-    faqNoResults: 'No results found for that search.',
-    categoryLabel: 'Topic',
-    categoryPlaceholder: 'Select a category (optional)',
-    contactTeam: 'Contact the team',
-    contactDesc: 'Need help with your account, found a bug, or have an idea to improve MENIUS? Write to us and we\'ll respond in under 24 hours.',
-    privacy: 'Your information is private and never shared.',
-    responseTime: 'We respond in under 24 business hours.',
-    urgency: 'For a quick response, use the AI Assistant in your dashboard.',
-    namePlaceholder: 'John Smith',
-    nameLabel: 'Your name',
-    emailLabel: 'Your email',
-    emailPlaceholder: 'john@myrestaurant.com',
-    messageLabel: 'How can we help you?',
-    messagePlaceholder: 'Describe your question or issue as clearly as you can…',
-    sending: 'Sending…',
-    send: 'Send message',
-    successTitle: 'Message sent!',
-    successMsg: 'Message received! We\'ll get back to you within 24 hours.',
-    anotherMsg: 'Send another message',
-    errorDefault: 'Error sending. Please email us at soporte@menius.app directly.',
-    errorNetwork: 'Network error. Email us at soporte@menius.app directly.',
-    footerCopy: 'Digital menus for restaurants',
-    myDashboard: 'My dashboard',
+    guidesLead: 'What restaurants ask about most. The full step by step is in the quick start guide.',
+    guides: [
+      {
+        n: '01',
+        title: 'Create your menu',
+        where: ['Dashboard', 'Menu', 'Products'],
+        desc: 'Add your categories, then each dish with its price, description, photo, options and add-ons.',
+        link: { href: '/start#menu', label: 'Step by step' },
+      },
+      {
+        n: '02',
+        title: 'AI photos',
+        where: ['Products', 'a dish', 'Generate with AI'],
+        desc: 'For dishes without a photo, included in Pro. If you’d rather have photos of your real dishes, our team does them for $10 per dish.',
+        link: { href: '/ai-fotos', label: 'How AI photos work' },
+      },
+      {
+        n: '03',
+        title: 'Counter tablet and printer',
+        where: ['Dashboard', 'Counter / Caja'],
+        desc: 'Install MENIUS Counter from Google Play on an Android tablet and connect it with a code. Pair the printer by Bluetooth and choose it under Printer, inside the app.',
+        link: { href: '/start#counter', label: 'Step by step' },
+      },
+      {
+        n: '04',
+        title: 'Card payments with Stripe',
+        where: ['Settings', 'Payment methods', 'Connect Stripe'],
+        desc: 'Stripe asks for your business details and bank account. Payments go to your own Stripe account, and MENIUS takes 0%.',
+        link: { href: '/start#payments', label: 'Step by step' },
+      },
+    ],
+    assistB: 'Already have an account?',
+    assistT: ' The assistant in your dashboard explains how to do things in MENIUS and answers questions about your sales. For everything else, a person answers.',
+    assistCta: 'Open the assistant',
+    faqTitle: 'Common questions',
+    faqAll: 'See all questions',
+    faqs: [
+      {
+        q: 'What happens when my free trial ends?',
+        a: `You get ${TRIAL_DAYS} days of Pro free, no card. If you don’t subscribe afterwards, your account moves to the Free plan: a menu with QR codes for up to 5 tables, up to 15 products and unlimited dine-in orders paid in cash. Your menu and your data stay.`,
+      },
+      {
+        q: 'How do I add photos to my dishes?',
+        a: 'Open the dish in Menu → Products and upload your own photo. For dishes without one, Pro can create an AI photo with Generate with AI. If you’d rather we handle it, our setup team enhances photos of your real dishes for $10 per dish.',
+      },
+      {
+        q: 'What tablet and printer do I need?',
+        a: 'Any Android tablet with the Counter app from Google Play, plus a thermal printer (Bluetooth or Star CloudPRNT). We can get both for you at cost. On an iPad, a phone or a computer, the Counter also works in the browser.',
+      },
+      {
+        q: 'Who pays the card fees?',
+        a: 'You pay Stripe’s standard fee, about 2.9% + 30¢ per card payment, like any card terminal. MENIUS takes 0%, and your customer pays no extra service fee.',
+      },
+      {
+        q: 'Where do I find my menu link and table QR codes?',
+        a: 'Your link is in Settings, under Public menu link. The QR codes for your tables are in Tables & QRs, ready to download and print.',
+      },
+    ],
+    formTitle: 'Write to us',
+    formLead: 'A person reads every message and answers by email.',
+    points: [
+      { b: 'Monday to Friday, 9 am to 7 pm ET.', t: ' Weekends, by email.' },
+      { b: 'Your information is private', t: ' and never shared.' },
+    ],
+    form: {
+      title: 'Write to us',
+      topic: 'Topic',
+      topicNone: 'Choose a topic',
+      topics: [
+        { id: 'billing', label: 'Billing and plans' },
+        { id: 'technical', label: 'Technical issue' },
+        { id: 'menu', label: 'My menu or products' },
+        { id: 'account', label: 'My account' },
+        { id: 'feature', label: 'Suggestion' },
+        { id: 'other', label: 'Other' },
+      ],
+      name: 'Your name',
+      namePh: 'John Smith',
+      email: 'Your email',
+      emailPh: 'john@myrestaurant.com',
+      message: 'How can we help?',
+      messagePh: 'Tell us what happened, as clearly as you can.',
+      send: 'Send message',
+      sending: 'Sending…',
+      sentTitle: 'Message sent',
+      sentMsg: 'We got your message and will answer you by email.',
+      again: 'Send another message',
+      errTooMany: 'Too many messages in a few minutes. Try again in 10 minutes, or email us at',
+      errDefault: 'We couldn’t send your message. Please email us at',
+      errNetwork: 'Network error. Please email us at',
+      optional: 'optional',
+    },
+    statusQ: 'Something not loading?',
+    statusLink: 'Check the system status',
+    talkQ: 'Rather talk?',
   },
-} as const;
+  es: {
+    badge: 'Soporte',
+    h1: 'Habla con una persona real.',
+    h1Voice: 'En inglés o en español.',
+    lead: 'Llámanos, escríbenos por WhatsApp o mándanos un email. Te ayudamos con tu menú, la tablet Counter, la impresora y los pagos con tarjeta.',
+    ctaWrite: 'Envíanos un mensaje',
+    myDashboard: 'Ir a mi panel',
+    cardK: 'Llámanos o escríbenos por WhatsApp',
+    hours: 'Lunes a viernes, de 9 am a 7 pm, hora del Este',
+    weekends: 'Fines de semana, por email.',
+    guidesTitle: 'Guías rápidas',
+    guidesLead: 'Lo que más nos preguntan los restaurantes. El paso a paso completo está en la guía de inicio.',
+    guides: [
+      {
+        n: '01',
+        title: 'Crea tu menú',
+        where: ['Panel', 'Menú', 'Productos'],
+        desc: 'Agrega tus categorías y luego cada plato con su precio, descripción, foto, opciones y agregados.',
+        link: { href: '/start#menu', label: 'Paso a paso' },
+      },
+      {
+        n: '02',
+        title: 'Fotos con IA',
+        where: ['Productos', 'un plato', 'Generar con IA'],
+        desc: 'Para los platos sin foto, incluido en Pro. Si prefieres fotos de tus platos reales, nuestro equipo las hace por $10 por plato.',
+        link: { href: '/ai-fotos', label: 'Cómo funcionan las fotos con IA' },
+      },
+      {
+        n: '03',
+        title: 'Tablet Counter e impresora',
+        where: ['Panel', 'Caja / Counter'],
+        desc: 'Instala MENIUS Counter desde Google Play en una tablet Android y conéctala con un código. Empareja la impresora por Bluetooth y elígela en Impresora, dentro de la app.',
+        link: { href: '/start#counter', label: 'Paso a paso' },
+      },
+      {
+        n: '04',
+        title: 'Pagos con tarjeta (Stripe)',
+        where: ['Configuración', 'Métodos de pago', 'Conectar Stripe'],
+        desc: 'Stripe te pide los datos de tu negocio y tu cuenta bancaria. Los pagos llegan a tu propia cuenta de Stripe, y MENIUS cobra 0%.',
+        link: { href: '/start#payments', label: 'Paso a paso' },
+      },
+    ],
+    assistB: '¿Ya tienes cuenta?',
+    assistT: ' El asistente de tu panel te explica cómo hacer cada cosa en MENIUS y responde preguntas sobre tus ventas. Para todo lo demás, te atiende una persona.',
+    assistCta: 'Abrir el asistente',
+    faqTitle: 'Preguntas comunes',
+    faqAll: 'Ver todas las preguntas',
+    faqs: [
+      {
+        q: '¿Qué pasa cuando termina mi prueba gratis?',
+        a: `Tienes ${TRIAL_DAYS} días de Pro gratis, sin tarjeta. Si después no te suscribes, tu cuenta pasa al plan Free: menú con QR para hasta 5 mesas, hasta 15 productos y pedidos en mesa ilimitados pagados en efectivo. Tu menú y tus datos se quedan.`,
+      },
+      {
+        q: '¿Cómo agrego fotos a mis platos?',
+        a: 'Abre el plato en Menú → Productos y sube tu propia foto. Para los platos sin foto, Pro puede crear una con IA desde Generar con IA. Si prefieres que nos encarguemos, nuestro equipo de configuración mejora fotos de tus platos reales por $10 por plato.',
+      },
+      {
+        q: '¿Qué tablet e impresora necesito?',
+        a: 'Cualquier tablet Android con la app Counter de Google Play, y una impresora térmica (Bluetooth o Star CloudPRNT). Podemos conseguirte las dos a precio de costo. En iPad, celular o computadora, el Counter también funciona desde el navegador.',
+      },
+      {
+        q: '¿Quién paga la comisión de la tarjeta?',
+        a: 'Tú pagas la tarifa estándar de Stripe, cerca de 2.9% + 30¢ por pago con tarjeta, como cualquier terminal. MENIUS cobra 0%, y tu cliente no paga ningún cargo extra por servicio.',
+      },
+      {
+        q: '¿Dónde encuentro el enlace de mi menú y los QR de las mesas?',
+        a: 'Tu enlace está en Configuración, en Enlace público del menú. Los QR de tus mesas están en Mesas & QRs, listos para descargar e imprimir.',
+      },
+    ],
+    formTitle: 'Escríbenos',
+    formLead: 'Una persona lee cada mensaje y te responde por email.',
+    points: [
+      { b: 'Lunes a viernes, de 9 am a 7 pm, hora del Este.', t: ' Fines de semana, por email.' },
+      { b: 'Tu información es privada', t: ' y nunca se comparte.' },
+    ],
+    form: {
+      title: 'Escríbenos',
+      topic: 'Tema',
+      topicNone: 'Elige un tema',
+      topics: [
+        { id: 'billing', label: 'Facturación y planes' },
+        { id: 'technical', label: 'Problema técnico' },
+        { id: 'menu', label: 'Mi menú o productos' },
+        { id: 'account', label: 'Mi cuenta' },
+        { id: 'feature', label: 'Sugerencia' },
+        { id: 'other', label: 'Otro' },
+      ],
+      name: 'Tu nombre',
+      namePh: 'María García',
+      email: 'Tu email',
+      emailPh: 'maria@mirestaurante.com',
+      message: '¿En qué te podemos ayudar?',
+      messagePh: 'Cuéntanos qué pasó, lo más claro que puedas.',
+      send: 'Enviar mensaje',
+      sending: 'Enviando…',
+      sentTitle: 'Mensaje enviado',
+      sentMsg: 'Recibimos tu mensaje y te respondemos por email.',
+      again: 'Enviar otro mensaje',
+      errTooMany: 'Demasiados mensajes en pocos minutos. Intenta de nuevo en 10 minutos o escríbenos a',
+      errDefault: 'No pudimos enviar tu mensaje. Escríbenos a',
+      errNetwork: 'Error de red. Escríbenos a',
+      optional: 'opcional',
+    },
+    statusQ: '¿Algo no carga?',
+    statusLink: 'Revisa el estado del sistema',
+    talkQ: '¿Prefieres hablar?',
+  },
+};
 
-export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }) {
+export default function PublicSupportPage({ locale }: { locale: LandingV2Locale }) {
   const t = T[locale];
-  const FAQS = locale === 'en' ? FAQS_EN : FAQS_ES;
-  const GUIDES = locale === 'en' ? GUIDES_EN : GUIDES_ES;
-  const CATEGORIES = locale === 'en' ? CATEGORIES_EN : CATEGORIES_ES;
-
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [faqSearch, setFaqSearch] = useState('');
-  const [category, setCategory] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [sendState, setSendState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
-  const [sendMsg, setSendMsg] = useState('');
-
-  const filteredFaqs = useMemo(() => {
-    const q = faqSearch.trim().toLowerCase();
-    if (!q) return FAQS;
-    return FAQS.filter(
-      (f) => f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q),
-    );
-  }, [faqSearch, FAQS]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email || !message) return;
-    setSendState('loading');
-    const categoryLabel = CATEGORIES.find((c) => c.id === category)?.label ?? '';
-    const fullMessage = categoryLabel ? `[${categoryLabel}] ${message}` : message;
-    try {
-      const res = await fetch('/api/support/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, message: fullMessage }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setSendState('done');
-        setSendMsg(t.successMsg);
-        setName(''); setEmail(''); setMessage(''); setCategory('');
-      } else {
-        setSendState('error');
-        setSendMsg(data.error ?? t.errorDefault);
-      }
-    } catch {
-      setSendState('error');
-      setSendMsg(t.errorNetwork);
-    }
-  };
+  const wa = supportWhatsAppUrl();
 
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-100">
-
-      {/* Nav */}
-      <nav className="border-b border-white/[0.06] sticky top-0 bg-[#050505]/90 backdrop-blur-xl z-10">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-white tracking-tight">
-            MENIUS<span style={{ color: '#05c8a7' }}>.</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/app" className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors">
-              {t.myDashboard} <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className="border-b border-white/[0.06]">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-20 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-6 tracking-wide uppercase border" style={{ background: 'rgba(5,200,167,0.08)', borderColor: 'rgba(5,200,167,0.2)', color: '#05c8a7' }}>
-            <HelpCircle className="w-3.5 h-3.5" /> {t.helpBadge}
-          </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4">
-            {t.heroTitle1}<br />
-            <span className="text-gradient">
-              {t.heroTitle2}
-            </span>
-          </h1>
-          <p className="text-gray-400 text-lg max-w-xl mx-auto">
-            {t.heroSub}
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
-            <a
-              href="#contact"
-              className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-semibold transition-colors"
-              style={{ background: '#05c8a7' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#04a88c')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#05c8a7')}
-            >
-              <Send className="w-4 h-4" /> {t.sendMsg}
-            </a>
-            <a
-              href="mailto:soporte@menius.app"
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white text-sm font-medium hover:bg-white/[0.08] transition-colors"
-            >
-              <Mail className="w-4 h-4" /> soporte@menius.app
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-16 space-y-20">
-
-        {/* Support channels */}
-        <section>
-          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6">{t.channelsTitle}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* AI Assistant — honest replacement for "live chat" */}
-            <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-2xl p-6 transition-colors group" style={{ ['--hover-border' as string]: 'rgba(5,200,167,0.3)' }} onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.3)')} onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)')}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 border" style={{ background: 'rgba(5,200,167,0.08)', borderColor: 'rgba(5,200,167,0.2)' }}>
-                <Bot className="w-5 h-5" style={{ color: '#05c8a7' }} />
-              </div>
-              <h3 className="font-semibold text-white mb-1">{t.chatTitle}</h3>
-              <p className="text-sm text-gray-500 mb-4">{t.chatDesc}</p>
-              <a href="/app" className="text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all" style={{ color: '#05c8a7' }}>
-                {t.chatCta} <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-            </div>
-            <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-2xl p-6 hover:border-blue-500/30 transition-colors group">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-4">
-                <Mail className="w-5 h-5 text-blue-400" />
-              </div>
-              <h3 className="font-semibold text-white mb-1">{t.emailTitle}</h3>
-              <p className="text-sm text-gray-500 mb-4">{t.emailDesc}</p>
-              <a href="mailto:soporte@menius.app" className="text-sm text-blue-400 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                soporte@menius.app <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-            </div>
-            <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-2xl p-6 hover:border-emerald-500/30 transition-colors group">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
-                <Clock className="w-5 h-5 text-emerald-400" />
-              </div>
-              <h3 className="font-semibold text-white mb-1">{t.scheduleTitle}</h3>
-              <p className="text-sm text-gray-500 mb-4">{t.scheduleDesc}</p>
-              <span className="text-sm text-emerald-400 font-medium">{t.available}</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Guides */}
-        <section>
-          <div className="flex items-center gap-2 mb-6">
-            <BookOpen className="w-4 h-4 text-amber-400" />
-            <h2 className="text-sm font-bold text-white">{t.guidesTitle}</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {GUIDES.map(g => (
-              <a
-                key={g.title}
-                href={g.href}
-                className="bg-[#0a0a0a] border border-white/[0.06] rounded-2xl p-4 hover:border-amber-500/30 transition-colors group"
-              >
-                <div className="text-2xl mb-3">{g.icon}</div>
-                <p className="text-sm font-semibold text-white mb-1 group-hover:text-amber-400 transition-colors">{g.title}</p>
-                <p className="text-xs text-gray-500 leading-relaxed">{g.desc}</p>
-              </a>
-            ))}
-          </div>
-        </section>
-
-        {/* FAQ with search */}
-        <section>
-          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4" style={{ color: '#05c8a7' }} />
-              <h2 className="text-sm font-bold text-white">{t.faqTitle}</h2>
-            </div>
-            {/* Search bar */}
-            <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
-              <input
-                type="text"
-                value={faqSearch}
-                onChange={e => { setFaqSearch(e.target.value); setOpenFaq(null); }}
-                placeholder={t.faqSearch}
-                className="w-full pl-8 pr-8 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none transition-colors"
-                style={{ ['--tw-ring-color' as string]: '#05c8a7' }}
-                onFocus={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.4)')}
-                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-              />
-              {faqSearch && (
-                <button
-                  onClick={() => setFaqSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {filteredFaqs.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 text-sm">
-              {t.faqNoResults}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredFaqs.map((faq, i) => (
-                <div key={i} className="bg-[#0a0a0a] border border-white/[0.06] rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-medium text-white transition-colors hover:opacity-80"
-                  >
-                    <span>{faq.q}</span>
-                    {openFaq === i ? (
-                      <ChevronUp className="w-4 h-4 text-gray-500 flex-shrink-0 ml-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0 ml-4" />
-                    )}
-                  </button>
-                  {openFaq === i && (
-                    <div className="px-5 pb-5 border-t border-white/[0.06]">
-                      <p className="text-sm text-gray-400 leading-relaxed pt-4">{faq.a}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Contact form */}
-        <section id="contact">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+    <V2Page locale={locale}>
+      <main id="main-content">
+        <header className="ph help-hero">
+          <div className="wrap">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Send className="w-4 h-4 text-blue-400" />
-                <h2 className="text-sm font-bold text-white">{t.contactTeam}</h2>
+              <span className="stamp label">{t.badge}</span>
+              <h1>
+                {t.h1} <span className="voice">{t.h1Voice}</span>
+              </h1>
+              <p className="lead">{t.lead}</p>
+              <div className="row">
+                <a className="btn btn-primary" href="#contact">{t.ctaWrite}</a>
+                <Link className="tlink" href="/app">{t.myDashboard}</Link>
               </div>
-              <p className="text-gray-500 text-sm leading-relaxed mb-6">
-                {t.contactDesc}
+            </div>
+            <aside className="contact" aria-label={t.cardK}>
+              <p className="k">{t.cardK}</p>
+              <a className="big" href={`tel:${SUPPORT_CONTACT.phoneE164}`}>{SUPPORT_CONTACT.phoneDisplay}</a>
+              <div className="alt">
+                {wa && (
+                  <a className="tlink" href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                )}
+                <a className="tlink" href={`mailto:${SUPPORT_CONTACT.email}`}>{SUPPORT_CONTACT.email}</a>
+              </div>
+              <p className="hours">
+                <b>{t.hours}</b>
+                {t.weekends}
               </p>
-              <div className="space-y-4 text-sm text-gray-500">
-                <div className="flex items-center gap-3">
-                  <Shield className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <span>{t.privacy}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                  <span>{t.responseTime}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Zap className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <span>{t.urgency}</span>
-                </div>
-              </div>
-            </div>
-            <div>
-              {sendState === 'done' ? (
-                <div className="flex flex-col items-center justify-center py-16 bg-[#0a0a0a] rounded-2xl border border-emerald-500/20 text-center px-8">
-                  <CheckCircle className="w-12 h-12 text-emerald-400 mb-4" />
-                  <h3 className="text-white font-semibold text-lg mb-2">{t.successTitle}</h3>
-                  <p className="text-gray-400 text-sm">{sendMsg}</p>
-                  <button
-                    onClick={() => setSendState('idle')}
-                    className="mt-6 text-sm transition-colors hover:opacity-80"
-                    style={{ color: '#05c8a7' }}
-                  >
-                    {t.anotherMsg}
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6 space-y-4">
-                  {/* Category selector */}
-                  <div>
-                    <label className="text-xs text-gray-500 mb-2 block">{t.categoryLabel}</label>
-                    <div className="flex flex-wrap gap-2">
-                      {CATEGORIES.map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setCategory(category === cat.id ? '' : cat.id)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
-                          style={
-                            category === cat.id
-                              ? { background: 'rgba(5,200,167,0.12)', borderColor: 'rgba(5,200,167,0.4)', color: '#05c8a7' }
-                              : { background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', color: '#6b7280' }
-                          }
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+            </aside>
+          </div>
+        </header>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">{t.nameLabel}</label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        required
-                        placeholder={t.namePlaceholder}
-                        className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none transition-colors"
-                        onFocus={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.4)')}
-                        onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">{t.emailLabel}</label>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        required
-                        placeholder={t.emailPlaceholder}
-                        className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none transition-colors"
-                        onFocus={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.4)')}
-                        onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">{t.messageLabel}</label>
-                    <textarea
-                      value={message}
-                      onChange={e => setMessage(e.target.value)}
-                      required
-                      rows={5}
-                      placeholder={t.messagePlaceholder}
-                      className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none transition-colors resize-none"
-                      onFocus={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.4)')}
-                      onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-                    />
-                  </div>
-                  {sendState === 'error' && (
-                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" /> {sendMsg}
-                    </div>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={sendState === 'loading'}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm transition-colors disabled:opacity-60"
-                    style={{ background: '#05c8a7' }}
-                    onMouseEnter={e => { if (sendState !== 'loading') e.currentTarget.style.background = '#04a88c'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#05c8a7'; }}
-                  >
-                    {sendState === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    {sendState === 'loading' ? t.sending : t.send}
-                  </button>
-                </form>
-              )}
+        <section className="chap tight alt" aria-labelledby="sg-h">
+          <div className="wrap">
+            <div className="sec-head">
+              <h2 id="sg-h" className="h-a">{t.guidesTitle}</h2>
+              <p className="lead">{t.guidesLead}</p>
+            </div>
+            <ol className="guides">
+              {t.guides.map((g) => (
+                <li key={g.n}>
+                  <span className="n" aria-hidden="true">{g.n}</span>
+                  <h3>{g.title}</h3>
+                  <p className="where">
+                    {g.where.map((w, i) => (
+                      <Fragment key={w}>
+                        {i > 0 && ' '}
+                        <span>{i > 0 && <><i aria-hidden="true">→</i>{' '}</>}{i === g.where.length - 1 ? <b>{w}</b> : w}</span>
+                      </Fragment>
+                    ))}
+                  </p>
+                  <p>{g.desc}</p>
+                  <Link className="tlink" href={g.link.href}>{g.link.label}</Link>
+                </li>
+              ))}
+            </ol>
+            <div className="assist">
+              <p>
+                <b>{t.assistB}</b>
+                {t.assistT}
+              </p>
+              <Link className="tlink" href="/app">{t.assistCta}</Link>
             </div>
           </div>
         </section>
-      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-white/[0.06] mt-8">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Link href="/" className="text-lg font-bold text-white tracking-tight">
-            MENIUS<span style={{ color: '#05c8a7' }}>.</span>
-          </Link>
-          <p className="text-xs text-gray-600">© {new Date().getFullYear()} MENIUS · {t.footerCopy}</p>
-          <div className="flex items-center gap-4 text-xs text-gray-500">
-            <a href="/app" className="hover:text-white transition-colors">Dashboard</a>
-            <a href="mailto:soporte@menius.app" className="hover:text-white transition-colors">soporte@menius.app</a>
+        <section className="chap tight" aria-labelledby="sq-h">
+          <div className="wrap">
+            <div className="sfaq">
+              <h2 id="sq-h" className="h-b">{t.faqTitle}</h2>
+              {t.faqs.map((f, i) => (
+                <details key={f.q} className="q" open={i === 0}>
+                  <summary>{f.q}</summary>
+                  <div className="a">{f.a}</div>
+                </details>
+              ))}
+              <p className="faq-all">
+                <Link className="tlink" href="/faq">{t.faqAll}</Link>
+              </p>
+            </div>
           </div>
-        </div>
-      </footer>
-    </div>
+        </section>
+
+        <section className="chap tight alt" id="contact" aria-labelledby="sc-h">
+          <div className="wrap req-grid">
+            <div>
+              <h2 id="sc-h" className="h-b">{t.formTitle}</h2>
+              <p className="lead sup-form-lead">{t.formLead}</p>
+              <ul className="sup-points">
+                {t.points.map((p) => (
+                  <li key={p.b}><b>{p.b}</b>{p.t}</li>
+                ))}
+                <li>
+                  <b>{t.talkQ}</b>{' '}
+                  <a className="sup-tel" href={`tel:${SUPPORT_CONTACT.phoneE164}`}>{SUPPORT_CONTACT.phoneDisplay}</a>
+                </li>
+                <li>
+                  <b>{t.statusQ}</b>{' '}
+                  <Link className="sup-tel" href="/status">{t.statusLink}</Link>
+                </li>
+              </ul>
+            </div>
+            <SupportForm t={t.form} />
+          </div>
+        </section>
+
+      </main>
+    </V2Page>
   );
 }

@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
+import { resolveLandingV2Locale, type LandingV2Locale } from "@/lib/landing-v2-copy";
 import PublicSupportPage from "./PublicSupportPage";
 
+/**
+ * Idioma: `?lang=` manda (el panel enlaza /support?lang=<idioma del panel>);
+ * si no viene, la cookie `menius_locale` como el resto del sitio (EN por defecto).
+ */
 async function resolveLocale(
   searchParams?: Record<string, string>,
-): Promise<"en" | "es"> {
+): Promise<LandingV2Locale> {
   const lang = searchParams?.lang;
-  if (lang === "en") return "en";
-  if (lang === "es") return "es";
+  if (lang === "en" || lang === "es") return lang;
   const cookieStore = await cookies();
-  const cookieLocale = cookieStore.get("menius_locale")?.value;
-  if (cookieLocale === "en") return "en";
-  if (cookieLocale === "es") return "es";
-  const acceptLang = (await headers()).get("accept-language") ?? "";
-  return acceptLang.toLowerCase().startsWith("en") ? "en" : "es";
+  return resolveLandingV2Locale(cookieStore.get("menius_locale")?.value);
 }
 
 export async function generateMetadata({
@@ -27,12 +27,14 @@ export async function generateMetadata({
     ? {
         title: "Support",
         description:
-          "Help center and support for MENIUS users. Get answers, contact our team and find resources.",
+          "Talk to a real person by phone, WhatsApp or email, in English or Spanish. Quick guides for your menu, AI photos, the Counter tablet and card payments.",
+        alternates: { canonical: "/support" },
       }
     : {
         title: "Soporte",
         description:
-          "Centro de ayuda y soporte para usuarios de MENIUS. Resuelve dudas, contacta a nuestro equipo y encuentra recursos.",
+          "Habla con una persona real por teléfono, WhatsApp o email, en inglés o en español. Guías rápidas para tu menú, las fotos con IA, la tablet Counter y los pagos con tarjeta.",
+        alternates: { canonical: "/support" },
       };
 }
 

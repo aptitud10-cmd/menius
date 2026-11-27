@@ -1,22 +1,33 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { V2Page } from "@/components/landing-v2/V2Page";
+import "@/components/landing-v2/lv2-help.css";
+import { resolveLandingV2Locale } from "@/lib/landing-v2-copy";
+import { SUPPORT_CONTACT } from "@/lib/support-contact";
+import { V2ScrollSpy } from "@/components/landing-v2/V2ScrollSpy";
 
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
-  const locale = cookieStore.get("menius_locale")?.value ?? "es";
+  const locale = resolveLandingV2Locale(cookieStore.get("menius_locale")?.value);
   return {
-    title: "Changelog",
+    title: locale === "en" ? "Changelog" : "Novedades",
     description:
       locale === "en"
-        ? "Every update, improvement and new feature in MENIUS. See how your platform evolves."
-        : "Cada actualización, mejora y nueva función de MENIUS. Mira cómo evoluciona tu plataforma.",
-    alternates: { canonical: "https://menius.app/changelog" },
+        ? "Every update, improvement and fix in MENIUS, by version and date."
+        : "Cada actualización, mejora y arreglo de MENIUS, por versión y fecha.",
+    alternates: { canonical: "/changelog" },
     robots: { index: true, follow: true },
   };
 }
 
-type Locale = "es" | "en";
+/*
+ * Historial: solo se editan u omiten entradas existentes (sin versiones ni
+ * fechas nuevas). Fuera lo que ya no ofrecemos en EE.UU. (Wompi/Colombia,
+ * puntos de lealtad, sucursales y API del plan Business, plan gratis de
+ * 3 pedidos/día, generador de posts) y sin nombres de proveedores de IA.
+ * Las etiquetas por release ("Nuevo"/"Estable") ya no se muestran.
+ */
 
 interface Change {
   type: "new" | "improved" | "fixed";
@@ -45,7 +56,7 @@ const releases: Release[] = [
     badgeColor: "bg-emerald-500",
     highlightsEs: [
       "Counter rediseñado",
-      "Checkout y seguimiento nuevos",
+      "Pago y seguimiento nuevos",
       "Pro pasa a $149/mes",
     ],
     highlightsEn: [
@@ -61,7 +72,7 @@ const releases: Release[] = [
       },
       {
         type: "new",
-        es: "Pickups sin recoger: la tarjeta cambia de color con el tiempo, opción \"No vino\" con deshacer y un recordatorio al cliente a los 20 minutos.",
+        es: "Pedidos para llevar sin recoger: la tarjeta cambia de color con el tiempo, opción \"No vino\" con deshacer y un recordatorio al cliente a los 20 minutos.",
         en: "Uncollected pickups: the card changes color over time, a \"No-show\" option with undo, and a reminder to the customer after 20 minutes.",
       },
       {
@@ -76,7 +87,7 @@ const releases: Release[] = [
       },
       {
         type: "improved",
-        es: "Checkout nuevo: total arriba, propina en dólares redondos, email opcional, cubiertos solo si el cliente los pide y aviso de cerrado o pausado antes de confirmar.",
+        es: "Pantalla de pago nueva: total arriba, propina en dólares redondos, email opcional, cubiertos solo si el cliente los pide y aviso de cerrado o en pausa antes de confirmar.",
         en: "New checkout: total at the top, tips in round dollars, optional email, utensils only when the customer asks, and a closed/paused notice before confirming.",
       },
       {
@@ -91,7 +102,7 @@ const releases: Release[] = [
       },
       {
         type: "improved",
-        es: "El link de tu tienda se comparte en WhatsApp con foto, nombre y \"Order online\".",
+        es: "El enlace de tu tienda se comparte en WhatsApp con foto, nombre y \"Order online\".",
         en: "Your store link shares on WhatsApp with a photo, name and \"Order online\".",
       },
       {
@@ -135,22 +146,22 @@ const releases: Release[] = [
     badgeColor: "bg-emerald-500",
     highlightsEs: [
       "Cancelar suscripción",
-      "Flujos de downgrade completos",
+      "Cambio de plan más claro",
     ],
     highlightsEn: [
       "Cancel subscription",
-      "Full downgrade flows",
+      "Clearer plan changes",
     ],
     changes: [
       {
         type: "new",
-        es: "Cancelar suscripción desde el dashboard: botón visible en Billing cuando tienes un plan activo. Abre el portal de Stripe donde puedes cancelar — tu plan sigue activo hasta el fin del período ya pagado y luego pasa al plan gratuito automáticamente.",
-        en: "Cancel subscription from the dashboard: button visible in Billing when you have an active plan. Opens the Stripe portal where you can cancel — your plan stays active until the end of the paid period and then automatically reverts to the free plan.",
+        es: "Cancela tu suscripción desde el panel, en Facturación. Tu plan sigue activo hasta el final del período que ya pagaste y después pasa al plan Free.",
+        en: "Cancel your subscription from the dashboard, under Billing. Your plan stays active until the end of the period you already paid for, then moves to the Free plan.",
       },
       {
         type: "improved",
-        es: "Billing: modal de confirmación antes de cancelar, con detalle del plan, fecha de vencimiento y lista de funciones que perderás.",
-        en: "Billing: confirmation modal before cancelling, showing your plan name, expiration date, and a list of features you'll lose.",
+        es: "Facturación: antes de cancelar ves tu plan, la fecha de vencimiento y las funciones que dejarías de tener.",
+        en: "Billing: before you cancel, you see your plan, its end date and the features you would lose.",
       },
     ],
   },
@@ -163,46 +174,46 @@ const releases: Release[] = [
     badgeColor: "bg-emerald-500",
     highlightsEs: [
       "Pagos online sin comisión",
-      "SEO enriquecido",
-      "Banner Powered by MENIUS",
-      "Dashboard mobile",
+      "Mejor posicionamiento en Google",
+      "Sello Powered by MENIUS",
+      "Panel en el celular",
     ],
     highlightsEn: [
       "Online payments, zero commission",
-      "Enriched SEO",
-      "Powered by MENIUS banner",
-      "Mobile dashboard",
+      "Better Google visibility",
+      "Powered by MENIUS badge",
+      "Dashboard on your phone",
     ],
     changes: [
       {
         type: "new",
-        es: "Pagos online con Stripe Connect disponibles desde el plan Starter — 0% de comisión MENIUS en todos los planes de suscripción (Starter, Pro, Business). El plan Free solo acepta efectivo. Wompi (Colombia) tampoco cobra comisión.",
-        en: "Online payments via Stripe Connect available from the Starter plan — 0% MENIUS commission on all subscription plans (Starter, Pro, Business). The Free plan only accepts cash. Wompi (Colombia) also has no MENIUS fee.",
+        es: "Pagos online con tarjeta a través de Stripe Connect, con 0% de comisión de MENIUS. El plan Free solo acepta efectivo.",
+        en: "Online card payments through Stripe Connect, with 0% MENIUS commission. The Free plan only accepts cash.",
       },
       {
         type: "new",
-        es: 'Banner "Powered by MENIUS" en todas las tiendas: diseño premium con gradiente, wordmark y efecto hover. Visible en el pie de página del menú público de todos los restaurantes.',
-        en: '"Powered by MENIUS" banner on all stores: premium design with gradient, wordmark, and hover effect. Visible in the footer of every public restaurant menu.',
+        es: "Sello \"Powered by MENIUS\" en el pie del menú público de cada restaurante.",
+        en: "\"Powered by MENIUS\" badge in the footer of every public menu.",
       },
       {
         type: "improved",
-        es: "SEO del menú público: descripciones auto-generadas con categorías del menú cuando el restaurante no ha llenado una, BreadcrumbList JSON-LD para mejores snippets en Google, y sitemap actualizado con fecha de última modificación real.",
-        en: "Public menu SEO: auto-generated descriptions using menu categories when the restaurant hasn't filled one, BreadcrumbList JSON-LD for better Google snippets, and sitemap updated with real last-modified dates.",
+        es: "Google entiende mejor tu menú público: una descripción automática con tus categorías si no escribiste una, y resultados de búsqueda más completos.",
+        en: "Google understands your public menu better: an automatic description from your categories if you haven’t written one, and richer search results.",
       },
       {
         type: "improved",
-        es: "Dashboard mobile: barra de navegación inferior fija (Home, Pedidos, Menú, Counter) para acceso rápido en celular. Tablero de pedidos con tabs por estado en móvil. Tablas de productos e inventario convertidas a tarjetas compactas en mobile.",
-        en: "Mobile dashboard: fixed bottom navigation bar (Home, Orders, Menu, Counter) for quick mobile access. Orders board with status tabs on mobile. Product and inventory tables converted to compact mobile cards.",
+        es: "Panel en el celular: barra inferior fija (Inicio, Pedidos, Menú, Counter), pedidos ordenados por estado, y productos e inventario en tarjetas compactas.",
+        en: "Dashboard on your phone: a fixed bottom bar (Home, Orders, Menu, Counter), orders sorted by status, and products and inventory as compact cards.",
       },
       {
         type: "improved",
-        es: "Onboarding: nuevo checklist interactivo con tiempo estimado por paso, CTA prominente al siguiente paso y posibilidad de descartar al completar 4 de 6 pasos.",
-        en: "Onboarding: new interactive checklist with estimated time per step, prominent next-step CTA, and ability to dismiss after completing 4 of 6 steps.",
+        es: "Primeros pasos: una lista con el tiempo estimado de cada paso y el siguiente siempre a la vista; puedes ocultarla al completar 4 de 6.",
+        en: "Getting started: a checklist with an estimated time for each step and the next one always in view; you can hide it after finishing 4 of 6.",
       },
       {
         type: "fixed",
-        es: 'Creación de órdenes: error "No se pudo crear la orden" resuelto — columna customer_locale faltante en la base de datos.',
-        en: 'Order creation: "Could not create order" error resolved — missing customer_locale column in the database.',
+        es: "Se arregló el error \"No se pudo crear la orden\" al hacer un pedido.",
+        en: "Fixed the \"Could not create order\" error when placing an order.",
       },
     ],
   },
@@ -214,76 +225,50 @@ const releases: Release[] = [
     badgeEn: "New",
     badgeColor: "bg-emerald-500",
     highlightsEs: [
-      "Counter POS manual",
+      "Pedidos manuales en el Counter",
       "Inventario con alertas",
-      "Programa de Lealtad",
-      "API Keys",
-      "Sucursales",
-      "Analytics heatmap",
+      "Mapa de horas pico",
     ],
     highlightsEn: [
-      "Counter manual POS",
+      "Manual orders on the Counter",
       "Inventory with alerts",
-      "Loyalty Program",
-      "API Keys",
-      "Multi-location branches",
-      "Analytics heatmap",
+      "Busy-hours heatmap",
     ],
     changes: [
       {
         type: "new",
-        es: "Counter POS: crea pedidos manuales (llamadas telefónicas, pedidos en persona) directamente desde el Counter con búsqueda de productos, tipo de orden y datos del cliente.",
-        en: "Counter POS: create manual orders (phone calls, walk-ins) directly from the Counter with product search, order type, and customer info.",
+        es: "Pedidos manuales en el Counter: registra pedidos por teléfono o en el mostrador, con búsqueda de productos, tipo de orden y datos del cliente.",
+        en: "Manual orders on the Counter: take phone and walk-in orders with product search, order type and customer details.",
       },
       {
         type: "new",
-        es: "Inventario: control de stock por producto con cantidades, umbral de alerta y descuento automático al recibir pedidos. Accesible desde Menú > Inventario en el dashboard.",
-        en: "Inventory: per-product stock control with quantities, low-stock threshold alerts, and automatic decrement on order. Accessible from Menu > Inventory in the dashboard.",
-      },
-      {
-        type: "new",
-        es: "Programa de Lealtad: sistema de puntos por compra configurable — define puntos por peso/dólar, mínimo de canje y gestiona los puntos de cada cliente desde el dashboard.",
-        en: "Loyalty Program: configurable points-per-purchase system — define points per dollar, minimum redemption, and manage each customer's points from the dashboard.",
-      },
-      {
-        type: "new",
-        es: "API Keys: genera llaves de acceso SHA-256 para integrar MENIUS con sistemas externos. Disponible en Plan Business desde Configuración > API Keys.",
-        en: "API Keys: generate SHA-256 access keys to integrate MENIUS with external systems. Available on the Business Plan from Settings > API Keys.",
-      },
-      {
-        type: "new",
-        es: "Sucursales: gestiona múltiples ubicaciones bajo el mismo negocio desde un dashboard centralizado. Cada sucursal tiene su propio menú, URL y pedidos. Disponible en Plan Business.",
-        en: "Branches: manage multiple locations under the same business from a centralized dashboard. Each branch has its own menu, URL, and orders. Available on the Business Plan.",
+        es: "Inventario: stock por producto, aviso cuando queda poco y descuento automático con cada pedido. Está en Menú → Inventario.",
+        en: "Inventory: stock per product, an alert when it runs low, and automatic deduction with each order. Find it in Menu → Inventory.",
       },
       {
         type: "improved",
-        es: "Analytics: nuevo heatmap de actividad semanal (hora × día), embudo de conversión y desglose por tipo de orden (dine-in, pickup, delivery).",
-        en: "Analytics: new weekly activity heatmap (hour × day), conversion funnel, and order type breakdown (dine-in, pickup, delivery).",
+        es: "Estadísticas: mapa de actividad por hora y día, embudo de conversión y pedidos por tipo (en mesa, para llevar y delivery).",
+        en: "Analytics: an activity heatmap by hour and day, a conversion funnel, and orders by type (dine-in, pickup and delivery).",
       },
       {
         type: "improved",
-        es: "Menú mobile: grid de 2 columnas (antes 1 columna) — ves el doble de productos por pantalla. Tarjetas verticales estilo Uber Eats con imagen arriba. Pills de categoría más compactas.",
-        en: "Mobile menu: 2-column grid (previously 1 column) — twice as many products visible per screen. Vertical Uber Eats-style cards with image on top. More compact category pills.",
+        es: "Menú en el celular: dos columnas de platos en lugar de una, tarjetas con la foto arriba y categorías más compactas.",
+        en: "Menu on phones: two columns of dishes instead of one, cards with the photo on top, and more compact categories.",
       },
       {
         type: "improved",
-        es: 'Carrito mobile: sugerencias "También te puede gustar" basadas en productos destacados no agregados aún al carrito.',
-        en: 'Mobile cart: "You may also like" suggestions based on featured products not yet in the cart.',
+        es: "Carrito en el celular: sugerencias \"También te puede gustar\" con platos destacados que aún no están en el carrito.",
+        en: "Cart on phones: \"You may also like\" suggestions with featured dishes that aren’t in the cart yet.",
       },
       {
         type: "improved",
-        es: "FAQ: filtrado por categoría sin scroll — al hacer clic en una categoría solo aparecen sus preguntas. Diseño más compacto y navegable.",
-        en: "FAQ: category filtering without scroll — clicking a category only shows its questions. More compact and navigable design.",
+        es: "Preguntas frecuentes: al tocar una categoría ves solo sus preguntas.",
+        en: "FAQ: tap a category to see only its questions.",
       },
       {
         type: "fixed",
-        es: 'Menú mobile: desplazamiento horizontal al navegar a categorías con nombres largos (ej. "Postres") resuelto.',
-        en: 'Mobile menu: horizontal shift when navigating to categories with long names (e.g., "Desserts") resolved.',
-      },
-      {
-        type: "fixed",
-        es: "Routes de debug (/api/debug/menu, /api/debug/products) eliminadas de producción para mayor seguridad.",
-        en: "Debug routes (/api/debug/menu, /api/debug/products) removed from production for improved security.",
+        es: "Menú en el celular: la página ya no se mueve de lado al ir a una categoría con nombre largo.",
+        en: "Menu on phones: the page no longer shifts sideways when you jump to a category with a long name.",
       },
     ],
   },
@@ -295,35 +280,23 @@ const releases: Release[] = [
     badgeEn: "New",
     badgeColor: "bg-emerald-500",
     highlightsEs: [
-      "Plan gratuito con 3 pedidos/día",
-      "SEO mejorado para menús públicos",
-      "Rendimiento 40% más rápido",
+      "Mejor posicionamiento del menú en Google",
+      "Menú 40% más rápido",
     ],
     highlightsEn: [
-      "Free plan with 3 orders/day",
-      "Improved SEO for public menus",
-      "40% faster menu load",
+      "Better Google visibility for menus",
+      "40% faster menu",
     ],
     changes: [
       {
-        type: "new",
-        es: "Plan gratuito permanente: menús activos con hasta 3 pedidos por día sin suscripción.",
-        en: "Permanent free plan: active menus with up to 3 orders per day, no subscription required.",
-      },
-      {
-        type: "new",
-        es: "Banner informativo en menú muestra pedidos disponibles restantes del día.",
-        en: "Informational banner on the menu shows remaining orders available for the day.",
+        type: "improved",
+        es: "El menú público carga 40% más rápido: las opciones de cada plato se cargan junto con el resto del menú.",
+        en: "The public menu loads 40% faster: each dish’s options now load along with the rest of the menu.",
       },
       {
         type: "improved",
-        es: "Carga del menú público 40% más rápida: modifier groups ahora se cargan en paralelo.",
-        en: "Public menu loads 40% faster: modifier groups now load in parallel with the rest of the menu.",
-      },
-      {
-        type: "improved",
-        es: "Apple Touch Icon en PNG generado dinámicamente para instalación correcta en iOS.",
-        en: "Apple Touch Icon dynamically generated as PNG for correct iOS home screen installation.",
+        es: "Ícono correcto al agregar el menú a la pantalla de inicio del iPhone.",
+        en: "The right icon when you add the menu to an iPhone home screen.",
       },
       {
         type: "improved",
@@ -332,18 +305,13 @@ const releases: Release[] = [
       },
       {
         type: "improved",
-        es: "Botones del header del menú ampliados a 44px mínimo para mejor uso táctil.",
-        en: "Menu header buttons enlarged to 44px minimum for better touch accessibility.",
+        es: "Los botones de la parte superior del menú son más grandes (mínimo 44 px) y más fáciles de tocar.",
+        en: "Menu header buttons are larger (at least 44 px) and easier to tap.",
       },
       {
         type: "fixed",
         es: "Email de soporte unificado en todas las pantallas (soporte@menius.app).",
         en: "Support email unified across all screens (soporte@menius.app).",
-      },
-      {
-        type: "fixed",
-        es: "Error de TypeScript en /admin/health resuelto — el dashboard de salud funciona correctamente.",
-        en: "TypeScript error in /admin/health resolved — the health dashboard now works correctly.",
       },
     ],
   },
@@ -355,40 +323,28 @@ const releases: Release[] = [
     badgeEn: "Stable",
     badgeColor: "bg-blue-500",
     highlightsEs: [
-      "Dashboard de Salud de Plataforma",
-      "Demo checkout estilo Stripe",
-      "Stripe Connect onboarding",
+      "Pago de la demo renovado",
+      "Conexión con Stripe paso a paso",
     ],
     highlightsEn: [
-      "Platform Health Dashboard",
-      "Stripe-style demo checkout",
-      "Stripe Connect onboarding",
+      "Redesigned demo checkout",
+      "Step-by-step Stripe setup",
     ],
     changes: [
       {
         type: "new",
-        es: "Admin: Dashboard de Salud de Plataforma en /admin/health — KPIs, alertas, MRR estimado.",
-        en: "Admin: Platform Health Dashboard at /admin/health — KPIs, alerts, estimated MRR.",
-      },
-      {
-        type: "new",
-        es: "Demo checkout rediseñado visualmente idéntico a Stripe (datos pre-llenados para demostración).",
-        en: "Demo checkout visually redesigned, identical to Stripe (pre-filled data for demonstration).",
+        es: "El pago de la demo se rediseñó, con datos de ejemplo ya cargados.",
+        en: "The demo checkout was redesigned, with sample data already filled in.",
       },
       {
         type: "improved",
-        es: "Stripe Connect: flujo de onboarding completo con UI en Configuración.",
-        en: "Stripe Connect: complete onboarding flow with UI in Settings.",
-      },
-      {
-        type: "improved",
-        es: "Webhook de pagos separado con secret propio (STRIPE_PAYMENTS_WEBHOOK_SECRET).",
-        en: "Payments webhook separated with its own secret (STRIPE_PAYMENTS_WEBHOOK_SECRET).",
+        es: "Stripe Connect: conexión paso a paso desde Configuración.",
+        en: "Stripe Connect: step-by-step setup from Settings.",
       },
       {
         type: "fixed",
-        es: "Billing webhook: cancel_at_period_end ya no marca la cuenta como cancelada prematuramente.",
-        en: "Billing webhook: cancel_at_period_end no longer prematurely marks the account as cancelled.",
+        es: "Cancelar al final del período ya no marca la cuenta como cancelada antes de tiempo.",
+        en: "Cancelling at the end of the billing period no longer marks the account as cancelled early.",
       },
     ],
   },
@@ -400,8 +356,8 @@ const releases: Release[] = [
     badgeEn: "Stable",
     badgeColor: "bg-blue-500",
     highlightsEs: [
-      "Mapa de delivery en tracking",
-      "Historial de pedidos por email",
+      "Mapa del delivery en el seguimiento",
+      "Historial de pedidos con el email",
       "Horarios por categoría",
     ],
     highlightsEn: [
@@ -412,17 +368,17 @@ const releases: Release[] = [
     changes: [
       {
         type: "new",
-        es: "Mapa de entrega en tiempo real en la página de seguimiento (Mapbox).",
-        en: "Real-time delivery map on the order tracking page (Mapbox).",
+        es: "Mapa de la entrega en tiempo real en la página de seguimiento.",
+        en: "Real-time delivery map on the order tracking page.",
       },
       {
         type: "new",
-        es: "Historial de pedidos: clientes pueden ver sus pedidos anteriores con solo su email.",
+        es: "Historial de pedidos: tus clientes ven sus pedidos anteriores solo con su email.",
         en: "Order history: customers can view their past orders using just their email.",
       },
       {
         type: "new",
-        es: "Categorías con horario: configura horarios de disponibilidad por categoría.",
+        es: "Horarios por categoría: define cuándo está disponible cada categoría (por ejemplo, desayunos de 7 a 11 am).",
         en: "Category schedules: configure availability hours per category (e.g., breakfast 7–11am).",
       },
       {
@@ -440,35 +396,35 @@ const releases: Release[] = [
     badgeEn: "Stable",
     badgeColor: "bg-blue-500",
     highlightsEs: [
-      "Rate limiting en APIs",
-      "Unsubscribe de emails",
-      "Idempotencia en emails automáticos",
+      "Más protección para tus pedidos",
+      "Baja de emails con un clic",
+      "Sin emails duplicados",
     ],
     highlightsEn: [
-      "API rate limiting",
-      "Email unsubscribe",
-      "Automated email idempotency",
+      "Better order protection",
+      "One-click email unsubscribe",
+      "No duplicate emails",
     ],
     changes: [
       {
         type: "new",
-        es: "Rate limiting en /api/orders/status para prevenir enumeración de pedidos.",
-        en: "Rate limiting on /api/orders/status to prevent order enumeration attacks.",
+        es: "La página de estado del pedido limita las consultas repetidas, para proteger los datos de tus pedidos.",
+        en: "The order status page now limits repeated lookups, to protect your orders’ data.",
       },
       {
         type: "new",
-        es: "Endpoint /api/unsubscribe para desuscripción de emails con un clic.",
-        en: "Endpoint /api/unsubscribe for one-click email unsubscription.",
+        es: "Tus clientes pueden darse de baja de los emails con un clic.",
+        en: "Customers can unsubscribe from emails with one click.",
       },
       {
         type: "improved",
-        es: "Idempotencia en emails automáticos: previenen envíos duplicados.",
-        en: "Automated email idempotency: prevents duplicate sends using tracking tags.",
+        es: "Los emails automáticos ya no se envían dos veces.",
+        en: "Automatic emails are no longer sent twice.",
       },
       {
         type: "fixed",
-        es: "CartStore: reorder limpia el carrito antes de agregar items (antes duplicaba).",
-        en: "CartStore: reorder now clears the cart before adding items (previously duplicated them).",
+        es: "\"Volver a pedir\" vacía el carrito antes de agregar los platos (antes los duplicaba).",
+        en: "\"Order again\" now empties the cart before adding the dishes (it used to duplicate them).",
       },
     ],
   },
@@ -480,42 +436,35 @@ const releases: Release[] = [
     badgeEn: "Stable",
     badgeColor: "bg-blue-500",
     highlightsEs: [
-      "Marketing Hub completo",
-      "Campañas de Email",
-      "Generador de posts con IA",
-      "9 Automatizaciones",
+      "Marketing en un solo lugar",
+      "Campañas por email",
+      "9 automatizaciones",
     ],
     highlightsEn: [
-      "Full Marketing Hub",
-      "Email Campaigns",
-      "AI post generator",
-      "9 Automations",
+      "Marketing in one place",
+      "Email campaigns",
+      "9 automations",
     ],
     changes: [
       {
         type: "new",
-        es: "Marketing Hub: panel centralizado con 3 módulos — Campañas de Email, Redes Sociales y Automatizaciones.",
-        en: "Marketing Hub: centralized panel with 3 modules — Email Campaigns, Social Media, and Automations.",
+        es: "Marketing: un solo panel para tus campañas por email y tus automatizaciones.",
+        en: "Marketing: one panel for your email campaigns and automations.",
       },
       {
         type: "new",
-        es: "Campañas de Email: crea y envía newsletters y promociones a toda tu base de clientes o segmentos específicos.",
-        en: "Email Campaigns: create and send newsletters and promotions to your full customer base or specific segments.",
+        es: "Campañas por email: crea y envía novedades y promociones a todos tus clientes o a grupos específicos.",
+        en: "Email campaigns: create and send news and promotions to all your customers or to specific groups.",
       },
       {
         type: "new",
-        es: "Generador de Social Media con IA: crea captions optimizados para Instagram, Facebook y TikTok basados en tus productos o contexto personalizado.",
-        en: "AI Social Media generator: create optimized captions for Instagram, Facebook, and TikTok based on your products or custom context.",
-      },
-      {
-        type: "new",
-        es: "9 Automatizaciones preconfiguradas: confirmación de pedido, bienvenida, reactivación, solicitud de reseña, y más. Corren solas apenas tenés notificaciones por email habilitadas.",
-        en: "9 pre-built Automations: order confirmation, welcome, reactivation, review request, and more. They run automatically once email notifications are enabled.",
+        es: "9 automatizaciones listas: confirmación de pedido, bienvenida, reactivación, pedido de reseña y más. Funcionan solas en cuanto activas las notificaciones por email.",
+        en: "9 ready-made automations: order confirmation, welcome, reactivation, review request and more. They run on their own once email notifications are on.",
       },
       {
         type: "improved",
-        es: "CRM: etiquetas automáticas de cliente (Nuevo, Frecuente, VIP) según comportamiento de compra.",
-        en: "CRM: automatic customer tags (New, Frequent, VIP) based on purchase behavior.",
+        es: "Clientes: etiquetas automáticas (Nuevo, Frecuente, VIP) según cómo compran.",
+        en: "Customers: automatic tags (New, Frequent, VIP) based on how they buy.",
       },
     ],
   },
@@ -529,8 +478,8 @@ const releases: Release[] = [
     highlightsEs: [
       "Lanzamiento de MENIUS 2.0",
       "MENIUS AI",
-      "KDS de Cocina",
-      "Analytics avanzados",
+      "Pantalla de cocina (KDS)",
+      "Estadísticas avanzadas",
     ],
     highlightsEn: [
       "MENIUS 2.0 launch",
@@ -541,180 +490,137 @@ const releases: Release[] = [
     changes: [
       {
         type: "new",
-        es: "MENIUS AI: asistente inteligente con Google Gemini integrado al dashboard.",
-        en: "MENIUS AI: intelligent assistant powered by Google Gemini, integrated into the dashboard.",
+        es: "MENIUS AI: un asistente en tu panel que responde con los datos de tu restaurante.",
+        en: "MENIUS AI: an assistant in your dashboard that answers with your restaurant’s data.",
       },
       {
         type: "new",
-        es: "Kitchen Display System (KDS): pantalla de cocina en tiempo real con Supabase Realtime.",
-        en: "Kitchen Display System (KDS): real-time kitchen screen powered by Supabase Realtime.",
+        es: "Pantalla de cocina (KDS): los pedidos aparecen en tiempo real.",
+        en: "Kitchen Display System (KDS): orders show up in real time.",
       },
       {
         type: "new",
-        es: "Analytics avanzados: métricas de ventas, clientes, productos y horas pico.",
+        es: "Estadísticas avanzadas: ventas, clientes, platos y horas pico.",
         en: "Advanced analytics: sales metrics, customers, products, and peak hours.",
       },
       {
         type: "new",
-        es: "CRM de clientes integrado con historial, tags y campañas de marketing.",
+        es: "Lista de clientes integrada, con historial, etiquetas y campañas de marketing.",
         en: "Built-in customer CRM with history, tags, and marketing campaigns.",
       },
       {
         type: "new",
-        es: "Multi-idioma: menú público en español e inglés con detección automática.",
+        es: "Varios idiomas: menú público en español e inglés con detección automática.",
         en: "Multi-language: public menu in Spanish and English with automatic detection.",
       },
     ],
   },
 ];
 
-const typeStyles: Record<
-  string,
-  { labelEs: string; labelEn: string; color: string }
-> = {
-  new: {
-    labelEs: "Nuevo",
-    labelEn: "New",
-    color: "bg-emerald-100 text-emerald-700",
-  },
-  improved: {
-    labelEs: "Mejorado",
-    labelEn: "Improved",
-    color: "bg-blue-100 text-blue-700",
-  },
-  fixed: {
-    labelEs: "Arreglado",
-    labelEn: "Fixed",
-    color: "bg-amber-100 text-amber-700",
-  },
+const TYPE_LABEL: Record<Change["type"], { es: string; en: string }> = {
+  new: { es: "Nuevo", en: "New" },
+  improved: { es: "Mejorado", en: "Improved" },
+  fixed: { es: "Arreglado", en: "Fixed" },
 };
+
+/** "2.10" → "v2-10" (id de ancla sin puntos). */
+function relId(version: string): string {
+  return `v${version.replace(/\./g, "-")}`;
+}
+
+const T = {
+  en: {
+    badge: "Changelog",
+    title: "What’s new in MENIUS",
+    lead: "Every update we ship, by version and date.",
+    endB: "Have an idea for the next version?",
+    endT: "Tell us what would help your restaurant. A person reads every message.",
+    endCta: "Send a suggestion",
+    endSupport: "Support",
+    versions: "Versions",
+  },
+  es: {
+    badge: "Novedades",
+    title: "Lo nuevo en MENIUS",
+    lead: "Cada actualización que publicamos, por versión y fecha.",
+    endB: "¿Tienes una idea para la próxima versión?",
+    endT: "Cuéntanos qué le ayudaría a tu restaurante. Una persona lee cada mensaje.",
+    endCta: "Enviar una sugerencia",
+    endSupport: "Soporte",
+    versions: "Versiones",
+  },
+} as const;
 
 export default async function ChangelogPage() {
   const cookieStore = await cookies();
-  const locale = (
-    cookieStore.get("menius_locale")?.value === "en" ? "en" : "es"
-  ) as Locale;
+  const locale = resolveLandingV2Locale(cookieStore.get("menius_locale")?.value);
   const isEn = locale === "en";
+  const t = T[locale];
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
-      <div className="border-b border-gray-800">
-        <div className="max-w-3xl mx-auto px-4 py-6 flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-emerald-400 font-bold text-xl tracking-tight"
-          >
-            MENIUS
-          </Link>
-          <Link
-            href="/app"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            {isEn ? "Dashboard →" : "Dashboard →"}
-          </Link>
-        </div>
-      </div>
-
-      <div className="max-w-3xl mx-auto px-4 py-16">
-        {/* Title */}
-        <div className="mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-semibold text-emerald-400 tracking-wide uppercase">
-              {isEn ? "Always improving" : "Siempre mejorando"}
-            </span>
+    <V2Page locale={locale}>
+      <main id="main-content">
+        <header className="ph ph-split">
+          <div className="wrap">
+            <div>
+              <span className="stamp label">{t.badge}</span>
+              <h1>{t.title}</h1>
+            </div>
+            <p className="lead">{t.lead}</p>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-4">Changelog</h1>
-          <p className="text-gray-400 text-lg leading-relaxed">
-            {isEn
-              ? "Every update we make to MENIUS, documented. Your platform improves every week."
-              : "Cada actualización que hacemos a MENIUS, documentada. Tu plataforma mejora cada semana."}
-          </p>
-        </div>
+        </header>
 
-        {/* Timeline */}
-        <div className="relative">
-          <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-800 ml-[11px]" />
-          <div className="space-y-14">
-            {releases.map((release) => (
-              <div key={release.version} className="relative pl-8">
-                {/* Dot */}
-                <div
-                  className={`absolute left-0 top-1 w-[23px] h-[23px] rounded-full ${release.badgeColor} flex items-center justify-center shadow-lg`}
-                >
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                </div>
-
-                <div>
-                  {/* Version header */}
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-xl font-bold text-white">
-                      v{release.version}
-                    </span>
-                    <span
-                      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${release.badgeColor} text-white`}
-                    >
-                      {isEn ? release.badgeEn : release.badgeEs}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {isEn ? release.dateEn : release.dateEs}
-                    </span>
+        <section className="chap tight paths-sec" aria-label={t.title}>
+          <div className="wrap">
+            <nav className="chips rel-nav" aria-label={t.versions}>
+              {releases.map((release, i) => (
+                <a key={release.version} href={`#${relId(release.version)}`} aria-current={i === 0 ? "true" : undefined}>
+                  v{release.version} <b>{isEn ? release.dateEn.replace(/ \d{4}$/, "") : release.dateEs.replace(/ \d{4}$/, "")}</b>
+                </a>
+              ))}
+            </nav>
+            <ol className="rels">
+              {releases.map((release) => (
+                <li key={release.version} className="rel" id={relId(release.version)}>
+                  <div className="rel-v">
+                    <h2>
+                      <span className="stamp">v{release.version}</span>
+                    </h2>
+                    <time>{isEn ? release.dateEn : release.dateEs}</time>
                   </div>
-
-                  {/* Highlights */}
-                  <div className="flex flex-wrap gap-2 mb-5">
-                    {(isEn ? release.highlightsEn : release.highlightsEs).map(
-                      (h) => (
-                        <span
-                          key={h}
-                          className="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-300 border border-gray-700"
-                        >
-                          {h}
-                        </span>
-                      ),
-                    )}
-                  </div>
-
-                  {/* Changes list */}
-                  <ul className="space-y-2.5">
-                    {release.changes.map((change, i) => {
-                      const style = typeStyles[change.type];
-                      return (
-                        <li key={i} className="flex items-start gap-3">
-                          <span
-                            className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded mt-0.5 ${style.color}`}
-                          >
-                            {isEn ? style.labelEn : style.labelEs}
+                  <div>
+                    <p className="rel-hl">
+                      {(isEn ? release.highlightsEn : release.highlightsEs).join(" · ")}
+                    </p>
+                    <ul className="chg">
+                      {release.changes.map((change, i) => (
+                        <li key={i}>
+                          <span className={`t t-${change.type}`}>
+                            {isEn ? TYPE_LABEL[change.type].en : TYPE_LABEL[change.type].es}
                           </span>
-                          <span className="text-sm text-gray-300 leading-relaxed">
-                            {isEn ? change.en : change.es}
-                          </span>
+                          <span>{isEn ? change.en : change.es}</span>
                         </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                      ))}
+                    </ul>
+                  </div>
+                </li>
+              ))}
+            </ol>
 
-        {/* Footer CTA */}
-        <div className="mt-20 pt-10 border-t border-gray-800 text-center">
-          <p className="text-gray-500 text-sm mb-4">
-            {isEn
-              ? "Have suggestions for the next release?"
-              : "¿Tienes sugerencias para el próximo release?"}
-          </p>
-          <a
-            href="mailto:soporte@menius.app"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-colors"
-          >
-            {isEn ? "Send a suggestion" : "Enviar sugerencia"}
-          </a>
-        </div>
-      </div>
-    </div>
+            <div className="doc-end">
+              <p>
+                <b>{t.endB}</b>
+                {t.endT}
+              </p>
+              <div className="end-links">
+                <a className="btn btn-primary" href={`mailto:${SUPPORT_CONTACT.email}`}>{t.endCta}</a>
+                <Link className="tlink" href="/support">{t.endSupport}</Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      <V2ScrollSpy ids={releases.map((r) => relId(r.version))} />
+    </V2Page>
   );
 }

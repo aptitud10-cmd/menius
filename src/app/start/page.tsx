@@ -1,380 +1,398 @@
 import type { Metadata } from 'next';
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { V2Page } from '@/components/landing-v2/V2Page';
+import '@/components/landing-v2/lv2-help.css';
+import { getLandingV2Copy, resolveLandingV2Locale, type LandingV2Locale } from '@/lib/landing-v2-copy';
+import { TRIAL_DAYS } from '@/lib/plans';
+import { SUPPORT_CONTACT } from '@/lib/support-contact';
 
-export const metadata: Metadata = {
-  title: 'Quick Start Guide',
-  description: 'Set up your digital menu in 30 minutes. Follow this step-by-step guide to launch your restaurant on MENIUS.',
-  alternates: { canonical: 'https://menius.app/start' },
-  robots: { index: true, follow: true },
-};
+/**
+ * /start (fase 3 del rediseño): guía honesta en dos caminos. (a) Lo haces tú,
+ * con los pasos y los nombres reales del panel y de la app Counter;
+ * (b) lo hacemos nosotros (setup profesional, "3 a 14 días según tu menú").
+ * Sin promesas de tiempo para el camino propio.
+ */
 
-type Locale = 'es' | 'en';
-
-interface Step {
-  number: string;
-  color: string;
-  titleEs: string; titleEn: string;
-  timeEs: string; timeEn: string;
-  descEs: string; descEn: string;
-  tasksEs: string[]; tasksEn: string[];
-  tipEs: string; tipEn: string;
-  ctaLabelEs: string; ctaLabelEn: string;
-  ctaHref: string;
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = await cookies();
+  const locale = resolveLandingV2Locale(cookieStore.get('menius_locale')?.value);
+  return locale === 'en'
+    ? {
+        title: 'Getting started',
+        description: `Two ways to start with MENIUS: set it up yourself from your dashboard with ${TRIAL_DAYS} days of Pro free, or let our team do it in 3 to 14 days.`,
+        alternates: { canonical: '/start' },
+        robots: { index: true, follow: true },
+      }
+    : {
+        title: 'Primeros pasos',
+        description: `Dos formas de empezar con MENIUS: configúralo tú desde tu panel con ${TRIAL_DAYS} días de Pro gratis, o deja que nuestro equipo lo haga en 3 a 14 días.`,
+        alternates: { canonical: '/start' },
+        robots: { index: true, follow: true },
+      };
 }
 
-const steps: Step[] = [
-  {
-    number: '01',
-    color: 'emerald',
-    titleEs: 'Crea tu restaurante',
-    titleEn: 'Create your restaurant',
-    timeEs: '5 min', timeEn: '5 min',
-    descEs: 'Configura el perfil base de tu negocio.',
-    descEn: 'Set up the basic profile for your business.',
-    tasksEs: [
-      'Ve a Dashboard → Configuración',
-      'Agrega el nombre de tu restaurante',
-      'Sube tu logo (o usa las iniciales por ahora)',
-      'Escribe una descripción breve (2-3 líneas)',
-      'Agrega tu dirección y teléfono',
-      'Configura tu moneda y zona horaria',
-    ],
-    tasksEn: [
-      'Go to Dashboard → Settings',
-      'Add your restaurant name',
-      'Upload your logo (or use initials for now)',
-      'Write a short description (2-3 lines)',
-      'Add your address and phone number',
-      'Set your currency and timezone',
-    ],
-    tipEs: 'El logo y la descripción aparecen en tu menú público. Una buena primera impresión aumenta el ticket promedio.',
-    tipEn: 'Your logo and description appear on your public menu. A great first impression increases average order value.',
-    ctaLabelEs: 'Ir a Configuración', ctaLabelEn: 'Go to Settings',
-    ctaHref: '/app/settings',
-  },
-  {
-    number: '02',
-    color: 'blue',
-    titleEs: 'Organiza tus categorías',
-    titleEn: 'Organize your categories',
-    timeEs: '5 min', timeEn: '5 min',
-    descEs: 'Una estructura clara ayuda a los clientes a encontrar lo que buscan.',
-    descEn: 'A clear structure helps customers find what they\'re looking for.',
-    tasksEs: [
-      'Ve a Dashboard → Menú → Categorías',
-      'Elimina las categorías de ejemplo que no necesitas',
-      'Crea tus categorías reales (ej: Entradas, Platos Fuertes, Postres, Bebidas)',
-      'Máximo 6-8 categorías para no abrumar al cliente',
-      'Ordénalas de mayor a menor popularidad',
-    ],
-    tasksEn: [
-      'Go to Dashboard → Menu → Categories',
-      'Delete the sample categories you don\'t need',
-      'Create your real categories (e.g., Starters, Mains, Desserts, Drinks)',
-      'Maximum 6–8 categories to avoid overwhelming customers',
-      'Sort them from most to least popular',
-    ],
-    tipEs: 'Menos categorías, decisiones más rápidas: si el cliente no tiene que buscar, pide antes (la paradoja de la elección).',
-    tipEn: 'Fewer categories, faster decisions: when customers don\'t have to hunt, they order sooner (the paradox of choice).',
-    ctaLabelEs: 'Ir a Categorías', ctaLabelEn: 'Go to Categories',
-    ctaHref: '/app/menu/categories',
-  },
-  {
-    number: '03',
-    color: 'violet',
-    titleEs: 'Agrega tus productos',
-    titleEn: 'Add your products',
-    timeEs: '10 min', timeEn: '10 min',
-    descEs: 'Empieza con tus 10-15 productos más vendidos. Puedes agregar más después.',
-    descEn: 'Start with your 10-15 best-selling products. You can add more later.',
-    tasksEs: [
-      'Ve a Dashboard → Menú → Productos',
-      'Para cada producto: nombre, descripción y precio',
-      'Agrega una foto (sube la tuya o genera una con IA)',
-      'Si tienes variantes (tamaños), configúralas en el producto',
-      'Si tienes extras (queso extra, etc.), agrégalos también',
-      'Marca como activos solo los que ya tienes disponibles',
-    ],
-    tasksEn: [
-      'Go to Dashboard → Menu → Products',
-      'For each product: name, description and price',
-      'Add a photo (upload yours or generate one with AI)',
-      'If you have variants (sizes), configure them on the product',
-      'If you have extras (extra cheese, etc.), add those too',
-      'Mark as active only the items currently available',
-    ],
-    tipEs: 'Los platos con foto se piden más. Empieza por las fotos de tus platos estrella.',
-    tipEn: 'Dishes with photos get ordered more. Start with photos of your signature dishes.',
-    ctaLabelEs: 'Ir a Productos', ctaLabelEn: 'Go to Products',
-    ctaHref: '/app/menu/products',
-  },
-  {
-    number: '04',
-    color: 'amber',
-    titleEs: 'Configura tus pedidos',
-    titleEn: 'Set up your orders',
-    timeEs: '3 min', timeEn: '3 min',
-    descEs: 'Define cómo quieres recibir pedidos y cómo cobrarás.',
-    descEn: 'Define how you want to receive orders and how you\'ll collect payment.',
-    tasksEs: [
-      'Ve a Dashboard → Configuración → Métodos de pago',
-      'Habilita efectivo si aceptas pagos en físico',
-      'Para pagos online: haz clic en "Conectar Stripe" (tarda 5-10 min la primera vez)',
-      'Habilita los tipos de orden: dine-in, pickup, delivery',
-      'Si ofreces delivery, configura el costo de envío',
-      'Configura tus horarios de atención',
-    ],
-    tasksEn: [
-      'Go to Dashboard → Settings → Payment methods',
-      'Enable cash if you accept in-person payments',
-      'For online payments: click "Connect Stripe" (takes 5-10 min the first time)',
-      'Enable order types: dine-in, pickup, delivery',
-      'If you offer delivery, configure the delivery fee',
-      'Set your operating hours',
-    ],
-    tipEs: 'Stripe necesita verificar tu identidad y cuenta bancaria. Hazlo hoy para tenerlo listo cuando abras.',
-    tipEn: 'Stripe needs to verify your identity and bank account. Do it today so it\'s ready when you open.',
-    ctaLabelEs: 'Ir a Configuración', ctaLabelEn: 'Go to Settings',
-    ctaHref: '/app/settings',
-  },
-  {
-    number: '05',
-    color: 'rose',
-    titleEs: 'Genera y prueba tus QR',
-    titleEn: 'Generate and test your QR codes',
-    timeEs: '5 min', timeEn: '5 min',
-    descEs: 'El QR es la puerta de entrada de tus clientes. Pruébalo antes de imprimir.',
-    descEn: 'The QR code is your customers\' entry point. Test it before printing.',
-    tasksEs: [
-      'Ve a Dashboard → Mesas',
-      'Crea tus mesas (Mesa 1, Mesa 2, Barra, etc.)',
-      'Descarga el QR de cada mesa en alta resolución',
-      'Escanea el QR con tu celular',
-      'Haz un pedido de prueba completo',
-      'Verifica que el pedido llega correctamente al dashboard',
-      'Imprime los QR y colócalos en las mesas',
-    ],
-    tasksEn: [
-      'Go to Dashboard → Tables',
-      'Create your tables (Table 1, Table 2, Bar, etc.)',
-      'Download the QR for each table in high resolution',
-      'Scan the QR with your phone',
-      'Place a complete test order',
-      'Verify the order arrives correctly in the dashboard',
-      'Print the QR codes and place them on the tables',
-    ],
-    tipEs: 'Plastifica los QR o usa portamenús con QR integrado. Un QR rayado que no escanea es una venta perdida.',
-    tipEn: 'Laminate the QR codes or use menu holders with built-in QR. A scratched QR that won\'t scan is a lost sale.',
-    ctaLabelEs: 'Ir a Mesas', ctaLabelEn: 'Go to Tables',
-    ctaHref: '/app/tables',
-  },
-  {
-    number: '06',
-    color: 'teal',
-    titleEs: 'Lanza y consigue tus primeras reseñas',
-    titleEn: 'Launch and get your first reviews',
-    timeEs: 'Día de apertura', timeEn: 'Opening day',
-    descEs: 'Las primeras 10 reseñas de Google definen tu posicionamiento local.',
-    descEn: 'Your first 10 Google reviews define your local ranking.',
-    tasksEs: [
-      'Comparte el link de tu menú en tus redes sociales',
-      'Agrega el link en la bio de tu Instagram',
-      'Crea tu perfil en Google Business (gratis)',
-      'Sube fotos de tu restaurante a Google Maps',
-      'Pide a los primeros 10 clientes que dejen una reseña en Google',
-      'Crea un código de descuento de apertura en MENIUS (ej: BIENVENIDO10)',
-    ],
-    tasksEn: [
-      'Share your menu link on your social media',
-      'Add the link to your Instagram bio',
-      'Create your Google Business profile (free)',
-      'Upload restaurant photos to Google Maps',
-      'Ask your first 10 customers to leave a Google review',
-      'Create an opening discount code in MENIUS (e.g., WELCOME10)',
-    ],
-    tipEs: 'El código de descuento de apertura te da datos de cuántas personas lo usaron y puedes medir el impacto.',
-    tipEn: 'The opening discount code gives you data on how many people used it so you can measure the impact.',
-    ctaLabelEs: 'Crear Promoción', ctaLabelEn: 'Create Promotion',
-    ctaHref: '/app/promotions',
-  },
-];
-
-const colorMap: Record<string, { bg: string; text: string; border: string; badge: string }> = {
-  emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', badge: 'bg-emerald-500' },
-  blue: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20', badge: 'bg-blue-500' },
-  violet: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20', badge: 'bg-violet-500' },
-  amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', badge: 'bg-amber-500' },
-  rose: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20', badge: 'bg-rose-500' },
-  teal: { bg: 'bg-teal-500/10', text: 'text-teal-400', border: 'border-teal-500/20', badge: 'bg-teal-500' },
+type Step = {
+  id: string;
+  title: string;
+  where: string[];
+  desc: string;
+  tasks: string[];
+  tip?: string;
+  link?: { href: string; label: string };
 };
+
+const T: Record<LandingV2Locale, {
+  badge: string;
+  h1: string;
+  lead: string;
+  aStamp: string;
+  aTitle: string;
+  aDesc: string;
+  aPoints: string[];
+  aSteps: string;
+  bStamp: string;
+  bTitle: string;
+  bDesc: string;
+  bPoints: string[];
+  bPrice: string;
+  bCta: string;
+  diyTitle: string;
+  diyLead: string;
+  steps: Step[];
+  setupTitle: string;
+  setupLead: string;
+  setupSteps: { h: string; p: string }[];
+  setupCta: string;
+  askTitle: string;
+  askText: string;
+  askSupport: string;
+}> = {
+  en: {
+    badge: 'Getting started',
+    h1: 'Two ways to get started.',
+    lead: 'Set up MENIUS yourself from your dashboard, or let our team do it for you. This is what each path looks like.',
+    aStamp: 'You do it',
+    aTitle: 'Set it up yourself',
+    aDesc: `Start with ${TRIAL_DAYS} days of Pro free, no card. You load the menu and connect everything from your dashboard.`,
+    aPoints: ['Create your account and your menu', 'Connect Stripe for card payments', 'Install the Counter app and link the printer', 'Share your link'],
+    aSteps: 'See the 5 steps',
+    bStamp: 'We do it',
+    bTitle: 'Professional setup',
+    bDesc: 'We load your menu, set up the tablet and printer, and train your staff.',
+    bPoints: ['Every dish, option and price, checked with you', 'Tablet and printer at cost, and they’re yours', 'Training on-site or by video call', 'In 3 to 14 days, depending on your menu'],
+    bPrice: 'One-time fee by menu size: $299, $499 or $899. Free with the annual plan.',
+    bCta: 'See Professional Setup',
+    diyTitle: 'Your 5 steps',
+    diyLead: 'Each step tells you where it is in your dashboard. If you get stuck, call or message us.',
+    steps: [
+      {
+        id: 'account',
+        title: 'Create your account',
+        where: ['menius.app', 'Try Pro free'],
+        desc: `Sign up with your email or Google. You get ${TRIAL_DAYS} days of Pro free, no card. After that you subscribe to Pro or stay on the Free plan.`,
+        tasks: [
+          'Choose your type of business',
+          'Write your restaurant’s name and pick your link (menius.app/your-restaurant)',
+          'Add your first dishes now, or skip and do it in the next step',
+        ],
+        link: { href: '/signup', label: 'Create my account' },
+      },
+      {
+        id: 'menu',
+        title: 'Load your menu',
+        where: ['Dashboard', 'Menu', 'Categories · Products'],
+        desc: 'Create your categories first, then each dish with its price.',
+        tasks: [
+          'Categories: Breakfast, Burgers, Drinks… in the order your customers read them',
+          'Each dish: name, description, price, and options or add-ons if it has them',
+          'Photos: upload your own. For dishes without one, Generate with AI creates one (Pro)',
+          'In Settings, add your logo, cover photo and brand color',
+        ],
+        tip: 'A bad photo hurts more than no photo. If a picture doesn’t look like what you serve, leave the dish without one.',
+        link: { href: '/ai-fotos', label: 'How AI photos work' },
+      },
+      {
+        id: 'payments',
+        title: 'Turn on orders and connect Stripe',
+        where: ['Dashboard', 'Settings'],
+        desc: 'Choose how you take orders and how your customers pay.',
+        tasks: [
+          'Order types: pickup, delivery and dine-in by QR. For delivery, set your fee and your area',
+          'Operating hours: the days and times you take orders',
+          'Payment methods: enable cash if you take it, and tap Connect Stripe for card payments',
+          'Stripe asks for your business details and bank account; card payments go to your own Stripe account',
+        ],
+        tip: 'Stripe has to verify your identity and your bank. Do it early, so card payments are ready when you open.',
+      },
+      {
+        id: 'counter',
+        title: 'Install the Counter app and link the printer',
+        where: ['Dashboard', 'Counter / Caja'],
+        desc: 'Orders arrive on an Android tablet that rings until someone accepts them, and the ticket prints.',
+        tasks: [
+          'On the tablet (Android 9 or later), install MENIUS Counter from Google Play',
+          'Open the app: it shows a code. Scan it with your phone, or tap Connect a tablet in your dashboard, and approve it',
+          'Bluetooth printer: pair it in Android Settings → Bluetooth, then in the app open Printer and tap Choose paired printer',
+          'Star CloudPRNT printer: add it in your dashboard under Settings → Printers',
+        ],
+        tip: 'No Android tablet yet? The Counter also works in the browser of any tablet, phone or computer. We can get the tablet and printer for you at cost.',
+      },
+      {
+        id: 'share',
+        title: 'Test it and share your link',
+        where: ['Dashboard', 'Settings', 'Public menu link'],
+        desc: 'Place a test order from your phone before you tell your customers.',
+        tasks: [
+          'Order from your phone and check that the tablet rings and the ticket prints',
+          'Share your link on Instagram, Google and WhatsApp',
+          'Print the QR codes for your tables from Tables & QRs',
+        ],
+      },
+    ],
+    setupTitle: 'Or we set it up for you',
+    setupLead: 'Our team does all of it with you. You keep cooking.',
+    setupSteps: [
+      { h: 'We load your menu and photos.', p: 'Every dish, option and price, checked with you.' },
+      { h: 'We set up the tablet and printer.', p: 'At cost, and they’re yours to keep.' },
+      { h: 'We train your staff.', p: 'On-site or by video call, in English or Spanish.' },
+      { h: 'You go live.', p: 'In 3 to 14 days, depending on your menu.' },
+    ],
+    setupCta: 'See Professional Setup',
+    askTitle: 'Stuck on a step?',
+    askText: 'Call us or send a WhatsApp. A real person answers, in English or Spanish.',
+    askSupport: 'More ways to get help',
+  },
+  es: {
+    badge: 'Primeros pasos',
+    h1: 'Dos formas de empezar.',
+    lead: 'Configura MENIUS tú mismo desde tu panel, o deja que nuestro equipo lo haga por ti. Así es cada camino.',
+    aStamp: 'Lo haces tú',
+    aTitle: 'Configúralo tú',
+    aDesc: `Empiezas con ${TRIAL_DAYS} días de Pro gratis, sin tarjeta. Cargas el menú y conectas todo desde tu panel.`,
+    aPoints: ['Crea tu cuenta y tu menú', 'Conecta Stripe para cobrar con tarjeta', 'Instala la app Counter y vincula la impresora', 'Comparte tu enlace'],
+    aSteps: 'Ver los 5 pasos',
+    bStamp: 'Lo hacemos nosotros',
+    bTitle: 'Setup profesional',
+    bDesc: 'Cargamos tu menú, instalamos la tablet y la impresora, y capacitamos a tu equipo.',
+    bPoints: ['Cada plato, opción y precio, revisado contigo', 'Tablet e impresora a precio de costo, y son tuyas', 'Capacitación en tu local o por videollamada', 'Listo en 3 a 14 días, según tu menú'],
+    bPrice: 'Pago único según el tamaño de tu menú: $299, $499 o $899. Gratis con el plan anual.',
+    bCta: 'Ver el Setup profesional',
+    diyTitle: 'Tus 5 pasos',
+    diyLead: 'Cada paso te dice dónde está en tu panel. Si te trabas, llámanos o escríbenos.',
+    steps: [
+      {
+        id: 'account',
+        title: 'Crea tu cuenta',
+        where: ['menius.app', 'Prueba Pro gratis'],
+        desc: `Regístrate con tu email o con Google. Tienes ${TRIAL_DAYS} días de Pro gratis, sin tarjeta. Después te suscribes a Pro o sigues en el plan Free.`,
+        tasks: [
+          'Elige tu tipo de negocio',
+          'Escribe el nombre de tu restaurante y elige tu enlace (menius.app/tu-restaurante)',
+          'Agrega tus primeros platos ahora, o sáltalo y hazlo en el siguiente paso',
+        ],
+        link: { href: '/signup', label: 'Crear mi cuenta' },
+      },
+      {
+        id: 'menu',
+        title: 'Carga tu menú',
+        where: ['Panel', 'Menú', 'Categorías · Productos'],
+        desc: 'Primero crea tus categorías y luego cada plato con su precio.',
+        tasks: [
+          'Categorías: Desayunos, Hamburguesas, Bebidas… en el orden en que las lee tu cliente',
+          'Cada plato: nombre, descripción, precio, y opciones o agregados si los tiene',
+          'Fotos: sube las tuyas. Para los platos sin foto, Generar con IA crea una (Pro)',
+          'En Configuración, agrega tu logo, tu foto de portada y el color de tu marca',
+        ],
+        tip: 'Una mala foto resta más que ninguna. Si una imagen no se parece a lo que sirves, deja el plato sin foto.',
+        link: { href: '/ai-fotos', label: 'Cómo funcionan las fotos con IA' },
+      },
+      {
+        id: 'payments',
+        title: 'Activa los pedidos y conecta Stripe',
+        where: ['Panel', 'Configuración'],
+        desc: 'Elige cómo recibes pedidos y cómo te pagan tus clientes.',
+        tasks: [
+          'Tipos de orden: para llevar, delivery y en mesa con QR. Para delivery, define tu tarifa y tu zona',
+          'Horario de operación: los días y horas en que recibes pedidos',
+          'Métodos de pago: activa efectivo si lo aceptas, y toca Conectar Stripe para cobrar con tarjeta',
+          'Stripe te pide los datos de tu negocio y tu cuenta bancaria; los pagos con tarjeta llegan a tu propia cuenta de Stripe',
+        ],
+        tip: 'Stripe tiene que verificar tu identidad y tu banco. Hazlo con tiempo, para que los pagos con tarjeta estén listos cuando abras.',
+      },
+      {
+        id: 'counter',
+        title: 'Instala la app Counter y vincula la impresora',
+        where: ['Panel', 'Caja / Counter'],
+        desc: 'Los pedidos llegan a una tablet Android que suena hasta que alguien los acepta, y el ticket se imprime.',
+        tasks: [
+          'En la tablet (Android 9 o superior), instala MENIUS Counter desde Google Play',
+          'Abre la app: muestra un código. Escanéalo con tu celular, o toca Conectar una tablet en tu panel, y apruébalo',
+          'Impresora Bluetooth: emparéjala en Ajustes de Android → Bluetooth y luego, en la app, abre Impresora y toca Elegir impresora emparejada',
+          'Impresora Star CloudPRNT: agrégala en tu panel, en Configuración → Impresoras',
+        ],
+        tip: '¿Todavía no tienes tablet Android? El Counter también funciona en el navegador de cualquier tablet, celular o computadora. Podemos conseguirte la tablet y la impresora a precio de costo.',
+      },
+      {
+        id: 'share',
+        title: 'Pruébalo y comparte tu enlace',
+        where: ['Panel', 'Configuración', 'Enlace público del menú'],
+        desc: 'Haz un pedido de prueba desde tu celular antes de avisarles a tus clientes.',
+        tasks: [
+          'Pide desde tu celular y revisa que la tablet suene y el ticket se imprima',
+          'Comparte tu enlace en Instagram, Google y WhatsApp',
+          'Imprime los QR de tus mesas desde Mesas & QRs',
+        ],
+      },
+    ],
+    setupTitle: 'O lo configuramos por ti',
+    setupLead: 'Nuestro equipo lo hace todo contigo. Tú sigues cocinando.',
+    setupSteps: [
+      { h: 'Cargamos tu menú y tus fotos.', p: 'Cada plato, opción y precio, revisado contigo.' },
+      { h: 'Instalamos la tablet y la impresora.', p: 'A precio de costo, y son tuyas.' },
+      { h: 'Capacitamos a tu equipo.', p: 'En tu local o por videollamada, en inglés o en español.' },
+      { h: 'Empiezas a vender.', p: 'Listo en 3 a 14 días, según tu menú.' },
+    ],
+    setupCta: 'Ver el Setup profesional',
+    askTitle: '¿Te trabaste en un paso?',
+    askText: 'Llámanos o escríbenos por WhatsApp. Te atiende una persona real, en inglés o en español.',
+    askSupport: 'Más formas de pedir ayuda',
+  },
+};
+
+function Where({ parts }: { parts: string[] }) {
+  return (
+    <p className="where">
+      {parts.map((w, i) => (
+        <Fragment key={w}>
+          {i > 0 && ' '}
+          <span>
+            {i > 0 && <><i aria-hidden="true">→</i>{' '}</>}
+            {i === parts.length - 1 ? <b>{w}</b> : w}
+          </span>
+        </Fragment>
+      ))}
+    </p>
+  );
+}
 
 export default async function StartPage() {
   const cookieStore = await cookies();
-  const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as Locale;
-  const isEn = locale === 'en';
+  const locale = resolveLandingV2Locale(cookieStore.get('menius_locale')?.value);
+  const t = T[locale];
+  const tryPro = getLandingV2Copy(locale).nav.tryPro;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
-      <div className="border-b border-gray-800">
-        <div className="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between">
-          <Link href="/" className="text-emerald-400 font-bold text-xl tracking-tight">MENIUS</Link>
-          <Link
-            href="/app"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
-          >
-            {isEn ? 'Go to Dashboard →' : 'Ir al Dashboard →'}
-          </Link>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 py-14">
-        {/* Hero */}
-        <div className="mb-14 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
-            <span className="text-xs font-semibold text-emerald-400 tracking-wide uppercase">
-              {isEn ? 'Quick start guide' : 'Guía de inicio rápido'}
-            </span>
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-4">
-            {isEn
-              ? <>{`Your restaurant ready in `}<span className="text-emerald-400">30 minutes</span></>
-              : <>{'Tu restaurante listo en '}<span className="text-emerald-400">30 minutos</span></>
-            }
-          </h1>
-          <p className="text-gray-400 text-lg leading-relaxed">
-            {isEn
-              ? 'Follow these 6 steps in order and you\'ll have your digital menu up and running — with QR codes, payments, and real-time orders.'
-              : 'Sigue estos 6 pasos en orden y tendrás tu menú digital funcionando, con QR, pagos y pedidos en tiempo real.'}
-          </p>
-
-          {/* Time estimate */}
-          <div className="flex flex-wrap items-center gap-6 mt-6">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-sm text-gray-400">{isEn ? '~30 minutes total' : '~30 minutos en total'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-blue-400" />
-              <span className="text-sm text-gray-400">{isEn ? 'No technical skills needed' : 'Sin conocimientos técnicos'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-violet-400" />
-              <span className="text-sm text-gray-400">{isEn ? 'MENIUS AI guides you every step' : 'MENIUS AI te ayuda en cada paso'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Steps */}
-        <div className="space-y-6">
-          {steps.map((step, idx) => {
-            const colors = colorMap[step.color];
-            const title = isEn ? step.titleEn : step.titleEs;
-            const time = isEn ? step.timeEn : step.timeEs;
-            const desc = isEn ? step.descEn : step.descEs;
-            const tasks = isEn ? step.tasksEn : step.tasksEs;
-            const tip = isEn ? step.tipEn : step.tipEs;
-            const ctaLabel = isEn ? step.ctaLabelEn : step.ctaLabelEs;
-
-            return (
-              <div
-                key={step.number}
-                className={`rounded-2xl border ${colors.border} ${colors.bg} p-6 lg:p-8`}
-              >
-                <div className="flex items-start gap-5">
-                  {/* Number */}
-                  <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${colors.badge} flex items-center justify-center`}>
-                    <span className="text-white font-bold text-base">{String(idx + 1).padStart(2, '0')}</span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    {/* Header */}
-                    <div className="flex items-center gap-3 mb-1 flex-wrap">
-                      <h2 className="text-lg font-bold text-white">{title}</h2>
-                      <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
-                        {time}
-                      </span>
-                    </div>
-                    <p className="text-gray-400 text-sm mb-4">{desc}</p>
-
-                    {/* Tasks */}
-                    <ul className="space-y-2 mb-4">
-                      {tasks.map((task, i) => (
-                        <li key={i} className="flex items-start gap-2.5">
-                          <div className={`flex-shrink-0 w-4 h-4 rounded border ${colors.border} mt-0.5 flex items-center justify-center`}>
-                            <div className="w-1.5 h-1.5 rounded-sm bg-gray-600" />
-                          </div>
-                          <span className="text-sm text-gray-300">{task}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    {/* Tip */}
-                    <div className={`flex items-start gap-2 p-3 rounded-xl bg-black/20 border ${colors.border} mb-4`}>
-                      <span className="text-base flex-shrink-0">💡</span>
-                      <p className="text-xs text-gray-400 leading-relaxed">{tip}</p>
-                    </div>
-
-                    {/* CTA */}
-                    <Link
-                      href={step.ctaHref}
-                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${colors.badge} text-white text-sm font-semibold hover:opacity-90 transition-opacity`}
-                    >
-                      {ctaLabel} →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* AI tip section */}
-        <div className="mt-10 p-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-xl">✨</span>
-            </div>
+    <V2Page locale={locale}>
+      <main id="main-content">
+        <header className="ph ph-split">
+          <div className="wrap">
             <div>
-              <h3 className="font-bold text-white mb-1">
-                {isEn ? 'Have questions at any step?' : '¿Tienes dudas en algún paso?'}
-              </h3>
-              <p className="text-gray-400 text-sm mb-3">
-                {isEn
-                  ? 'MENIUS AI is available 24/7 in your dashboard. Ask it anything: "How do I add a variant?", "Where do I configure delivery?", "How do I generate a QR?". It guides you step by step.'
-                  : 'MENIUS AI está disponible 24/7 en tu dashboard. Pregúntale cualquier cosa: "¿Cómo agrego una variante?", "¿Dónde configuro el delivery?", "¿Cómo genero un QR?". Te guía paso a paso.'}
-              </p>
-              <Link
-                href="/app"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
-              >
-                {isEn ? 'Open MENIUS AI in the Dashboard →' : 'Abrir MENIUS AI en el Dashboard →'}
-              </Link>
+              <span className="stamp label">{t.badge}</span>
+              <h1>{t.h1}</h1>
             </div>
+            <p className="lead">{t.lead}</p>
           </div>
-        </div>
+        </header>
 
-        {/* Bottom nav */}
-        <div className="mt-10 pt-8 border-t border-gray-800 flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <p className="text-sm text-gray-500">
-              {isEn ? 'Prefer we set it up for you?' : '¿Prefieres que lo hagamos por ti?'}
-            </p>
-            <Link href="/setup-profesional" className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">
-              {isEn ? 'See Professional Setup service →' : 'Ver servicio de Setup Profesional →'}
-            </Link>
+        <section className="chap tight paths-sec" aria-label={t.h1}>
+          <div className="wrap paths">
+            <article className="path">
+              <span className="stamp label">{t.aStamp}</span>
+              <h2>{t.aTitle}</h2>
+              <p>{t.aDesc}</p>
+              <ul className="ticks">
+                {t.aPoints.map((p) => <li key={p}>{p}</li>)}
+              </ul>
+              <div className="acts">
+                <Link className="btn btn-primary" href="/signup">{tryPro}</Link>
+                <a className="tlink" href="#steps">{t.aSteps}</a>
+              </div>
+            </article>
+            <article className="path dark">
+              <span className="stamp label inv">{t.bStamp}</span>
+              <h2>{t.bTitle}</h2>
+              <p>{t.bDesc}</p>
+              <ul className="ticks">
+                {t.bPoints.map((p) => <li key={p}>{p}</li>)}
+              </ul>
+              <p className="price-line">{t.bPrice}</p>
+              <div className="acts">
+                <Link className="tlink" href="/setup-profesional">{t.bCta}</Link>
+              </div>
+            </article>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-500">
-              {isEn ? 'Questions or issues?' : '¿Dudas o problemas?'}
-            </p>
-            <a href="mailto:soporte@menius.app" className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">
-              soporte@menius.app
-            </a>
+        </section>
+
+        <section className="chap tight alt" id="steps" aria-labelledby="st-h">
+          <div className="wrap">
+            <div className="sec-head">
+              <h2 id="st-h" className="h-a">{t.diyTitle}</h2>
+              <p className="lead">{t.diyLead}</p>
+            </div>
+            <ol className="walk">
+              {t.steps.map((s, i) => (
+                <li key={s.id} id={s.id}>
+                  <div className="n">
+                    <span className="stamp" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                  </div>
+                  <div className="body">
+                    <h3>{s.title}</h3>
+                    <Where parts={s.where} />
+                    <p>{s.desc}</p>
+                    <ul className="ticks">
+                      {s.tasks.map((task) => <li key={task}>{task}</li>)}
+                    </ul>
+                  </div>
+                  {(s.tip || s.link) && (
+                    <div className="side">
+                      {s.tip && <p className="tip">{s.tip}</p>}
+                      {s.link && (
+                        <p className="go">
+                          <Link className="tlink" href={s.link.href}>{s.link.label}</Link>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
           </div>
-        </div>
-      </div>
-    </div>
+        </section>
+
+        <section className="chap tight" id="setup" aria-labelledby="su-h">
+          <div className="wrap">
+            <div className="sec-head">
+              <h2 id="su-h" className="h-a">{t.setupTitle}</h2>
+              <p className="lead">{t.setupLead}</p>
+            </div>
+            <ol className="steps4 grid2">
+              {t.setupSteps.map((s, i) => (
+                <li key={s.h}>
+                  <span className="n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                  <h3>{s.h}</h3>
+                  <p>{s.p}</p>
+                </li>
+              ))}
+            </ol>
+            <p className="faq-all">
+              <Link className="tlink" href="/setup-profesional">{t.setupCta}</Link>
+            </p>
+
+            <section className="ask band-dark" aria-labelledby="sa-h">
+              <div>
+                <h2 id="sa-h">{t.askTitle}</h2>
+                <p>{t.askText}</p>
+              </div>
+              <div className="acts">
+                <a className="big" href={`tel:${SUPPORT_CONTACT.phoneE164}`}>{SUPPORT_CONTACT.phoneDisplay}</a>
+                <Link className="tlink" href="/support">{t.askSupport}</Link>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </V2Page>
   );
 }

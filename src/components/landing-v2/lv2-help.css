@@ -1,0 +1,232 @@
+/* MENIUS — fase 3: páginas de ayuda (/support, /start, /ai-fotos, /changelog).
+   Se carga DESPUÉS de landing-v2.css y lv2-pages.css (las importa V2Page) y
+   solo agrega piezas: reusa tokens, sellos, .contact, .pkg, .q, .form, .ask.
+   Todo bajo .lv2.lv2p para no tocar la landing ni las otras páginas. */
+
+/* ---------- Bloques comunes ---------- */
+.lv2.lv2p .help-hero { padding: 56px 0 72px; }
+.lv2.lv2p .help-hero .wrap { display: grid; grid-template-columns: 7fr 5fr; gap: 40px 72px; align-items: center; }
+.lv2.lv2p .help-hero .wrap > * { min-width: 0; }
+.lv2.lv2p .help-hero h1 { font-size: 76px; max-width: none; }
+.lv2.lv2p .help-hero .lead { max-width: 48ch; }
+.lv2.lv2p .help-hero .row { display: flex; align-items: center; gap: 12px 28px; flex-wrap: wrap; margin-top: 28px; }
+.lv2.lv2p .sec-head { display: grid; grid-template-columns: 7fr 5fr; gap: 14px 56px; align-items: end; margin-bottom: 40px; }
+.lv2.lv2p .sec-head > * { min-width: 0; }
+.lv2.lv2p .sec-head .lead { font-size: 18px; }
+/* "Dónde está": la ruta en el panel, en una línea propia */
+.lv2.lv2p .where { display: block; font-size: 14px; font-weight: 600; color: var(--ink-3); line-height: 1.45; }
+.lv2.lv2p .where b { font-weight: 700; color: var(--ink); }
+.lv2.lv2p .where i { font-style: normal; color: var(--ink-3); }
+/* Lista con check (misma marca que los paquetes de setup) */
+.lv2.lv2p .ticks { list-style: none; display: grid; gap: 10px; }
+.lv2.lv2p .ticks li { position: relative; padding-left: 26px; font-size: 16px; line-height: 1.5; color: var(--ink-2); }
+.lv2.lv2p .ticks li::before { content: ''; position: absolute; left: 0; top: .32em; width: 14px; height: 8px; border-left: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: rotate(-45deg); }
+.lv2.lv2p .ticks b { color: var(--ink); font-weight: 600; }
+.lv2.lv2p .tip { margin-top: 18px; padding: 14px 16px; border-radius: 14px; background: var(--paper-2); font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.lv2.lv2p .tip b { color: var(--ink); font-weight: 600; }
+.lv2.lv2p .help-end { margin-top: 0; }
+
+/* ---------- /support ---------- */
+.lv2.lv2p .contact .hours { margin-top: 24px; padding-top: 20px; border-top: 1px solid #3A352E; font-size: 15px; line-height: 1.5; color: var(--night-ink-2); }
+.lv2.lv2p .contact .hours b { display: block; color: var(--night-ink); font-weight: 600; }
+.lv2.lv2p .contact .langs { margin-top: 10px; font-size: 15px; color: #7FE0C9; font-weight: 600; }
+.lv2.lv2p .guides { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.lv2.lv2p .guides > li { min-width: 0; display: flex; flex-direction: column; padding: 28px 26px 22px; border-radius: 22px; background: var(--card); border: 1px solid var(--line); }
+.lv2.lv2p .guides .n { font-family: var(--stamp); font-size: 15px; color: var(--ink-3); }
+.lv2.lv2p .guides h3 { font-size: 30px; line-height: 1.06; margin-top: 10px; }
+.lv2.lv2p .guides .where { margin-top: 12px; }
+.lv2.lv2p .guides p { margin-top: 10px; font-size: 16px; line-height: 1.55; color: var(--ink-2); flex: 1; }
+.lv2.lv2p .guides .tlink { margin-top: 12px; align-self: flex-start; }
+.lv2.lv2p .assist { margin-top: 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; padding: 20px 24px; border-radius: 18px; border: 1px solid var(--line); background: var(--card); font-size: 16px; color: var(--ink-2); }
+.lv2.lv2p .assist p { flex: 1 1 360px; }
+.lv2.lv2p .assist b { color: var(--ink); font-weight: 600; }
+.lv2.lv2p .sup-form-lead { margin-top: 14px; }
+.lv2.lv2p .sup-points { list-style: none; margin-top: 28px; border-top: 1px solid var(--line); }
+.lv2.lv2p .sup-points li { padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 16px; color: var(--ink-2); }
+.lv2.lv2p .sup-points b { color: var(--ink); font-weight: 600; }
+.lv2.lv2p .sent .sent-again { margin-top: 18px; }
+
+/* ---------- /start ---------- */
+.lv2.lv2p .paths { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.lv2.lv2p .paths > * { min-width: 0; }
+.lv2.lv2p .path { display: flex; flex-direction: column; padding: 36px; border-radius: 24px; background: var(--card); border: 1px solid var(--line); }
+.lv2.lv2p .path h2 { font-size: 44px; line-height: 1.04; margin-top: 20px; }
+.lv2.lv2p .path > p { margin-top: 12px; font-size: 17px; color: var(--ink-2); max-width: 44ch; }
+.lv2.lv2p .path .ticks { margin-top: 20px; flex: 1; align-content: start; }
+.lv2.lv2p .path .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; margin-top: 28px; }
+.lv2.lv2p .path.dark { background: var(--night); color: var(--night-ink); border-color: var(--night); }
+.lv2.lv2p .path.dark > p, .lv2.lv2p .path.dark .ticks li { color: var(--night-ink-2); }
+.lv2.lv2p .path.dark .ticks li::before { border-color: var(--night-ink); }
+.lv2.lv2p .path.dark .ticks b { color: var(--night-ink); }
+.lv2.lv2p .path.dark .tlink { color: var(--night-ink); }
+.lv2.lv2p .path.dark :focus-visible { outline-color: var(--focus-dark); }
+.lv2.lv2p .path .price-line { margin-top: 16px; font-size: 15px; font-weight: 600; color: #7FE0C9; }
+.lv2.lv2p .walk { list-style: none; border-top: 1.5px solid var(--ink); }
+.lv2.lv2p .walk > li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 0 32px; padding: 40px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 24px; }
+.lv2.lv2p .walk .n { padding-top: 6px; }
+.lv2.lv2p .walk .n .stamp { font-size: 22px; padding: 8px 11px 7px; }
+.lv2.lv2p .walk h3 { font-size: 40px; line-height: 1.04; }
+.lv2.lv2p .walk .where { margin-top: 12px; }
+.lv2.lv2p .walk .body > p { margin-top: 12px; font-size: 17px; line-height: 1.6; color: var(--ink-2); max-width: 62ch; }
+.lv2.lv2p .walk .ticks { margin-top: 18px; max-width: 66ch; }
+.lv2.lv2p .walk .tip { max-width: 66ch; }
+.lv2.lv2p .walk .go { margin-top: 14px; }
+
+/* ---------- /ai-fotos ---------- */
+.lv2.lv2p .find { padding: 30px 30px 26px; border-radius: 24px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
+.lv2.lv2p .find h2 { font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.lv2.lv2p .find ol { list-style: none; margin-top: 8px; }
+.lv2.lv2p .find li { display: grid; grid-template-columns: 34px minmax(0, 1fr); padding: 14px 0; border-bottom: 1px solid var(--line); }
+.lv2.lv2p .find li:last-child { border-bottom: 0; padding-bottom: 4px; }
+.lv2.lv2p .find li > span { font-family: var(--stamp); font-size: 14px; color: var(--ink-3); padding-top: 2px; }
+.lv2.lv2p .find li b { display: block; font-size: 17px; font-weight: 650; color: var(--ink); line-height: 1.35; }
+.lv2.lv2p .find li p { margin-top: 4px; font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.lv2.lv2p .pkgs.two { grid-template-columns: 1fr 1fr; }
+.lv2.lv2p .pkg .price b.word { font-size: 56px; }
+.lv2.lv2p .pkg .go .tlink { width: auto; }
+
+/* ---------- /changelog ---------- */
+.lv2.lv2p .rels { list-style: none; border-top: 1.5px solid var(--ink); }
+.lv2.lv2p .rel { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 0 56px; padding: 44px 0; border-bottom: 1px solid var(--line); }
+.lv2.lv2p .rel-v h2 { font-size: inherit; line-height: 1; }
+.lv2.lv2p .rel-v .stamp { font-size: 24px; }
+.lv2.lv2p .rel-v time { display: block; margin-top: 14px; font-size: 15px; font-weight: 600; color: var(--ink-3); }
+.lv2.lv2p .rel-hl { font-family: var(--serif); font-size: 34px; line-height: 1.12; color: var(--ink); text-wrap: balance; }
+.lv2.lv2p .chg { list-style: none; margin-top: 22px; display: grid; gap: 12px; }
+.lv2.lv2p .chg li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 0 16px; font-size: 16.5px; line-height: 1.55; color: var(--ink-2); }
+.lv2.lv2p .chg .t { padding-top: 3px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.lv2.lv2p .chg .t.t-new { color: var(--green-ink); }
+.lv2.lv2p .chg .t.t-fixed { color: var(--warn); }
+
+/* ================= Tablet (≤1100) ================= */
+@media (max-width: 1100px) {
+  .lv2.lv2p .help-hero .wrap, .lv2.lv2p .sec-head { grid-template-columns: 1fr; }
+  .lv2.lv2p .help-hero h1 { font-size: 64px; }
+  .lv2.lv2p .guides { grid-template-columns: 1fr 1fr; }
+  .lv2.lv2p .walk > li { grid-template-columns: 72px minmax(0, 1fr); gap: 0 20px; padding: 32px 0; }
+  .lv2.lv2p .walk h3 { font-size: 34px; }
+  .lv2.lv2p .pkgs.two { max-width: none; }
+  .lv2.lv2p .rel { grid-template-columns: 150px minmax(0, 1fr); gap: 0 32px; }
+  .lv2.lv2p .rel-hl { font-size: 30px; }
+}
+@media (max-width: 900px) {
+  .lv2.lv2p .paths, .lv2.lv2p .pkgs.two { grid-template-columns: 1fr; }
+}
+
+/* ================= Phone (≤640) ================= */
+@media (max-width: 640px) {
+  .lv2.lv2p .help-hero { padding: 32px 0 48px; }
+  .lv2.lv2p .help-hero h1 { font-size: 46px; }
+  .lv2.lv2p .help-hero .row { flex-direction: column; align-items: stretch; gap: 4px; }
+  .lv2.lv2p .help-hero .row .tlink { align-self: flex-start; }
+  .lv2.lv2p .sec-head { margin-bottom: 28px; }
+  .lv2.lv2p .guides { grid-template-columns: 1fr; gap: 14px; }
+  .lv2.lv2p .guides > li { padding: 22px 20px 16px; border-radius: 20px; }
+  .lv2.lv2p .guides h3 { font-size: 28px; }
+  .lv2.lv2p .assist { padding: 18px 18px; }
+  .lv2.lv2p .path { padding: 26px 20px; border-radius: 20px; }
+  .lv2.lv2p .path h2 { font-size: 36px; margin-top: 16px; }
+  .lv2.lv2p .path .acts { flex-direction: column; align-items: stretch; gap: 4px; }
+  .lv2.lv2p .path .acts .tlink { align-self: flex-start; }
+  .lv2.lv2p .walk > li { grid-template-columns: 1fr; padding: 26px 0; }
+  .lv2.lv2p .walk .n { padding: 0 0 14px; }
+  .lv2.lv2p .walk .n .stamp { font-size: 18px; }
+  .lv2.lv2p .walk h3 { font-size: 30px; }
+  .lv2.lv2p .walk .body > p { font-size: 16px; }
+  .lv2.lv2p .find { padding: 22px 18px 18px; border-radius: 20px; }
+  .lv2.lv2p .pkg .price b.word { font-size: 48px; }
+  .lv2.lv2p .rel { grid-template-columns: 1fr; padding: 30px 0; }
+  .lv2.lv2p .rel-v { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .lv2.lv2p .rel-v time { margin-top: 0; }
+  .lv2.lv2p .rel-v .stamp { font-size: 20px; }
+  .lv2.lv2p .rel-hl { font-size: 26px; }
+  .lv2.lv2p .chg li { grid-template-columns: 1fr; gap: 2px; font-size: 16px; }
+  .lv2.lv2p .chg { gap: 16px; }
+}
+.lv2.lv2p .faq-all { margin-top: 16px; }
+.lv2.lv2p .end-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; }
+.lv2.lv2p .chap.paths-sec { padding-top: 0; }
+.lv2.lv2p .path > .stamp { align-self: flex-start; }
+.lv2.lv2p .walk .tip { background: var(--card); border: 1px solid var(--line); }
+.lv2.lv2p .where > span { white-space: nowrap; }
+
+/* /ai-fotos — bloque "Pruébalo" (ronda 2): áreas; celular = título → fotos → formulario */
+.lv2.lv2p .try { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-areas: "head shots" "form shots"; gap: 0 56px; align-items: start; }
+.lv2.lv2p .try-head { grid-area: head; }
+.lv2.lv2p .try-head .lead { margin-top: 16px; font-size: 18px; }
+.lv2.lv2p .try-shots { grid-area: shots; }
+.lv2.lv2p .try-form { grid-area: form; margin-top: 32px; }
+.lv2.lv2p .try-form .hint { margin-top: 0; }
+.lv2.lv2p .try-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.lv2.lv2p .try-fig { min-width: 0; }
+.lv2.lv2p .try-img { aspect-ratio: 4 / 3; background: var(--night); }
+.lv2.lv2p .try-img img { object-fit: cover; }
+.lv2.lv2p .try-fig figcaption { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; font-size: 14px; line-height: 1.45; color: var(--ink-3); }
+.lv2.lv2p .try-fig figcaption b { flex-basis: 100%; font-family: var(--serif); font-weight: 400; font-size: 24px; line-height: 1.1; color: var(--ink); }
+.lv2.lv2p .try-fig.one figcaption .tlink { margin-left: auto; }
+.lv2.lv2p .try-wait { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+.lv2.lv2p .try-wait p { font-size: 16px; color: var(--ink-2); }
+.lv2.lv2p .try-wait .spin { width: 28px; height: 28px; margin: 0 auto 12px; color: var(--ink); }
+@media (max-width: 1100px) {
+  .lv2.lv2p .try { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "shots" "form"; }
+  .lv2.lv2p .try-shots { margin-top: 28px; }
+}
+@media (max-width: 640px) {
+  .lv2.lv2p .try-shots { margin-top: 24px; }
+  .lv2.lv2p .try-form { margin-top: 28px; }
+}
+
+/* ===================== Ronda 2 (visual-critic) ===================== */
+/* /support: las 4 guías con el mismo ritmo (la ruta no se estira) */
+.lv2.lv2p .guides p { flex: none; }
+.lv2.lv2p .guides p:not(.where) { flex: 1 1 auto; }
+.lv2.lv2p .sup-tel { font-weight: 600; color: var(--ink); text-underline-offset: 3px; }
+/* /start: los pasos usan el ancho (llamadas a la derecha) */
+.lv2.lv2p .path .ticks { flex: none; }
+.lv2.lv2p .walk > li { grid-template-columns: 96px minmax(0, 1.55fr) minmax(0, 1fr); grid-template-areas: "n body side"; gap: 0 48px; }
+.lv2.lv2p .walk .n { grid-area: n; }
+.lv2.lv2p .walk .body { grid-area: body; }
+.lv2.lv2p .walk .side { grid-area: side; padding-top: 6px; }
+.lv2.lv2p .walk .side .tip { margin-top: 0; }
+.lv2.lv2p .walk .side .tip + .go { margin-top: 14px; }
+.lv2.lv2p .walk .side .go:first-child { margin-top: 0; }
+.lv2.lv2p .steps4.grid2 { grid-template-columns: 1fr 1fr; gap: 0 72px; }
+.lv2.lv2p .steps4.grid2 li { padding: 26px 0 30px; }
+.lv2.lv2p .steps4.grid2 li:nth-child(n+3) { border-top: 1px solid var(--line); }
+.lv2.lv2p .steps4.grid2 h3 { font-size: 34px; }
+.lv2.lv2p .steps4.grid2 p { font-size: 17px; }
+@media (max-width: 1100px) {
+  .lv2.lv2p .walk > li { grid-template-columns: 72px minmax(0, 1fr); grid-template-areas: "n body" ". side"; gap: 0 20px; }
+  .lv2.lv2p .walk .side { padding-top: 18px; }
+  .lv2.lv2p .steps4.grid2 li:nth-child(n+3) { margin-top: 0; }
+}
+@media (max-width: 640px) {
+  .lv2.lv2p .walk > li { grid-template-columns: minmax(0, 1fr); grid-template-areas: "n" "body" "side"; }
+  .lv2.lv2p .steps4.grid2 li { padding: 16px 0; }
+  .lv2.lv2p .steps4.grid2 h3 { font-size: 24px; }
+  .lv2.lv2p .steps4.grid2 p { font-size: 15px; }
+}
+/* /changelog: índice de versiones fijo arriba (como los chips del FAQ), en todos los anchos */
+.lv2.lv2p .chips.rel-nav { display: flex; gap: 8px; overflow-x: auto; position: sticky; top: 0; z-index: 10; background: var(--paper); margin: 0 calc(-1 * var(--gutter)); padding: 12px var(--gutter); border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.lv2.lv2p .chips.rel-nav::-webkit-scrollbar { display: none; }
+.lv2.lv2p .chips.rel-nav a { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 15px; font-weight: 600; color: var(--ink-2); text-decoration: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lv2.lv2p .chips.rel-nav a b { font-size: 13px; font-weight: 600; color: var(--ink-3); }
+.lv2.lv2p .chips.rel-nav a[aria-current="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.lv2.lv2p .chips.rel-nav a[aria-current="true"] b { color: #CFC6B7; }
+.lv2.lv2p .rels { margin-top: 8px; }
+.lv2.lv2p .rel { scroll-margin-top: 84px; }
+@media (max-width: 640px) {
+  .lv2.lv2p .chips.rel-nav { margin: 0 -16px; padding: 10px 16px; }
+  .lv2.lv2p .chg .t { font-size: 11px; letter-spacing: .05em; }
+}
+@media (max-width: 640px) { .lv2.lv2p .steps4.grid2 h3 { text-wrap: pretty; } }
+.lv2.lv2p .try-pair-cap { display: none; }
+@media (max-width: 640px) {
+  .lv2.lv2p .try-pair { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .lv2.lv2p .try-pair .try-fig figcaption { margin-top: 8px; }
+  .lv2.lv2p .try-pair .try-fig figcaption b { font-size: 18px; }
+  .lv2.lv2p .try-pair .try-fig figcaption span { display: none; }
+  .lv2.lv2p .try-pair-cap { display: block; grid-column: 1 / -1; font-size: 14px; line-height: 1.45; color: var(--ink-3); }
+  .lv2.lv2p .try-img { border-radius: 14px; }
+}
+@media (max-width: 640px) { .lv2.lv2p .steps4.grid2 { grid-template-columns: minmax(0, 1fr); } .lv2.lv2p .steps4.grid2 li:nth-child(n+3) { border-top: 0; } }
