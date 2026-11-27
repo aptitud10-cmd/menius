@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Save, ExternalLink, CheckCircle2, Bell, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Receipt } from 'lucide-react';
-import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, US_CITY_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
+import { getCountryList, getUsStateList, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, US_CITY_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
 import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, UNIQUE_CURRENCIES, US_TIMEZONES, formatTimezone } from '@/lib/country-config';
 import { crossesMidnight, dayHoursError } from '@/lib/orders/business-hours';
 import type { ConnectAccountState } from '@/lib/payments/connect-account';
@@ -975,7 +975,7 @@ export function RestaurantSettings({
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
             >
               <option value="">{locale === 'en' ? '— No country / custom —' : '— Sin país / personalizado —'}</option>
-              {COUNTRY_LIST.map((c) => (
+              {getCountryList().map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.flag} {c.name}
                 </option>
@@ -1002,7 +1002,7 @@ export function RestaurantSettings({
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               >
                 <option value="">— Select state —</option>
-                {US_STATE_LIST.map((s) => (
+                {getUsStateList().map((s) => (
                   <option key={s.code} value={s.code}>
                     {s.name} ({s.rate}%)
                   </option>

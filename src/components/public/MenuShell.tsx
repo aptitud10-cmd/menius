@@ -26,6 +26,7 @@ import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { formatPrice, cn } from "@/lib/utils";
+import { expandMenuProducts, type CompactMenuProduct } from "@/lib/menu-product-wire";
 import { hasRealPopularity } from "@/lib/social-proof";
 import { ProductListItem } from "./ProductListItem";
 import { getTranslations, type Locale } from "@/lib/translations";
@@ -110,7 +111,8 @@ interface LimitedMode {
 interface MenuShellProps {
   restaurant: Restaurant;
   categories: Category[];
-  products: Product[];
+  /** Compactos desde la página (lib/menu-product-wire); se rearman abajo. */
+  products: ReadonlyArray<CompactMenuProduct | Product>;
   tableName: string | null;
   locale?: Locale;
   availableLocales?: string[];
@@ -160,7 +162,7 @@ const getCartPill = () =>
 export function MenuShell({
   restaurant,
   categories,
-  products,
+  products: wireProducts,
   tableName,
   locale: initialLocale = "es",
   availableLocales: availableLocalesRaw,
@@ -171,6 +173,10 @@ export function MenuShell({
   today = null,
 }: MenuShellProps) {
   const router = useRouter();
+  const products = useMemo(
+    () => expandMenuProducts(wireProducts, restaurant.id),
+    [wireProducts, restaurant.id],
+  );
   const defaultLocale = initialLocale;
   const availableLocales = availableLocalesRaw ?? [initialLocale];
   const hasMultiLang = availableLocales.length > 1;
@@ -1392,10 +1398,15 @@ export function MenuShell({
   // Every product as it stands right now: realtime sold-out overrides and
   // dishes outside their hours. Search, favourites and suggestions read this so
   // an out-of-hours dish cannot be added from any corner of the menu.
+  // La hora del restaurante para los horarios por plato y por categoría: una
+  // vez por tick del reloj, no una por categoría en cada render.
+  const hoursLocal = useMemo(
+    () => (hoursClock > 0 ? inTimeZone(new Date(hoursClock), restaurant.timezone || "UTC") : null),
+    [hoursClock, restaurant.timezone],
+  );
   const liveProducts = useMemo(() => {
     const base = products;
-    const local =
-      hoursClock > 0 ? inTimeZone(new Date(hoursClock), restaurant.timezone || "UTC") : null;
+    const local = hoursLocal;
     if (stockOverrides.size === 0 && !local) return base;
     return base.map((p) => {
       const override = stockOverrides.get(p.id);
@@ -1421,7 +1432,7 @@ export function MenuShell({
       }
       return q;
     });
-  }, [products, stockOverrides, hoursClock, restaurant.timezone, t, locale, categoryHoursById]);
+  }, [products, stockOverrides, hoursLocal, t, locale, categoryHoursById]);
 
   // Reorder with the diner's choices: each dish with options is rebuilt from
   // today's menu (prices, option hours, new required questions) before it goes
@@ -1587,10 +1598,10 @@ export function MenuShell({
   const isCategoryAvailableNow = useCallback(
     (cat: { id: string }) => {
       const h = categoryHoursById.get(cat.id);
-      if (!h || hoursClock === 0) return true;
-      return isOptionAvailableAt(h, inTimeZone(new Date(hoursClock), restaurant.timezone || "UTC"));
+      if (!h || !hoursLocal) return true;
+      return isOptionAvailableAt(h, hoursLocal);
     },
-    [categoryHoursById, hoursClock, restaurant.timezone],
+    [categoryHoursById, hoursLocal],
   );
   const categoryHoursLabel = useCallback(
     (cat: { id: string }) => {

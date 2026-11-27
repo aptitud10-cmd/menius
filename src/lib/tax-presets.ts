@@ -40,9 +40,16 @@ export const COUNTRY_TAX_PRESETS: Record<string, CountryTaxPreset> = {
   AU: { rate: 10,   label: 'GST',       included: true,  flag: '🇦🇺', name: 'Australia' },
 };
 
-export const COUNTRY_LIST = Object.entries(COUNTRY_TAX_PRESETS)
-  .sort((a, b) => a[1].name.localeCompare(b[1].name))
-  .map(([code, preset]) => ({ code, ...preset }));
+// Ordenar con localeCompare inicializa la intercalación del navegador (~25 ms en
+// un celular): la tienda importa este archivo solo por computeTaxAmount, así que
+// la lista se arma recién cuando el panel la pide.
+let countryList: Array<{ code: string } & (typeof COUNTRY_TAX_PRESETS)[string]> | null = null;
+export function getCountryList() {
+  countryList ??= Object.entries(COUNTRY_TAX_PRESETS)
+    .sort((a, b) => a[1].name.localeCompare(b[1].name))
+    .map(([code, preset]) => ({ code, ...preset }));
+  return countryList;
+}
 
 export const US_STATE_TAX_RATES: Record<string, StateTaxRate> = {
   AL: { name: 'Alabama',             rate: 4     },
@@ -98,9 +105,14 @@ export const US_STATE_TAX_RATES: Record<string, StateTaxRate> = {
   WY: { name: 'Wyoming',             rate: 4     },
 };
 
-export const US_STATE_LIST = Object.entries(US_STATE_TAX_RATES)
-  .sort((a, b) => a[1].name.localeCompare(b[1].name))
-  .map(([code, state]) => ({ code, ...state }));
+// Igual que getCountryList: se ordena recién cuando el panel la pide.
+let usStateList: Array<{ code: string } & StateTaxRate> | null = null;
+export function getUsStateList() {
+  usStateList ??= Object.entries(US_STATE_TAX_RATES)
+    .sort((a, b) => a[1].name.localeCompare(b[1].name))
+    .map(([code, state]) => ({ code, ...state }));
+  return usStateList;
+}
 
 /**
  * Combined (state + county + city) tax rates for major US cities.

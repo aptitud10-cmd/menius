@@ -195,15 +195,14 @@ export const ProductRow = memo(function ProductRow({
           aria-label={justAdded ? t.addedToCart : (hasModifiers ? t.ariaCustomize(displayName) : t.ariaAdd(displayName))}
           className="relative z-10 w-11 h-11 -my-2 flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7] rounded-full"
         >
-          <motion.span
-            whileTap={{ scale: 0.88 }}
+          <span
             className={cn(
               'w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 pointer-events-none',
               justAdded ? 'bg-[#05c8a7] text-[#04241E]' : 'bg-[#e6faf7] text-[#047a65] hover:bg-[#d0f7f1]'
             )}
           >
             {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
-          </motion.span>
+          </span>
         </button>
       )}
     </article>

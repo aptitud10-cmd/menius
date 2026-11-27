@@ -226,15 +226,14 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               aria-label={justAdded ? t.addedToCart : (hasModifiers ? t.ariaCustomize(displayName) : t.ariaAdd(displayName))}
               className="relative z-10 w-11 h-11 flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]"
             >
-              <motion.span
-                whileTap={{ scale: 0.88 }}
+              <span
                 className={cn(
                   'w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-300 shadow-md pointer-events-none',
                   justAdded ? 'bg-[#05c8a7] text-[#04241E] scale-110' : 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096]'
                 )}
               >
                 {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
-              </motion.span>
+              </span>
             </button>
           )}
         </div>

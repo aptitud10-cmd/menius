@@ -11,6 +11,7 @@ import {
   grillHouseProducts,
 } from "@/lib/demo-data-en";
 import { JsonLdScript } from "@/components/public/JsonLdScript";
+import { compactMenuProducts } from "@/lib/menu-product-wire";
 import { getStoreOverrides } from "@/lib/store-overrides"; // Nuevo import
 import { Product } from "@/types";
 
@@ -608,7 +609,7 @@ export default async function SlugMenuPage(props: PageProps) {
       <MenuShell
         restaurant={data.restaurant}
         categories={data.categories}
-        products={slimProducts}
+        products={compactMenuProducts(slimProducts, data.restaurant.id)}
         tableName={null}
         locale={data.locale}
         availableLocales={data.availableLocales}

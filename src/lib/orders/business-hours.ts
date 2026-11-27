@@ -41,9 +41,28 @@ export function isOpenAt(hours: OperatingHours, local: Date): boolean {
   return now >= o; // cruza la medianoche: la parte de después de las 00:00 la cubre "ayer"
 }
 
+// toLocaleString({ timeZone }) arma un formateador nuevo en cada llamada, y el
+// menú llama a inTimeZone muchas veces al cargar: uno por zona, reutilizado.
+const tzFormats = new Map<string, Intl.DateTimeFormat>();
+
 /** Fecha "local" (getters en la zona del restaurante) de un instante. */
 export function inTimeZone(instant: Date, tz: string): Date {
-  return new Date(instant.toLocaleString('en-US', { timeZone: tz }));
+  let f = tzFormats.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hourCycle: 'h23',
+      year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: 'numeric', minute: 'numeric', second: 'numeric',
+    });
+    tzFormats.set(tz, f);
+  }
+  if (!Number.isFinite(instant.getTime())) return new Date(NaN);
+  const n: Record<string, number> = {};
+  for (const part of f.formatToParts(instant)) if (part.type !== 'literal') n[part.type] = Number(part.value);
+  // Mismo resultado que new Date(instant.toLocaleString('en-US', { timeZone })): sin milisegundos.
+  const d = new Date(n.year, n.month - 1, n.day, n.hour, n.minute, n.second);
+  if (n.year < 100) d.setFullYear(n.year);
+  return d;
 }
 
 /** scheduled_for válido: fecha real y al menos 5 min en el futuro (misma regla al guardar). */

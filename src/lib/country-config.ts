@@ -87,11 +87,24 @@ export function formatTimezone(tz: string): string {
   return tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
 }
 
+// Crear un Intl.NumberFormat es caro (el menú formatea ~400 precios al cargar):
+// se crea una vez por combinación y se reutiliza.
+const numberFormats = new Map<string, Intl.NumberFormat>();
+function cachedNumberFormat(locale: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const key = `${locale}|${JSON.stringify(options)}`;
+  let f = numberFormats.get(key);
+  if (!f) {
+    f = new Intl.NumberFormat(locale, options);
+    numberFormats.set(key, f);
+  }
+  return f;
+}
+
 /** Format a monetary amount using the correct locale and symbol for a country code. */
 export function formatCurrency(amount: number, countryCode: string): string {
   const config = COUNTRY_CONFIGS[countryCode];
-  if (!config) return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
-  return new Intl.NumberFormat(config.locale, {
+  if (!config) return cachedNumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+  return cachedNumberFormat(config.locale, {
     style: 'currency',
     currency: config.currency,
     currencyDisplay: 'symbol',
@@ -105,7 +118,7 @@ export function formatCurrencyByCode(
   opts?: { maximumFractionDigits?: number; minimumFractionDigits?: number },
 ): string {
   const entry = CURRENCY_TO_CONFIG[currencyCode];
-  return new Intl.NumberFormat(entry?.locale ?? 'en-US', {
+  return cachedNumberFormat(entry?.locale ?? 'en-US', {
     style: 'currency',
     currency: currencyCode,
     currencyDisplay: 'symbol',
