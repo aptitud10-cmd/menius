@@ -180,10 +180,17 @@ export interface Translations {
   viewOrder: string;
   openOrderAria: (count: number) => string;
   addToOrder: string;
-  addonSearchOnMenu: string;
-  addonSearchAddAfter: string;
   addonSearchQueued: (name: string) => string;
   addonSearchUnqueue: string;
+  addonSearchTitle: string;
+  addonSearchSub: string;
+  addonSearchExampleDrink: string;
+  addonSearchOnDish: string;
+  addonSearchToOrder: string;
+  addonSearchAddToOrder: string;
+  addonSearchChooseAfter: string;
+  addonSearchSentToOrder: (names: string) => string;
+  goesWellWithSub: string;
   menuSheetTitle: string;
   searchDishes: (n: number) => string;
   menuSections: string;
@@ -670,7 +677,7 @@ const es: Translations = {
   addonSearchAbove: (question) => `Ya está arriba · ${question}`,
   addonSearchAboveShort: 'Ya está arriba en las opciones del plato',
   addonSearchGoTo: 'Ver',
-  addonSearchNone: (query) => `No tenemos “${query}” como agregado.`,
+  addonSearchNone: (query) => `“${query}” no está en el menú.`,
   addonSearchToNotes: 'Escríbelo en Alguna indicación',
   addonSearchClear: 'Borrar búsqueda',
   addonSearchRemove: (name) => `Quitar ${name}`,
@@ -683,10 +690,17 @@ const es: Translations = {
   viewOrder: 'Ver pedido',
   openOrderAria: (n) => (n === 0 ? 'Tu pedido, vacío' : `Tu pedido, ${n} ${n === 1 ? 'producto' : 'productos'}`),
   addToOrder: 'Agregar',
-  addonSearchOnMenu: 'Está en el menú',
-  addonSearchAddAfter: 'Agregar después',
   addonSearchQueued: (name) => `${name} se abre cuando agregues este plato`,
   addonSearchUnqueue: 'Quitar',
+  addonSearchTitle: 'Agrega lo que quieras',
+  addonSearchSub: 'Extras para este plato o cualquier cosa del menú',
+  addonSearchExampleDrink: 'una soda',
+  addonSearchOnDish: 'En este plato',
+  addonSearchToOrder: 'Agregar a tu pedido',
+  addonSearchAddToOrder: 'Agregar',
+  addonSearchChooseAfter: 'Eliges después',
+  addonSearchSentToOrder: (names) => `${names}: agregado a tu pedido`,
+  goesWellWithSub: 'Toca + para sumarlo a tu pedido',
   menuSheetTitle: 'Menú',
   searchDishes: (n) => `Buscar entre ${n} platos`,
   menuSections: 'Secciones',
@@ -1155,7 +1169,7 @@ const en: Translations = {
   addonSearchAbove: (question) => `Already above · ${question}`,
   addonSearchAboveShort: 'Already above in this dish’s options',
   addonSearchGoTo: 'Show',
-  addonSearchNone: (query) => `“${query}” isn't on our add-on list.`,
+  addonSearchNone: (query) => `“${query}” isn't on the menu.`,
   addonSearchToNotes: 'Add it to Special instructions',
   addonSearchClear: 'Clear search',
   addonSearchRemove: (name) => `Remove ${name}`,
@@ -1168,10 +1182,17 @@ const en: Translations = {
   viewOrder: 'View order',
   openOrderAria: (n) => (n === 0 ? 'Your order, empty' : `Your order, ${n} ${n === 1 ? 'item' : 'items'}`),
   addToOrder: 'Add',
-  addonSearchOnMenu: 'On the menu',
-  addonSearchAddAfter: 'Add after this',
   addonSearchQueued: (name) => `${name} opens after you add this dish`,
   addonSearchUnqueue: 'Remove',
+  addonSearchTitle: 'Add anything',
+  addonSearchSub: 'Extras for this dish, or anything else from the menu',
+  addonSearchExampleDrink: 'a soda',
+  addonSearchOnDish: 'On this dish',
+  addonSearchToOrder: 'Add to your order',
+  addonSearchAddToOrder: 'Add',
+  addonSearchChooseAfter: 'Choose after',
+  addonSearchSentToOrder: (names) => `${names} added to your order`,
+  goesWellWithSub: 'Tap + to add it to your order',
   menuSheetTitle: 'Menu',
   searchDishes: (n) => `Search ${n} dishes`,
   menuSections: 'Sections',

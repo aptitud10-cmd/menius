@@ -359,6 +359,10 @@ export function CustomizationSheet({
     () => activeGroups.find((g) => g.display_type === "search" && g.options.length > 0) ?? null,
     [activeGroups],
   );
+  // "Add anything" en todos los platos: busca los extras del plato y, si no se está
+  // editando un ítem del carrito, cualquier cosa del menú para sumar al pedido.
+  const showSearch =
+    !!searchGroup || (!isEditing && !!findOnMenu) || questionGroups.some((g) => g.is_required === false);
   // Chips, list or cards per group, and which lone add-ons join a list.
   const layout = useMemo(() => planGroupLayout(questionGroups), [questionGroups]);
 
@@ -1381,12 +1385,13 @@ export function CustomizationSheet({
           );
         })}
 
-        {searchGroup && (
+        {showSearch && (
           <div ref={searchBlockRef}>
             <AddonSearch
               group={searchGroup}
               otherGroups={questionGroups}
-              selected={selections[searchGroup.id] ?? []}
+              selected={searchGroup ? (selections[searchGroup.id] ?? []) : []}
+              isPicked={(groupId, optionId) => (selections[groupId] ?? []).some((o) => o.id === optionId)}
               onToggle={toggleOption}
               onRevealGroup={pointToGroup}
               onGoToNotes={goToNotes}
@@ -1478,9 +1483,12 @@ export function CustomizationSheet({
             visually subordinate to the solid sticky CTA below (avoids confusion). */}
         {!isEditing && (suggestedProducts ?? []).length > 0 && (
           <div className="pt-5 pb-6">
-            <h4 className="mb-3 px-5 text-[17px] font-semibold leading-snug text-gray-900">
-              {t.goesWellWith}
-            </h4>
+            <div className="mb-3 px-5">
+              <h4 className="text-[17px] font-semibold leading-snug text-gray-900">
+                {t.goesWellWith}
+              </h4>
+              <p className="mt-1 text-[13px] text-gray-600">{t.goesWellWithSub}</p>
+            </div>
             <div className="relative group/sugg">
               <div
                 ref={suggestionsScrollRef}

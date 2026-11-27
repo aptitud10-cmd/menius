@@ -26,6 +26,11 @@ export interface AddonMatch<T extends SearchableOption> {
   score: number;
   /** Cuántas opciones de esa pregunta encajaron ("queso" → American, Cheddar, Swiss…). */
   groupMatches: number;
+  /**
+   * Está en una pregunta opcional del plato ("Would you like to add bacon?"): se marca
+   * desde el buscador mismo, sin mandar al cliente a buscar la pregunta arriba.
+   */
+  direct?: boolean;
 }
 
 /** Minúsculas, sin tildes ni signos: "Jalapeños" → "jalapenos". */
@@ -207,21 +212,30 @@ export interface SearchGroupInput<T extends SearchableOption> {
  */
 export function searchAddons<T extends SearchableOption>(
   query: string,
-  searchGroup: SearchGroupInput<T>,
-  otherGroups: SearchGroupInput<T>[],
+  searchGroup: SearchGroupInput<T> | null,
+  otherGroups: (SearchGroupInput<T> & { is_required?: boolean | null })[],
   limit = 6,
 ): AddonMatch<T>[] {
   if (normalize(query).length < 2) return [];
   const above: AddonMatch<T>[] = [];
+  const direct: AddonMatch<T>[] = [];
   for (const g of otherGroups) {
+    // Opcional = un agregado (bacon, queso en las papas): cada opción sale sola y se
+    // marca desde acá. Obligatoria = una elección del plato (cocción, pan): se lleva
+    // al cliente a la pregunta, que es donde se entiende.
+    const optional = g.is_required === false;
     for (const option of g.options) {
       const score = matchScore(query, option);
-      if (score > 0) above.push({ option, groupId: g.id, inSearchGroup: false, score, groupMatches: 1 });
+      if (score <= 0) continue;
+      const m: AddonMatch<T> = { option, groupId: g.id, inSearchGroup: false, score, groupMatches: 1 };
+      if (optional) direct.push({ ...m, direct: true });
+      else above.push(m);
     }
   }
-  const takenNames = new Set(above.map((m) => normalize(m.option.name)));
+  const takenNames = new Set([...above, ...direct].map((m) => normalize(m.option.name)));
   const own: AddonMatch<T>[] = [];
-  for (const option of searchGroup.options) {
+  for (const option of searchGroup?.options ?? []) {
+    if (!searchGroup) break;
     if (takenNames.has(normalize(option.name))) continue;
     const score = matchScore(query, option);
     if (score > 0) own.push({ option, groupId: searchGroup.id, inSearchGroup: true, score, groupMatches: 1 });
@@ -235,7 +249,7 @@ export function searchAddons<T extends SearchableOption>(
     else aboveByGroup.set(m.groupId, m);
   }
   // Lo que encaja mejor primero, sea pregunta o agregado; a igual puntaje, la pregunta.
-  return [...Array.from(aboveByGroup.values()), ...own.sort(byScore)]
+  return [...Array.from(aboveByGroup.values()), ...direct, ...own]
     .sort((a, b) => b.score - a.score || Number(a.inSearchGroup) - Number(b.inSearchGroup))
     .slice(0, limit);
 }

@@ -9,11 +9,14 @@ import type { ModifierGroup, ModifierOption, Product } from "@/types";
 import type { Translations, Locale } from "@/lib/translations";
 
 interface AddonSearchProps {
-  /** Grupo con display_type 'search': los agregados sin pregunta propia. */
-  group: ModifierGroup;
+  /** Grupo con display_type 'search' (agregados sin pregunta propia). Puede no haber:
+   *  el buscador igual encuentra los extras de las preguntas y lo del menú. */
+  group: ModifierGroup | null;
   /** Las demás preguntas visibles del plato: lo que ya preguntan no se duplica. */
   otherGroups: ModifierGroup[];
   selected: ModifierOption[];
+  /** Si una opción de otra pregunta del plato ya está elegida (bacon marcado desde acá). */
+  isPicked?: (groupId: string, optionId: string) => boolean;
   onToggle: (group: ModifierGroup, option: ModifierOption) => void;
   /** Lleva a una pregunta de más arriba ("Ya está arriba · Would you like to add meat?"). */
   onRevealGroup: (groupId: string) => void;
@@ -43,6 +46,7 @@ export function AddonSearch({
   group,
   otherGroups,
   selected,
+  isPicked,
   onToggle,
   onRevealGroup,
   onGoToNotes,
@@ -57,6 +61,8 @@ export function AddonSearch({
   defaultLocale,
 }: AddonSearchProps) {
   const [query, setQuery] = useState("");
+  // Lo que se mandó directo al pedido desde acá (sin preguntas): se confirma abajo.
+  const [sentToOrder, setSentToOrder] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
   const resultsId = useId();
@@ -70,30 +76,50 @@ export function AddonSearch({
     [otherGroups],
   );
 
-  const title = tName(group, locale, defaultLocale);
-  // Ejemplos del propio plato: en una burger "avocado, mushrooms, egg"; en
-  // pancakes "nutella, walnuts…". Las tres primeras opciones del grupo.
-  const examples = group.options
-    .slice(0, 3)
-    .map((o) => tName(o, locale, defaultLocale).toLowerCase())
-    .join(", ");
+  // Ejemplos del propio plato: en una burger "avocado, mushrooms"; en pancakes
+  // "nutella, walnuts". Del buscador del plato o, si no tiene, de sus extras.
+  const exampleSource = group?.options.length
+    ? group.options
+    : otherGroups.filter((g) => !g.is_required).flatMap((g) => g.options);
+  const examples = [
+    ...exampleSource.slice(0, 2).map((o) => tName(o, locale, defaultLocale).toLowerCase()),
+    ...(findOnMenu ? [t.addonSearchExampleDrink] : []),
+  ].join(", ");
   const trimmed = query.trim();
-  const noResults = trimmed.length >= 2 && results.length === 0;
+  // Lo del menú sale siempre (no solo cuando no hay agregados): "fries" en una burger
+  // encuentra el extra y también las papas como plato aparte.
   const menuHits = useMemo(
-    () => (noResults && findOnMenu ? findOnMenu(trimmed).slice(0, 2) : []),
-    [noResults, findOnMenu, trimmed],
+    () => (trimmed.length >= 2 && findOnMenu ? findOnMenu(trimmed).slice(0, 3) : []),
+    [findOnMenu, trimmed],
   );
+  const noResults = trimmed.length >= 2 && results.length === 0 && menuHits.length === 0;
+  const needsChoices = (p: Product) =>
+    (p.variants?.length ?? 0) > 0 || (p.extras?.length ?? 0) > 0 || !!p.has_modifiers;
 
   const isSelected = (o: ModifierOption) => selected.some((s) => s.id === o.id);
+
+  // Con un resultado claro en el menú, los parecidos débiles del plato sobran:
+  // "soda" no tiene que ofrecer "Soup" (sopa) en una cena.
+  const onDish = menuHits.length > 0 ? results.filter((r) => r.score >= 60) : results;
+
+  const toggleResult = (r: (typeof results)[number]) => {
+    if (r.inSearchGroup) {
+      if (group) onToggle(group, r.option);
+      return;
+    }
+    const g = groupById.get(r.groupId);
+    if (r.direct && g) onToggle(g, r.option);
+    else onRevealGroup(r.groupId);
+  };
 
   return (
     <div className="px-5 pt-4">
       <div className="border-t border-gray-100 pt-4 mb-3">
         <h4 className="text-[17px] font-semibold leading-snug text-gray-900">
-          <label htmlFor={inputId}>{title}</label>
+          <label htmlFor={inputId}>{t.addonSearchTitle}</label>
         </h4>
         <p className="mt-1.5 text-[13px] text-gray-600">
-          {locale === "es" ? "Opcional" : "Optional"}
+          {findOnMenu ? t.addonSearchSub : locale === "es" ? "Opcional" : "Optional"}
         </p>
       </div>
 
@@ -115,12 +141,13 @@ export function AddonSearch({
           onChange={(e) => setQuery(e.target.value.slice(0, 40))}
           onFocus={onFocusInput}
           onKeyDown={(e) => {
-            // Enter agrega el primer agregado encontrado; nunca envía nada.
+            // Enter marca el primer extra que se puede marcar desde acá; nunca envía nada.
             if (e.key !== "Enter") return;
             e.preventDefault();
-            const first = results.find((r) => r.inSearchGroup);
-            if (first && !isSelected(first.option)) {
-              onToggle(group, first.option);
+            const first = onDish.find((r) => r.inSearchGroup || r.direct);
+            const picked = first && (first.inSearchGroup ? isSelected(first.option) : !!isPicked?.(first.groupId, first.option.id));
+            if (first && !picked) {
+              toggleResult(first);
               setQuery("");
             }
           }}
@@ -146,107 +173,120 @@ export function AddonSearch({
       </div>
 
       <div id={resultsId} aria-live="polite">
-        {results.length > 0 && (
-          <div className="mt-2 rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-            {results.map((r) => {
-              const name = tName(r.option, locale, defaultLocale);
-              if (!r.inSearchGroup) {
-                const group_ = groupById.get(r.groupId);
-                const question = group_ ? tName(group_, locale, defaultLocale) : "";
-                // Varias opciones de la misma pregunta ("queso" → American, Cheddar…):
-                // se nombra la pregunta, no una opción al azar.
-                const many = r.groupMatches > 1;
+        {onDish.length > 0 && (
+          <>
+            {menuHits.length > 0 && <p className={SECTION}>{t.addonSearchOnDish}</p>}
+            <div className="mt-2 rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+              {onDish.map((r) => {
+                const name = tName(r.option, locale, defaultLocale);
+                if (!r.inSearchGroup && !r.direct) {
+                  const group_ = groupById.get(r.groupId);
+                  const question = group_ ? tName(group_, locale, defaultLocale) : "";
+                  // Varias opciones de la misma pregunta ("queso" → American, Cheddar…):
+                  // se nombra la pregunta, no una opción al azar.
+                  const many = r.groupMatches > 1;
+                  return (
+                    <button
+                      key={`${r.groupId}:${r.option.id}`}
+                      type="button"
+                      onClick={() => onRevealGroup(r.groupId)}
+                      className="w-full min-h-[52px] flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 active:bg-gray-100"
+                    >
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[15px] leading-snug text-gray-900 font-medium">
+                          {many ? question : name}
+                        </span>
+                        <span className="block text-[13px] leading-snug text-gray-600">
+                          {many ? t.addonSearchAboveShort : t.addonSearchAbove(question)}
+                        </span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-700 flex-shrink-0">
+                        <ArrowUp className="w-4 h-4" aria-hidden="true" />
+                        {t.addonSearchGoTo}
+                      </span>
+                    </button>
+                  );
+                }
+                const on = r.inSearchGroup
+                  ? isSelected(r.option)
+                  : !!isPicked?.(r.groupId, r.option.id);
+                const price = Number(r.option.price_delta);
                 return (
                   <button
                     key={`${r.groupId}:${r.option.id}`}
                     type="button"
-                    onClick={() => onRevealGroup(r.groupId)}
+                    aria-pressed={on}
+                    onClick={() => toggleResult(r)}
+                    className="w-full min-h-[52px] flex items-center gap-3 px-4 py-2.5 text-left text-gray-900 hover:bg-gray-50 active:bg-gray-100"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-colors",
+                        on ? "bg-[#05c8a7]" : "border-2 border-gray-300 bg-white",
+                      )}
+                    >
+                      {on ? (
+                        <Check className="w-3.5 h-3.5 text-[#04241E]" strokeWidth={3} />
+                      ) : (
+                        <Plus className="w-3.5 h-3.5 text-gray-400" strokeWidth={3} />
+                      )}
+                    </span>
+                    <span className={cn("flex-1 min-w-0 text-[15px] leading-snug", on ? "font-semibold" : "font-medium")}>
+                      {name}
+                    </span>
+                    {price !== 0 && (
+                      <span className="text-[15px] text-gray-700 tabular-nums flex-shrink-0">
+                        {price > 0 ? "+" : ""}
+                        {fmtPrice(price)}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {menuHits.length > 0 && onQueue && (
+          <>
+            <p className={SECTION}>{t.addonSearchToOrder}</p>
+            <div className="mt-2 rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+              {menuHits.map((p) => {
+                const choose = needsChoices(p);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      onQueue(p);
+                      if (!choose) setSentToOrder((prev) => [...prev, tName(p, locale, defaultLocale)]);
+                      setQuery("");
+                    }}
                     className="w-full min-h-[52px] flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 active:bg-gray-100"
                   >
                     <span className="flex-1 min-w-0">
                       <span className="block text-[15px] leading-snug text-gray-900 font-medium">
-                        {many ? question : name}
+                        {tName(p, locale, defaultLocale)}
                       </span>
                       <span className="block text-[13px] leading-snug text-gray-600">
-                        {many ? t.addonSearchAboveShort : t.addonSearchAbove(question)}
+                        {choose ? `${t.addonSearchChooseAfter} · ` : ""}
+                        {fmtPrice(Number(p.price))}
                       </span>
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-700 flex-shrink-0">
-                      <ArrowUp className="w-4 h-4" aria-hidden="true" />
-                      {t.addonSearchGoTo}
+                    <span className="inline-flex items-center gap-1 min-h-[36px] px-3.5 rounded-full bg-[#e6faf7] text-[14px] font-semibold text-[#047a65] flex-shrink-0">
+                      <Plus className="w-4 h-4" aria-hidden="true" />
+                      {t.addonSearchAddToOrder}
                     </span>
                   </button>
                 );
-              }
-              const on = isSelected(r.option);
-              const price = Number(r.option.price_delta);
-              return (
-                <button
-                  key={r.option.id}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => onToggle(group, r.option)}
-                  className="w-full min-h-[52px] flex items-center gap-3 px-4 py-2.5 text-left text-gray-900 hover:bg-gray-50 active:bg-gray-100"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-colors",
-                      on ? "bg-[#05c8a7]" : "border-2 border-gray-300 bg-white",
-                    )}
-                  >
-                    {on ? (
-                      <Check className="w-3.5 h-3.5 text-[#04241E]" strokeWidth={3} />
-                    ) : (
-                      <Plus className="w-3.5 h-3.5 text-gray-400" strokeWidth={3} />
-                    )}
-                  </span>
-                  <span className={cn("flex-1 min-w-0 text-[15px] leading-snug", on ? "font-semibold" : "font-medium")}>
-                    {name}
-                  </span>
-                  {price !== 0 && (
-                    <span className="text-[15px] text-gray-700 tabular-nums flex-shrink-0">
-                      {price > 0 ? "+" : ""}
-                      {fmtPrice(price)}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {menuHits.length > 0 && onQueue && (
-          <div className="mt-2 rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-            {menuHits.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => {
-                  onQueue(p);
-                  setQuery("");
-                }}
-                className="w-full min-h-[52px] flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 active:bg-gray-100"
-              >
-                <span className="flex-1 min-w-0">
-                  <span className="block text-[15px] leading-snug text-gray-900 font-medium">
-                    {tName(p, locale, defaultLocale)}
-                  </span>
-                  <span className="block text-[13px] leading-snug text-gray-600">
-                    {t.addonSearchOnMenu} · {fmtPrice(Number(p.price))}
-                  </span>
-                </span>
-                <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#047a65] flex-shrink-0">
-                  <Plus className="w-4 h-4" aria-hidden="true" />
-                  {t.addonSearchAddAfter}
-                </span>
-              </button>
-            ))}
-          </div>
+              })}
+            </div>
+          </>
         )}
 
         {/* Una soda no va en las instrucciones del plato: si está en el menú, solo eso. */}
-        {noResults && menuHits.length === 0 && (
+        {noResults && (
           <div className="mt-2 rounded-2xl bg-gray-50 px-4 py-3">
             <p className="text-[14px] text-gray-700">{t.addonSearchNone(trimmed)}</p>
             <button
@@ -259,6 +299,15 @@ export function AddonSearch({
           </div>
         )}
       </div>
+
+      {sentToOrder.length > 0 && (
+        <div className="mt-3 flex items-center gap-2 rounded-2xl bg-[#e6faf7] px-4 py-2.5" role="status">
+          <Check className="w-4 h-4 text-[#047a65] flex-shrink-0" strokeWidth={3} aria-hidden="true" />
+          <p className="flex-1 min-w-0 text-[14px] leading-snug text-[#04241E]">
+            {t.addonSearchSentToOrder(sentToOrder.join(", "))}
+          </p>
+        </div>
+      )}
 
       {queued && (
         <div className="mt-3 flex items-center gap-2 rounded-2xl bg-[#e6faf7] px-4 py-2.5" role="status">
@@ -277,8 +326,8 @@ export function AddonSearch({
         </div>
       )}
 
-      {selected.length > 0 && (
-        <ul className="mt-3 flex flex-wrap gap-2" aria-label={title}>
+      {group && selected.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-2" aria-label={t.addonSearchTitle}>
           {selected.map((o) => {
             const name = tName(o, locale, defaultLocale);
             const price = Number(o.price_delta);
@@ -307,3 +356,6 @@ export function AddonSearch({
     </div>
   );
 }
+
+/** Título chico de cada lista: lo que va en el plato y lo que va al pedido. */
+const SECTION = "mt-4 text-[12px] font-bold uppercase tracking-[0.06em] text-gray-600";

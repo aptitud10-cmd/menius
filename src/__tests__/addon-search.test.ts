@@ -122,3 +122,28 @@ describe('searchAddons', () => {
     expect(searchAddons('pe', search, [], 1).length).toBeLessThanOrEqual(1);
   });
 });
+
+// Pedro 2026-11-27: "a veces no se sabe qué botón oprimir". Un extra opcional del plato
+// (bacon en una burger) se marca desde el buscador; una elección obligatoria (cocción)
+// sigue llevando a su pregunta. Y hay platos sin buscador propio (cenas).
+describe('searchAddons — extras opcionales directo, platos sin buscador', () => {
+  it('cada opción de una pregunta opcional sale sola y marcable', () => {
+    const r = searchAddons('bacon', search, [{ ...meatGroup, is_required: false }]);
+    const meat = r.filter((m) => m.groupId === 'g-meat');
+    expect(meat.length).toBeGreaterThan(1);
+    expect(meat.every((m) => m.direct === true && !m.inSearchGroup)).toBe(true);
+  });
+
+  it('una pregunta obligatoria se sigue nombrando una vez, sin marcar desde acá', () => {
+    const r = searchAddons('bacon', search, [{ ...meatGroup, is_required: true }]);
+    const meat = r.filter((m) => m.groupId === 'g-meat');
+    expect(meat).toHaveLength(1);
+    expect(meat[0].direct).toBeUndefined();
+  });
+
+  it('sin grupo de buscador busca igual en las preguntas del plato', () => {
+    const r = searchAddons('bacon', null, [{ ...meatGroup, is_required: false }]);
+    expect(r.length).toBeGreaterThan(0);
+    expect(r.every((m) => m.groupId === 'g-meat')).toBe(true);
+  });
+});
