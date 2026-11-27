@@ -44,7 +44,8 @@ async function loadFonts() {
 
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n).trimEnd() + '…' : s);
 
-export default async function Image({ params }: { params: { slug: string } }) {
+export default async function Image(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const demo = DEMO_MAP[params.slug];
   let name = demo?.name ?? 'Restaurant';
   let description = demo?.description ?? '';

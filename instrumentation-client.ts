@@ -22,7 +22,15 @@ const STAFF_PATH =
 const isStaffPage = STAFF_PATH.test(window.location.pathname);
 const publicReplaySampled = !isStaffPage && Math.random() < REPLAY_SESSION_RATE;
 
+// Next llama a este hook en cada navegación del App Router. Sentry carga tarde
+// (ver arriba): hasta que llega, las navegaciones no se miden, y está bien.
+let loadedSentry: SentryModule | null = null;
+export function onRouterTransitionStart(...args: Parameters<SentryModule['captureRouterTransitionStart']>) {
+  loadedSentry?.captureRouterTransitionStart(...args);
+}
+
 function initSentry(Sentry: SentryModule) {
+  loadedSentry = Sentry;
   Sentry.init({
     dsn,
     environment: process.env.NODE_ENV,

@@ -8,7 +8,7 @@ const logger = createLogger('middleware');
 
 const MAIN_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || '';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
   let detectedLocale: string | null = null;

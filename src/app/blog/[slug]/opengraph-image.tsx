@@ -17,8 +17,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Business': '#0891b2',
 };
 
-export default function BlogOgImage({ params }: { params: { slug: string } }) {
-  const post = getVisibleBlogPosts().find((p) => p.slug === params.slug);
+export default async function BlogOgImage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = getVisibleBlogPosts().find((p) => p.slug === slug);
 
   const title = post?.title ?? 'Blog — MENIUS';
   const description = post?.description ?? 'Menús digitales inteligentes para restaurantes.';

@@ -180,6 +180,10 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
+      // globals.css pone scroll-behavior: smooth en <html>: con esto Next lo
+      // apaga durante la navegación entre páginas (salto instantáneo arriba),
+      // como hacía solo hasta Next 15.
+      data-scroll-behavior="smooth"
       className={`${inter.variable} ${bricolage.variable} ${instrumentSerif.variable}`}
       suppressHydrationWarning
     >

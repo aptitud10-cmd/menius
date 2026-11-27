@@ -1,4 +1,4 @@
-const { withSentryConfig } = require('@sentry/nextjs');
+const { withSentryConfig } = require('@sentry/nextjs/config');
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
@@ -26,6 +26,9 @@ const nextConfig = {
     // Solo WebP: cada formato extra es una transformación facturable aparte en Vercel.
     // AVIF ahorra ~15% de peso sobre WebP pero duplica el costo de Image Optimization.
     formats: ['image/webp'],
+    // Next 16 solo acepta las calidades listadas (antes, cualquiera). Son las que
+    // usan los <Image quality> del sitio; una nueva hay que sumarla acá.
+    qualities: [60, 75, 78, 80, 85],
     // Mismo criterio para los anchos: cada uno es una URL distinta contra
     // /render/image/ de Supabase. Los defaults de Next llegan hasta 3840px, un
     // tamaño que ninguna card de menú usa. Esta lista cubre mobile (1x/2x),
@@ -140,7 +143,6 @@ module.exports = withBundleAnalyzer(withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT,
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  disableLogger: true,
   tunnelRoute: '/monitoring',
   hideSourceMaps: true,
   // Strips the SDK's own debug logging from the client bundle. We never set
