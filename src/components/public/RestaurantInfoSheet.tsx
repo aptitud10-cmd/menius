@@ -103,7 +103,7 @@ export function RestaurantInfoSheet({
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center">
+        <div className="fixed inset-0 z-80 flex items-end md:items-center justify-center">
           <motion.div
             className="absolute inset-0 bg-black/45"
             initial={{ opacity: 0 }}
@@ -122,7 +122,7 @@ export function RestaurantInfoSheet({
             exit={{ y: 40, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 420, damping: 38 }}
           >
-            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm flex items-start justify-between gap-3 pl-5 pr-2 pt-4 pb-2">
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-xs flex items-start justify-between gap-3 pl-5 pr-2 pt-4 pb-2">
               <h2 id={titleId} className="font-menu text-[30px] leading-tight text-gray-900 pt-1">
                 {restaurant.name}
               </h2>
@@ -131,7 +131,7 @@ export function RestaurantInfoSheet({
                 type="button"
                 onClick={onClose}
                 aria-label={t.close}
-                className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
@@ -184,7 +184,7 @@ export function RestaurantInfoSheet({
                     href={directions}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="h-12 flex items-center justify-center gap-2 rounded-full bg-[#05c8a7] text-[#04241E] text-[15px] font-semibold hover:bg-[#04b096] transition-colors"
+                    className="h-12 flex items-center justify-center gap-2 rounded-full bg-brand-500 text-[#04241E] text-[15px] font-semibold hover:bg-[#04b096] transition-colors"
                   >
                     <MapPin className="w-4 h-4" aria-hidden="true" />
                     {t.getDirections}

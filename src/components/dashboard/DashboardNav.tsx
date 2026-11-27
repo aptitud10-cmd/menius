@@ -127,7 +127,7 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
                         : (item.badge ? `${item.badge} plan required` : 'Upgrade required')}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all text-gray-400 hover:bg-gray-50 hover:text-gray-600 group"
                     >
-                      <item.icon className="w-[18px] h-[18px] flex-shrink-0 text-gray-300 group-hover:text-gray-400 transition-colors" />
+                      <item.icon className="w-[18px] h-[18px] shrink-0 text-gray-300 group-hover:text-gray-400 transition-colors" />
                       <span className="flex-1 opacity-60">{item.label}</span>
                       <span className="flex items-center gap-1">
                         {item.badge && (
@@ -153,7 +153,7 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
                     )}
                   >
                     <item.icon className={cn(
-                      'w-[18px] h-[18px] flex-shrink-0 transition-colors',
+                      'w-[18px] h-[18px] shrink-0 transition-colors',
                       active ? 'text-emerald-600' : 'text-gray-400'
                     )} />
                     {item.label}
@@ -188,7 +188,7 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors w-full text-left"
           title={locale === 'es' ? 'Switch to English' : 'Cambiar a Español'}
         >
-          <Globe className="w-[18px] h-[18px] text-gray-400 flex-shrink-0" />
+          <Globe className="w-[18px] h-[18px] text-gray-400 shrink-0" />
           <span className="flex-1">
             {locale === 'es' ? 'Idioma · Español' : 'Language · English'}
           </span>
@@ -221,7 +221,7 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
         {open && (
           <>
             <div
-              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 animate-fade-in"
+              className="fixed inset-0 bg-black/30 backdrop-blur-xs z-40 animate-fade-in"
               onClick={() => setOpen(false)}
             />
             <div

@@ -468,7 +468,7 @@ function QRTableCard({
   return (
     <div className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-all overflow-hidden group">
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 flex items-center justify-between">
+      <div className="bg-linear-to-r from-emerald-600 to-teal-600 px-4 py-3 flex items-center justify-between">
         {editing ? (
           <div className="flex items-center gap-2 flex-1">
             <input
@@ -486,7 +486,7 @@ function QRTableCard({
                 }
               }}
               autoFocus
-              className="flex-1 px-2 py-1 rounded-lg bg-white/20 text-white text-sm font-bold placeholder-white/50 outline-none"
+              className="flex-1 px-2 py-1 rounded-lg bg-white/20 text-white text-sm font-bold placeholder-white/50 outline-hidden"
             />
             <button
               onClick={() => {
@@ -610,7 +610,7 @@ function QRTableCard({
               if (v > 0) onCapacityChange(table.id, v);
             }}
             placeholder="Cap."
-            className="w-14 px-2 py-1 rounded-lg border border-gray-200 text-xs text-gray-700 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+            className="w-14 px-2 py-1 rounded-lg border border-gray-200 text-xs text-gray-700 text-center focus:outline-hidden focus:ring-1 focus:ring-emerald-500/30"
           />
         </div>
         <button
@@ -785,7 +785,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
       <div className="px-5 pb-5">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           {/* QR */}
-          <div className="flex flex-col items-center flex-shrink-0">
+          <div className="flex flex-col items-center shrink-0">
             <div
               ref={qrContainerRef}
               className="bg-white rounded-xl p-3 mb-2 flex items-center justify-center min-h-[220px] min-w-[220px]"

@@ -43,7 +43,7 @@ const PLATFORMS = [
     value: "instagram",
     label: "Instagram",
     icon: Instagram,
-    color: "bg-gradient-to-r from-purple-500 to-pink-500",
+    color: "bg-linear-to-r from-purple-500 to-pink-500",
   },
   {
     value: "facebook",
@@ -197,7 +197,7 @@ export function SocialMediaManager({
                 className={cn(
                   "relative flex items-center gap-2.5 p-3.5 rounded-xl border-2 transition-all",
                   platform === p.value
-                    ? "border-purple-500 bg-purple-50 shadow-sm"
+                    ? "border-purple-500 bg-purple-50 shadow-xs"
                     : "border-gray-200 bg-white hover:border-gray-300",
                 )}
               >
@@ -238,7 +238,7 @@ export function SocialMediaManager({
             <select
               value={postType}
               onChange={(e) => setPostType(e.target.value)}
-              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 focus:outline-hidden focus:ring-1 focus:ring-purple-500/30"
             >
               {POST_TYPES.map((pt) => (
                 <option key={pt.value} value={pt.value}>
@@ -260,7 +260,7 @@ export function SocialMediaManager({
                   ? "E.g.: Mention the 2-for-1 pizza deal on Tuesdays..."
                   : "Ej: Menciona el 2x1 en pizzas los martes..."
               }
-              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-1 focus:ring-purple-500/30"
             />
           </div>
         </div>

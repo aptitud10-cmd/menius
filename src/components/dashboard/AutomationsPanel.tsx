@@ -221,7 +221,7 @@ export function AutomationsPanel({ notificationsEnabled }: Props) {
               <div className="flex items-start gap-4">
                 <div
                   className={cn(
-                    'w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0',
+                    'w-11 h-11 rounded-xl flex items-center justify-center shrink-0',
                     on ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500',
                   )}
                 >
@@ -241,13 +241,13 @@ export function AutomationsPanel({ notificationsEnabled }: Props) {
                       disabled={busy || (!on && blocked)}
                       onClick={() => toggle(kind, !on)}
                       className={cn(
-                        'relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50',
+                        'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50',
                         on ? 'bg-emerald-500' : 'bg-gray-300',
                       )}
                     >
                       <span
                         className={cn(
-                          'inline-block h-5 w-5 rounded-full bg-white shadow transition-transform',
+                          'inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
                           on ? 'translate-x-6' : 'translate-x-1',
                         )}
                       />
@@ -282,7 +282,7 @@ export function AutomationsPanel({ notificationsEnabled }: Props) {
           <ul className="mt-3 space-y-2">
             {c.rules.map((r) => (
               <li key={r} className="flex gap-2 text-sm text-gray-600 leading-relaxed">
-                <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" /> {r}
+                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" /> {r}
               </li>
             ))}
           </ul>
@@ -294,7 +294,7 @@ export function AutomationsPanel({ notificationsEnabled }: Props) {
           <ul className="mt-3 space-y-2">
             {c.always.map((r) => (
               <li key={r} className="flex gap-2 text-sm text-gray-600 leading-relaxed">
-                <Check className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" /> {r}
+                <Check className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> {r}
               </li>
             ))}
           </ul>
@@ -387,7 +387,7 @@ function PreviewDialog({
                   key={l}
                   type="button"
                   onClick={() => setLang(l)}
-                  className={cn('px-2.5 py-1.5 rounded-md', lang === l ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500')}
+                  className={cn('px-2.5 py-1.5 rounded-md', lang === l ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500')}
                 >
                   {l === 'en' ? 'English' : 'Español'}
                 </button>
@@ -424,7 +424,7 @@ function PreviewDialog({
             type="button"
             onClick={sendTest}
             disabled={!email || test.state === 'sending'}
-            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 flex-shrink-0"
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 shrink-0"
           >
             {test.state === 'sending' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             {test.state === 'sending' ? copy.sendingTest : copy.sendTest}

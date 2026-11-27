@@ -49,7 +49,7 @@ export function CartFlyParticles({ getTarget }: CartFlyParticlesProps) {
             key={p.id}
             // md and up, where the header cart button lives. Phones have the
             // bottom bar instead and keep their own feedback (toast).
-            className="fixed z-[999] pointer-events-none hidden md:flex items-center justify-center"
+            className="fixed z-999 pointer-events-none hidden md:flex items-center justify-center"
             style={{ left: p.sx - 22, top: p.sy - 22, width: 44, height: 44 }}
             initial={{ scale: 0.8, opacity: 0, x: 0, y: 0 }}
             animate={{
@@ -64,7 +64,7 @@ export function CartFlyParticles({ getTarget }: CartFlyParticlesProps) {
               times: [0, 0.18, 0.6, 1],
             }}
           >
-            <div className="w-11 h-11 rounded-full bg-[#05c8a7] shadow-xl shadow-[#05c8a7]/50 flex items-center justify-center ring-2 ring-white/30">
+            <div className="w-11 h-11 rounded-full bg-brand-500 shadow-xl shadow-brand-500/50 flex items-center justify-center ring-2 ring-white/30">
               <svg className="w-5 h-5 text-[#04241E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
               </svg>

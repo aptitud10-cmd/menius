@@ -87,9 +87,9 @@ export function AdminAutomationsPanel() {
     const Icon = a.icon;
     const isNew = a.status === 'active_new';
     return (
-      <div key={a.id} className="flex items-start gap-4 p-4 rounded-xl bg-[#0a0a0a] border border-white/[0.06] transition-colors hover:border-white/[0.1]">
-        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-          a.status === 'planned' ? 'bg-white/[0.04] text-gray-600' : 'bg-purple-500/[0.12] text-purple-400')}>
+      <div key={a.id} className="flex items-start gap-4 p-4 rounded-xl bg-[#0a0a0a] border border-white/6 transition-colors hover:border-white/10">
+        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+          a.status === 'planned' ? 'bg-white/4 text-gray-600' : 'bg-purple-500/12 text-purple-400')}>
           <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
@@ -98,7 +98,7 @@ export function AdminAutomationsPanel() {
             <span className={cn('inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium',
               a.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' :
               a.status === 'active_new' ? 'bg-purple-500/15 text-purple-400' :
-              'bg-white/[0.04] text-gray-600')}>
+              'bg-white/4 text-gray-600')}>
               {a.status === 'planned' ? 'Planeado' : <><CheckCircle2 className="w-2.5 h-2.5" /> {isNew ? 'Nuevo' : 'Activa'}</>}
             </span>
           </div>
@@ -116,7 +116,7 @@ export function AdminAutomationsPanel() {
   return (
     <div className="space-y-6">
       {/* Status */}
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15">
+      <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/6 border border-emerald-500/15">
         <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
         <div>
           <p className="text-sm font-semibold text-emerald-300">{AUTOMATIONS.filter(a => a.status !== 'planned').length} automatizaciones activas</p>
@@ -137,7 +137,7 @@ export function AdminAutomationsPanel() {
       </div>
 
       {/* Info */}
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
+      <div className="bg-white/2 border border-white/6 rounded-xl p-4">
         <p className="text-xs text-gray-600 leading-relaxed">
           Todas las automatizaciones se ejecutan desde <code className="text-purple-400">/api/cron/email-automations</code> configurado en <code className="text-purple-400">vercel.json</code>.
           Los emails usan el branding MENIUS con tema oscuro.

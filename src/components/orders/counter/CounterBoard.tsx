@@ -165,7 +165,7 @@ export function CustomerFlagLine({ order, T, size = 'md' }: { order: Order; T: C
   const lg = size === 'lg';
   return (
     <p className={lg
-      ? 'flex items-center gap-2.5 rounded-[14px] px-4 py-3 text-[18px] min-[880px]:text-[19px] font-semibold leading-snug'
+      ? 'flex items-center gap-2.5 rounded-xl px-4 py-3 text-[18px] min-[880px]:text-[19px] font-semibold leading-snug'
       : 'flex items-center gap-2 rounded-xl px-3 py-2.5 text-[16px] font-semibold leading-snug'}
       style={{ background: C.warnBg, color: C.warnText, boxShadow: `inset ${lg ? 4 : 3}px 0 0 ${C.warnBar}` }}>
       <AlertTriangle className={lg ? 'w-[22px] h-[22px] flex-none' : 'w-[18px] h-[18px] flex-none'} strokeWidth={2.4} aria-hidden />
@@ -214,7 +214,7 @@ export function OrderCard({
       className={cn(
         // shrink-0: en la columna con scroll, el WebView de la tablet (Tab A11) encogía
         // las tarjetas a ~28 px y el botón quedaba encima de la siguiente.
-        'relative shrink-0 rounded-[22px] px-5 pt-[18px] pb-5 flex flex-col gap-3 text-left cursor-pointer outline-none',
+        'relative shrink-0 rounded-[22px] px-5 pt-[18px] pb-5 flex flex-col gap-3 text-left cursor-pointer outline-hidden',
         'focus-visible:ring-4 focus-visible:ring-black/20',
       )}
       // Siempre la misma superficie: lo "nuevo" lo dicen el botón Aceptar y el contador de la columna.
@@ -259,7 +259,7 @@ export function OrderCard({
           type="button"
           disabled={busy}
           onClick={(e) => { e.stopPropagation(); onPrimary(action.kind); }}
-          className="mt-0.5 h-[52px] rounded-[14px] font-semibold text-[18px] transition-transform active:scale-[.98] disabled:opacity-50"
+          className="mt-0.5 h-[52px] rounded-xl font-semibold text-[18px] transition-transform active:scale-[.98] disabled:opacity-50"
           style={action.kind === 'accept'
             ? { background: C.accent, color: C.onAccent }
             : { background: C.fill, color: C.ink }}
@@ -338,7 +338,7 @@ function CompactRow({ order, T, currency, busy, fresh, tight, onOpen, onPrimary,
       data-order-id={order.id}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
-      className={cn('flex items-center pr-3 py-3 min-h-[80px] cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-black/20',
+      className={cn('flex items-center pr-3 py-3 min-h-[80px] cursor-pointer outline-hidden focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-black/20',
         tight ? 'gap-2.5 pl-4' : 'gap-3.5 max-[479px]:gap-2.5 pl-5 max-[479px]:pl-4')}
       style={{
         background: fresh ? `color-mix(in srgb, ${C.accent} 12%, ${C.surface})` : C.surface, transition: 'background-color .6s',
@@ -391,7 +391,7 @@ function CompactRow({ order, T, currency, busy, fresh, tight, onOpen, onPrimary,
           type="button"
           disabled={busy}
           onClick={(e) => { e.stopPropagation(); onPrimary(action.kind); }}
-          className={cn('flex-none h-14 rounded-[14px] font-semibold transition-transform active:scale-[.97] disabled:opacity-50',
+          className={cn('flex-none h-14 rounded-xl font-semibold transition-transform active:scale-[.97] disabled:opacity-50',
             tight ? 'w-[104px] text-[16px]' : 'w-[128px] max-[479px]:w-[104px] text-[17px] max-[479px]:text-[16px]')}
           style={{ background: C.fill, color: C.ink }}
         >

@@ -71,11 +71,11 @@ export function HighConversionHero({
         )}
 
         {/* Gradient overlay — dark bottom, lighter top */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-black/10" />
 
         {/* Social proof badge — top center */}
         <div className="absolute top-5 left-1/2 -translate-x-1/2 z-10">
-          <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm border border-white/25 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full">
+          <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-xs border border-white/25 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full">
             <span className="text-yellow-400">★★★★★</span>
             <span>4.9 · +500 eventos exitosos</span>
           </span>
@@ -86,7 +86,7 @@ export function HighConversionHero({
           <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight mb-3 drop-shadow-lg">
             {title}
           </h1>
-          <p className="text-base sm:text-lg text-white/85 mb-7 leading-snug drop-shadow">
+          <p className="text-base sm:text-lg text-white/85 mb-7 leading-snug drop-shadow-sm">
             {subtitle}
           </p>
 

@@ -116,7 +116,7 @@ export function WelcomeQRModal({ slug, restaurantName, locale = 'es' }: WelcomeQ
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-9999 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-label={s.headline}
@@ -141,7 +141,7 @@ export function WelcomeQRModal({ slug, restaurantName, locale = 'es' }: WelcomeQ
         </button>
 
         {/* Header gradient */}
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 px-6 pt-7 pb-8 text-center">
+        <div className="bg-linear-to-br from-emerald-500 to-emerald-600 px-6 pt-7 pb-8 text-center">
           <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-[11px] font-bold px-3 py-1.5 rounded-full mb-4 tracking-wide uppercase">
             <Sparkles className="w-3 h-3" />
             {s.badge}
@@ -173,7 +173,7 @@ export function WelcomeQRModal({ slug, restaurantName, locale = 'es' }: WelcomeQ
               <span className="flex-1 text-sm text-gray-700 font-mono truncate min-w-0">{menuUrl}</span>
               <button
                 onClick={copyLink}
-                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
+                className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
               >
                 {copied ? (
                   <><Check className="w-3.5 h-3.5" />{s.copied}</>

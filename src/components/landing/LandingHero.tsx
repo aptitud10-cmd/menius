@@ -18,7 +18,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
   const h = getLandingT(locale).hero;
 
   return (
-    <section className={`${serifItalic.variable} relative min-h-[640px] xl:min-h-[100dvh] flex items-start xl:items-center overflow-clip`}>
+    <section className={`${serifItalic.variable} relative min-h-[640px] xl:min-h-dvh flex items-start xl:items-center overflow-clip`}>
       <div className="hero-gradient" />
 
       <div className="relative z-30 max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 w-full pt-28 pb-16 xl:py-0">
@@ -30,8 +30,8 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
               Desktop (xl:) keeps the original product line + full subtitle. */}
           <div className="text-left md:text-center xl:text-left">
             {/* Product line is desktop-only now — on mobile the headline carries it. */}
-            <p className="d-fade-up d-delay-1 hidden xl:inline-flex items-center gap-2 text-[13px] font-medium text-[#05c8a7] tracking-wide">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#05c8a7] shadow-[0_0_8px_var(--brand-40)]" />
+            <p className="d-fade-up d-delay-1 hidden xl:inline-flex items-center gap-2 text-[13px] font-medium text-brand-500 tracking-wide">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-500 shadow-[0_0_8px_var(--brand-40)]" />
               {h.productLine}
             </p>
 
@@ -66,7 +66,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
                 className="group inline-flex items-center justify-center px-2 py-4 sm:py-0 text-[15px] font-semibold text-gray-300 hover:text-white transition-colors duration-150"
               >
                 {h.ctaSecondary}
-                <span className="ml-1.5 text-[#05c8a7] group-hover:translate-x-0.5 transition-transform duration-200">&rarr;</span>
+                <span className="ml-1.5 text-brand-500 group-hover:translate-x-0.5 transition-transform duration-200">&rarr;</span>
               </Link>
             </div>
 

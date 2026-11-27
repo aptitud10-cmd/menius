@@ -42,7 +42,7 @@ export function StripeConnectBanner({ stripeOnboardingComplete, isEn = false }: 
 
   return (
     <div className="relative flex items-center gap-3 bg-indigo-600 px-4 py-2.5 text-white text-sm">
-      <CreditCard className="w-4 h-4 flex-shrink-0 opacity-90" />
+      <CreditCard className="w-4 h-4 shrink-0 opacity-90" />
       <p className="flex-1 text-center font-medium">
         {isEn
           ? 'Accept card payments and sell up to 30% more'
@@ -58,7 +58,7 @@ export function StripeConnectBanner({ stripeOnboardingComplete, isEn = false }: 
       <button
         onClick={dismiss}
         aria-label={isEn ? 'Dismiss' : 'Cerrar'}
-        className="flex-shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
+        className="shrink-0 p-1 rounded-sm hover:bg-white/20 transition-colors"
       >
         <X className="w-4 h-4" />
       </button>

@@ -32,7 +32,7 @@ export function PhotoViewer({ src, T, driver, deliveredAt, address, onClose }: {
 
   return (
     <div role="dialog" aria-modal="true" aria-label={T.deliveryPhoto}
-      className="fixed inset-0 z-[70] flex flex-col"
+      className="fixed inset-0 z-70 flex flex-col"
       style={{
         background: '#000', color: '#fff',
         paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',

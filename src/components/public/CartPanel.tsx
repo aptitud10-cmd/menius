@@ -113,7 +113,7 @@ function CartSuggestionRow({
   const ref = useRef<HTMLDivElement>(null);
   const scroll = (dir: -1 | 1) => ref.current?.scrollBy({ left: dir * 244, behavior: 'smooth' });
   const arrow =
-    'hidden md:flex absolute top-[56px] -translate-y-1/2 w-8 h-8 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 transition-opacity opacity-0 group-hover/cs:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]';
+    'hidden md:flex absolute top-[56px] -translate-y-1/2 w-8 h-8 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 transition-opacity opacity-0 group-hover/cs:opacity-100 focus-visible:opacity-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500';
 
   return (
     <div className="relative group/cs -mx-4">
@@ -128,7 +128,7 @@ function CartSuggestionRow({
             type="button"
             onClick={() => onAdd(p)}
             aria-label={`${t.addToOrder} ${p.name}`}
-            className="flex-shrink-0 flex flex-col w-[112px] text-left rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+            className="shrink-0 flex flex-col w-[112px] text-left rounded-xl border border-gray-100 bg-white shadow-xs overflow-hidden active:scale-[0.97] transition-transform focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <div className="relative w-full aspect-square bg-gray-100">
               {!showsAsRow(p) && p.image_url ? (
@@ -136,7 +136,7 @@ function CartSuggestionRow({
               ) : (
                 <ProductGlyph name={p.name} className="w-full h-full" iconClassName="w-6 h-6" />
               )}
-              <span className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-white border-[1.5px] border-[#05c8a7] flex items-center justify-center shadow-sm" aria-hidden>
+              <span className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-white border-[1.5px] border-brand-500 flex items-center justify-center shadow-xs" aria-hidden>
                 <Plus className="w-4 h-4 text-[#047a65]" />
               </span>
             </div>
@@ -278,7 +278,7 @@ export function CartPanel({
           <button
             type="button"
             onClick={handleUndo}
-            className="flex-shrink-0 min-h-[44px] px-3 rounded-lg text-sm font-bold text-[#05c8a7] active:bg-white/10 transition-colors"
+            className="shrink-0 min-h-[44px] px-3 rounded-lg text-sm font-bold text-brand-500 active:bg-white/10 transition-colors"
           >
             {t.cartUndo}
           </button>
@@ -328,7 +328,7 @@ export function CartPanel({
   // cart too: when nothing could be repeated, an empty cart with no word of why
   // read as "the button is broken" (Pedro 2026-11-13).
   const reorderNotices = (reorderSkipped.length > 0 || reorderUnavailable.length > 0) && (
-    <div className="mx-4 mb-2 space-y-2 flex-shrink-0">
+    <div className="mx-4 mb-2 space-y-2 shrink-0">
       {reorderSkipped.length > 0 && (
         <div className="px-3 py-2 rounded-xl bg-amber-50 border border-amber-100" role="status">
           <p className="text-[12px] text-amber-800 font-semibold leading-snug">
@@ -407,7 +407,7 @@ export function CartPanel({
                     className={cn(
                       'min-h-[40px] rounded-full text-[14px] transition-colors',
                       active
-                        ? 'bg-white text-gray-900 font-semibold shadow-sm'
+                        ? 'bg-white text-gray-900 font-semibold shadow-xs'
                         : 'text-gray-700 font-medium hover:bg-white/60',
                     )}
                   >
@@ -419,7 +419,7 @@ export function CartPanel({
           )}
           {storeNotice ? (
             <p className="mt-3 inline-flex items-start gap-1.5 text-[14px] font-medium text-[#7a4d00]">
-              <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+              <Clock className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
               {storeNotice}
             </p>
           ) : etaMinutes != null && etaMinutes > 0 && (
@@ -438,7 +438,7 @@ export function CartPanel({
               aria-busy={reorderLoading || undefined}
               className="mt-6 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6] active:bg-[#d0f7f1] transition-colors disabled:opacity-60"
             >
-              <RotateCcw className="w-4 h-4 text-[#047a65] flex-shrink-0" />
+              <RotateCcw className="w-4 h-4 text-[#047a65] shrink-0" />
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-xs font-semibold text-[#047a65]">
                   {t.reorderLastOrder}
@@ -464,10 +464,10 @@ export function CartPanel({
                 <button
                   key={p.id}
                   onClick={() => onSuggestionAdd(p)}
-                  className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white shadow-sm p-2.5 active:scale-[0.98] transition-transform text-left"
+                  className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white shadow-xs p-2.5 active:scale-[0.98] transition-transform text-left"
                 >
                   {!showsAsRow(p) && p.image_url ? (
-                    <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0">
                       <Image src={p.image_url} alt={p.name} fill sizes="48px" className="object-cover" />
                     </div>
                   ) : (
@@ -477,7 +477,7 @@ export function CartPanel({
                     <p className="text-[14px] font-medium text-gray-900 line-clamp-1">{p.name}</p>
                     <p className="text-[13px] text-gray-700 tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center shrink-0">
                     <Plus className="w-4 h-4 text-[#04241E]" />
                   </div>
                 </button>
@@ -497,7 +497,7 @@ export function CartPanel({
       {/* ── Header: "Your order" + item count + clear + close ──
           Same title as the empty cart, so the panel never loses its name
           (a grey "1 item" pill alone read as a tag, not a heading). */}
-      <div className="px-4 pt-2 pb-2 flex-shrink-0">
+      <div className="px-4 pt-2 pb-2 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex-1 flex items-baseline gap-2 min-w-0">
             <span className="text-[17px] font-semibold text-gray-900">{t.yourOrder}</span>
@@ -603,7 +603,7 @@ export function CartPanel({
                     {/* Thumbnail. Without a photo, a tinted tile with an icon:
                         text alone made a cart of rolls and coffees look empty. */}
                     {thumb ? (
-                      <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
+                      <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 shrink-0">
                         <Image
                           src={thumb.src}
                           alt={item.product.name}
@@ -625,7 +625,7 @@ export function CartPanel({
                         <div className="min-w-0">
                           <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 leading-tight">{itemName}</h4>
                         </div>
-                        <div className="flex-shrink-0 p-1.5 -mt-1 text-gray-500" aria-hidden>
+                        <div className="shrink-0 p-1.5 -mt-1 text-gray-500" aria-hidden>
                           <Pencil className="w-3.5 h-3.5" />
                         </div>
                       </div>
@@ -634,7 +634,7 @@ export function CartPanel({
                       {(item.variant || (item.modifierSelections ?? []).length > 0 || item.extras.length > 0) && (
                         <div className="flex flex-wrap gap-x-1 gap-y-0.5 mt-1">
                           {item.variant && (
-                            <span className="px-1.5 py-0.5 rounded bg-[#e6faf7] text-[10px] font-semibold text-[#047a65]">
+                            <span className="px-1.5 py-0.5 rounded-sm bg-[#e6faf7] text-[10px] font-semibold text-[#047a65]">
                               {item.variant.name}
                             </span>
                           )}
@@ -643,11 +643,11 @@ export function CartPanel({
                           {modLines.map((line, k) => (
                             <p key={k} className={cn('basis-full flex justify-between gap-2 text-xs leading-relaxed text-gray-600', line.indent && 'pl-3')}>
                               <span className="min-w-0">{line.indent && <span className="text-gray-300">↳ </span>}{line.text}</span>
-                              {line.addon && line.price > 0 && <span className="flex-shrink-0 text-gray-500 tabular-nums">+{fmtPrice(line.price)}</span>}
+                              {line.addon && line.price > 0 && <span className="shrink-0 text-gray-500 tabular-nums">+{fmtPrice(line.price)}</span>}
                             </p>
                           ))}
                           {(item.modifierSelections ?? []).length === 0 && item.extras.map(e => (
-                            <span key={e.id} className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-gray-600">
+                            <span key={e.id} className="px-1.5 py-0.5 rounded-sm bg-gray-100 text-[10px] font-medium text-gray-600">
                               +{e.name}
                             </span>
                           ))}
@@ -733,7 +733,7 @@ export function CartPanel({
         const minRedeem = config.min_redeem_points;
         const ptsLeft = minRedeem - points;
         return ptsLeft > 0 ? (
-          <div className="mx-4 mb-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-2 flex-shrink-0">
+          <div className="mx-4 mb-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-2 shrink-0">
             <span className="text-base leading-none">⭐</span>
             <div className="flex-1 min-w-0">
               <div className="w-full bg-amber-100 rounded-full h-1.5 mb-1">
@@ -748,7 +748,7 @@ export function CartPanel({
             </div>
           </div>
         ) : (
-          <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-2 flex-shrink-0">
+          <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-2 shrink-0">
             <span className="text-base leading-none">🎁</span>
             <p className="text-[11px] text-amber-700 font-semibold">
               {t.loyaltyCartAvailable(points)}
@@ -760,10 +760,10 @@ export function CartPanel({
       {reorderNotices}
 
       {/* ── Footer: breakdown + checkout ── */}
-      <div className="border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">
+      <div className="border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0">
         {storeNotice ? (
           <div className="flex items-start gap-1.5 text-[13px] font-medium text-[#7a4d00] mb-2">
-            <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <Clock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
             <span>{storeNotice}</span>
           </div>
         ) : !!etaMinutes && etaMinutes > 0 && (
@@ -842,7 +842,7 @@ export function CartPanel({
           onClick={onCheckout}
           whileHover={{ scale: 1.015 }}
           whileTap={{ scale: 0.97 }}
-          className="w-full py-4 rounded-2xl bg-[#05c8a7] text-[#04241E] font-extrabold text-sm hover:bg-[#04b096] transition-colors duration-150 shadow-[0_4px_16px_rgba(5,200,167,0.35)] flex items-center justify-between px-5"
+          className="w-full py-4 rounded-2xl bg-brand-500 text-[#04241E] font-extrabold text-sm hover:bg-[#04b096] transition-colors duration-150 shadow-[0_4px_16px_rgba(5,200,167,0.35)] flex items-center justify-between px-5"
         >
           <span>{t.placeOrder}</span>
           <AnimatePresence mode="wait">

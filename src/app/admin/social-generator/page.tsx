@@ -158,7 +158,7 @@ export default function SocialGeneratorPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Link href="/admin" className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.15] transition-colors">
+            <Link href="/admin" className="p-2 rounded-xl bg-white/4 border border-white/8 hover:border-white/15 transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
@@ -172,7 +172,7 @@ export default function SocialGeneratorPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-white/[0.03] rounded-xl p-1 border border-white/[0.06]">
+        <div className="flex gap-1 mb-6 bg-white/3 rounded-xl p-1 border border-white/6">
           <button
             onClick={() => setTab('generate')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
@@ -189,7 +189,7 @@ export default function SocialGeneratorPage() {
           >
             <Calendar className="w-4 h-4" /> Scheduled Posts
             {savedPosts.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/[0.08] text-[10px] font-bold">{savedPosts.length}</span>
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/8 text-[10px] font-bold">{savedPosts.length}</span>
             )}
           </button>
         </div>
@@ -198,7 +198,7 @@ export default function SocialGeneratorPage() {
         {tab === 'generate' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-5">
-              <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+              <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-5">
                 <label className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3 block">Platform</label>
                 <div className="grid grid-cols-5 gap-2">
                   {PLATFORMS.map(p => {
@@ -210,10 +210,10 @@ export default function SocialGeneratorPage() {
                         disabled={p.comingSoon}
                         className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
                           p.comingSoon
-                            ? 'border-white/[0.04] bg-white/[0.01] text-gray-700 cursor-not-allowed opacity-50'
+                            ? 'border-white/4 bg-white/1 text-gray-700 cursor-not-allowed opacity-50'
                             : platform === p.id
                               ? 'border-emerald-500/50 bg-emerald-500/10 text-white'
-                              : 'border-white/[0.06] bg-white/[0.02] text-gray-500 hover:text-gray-300 hover:border-white/[0.12]'
+                              : 'border-white/6 bg-white/2 text-gray-500 hover:text-gray-300 hover:border-white/12'
                         }`}
                       >
                         <Icon className="w-5 h-5" />
@@ -227,7 +227,7 @@ export default function SocialGeneratorPage() {
                 </div>
               </div>
 
-              <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+              <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-5">
                 <label className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3 block">Post Type</label>
                 <div className="grid grid-cols-2 gap-2">
                   {POST_TYPES.map(t => (
@@ -237,7 +237,7 @@ export default function SocialGeneratorPage() {
                       className={`text-left p-3 rounded-xl border transition-all text-sm ${
                         postType === t.id
                           ? 'border-emerald-500/50 bg-emerald-500/10 text-white'
-                          : 'border-white/[0.06] bg-white/[0.02] text-gray-500 hover:text-gray-300 hover:border-white/[0.12]'
+                          : 'border-white/6 bg-white/2 text-gray-500 hover:text-gray-300 hover:border-white/12'
                       }`}
                     >
                       {language === 'es' ? t.labelEs : t.label}
@@ -246,7 +246,7 @@ export default function SocialGeneratorPage() {
                 </div>
               </div>
 
-              <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5 space-y-4">
+              <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-5 space-y-4">
                 <div>
                   <label className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3 block">Language</label>
                   <div className="flex gap-2">
@@ -257,7 +257,7 @@ export default function SocialGeneratorPage() {
                         className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
                           language === lang
                             ? 'border-emerald-500/50 bg-emerald-500/10 text-white'
-                            : 'border-white/[0.06] bg-white/[0.02] text-gray-500 hover:text-gray-300'
+                            : 'border-white/6 bg-white/2 text-gray-500 hover:text-gray-300'
                         }`}
                       >
                         {lang === 'es' ? 'Espanol' : 'English'}
@@ -271,7 +271,7 @@ export default function SocialGeneratorPage() {
                     value={customContext}
                     onChange={e => setCustomContext(e.target.value)}
                     placeholder="e.g. Focus on Latin American market, mention new AI feature..."
-                    className="w-full rounded-xl bg-white/[0.04] border border-white/[0.08] p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500/50 resize-none"
+                    className="w-full rounded-xl bg-white/4 border border-white/8 p-3 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-emerald-500/50 resize-none"
                     rows={3}
                   />
                 </div>
@@ -292,11 +292,11 @@ export default function SocialGeneratorPage() {
 
             <div className="space-y-5">
               {post ? (
-                <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
-                  <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-white">Generated Post</h3>
                     <div className="flex items-center gap-2">
-                      <button onClick={generate} className="p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] transition-colors" title="Regenerate">
+                      <button onClick={generate} className="p-2 rounded-lg bg-white/4 hover:bg-white/8 transition-colors" title="Regenerate">
                         <RefreshCw className="w-3.5 h-3.5 text-gray-400" />
                       </button>
                       <button onClick={copyFullPost} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-medium hover:bg-emerald-500/30 transition-colors">
@@ -310,7 +310,7 @@ export default function SocialGeneratorPage() {
                     <PostField label="Caption" value={post.caption} onCopy={() => copyToClipboard(post.caption, 'caption')} copied={copied === 'caption'} multiline />
                     <PostField label="CTA" value={post.cta} onCopy={() => copyToClipboard(post.cta, 'cta')} copied={copied === 'cta'} />
                     <PostField label="Hashtags" value={post.hashtags} onCopy={() => copyToClipboard(post.hashtags, 'hashtags')} copied={copied === 'hashtags'} />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/[0.06]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/6">
                       <MetaField label="Image Idea" value={post.imageIdea} />
                       <MetaField label="Best Time" value={post.bestTimeToPost} />
                     </div>
@@ -320,7 +320,7 @@ export default function SocialGeneratorPage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-12 flex flex-col items-center justify-center text-center">
+                <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-12 flex flex-col items-center justify-center text-center">
                   <Sparkles className="w-10 h-10 text-gray-700 mb-4" />
                   <h3 className="text-sm font-semibold text-gray-500">Ready to generate</h3>
                   <p className="text-xs text-gray-600 mt-1 max-w-xs">
@@ -330,7 +330,7 @@ export default function SocialGeneratorPage() {
               )}
 
               {history.length > 1 && (
-                <details className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
+                <details className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
                   <summary className="px-5 py-4 flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-400 hover:text-gray-300 transition-colors">
                     <ChevronDown className="w-4 h-4" />
                     Session History ({history.length} posts)
@@ -340,7 +340,7 @@ export default function SocialGeneratorPage() {
                       <button
                         key={i}
                         onClick={() => setPost(h)}
-                        className="w-full text-left p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] transition-all"
+                        className="w-full text-left p-3 rounded-xl bg-white/2 border border-white/6 hover:border-white/12 transition-all"
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] uppercase font-bold text-emerald-500">{h.platform}</span>
@@ -361,8 +361,8 @@ export default function SocialGeneratorPage() {
         {tab === 'scheduled' && (
           <div className="space-y-4">
             {/* Schedule info banner */}
-            <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+            <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-5 flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
                 <Calendar className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
@@ -375,7 +375,7 @@ export default function SocialGeneratorPage() {
               <button
                 onClick={loadSavedPosts}
                 disabled={postsLoading}
-                className="ml-auto p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] transition-colors flex-shrink-0"
+                className="ml-auto p-2 rounded-lg bg-white/4 hover:bg-white/8 transition-colors shrink-0"
               >
                 <RefreshCw className={`w-4 h-4 text-gray-400 ${postsLoading ? 'animate-spin' : ''}`} />
               </button>
@@ -388,7 +388,7 @@ export default function SocialGeneratorPage() {
                 const Icon = cfg.icon;
                 const count = savedPosts.filter(p => p.status === s).length;
                 return (
-                  <div key={s} className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-4 flex items-center gap-3">
+                  <div key={s} className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-4 flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-xl ${cfg.bg} flex items-center justify-center`}>
                       <Icon className={`w-4 h-4 ${cfg.text}`} />
                     </div>
@@ -403,12 +403,12 @@ export default function SocialGeneratorPage() {
 
             {/* Post list */}
             {postsLoading ? (
-              <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-12 flex flex-col items-center justify-center">
+              <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-12 flex flex-col items-center justify-center">
                 <Loader2 className="w-6 h-6 text-emerald-400 animate-spin mb-3" />
                 <p className="text-sm text-gray-500">Loading posts...</p>
               </div>
             ) : savedPosts.length === 0 ? (
-              <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-12 flex flex-col items-center justify-center text-center">
+              <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-12 flex flex-col items-center justify-center text-center">
                 <Calendar className="w-10 h-10 text-gray-700 mb-4" />
                 <h3 className="text-sm font-semibold text-gray-500">No posts yet</h3>
                 <p className="text-xs text-gray-600 mt-1 max-w-xs">
@@ -427,13 +427,13 @@ export default function SocialGeneratorPage() {
                   });
 
                   return (
-                    <div key={p.id} className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
+                    <div key={p.id} className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
                       <button
                         onClick={() => setExpandedPost(isExpanded ? null : p.id)}
-                        className="w-full flex items-center gap-4 p-4 text-left hover:bg-white/[0.02] transition-colors"
+                        className="w-full flex items-center gap-4 p-4 text-left hover:bg-white/2 transition-colors"
                       >
                         {p.image_url && (
-                          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-900">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-gray-900">
                             <Image src={p.image_url} alt="" width={48} height={48} className="w-full h-full object-cover" unoptimized />
                           </div>
                         )}
@@ -450,11 +450,11 @@ export default function SocialGeneratorPage() {
                           <p className="text-sm text-gray-300 truncate">{p.hook}</p>
                           <p className="text-[10px] text-gray-600 mt-0.5">{date} - {p.source === 'auto' ? 'Auto' : 'Manual'} - {p.language.toUpperCase()}</p>
                         </div>
-                        <ChevronDown className={`w-4 h-4 text-gray-600 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-4 h-4 text-gray-600 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
 
                       {isExpanded && (
-                        <div className="border-t border-white/[0.06] p-5 space-y-4">
+                        <div className="border-t border-white/6 p-5 space-y-4">
                           {p.image_url && (
                             <div className="rounded-xl overflow-hidden bg-gray-900">
                               <Image src={p.image_url} alt="Post image" width={600} height={600} className="w-full max-h-[400px] object-contain" unoptimized />
@@ -476,7 +476,7 @@ export default function SocialGeneratorPage() {
                             <p className="text-sm text-purple-400 mt-1 font-medium">{p.cta}</p>
                           </div>
 
-                          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                          <div className="p-3 rounded-xl bg-white/2 border border-white/6">
                             <p className="text-xs text-blue-400 break-all">{p.hashtags}</p>
                           </div>
 
@@ -487,7 +487,7 @@ export default function SocialGeneratorPage() {
                             </div>
                           )}
 
-                          <div className="flex items-center gap-2 pt-3 border-t border-white/[0.06]">
+                          <div className="flex items-center gap-2 pt-3 border-t border-white/6">
                             <button
                               onClick={() => copySavedPost(p)}
                               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-medium hover:bg-emerald-500/30 transition-colors"
@@ -500,7 +500,7 @@ export default function SocialGeneratorPage() {
                                 href={p.image_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.08] transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/4 text-gray-400 text-xs font-medium hover:bg-white/8 transition-colors"
                               >
                                 <Eye className="w-3 h-3" /> View Image
                               </a>
@@ -547,7 +547,7 @@ function PostField({ label, value, onCopy, copied, multiline }: {
 
 function MetaField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+    <div className="p-3 rounded-xl bg-white/2 border border-white/6">
       <span className="text-[10px] uppercase font-bold text-gray-500 block mb-1">{label}</span>
       <p className="text-xs text-gray-300">{value}</p>
     </div>

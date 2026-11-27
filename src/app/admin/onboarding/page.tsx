@@ -146,7 +146,7 @@ export default function OnboardingPage() {
                 value={searchQ}
                 onChange={e => setSearchQ(e.target.value)}
                 placeholder="Buscar tienda…"
-                className="w-full px-3 py-1.5 text-xs bg-gray-800 border border-gray-700 rounded-lg text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-500"
+                className="w-full px-3 py-1.5 text-xs bg-gray-800 border border-gray-700 rounded-lg text-gray-300 placeholder-gray-600 focus:outline-hidden focus:border-gray-500"
               />
             </div>
             <div className="max-h-[400px] overflow-y-auto">
@@ -167,7 +167,7 @@ export default function OnboardingPage() {
                   style={{ background: selected?.id === r.id ? '#1f2937' : undefined }}
                 >
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${r.status === 'active' ? 'bg-green-500' : 'bg-amber-500'}`} />
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${r.status === 'active' ? 'bg-green-500' : 'bg-amber-500'}`} />
                     <div>
                       <p className="text-xs font-medium text-gray-200 truncate">{r.name}</p>
                       <p className="text-[10px] text-gray-600">{r.slug} · {r.plan}</p>
@@ -211,7 +211,7 @@ export default function OnboardingPage() {
                   style={{ borderColor: step.done ? '#16a34a40' : activeStep === step.id ? '#7c3aed40' : '#1f2937' }}
                 >
                   <div className="flex items-center gap-3 px-5 py-4">
-                    <span className="text-lg flex-shrink-0">
+                    <span className="text-lg shrink-0">
                       {step.done ? '✅' : activeStep === step.id ? '⏳' : '⬜'}
                     </span>
                     <p className={`flex-1 text-sm ${step.done ? 'text-gray-500 line-through' : 'text-gray-200'}`}>
@@ -221,7 +221,7 @@ export default function OnboardingPage() {
                       <button
                         onClick={() => askAI(getStepPrompt(step.id), step.id)}
                         disabled={aiLoading}
-                        className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-40"
+                        className="shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-40"
                         style={{ background: '#7c3aed20', color: '#a78bfa' }}
                       >
                         {aiLoading && activeStep === step.id ? '⏳ AI…' : '✨ Sugerir con AI'}
@@ -230,7 +230,7 @@ export default function OnboardingPage() {
                     {!step.done && (
                       <button
                         onClick={() => markDone(step.id)}
-                        className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+                        className="shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
                         style={{ background: '#16a34a20', color: '#4ade80' }}
                       >
                         ✓ Listo
@@ -249,7 +249,7 @@ export default function OnboardingPage() {
                             onClick={() => {
                               navigator.clipboard.writeText(aiOutput);
                             }}
-                            className="text-[10px] px-2 py-1 rounded bg-gray-800 text-gray-400 hover:text-gray-200"
+                            className="text-[10px] px-2 py-1 rounded-sm bg-gray-800 text-gray-400 hover:text-gray-200"
                           >
                             📋 Copiar
                           </button>
@@ -257,7 +257,7 @@ export default function OnboardingPage() {
                             href={`/app?restaurant=${selected.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[10px] px-2 py-1 rounded bg-gray-800 text-gray-400 hover:text-gray-200"
+                            className="text-[10px] px-2 py-1 rounded-sm bg-gray-800 text-gray-400 hover:text-gray-200"
                           >
                             🔗 Abrir tienda
                           </a>

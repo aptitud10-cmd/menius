@@ -109,7 +109,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
     cancelled: t.statusCancelled,
   };
   const statusDot = (s: string) =>
-    s === 'cancelled' ? 'bg-[#c4321b]' : s === 'delivered' ? 'bg-gray-400' : 'bg-[#05c8a7]';
+    s === 'cancelled' ? 'bg-[#c4321b]' : s === 'delivered' ? 'bg-gray-400' : 'bg-brand-500';
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' });
   const shortNum = (n: string) => n.split('-').pop() ?? n;
@@ -137,7 +137,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
   };
 
   const header = (
-    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-200 pt-[env(safe-area-inset-top)]">
+    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-xs border-b border-gray-200 pt-[env(safe-area-inset-top)]">
       <div className="max-w-lg mx-auto h-14 px-2 flex items-center gap-1">
         <Link
           href={`/${restaurantSlug}`}
@@ -183,7 +183,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
                   {order.order_items.map((it) => `${it.quantity}× ${it.product_name}`).join(', ')}
                 </p>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" aria-hidden="true" />
+              <ChevronRight className="w-5 h-5 text-gray-500 shrink-0" aria-hidden="true" />
             </Link>
             <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-gray-100">
               <span className="inline-flex items-center gap-2 text-[14px] text-gray-700">
@@ -195,7 +195,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
               <button
                 type="button"
                 onClick={() => handleReorder(order)}
-                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-[#05c8a7] text-[#04241E] text-[14px] font-semibold hover:bg-[#04b096] active:scale-[0.97] transition"
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-brand-500 text-[#04241E] text-[14px] font-semibold hover:bg-[#04b096] active:scale-[0.97] transition"
               >
                 {reorderedId === order.id ? (
                   <Check className="w-4 h-4" aria-hidden="true" />
@@ -229,7 +229,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
                   <span className="tabular-nums">{fmtPrice(Number(o.total) || 0)}</span>
                 </p>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" aria-hidden="true" />
+              <ChevronRight className="w-5 h-5 text-gray-500 shrink-0" aria-hidden="true" />
             </Link>
           </li>
         ))}
@@ -248,7 +248,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
         </p>
         <Link
           href={`/${restaurantSlug}`}
-          className="mt-7 inline-flex h-12 items-center rounded-full bg-[#05c8a7] px-6 text-[15px] font-semibold text-[#04241E] hover:bg-[#04b096] transition-colors"
+          className="mt-7 inline-flex h-12 items-center rounded-full bg-brand-500 px-6 text-[15px] font-semibold text-[#04241E] hover:bg-[#04b096] transition-colors"
         >
           {en ? 'Browse the menu' : 'Ver el menú'}
         </Link>
@@ -257,7 +257,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
   }
 
   return (
-    <div lang={en ? 'en' : 'es'} className="min-h-[100dvh] bg-[#f5f5f3]">
+    <div lang={en ? 'en' : 'es'} className="min-h-dvh bg-[#f5f5f3]">
       {header}
       <main className="max-w-lg mx-auto px-4 py-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">{body}</main>
     </div>

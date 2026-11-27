@@ -63,7 +63,7 @@ export function DashToastProvider({ children }: { children: ReactNode }) {
       {children}
       {/* Phone: above the bottom nav (~56px + iPhone home bar). md+: no nav, only
           the home bar inset (iPad). */}
-      <div className="fixed right-4 z-[100] flex flex-col gap-2 pointer-events-none bottom-[calc(4.5rem_+_env(safe-area-inset-bottom))] md:bottom-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="fixed right-4 z-100 flex flex-col gap-2 pointer-events-none bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-[max(1rem,env(safe-area-inset-bottom))]">
         {toasts.map(t => {
           const Icon = ICON_MAP[t.variant];
           return (
@@ -74,13 +74,13 @@ export function DashToastProvider({ children }: { children: ReactNode }) {
                 STYLE_MAP[t.variant],
               )}
             >
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
                 <Icon className="w-3 h-3" />
               </div>
               <span className="flex-1">{t.message}</span>
               <button
                 onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
-                className="p-0.5 rounded hover:bg-white/20 transition-colors flex-shrink-0"
+                className="p-0.5 rounded-sm hover:bg-white/20 transition-colors shrink-0"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

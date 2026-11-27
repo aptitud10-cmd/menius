@@ -26,10 +26,10 @@ const featureIcons = [
 // Single brand accent for all feature tabs (was a 4-color indigo/blue/emerald/amber
 // set that broke the mono-accent system — every other section uses #05c8a7).
 const brandAccent = {
-  bg: 'bg-[#05c8a7]/[0.08]',
-  text: 'text-[#05c8a7]',
-  border: 'border-[#05c8a7]/20',
-  glow: 'bg-[#05c8a7]/20',
+  bg: 'bg-brand-500/8',
+  text: 'text-brand-500',
+  border: 'border-brand-500/20',
+  glow: 'bg-brand-500/20',
 };
 
 
@@ -50,9 +50,9 @@ function SectionHeading({
 }) {
   return (
     <div className={`text-left md:text-center d-fade-up ${className}`}>
-      <span className="font-mono text-xs tracking-[0.2em] text-[#05c8a7]/70 md:hidden">{index} / {label}</span>
-      <p className="hidden md:block text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{label}</p>
-      <h2 className="font-display mt-3 md:mt-0 font-extrabold text-white tracking-[-0.03em] md:tracking-[-0.025em] leading-[1.05] text-[clamp(2.25rem,9vw,3rem)] md:text-5xl lg:text-6xl">
+      <span className="font-mono text-xs tracking-[0.2em] text-brand-500/70 md:hidden">{index} / {label}</span>
+      <p className="hidden md:block text-sm text-brand-500 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{label}</p>
+      <h2 className="font-display mt-3 md:mt-0 font-extrabold text-white tracking-[-0.03em] md:tracking-tight leading-[1.05] text-[clamp(2.25rem,9vw,3rem)] md:text-5xl lg:text-6xl">
         {title}
       </h2>
       {desc && (
@@ -73,7 +73,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
       {/* Mobile: tabs scroll horizontally (no wrap to 2 ugly rows) — the approved
           pattern for tab nav (Sakazuki). Edge-bleed hints there's more. md+: pill row. */}
       <div className="-mx-6 px-6 md:mx-auto md:px-0 overflow-x-auto scrollbar-hide mb-8 md:mb-14 md:w-fit">
-        <div className="flex gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-max md:w-fit md:mx-auto">
+        <div className="flex gap-1 p-1.5 rounded-2xl bg-white/4 border border-white/6 w-max md:w-fit md:mx-auto">
           {ft.items.map((feat, i) => (
             <button
               key={feat.tab}
@@ -82,7 +82,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
               className={`whitespace-nowrap px-4 sm:px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
                 active === i
                   ? 'bg-white text-black shadow-lg shadow-white/10'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/3'
               }`}
             >
               {feat.tab}
@@ -93,7 +93,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
-          <h3 className="font-display text-[clamp(1.9rem,7vw,2.25rem)] md:text-4xl font-bold text-white leading-tight tracking-[-0.025em]">
+          <h3 className="font-display text-[clamp(1.9rem,7vw,2.25rem)] md:text-4xl font-bold text-white leading-tight tracking-tight">
             {item.title}
           </h3>
           <p className="mt-4 md:mt-6 text-lg md:text-xl text-gray-200 md:text-gray-300 leading-relaxed font-light">
@@ -102,7 +102,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
           <div className="mt-7 md:mt-10 space-y-3.5 md:space-y-4">
             {item.details.map((d) => (
               <div key={d} className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center flex-shrink-0`}>
+                <div className={`w-6 h-6 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center shrink-0`}>
                   <svg className={`w-3.5 h-3.5 ${colors.text}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
                 <span className="text-sm md:text-[15px] text-gray-200 md:text-gray-300">{d}</span>
@@ -115,7 +115,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full ${colors.glow} blur-[80px]`} />
 
           <div className="relative z-10 w-full max-w-[380px]">
-            <div className={`rounded-2xl border ${colors.border} bg-white/[0.02] backdrop-blur-sm overflow-hidden`}>
+            <div className={`rounded-2xl border ${colors.border} bg-white/2 backdrop-blur-xs overflow-hidden`}>
               <div className={`px-6 py-5 border-b ${colors.border} flex items-center gap-4`}>
                 <div className={`w-12 h-12 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center ${colors.text}`}>
                   {featureIcons[active]}
@@ -125,12 +125,12 @@ function FeatureTabs({ t }: { t: LandingT }) {
                   <p className="text-xs text-gray-500">MENIUS</p>
                 </div>
                 <div className="ml-auto flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#05c8a7] animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
                   <span className="text-[10px] text-gray-500">{ft.cardActive}</span>
                 </div>
               </div>
 
-              <div className="divide-y divide-white/[0.04]">
+              <div className="divide-y divide-white/4">
                 {item.visualItems.map((vi, i) => (
                   <div key={i} className="px-6 py-4 flex items-center justify-between">
                     <span className="text-sm text-gray-500">{vi.label}</span>
@@ -139,7 +139,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
                 ))}
               </div>
 
-              <div className={`px-6 py-4 border-t ${colors.border} bg-white/[0.01]`}>
+              <div className={`px-6 py-4 border-t ${colors.border} bg-white/1`}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-600">{ft.cardUpdated}</span>
                   <div className={`px-3 py-1 rounded-full text-[10px] font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
@@ -161,8 +161,8 @@ function SocialProof({ t }: { t: LandingT['socialProof'] }) {
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-left md:text-center scroll-reveal d-fade-in">
           {/* 01 — numbered index on mobile to match the rest of the system */}
-          <span className="font-mono text-xs tracking-[0.2em] text-[#05c8a7]/70 mb-6 block md:hidden">01 / {t.headline}</span>
-          <p className="hidden md:block text-sm text-[#05c8a7]/80 font-medium mb-8 tracking-wide uppercase">{t.headline}</p>
+          <span className="font-mono text-xs tracking-[0.2em] text-brand-500/70 mb-6 block md:hidden">01 / {t.headline}</span>
+          <p className="hidden md:block text-sm text-brand-500/80 font-medium mb-8 tracking-wide uppercase">{t.headline}</p>
           <div className="flex items-center justify-start md:justify-center gap-7 md:gap-14 flex-wrap">
             {t.logos.map((name) => {
               const brandColor: Record<string, string> = {
@@ -295,24 +295,24 @@ function SavingsCalculator({ t, locale }: { t: LandingT['savings']; locale: Land
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-6 text-center">
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/4 p-6 text-center">
           <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">{t.withApps}</p>
           <p className="text-3xl md:text-4xl font-bold text-red-400">{money(commissionLoss)}</p>
           <p className="text-sm text-gray-500 mt-1.5">{t.commissionsLabel}</p>
         </div>
-        <div className="rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.04] p-6 text-center">
+        <div className="rounded-2xl border border-brand-500/20 bg-brand-500/4 p-6 text-center">
           <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">{withMeniusLabel}</p>
-          <p className="text-3xl md:text-4xl font-bold text-[#05c8a7]">{money(meniusCost)}</p>
+          <p className="text-3xl md:text-4xl font-bold text-brand-500">{money(meniusCost)}</p>
           <p className="text-sm text-gray-500 mt-1.5">{t.flatFeeLabel}</p>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.06] p-6 md:p-8 text-center">
+      <div className="rounded-2xl border border-brand-500/20 bg-brand-500/6 p-6 md:p-8 text-center">
         <p className="text-sm text-gray-400 mb-2 font-medium">{t.savingsLabel}</p>
         <p className="font-display font-black text-white tracking-tight tabular-nums text-[clamp(3rem,15vw,4.5rem)] md:text-6xl leading-none">
           {money(animatedSavings)}
         </p>
-        <p className="text-lg text-[#05c8a7] font-semibold mt-1">
+        <p className="text-lg text-brand-500 font-semibold mt-1">
           {t.perYear} · {money(monthlySavings)}{t.perMonth}
         </p>
       </div>
@@ -326,14 +326,14 @@ function MidCta({ text, highlight, cta }: { text: string; highlight: string; cta
     <div className="my-2 d-fade-up">
       <Link
         href="/signup"
-        className="group flex flex-col sm:flex-row items-center justify-between gap-4 px-7 py-5 rounded-2xl border border-white/[0.08] bg-[#05c8a7]/[0.06] hover:border-[#05c8a7]/30 hover:bg-[#05c8a7]/[0.10] transition-all duration-200"
+        className="group flex flex-col sm:flex-row items-center justify-between gap-4 px-7 py-5 rounded-2xl border border-white/8 bg-brand-500/6 hover:border-brand-500/30 hover:bg-brand-500/10 transition-all duration-200"
       >
         <div className="text-center sm:text-left">
           <span className="text-white font-semibold text-[15px]">{text}</span>
           {' '}
           <span className="text-gray-400 text-[15px]">{highlight}</span>
         </div>
-        <span className="flex-shrink-0 px-5 py-2.5 rounded-xl bg-white text-black text-sm font-bold group-hover:bg-gray-100 group-hover:shadow-[0_4px_16px_rgba(255,255,255,0.15)] active:scale-[0.97] transition-all duration-150 whitespace-nowrap">
+        <span className="shrink-0 px-5 py-2.5 rounded-xl bg-white text-black text-sm font-bold group-hover:bg-gray-100 group-hover:shadow-[0_4px_16px_rgba(255,255,255,0.15)] active:scale-[0.97] transition-all duration-150 whitespace-nowrap">
           {cta}
         </span>
       </Link>
@@ -361,8 +361,8 @@ const COL_PRICE_SUFFIX_KEYS: Record<ColKey, 'perMonth' | ''> = {
 
 function CheckIcon() {
   return (
-    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#05c8a7]/15">
-      <svg className="w-3 h-3 text-[#05c8a7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-brand-500/15">
+      <svg className="w-3 h-3 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
     </span>
@@ -371,7 +371,7 @@ function CheckIcon() {
 
 function DashIcon() {
   return (
-    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.04]">
+    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/4">
       <span className="w-2 h-px bg-gray-600 block" />
     </span>
   );
@@ -405,25 +405,25 @@ function PlanAccordionMobile({
           <div
             key={key}
             className={`rounded-2xl border overflow-hidden transition-colors ${
-              isPro ? 'border-[#05c8a7]/30 bg-[#05c8a7]/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'
+              isPro ? 'border-brand-500/30 bg-brand-500/5' : 'border-white/8 bg-white/2'
             }`}
           >
             <button
               type="button"
               onClick={() => setOpen(isOpen ? -1 : i)}
               aria-expanded={isOpen ? 'true' : 'false'}
-              className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]/60 focus-visible:ring-inset"
+              className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-inset"
             >
               <span className="flex items-center gap-2.5">
-                <span className={`text-lg font-bold ${isPro ? 'text-[#05c8a7]' : 'text-white'}`}>{label}</span>
+                <span className={`text-lg font-bold ${isPro ? 'text-brand-500' : 'text-white'}`}>{label}</span>
               </span>
               <span className="flex items-center gap-3">
-                <span className={`text-base font-bold ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>
+                <span className={`text-base font-bold ${isPro ? 'text-brand-500' : 'text-gray-200'}`}>
                   {price}
                   {isColombia && key !== 'free' && <span className="text-xs text-gray-500"> USD</span>}
                   {suffix && <span className="text-xs text-gray-500 font-normal">{suffix}</span>}
                 </span>
-                <span className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
+                <span className={`shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                   </svg>
@@ -432,15 +432,15 @@ function PlanAccordionMobile({
             </button>
 
             {isOpen && (
-              <div className="px-5 pb-4 divide-y divide-white/[0.05]">
+              <div className="px-5 pb-4 divide-y divide-white/5">
                 {pc.rows.map((row) => {
                   const val = row[key];
                   return (
                     <div key={row.feature} className="flex items-center justify-between gap-4 py-3">
                       <span className="text-sm text-gray-300">{row.feature}</span>
-                      <span className="flex-shrink-0">
+                      <span className="shrink-0">
                         {val === '✓' ? <CheckIcon /> : val === '—' ? <DashIcon /> : (
-                          <span className={`text-sm font-semibold ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>{val}</span>
+                          <span className={`text-sm font-semibold ${isPro ? 'text-brand-500' : 'text-gray-200'}`}>{val}</span>
                         )}
                       </span>
                     </div>
@@ -472,7 +472,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
   return (
     <div className="d-fade-up">
       <div className="text-center mb-10">
-        <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-3">{pc.sectionLabel}</p>
+        <p className="text-sm text-brand-500 uppercase tracking-[0.2em] font-medium mb-3">{pc.sectionLabel}</p>
         <h3 className="font-display text-3xl md:text-4xl font-extrabold text-white tracking-tight">{pc.sectionTitle}</h3>
         <p className="text-gray-400 mt-2 text-sm max-w-md mx-auto">{pc.sectionDesc}</p>
       </div>
@@ -485,9 +485,9 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
 
       {/* Desktop: full comparison grid */}
       <div className="hidden md:block overflow-x-auto -mx-2 px-2">
-        <div className="min-w-[600px] rounded-2xl border border-white/[0.08] overflow-hidden bg-white/[0.02]">
+        <div className="min-w-[600px] rounded-2xl border border-white/8 overflow-hidden bg-white/2">
           {/* Header */}
-          <div className="grid border-b border-white/[0.08]" style={{ gridTemplateColumns: `1.4fr repeat(${colKeys.length}, minmax(90px, 1fr))` }}>
+          <div className="grid border-b border-white/8" style={{ gridTemplateColumns: `1.4fr repeat(${colKeys.length}, minmax(90px, 1fr))` }}>
             <div className="px-5 py-5" />
             {colLabels.map((label, i) => {
               const key = colKeys[i];
@@ -497,11 +497,11 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
               return (
                 <div
                   key={key}
-                  className={`px-3 py-5 text-center flex flex-col items-center gap-1 ${isPro ? 'bg-[#05c8a7]/[0.08]' : ''}`}
+                  className={`px-3 py-5 text-center flex flex-col items-center gap-1 ${isPro ? 'bg-brand-500/8' : ''}`}
                 >
-                  <span className={`text-sm font-bold whitespace-nowrap ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>{label}</span>
+                  <span className={`text-sm font-bold whitespace-nowrap ${isPro ? 'text-brand-500' : 'text-gray-200'}`}>{label}</span>
                   <span className="text-xs text-gray-500 whitespace-nowrap">
-                    <span className={`font-semibold ${isPro ? 'text-[#05c8a7]/80' : 'text-gray-400'}`}>{price}</span>
+                    <span className={`font-semibold ${isPro ? 'text-brand-500/80' : 'text-gray-400'}`}>{price}</span>
                     {isColombia && key !== 'free' && <span className="text-gray-600"> USD</span>}
                     {suffix && <span className="text-gray-600">{suffix}</span>}
                   </span>
@@ -513,7 +513,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
           {pc.rows.map((row, ri) => (
             <div
               key={row.feature}
-              className={`grid items-center ${ri < pc.rows.length - 1 ? 'border-b border-white/[0.04]' : ''} ${ri % 2 === 0 ? '' : 'bg-white/[0.01]'}`}
+              className={`grid items-center ${ri < pc.rows.length - 1 ? 'border-b border-white/4' : ''} ${ri % 2 === 0 ? '' : 'bg-white/1'}`}
               style={{ gridTemplateColumns: `1.4fr repeat(${colKeys.length}, minmax(90px, 1fr))` }}
             >
               <div className="px-5 py-3.5">
@@ -523,13 +523,13 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
                 const val = row[key];
                 const isPro = ci === proIdx;
                 return (
-                  <div key={key} className={`px-3 py-3.5 flex items-center justify-center ${isPro ? 'bg-[#05c8a7]/[0.04]' : ''}`}>
+                  <div key={key} className={`px-3 py-3.5 flex items-center justify-center ${isPro ? 'bg-brand-500/4' : ''}`}>
                     {isCheck(val) ? (
                       <CheckIcon />
                     ) : isDash(val) ? (
                       <DashIcon />
                     ) : (
-                      <span className={`text-sm font-medium ${isPro ? 'text-[#05c8a7]' : 'text-gray-300'}`}>{val}</span>
+                      <span className={`text-sm font-medium ${isPro ? 'text-brand-500' : 'text-gray-300'}`}>{val}</span>
                     )}
                   </div>
                 );
@@ -562,7 +562,7 @@ function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boo
   return (
     <div className="md:hidden">
       {/* Hero plan — Pro as protagonist */}
-      <div className="relative overflow-hidden rounded-[1.75rem] border border-[#05c8a7]/30 bg-[#05c8a7]/[0.06] p-7 pt-8">
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-brand-500/30 bg-brand-500/6 p-7 pt-8">
         <div>
           <h3 className="font-display text-3xl font-extrabold tracking-tight text-white">{hero.name}</h3>
           <p className="mt-1.5 text-sm text-gray-300/80 max-w-[26ch]">{hero.desc}</p>
@@ -583,7 +583,7 @@ function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boo
           <ul className="mt-7 grid grid-cols-1 gap-x-4 gap-y-3">
             {hero.features.slice(0, 6).map((feat) => (
               <li key={feat} className="flex items-start gap-2.5">
-                <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#05c8a7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <svg className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 <span className="text-[15px] leading-snug text-gray-200">{feat}</span>
               </li>
             ))}
@@ -610,19 +610,19 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
     <>
       <div className="text-left md:text-center mb-10 md:mb-14 d-fade-up">
         {/* S1 — numbered index left, not centered uppercase eyebrow */}
-        <span className="font-mono text-xs tracking-[0.2em] text-[#05c8a7]/70 md:hidden">02 / {tp.sectionLabel}</span>
-        <p className="hidden md:block text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{tp.sectionLabel}</p>
-        <h2 className="font-display mt-3 md:mt-0 font-extrabold text-white tracking-[-0.03em] md:tracking-[-0.025em] leading-[1.05] text-[clamp(2.25rem,9vw,3rem)] md:text-5xl lg:text-6xl">
+        <span className="font-mono text-xs tracking-[0.2em] text-brand-500/70 md:hidden">02 / {tp.sectionLabel}</span>
+        <p className="hidden md:block text-sm text-brand-500 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{tp.sectionLabel}</p>
+        <h2 className="font-display mt-3 md:mt-0 font-extrabold text-white tracking-[-0.03em] md:tracking-tight leading-[1.05] text-[clamp(2.25rem,9vw,3rem)] md:text-5xl lg:text-6xl">
           {tp.sectionTitle}
         </h2>
         <p className="text-gray-300 mt-3 md:mt-5 text-lg md:text-xl font-light max-w-[34ch] md:max-w-none">{tp.sectionDesc}</p>
 
         {/* Billing toggle — left on mobile, centered md+ */}
-        <div className="mt-7 md:mt-8 inline-flex items-center gap-1 p-1 rounded-xl bg-white/[0.06] border border-white/[0.08]">
+        <div className="mt-7 md:mt-8 inline-flex items-center gap-1 p-1 rounded-xl bg-white/6 border border-white/8">
           <button
             onClick={() => setAnnual(false)}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-              !annual ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-white'
+              !annual ? 'bg-white text-black shadow-xs' : 'text-gray-400 hover:text-white'
             }`}
           >
             {tp.billingMonthly}
@@ -630,12 +630,12 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
           <button
             onClick={() => setAnnual(true)}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
-              annual ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-white'
+              annual ? 'bg-white text-black shadow-xs' : 'text-gray-400 hover:text-white'
             }`}
           >
             {tp.billingAnnual}
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full transition-colors duration-200 ${
-              annual ? 'bg-[#05c8a7] text-black' : 'bg-[#05c8a7]/20 text-[#05c8a7]'
+              annual ? 'bg-brand-500 text-black' : 'bg-brand-500/20 text-brand-500'
             }`}>
               {tp.annualBadge}
             </span>
@@ -671,18 +671,18 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
                 key={plan.name}
                 className={`relative rounded-2xl p-6 lg:p-8 flex flex-col transition-all duration-300 ${
                   isPopular
-                    ? 'card-popular-glow bg-[#05c8a7]/[0.07] md:bg-white/[0.04] border border-[#05c8a7]/30 md:border-[#05c8a7]/20 shimmer-border'
-                    : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
+                    ? 'card-popular-glow bg-brand-500/[0.07] md:bg-white/4 border border-brand-500/30 md:border-brand-500/20 shimmer-border'
+                    : 'card-gradient-border bg-white/2 rounded-2xl hover:bg-white/4'
                 }`}
               >
                 {/* S5 — recommended plan differentiated by fill + left badge, not a
                     centered "Most Popular" pill (2021 tell). */}
                 {showPopularBadge && (
-                  <span className="absolute -top-3 left-6 md:left-1/2 md:-translate-x-1/2 px-4 py-1.5 bg-[#05c8a7] text-black text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-[#05c8a7]/25">
+                  <span className="absolute -top-3 left-6 md:left-1/2 md:-translate-x-1/2 px-4 py-1.5 bg-brand-500 text-black text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-brand-500/25">
                     {tp.popularBadge}
                   </span>
                 )}
-                <h3 className={`text-xl md:text-lg font-bold md:font-semibold ${isPopular ? 'text-[#05c8a7]' : 'text-white'}`}>{plan.name}</h3>
+                <h3 className={`text-xl md:text-lg font-bold md:font-semibold ${isPopular ? 'text-brand-500' : 'text-white'}`}>{plan.name}</h3>
                 <p className="text-sm text-gray-400 mt-1.5">{plan.desc}</p>
                 <div className="mt-7 mb-1">
                   <div className="flex items-end gap-1.5">
@@ -697,14 +697,14 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
                     <p className="text-xs text-gray-500 mt-1 mb-0">
                       {currencySymbol}{formatPrice(monthlyPrice)}<span className="line-through opacity-60">{tp.annualMonthSuffix}</span>
                       {' '}→{' '}
-                      <span className="text-[#05c8a7] font-semibold">{currencySymbol}{formatPrice(annualTotal)}{tp.annualYearSuffix}</span>
+                      <span className="text-brand-500 font-semibold">{currencySymbol}{formatPrice(annualTotal)}{tp.annualYearSuffix}</span>
                     </p>
                   )}
                 </div>
                 <ul className="space-y-3.5 flex-1 mt-7 mb-0">
                   {plan.features.map((feat) => (
                     <li key={feat} className="flex items-start gap-3">
-                      <svg className="w-4 h-4 text-[#05c8a7]/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <svg className="w-4 h-4 text-brand-500/60 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                       <span className="text-sm text-gray-400 leading-snug">{feat}</span>
                     </li>
                   ))}
@@ -714,7 +714,7 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
                   className={`mt-8 block text-center py-4 rounded-xl font-bold text-base active:scale-[0.97] active:shadow-none transition-[transform,box-shadow,background-color,border-color] duration-150 ${
                     isPopular
                       ? 'bg-white text-black hover:bg-gray-100 hover:shadow-[0_4px_16px_rgba(255,255,255,0.18)] btn-glow shadow-lg shadow-white/5'
-                      : 'bg-white/[0.06] text-gray-300 border-2 border-white/[0.10] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.18]'
+                      : 'bg-white/6 text-gray-300 border-2 border-white/10 hover:text-white hover:bg-white/10 hover:border-white/18'
                   }`}
                 >
                   {plan.cta}
@@ -728,24 +728,24 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
       {/* Free plan + setup banners — shared mobile + desktop */}
       <Link
         href="/signup"
-        className="mt-4 md:mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 p-5 rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.04] hover:bg-[#05c8a7]/[0.08] hover:border-[#05c8a7]/30 transition-all"
+        className="mt-4 md:mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 p-5 rounded-2xl border border-brand-500/20 bg-brand-500/4 hover:bg-brand-500/8 hover:border-brand-500/30 transition-all"
       >
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           <span className="text-sm text-gray-400">
             {tp.freeBannerPrefix}{' '}
-            <strong className="text-[#05c8a7]">{tp.freeBannerPlan}</strong>
+            <strong className="text-brand-500">{tp.freeBannerPlan}</strong>
             {' '}—{' '}
             <span className="text-gray-400">{tp.freeBannerDesc}</span>
           </span>
         </div>
-        <span className="shrink-0 text-sm font-medium text-[#05c8a7] whitespace-nowrap">
+        <span className="shrink-0 text-sm font-medium text-brand-500 whitespace-nowrap">
           {tp.freeBannerCta}
         </span>
       </Link>
 
       <Link
         href="/setup-profesional"
-        className="mt-3 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
+        className="mt-3 flex items-center justify-between p-5 rounded-2xl border border-white/6 bg-white/2 hover:bg-white/4 hover:border-white/10 transition-all group"
       >
         <span className="text-sm text-gray-400">{tp.setupCtaPrefix} <strong className="text-gray-200">{tp.setupCtaBold}</strong> {tp.setupCtaSuffix}</span>
         <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -768,7 +768,7 @@ function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
             style={{ animationDelay: `${i * 90}ms` }}
           >
             <span
-              className="font-display font-black tracking-tight text-[#05c8a7] leading-[0.9] block break-words"
+              className="font-display font-black tracking-tight text-brand-500 leading-[0.9] block wrap-break-word"
               style={{ fontSize: 'clamp(3rem, 13vw, 4.5rem)' }}
             >
               {item.name}
@@ -784,7 +784,7 @@ function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
           <div key={item.name} className="card-premium rounded-2xl p-6 md:p-7 flex flex-col gap-4">
             <div className="flex items-start gap-3">
               <span
-                className="font-display font-extrabold tracking-tight text-[#05c8a7] leading-none"
+                className="font-display font-extrabold tracking-tight text-brand-500 leading-none"
                 style={{ fontSize: 'clamp(2.2rem, 5vw, 3rem)' }}
               >
                 {item.name}
@@ -829,13 +829,13 @@ function FaqSection({ locale }: { locale: LandingLocale }) {
     <section id="faq" className="relative py-24 md:py-28 lg:py-32 overflow-clip">
       <div className="relative z-10 max-w-3xl mx-auto px-6">
         <div className="text-left md:text-center mb-10 md:mb-12">
-          <span className="font-mono text-xs tracking-[0.2em] text-[#05c8a7]/70 md:hidden">08 / FAQ</span>
+          <span className="font-mono text-xs tracking-[0.2em] text-brand-500/70 md:hidden">08 / FAQ</span>
           <h2 className="font-display mt-3 md:mt-0 text-[clamp(2.25rem,9vw,3rem)] leading-[1.05] md:text-4xl font-extrabold text-white tracking-[-0.03em] md:tracking-[-0.02em]">
             {isEs ? 'Preguntas frecuentes' : 'Frequently asked questions'}
           </h2>
           <p className="mt-3 text-gray-400 text-base">
             {isEs ? '¿Tienes más dudas?' : 'More questions?'}{' '}
-            <a href="/faq" className="text-[#05c8a7] hover:underline">
+            <a href="/faq" className="text-brand-500 hover:underline">
               {isEs ? 'Ver todas las respuestas →' : 'See all answers →'}
             </a>
           </p>
@@ -845,15 +845,15 @@ function FaqSection({ locale }: { locale: LandingLocale }) {
           {faqs.map((item, i) => {
             const isOpen = open === i;
             return (
-              <div key={i} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+              <div key={i} className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setOpen(isOpen ? null : i)}
                   aria-expanded={isOpen ? 'true' : 'false'}
-                  className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]/60 focus-visible:ring-inset"
+                  className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-inset"
                 >
                   <span className="text-sm sm:text-base font-semibold text-white">{item.q}</span>
-                  <span className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
+                  <span className={`shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
@@ -891,7 +891,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       {/* ── Pricing ── */}
       <section id="precios" className={`relative ${SECTION_PY} overflow-clip`}>
         <div className="section-glow section-glow-blue" />
-        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-brand-500/15 blur-[100px] pointer-events-none" />
         <div className="relative z-10 max-w-5xl mx-auto px-6">
           <PricingSection t={t} isColombia={isColombia} />
           <div className="mt-16">
@@ -942,11 +942,11 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
           <div>
             <div className="md:hidden space-y-3">
               {t.comparison.mobileRows.map((row) => (
-                <div key={row.feature} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+                <div key={row.feature} className="rounded-2xl border border-white/6 bg-white/2 p-5">
                   <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">{row.feature}</p>
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-xs text-[#05c8a7] font-medium mb-1">{t.comparison.meniusHeader}</p>
+                      <p className="text-xs text-brand-500 font-medium mb-1">{t.comparison.meniusHeader}</p>
                       <p className="text-base font-semibold text-white">{row.menius}</p>
                     </div>
                     <div className="text-right">
@@ -958,22 +958,22 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
               ))}
             </div>
 
-            <div className="hidden md:block rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
+            <div className="hidden md:block rounded-2xl border border-white/6 overflow-hidden bg-white/2">
               <div className="grid grid-cols-3">
-                <div className="p-5 border-b border-white/[0.06]" />
-                <div className="p-5 text-center border-b border-white/[0.06] bg-[#05c8a7]/[0.06]">
+                <div className="p-5 border-b border-white/6" />
+                <div className="p-5 text-center border-b border-white/6 bg-brand-500/6">
                   <span className="text-sm font-semibold text-white">{t.comparison.meniusHeader}</span>
                 </div>
-                <div className="p-5 text-center border-b border-white/[0.06]">
+                <div className="p-5 text-center border-b border-white/6">
                   <span className="text-xs text-gray-400">{t.comparison.otherHeader}</span>
                 </div>
               </div>
               {t.comparison.rows.map((row, i) => (
-                <div key={row.feature} className={`grid grid-cols-3 ${i < t.comparison.rows.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
+                <div key={row.feature} className={`grid grid-cols-3 ${i < t.comparison.rows.length - 1 ? 'border-b border-white/4' : ''}`}>
                   <div className="px-6 py-4">
                     <p className="text-sm text-gray-400">{row.feature}</p>
                   </div>
-                  <div className="px-6 py-4 text-center bg-[#05c8a7]/[0.03]">
+                  <div className="px-6 py-4 text-center bg-brand-500/3">
                     <p className="text-sm font-medium text-white">{row.menius}</p>
                   </div>
                   <div className="px-6 py-4 text-center">
@@ -1007,10 +1007,10 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
           {/* Mobile: numbered steps with a big left index + vertical connector
               line (2026 pattern — Linear/Sakazuki). Desktop keeps the card grid. */}
           <div className="d-fade-up d-delay-2 md:hidden">
-            <ol className="relative border-l border-[#05c8a7]/20 ml-5">
+            <ol className="relative border-l border-brand-500/20 ml-5">
               {t.howItWorks.steps.map((item) => (
                 <li key={item.step} className="relative pl-7 pb-9 last:pb-0">
-                  <span className="absolute -left-[1.15rem] -top-1 flex h-9 w-9 items-center justify-center rounded-full bg-[#050505] font-display text-lg font-extrabold text-[#05c8a7] ring-1 ring-[#05c8a7]/30">
+                  <span className="absolute left-[-1.15rem] -top-1 flex h-9 w-9 items-center justify-center rounded-full bg-[#050505] font-display text-lg font-extrabold text-brand-500 ring-1 ring-brand-500/30">
                     {item.step}
                   </span>
                   <p className="text-lg font-bold text-white leading-tight">{item.title}</p>
@@ -1024,8 +1024,8 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
               {t.howItWorks.steps.map((item) => (
                 <div key={item.step} className="card-premium rounded-2xl p-6 md:p-8 flex gap-5">
-                  <div className="w-10 h-10 rounded-xl bg-[#05c8a7]/10 border border-[#05c8a7]/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-[#05c8a7]">{item.step}</span>
+                  <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-bold text-brand-500">{item.step}</span>
                   </div>
                   <div>
                     <p className="text-[15px] font-semibold text-white">{item.title}</p>
@@ -1063,7 +1063,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
 
       {/* ── Final CTA ── */}
       <section className="relative py-24 md:py-32 lg:py-52 overflow-clip">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-[#05c8a7]/20 blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-brand-500/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <div className="d-fade-up">
@@ -1084,7 +1084,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
               </Link>
               <Link
                 href="/demo"
-                className="w-full sm:w-auto px-10 py-5 rounded-2xl border-2 border-white/15 text-gray-200 font-bold text-[17px] sm:text-base hover:text-white hover:border-white/30 hover:bg-white/[0.04] active:scale-[0.97] transition-[transform,border-color,background,color] duration-150"
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl border-2 border-white/15 text-gray-200 font-bold text-[17px] sm:text-base hover:text-white hover:border-white/30 hover:bg-white/4 active:scale-[0.97] transition-[transform,border-color,background,color] duration-150"
               >
                 {t.finalCta.ctaSecondary}
               </Link>

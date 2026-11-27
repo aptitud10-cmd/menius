@@ -95,7 +95,7 @@ export function MenuSheet({
       {open && (
         <>
           <motion.div
-            className={cn(hiddenFromClass, 'fixed inset-0 z-[80] bg-black/40')}
+            className={cn(hiddenFromClass, 'fixed inset-0 z-80 bg-black/40')}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -104,7 +104,7 @@ export function MenuSheet({
           <motion.div
             className={cn(
               hiddenFromClass,
-              'fixed bottom-0 left-0 right-0 z-[81] bg-white rounded-t-3xl overflow-hidden flex flex-col',
+              'fixed bottom-0 left-0 right-0 z-81 bg-white rounded-t-3xl overflow-hidden flex flex-col',
             )}
             style={{ maxHeight: '85dvh' }}
             initial={{ y: '100%' }}
@@ -115,11 +115,11 @@ export function MenuSheet({
             aria-modal="true"
             aria-labelledby="menu-sheet-title"
           >
-            <div className="flex justify-center pt-2.5 flex-shrink-0" aria-hidden="true">
+            <div className="flex justify-center pt-2.5 shrink-0" aria-hidden="true">
               <div className="w-10 h-1 rounded-full bg-gray-300" />
             </div>
 
-            <div className="flex items-center justify-between pl-5 pr-2 pt-1 pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between pl-5 pr-2 pt-1 pb-2 shrink-0">
               <h2 id="menu-sheet-title" className="text-[20px] font-bold text-gray-900">
                 {title}
               </h2>
@@ -127,19 +127,19 @@ export function MenuSheet({
                 type="button"
                 onClick={onClose}
                 aria-label={closeLabel}
-                className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <X className="w-5 h-5 text-gray-700" />
               </button>
             </div>
 
-            <div className="px-5 pb-2 flex-shrink-0">
+            <div className="px-5 pb-2 shrink-0">
               <button
                 type="button"
                 onClick={onSearch}
                 className="w-full h-11 flex items-center gap-2.5 px-4 rounded-xl bg-gray-100 text-[15px] text-gray-600 text-left active:bg-gray-200 transition-colors"
               >
-                <Search className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                <Search className="w-4 h-4 shrink-0" aria-hidden="true" />
                 {searchLabel}
               </button>
             </div>
@@ -158,7 +158,7 @@ export function MenuSheet({
                       {isActive && (
                         <span
                           aria-hidden="true"
-                          className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#05c8a7]"
+                          className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-brand-500"
                         />
                       )}
                       <button
@@ -182,7 +182,7 @@ export function MenuSheet({
                           onClick={() => toggle(entry.id)}
                           aria-expanded={isOpen}
                           aria-label={`${entry.label}: ${entry.sections.length}`}
-                          className="w-12 min-h-[44px] flex items-center justify-center flex-shrink-0 text-gray-600 active:bg-gray-50 transition-colors"
+                          className="w-12 min-h-[44px] flex items-center justify-center shrink-0 text-gray-600 active:bg-gray-50 transition-colors"
                         >
                           <ChevronDown
                             className={cn('w-5 h-5 transition-transform', isOpen && 'rotate-180')}
@@ -212,7 +212,7 @@ export function MenuSheet({
                 );
               })}
             </nav>
-            <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]" />
+            <div className="shrink-0 pb-[env(safe-area-inset-bottom)]" />
           </motion.div>
         </>
       )}

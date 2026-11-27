@@ -16,18 +16,18 @@ export default function ProductsLoading() {
       </div>
 
       {/* Hierarchical table skeleton */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-xs">
         <div className="h-9 bg-gray-50 border-b border-gray-200" />
 
         {/* Category group 1 */}
         <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-          <div className="w-4 h-4 skeleton rounded" />
+          <div className="w-4 h-4 skeleton rounded-sm" />
           <div className="h-4 w-24 skeleton" />
           <div className="h-3 w-6 skeleton" />
         </div>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={`a${i}`} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50">
-            <div className="w-3.5 h-3.5 skeleton rounded" />
+            <div className="w-3.5 h-3.5 skeleton rounded-sm" />
             <div className="w-9 h-9 skeleton rounded-lg" />
             <div className="flex-1">
               <div className="h-4 skeleton" style={{ width: `${50 + (i % 3) * 15}%` }} />
@@ -39,13 +39,13 @@ export default function ProductsLoading() {
 
         {/* Category group 2 */}
         <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-          <div className="w-4 h-4 skeleton rounded" />
+          <div className="w-4 h-4 skeleton rounded-sm" />
           <div className="h-4 w-20 skeleton" />
           <div className="h-3 w-6 skeleton" />
         </div>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={`b${i}`} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50">
-            <div className="w-3.5 h-3.5 skeleton rounded" />
+            <div className="w-3.5 h-3.5 skeleton rounded-sm" />
             <div className="w-9 h-9 skeleton rounded-lg" />
             <div className="flex-1">
               <div className="h-4 skeleton" style={{ width: `${45 + (i % 2) * 20}%` }} />

@@ -58,9 +58,9 @@ export function LanguageMenu({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          'h-10 min-w-[44px] px-2.5 inline-flex items-center justify-center gap-1 rounded-full text-[13px] font-semibold uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]',
+          'h-10 min-w-[44px] px-2.5 inline-flex items-center justify-center gap-1 rounded-full text-[13px] font-semibold uppercase transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500',
           tone === 'overlay'
-            ? 'bg-black/30 backdrop-blur-sm text-white active:bg-black/50'
+            ? 'bg-black/30 backdrop-blur-xs text-white active:bg-black/50'
             : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200',
         )}
       >
@@ -71,7 +71,7 @@ export function LanguageMenu({
         <ul
           role="listbox"
           aria-label={label}
-          className="absolute right-0 top-full mt-2 z-[80] min-w-[168px] py-1.5 bg-white rounded-2xl shadow-xl border border-gray-200"
+          className="absolute right-0 top-full mt-2 z-80 min-w-[168px] py-1.5 bg-white rounded-2xl shadow-xl border border-gray-200"
         >
           {locales.map((code) => {
             const active = code === current;

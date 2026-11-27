@@ -200,9 +200,9 @@ function OrderNotifierInner({ restaurantId, currency }: OrderNotifierProps) {
     <>
       {/* Notification permission banner */}
       {showPermBanner && !hasPermission && (
-        <div className="fixed top-4 right-4 z-[80] max-w-sm animate-in slide-in-from-right">
+        <div className="fixed top-4 right-4 z-80 max-w-sm animate-in slide-in-from-right">
           <div className="bg-white rounded-xl border border-gray-200 shadow-lg p-4 flex items-start gap-3">
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
               <Bell className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="flex-1 min-w-0">
@@ -234,13 +234,13 @@ function OrderNotifierInner({ restaurantId, currency }: OrderNotifierProps) {
       )}
 
       {/* Order toasts */}
-      <div className="fixed top-4 right-4 z-[80] flex flex-col gap-2 max-w-sm pointer-events-none">
+      <div className="fixed top-4 right-4 z-80 flex flex-col gap-2 max-w-sm pointer-events-none">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className="pointer-events-auto bg-white rounded-xl border border-gray-200 shadow-xl p-4 flex items-start gap-3 animate-in slide-in-from-right duration-300"
           >
-            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0">
               <ShoppingBag className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
@@ -260,7 +260,7 @@ function OrderNotifierInner({ restaurantId, currency }: OrderNotifierProps) {
             </div>
             <button
               onClick={() => dismissToast(toast.id)}
-              className="p-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
             </button>

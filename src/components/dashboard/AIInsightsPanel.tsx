@@ -84,7 +84,7 @@ export function AIInsightsPanel({ locale }: Props) {
             'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all',
             loading
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-violet-600 text-white hover:bg-violet-700 active:scale-95 shadow-sm'
+              : 'bg-violet-600 text-white hover:bg-violet-700 active:scale-95 shadow-xs'
           )}
         >
           {loading
@@ -118,7 +118,7 @@ export function AIInsightsPanel({ locale }: Props) {
               { icon: Tag,           label: es ? 'Gap de upsell' : 'Upsell gap',         desc: es ? 'Complementos faltantes' : 'Missing complementary items' },
             ].map(({ icon: Icon, label, desc }) => (
               <div key={label} className="flex gap-2.5 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <Icon className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                <Icon className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-[11px] font-semibold text-gray-700">{label}</p>
                   <p className="text-[10px] text-gray-400 leading-snug">{desc}</p>
@@ -128,7 +128,7 @@ export function AIInsightsPanel({ locale }: Props) {
           </div>
           <button
             onClick={runAnalysis}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 active:scale-95 transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 active:scale-95 transition-all shadow-xs"
           >
             <Sparkles className="w-4 h-4" />
             {es ? 'Comenzar análisis' : 'Start analysis'}
@@ -166,7 +166,7 @@ export function AIInsightsPanel({ locale }: Props) {
       {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex gap-3 items-start">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-red-700">{es ? 'Error al analizar' : 'Analysis error'}</p>
             <p className="text-sm text-red-600 mt-0.5">{error}</p>
@@ -181,7 +181,7 @@ export function AIInsightsPanel({ locale }: Props) {
       {data && !loading && (
         <div className="space-y-4">
           {/* Summary card */}
-          <div className="bg-gradient-to-br from-violet-600 to-violet-800 rounded-2xl p-5 text-white shadow-lg">
+          <div className="bg-linear-to-br from-violet-600 to-violet-800 rounded-2xl p-5 text-white shadow-lg">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-4 h-4 text-violet-200" />
               <span className="text-xs font-semibold text-violet-200 uppercase tracking-wide">
@@ -213,7 +213,7 @@ export function AIInsightsPanel({ locale }: Props) {
                   onClick={() => setExpandedIdx(isExpanded ? null : idx)}
                   className="w-full flex items-start gap-3.5 p-5 text-left"
                 >
-                  <div className={cn('flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center', meta.bg)}>
+                  <div className={cn('shrink-0 w-9 h-9 rounded-xl flex items-center justify-center', meta.bg)}>
                     <Icon className={cn('w-4.5 h-4.5', meta.color)} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -227,7 +227,7 @@ export function AIInsightsPanel({ locale }: Props) {
                       {insight.description}
                     </p>
                   </div>
-                  <ChevronRight className={cn('flex-shrink-0 w-4 h-4 text-gray-300 transition-transform mt-1', isExpanded && 'rotate-90')} />
+                  <ChevronRight className={cn('shrink-0 w-4 h-4 text-gray-300 transition-transform mt-1', isExpanded && 'rotate-90')} />
                 </button>
 
                 {isExpanded && (

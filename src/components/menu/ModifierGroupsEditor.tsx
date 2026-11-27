@@ -211,7 +211,7 @@ function OptionHoursFields({
                 : { ...form, available_from: '', available_until: '' },
             )
           }
-          className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
+          className="w-3.5 h-3.5 rounded-sm border-gray-300 text-emerald-500 focus:ring-emerald-400"
         />
         <span className="text-[11px] font-medium text-gray-600">
           {lang === 'en' ? 'Only available at certain hours' : 'Solo disponible en un horario'}
@@ -224,7 +224,7 @@ function OptionHoursFields({
             value={form.available_from}
             onChange={e => setForm({ ...form, available_from: e.target.value })}
             aria-label={lang === 'en' ? 'From' : 'Desde'}
-            className="text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="text-sm px-2 py-1 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400"
           />
           <span className="text-[11px] text-gray-400">{lang === 'en' ? 'to' : 'a'}</span>
           <input
@@ -232,7 +232,7 @@ function OptionHoursFields({
             value={form.available_until}
             onChange={e => setForm({ ...form, available_until: e.target.value })}
             aria-label={lang === 'en' ? 'Until' : 'Hasta'}
-            className="text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="text-sm px-2 py-1 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400"
           />
         </div>
       )}
@@ -296,14 +296,14 @@ function TranslationFields({
       <div className="space-y-1.5">
         {locales.map(locale => (
           <div key={locale} className="flex items-center gap-2">
-            <span className="text-sm w-6 text-center flex-shrink-0" title={getLocaleLabel(locale)}>
+            <span className="text-sm w-6 text-center shrink-0" title={getLocaleLabel(locale)}>
               {getLocaleFlag(locale)}
             </span>
             <input
               value={values[locale] ?? ''}
               onChange={e => onChange({ ...values, [locale]: e.target.value })}
               placeholder={placeholder}
-              className="flex-1 text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="flex-1 text-sm px-2 py-1.5 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400"
             />
           </div>
         ))}
@@ -439,7 +439,7 @@ function SortableOption({
               value={optionForm.name}
               onChange={e => setOptionForm({ ...optionForm, name: e.target.value })}
               placeholder={t.editor_name}
-              className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="w-full text-sm px-2 py-1.5 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400"
             />
           </div>
           <div className="w-28">
@@ -454,7 +454,7 @@ function SortableOption({
                 placeholder="0.00"
                 type="number"
                 step="0.01"
-                className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                className="w-full text-sm pl-6 pr-2 py-1.5 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400"
               />
             </div>
           </div>
@@ -471,7 +471,7 @@ function SortableOption({
                 type="number"
                 step="0.01"
                 min="0"
-                className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                className="w-full text-sm pl-6 pr-2 py-1.5 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400"
               />
             </div>
           </div>
@@ -493,7 +493,7 @@ function SortableOption({
               type="checkbox"
               checked={optionForm.is_default}
               onChange={e => setOptionForm({ ...optionForm, is_default: e.target.checked })}
-              className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
+              className="w-3.5 h-3.5 rounded-sm border-gray-300 text-emerald-500 focus:ring-emerald-400"
             />
             <span className="text-[11px] font-medium text-gray-600 whitespace-nowrap">{t.modifiers_isDefaultShort}</span>
           </label>
@@ -516,7 +516,7 @@ function SortableOption({
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 flex-shrink-0 touch-none"
+        className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 shrink-0 touch-none"
         tabIndex={-1}
         aria-label="Drag to reorder"
       >
@@ -526,12 +526,12 @@ function SortableOption({
       <span className="flex-1 text-sm text-gray-700 font-medium min-w-0 truncate">
         {opt.name}
         {opt.is_default && (
-          <span className="ml-2 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 align-middle">
+          <span className="ml-2 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-emerald-100 text-emerald-700 align-middle">
             {t.modifiers_isDefaultShort}
           </span>
         )}
         {hasHours(opt) && (
-          <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 align-middle">
+          <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-amber-50 text-amber-700 align-middle">
             {optionHoursLabel(opt, lang)}
           </span>
         )}
@@ -539,7 +539,7 @@ function SortableOption({
       {margin != null && (
         <span
           className={cn(
-            'text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 hidden sm:inline',
+            'text-[10px] font-semibold px-1.5 py-0.5 rounded-sm shrink-0 hidden sm:inline',
             margin >= 60 ? 'bg-emerald-50 text-emerald-600' : margin >= 30 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500',
           )}
           title={t.modifiers_optionCostHint}
@@ -547,11 +547,11 @@ function SortableOption({
           {margin.toFixed(0)}%
         </span>
       )}
-      <span className={cn('text-sm font-mono px-2 py-0.5 rounded flex-shrink-0', price !== 0 ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-400')}>
+      <span className={cn('text-sm font-mono px-2 py-0.5 rounded-sm shrink-0', price !== 0 ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-400')}>
         {price > 0 ? `+${currSymbol}${price.toFixed(2)}` : price < 0 ? `-${currSymbol}${Math.abs(price).toFixed(2)}` : t.modifiers_base}
       </span>
-      <button onClick={() => onEdit(opt)} className="p-1 rounded hover:bg-gray-100 text-gray-400 flex-shrink-0"><Pencil className="w-3.5 h-3.5" /></button>
-      <button onClick={() => onDelete(opt.id, groupId)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 flex-shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
+      <button onClick={() => onEdit(opt)} className="p-1 rounded-sm hover:bg-gray-100 text-gray-400 shrink-0"><Pencil className="w-3.5 h-3.5" /></button>
+      <button onClick={() => onDelete(opt.id, groupId)} className="p-1 rounded-sm hover:bg-red-50 text-gray-400 hover:text-red-500 shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
     </div>
   );
 }
@@ -656,7 +656,7 @@ function SortableGroup({
               <option value="multi">{t.modifiers_multiLabel}</option>
             </select>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
+              <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked })} className="w-4 h-4 rounded-sm border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
               <span className="text-sm text-gray-700">{t.modifiers_required}</span>
             </label>
           </div>
@@ -725,7 +725,7 @@ function SortableGroup({
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 flex-shrink-0 touch-none"
+            className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 shrink-0 touch-none"
             tabIndex={-1}
             aria-label="Drag to reorder"
           >
@@ -734,14 +734,14 @@ function SortableGroup({
 
           {/* Expand/collapse */}
           <button onClick={onToggleExpand} className="flex items-center gap-2 flex-1 min-w-0 text-left">
-            <ChevronRight className={cn('w-4 h-4 text-gray-400 transition-transform flex-shrink-0', isExpanded && 'rotate-90')} />
+            <ChevronRight className={cn('w-4 h-4 text-gray-400 transition-transform shrink-0', isExpanded && 'rotate-90')} />
             <span className="text-sm font-semibold text-gray-900 truncate">{group.name}</span>
-            <span className="text-[11px] text-gray-400 flex-shrink-0">{group.options.length} {t.modifiers_options}</span>
+            <span className="text-[11px] text-gray-400 shrink-0">{group.options.length} {t.modifiers_options}</span>
           </button>
 
           {dependencyIds(group).length > 0 && (
             <span
-              className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-purple-50 text-purple-600 items-center gap-1 hidden sm:inline-flex"
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 bg-purple-50 text-purple-600 items-center gap-1 hidden sm:inline-flex"
               title={t.modifiers_conditionalHint}
             >
               <GitBranch className="w-2.5 h-2.5" />
@@ -750,21 +750,21 @@ function SortableGroup({
           )}
           {sharedCount > 1 && (
             <span
-              className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-blue-50 text-blue-600 items-center gap-1 hidden sm:inline-flex"
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 bg-blue-50 text-blue-600 items-center gap-1 hidden sm:inline-flex"
               title={t.modifiers_sharedWarning.replace('{n}', String(sharedCount))}
             >
               <Link2 className="w-2.5 h-2.5" />
               {t.modifiers_sharedBadge}
             </span>
           )}
-          <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', group.is_required ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500')}>
+          <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0', group.is_required ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500')}>
             {ruleLabel}
           </span>
           {sharedCount > 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); onUnlink(group.id); }}
               title={t.modifiers_unlink}
-              className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
+              className="p-1 rounded-sm hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors shrink-0"
             >
               <Unlink className="w-3.5 h-3.5" />
             </button>
@@ -772,12 +772,12 @@ function SortableGroup({
           <button
             onClick={(e) => { e.stopPropagation(); onToggleDisplayType(group); }}
             title={group.display_type === 'grid' ? t.modifiers_displayList : t.modifiers_displayGrid}
-            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-emerald-500 transition-colors flex-shrink-0"
+            className="p-1 rounded-sm hover:bg-gray-100 text-gray-400 hover:text-emerald-500 transition-colors shrink-0"
           >
             {group.display_type === 'grid' ? <LayoutGrid className="w-3.5 h-3.5 text-emerald-500" /> : <LayoutList className="w-3.5 h-3.5" />}
           </button>
-          <button onClick={(e) => { e.stopPropagation(); onStartEditGroup(); }} className="p-1 rounded hover:bg-gray-100 text-gray-400 flex-shrink-0"><Pencil className="w-3.5 h-3.5" /></button>
-          <button onClick={(e) => { e.stopPropagation(); onDeleteGroup(group.id); }} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 flex-shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onStartEditGroup(); }} className="p-1 rounded-sm hover:bg-gray-100 text-gray-400 shrink-0"><Pencil className="w-3.5 h-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onDeleteGroup(group.id); }} className="p-1 rounded-sm hover:bg-red-50 text-gray-400 hover:text-red-500 shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       )}
 
@@ -818,13 +818,13 @@ function SortableGroup({
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{t.editor_name}</label>
-                  <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.modifiers_optionPlaceholder} autoFocus className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                  <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.modifiers_optionPlaceholder} autoFocus className="w-full text-sm px-2 py-1.5 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400" />
                 </div>
                 <div className="w-28">
                   <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{lang === 'en' ? 'Extra price' : 'Precio extra'}</label>
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
-                    <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                    <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm pl-6 pr-2 py-1.5 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400" />
                   </div>
                   <p className="text-[9px] text-gray-400 mt-0.5">{t.modifiers_priceHint}</p>
                 </div>
@@ -832,7 +832,7 @@ function SortableGroup({
                   <label className="text-[10px] font-medium text-gray-500 mb-0.5 block" title={t.modifiers_optionCostHint}>{t.modifiers_optionCost}</label>
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
-                    <input value={optionForm.cost_price} onChange={e => setOptionForm({ ...optionForm, cost_price: e.target.value })} placeholder="—" type="number" step="0.01" min="0" className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                    <input value={optionForm.cost_price} onChange={e => setOptionForm({ ...optionForm, cost_price: e.target.value })} placeholder="—" type="number" step="0.01" min="0" className="w-full text-sm pl-6 pr-2 py-1.5 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400" />
                   </div>
                 </div>
               </div>
@@ -850,7 +850,7 @@ function SortableGroup({
                   type="checkbox"
                   checked={optionForm.is_default}
                   onChange={e => setOptionForm({ ...optionForm, is_default: e.target.checked })}
-                  className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
+                  className="mt-0.5 w-3.5 h-3.5 rounded-sm border-gray-300 text-emerald-500 focus:ring-emerald-400"
                 />
                 <span>
                   <span className="text-[11px] font-medium text-gray-700 block">{t.modifiers_isDefault}</span>
@@ -988,12 +988,12 @@ function LibraryPicker({
           <button
             type="button"
             onClick={() => setMode('copy')}
-            className="w-full text-left p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/40 focus:outline-none focus:border-emerald-400 transition-colors group"
+            className="w-full text-left p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/40 focus:outline-hidden focus:border-emerald-400 transition-colors group"
           >
             <span className="flex items-center gap-2 mb-1">
-              <Copy className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <Copy className="w-4 h-4 text-emerald-600 shrink-0" />
               <span className="text-sm font-bold text-gray-900">{t.modifiers_copyModeTitle}</span>
-              <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+              <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-emerald-100 text-emerald-700">
                 {t.modifiers_copyModeSafe}
               </span>
             </span>
@@ -1005,17 +1005,17 @@ function LibraryPicker({
           <button
             type="button"
             onClick={() => setMode('link')}
-            className="w-full text-left p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/40 focus:outline-none focus:border-blue-400 transition-colors"
+            className="w-full text-left p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50/40 focus:outline-hidden focus:border-blue-400 transition-colors"
           >
             <span className="flex items-center gap-2 mb-1">
-              <Link2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <Link2 className="w-4 h-4 text-blue-600 shrink-0" />
               <span className="text-sm font-bold text-gray-900">{t.modifiers_linkModeTitle}</span>
             </span>
             <span className="block text-xs text-gray-600 leading-relaxed pl-6">
               {t.modifiers_linkModeBody}
             </span>
             <span className="flex items-center gap-1.5 mt-2 pl-6 text-[11px] font-semibold text-amber-700">
-              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               {t.modifiers_linkModeCaution}
             </span>
           </button>
@@ -1029,8 +1029,8 @@ function LibraryPicker({
             mode === 'link' ? 'bg-blue-50 border-blue-200' : 'bg-emerald-50 border-emerald-200',
           )}>
             {mode === 'link'
-              ? <Link2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-              : <Copy className="w-4 h-4 text-emerald-600 flex-shrink-0" />}
+              ? <Link2 className="w-4 h-4 text-blue-600 shrink-0" />
+              : <Copy className="w-4 h-4 text-emerald-600 shrink-0" />}
             <span className={cn(
               'text-xs font-bold flex-1 min-w-0',
               mode === 'link' ? 'text-blue-800' : 'text-emerald-800',
@@ -1039,7 +1039,7 @@ function LibraryPicker({
             </span>
             <button
               onClick={() => { setMode(null); setPicked(new Set()); }}
-              className="text-[11px] font-semibold text-gray-500 hover:text-gray-800 underline flex-shrink-0"
+              className="text-[11px] font-semibold text-gray-500 hover:text-gray-800 underline shrink-0"
             >
               {t.modifiers_changeMode}
             </button>
@@ -1061,7 +1061,7 @@ function LibraryPicker({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={t.modifiers_copyFromSearch}
-              className="w-full text-sm pl-8 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="w-full text-sm pl-8 pr-2 py-1.5 rounded-sm bg-white border border-gray-200 text-gray-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-400"
             />
           </div>
 
@@ -1087,14 +1087,14 @@ function LibraryPicker({
                         checked={picked.has(g.id)}
                         onChange={() => toggle(g.id)}
                         className={cn(
-                          'w-4 h-4 rounded border-gray-300 focus:ring-2',
+                          'w-4 h-4 rounded-sm border-gray-300 focus:ring-2',
                           mode === 'link'
                             ? 'text-blue-600 focus:ring-blue-400'
                             : 'text-emerald-600 focus:ring-emerald-400',
                         )}
                       />
                       <span className="flex-1 text-sm text-gray-800 font-medium truncate">{g.name}</span>
-                      <span className="text-[10px] text-gray-400 flex-shrink-0">
+                      <span className="text-[10px] text-gray-400 shrink-0">
                         {g.option_count} {t.modifiers_options}
                       </span>
                     </label>
@@ -1645,7 +1645,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
             </div>
             <div>
               <label className="flex items-center gap-2 mt-5 cursor-pointer">
-                <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked, min_select: e.target.checked ? '1' : '0' })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
+                <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked, min_select: e.target.checked ? '1' : '0' })} className="w-4 h-4 rounded-sm border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
                 <span className="text-sm text-gray-700 font-medium">{t.modifiers_required}</span>
               </label>
             </div>

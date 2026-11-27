@@ -520,7 +520,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     return (
       <div className="min-h-screen bg-[#F2F2F6] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-[3px] border-gray-200 border-t-[#05c8a7] rounded-full motion-safe:animate-spin mx-auto mb-4" />
+          <div className="w-10 h-10 border-[3px] border-gray-200 border-t-brand-500 rounded-full motion-safe:animate-spin mx-auto mb-4" />
           <p className="text-sm text-gray-600">{t.loading}</p>
         </div>
       </div>
@@ -530,7 +530,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   if (error || !order) {
     if (showPaidBanner) {
       return (
-        <div className="min-h-[100dvh] bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
+        <div className="min-h-dvh bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
           <div className="max-w-sm w-full">
             <div className="w-20 h-20 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 className="w-10 h-10 text-[#047a65]" />
@@ -540,7 +540,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             <div className="space-y-3">
               <button
                 onClick={() => { setLoading(true); setError(''); fetchOrder(); }}
-                className="w-full py-3.5 rounded-2xl bg-[#05c8a7] text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
+                className="w-full py-3.5 rounded-2xl bg-brand-500 text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
               >
                 {t.viewOrderStatus}
               </button>
@@ -553,7 +553,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       );
     }
     return (
-      <div className="min-h-[100dvh] bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-dvh bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
         <div className="max-w-sm w-full">
           <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
             <Clock className="w-8 h-8 text-amber-500" />
@@ -563,7 +563,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           <div className="space-y-3">
             <button
               onClick={() => { setLoading(true); setError(''); fetchOrder(); }}
-              className="w-full py-3.5 rounded-2xl bg-[#05c8a7] text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
+              className="w-full py-3.5 rounded-2xl bg-brand-500 text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
             >
               {t.tryAgain}
             </button>
@@ -897,7 +897,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const cashWhere = isDelivery ? (en ? 'on delivery' : 'al recibir') : isDineIn ? (en ? 'at the table' : 'en la mesa') : (en ? 'at pickup' : 'al recoger');
 
   // ── Piezas ──
-  const groupCls = 'rounded-[18px] overflow-hidden';
+  const groupCls = 'rounded-2xl overflow-hidden';
   const groupStyle = { background: K.card, boxShadow: K.shadow };
   const linkCls = 'inline-flex items-center min-h-[44px] text-[14px] font-semibold';
   const ctaCls = 'w-full h-14 rounded-2xl flex items-center justify-center gap-2 text-[17px] font-semibold tracking-[-0.01em] active:scale-[0.985] transition-transform disabled:opacity-60';
@@ -913,12 +913,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       <p className="text-[12px] uppercase tracking-[0.03em] mb-2" style={{ fontFamily: K.mono, color: K.faint }}>
         {en ? 'Order' : 'Pedido'} <b style={{ color: K.ink, fontWeight: 600 }}>#{shortNum}</b> · {typeLabel}
       </p>
-      <h1 className="text-[28px] min-[860px]:text-[32px] leading-[1.12] font-bold tracking-[-0.028em] outline-none" style={{ textWrap: 'balance' } as React.CSSProperties}>
+      <h1 className="text-[28px] min-[860px]:text-[32px] leading-[1.12] font-bold tracking-[-0.028em] outline-hidden" style={{ textWrap: 'balance' } as React.CSSProperties}>
         {headline}
       </h1>
       {lead && <p className="mt-pretty mt-1.5 text-[15px] min-[860px]:text-[16.5px] leading-[1.45] max-w-[36ch]" style={{ color: K.sub }}>{lead}</p>}
       {anchor && ('code' in anchor ? (
-        <div className="mt-[18px] rounded-[18px] px-[18px] py-4 grid gap-0.5" style={{ background: K.brand, color: K.brandInk }}>
+        <div className="mt-[18px] rounded-2xl px-[18px] py-4 grid gap-0.5" style={{ background: K.brand, color: K.brandInk }}>
           <span className="text-[12px] uppercase tracking-[0.03em] font-medium opacity-90" style={{ fontFamily: K.mono }}>{anchor.lbl}</span>
           <span className="text-[48px] min-[860px]:text-[56px] leading-[1.02] font-bold tracking-[-0.045em] tabular-nums">{anchor.val}</span>
           {anchor.ctx && <span className="text-[14px] opacity-85">{anchor.ctx}</span>}
@@ -951,7 +951,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           return (
             <li key={s.key} className="grid grid-cols-[22px_1fr_auto] gap-3 relative pb-3.5" aria-current={state === 'now' ? 'step' : undefined}>
               {!last && <span className="absolute left-[10px] top-[22px] bottom-0 w-0.5" style={{ background: state === 'done' ? K.brand : K.line }} aria-hidden />}
-              <span className={`relative z-[1] w-[22px] h-[22px] rounded-full grid place-items-center ${state === 'now' ? 'mt-now' : ''}`}
+              <span className={`relative z-1 w-[22px] h-[22px] rounded-full grid place-items-center ${state === 'now' ? 'mt-now' : ''}`}
                 style={state === 'done' ? { background: K.brand } : state === 'now' ? { background: K.card, boxShadow: `inset 0 0 0 7px ${K.brand}` } : { background: K.card, boxShadow: `inset 0 0 0 2px ${K.line}` }} aria-hidden>
                 {state === 'done' && <Check className="w-3 h-3" strokeWidth={3.4} style={{ color: K.brandInk }} />}
               </span>
@@ -1043,7 +1043,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   ) : null;
 
   const rowIcon = (node: React.ReactNode) => (
-    <span className="w-8 h-8 rounded-[9px] grid place-items-center flex-shrink-0" style={{ background: K.surface2, color: K.sub }} aria-hidden>{node}</span>
+    <span className="w-8 h-8 rounded-[9px] grid place-items-center shrink-0" style={{ background: K.surface2, color: K.sub }} aria-hidden>{node}</span>
   );
   const rowCls = 'grid grid-cols-[32px_1fr_auto] items-center gap-3 px-3.5 py-3 min-h-[60px] text-left';
   const rowDivider = { borderTop: `1px solid ${K.line}` };
@@ -1123,7 +1123,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   if ((o.order_items?.length ?? 0) > 0) {
     detailRows.push(
       <div key="items">
-        <button type="button" onClick={() => setItemsOpen((v) => !v)} aria-expanded={itemsOpen} className={`${rowCls} w-full active:bg-[var(--tk-surface-2)]`}>
+        <button type="button" onClick={() => setItemsOpen((v) => !v)} aria-expanded={itemsOpen} className={`${rowCls} w-full active:bg-(--tk-surface-2)`}>
           {rowIcon(<ShoppingBag className="w-[17px] h-[17px]" />)}
           <span className="min-w-0"><span className="block text-[12.5px]" style={{ color: K.faint }}>{t.yourOrderLabel}</span><span className="block text-[15.5px] font-medium tabular-nums">{itemCount} {itemCount === 1 ? t.itemSingular : t.itemPlural} · {amount}</span></span>
           <ChevronRight className="w-4 h-4 transition-transform" style={{ color: K.faint, transform: itemsOpen ? 'rotate(90deg)' : undefined }} aria-hidden />
@@ -1140,14 +1140,14 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     {Array.isArray(item.lines) ? (item.lines as { text: string; price: number; indent: boolean }[]).map((l, k) => (
                       <span key={k} className="flex justify-between gap-3 text-[12.5px] leading-snug" style={{ color: K.sub, paddingLeft: l.indent ? 12 : 0 }}>
                         <span>{l.indent && <span style={{ color: K.faint }}>↳ </span>}{l.text}</span>
-                        {l.price > 0 && <span className="tabular-nums flex-shrink-0" style={{ color: K.faint }}>+{formatPrice(l.price, currency)}</span>}
+                        {l.price > 0 && <span className="tabular-nums shrink-0" style={{ color: K.faint }}>+{formatPrice(l.price, currency)}</span>}
                       </span>
                     )) : Array.isArray(item.modifiers) && item.modifiers.length > 0 && (
                       <span className="block text-[12.5px] leading-snug" style={{ color: K.sub }}>{(item.modifiers as { name: string }[]).map((m) => m.name).join(', ')}</span>
                     )}
                     {item.notes && <span className="block text-[12.5px]" style={{ color: K.sub }}>{item.notes}</span>}
                   </span>
-                  <span className="tabular-nums flex-shrink-0" style={{ color: K.sub }}>{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
+                  <span className="tabular-nums shrink-0" style={{ color: K.sub }}>{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
                 </li>
               ))}
             </ul>
@@ -1171,7 +1171,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   ) : null;
 
   const photoBlock = isComplete && o.delivery_photo_url ? (
-    <a href={o.delivery_photo_url} target="_blank" rel="noopener noreferrer" className={`relative block w-full aspect-[4/3] ${groupCls}`} style={groupStyle}>
+    <a href={o.delivery_photo_url} target="_blank" rel="noopener noreferrer" className={`relative block w-full aspect-4/3 ${groupCls}`} style={groupStyle}>
       <Image src={o.delivery_photo_url} alt={t.deliveryProofAlt} fill sizes="(max-width: 480px) 100vw, 450px" className="object-cover" />
     </a>
   ) : null;
@@ -1237,7 +1237,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const rootVars = { '--brand': brand.brand, '--brand-ink': brand.ink, '--brand-soft': brand.soft, background: K.surface, color: K.ink } as React.CSSProperties;
 
   return (
-    <div className={`mt-root min-h-[100dvh] flex flex-col font-sans antialiased`} style={rootVars}>
+    <div className={`mt-root min-h-dvh flex flex-col font-sans antialiased`} style={rootVars}>
       <style>{TRACKER_CSS}</style>
       <div className="sr-only" aria-live="polite" aria-atomic="true">{headline}</div>
 
@@ -1249,9 +1249,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           <div className="flex items-center justify-center min-[860px]:justify-start gap-2.5 min-w-0">
             {restaurantLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={restaurantLogo} alt="" width={38} height={38} className="w-[38px] h-[38px] rounded-full object-cover flex-shrink-0" style={{ boxShadow: `0 0 0 2px ${K.card}, 0 0 0 3px ${K.line}` }} />
+              <img src={restaurantLogo} alt="" width={38} height={38} className="w-[38px] h-[38px] rounded-full object-cover shrink-0" style={{ boxShadow: `0 0 0 2px ${K.card}, 0 0 0 3px ${K.line}` }} />
             ) : (
-              <span className="w-[38px] h-[38px] rounded-full grid place-items-center text-[12px] font-bold flex-shrink-0" style={{ background: K.brand, color: K.brandInk }} aria-hidden>{initials}</span>
+              <span className="w-[38px] h-[38px] rounded-full grid place-items-center text-[12px] font-bold shrink-0" style={{ background: K.brand, color: K.brandInk }} aria-hidden>{initials}</span>
             )}
             <b className="truncate text-[16.5px] font-semibold tracking-[-0.015em]">{R}</b>
           </div>
@@ -1344,7 +1344,7 @@ function DeliveryInstructions({ orderId, token, editable, address, notes, rawNot
             <label htmlFor="delivery-notes" className="sr-only">{en ? 'Delivery instructions' : 'Instrucciones de entrega'}</label>
             <textarea id="delivery-notes" value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={480} rows={3}
               placeholder={en ? 'Apt, buzzer, gate code…' : 'Apto, timbre, código del portón…'}
-              className="w-full rounded-xl px-3 py-2 text-[16px] outline-none" style={{ background: K.surface2, boxShadow: `inset 0 0 0 1px ${K.line}` }} />
+              className="w-full rounded-xl px-3 py-2 text-[16px] outline-hidden" style={{ background: K.surface2, boxShadow: `inset 0 0 0 1px ${K.line}` }} />
             {err && <p className="text-[13px] font-semibold" style={{ color: K.red }} role="alert">{err}</p>}
             <div className="flex gap-2">
               <button type="button" onClick={save} disabled={saving} className="h-11 px-4 rounded-xl text-[14px] font-semibold disabled:opacity-60" style={{ background: K.btn, color: K.btnFg }}>
@@ -1421,9 +1421,9 @@ function FeedbackPrompt({ restaurantId, restaurantName, orderId, orderType, cust
   const errLine = sendErr ? <p className="text-[13px] font-semibold" style={{ color: K.red }} role="alert">{en ? "Couldn't send. Try again." : 'No se pudo enviar. Intenta de nuevo.'}</p> : null;
 
   return (
-    <section className="rounded-[18px] px-3.5 py-3.5 grid gap-2.5" style={{ background: K.card, boxShadow: K.shadow }}>
+    <section className="rounded-2xl px-3.5 py-3.5 grid gap-2.5" style={{ background: K.card, boxShadow: K.shadow }}>
       {mode === 'done' ? (
-        <p className="rounded-[14px] px-3.5 py-3 text-[13.5px] leading-[1.45]" style={{ background: K.brandSoft, color: K.ink }} role="status">
+        <p className="rounded-xl px-3.5 py-3 text-[13.5px] leading-[1.45]" style={{ background: K.brandSoft, color: K.ink }} role="status">
           {reason
             ? <>{en ? `${restaurantName} got your report ("${reason}").` : `${restaurantName} recibió tu reporte ("${reason}").`}{' '}
                 {orderType === 'dine_in'
@@ -1457,7 +1457,7 @@ function FeedbackPrompt({ restaurantId, restaurantName, orderId, orderType, cust
           <label htmlFor="review-comment" className="sr-only">{en ? 'Comment' : 'Comentario'}</label>
           <textarea id="review-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} rows={2}
             placeholder={en ? 'Anything to add? (optional)' : '¿Algo que agregar? (opcional)'}
-            className="w-full rounded-xl px-3 py-2 text-[16px] outline-none" style={{ background: K.surface2, boxShadow: `inset 0 0 0 1px ${K.line}` }} />
+            className="w-full rounded-xl px-3 py-2 text-[16px] outline-hidden" style={{ background: K.surface2, boxShadow: `inset 0 0 0 1px ${K.line}` }} />
           {errLine}
           <button type="button" onClick={send} disabled={sending} className="h-12 rounded-2xl text-[15px] font-semibold disabled:opacity-60" style={{ background: K.btn, color: K.btnFg }}>
             {sending ? '…' : (en ? 'Send' : 'Enviar')}
@@ -1477,7 +1477,7 @@ function FeedbackPrompt({ restaurantId, restaurantName, orderId, orderType, cust
           <label htmlFor="issue-comment" className="sr-only">{en ? 'Details' : 'Detalles'}</label>
           <textarea id="issue-comment" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={400} rows={2}
             placeholder={en ? 'Tell us a bit more (optional)' : 'Cuéntanos un poco más (opcional)'}
-            className="w-full rounded-xl px-3 py-2 text-[16px] outline-none" style={{ background: K.surface2, boxShadow: `inset 0 0 0 1px ${K.line}` }} />
+            className="w-full rounded-xl px-3 py-2 text-[16px] outline-hidden" style={{ background: K.surface2, boxShadow: `inset 0 0 0 1px ${K.line}` }} />
           {errLine}
           <button type="button" onClick={send} disabled={sending || !reason} className="h-12 rounded-2xl text-[15px] font-semibold disabled:opacity-50" style={{ background: K.btn, color: K.btnFg }}>
             {sending ? '…' : (en ? `Send to ${restaurantName}` : `Enviar a ${restaurantName}`)}
@@ -1864,7 +1864,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                 )}
                 {result.pdfUrl && (
                   <a href={result.pdfUrl} target="_blank" rel="noopener noreferrer"
-                    className="block w-full py-2.5 rounded-xl bg-[#05c8a7] text-[#04241E] text-sm font-semibold hover:bg-[#04b096] transition-colors">
+                    className="block w-full py-2.5 rounded-xl bg-brand-500 text-[#04241E] text-sm font-semibold hover:bg-[#04b096] transition-colors">
                     📋 {t.cfdiIssuedPdf}
                   </a>
                 )}
@@ -1886,7 +1886,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                     onChange={e => setForm(f => ({ ...f, rfc: e.target.value.toUpperCase() }))}
                     placeholder={t.cfdiRfcPlaceholder}
                     maxLength={13}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7] uppercase"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-hidden focus:border-brand-500 uppercase"
                   />
                 </div>
 
@@ -1897,7 +1897,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                     value={form.razonSocial}
                     onChange={e => setForm(f => ({ ...f, razonSocial: e.target.value }))}
                     placeholder="Nombre o razón social"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-hidden focus:border-brand-500"
                   />
                 </div>
 
@@ -1906,7 +1906,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                   <select
                     value={form.cfdiUse}
                     onChange={e => setForm(f => ({ ...f, cfdiUse: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7] bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-hidden focus:border-brand-500 bg-white"
                   >
                     {CFDI_USES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -1917,7 +1917,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                   <select
                     value={form.regimenFiscal}
                     onChange={e => setForm(f => ({ ...f, regimenFiscal: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7] bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-hidden focus:border-brand-500 bg-white"
                   >
                     {REGIMEN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -1931,14 +1931,14 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                     placeholder="00000"
                     maxLength={5}
                     inputMode="numeric"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-hidden focus:border-brand-500"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting || !form.rfc || !form.razonSocial}
-                  className="w-full py-3 rounded-xl bg-[#05c8a7] text-[#04241E] font-semibold text-sm hover:bg-[#04b096] transition-colors disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-brand-500 text-[#04241E] font-semibold text-sm hover:bg-[#04b096] transition-colors disabled:opacity-50"
                 >
                   {submitting ? t.cfdiSubmitting : t.cfdiSubmit}
                 </button>

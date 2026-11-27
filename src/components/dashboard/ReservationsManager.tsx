@@ -140,14 +140,14 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
           <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
             <button
               onClick={() => setView('list')}
-              className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors', view === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors', view === 'list' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700')}
             >
               <List className="w-3.5 h-3.5" />
               {isEs ? 'Lista' : 'List'}
             </button>
             <button
               onClick={() => setView('calendar')}
-              className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors', view === 'calendar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors', view === 'calendar' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700')}
             >
               <Grid3X3 className="w-3.5 h-3.5" />
               {isEs ? 'Calendario' : 'Calendar'}
@@ -178,7 +178,7 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
               onClick={() => setEnabled(!enabled)}
               className={cn('relative w-11 h-6 rounded-full transition-colors', enabled ? 'bg-emerald-500' : 'bg-gray-200')}
             >
-              <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform', enabled && 'translate-x-5')} />
+              <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform', enabled && 'translate-x-5')} />
             </button>
           </label>
           <div className="flex justify-end gap-2 pt-2">
@@ -249,7 +249,7 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
           type="date"
           value={selectedDate}
           onChange={e => setSelectedDate(e.target.value)}
-          className="text-xs text-gray-500 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-gray-400"
+          className="text-xs text-gray-500 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-hidden focus:border-gray-400"
         />
       </div>
 
@@ -304,7 +304,7 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
                     )}
                   </div>
                   {r.status === 'pending' && (
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => updateStatus(r.id, 'confirmed')}
                         disabled={updating === r.id}
@@ -324,7 +324,7 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
                     </div>
                   )}
                   {r.status === 'confirmed' && (
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {(r.customer_email || r.customer_phone) && (
                         <button
                           onClick={() => {
@@ -353,7 +353,7 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
                       <button
                         onClick={() => updateStatus(r.id, 'no_show')}
                         disabled={updating === r.id}
-                        className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                        className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
                       >
                         <AlertCircle className="w-3.5 h-3.5" />
                         No-show
@@ -381,7 +381,7 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
                 const cfg = STATUS_CONFIG[r.status];
                 return (
                   <div key={r.id} className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3">
-                    <div className="text-center w-12 flex-shrink-0">
+                    <div className="text-center w-12 shrink-0">
                       <p className="text-[10px] text-gray-400 uppercase">{formatDate(r.reserved_date, locale).split(',')[0]}</p>
                       <p className="text-sm font-bold text-gray-900">{new Date(r.reserved_date + 'T12:00:00').getDate()}</p>
                     </div>
@@ -491,19 +491,19 @@ function CalendarGrid({ reservations, selectedDate, onSelectDate, locale }: {
               onClick={() => onSelectDate(dateStr)}
               className={cn(
                 'relative flex flex-col items-center justify-start py-1.5 min-h-[52px] rounded-lg text-xs font-semibold transition-colors',
-                isSelected ? 'bg-[#05c8a7] text-white' : isToday ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-gray-50 text-gray-700'
+                isSelected ? 'bg-brand-500 text-white' : isToday ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-gray-50 text-gray-700'
               )}
             >
               <span>{parseInt(dateStr.split('-')[2], 10)}</span>
               {rsvs.length > 0 && (
                 <div className="flex items-center gap-0.5 mt-1 flex-wrap justify-center">
                   {pending > 0 && (
-                    <span className={cn('px-1 py-0.5 rounded text-[9px] font-bold', isSelected ? 'bg-white/30 text-white' : 'bg-amber-100 text-amber-700')}>
+                    <span className={cn('px-1 py-0.5 rounded-sm text-[9px] font-bold', isSelected ? 'bg-white/30 text-white' : 'bg-amber-100 text-amber-700')}>
                       {pending}P
                     </span>
                   )}
                   {confirmed > 0 && (
-                    <span className={cn('px-1 py-0.5 rounded text-[9px] font-bold', isSelected ? 'bg-white/30 text-white' : 'bg-emerald-100 text-emerald-700')}>
+                    <span className={cn('px-1 py-0.5 rounded-sm text-[9px] font-bold', isSelected ? 'bg-white/30 text-white' : 'bg-emerald-100 text-emerald-700')}>
                       {confirmed}C
                     </span>
                   )}

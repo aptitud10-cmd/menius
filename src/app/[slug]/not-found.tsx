@@ -42,7 +42,7 @@ export default function StoreNotFound() {
 
   const c = COPY[lang];
   return (
-    <main lang={lang} className="min-h-[100dvh] bg-[#f5f5f3] flex items-center justify-center px-6">
+    <main lang={lang} className="min-h-dvh bg-[#f5f5f3] flex items-center justify-center px-6">
       <div className="max-w-sm text-center">
         <h1 className="font-menu text-[38px] leading-[1.1] text-gray-900">
           {isStoreRoot ? c.storeTitle : c.pageTitle}
@@ -53,7 +53,7 @@ export default function StoreNotFound() {
         {!isStoreRoot && slug && (
           <a
             href={`/${slug}`}
-            className="mt-8 inline-flex h-12 items-center rounded-full bg-[#05c8a7] px-6 text-[15px] font-semibold text-[#04241E] transition-colors hover:bg-[#04b096]"
+            className="mt-8 inline-flex h-12 items-center rounded-full bg-brand-500 px-6 text-[15px] font-semibold text-[#04241E] transition-colors hover:bg-[#04b096]"
           >
             {c.back}
           </a>

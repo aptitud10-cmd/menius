@@ -15,7 +15,7 @@ export function LegalBackButton({ slug, menuLabel, checkoutLabel }: { slug: stri
     setFromCheckout(new URLSearchParams(window.location.search).get('from') === 'checkout');
   }, []);
 
-  const cls = 'relative -ml-2 flex items-center gap-1 h-11 pr-2 pl-1 rounded-full text-[15px] font-medium text-[#111114] hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]';
+  const cls = 'relative -ml-2 flex items-center gap-1 h-11 pr-2 pl-1 rounded-full text-[15px] font-medium text-[#111114] hover:bg-black/4 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500';
 
   if (fromCheckout) {
     return (

@@ -63,13 +63,13 @@ export function ActivationBanner({ slug, restaurantName, locale = 'es' }: Activa
   const menuUrl = `${appUrl}/${slug}`;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 p-4 md:p-5 mb-6">
+    <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-amber-50 to-orange-50 border border-amber-200/80 p-4 md:p-5 mb-6">
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100/60 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
 
       <button
         onClick={dismiss}
-        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-amber-100 hover:bg-amber-200 flex items-center justify-center transition-colors flex-shrink-0"
+        className="absolute top-3 right-3 w-7 h-7 rounded-full bg-amber-100 hover:bg-amber-200 flex items-center justify-center transition-colors shrink-0"
         aria-label={locale === 'en' ? 'Close' : 'Cerrar'}
       >
         <X className="w-3.5 h-3.5 text-amber-700" />
@@ -77,7 +77,7 @@ export function ActivationBanner({ slug, restaurantName, locale = 'es' }: Activa
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pr-8">
         {/* Icon */}
-        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center">
+        <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center">
           <QrCode className="w-5 h-5 text-amber-700" />
         </div>
 
@@ -94,7 +94,7 @@ export function ActivationBanner({ slug, restaurantName, locale = 'es' }: Activa
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <a
             href={menuUrl}
             target="_blank"
@@ -105,7 +105,7 @@ export function ActivationBanner({ slug, restaurantName, locale = 'es' }: Activa
           </a>
           <Link
             href="/app/tables"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors shadow-sm shadow-amber-200"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors shadow-xs shadow-amber-200"
           >
             {s.cta}
             <ArrowRight className="w-3.5 h-3.5" />

@@ -136,7 +136,7 @@ export function MediaGallery() {
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-100 rounded"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-100 rounded-sm"
               >
                 <X className="w-3.5 h-3.5 text-gray-400" />
               </button>
@@ -170,8 +170,8 @@ export function MediaGallery() {
             <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
               <div className="aspect-square bg-gray-100" />
               <div className="p-3 space-y-2">
-                <div className="h-3 bg-gray-100 rounded w-3/4" />
-                <div className="h-3 bg-gray-100 rounded w-1/2" />
+                <div className="h-3 bg-gray-100 rounded-sm w-3/4" />
+                <div className="h-3 bg-gray-100 rounded-sm w-1/2" />
               </div>
             </div>
           ))}
@@ -267,7 +267,7 @@ export function MediaGallery() {
       {/* Lightbox preview */}
       {previewUrl && (
         <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setPreviewUrl(null)}
         >
           <div className="relative max-w-3xl max-h-[85vh] w-full" onClick={e => e.stopPropagation()}>

@@ -135,19 +135,19 @@ export function CommandPalette({ slug }: { slug: string }) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-[60]"
+        className="fixed inset-0 bg-black/40 z-60"
         style={{ animation: 'fadeIn 0.1s ease-out both' }}
         onClick={() => setOpen(false)}
       />
 
       {/* Palette */}
       <div
-        className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl z-[61] border border-gray-200"
+        className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl z-61 border border-gray-200"
         style={{ animation: 'scaleIn 0.1s ease-out both' }}
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
-          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <Search className="w-4 h-4 text-gray-400 shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -155,9 +155,9 @@ export function CommandPalette({ slug }: { slug: string }) {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t.cmd_searchPlaceholder}
-            className="flex-1 text-sm text-gray-900 placeholder-gray-400 outline-none bg-transparent"
+            className="flex-1 text-sm text-gray-900 placeholder-gray-400 outline-hidden bg-transparent"
           />
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-gray-200 text-[10px] text-gray-400 font-mono">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm border border-gray-200 text-[10px] text-gray-400 font-mono">
             ESC
           </kbd>
         </div>
@@ -193,7 +193,7 @@ export function CommandPalette({ slug }: { slug: string }) {
                         )}
                       >
                         <item.icon className={cn(
-                          'w-4 h-4 flex-shrink-0',
+                          'w-4 h-4 shrink-0',
                           isActive ? 'text-emerald-500' : 'text-gray-400',
                         )} />
                         <span className="flex-1">{item.label}</span>
@@ -214,13 +214,13 @@ export function CommandPalette({ slug }: { slug: string }) {
         {/* Footer */}
         <div className="flex items-center gap-4 px-4 py-2 border-t border-gray-100 text-[10px] text-gray-400">
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 rounded border border-gray-200 font-mono">↑↓</kbd> {t.cmd_navigate}
+            <kbd className="px-1 py-0.5 rounded-sm border border-gray-200 font-mono">↑↓</kbd> {t.cmd_navigate}
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 rounded border border-gray-200 font-mono">↵</kbd> {t.cmd_go}
+            <kbd className="px-1 py-0.5 rounded-sm border border-gray-200 font-mono">↵</kbd> {t.cmd_go}
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 rounded border border-gray-200 font-mono">esc</kbd> {t.cmd_closeKey}
+            <kbd className="px-1 py-0.5 rounded-sm border border-gray-200 font-mono">esc</kbd> {t.cmd_closeKey}
           </span>
         </div>
       </div>

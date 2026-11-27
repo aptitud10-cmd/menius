@@ -43,7 +43,7 @@ export function MobileBottomNav() {
               )}
             >
               <item.icon
-                className={cn('w-[22px] h-[22px] flex-shrink-0', active ? 'text-emerald-600' : 'text-gray-400')}
+                className={cn('w-[22px] h-[22px] shrink-0', active ? 'text-emerald-600' : 'text-gray-400')}
                 strokeWidth={active ? 2.2 : 1.8}
               />
               <span className="truncate leading-tight max-w-full px-1">{shortLabel}</span>

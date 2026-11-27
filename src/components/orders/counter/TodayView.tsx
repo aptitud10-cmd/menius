@@ -241,7 +241,7 @@ export function TodayView({ en, restaurantName }: { en: boolean; restaurantName:
           </div>
           <span className="flex-1" />
           <button type="button" onClick={sameDo} disabled={pendingSame.length === 0 || busy !== null}
-            className="h-[52px] px-5 rounded-[14px] flex items-center gap-3 text-left disabled:opacity-40"
+            className="h-[52px] px-5 rounded-xl flex items-center gap-3 text-left disabled:opacity-40"
             style={{ border: '1px solid #ffffff22' }}>
             <RotateCcw className="w-5 h-5 flex-none" strokeWidth={2.2} />
             <span>
@@ -403,7 +403,7 @@ export function TodayView({ en, restaurantName }: { en: boolean; restaurantName:
                   <label className="h-[52px] rounded-xl flex items-center gap-2.5 px-4" style={{ background: '#fff', border: '1px solid #1E2A4422' }}>
                     <Search className="w-5 h-5 flex-none" style={{ color: K.navySub }} />
                     <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={T.search}
-                      className="flex-1 min-w-0 bg-transparent outline-none text-[16px]" style={{ color: K.navy }} />
+                      className="flex-1 min-w-0 bg-transparent outline-hidden text-[16px]" style={{ color: K.navy }} />
                   </label>
                   <div className="flex gap-2 mt-3 mb-1">
                     {(['recent', 'az'] as const).map((s) => (

@@ -72,9 +72,9 @@ export function RestaurantSwitcher({ currentRestaurantId, currentName, isEn }: P
           open ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
         )}
       >
-        <Store className="w-3.5 h-3.5 flex-shrink-0" />
+        <Store className="w-3.5 h-3.5 shrink-0" />
         <span className="max-w-[100px] truncate">{currentName}</span>
-        <ChevronDown className={cn('w-3.5 h-3.5 flex-shrink-0 transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={cn('w-3.5 h-3.5 shrink-0 transition-transform', open && 'rotate-180')} />
       </button>
 
       {open && (
@@ -101,11 +101,11 @@ export function RestaurantSwitcher({ currentRestaurantId, currentName, isEn }: P
                   )}
                 >
                   {switchingId === b.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                   ) : b.id === currentRestaurantId ? (
-                    <Check className="w-4 h-4 flex-shrink-0" />
+                    <Check className="w-4 h-4 shrink-0" />
                   ) : (
-                    <div className="w-4 h-4 flex-shrink-0" />
+                    <div className="w-4 h-4 shrink-0" />
                   )}
                   <span className="flex-1 truncate font-medium">{b.name}</span>
                   {!b.is_active && (
@@ -118,7 +118,7 @@ export function RestaurantSwitcher({ currentRestaurantId, currentName, isEn }: P
                   href="/app/business"
                   className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
                 >
-                  <Plus className="w-4 h-4 flex-shrink-0" />
+                  <Plus className="w-4 h-4 shrink-0" />
                   <span>{isEn ? 'Business overview' : 'Resumen del negocio'}</span>
                 </a>
               </div>

@@ -27,7 +27,7 @@ export function UpgradePromptModal({ open, onClose, reason }: UpgradePromptModal
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
       onClick={onClose}
     >
       <div
@@ -43,7 +43,7 @@ export function UpgradePromptModal({ open, onClose, reason }: UpgradePromptModal
           <X className="w-4 h-4" />
         </button>
 
-        <div className="bg-gradient-to-br from-purple-600 to-indigo-600 px-6 py-8 text-center">
+        <div className="bg-linear-to-br from-purple-600 to-indigo-600 px-6 py-8 text-center">
           <div className="w-14 h-14 rounded-2xl bg-white/20 mx-auto flex items-center justify-center mb-3">
             <Zap className="w-7 h-7 text-white" />
           </div>
@@ -76,7 +76,7 @@ export function UpgradePromptModal({ open, onClose, reason }: UpgradePromptModal
               isEn ? 'No MENIUS branding' : 'Sin marca MENIUS',
             ].map((feature) => (
               <div key={feature} className="flex items-start gap-2 text-sm text-gray-700">
-                <svg className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <span>{feature}</span>
@@ -86,7 +86,7 @@ export function UpgradePromptModal({ open, onClose, reason }: UpgradePromptModal
 
           <Link
             href="/app/billing?autoCheckout=pro"
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-linear-to-r from-purple-600 to-indigo-600 text-white font-semibold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all"
           >
             {isEn ? `Upgrade to ${plan.name}` : `Subir a ${plan.name}`}
             <ArrowRight className="w-4 h-4" />

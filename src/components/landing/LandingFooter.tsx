@@ -89,7 +89,7 @@ function SocialLinks() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label={s.label}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] border border-transparent hover:border-white/[0.08] transition-all duration-200"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/6 border border-transparent hover:border-white/8 transition-all duration-200"
         >
           {s.icon}
         </a>
@@ -105,14 +105,14 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
     <footer className="relative bg-black overflow-clip">
       <div className="relative hidden md:flex justify-center pt-12 pb-0 select-none pointer-events-none overflow-clip" aria-hidden="true">
         <span
-          className="font-bold text-white/[0.04] tracking-tighter leading-none whitespace-nowrap"
+          className="font-bold text-white/4 tracking-tighter leading-none whitespace-nowrap"
           style={{ fontSize: 'min(23vw, 25rem)' }}
         >
           MENIUS
         </span>
       </div>
 
-      <div className="relative z-10 -mt-[10vw] xl:-mt-[9rem] bg-black pt-10 md:pt-10 pb-[max(2rem,env(safe-area-inset-bottom))] md:pb-16">
+      <div className="relative z-10 mt-[-10vw] xl:-mt-36 bg-black pt-10 md:pt-10 pb-[max(2rem,env(safe-area-inset-bottom))] md:pb-16">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           {/* Mobile footer */}
           <div className="md:hidden space-y-6">
@@ -121,7 +121,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
               <p className="text-sm text-gray-400 mt-3 leading-relaxed">{f.tagline}</p>
               <div className="flex items-center gap-2 mt-4">
                 {['SSL', 'Stripe', 'CCPA'].map((b) => (
-                  <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-400 font-medium tracking-wide">{b}</span>
+                  <span key={b} className="px-2 py-0.5 rounded-sm border border-white/8 bg-white/3 text-[9px] text-gray-400 font-medium tracking-wide">{b}</span>
                 ))}
               </div>
             </div>
@@ -157,7 +157,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
               <Link href="/accessibility" className="text-xs text-gray-400 hover:text-white transition-colors">{f.accessibility}</Link>
             </div>
 
-            <div className="border-t border-white/[0.06] pt-5 flex items-center justify-between">
+            <div className="border-t border-white/6 pt-5 flex items-center justify-between">
               <p className="text-xs text-gray-400" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS LLC</p>
               <div className="flex items-center gap-3">
                 <LocaleSwitcher locale={locale} />
@@ -174,7 +174,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                 <p className="text-[13px] text-gray-500 mt-4 leading-relaxed max-w-[240px]">{f.tagline}</p>
                 <div className="flex items-center gap-2 mt-5">
                   {['SSL', 'Stripe', 'CCPA'].map((b) => (
-                    <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-400 font-medium tracking-wide">{b}</span>
+                    <span key={b} className="px-2 py-0.5 rounded-sm border border-white/8 bg-white/3 text-[9px] text-gray-400 font-medium tracking-wide">{b}</span>
                   ))}
                 </div>
                 <ContactBlock locale={locale} compact />

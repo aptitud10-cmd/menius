@@ -75,7 +75,7 @@ export function FiscalSettings({ restaurantId, initialData }: FiscalSettingsProp
           <a href="https://facturama.mx" target="_blank" rel="noopener noreferrer" className="text-emerald-600 underline">
             facturama.mx
           </a>
-          {' '}y las variables de entorno <code className="text-xs bg-gray-100 px-1 rounded">FACTURAMA_USER</code> / <code className="text-xs bg-gray-100 px-1 rounded">FACTURAMA_PASSWORD</code>.
+          {' '}y las variables de entorno <code className="text-xs bg-gray-100 px-1 rounded-sm">FACTURAMA_USER</code> / <code className="text-xs bg-gray-100 px-1 rounded-sm">FACTURAMA_PASSWORD</code>.
         </p>
       </div>
 

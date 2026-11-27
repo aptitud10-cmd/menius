@@ -55,14 +55,14 @@ function EventCard({ event }: { event: ActivityEvent }) {
   if (dismissed) return null;
 
   return (
-    <div className={`relative flex items-start gap-4 px-5 py-4 border-b border-white/[0.04] ${sev.bg} hover:bg-white/[0.02] transition-colors group`}>
+    <div className={`relative flex items-start gap-4 px-5 py-4 border-b border-white/4 ${sev.bg} hover:bg-white/2 transition-colors group`}>
       {/* Severity dot */}
-      <div className="flex-shrink-0 mt-1">
+      <div className="shrink-0 mt-1">
         <div className={`w-2 h-2 rounded-full ${sev.dot}`} />
       </div>
 
       {/* Icon */}
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${sev.bg || 'bg-white/[0.04]'} border ${sev.border || 'border-white/[0.08]'}`}>
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${sev.bg || 'bg-white/4'} border ${sev.border || 'border-white/8'}`}>
         <span className={sev.text}>{meta.icon}</span>
       </div>
 
@@ -73,7 +73,7 @@ function EventCard({ event }: { event: ActivityEvent }) {
             <p className="text-sm font-medium text-white leading-snug">{event.title}</p>
             <p className="text-xs text-gray-500 mt-0.5">{event.subtitle}</p>
           </div>
-          <span className="text-[10px] text-gray-600 flex-shrink-0 mt-0.5">{timeAgo(event.created_at)}</span>
+          <span className="text-[10px] text-gray-600 shrink-0 mt-0.5">{timeAgo(event.created_at)}</span>
         </div>
 
         {/* Actions */}
@@ -81,7 +81,7 @@ function EventCard({ event }: { event: ActivityEvent }) {
           {event.restaurant_id && (
             <Link
               href={`/admin/restaurant?id=${event.restaurant_id}`}
-              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-white/[0.06] border border-white/[0.1] text-gray-400 hover:text-white transition-colors"
+              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-white/6 border border-white/10 text-gray-400 hover:text-white transition-colors"
             >
               Detalle <ChevronRight className="w-3 h-3" />
             </Link>
@@ -91,7 +91,7 @@ function EventCard({ event }: { event: ActivityEvent }) {
               href={`/${event.restaurant_slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-white/[0.06] border border-white/[0.1] text-gray-400 hover:text-white transition-colors"
+              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-white/6 border border-white/10 text-gray-400 hover:text-white transition-colors"
             >
               Ver menú <ExternalLink className="w-3 h-3" />
             </a>
@@ -106,7 +106,7 @@ function EventCard({ event }: { event: ActivityEvent }) {
           )}
           <button
             onClick={() => setDismissed(true)}
-            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-600 hover:text-gray-400 transition-colors ml-auto"
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-white/4 border border-white/8 text-gray-600 hover:text-gray-400 transition-colors ml-auto"
           >
             <CheckCircle className="w-3 h-3" /> Dismiss
           </button>
@@ -151,7 +151,7 @@ export default function AlertsPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-gray-100">
       {/* Header */}
-      <div className="border-b border-white/[0.06] bg-[#070707]/80 backdrop-blur-xl sticky top-0 z-10">
+      <div className="border-b border-white/6 bg-[#070707]/80 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/admin" className="flex items-center gap-1.5 text-gray-600 hover:text-gray-300 text-sm transition-colors">
@@ -177,7 +177,7 @@ export default function AlertsPage() {
             <button
               onClick={load}
               disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-gray-400 hover:text-white transition-all disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 text-xs text-gray-400 hover:text-white transition-all disabled:opacity-40"
             >
               <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -200,7 +200,7 @@ export default function AlertsPage() {
               onClick={() => setFilter(tab.key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 filter === tab.key
-                  ? 'bg-white/[0.08] border border-white/[0.12] text-white'
+                  ? 'bg-white/8 border border-white/12 text-white'
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
@@ -209,7 +209,7 @@ export default function AlertsPage() {
                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                   tab.key === 'danger' ? 'bg-red-500/20 text-red-400'
                   : tab.key === 'warning' ? 'bg-amber-500/20 text-amber-400'
-                  : 'bg-white/[0.06] text-gray-500'
+                  : 'bg-white/6 text-gray-500'
                 }`}>
                   {tab.count}
                 </span>
@@ -248,7 +248,7 @@ export default function AlertsPage() {
 
         {/* Event list */}
         <div className="bg-[#0d0d0d] border border-white/[0.07] rounded-2xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
+          <div className="px-5 py-3 border-b border-white/6 flex items-center justify-between">
             <p className="text-xs font-semibold text-white">
               {filter === 'all' ? 'Todos los eventos' : filter === 'danger' ? 'Eventos urgentes' : filter === 'warning' ? 'Requieren atención' : 'Actividad reciente'}
             </p>

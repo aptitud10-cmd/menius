@@ -82,11 +82,11 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
   // Android/Chrome: native install prompt available
   if (!dismissed && canInstall) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-[80] safe-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-80 safe-bottom">
         <div className="mx-3 mb-3 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
           <div className="flex items-center gap-3 px-4 py-3.5">
             {/* Icon */}
-            <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-[#e6faf7] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-[#e6faf7] flex items-center justify-center">
               {logoUrl ? (
                 <Image src={logoUrl} alt={restaurantName} width={48} height={48} className="object-cover w-full h-full" />
               ) : (
@@ -107,7 +107,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
             {/* Dismiss */}
             <button
               onClick={dismiss}
-              className="w-11 h-11 -mr-2 -my-2 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 flex-shrink-0 transition-colors"
+              className="w-11 h-11 -mr-2 -my-2 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 shrink-0 transition-colors"
               aria-label={t.installClose}
             >
               <X className="w-4 h-4" />
@@ -119,7 +119,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
             <button
               onClick={handleInstall}
               disabled={installing}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#05c8a7] hover:bg-[#04b096] active:scale-[0.98] text-[#04241E] text-sm font-semibold transition-all disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-500 hover:bg-[#04b096] active:scale-[0.98] text-[#04241E] text-sm font-semibold transition-all disabled:opacity-60"
             >
               <Download className="w-4 h-4" />
               {installing ? t.installInstalling : t.installAdd}
@@ -133,7 +133,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
   // iOS Safari: manual share hint
   if (!dismissed && iosHint && !canInstall) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-[80] safe-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-80 safe-bottom">
         <div className="mx-3 mb-3 bg-gray-900 rounded-2xl shadow-2xl overflow-hidden text-white">
           <div className="flex items-start justify-between px-4 pt-4 pb-3 gap-3">
             <div className="flex-1">
@@ -146,7 +146,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', re
             </div>
             <button
               onClick={dismiss}
-              className="w-11 h-11 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-300 hover:text-white flex-shrink-0 transition-colors"
+              className="w-11 h-11 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-300 hover:text-white shrink-0 transition-colors"
               aria-label={t.installClose}
             >
               <X className="w-4 h-4" />

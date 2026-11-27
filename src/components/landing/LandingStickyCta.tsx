@@ -72,7 +72,7 @@ export function LandingStickyCta({ locale }: { locale: LandingLocale }) {
       }`}
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="bg-[#050505]/95 border-t border-white/[0.08] px-4 py-3 flex items-center gap-2.5">
+      <div className="bg-[#050505]/95 border-t border-white/8 px-4 py-3 flex items-center gap-2.5">
         <Link
           href="/signup"
           className="flex-1 text-center py-3.5 rounded-xl bg-white text-black font-bold text-[15px] active:bg-gray-100 transition-colors"
@@ -83,7 +83,7 @@ export function LandingStickyCta({ locale }: { locale: LandingLocale }) {
           type="button"
           onClick={dismiss}
           aria-label={locale === 'es' ? 'Cerrar' : 'Dismiss'}
-          className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-xl text-gray-500 hover:text-white active:bg-white/[0.06] transition-colors"
+          className="shrink-0 flex items-center justify-center w-11 h-11 rounded-xl text-gray-500 hover:text-white active:bg-white/6 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

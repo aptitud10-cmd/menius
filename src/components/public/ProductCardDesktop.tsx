@@ -101,7 +101,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
       className={cn(
         // h-full + flex-col: the card fills its grid cell, so a two-line name
         // in one card no longer leaves the neighbours' price/Add rows higher up.
-        'group relative h-full flex flex-col bg-white rounded-2xl shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
+        'group relative h-full flex flex-col bg-white rounded-2xl shadow-xs overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
         // El badge (⭐ #1 / 🔥 Top 3) ya comunica la popularidad. Repetirla en el
         // borde de CADA card de la sección hacía que el ámbar compitiera con la
         // foto —que es lo que vende— y perdiera valor de señal. Solo el #1
@@ -113,7 +113,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
       )}
     >
       {showImage ? (
-        <div className="relative w-full aspect-[16/9] bg-ink-100 overflow-hidden">
+        <div className="relative w-full aspect-video bg-ink-100 overflow-hidden">
           {!imgLoaded && <div className="absolute inset-0 bg-ink-100 animate-pulse" />}
           <Image
             src={product.image_url}
@@ -134,7 +134,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             onError={() => (skipTransform ? setImgError(true) : setSkipTransform(true))}
           />
           {!outOfStock && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           )}
           {outOfStock && (
             <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
@@ -143,13 +143,13 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           {!outOfStock && (() => {
             const rank = showsPopularityBadge(product) ? product.popularity_rank : null;
-            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">{t.popularityTop1}</span>;
-            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">Top {rank}</span>;
-            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">{t.productNew}</span>;
+            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-xs">{t.popularityTop1}</span>;
+            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-xs">Top {rank}</span>;
+            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-xs">{t.productNew}</span>;
             return null;
           })()}
           {!outOfStock && showDineInOnly && (
-            <span className="absolute bottom-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">
+            <span className="absolute bottom-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-xs">
               {t.dineInOnlyBadge}
             </span>
           )}
@@ -158,14 +158,14 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-[#05c8a7] text-[#04241E] text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
+              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-brand-500 text-[#04241E] text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
             >
               {cartQty}
             </motion.span>
           )}
           {SHOW_FAVORITES && <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
-            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-xs flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
             aria-pressed={isFav}
           >
@@ -173,7 +173,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           </button>}
         </div>
       ) : (
-        <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-ink-50 to-ink-100 flex items-center justify-center overflow-hidden">
+        <div className="relative w-full aspect-video bg-linear-to-br from-ink-50 to-ink-100 flex items-center justify-center overflow-hidden">
           <UtensilsCrossed className="w-10 h-10 text-ink-200 transition-transform duration-500 group-hover:scale-110" aria-hidden="true" />
           {outOfStock && (
             <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
@@ -182,13 +182,13 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           {!outOfStock && (() => {
             const rank = showsPopularityBadge(product) ? product.popularity_rank : null;
-            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">{t.popularityTop1}</span>;
-            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">Top {rank}</span>;
-            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">{t.productNew}</span>;
+            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-xs">{t.popularityTop1}</span>;
+            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-xs">Top {rank}</span>;
+            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-xs">{t.productNew}</span>;
             return null;
           })()}
           {!outOfStock && showDineInOnly && (
-            <span className="absolute bottom-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-sm">
+            <span className="absolute bottom-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold bg-white/95 text-ink-950 shadow-xs">
               {t.dineInOnlyBadge}
             </span>
           )}
@@ -197,14 +197,14 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-[#05c8a7] text-[#04241E] text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
+              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-brand-500 text-[#04241E] text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
             >
               {cartQty}
             </motion.span>
           )}
           {SHOW_FAVORITES && <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
-            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-xs flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
             aria-pressed={isFav}
           >
@@ -271,10 +271,10 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               whileTap={{ scale: 0.92 }}
               aria-label={justAdded ? t.addedToCart : (hasModifiers ? t.ariaCustomize(displayName) : t.ariaAdd(displayName))}
               className={cn(
-                'relative z-10 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]',
+                'relative z-10 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors duration-300 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-brand-500',
                 justAdded
-                  ? 'bg-[#04b096] text-white shadow-lg shadow-[#05c8a7]/25 scale-105'
-                  : 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096] hover:shadow-md'
+                  ? 'bg-[#04b096] text-white shadow-lg shadow-brand-500/25 scale-105'
+                  : 'bg-brand-500 text-[#04241E] hover:bg-[#04b096] hover:shadow-md'
               )}
             >
               {justAdded ? (

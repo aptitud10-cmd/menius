@@ -30,7 +30,7 @@ import type { Category, ContentTranslation } from '@/types';
 
 // 44x44 tap target on touch screens; desktop keeps the compact icon button.
 const TOUCH_TARGET =
-  '[@media(pointer:coarse)]:p-0 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 inline-flex items-center justify-center';
+  'pointer-coarse:p-0 pointer-coarse:w-11 pointer-coarse:h-11 inline-flex items-center justify-center';
 
 // Vercel rejects request bodies above ~4.5 MB before the upload route runs.
 const MAX_IMAGE_BYTES = 4.5 * 1024 * 1024;
@@ -93,7 +93,7 @@ function SortableCategoryRow({
     >
       <div className="flex flex-wrap items-center gap-2 min-w-0">
         <button
-          className="p-1 -ml-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none inline-flex items-center justify-center [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:-ml-3"
+          className="p-1 -ml-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none inline-flex items-center justify-center pointer-coarse:w-11 pointer-coarse:h-11 pointer-coarse:-ml-3"
           aria-label={locale === 'en' ? 'Drag to reorder' : 'Arrastrar para ordenar'}
           {...attributes}
           {...listeners}
@@ -116,7 +116,7 @@ function SortableCategoryRow({
           <button
             onClick={() => imgRef.current?.click()}
             disabled={uploading}
-            className="relative w-7 h-7 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 group/img"
+            className="relative w-7 h-7 pointer-coarse:w-11 pointer-coarse:h-11 rounded-md overflow-hidden bg-gray-100 shrink-0 group/img"
             title={t.editor_changeImage}
             aria-label={t.editor_changeImage}
           >
@@ -134,7 +134,7 @@ function SortableCategoryRow({
           <button
             onClick={() => imgRef.current?.click()}
             disabled={uploading}
-            className="w-7 h-7 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 rounded-md bg-gray-50 flex items-center justify-center text-gray-300 hover:text-gray-400 hover:bg-gray-100 transition-colors flex-shrink-0"
+            className="w-7 h-7 pointer-coarse:w-11 pointer-coarse:h-11 rounded-md bg-gray-50 flex items-center justify-center text-gray-300 hover:text-gray-400 hover:bg-gray-100 transition-colors shrink-0"
             title={t.categories_uploadImage}
             aria-label={t.categories_uploadImage}
           >
@@ -160,7 +160,7 @@ function SortableCategoryRow({
         <button
           onClick={onToggleKitchen}
           className={cn(
-            'ml-1 inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-semibold border transition-colors flex-shrink-0',
+            'ml-1 inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-semibold border transition-colors shrink-0',
             cat.send_to_kitchen === false
               ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
               : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100',
@@ -178,7 +178,7 @@ function SortableCategoryRow({
         <button
           onClick={onCycleDisplay}
           className={cn(
-            'inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-semibold border transition-colors flex-shrink-0',
+            'inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-semibold border transition-colors shrink-0',
             cat.display_mode
               ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
               : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100',
@@ -199,17 +199,17 @@ function SortableCategoryRow({
       <div className="flex items-center gap-0.5 ml-auto transition-opacity focus-within:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
         {hasMultiLang && (
           <button onClick={onTranslate} className={cn('p-1.5 rounded-md hover:bg-gray-100 text-gray-400', TOUCH_TARGET)} title={t.categories_translate} aria-label={t.categories_translate}>
-            <Languages className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />
+            <Languages className="w-3.5 h-3.5 pointer-coarse:w-4 pointer-coarse:h-4" />
           </button>
         )}
         <button onClick={onToggle} className={cn('p-1.5 rounded-md hover:bg-gray-100 text-gray-400', TOUCH_TARGET)} title={cat.is_active ? t.products_hide : t.products_show} aria-label={cat.is_active ? t.products_hide : t.products_show}>
-          {cat.is_active ? <EyeOff className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" /> : <Eye className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />}
+          {cat.is_active ? <EyeOff className="w-3.5 h-3.5 pointer-coarse:w-4 pointer-coarse:h-4" /> : <Eye className="w-3.5 h-3.5 pointer-coarse:w-4 pointer-coarse:h-4" />}
         </button>
         <button onClick={onEdit} className={cn('p-1.5 rounded-md hover:bg-gray-100 text-gray-400', TOUCH_TARGET)} title={t.general_edit} aria-label={t.general_edit}>
-          <Pencil className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />
+          <Pencil className="w-3.5 h-3.5 pointer-coarse:w-4 pointer-coarse:h-4" />
         </button>
         <button onClick={onDelete} className={cn('p-1.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500', TOUCH_TARGET)} title={t.general_delete} aria-label={t.general_delete}>
-          <Trash2 className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />
+          <Trash2 className="w-3.5 h-3.5 pointer-coarse:w-4 pointer-coarse:h-4" />
         </button>
       </div>
     </div>
@@ -446,7 +446,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
                 className="dash-input flex-1 text-sm"
                 placeholder="Desde"
               />
-              <span className="text-gray-400 text-sm flex-shrink-0">–</span>
+              <span className="text-gray-400 text-sm shrink-0">–</span>
               <input
                 type="time"
                 value={availableTo}
@@ -458,7 +458,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
                 <button
                   type="button"
                   onClick={() => { setAvailableFrom(''); setAvailableTo(''); }}
-                  className="p-2 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                  className="p-2 text-gray-400 hover:text-red-500 transition-colors shrink-0"
                   title="Quitar horario"
                 >
                   <X className="w-4 h-4" />

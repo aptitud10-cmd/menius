@@ -9,7 +9,7 @@ export default function BillingLoading() {
 
       {/* Current plan card */}
       <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100" />
+        <div className="h-1 bg-linear-to-r from-gray-100 via-gray-200 to-gray-100" />
         <div className="p-6 sm:p-8">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
             <div className="flex-1">

@@ -288,10 +288,10 @@ export default function StaffContent() {
   const { t } = useDashboardLocale();
 
   const ROLE_LABELS: Record<string, { label: string; color: string; icon: any }> = {
-    admin: { label: t.staff_roleAdmin, color: 'bg-purple-500/[0.1] text-purple-400', icon: Shield },
-    manager: { label: t.staff_roleManager, color: 'bg-blue-500/[0.1] text-blue-400', icon: Shield },
-    staff: { label: t.staff_roleStaff, color: 'bg-green-500/[0.1] text-green-400', icon: UserCheck },
-    kitchen: { label: t.staff_roleKitchen, color: 'bg-orange-500/[0.1] text-orange-400', icon: ChefHat },
+    admin: { label: t.staff_roleAdmin, color: 'bg-purple-500/10 text-purple-400', icon: Shield },
+    manager: { label: t.staff_roleManager, color: 'bg-blue-500/10 text-blue-400', icon: Shield },
+    staff: { label: t.staff_roleStaff, color: 'bg-green-500/10 text-green-400', icon: UserCheck },
+    kitchen: { label: t.staff_roleKitchen, color: 'bg-orange-500/10 text-orange-400', icon: ChefHat },
   };
 
   const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -477,22 +477,22 @@ export default function StaffContent() {
             return (
               <div key={m.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm shrink-0">
                     {m.full_name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-gray-900 font-medium truncate">{m.full_name}</h3>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${roleInfo.color}`}>{roleInfo.label}</span>
-                      <span className={`text-xs font-medium flex-shrink-0 ${statusInfo.color}`}>{statusInfo.label}</span>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${roleInfo.color}`}>{roleInfo.label}</span>
+                      <span className={`text-xs font-medium shrink-0 ${statusInfo.color}`}>{statusInfo.label}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-500 text-sm mt-0.5 truncate">
-                      <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                      <Mail className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">{m.email}</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 sm:flex-shrink-0">
+                <div className="flex items-center gap-2 sm:shrink-0">
                   <select
                     value={m.role}
                     onChange={e => handleChangeRole(m.id, e.target.value)}
@@ -506,11 +506,11 @@ export default function StaffContent() {
                   <button
                     onClick={() => handleToggleStatus(m)}
                     title={m.status === 'active' ? t.staff_toggleDeactivate : t.staff_toggleActivate}
-                    className={`p-1.5 rounded-lg transition flex-shrink-0 ${m.status === 'active' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-500 hover:bg-gray-100'}`}
+                    className={`p-1.5 rounded-lg transition shrink-0 ${m.status === 'active' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-500 hover:bg-gray-100'}`}
                   >
                     {m.status === 'active' ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
                   </button>
-                  <button onClick={() => handleDelete(m.id)} className="text-gray-500 hover:text-red-400 p-1.5 rounded-lg transition flex-shrink-0">
+                  <button onClick={() => handleDelete(m.id)} className="text-gray-500 hover:text-red-400 p-1.5 rounded-lg transition shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>

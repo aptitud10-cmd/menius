@@ -102,13 +102,13 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
         <div className={cn(
           'rounded-2xl p-4 flex items-center justify-between gap-4 border',
           trialDaysLeft <= 3
-            ? 'bg-red-500/[0.06] border-red-500/[0.15]'
+            ? 'bg-red-500/6 border-red-500/15'
             : 'bg-emerald-50 border-emerald-200'
         )}>
           <div className="flex items-center gap-3 min-w-0">
             <div className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-              trialDaysLeft <= 3 ? 'bg-red-500/[0.15]' : 'bg-emerald-50'
+              'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+              trialDaysLeft <= 3 ? 'bg-red-500/15' : 'bg-emerald-50'
             )}>
               {trialDaysLeft <= 3
                 ? <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -136,7 +136,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
           <Link
             href="/app/billing"
             className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-colors flex-shrink-0',
+              'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-colors shrink-0',
               trialDaysLeft <= 3
                 ? 'bg-red-500 text-white hover:bg-red-600'
                 : 'bg-emerald-500 text-white hover:bg-emerald-600'
@@ -157,14 +157,14 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
         return (
           <div className={cn(
             'rounded-2xl p-4 flex items-center justify-between gap-4 border',
-            isLimit ? 'bg-red-500/[0.06] border-red-500/[0.15]'
+            isLimit ? 'bg-red-500/6 border-red-500/15'
               : isWarning ? 'bg-amber-50 border-amber-200'
               : 'bg-violet-50 border-violet-200'
           )}>
             <div className="flex items-center gap-3 min-w-0">
               <div className={cn(
-                'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-                isLimit ? 'bg-red-500/[0.15]' : isWarning ? 'bg-amber-100' : 'bg-violet-100'
+                'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                isLimit ? 'bg-red-500/15' : isWarning ? 'bg-amber-100' : 'bg-violet-100'
               )}>
                 {isLimit
                   ? <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -193,7 +193,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
             <Link
               href="/app/billing"
               className={cn(
-                'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-colors flex-shrink-0',
+                'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-colors shrink-0',
                 isLimit ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-violet-600 text-white hover:bg-violet-700'
               )}
             >
@@ -206,9 +206,9 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
 
       {/* Upsell banner — free plan with real activity (has sales or orders this week) */}
       {planId === 'free' && (stats.salesToday > 0 || stats.ordersToday > 0) && (
-        <div className="rounded-2xl p-4 flex items-center justify-between gap-4 border bg-gradient-to-r from-violet-50 to-indigo-50 border-violet-200">
+        <div className="rounded-2xl p-4 flex items-center justify-between gap-4 border bg-linear-to-r from-violet-50 to-indigo-50 border-violet-200">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
               <Sparkles className="w-5 h-5 text-violet-600" />
             </div>
             <div className="min-w-0">
@@ -218,7 +218,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
           </div>
           <Link
             href="/app/billing"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 transition-colors shrink-0"
           >
             <CreditCard className="w-4 h-4" />
             {t.home_upsellCta}
@@ -253,7 +253,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
           value={formatPrice(stats.salesToday, restaurant.currency)}
           icon={TrendingUp}
           color="text-emerald-500"
-          bg="bg-emerald-500/[0.1]"
+          bg="bg-emerald-500/10"
           delta={salesDelta}
           deltaLabel={t.home_vsYesterday}
         />
@@ -262,7 +262,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
           value={stats.ordersToday.toString()}
           icon={ClipboardList}
           color="text-blue-500"
-          bg="bg-blue-500/[0.1]"
+          bg="bg-blue-500/10"
           delta={ordersDelta}
           deltaLabel={t.home_vsYesterday}
         />
@@ -271,14 +271,14 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
           value={formatPrice(stats.avgOrderToday, restaurant.currency)}
           icon={DollarSign}
           color="text-indigo-500"
-          bg="bg-indigo-500/[0.1]"
+          bg="bg-indigo-500/10"
         />
         <KPICard
           label={t.home_cancellations}
           value={`${stats.cancelledToday}`}
           icon={XCircle}
           color="text-red-400"
-          bg="bg-red-500/[0.1]"
+          bg="bg-red-500/10"
           extra={cancelRate > 0 ? `${cancelRate.toFixed(0)}% ${t.home_rate}` : undefined}
         />
       </div>
@@ -290,7 +290,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
       {stats.pendingOrders > 0 && (
         <Link
           href="/app/orders"
-          className="flex items-center justify-between p-4 rounded-2xl bg-amber-500/[0.06] border border-amber-500/[0.15] hover:bg-amber-500/[0.1] transition-colors group"
+          className="flex items-center justify-between p-4 rounded-2xl bg-amber-500/6 border border-amber-500/15 hover:bg-amber-500/10 transition-colors group"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
@@ -309,7 +309,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
 
       {/* Low stock alert */}
       {(lowStockProducts ?? []).length > 0 && (
-        <div className="rounded-2xl bg-orange-500/[0.06] border border-orange-500/[0.15] p-4">
+        <div className="rounded-2xl bg-orange-500/6 border border-orange-500/15 p-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
               <AlertTriangle className="w-5 h-5 text-orange-600" />
@@ -367,7 +367,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
                       <p className="text-xs text-gray-500">{order.order_number} · {timeAgo(order.created_at)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-3 shrink-0">
                     <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium', statusCfg?.bg, statusCfg?.color)}>
                       {statusCfg?.label ?? order.status}
                     </span>
@@ -460,7 +460,7 @@ function RevenueGoal({ salesToday, currency }: { salesToday: number; currency: s
             <span className="text-sm text-gray-400">$</span>
             <input value={input} onChange={e => setInput(e.target.value)} type="number" min="1" autoFocus
               onKeyDown={e => e.key === 'Enter' && save()}
-              className="w-24 px-2 py-1 rounded-lg border border-gray-200 text-sm text-right focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+              className="w-24 px-2 py-1 rounded-lg border border-gray-200 text-sm text-right focus:outline-hidden focus:ring-1 focus:ring-emerald-500" />
             <button onClick={save} className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white text-xs font-bold">OK</button>
             <button onClick={() => setEditing(false)} className="text-xs text-gray-400">✕</button>
           </div>
@@ -517,7 +517,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
   };
 
   return (
-    <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-gray-50 p-6 text-center">
+    <div className="rounded-2xl border border-emerald-200 bg-linear-to-br from-emerald-50 to-gray-50 p-6 text-center">
       <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
         <Sparkles className="w-7 h-7 text-emerald-600" />
       </div>
@@ -641,7 +641,7 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
                 onClick={() => setChartMode('revenue')}
                 className={cn(
                   'px-3 py-1 rounded-md text-xs font-medium transition-all',
-                  chartMode === 'revenue' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  chartMode === 'revenue' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700'
                 )}
               >
                 {t.analytics_revenue}
@@ -650,7 +650,7 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
                 onClick={() => setChartMode('orders')}
                 className={cn(
                   'px-3 py-1 rounded-md text-xs font-medium transition-all',
-                  chartMode === 'orders' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  chartMode === 'orders' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700'
                 )}
               >
                 {t.analytics_orders}
@@ -855,7 +855,7 @@ function HealthScoreWidget({ score, checks }: { score: number; checks: { label: 
   return (
     <div className={cn('dash-card p-4 flex items-center gap-4 border', bgColor)}>
       {/* Ring */}
-      <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
           <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" strokeWidth={strokeWidth} className="text-gray-100" />
           <circle
@@ -882,7 +882,7 @@ function HealthScoreWidget({ score, checks }: { score: number; checks: { label: 
           <div className="mt-2 space-y-1">
             {failing.slice(0, 3).map(c => (
               <div key={c.label} className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                 <span className="text-[11px] text-gray-500 truncate">{c.label}</span>
               </div>
             ))}
@@ -892,7 +892,7 @@ function HealthScoreWidget({ score, checks }: { score: number; checks: { label: 
 
       {/* CTA */}
       {failing.length > 0 && (
-        <Link href="/app/settings" className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-700">
+        <Link href="/app/settings" className="shrink-0 flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-700">
           {t.home_healthImproveTip}
           <ChevronRight className="w-3.5 h-3.5" />
         </Link>
@@ -1024,7 +1024,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
                     copied && !ch.closesModal ? 'bg-emerald-50 border-emerald-200' : `border-transparent ${ch.accent}`
                   )}
                 >
-                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100">
+                  <span className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100">
                     {ch.icon}
                   </span>
                   <span className="flex flex-col min-w-0">

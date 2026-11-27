@@ -56,7 +56,7 @@ function Band({ title, count }: { title: string; count: string }) {
         {title}
       </h3>
       <span
-        className="flex-none text-[12px] font-semibold uppercase leading-none tracking-[0.1em] tabular-nums"
+        className="flex-none text-[12px] font-semibold uppercase leading-none tracking-widest tabular-nums"
         style={{ color: C.bandCount }}
       >
         {count}
@@ -113,7 +113,7 @@ function AddDot({ big }: { big?: boolean }) {
     <span
       aria-hidden="true"
       className={cn(
-        "flex flex-shrink-0 items-center justify-center rounded-full bg-[#047a65] text-white",
+        "flex shrink-0 items-center justify-center rounded-full bg-[#047a65] text-white",
         big ? "h-9 w-9" : "h-8 w-8",
       )}
     >
@@ -195,7 +195,7 @@ export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fm
                       onClick={open(p)}
                       aria-disabled={out || undefined}
                       className={cn(
-                        "flex w-full min-h-[48px] items-center gap-2 text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]",
+                        "flex w-full min-h-[48px] items-center gap-2 text-left rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500",
                         out && "cursor-default",
                       )}
                     >
@@ -238,7 +238,7 @@ export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fm
                   onClick={open(p)}
                   aria-disabled={out || undefined}
                   className={cn(
-                    "flex w-full items-start gap-3 py-4 text-left rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] sm:gap-6 sm:py-5",
+                    "flex w-full items-start gap-3 py-4 text-left rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 sm:gap-6 sm:py-5",
                     out && "cursor-default",
                   )}
                 >
@@ -274,7 +274,7 @@ export function TodaySheet({ products, day, soupSizes, locale, defaultLocale, fm
                       </span>
                     )}
                   </span>
-                  <span className="flex flex-shrink-0 flex-col items-end gap-2 pt-1 sm:pt-2">
+                  <span className="flex shrink-0 flex-col items-end gap-2 pt-1 sm:pt-2">
                     {out ? (
                       <span className="whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-1 text-[13px] font-semibold text-gray-700">{T.out}</span>
                     ) : (

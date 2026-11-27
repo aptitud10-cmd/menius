@@ -80,7 +80,7 @@ export function ReviewsSheet({
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center">
+        <div className="fixed inset-0 z-80 flex items-end md:items-center justify-center">
           <motion.div
             className="absolute inset-0 bg-black/45"
             initial={{ opacity: 0 }}
@@ -99,7 +99,7 @@ export function ReviewsSheet({
             exit={{ y: 40, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 420, damping: 38 }}
           >
-            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 flex items-start justify-between gap-3 pl-5 pr-2 pt-4 pb-3">
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-xs border-b border-gray-100 flex items-start justify-between gap-3 pl-5 pr-2 pt-4 pb-3">
               <div className="min-w-0">
                 <h2 id={titleId} className="font-menu text-[30px] leading-tight text-gray-900">
                   {t.customersTestimonial}
@@ -118,7 +118,7 @@ export function ReviewsSheet({
                 type="button"
                 onClick={onClose}
                 aria-label={t.close}
-                className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
@@ -128,7 +128,7 @@ export function ReviewsSheet({
               {reviews.map((r) => (
                 <li key={r.id} className="py-4">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-9 h-9 rounded-full bg-[#d0f7f1] flex items-center justify-center text-[14px] font-bold text-[#047a65] flex-shrink-0" aria-hidden="true">
+                    <span className="w-9 h-9 rounded-full bg-[#d0f7f1] flex items-center justify-center text-[14px] font-bold text-[#047a65] shrink-0" aria-hidden="true">
                       {r.customer_name.charAt(0).toUpperCase()}
                     </span>
                     <div className="min-w-0">

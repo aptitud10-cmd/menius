@@ -45,7 +45,7 @@ export function PhoneField({
 
   if (ios) {
     return (
-      <div className={`relative bg-[#f5f5f8] rounded-[14px] ${error ? 'shadow-[inset_0_0_0_1.5px_#c4321b]' : ''}`}>
+      <div className={`relative bg-[#f5f5f8] rounded-xl ${error ? 'shadow-[inset_0_0_0_1.5px_#c4321b]' : ''}`}>
         {label && (
           <label htmlFor={id} className="absolute left-3.5 top-2 text-xs text-[#6b6b74] pointer-events-none">
             {label}
@@ -72,8 +72,8 @@ export function PhoneField({
     );
   }
   const baseInput = dark
-    ? 'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-base bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30'
-    : 'w-full px-4 py-3.5 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
+    ? 'w-full px-3.5 py-2.5 rounded-xl border border-white/8 text-base bg-white/4 text-white focus:outline-hidden focus:ring-2 focus:ring-purple-500/30'
+    : 'w-full px-4 py-3.5 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-hidden focus:border-gray-900 transition-colors bg-white';
   const errorInput = error ? ' border-red-400 focus:border-red-400 focus:ring-red-400' : '';
   const validInput = !error && valid ? ' border-green-400 focus:border-green-500' : '';
 

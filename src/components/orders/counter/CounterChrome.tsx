@@ -61,7 +61,7 @@ export function CounterTopBar({
   return (
     // Bajo 640 px, si los botones no entran (pestaña abierta + Programados + Hoy), la barra se desliza
     // de costado en vez de encimar la píldora con los botones.
-    <header className="flex-none flex items-center gap-2 sm:gap-3 px-3 sm:px-5 min-h-[72px] max-sm:overflow-x-auto [scrollbar-width:none]" style={{ background: C.bg, paddingTop: 'env(safe-area-inset-top)' }}>
+    <header className="flex-none flex items-center gap-2 sm:gap-3 px-3 sm:px-5 min-h-[72px] max-sm:overflow-x-auto scrollbar-none" style={{ background: C.bg, paddingTop: 'env(safe-area-inset-top)' }}>
       {view !== 'board' ? (
         <button type="button" onClick={() => onView('board')} className={btn} style={idle} aria-label={T.backToBoard}>
           <ArrowLeft className="w-5 h-5" strokeWidth={2.2} /> <span className="hidden md:inline">{T.backToBoard}</span>
@@ -138,7 +138,7 @@ function Clock({ locale }: { locale: string }) {
 /** Banda fija mientras el modo demo está activo (los pedidos son de mentira). */
 export function DemoBanner({ T, onExit }: { T: CounterText; onExit: () => void }) {
   return (
-    <div role="status" className="fixed top-0 inset-x-0 z-[70] flex items-center justify-center gap-3 px-4 font-semibold text-[16px]"
+    <div role="status" className="fixed top-0 inset-x-0 z-70 flex items-center justify-center gap-3 px-4 font-semibold text-[16px]"
       style={{ background: C.inverse, color: C.onInverse, height: 'calc(48px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}>
       <span>{T.demoBanner}</span>
       <button type="button" onClick={onExit} className="h-10 px-4 rounded-full font-semibold"
@@ -241,7 +241,7 @@ export function OrdersListView({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={T.search}
-            className="ml-auto h-12 w-full max-w-[360px] rounded-xl px-4 text-[16px] outline-none focus:ring-2"
+            className="ml-auto h-12 w-full max-w-[360px] rounded-xl px-4 text-[16px] outline-hidden focus:ring-2"
             style={{ background: C.surface, color: C.ink, boxShadow: `inset 0 0 0 1px ${C.lineStrong}` }}
           />
         )}
@@ -270,7 +270,7 @@ export function CounterToast({ text, tone, actionLabel, onAction }: {
 }) {
   return (
     <div role="status" aria-live="polite"
-      className="fixed z-[60] left-4 bottom-4 max-w-[min(520px,calc(100vw-2rem))] rounded-2xl pl-5 pr-2 py-2 flex items-center gap-4 shadow-2xl"
+      className="fixed z-60 left-4 bottom-4 max-w-[min(520px,calc(100vw-2rem))] rounded-2xl pl-5 pr-2 py-2 flex items-center gap-4 shadow-2xl"
       style={{ background: tone === 'error' ? C.critical : C.inverse, color: tone === 'error' ? C.onCritical : C.onInverse, marginBottom: 'env(safe-area-inset-bottom)' }}>
       <span className="text-[16px] font-semibold py-2">{text}</span>
       {actionLabel && onAction && (

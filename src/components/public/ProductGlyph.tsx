@@ -153,7 +153,7 @@ export function productGlyph(name: string): Glyph {
 export function ProductGlyph({ name, className, iconClassName }: { name: string; className?: string; iconClassName?: string }) {
   const Icon = productGlyph(name);
   return (
-    <div className={cn('flex-shrink-0 grid place-items-center bg-[#e6faf7] text-[#047a65]', className)} aria-hidden="true">
+    <div className={cn('shrink-0 grid place-items-center bg-[#e6faf7] text-[#047a65]', className)} aria-hidden="true">
       <Icon className={cn('w-6 h-6', iconClassName)} strokeWidth={1.75} />
     </div>
   );

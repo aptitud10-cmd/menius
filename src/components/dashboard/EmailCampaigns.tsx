@@ -216,7 +216,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, tot
             <select
               value={aiType}
               onChange={(e) => setAiType(e.target.value)}
-              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 focus:outline-hidden focus:ring-1 focus:ring-purple-500/30"
             >
               <option value="promo">{t.email_typePromo}</option>
               <option value="reactivation">{t.email_typeReactivation}</option>
@@ -232,7 +232,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, tot
               value={aiCustomPrompt}
               onChange={(e) => setAiCustomPrompt(e.target.value)}
               placeholder={en ? 'E.g.: Mention the 2-for-1 pizza deal...' : 'Ej: Menciona el 2x1 en pizzas...'}
-              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-1 focus:ring-purple-500/30"
             />
           </div>
         </div>
@@ -258,7 +258,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, tot
           <select
             value={filter}
             onChange={e => setFilter(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-hidden focus:ring-1 focus:ring-emerald-500/30"
           >
             {FILTERS.map(f => (
               <option key={f.value} value={f.value}>{f.label} — {f.desc}</option>
@@ -273,7 +273,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, tot
             value={subject}
             onChange={e => setSubject(e.target.value)}
             placeholder={en ? '🎉 Special offer at your restaurant!' : '🎉 ¡Oferta especial en tu restaurante!'}
-            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-emerald-500/30"
           />
           <p className="text-[10px] text-gray-600 mt-1">{en ? `Use {'{nombre}'} for customer name, {'{restaurante}'} for your restaurant` : `Usa {'{nombre}'} para personalizar con el nombre del cliente, {'{restaurante}'} para tu restaurante`}</p>
         </div>
@@ -285,7 +285,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, tot
             onChange={e => setMessage(e.target.value)}
             rows={6}
             placeholder={en ? 'Hi {nombre}, we have something special for you...' : 'Hola {nombre}, tenemos algo especial para ti...'}
-            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 resize-none"
+            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-emerald-500/30 resize-none"
           />
           <p className="text-[10px] text-gray-600 mt-1">Variables: {'{nombre}'}, {'{total_ordenes}'}, {'{total_gastado}'}, {'{restaurante}'}</p>
         </div>
@@ -297,19 +297,19 @@ export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, tot
             value={ctaText}
             onChange={e => setCtaText(e.target.value)}
             placeholder={en ? 'View menu' : 'Ver menú'}
-            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-emerald-500/30"
           />
         </div>
 
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
+            <AlertCircle className="w-4 h-4 shrink-0" /> {error}
           </div>
         )}
 
         {result && (
           <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{t.email_sentResult} <strong>{result.sent}</strong> / {result.total} emails{result.failed > 0 ? ` (${result.failed} ${t.email_failed})` : ''}</span>
           </div>
         )}

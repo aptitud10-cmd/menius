@@ -8,7 +8,7 @@
  * se abre el teclado del PIN y, al acertar, se reintenta solo. Quien abre el diálogo
  * (MenuView) vuelve a bloquear la tablet al terminar: el PIN no queda abierto.
  *
- * Capas: z-[55] — debajo de la alerta de pedidos nuevos (z-60), que siempre tiene
+ * Capas: z-55 — debajo de la alerta de pedidos nuevos (z-60), que siempre tiene
  * que poder tocarse; el PIN de acá va en z-[56].
  */
 
@@ -117,11 +117,11 @@ export function PriceDialog({ T, name, productId, price, format, symbol, onClose
     setMsg(T.mFailed);
   };
 
-  const btn = 'h-14 rounded-[14px] px-5 text-[17px] font-bold disabled:opacity-50';
+  const btn = 'h-14 rounded-xl px-5 text-[17px] font-bold disabled:opacity-50';
 
   return (
     <>
-      <div className="fixed inset-0 z-[55] flex items-center justify-center p-4" style={{ background: C.scrim }}
+      <div className="fixed inset-0 z-55 flex items-center justify-center p-4" style={{ background: C.scrim }}
         role="dialog" aria-modal="true" aria-label={T.pEdit(name)}>
         <div className="w-full max-w-[440px] rounded-[26px] p-5" style={RAISED}>
           <div className="flex items-start gap-3">
@@ -149,7 +149,7 @@ export function PriceDialog({ T, name, productId, price, format, symbol, onClose
                     onChange={(e) => { setRaw(e.target.value); setMsg(null); }}
                     onKeyDown={(e) => { if (e.key === 'Enter') review(); }}
                     aria-invalid={msg === T.pInvalid}
-                    className="flex-1 min-w-0 bg-transparent outline-none text-[30px] font-bold tabular-nums" style={{ color: C.ink }} />
+                    className="flex-1 min-w-0 bg-transparent outline-hidden text-[30px] font-bold tabular-nums" style={{ color: C.ink }} />
                 </span>
               </label>
               <p className="mt-2 min-h-[44px] text-[15px] leading-snug" role="status" style={{ color: msg ? C.destructive : C.sub }}>
@@ -176,7 +176,7 @@ export function PriceDialog({ T, name, productId, price, format, symbol, onClose
                 </div>
               </div>
               {big && (
-                <p className="mt-4 flex items-start gap-2.5 rounded-[14px] px-4 py-3 text-[16px] font-semibold leading-snug" role="alert"
+                <p className="mt-4 flex items-start gap-2.5 rounded-xl px-4 py-3 text-[16px] font-semibold leading-snug" role="alert"
                   style={{ background: C.warnBg, color: C.destructive }}>
                   <AlertTriangle className="w-5 h-5 mt-0.5 flex-none" strokeWidth={2.4} />
                   {T.pBig(pctText)}
@@ -199,7 +199,7 @@ export function PriceDialog({ T, name, productId, price, format, symbol, onClose
         </div>
       </div>
       {pinOpen && (
-        <PinPad en={en} title={T.pPinTitle} layer="z-[56]" onClose={() => setPinOpen(false)}
+        <PinPad en={en} title={T.pPinTitle} layer="z-56" onClose={() => setPinOpen(false)}
           onUnlocked={() => { setPinOpen(false); onPinUsed(); void save(); }} />
       )}
     </>

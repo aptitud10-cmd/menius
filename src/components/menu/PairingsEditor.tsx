@@ -109,7 +109,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
   return (
     <div className="bg-white rounded-xl border-2 border-indigo-200 ring-1 ring-indigo-100 p-5">
       <div className="flex items-center gap-2 mb-1">
-        <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-100 flex-shrink-0">
+        <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-100 shrink-0">
           <Link2 className="w-4 h-4 text-indigo-600" />
         </span>
         <h2 className="text-sm font-bold text-gray-900">
@@ -142,7 +142,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
                     className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2"
                   >
                     {p.image_url ? (
-                      <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                      <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-gray-100">
                         <Image
                           src={p.image_url}
                           alt={p.name}
@@ -152,7 +152,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
                         />
                       </div>
                     ) : (
-                      <div className="w-9 h-9 rounded-lg bg-gray-200 flex-shrink-0" />
+                      <div className="w-9 h-9 rounded-lg bg-gray-200 shrink-0" />
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
@@ -161,7 +161,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
                       type="button"
                       onClick={() => removePairing(pairing.id)}
                       aria-label={isEn ? `Remove ${p.name}` : `Quitar ${p.name}`}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -177,20 +177,20 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
               {showPicker ? (
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50">
-                    <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <Search className="w-4 h-4 text-gray-400 shrink-0" />
                     <input
                       autoFocus
                       type="text"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder={isEn ? 'Search products…' : 'Buscar productos…'}
-                      className="flex-1 text-sm bg-transparent outline-none text-gray-900 placeholder-gray-400"
+                      className="flex-1 text-sm bg-transparent outline-hidden text-gray-900 placeholder-gray-400"
                     />
                     <button
                       type="button"
                       onClick={() => { setShowPicker(false); setSearch(''); }}
                       aria-label={isEn ? 'Close search' : 'Cerrar búsqueda'}
-                      className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                      className="p-1 text-gray-400 hover:text-gray-600 rounded-sm"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -212,7 +212,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
                           )}
                         >
                           {p.image_url ? (
-                            <div className="relative w-8 h-8 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
+                            <div className="relative w-8 h-8 rounded-md overflow-hidden shrink-0 bg-gray-100">
                               <Image
                                 src={p.image_url}
                                 alt={p.name}
@@ -222,7 +222,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
                               />
                             </div>
                           ) : (
-                            <div className="w-8 h-8 rounded-md bg-gray-200 flex-shrink-0" />
+                            <div className="w-8 h-8 rounded-md bg-gray-200 shrink-0" />
                           )}
                           <span className="text-sm text-gray-900 truncate">{p.name}</span>
                         </button>

@@ -18,9 +18,9 @@ export function OwnerPanelButton({ needsPin, en }: { needsPin: boolean; en: bool
 
   if (!needsPin) {
     return (
-      <a href="/app" className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left">
-        <Lock className="w-4 h-4 text-[color:var(--kds-sub)]" />
-        <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{label}</span>
+      <a href="/app" className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-(--kds-line) hover:border-(--kds-line-strong) transition-colors text-left">
+        <Lock className="w-4 h-4 text-(--kds-sub)" />
+        <span className="text-[15px] font-semibold text-(--kds-ink)">{label}</span>
       </a>
     );
   }
@@ -30,11 +30,11 @@ export function OwnerPanelButton({ needsPin, en }: { needsPin: boolean; en: bool
       <button
         type="button"
         onClick={() => setPadOpen(true)}
-        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-(--kds-line) hover:border-(--kds-line-strong) transition-colors text-left"
       >
-        <Lock className="w-4 h-4 text-[color:var(--kds-sub)]" />
-        <span className="text-[15px] font-semibold text-[color:var(--kds-ink)]">{label}</span>
-        <span className="ml-auto text-[13px] text-[color:var(--kds-sub)]">PIN</span>
+        <Lock className="w-4 h-4 text-(--kds-sub)" />
+        <span className="text-[15px] font-semibold text-(--kds-ink)">{label}</span>
+        <span className="ml-auto text-[13px] text-(--kds-sub)">PIN</span>
       </button>
       {padOpen && <PinPad en={en} onClose={() => setPadOpen(false)} />}
     </>
@@ -53,7 +53,7 @@ type PadState =
  * Teclado del PIN del dueño. Por defecto abre el panel (/app). Con onUnlocked, solo desbloquea
  * (10 min) y avisa: lo usa el cambio de precios del Counter para seguir en la misma pantalla.
  */
-export function PinPad({ en, onClose, title, onUnlocked, layer = 'z-[70]' }: {
+export function PinPad({ en, onClose, title, onUnlocked, layer = 'z-70' }: {
   en: boolean; onClose: () => void;
   /** Título del teclado (por defecto "Panel del dueño"). */
   title?: string;
@@ -121,7 +121,7 @@ export function PinPad({ en, onClose, title, onUnlocked, layer = 'z-[70]' }: {
   // !mt-0: el PIN vive dentro del menú (space-y-4), que le ponía 16 px de margen
   // arriba y dejaba una franja sin velo.
   return (
-    <div className={`fixed inset-0 !mt-0 ${layer} flex items-center justify-center p-4`} style={{ background: C.scrim }} role="dialog" aria-modal="true" aria-label={title ?? (en ? 'Owner panel PIN' : 'PIN del panel del dueño')}>
+    <div className={`fixed inset-0 mt-0! ${layer} flex items-center justify-center p-4`} style={{ background: C.scrim }} role="dialog" aria-modal="true" aria-label={title ?? (en ? 'Owner panel PIN' : 'PIN del panel del dueño')}>
       <div className="w-full max-w-[360px] rounded-[28px] p-5" style={RAISED}>
         <div className="flex items-center justify-between mb-1">
           <p className="text-[20px] font-bold tracking-[-0.015em]" style={{ color: C.ink }}>{title ?? (en ? 'Owner panel' : 'Panel del dueño')}</p>

@@ -55,7 +55,7 @@ export function SidebarSoundButton({ mobile = false }: SidebarSoundButtonProps) 
       }`}
     >
       <div
-        className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 transition-colors ${
+        className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors ${
           soundEnabled ? 'bg-emerald-100' : 'bg-gray-100 group-hover:bg-gray-200'
         }`}
       >

@@ -94,7 +94,7 @@ export default function AdminHealthPage() {
         <div>
           <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-white font-bold text-lg">{error}</p>
-          <Link href="/admin" className="inline-block mt-4 px-4 py-2 bg-white/[0.06] text-gray-300 rounded-xl text-sm">Volver</Link>
+          <Link href="/admin" className="inline-block mt-4 px-4 py-2 bg-white/6 text-gray-300 rounded-xl text-sm">Volver</Link>
         </div>
       </div>
     );
@@ -118,7 +118,7 @@ export default function AdminHealthPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Link href="/admin" className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-gray-400 hover:text-white transition-colors">
+            <Link href="/admin" className="p-2 rounded-xl bg-white/4 hover:bg-white/8 text-gray-400 hover:text-white transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
@@ -133,7 +133,7 @@ export default function AdminHealthPage() {
           <button
             onClick={() => fetchHealth(true)}
             disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/4 border border-white/8 text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             Actualizar
@@ -142,7 +142,7 @@ export default function AdminHealthPage() {
 
         {/* Health score + alert summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <div className="col-span-2 md:col-span-1 bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5 flex flex-col items-center justify-center text-center">
+          <div className="col-span-2 md:col-span-1 bg-[#0a0a0a] rounded-2xl border border-white/6 p-5 flex flex-col items-center justify-center text-center">
             <p className={`text-5xl font-black tabular-nums ${scoreColor}`}>{healthScore}</p>
             <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">Health Score</p>
             <p className="text-[11px] text-gray-700 mt-1">{totalAlerts} alertas activas</p>
@@ -180,7 +180,7 @@ export default function AdminHealthPage() {
                 return (
                   <div key={status} className="flex items-center gap-3">
                     <span className="w-20 text-xs text-gray-400 shrink-0">{cfg.label}</span>
-                    <div className="flex-1 h-2 bg-white/[0.05] rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
                       <div className={`h-full ${cfg.bar} rounded-full`} style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-xs font-semibold text-white w-8 text-right">{count}</span>
@@ -348,8 +348,8 @@ function Section({
     amber: 'bg-amber-500/20 text-amber-400',
   };
   return (
-    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+    <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/6">
         <div className="flex items-center gap-2">
           {icon}
           <h3 className="text-sm font-semibold text-white">{title}</h3>
@@ -372,7 +372,7 @@ function KpiCard({ icon, label, value, color }: { icon: React.ReactNode; label: 
   };
   const c = colors[color] ?? colors.purple;
   return (
-    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-4">
+    <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-4">
       <div className={`w-8 h-8 rounded-xl ${c.bg} flex items-center justify-center mb-2`}>
         <span className={c.text}>{icon}</span>
       </div>

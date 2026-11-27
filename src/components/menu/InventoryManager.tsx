@@ -105,7 +105,7 @@ export function InventoryManager({ initialProducts, restaurantId, currency }: In
               filter === s.key ? 'border-gray-900 bg-gray-900 text-white' : 'border-transparent bg-white hover:border-gray-200'
             )}
           >
-            <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0', filter === s.key ? 'bg-white/10' : s.color)}>
+            <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', filter === s.key ? 'bg-white/10' : s.color)}>
               <s.icon className="w-4 h-4" />
             </div>
             <div>
@@ -123,7 +123,7 @@ export function InventoryManager({ initialProducts, restaurantId, currency }: In
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar producto..."
-          className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900 bg-white"
+          className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900 bg-white"
         />
       </div>
 
@@ -154,18 +154,18 @@ export function InventoryManager({ initialProducts, restaurantId, currency }: In
                   {/* ── Mobile card ── */}
                   <div className="sm:hidden flex items-start gap-3 px-4 py-3.5 border-b border-gray-50 last:border-0">
                     {p.image_url ? (
-                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 mt-0.5">
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 mt-0.5">
                         <Image src={p.image_url} alt={p.name} fill sizes="40px" className="object-cover" />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
                         <Package className="w-4 h-4 text-gray-300" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
-                        <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0', {
+                        <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0', {
                           'bg-red-100 text-red-600': status === 'out',
                           'bg-amber-100 text-amber-600': status === 'low',
                           'bg-emerald-100 text-emerald-600': status === 'ok',
@@ -187,7 +187,7 @@ export function InventoryManager({ initialProducts, restaurantId, currency }: In
                               type="number" min="0"
                               value={p.stock_qty ?? ''}
                               onChange={e => updateQty(p, parseInt(e.target.value) || 0)}
-                              className="w-12 text-center text-sm font-bold text-gray-900 border border-gray-200 rounded-lg py-1 focus:outline-none focus:border-gray-900"
+                              className="w-12 text-center text-sm font-bold text-gray-900 border border-gray-200 rounded-lg py-1 focus:outline-hidden focus:border-gray-900"
                             />
                             <button onClick={() => updateQty(p, (p.stock_qty ?? 0) + 1)} className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-sm font-bold">+</button>
                           </div>
@@ -215,11 +215,11 @@ export function InventoryManager({ initialProducts, restaurantId, currency }: In
                     {/* Product */}
                     <div className="flex items-center gap-3">
                       {p.image_url ? (
-                        <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                        <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 shrink-0">
                           <Image src={p.image_url} alt={p.name} fill sizes="36px" className="object-cover" />
                         </div>
                       ) : (
-                        <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
                           <span className="text-base opacity-30">🍽️</span>
                         </div>
                       )}
@@ -245,7 +245,7 @@ export function InventoryManager({ initialProducts, restaurantId, currency }: In
                       {p.track_inventory ? (
                         <div className="flex items-center gap-1">
                           <button onClick={() => updateQty(p, (p.stock_qty ?? 0) - 1)} className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-sm font-bold">−</button>
-                          <input type="number" min="0" value={p.stock_qty ?? ''} onChange={e => updateQty(p, parseInt(e.target.value) || 0)} className="w-14 text-center text-sm font-bold text-gray-900 border border-gray-200 rounded-lg py-1 focus:outline-none focus:border-gray-900" />
+                          <input type="number" min="0" value={p.stock_qty ?? ''} onChange={e => updateQty(p, parseInt(e.target.value) || 0)} className="w-14 text-center text-sm font-bold text-gray-900 border border-gray-200 rounded-lg py-1 focus:outline-hidden focus:border-gray-900" />
                           <button onClick={() => updateQty(p, (p.stock_qty ?? 0) + 1)} className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-sm font-bold">+</button>
                         </div>
                       ) : <span className="text-xs text-gray-400">—</span>}
@@ -253,7 +253,7 @@ export function InventoryManager({ initialProducts, restaurantId, currency }: In
                     {/* Threshold */}
                     <div className="flex items-center justify-center">
                       {p.track_inventory ? (
-                        <input type="number" min="1" value={p.low_stock_threshold ?? 5} onChange={e => updateThreshold(p, parseInt(e.target.value) || 5)} className="w-16 text-center text-sm font-medium text-gray-900 border border-gray-200 rounded-lg py-1.5 focus:outline-none focus:border-gray-900" />
+                        <input type="number" min="1" value={p.low_stock_threshold ?? 5} onChange={e => updateThreshold(p, parseInt(e.target.value) || 5)} className="w-16 text-center text-sm font-medium text-gray-900 border border-gray-200 rounded-lg py-1.5 focus:outline-hidden focus:border-gray-900" />
                       ) : <span className="text-xs text-gray-400">—</span>}
                     </div>
                     {/* Track toggle */}

@@ -44,9 +44,9 @@ const ADMIN_REGEN_RESTAURANT_ID = process.env.NEXT_PUBLIC_ADMIN_REGEN_RESTAURANT
 // Shared by the header and every row (md+). On touch screens (iPad) the drag
 // handle and the action column grow so each target is at least 44x44.
 const ROW_GRID =
-  'grid-cols-[1.5rem_2rem_1fr_6rem_4.5rem_4rem_4.5rem_5rem] [@media(pointer:coarse)]:grid-cols-[2.75rem_2rem_1fr_6rem_4.5rem_4rem_3rem_8.5rem]';
+  'grid-cols-[1.5rem_2rem_1fr_6rem_4.5rem_4rem_4.5rem_5rem] pointer-coarse:grid-cols-[2.75rem_2rem_1fr_6rem_4.5rem_4rem_3rem_8.5rem]';
 const TOUCH_TARGET =
-  '[@media(pointer:coarse)]:p-0 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11 inline-flex items-center justify-center';
+  'pointer-coarse:p-0 pointer-coarse:w-11 pointer-coarse:h-11 inline-flex items-center justify-center';
 
 // ─── Inline price cell ──────────────────────────────────────────
 
@@ -104,7 +104,7 @@ function InlinePriceCell({
           if (e.key === 'Escape') { committed.current = true; setValue(String(price)); setEditing(false); }
         }}
         onBlur={save}
-        className="w-20 px-2 py-0.5 text-sm border border-emerald-400 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+        className="w-20 px-2 py-0.5 text-sm border border-emerald-400 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
       />
     );
   }
@@ -113,7 +113,7 @@ function InlinePriceCell({
     <button
       onClick={() => { setValue(String(price)); setEditing(true); }}
       className={cn(
-        'text-sm font-medium px-2 py-0.5 rounded transition-all cursor-text',
+        'text-sm font-medium px-2 py-0.5 rounded-sm transition-all cursor-text',
         flash ? 'bg-emerald-50 text-emerald-700' : 'text-gray-900 hover:bg-gray-100'
       )}
       title={t.products_clickEditPrice}
@@ -870,29 +870,29 @@ function SortableProductRow({
       {/* Desktop / tablet row */}
       <div className={cn('hidden md:grid items-center gap-2 px-4 py-2.5', ROW_GRID)}>
         <button
-          className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none inline-flex items-center justify-center [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:h-11"
+          className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none inline-flex items-center justify-center pointer-coarse:w-11 pointer-coarse:h-11"
           aria-label={L('Arrastrar para ordenar', 'Drag to reorder')}
           {...attributes}
           {...listeners}
         >
-          <GripVertical className="w-3.5 h-3.5 [@media(pointer:coarse)]:w-4 [@media(pointer:coarse)]:h-4" />
+          <GripVertical className="w-3.5 h-3.5 pointer-coarse:w-4 pointer-coarse:h-4" />
         </button>
         <input
           type="checkbox"
           checked={isSel}
           onChange={() => toggleSel(p.id)}
-          className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30"
+          className="w-3.5 h-3.5 rounded-sm border-gray-300 text-emerald-600 focus:ring-emerald-500/30"
         />
         <Link
           href={`/app/menu/products/${p.id}`}
           className="flex items-center gap-3 min-w-0 text-left"
         >
           {p.image_url ? (
-            <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+            <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 shrink-0">
               <Image src={p.image_url} alt={p.name} fill sizes="36px" className="object-cover" />
             </div>
           ) : (
-            <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
               <Package className="w-3.5 h-3.5 text-gray-400" />
             </div>
           )}
@@ -923,7 +923,7 @@ function SortableProductRow({
         </button>
         <div>
           {modCount > 0 ? (
-            <span className="text-[11px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">{modCount}g</span>
+            <span className="text-[11px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm font-medium">{modCount}g</span>
           ) : (
             <span className="text-[11px] text-gray-300">&mdash;</span>
           )}
@@ -933,7 +933,7 @@ function SortableProductRow({
           <button
             onClick={() => handleDuplicate(p)}
             disabled={duplicating}
-            className={cn('p-1 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-500 disabled:opacity-50', TOUCH_TARGET)}
+            className={cn('p-1 rounded-sm hover:bg-indigo-50 text-gray-400 hover:text-indigo-500 disabled:opacity-50', TOUCH_TARGET)}
             title={t.products_duplicate}
             aria-label={t.products_duplicate}
           >
@@ -941,7 +941,7 @@ function SortableProductRow({
           </button>
           <button
             onClick={() => handleToggle(p)}
-            className={cn('p-1 rounded hover:bg-gray-100 text-gray-400', TOUCH_TARGET)}
+            className={cn('p-1 rounded-sm hover:bg-gray-100 text-gray-400', TOUCH_TARGET)}
             title={p.is_active ? t.products_hide : t.products_show}
             aria-label={p.is_active ? t.products_hide : t.products_show}
           >
@@ -949,7 +949,7 @@ function SortableProductRow({
           </button>
           <button
             onClick={() => handleDelete(p.id)}
-            className={cn('p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500', TOUCH_TARGET)}
+            className={cn('p-1 rounded-sm hover:bg-red-50 text-gray-400 hover:text-red-500', TOUCH_TARGET)}
             title={t.general_delete}
             aria-label={t.general_delete}
           >
@@ -962,7 +962,7 @@ function SortableProductRow({
       <div className="flex md:hidden items-center gap-2 pl-4 pr-2 py-2 w-full">
         <Link href={`/app/menu/products/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0 text-left py-1">
           {p.image_url ? (
-            <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+            <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-100 shrink-0">
               <Image src={p.image_url} alt={p.name} fill sizes="44px" className="object-cover" />
               {p.in_stock === false && (
                 <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
@@ -971,7 +971,7 @@ function SortableProductRow({
               )}
             </div>
           ) : (
-            <div className="w-11 h-11 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-11 h-11 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
               <Package className="w-4 h-4 text-gray-400" />
             </div>
           )}
@@ -979,7 +979,7 @@ function SortableProductRow({
             <div className="flex items-center gap-1.5">
               <p className={cn('text-sm font-medium truncate', p.is_active ? 'text-gray-900' : 'text-gray-500')}>{p.name}</p>
               {p.in_stock === false && (
-                <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t.products_outOfStockStatus}</span>
+                <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full shrink-0">{t.products_outOfStockStatus}</span>
               )}
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
@@ -992,7 +992,7 @@ function SortableProductRow({
         <button
           onClick={() => handleStockToggle(p)}
           className={cn(
-            'w-11 h-11 rounded-lg transition-colors flex-shrink-0 inline-flex items-center justify-center',
+            'w-11 h-11 rounded-lg transition-colors shrink-0 inline-flex items-center justify-center',
             p.in_stock === false ? 'text-red-500 hover:bg-red-50 active:bg-red-50' : 'text-emerald-500 hover:bg-emerald-50 active:bg-emerald-50'
           )}
           title={p.in_stock === false ? t.products_markAvailable : t.products_markOutOfStock}
@@ -1003,7 +1003,7 @@ function SortableProductRow({
         <button
           onClick={() => onMore(p)}
           disabled={duplicating}
-          className="w-11 h-11 rounded-lg text-gray-500 hover:bg-gray-100 active:bg-gray-100 flex-shrink-0 inline-flex items-center justify-center disabled:opacity-50"
+          className="w-11 h-11 rounded-lg text-gray-500 hover:bg-gray-100 active:bg-gray-100 shrink-0 inline-flex items-center justify-center disabled:opacity-50"
           aria-label={L('Más acciones', 'More actions')}
         >
           {duplicating ? <Loader2 className="w-5 h-5 animate-spin" /> : <MoreHorizontal className="w-5 h-5" />}
@@ -1050,7 +1050,7 @@ function ProductActionsSheet({
 
   // Portaled to <body>: the list sits inside an overflow-hidden card.
   return createPortal(
-    <div className="fixed inset-0 z-[90] md:hidden" role="dialog" aria-modal="true" aria-label={product.name}>
+    <div className="fixed inset-0 z-90 md:hidden" role="dialog" aria-modal="true" aria-label={product.name}>
       <button className="absolute inset-0 bg-black/40" aria-label={t.general_cancel} onClick={onClose} />
       <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-2xl px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <p className="px-4 pb-2 text-xs font-semibold text-gray-500 truncate">{product.name}</p>

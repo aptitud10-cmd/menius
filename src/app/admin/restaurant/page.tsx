@@ -64,7 +64,7 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   trialing: { label: 'Trial', cls: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
   past_due: { label: 'Vencido', cls: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
   canceled: { label: 'Cancelado', cls: 'text-red-400 bg-red-500/10 border-red-500/20' },
-  none: { label: 'Sin sub', cls: 'text-gray-500 bg-white/[0.04] border-white/[0.08]' },
+  none: { label: 'Sin sub', cls: 'text-gray-500 bg-white/4 border-white/8' },
 };
 const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: 'Pendiente', cls: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
@@ -88,13 +88,13 @@ function Sparkline({ data }: { data: { day: string; count: number }[] }) {
         return (
           <div key={d.day} className="flex-1 group relative">
             <div
-              className="w-full rounded-sm transition-all"
+              className="w-full rounded-xs transition-all"
               style={{
                 height: `${h}px`,
                 background: isToday ? '#7c3aed' : 'rgba(255,255,255,0.08)',
               }}
             />
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap z-10 pointer-events-none">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-[9px] px-1.5 py-0.5 rounded-sm whitespace-nowrap z-10 pointer-events-none">
               {d.count} pedidos
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function RestaurantDetailPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-gray-100">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="border-b border-white/[0.06] bg-[#070707]/80 backdrop-blur-xl sticky top-0 z-10">
+      <div className="border-b border-white/6 bg-[#070707]/80 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/admin" className="flex items-center gap-1.5 text-gray-600 hover:text-gray-300 text-sm transition-colors">
@@ -238,7 +238,7 @@ export default function RestaurantDetailPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={load}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-gray-400 hover:text-white transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 text-xs text-gray-400 hover:text-white transition-all"
             >
               <RefreshCw className="w-3 h-3" /> Recargar
             </button>
@@ -281,36 +281,36 @@ export default function RestaurantDetailPage() {
               <div className="space-y-2">
                 {restaurant.ownerName && (
                   <p className="flex items-center gap-2 text-gray-400">
-                    <Users className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                    <Users className="w-3.5 h-3.5 text-gray-600 shrink-0" />
                     {restaurant.ownerName}
                   </p>
                 )}
                 {restaurant.ownerEmail && (
                   <a href={`mailto:${restaurant.ownerEmail}`} className="flex items-center gap-2 text-gray-400 hover:text-purple-400 transition-colors">
-                    <Mail className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                    <Mail className="w-3.5 h-3.5 text-gray-600 shrink-0" />
                     {restaurant.ownerEmail}
                   </a>
                 )}
                 {restaurant.phone && (
                   <p className="flex items-center gap-2 text-gray-400">
-                    <Phone className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                    <Phone className="w-3.5 h-3.5 text-gray-600 shrink-0" />
                     {restaurant.phone}
                   </p>
                 )}
               </div>
               <div className="space-y-2">
                 <p className="flex items-center gap-2 text-gray-400">
-                  <Calendar className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                  <Calendar className="w-3.5 h-3.5 text-gray-600 shrink-0" />
                   Registrado {new Date(restaurant.created_at).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
                 {restaurant.lastSignIn && (
                   <p className="flex items-center gap-2 text-gray-400">
-                    <Clock className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                    <Clock className="w-3.5 h-3.5 text-gray-600 shrink-0" />
                     Último login {new Date(restaurant.lastSignIn).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 )}
                 <p className="flex items-center gap-2 text-gray-400">
-                  <Globe className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                  <Globe className="w-3.5 h-3.5 text-gray-600 shrink-0" />
                   {restaurant.country_code || '—'} · {currency}
                 </p>
                 {(() => {
@@ -319,7 +319,7 @@ export default function RestaurantDetailPage() {
                   const old = v != null && isOlderAppVersion(v, COUNTER_APP_LATEST);
                   return (
                     <p className="flex items-center gap-2 text-gray-400">
-                      <Tablet className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                      <Tablet className="w-3.5 h-3.5 text-gray-600 shrink-0" />
                       <span>
                         Counter{' '}
                         {v ? (
@@ -378,13 +378,13 @@ export default function RestaurantDetailPage() {
             </div>
 
             {/* Plan Comisión 4% — interno, solo admin */}
-            <div className="mt-5 pt-4 border-t border-white/[0.05]">
+            <div className="mt-5 pt-4 border-t border-white/5">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Plan Comisión 4%</p>
                   <p className="text-[10px] text-gray-600 mt-0.5">Uso interno · 4% por orden online</p>
                 </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${restaurant.commission_plan ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/[0.04] border-white/[0.08] text-gray-500'}`}>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${restaurant.commission_plan ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/4 border-white/8 text-gray-500'}`}>
                   {restaurant.commission_plan ? 'Activo' : 'Inactivo'}
                 </span>
               </div>
@@ -406,7 +406,7 @@ export default function RestaurantDetailPage() {
             </div>
 
             {/* Quick actions */}
-            <div className="mt-5 pt-4 border-t border-white/[0.05] space-y-2">
+            <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
               <a
                 href={`mailto:${restaurant.ownerEmail}`}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600/20 border border-purple-500/20 text-xs text-purple-300 hover:bg-purple-600/30 transition-colors font-medium"
@@ -417,7 +417,7 @@ export default function RestaurantDetailPage() {
                 href={`https://dashboard.stripe.com/customers/${subscription?.stripe_customer_id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-gray-400 hover:text-white transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/4 border border-white/8 text-xs text-gray-400 hover:text-white transition-colors"
               >
                 <CreditCard className="w-3.5 h-3.5" /> Ver en Stripe
               </a>
@@ -430,25 +430,25 @@ export default function RestaurantDetailPage() {
           <div className="space-y-2">
             {atRisk && (
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <AlertTriangle className="w-4 h-4 shrink-0" />
                 Sin pedidos en {stats.daysSinceLastOrder} días — posible churn
               </div>
             )}
             {trialDaysLeft !== null && trialDaysLeft <= 3 && trialDaysLeft >= 0 && (
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300">
-                <Clock className="w-4 h-4 flex-shrink-0" />
+                <Clock className="w-4 h-4 shrink-0" />
                 Trial vence en {trialDaysLeft} días — candidato a conversión
               </div>
             )}
             {subscription?.status === 'past_due' && (
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-sm text-orange-300">
-                <XCircle className="w-4 h-4 flex-shrink-0" />
+                <XCircle className="w-4 h-4 shrink-0" />
                 Pago vencido — revisar en Stripe
               </div>
             )}
             {subscription?.cancel_at && (
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <AlertTriangle className="w-4 h-4 shrink-0" />
                 Cancelación programada: {new Date(subscription.cancel_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
               </div>
             )}
@@ -488,7 +488,7 @@ export default function RestaurantDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Recent orders */}
           <div className="lg:col-span-2 bg-[#0d0d0d] border border-white/[0.07] rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
               <p className="text-sm font-semibold text-white">Últimas órdenes</p>
               <a
                 href={`/app/orders`}
@@ -497,7 +497,7 @@ export default function RestaurantDetailPage() {
                 Ver todas <ChevronRight className="w-3 h-3" />
               </a>
             </div>
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-white/4">
               {recentOrders.length === 0 ? (
                 <p className="px-5 py-6 text-sm text-gray-700 text-center">Sin órdenes</p>
               ) : recentOrders.map(order => {
@@ -505,7 +505,7 @@ export default function RestaurantDetailPage() {
                 return (
                   <div key={order.id} className="px-5 py-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-white/4 flex items-center justify-center shrink-0">
                         <ShoppingBag className="w-3.5 h-3.5 text-gray-500" />
                       </div>
                       <div className="min-w-0">
@@ -520,7 +520,7 @@ export default function RestaurantDetailPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full border ${meta.cls}`}>{meta.label}</span>
                       <span className="text-sm font-bold text-white tabular-nums">{fmt(order.total)}</span>
                     </div>
@@ -532,10 +532,10 @@ export default function RestaurantDetailPage() {
 
           {/* Stripe payments */}
           <div className="bg-[#0d0d0d] border border-white/[0.07] rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-white/[0.06]">
+            <div className="px-5 py-4 border-b border-white/6">
               <p className="text-sm font-semibold text-white">Pagos Stripe</p>
             </div>
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-white/4">
               {stripePayments.length === 0 ? (
                 <p className="px-5 py-6 text-sm text-gray-700 text-center">Sin pagos</p>
               ) : stripePayments.map((p, i) => (

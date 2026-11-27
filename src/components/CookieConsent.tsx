@@ -71,7 +71,7 @@ export default function CookieConsent() {
     <div
       role="region"
       aria-label={locale === 'en' ? 'Cookie notice' : 'Aviso de cookies'}
-      className="fixed bottom-0 left-0 right-0 z-[9999] px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-fade-in-up"
+      className="fixed bottom-0 left-0 right-0 z-9999 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-fade-in-up"
     >
       <div className="max-w-xl mx-auto bg-[#FFFDF8] border border-[#DAD0BF] rounded-2xl shadow-[0_1px_2px_rgba(28,25,21,.06),0_18px_40px_-16px_rgba(28,25,21,.28)] p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
         <p className="flex-1 min-w-0 text-[15px] leading-relaxed text-[#4E473E]">
@@ -82,7 +82,7 @@ export default function CookieConsent() {
         </p>
         <button
           onClick={accept}
-          className="flex-shrink-0 min-h-[44px] px-6 rounded-xl bg-[#047A65] text-white text-[15px] font-semibold hover:bg-[#035E4E] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#047A65]"
+          className="shrink-0 min-h-[44px] px-6 rounded-xl bg-[#047A65] text-white text-[15px] font-semibold hover:bg-[#035E4E] transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#047A65]"
         >
           {s.accept}
         </button>

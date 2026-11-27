@@ -837,7 +837,7 @@ export function CustomizationSheet({
         className={cn(
           "inline-flex items-center gap-1.5 min-h-[44px] px-4 py-2 rounded-full border text-[15px] leading-tight text-left transition-colors duration-150",
           isSelected
-            ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E]"
+            ? "bg-brand-500 border-brand-500 text-[#04241E]"
             : isDisabled
               ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
               : isOffHours
@@ -849,7 +849,7 @@ export function CustomizationSheet({
             selected state (WCAG 1.4.1). The slot is always there (ring for a
             single choice, plus for add-ons) so selecting doesn't widen the chip
             and make the whole row jump. */}
-        <span className="w-4 h-4 flex-shrink-0 grid place-items-center" aria-hidden="true">
+        <span className="w-4 h-4 shrink-0 grid place-items-center" aria-hidden="true">
           {isSelected ? (
             <Check className="w-4 h-4" strokeWidth={2.5} />
           ) : group.selection_type === "single" || group.max_select <= 1 ? (
@@ -907,19 +907,19 @@ export function CustomizationSheet({
                 className={cn(
                   "min-h-[44px] px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-[15px] leading-tight transition-colors duration-150",
                   isSelected
-                    ? "bg-[#05c8a7] text-[#04241E] font-semibold shadow-sm"
+                    ? "bg-brand-500 text-[#04241E] font-semibold shadow-xs"
                     : isOffHours
                       ? "text-gray-500"
                       : "text-gray-800 font-medium hover:bg-white/70 active:bg-white",
                 )}
               >
                 {/* Tick reserved in both halves: the label doesn't slide over when chosen. */}
-                <Check className={cn("w-4 h-4 flex-shrink-0", !isSelected && "invisible")} aria-hidden="true" />
+                <Check className={cn("w-4 h-4 shrink-0", !isSelected && "invisible")} aria-hidden="true" />
                 <span className="truncate">{title}</span>
                 {price !== 0 && (
                   <span
                     className={cn(
-                      "text-[13px] font-medium tabular-nums flex-shrink-0",
+                      "text-[13px] font-medium tabular-nums shrink-0",
                       isSelected ? "text-[#04241E]/80" : "text-gray-600",
                     )}
                   >
@@ -966,9 +966,9 @@ export function CustomizationSheet({
         <span
           aria-hidden="true"
           className={cn(
-            "w-[22px] h-[22px] flex items-center justify-center flex-shrink-0 transition-colors",
+            "w-[22px] h-[22px] flex items-center justify-center shrink-0 transition-colors",
             single ? "rounded-full" : "rounded-md",
-            isSelected ? "bg-[#05c8a7]" : "border-2 border-gray-300 bg-white",
+            isSelected ? "bg-brand-500" : "border-2 border-gray-300 bg-white",
           )}
         >
           {isSelected &&
@@ -983,7 +983,7 @@ export function CustomizationSheet({
           {hours &&<span className="block text-[13px] font-medium text-gray-600">{hours}</span>}
         </span>
         {price !== 0 && (
-          <span className="text-[15px] text-gray-700 tabular-nums flex-shrink-0">{priceLabel(price)}</span>
+          <span className="text-[15px] text-gray-700 tabular-nums shrink-0">{priceLabel(price)}</span>
         )}
       </button>
     );
@@ -1019,10 +1019,10 @@ export function CustomizationSheet({
           <div
             className={cn(
               "relative w-full bg-gray-100 overflow-hidden",
-              desktop ? "aspect-[4/3]" : "aspect-square max-h-[50dvh]",
+              desktop ? "aspect-4/3" : "aspect-square max-h-[50dvh]",
             )}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
+            <div className="absolute inset-0 bg-linear-to-br from-gray-100 to-gray-200 animate-pulse" />
             <div className="absolute inset-0">
               <Image
                 src={product.image_url}
@@ -1120,7 +1120,7 @@ export function CustomizationSheet({
         {modifiersError && !modifiersLoading && (
           <div className="px-5 pt-5">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
-              <span className="text-amber-500 text-base flex-shrink-0">⚠️</span>
+              <span className="text-amber-500 text-base shrink-0">⚠️</span>
               <p className="text-sm text-amber-700 flex-1">
                 {locale === "es"
                   ? "No se pudieron cargar las opciones."
@@ -1128,7 +1128,7 @@ export function CustomizationSheet({
               </p>
               <button
                 onClick={loadModifiers}
-                className="text-xs font-semibold text-amber-700 underline underline-offset-2 hover:no-underline flex-shrink-0"
+                className="text-xs font-semibold text-amber-700 underline underline-offset-2 hover:no-underline shrink-0"
               >
                 {locale === "es" ? "Reintentar" : "Retry"}
               </button>
@@ -1214,7 +1214,7 @@ export function CustomizationSheet({
                 className={cn(
                   "rounded-2xl transition-shadow duration-300",
                   isHighlighted && "ring-2 ring-red-400 ring-offset-4",
-                  !isHighlighted && isPointed && "ring-2 ring-[#05c8a7] ring-offset-4",
+                  !isHighlighted && isPointed && "ring-2 ring-brand-500 ring-offset-4",
                 )}
               >
               {/* Group titles are the questions the diner answers ("How would you
@@ -1237,7 +1237,7 @@ export function CustomizationSheet({
                       accent instead of a "Done" chip: a checklist, not six pills. */}
                   {isSatisfied ? (
                     <span className="inline-flex items-center gap-1.5 text-[13px] text-gray-600">
-                      <span className="flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#05c8a7]">
+                      <span className="flex items-center justify-center w-[18px] h-[18px] rounded-full bg-brand-500">
                         <Check className="w-3 h-3 text-[#04241E]" strokeWidth={3} aria-hidden="true" />
                       </span>
                       <span className="sr-only">{t.groupDone}:</span>
@@ -1312,12 +1312,12 @@ export function CustomizationSheet({
                         className={cn(
                           "relative flex flex-col items-center justify-center px-3 py-3.5 rounded-2xl transition-colors duration-150 text-center border gap-0.5",
                           isSelected
-                            ? "bg-[#05c8a7] text-[#04241E] border-[#05c8a7] shadow-sm"
+                            ? "bg-brand-500 text-[#04241E] border-brand-500 shadow-xs"
                             : isDisabled
                               ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
                               : isOffHours
                                 ? "bg-gray-50 border-dashed border-gray-200 text-gray-500"
-                                : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400",
+                                : "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-xs active:border-gray-400",
                         )}
                       >
                         {isSelected && (
@@ -1437,7 +1437,7 @@ export function CustomizationSheet({
             /* text-base (16px) is not a style choice: iOS Safari zooms the whole
                page when a focused input is under 16px, and the diner lands back
                on a menu they have to pinch out of. */
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 resize-none transition-colors focus:outline-none focus:border-[#05c8a7] focus:ring-1 focus:ring-[#05c8a7]"
+            className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 resize-none transition-colors focus:outline-hidden focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           />
           {notes.length > 150 && (
             <p className="mt-1 text-[12px] text-gray-500 text-right tabular-nums">
@@ -1460,7 +1460,7 @@ export function CustomizationSheet({
                     className={cn(
                       "inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-full border text-[14px] transition-colors",
                       on
-                        ? "border-[#05c8a7] bg-[#e6faf7] text-[#04241E] font-semibold"
+                        ? "border-brand-500 bg-[#e6faf7] text-[#04241E] font-semibold"
                         : "border-gray-200 bg-white text-gray-700 font-medium hover:bg-gray-50 active:bg-gray-100",
                     )}
                   >
@@ -1513,7 +1513,7 @@ export function CustomizationSheet({
                         ? `Agregar ${tName(p, locale, defaultLocale)}`
                         : `Add ${tName(p, locale, defaultLocale)}`
                     }
-                    className="group/card flex-shrink-0 w-[132px] lg:w-[160px] text-left bg-white rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                    className="group/card shrink-0 w-[132px] lg:w-[160px] text-left bg-white rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                   >
                     <div className="relative w-full aspect-square bg-gray-100">
                       {!showsAsRow(p) && p.image_url ? (
@@ -1531,7 +1531,7 @@ export function CustomizationSheet({
                       )}
                       {/* Outline quick-add "+" — white fill, brand border, sits over
                           the image corner. Deliberately lighter weight than the CTA. */}
-                      <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white border-[1.5px] border-[#05c8a7] flex items-center justify-center shadow-sm group-hover/card:bg-[#05c8a7] transition-colors">
+                      <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white border-[1.5px] border-brand-500 flex items-center justify-center shadow-xs group-hover/card:bg-brand-500 transition-colors">
                         <Plus className="w-4 h-4 text-[#047a65] group-hover/card:text-white transition-colors" />
                       </span>
                     </div>
@@ -1552,7 +1552,7 @@ export function CustomizationSheet({
                 type="button"
                 onClick={() => scrollSuggestions("left")}
                 aria-label={locale === "es" ? "Ver anteriores" : "Scroll left"}
-                className="hidden lg:flex absolute left-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                className="hidden lg:flex absolute left-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -1560,7 +1560,7 @@ export function CustomizationSheet({
                 type="button"
                 onClick={() => scrollSuggestions("right")}
                 aria-label={locale === "es" ? "Ver más" : "Scroll right"}
-                className="hidden lg:flex absolute right-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                className="hidden lg:flex absolute right-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -1605,7 +1605,7 @@ export function CustomizationSheet({
   );
 
   const closeButtonClass =
-    "w-11 h-11 flex items-center justify-center rounded-full flex-shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1";
+    "w-11 h-11 flex items-center justify-center rounded-full shrink-0 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1";
 
   // Floating handle + X over the photo, and the compact header that replaces
   // them once the title scrolls away. Both drag the sheet on mobile
@@ -1624,7 +1624,7 @@ export function CustomizationSheet({
         <p className="min-w-0 flex-1 truncate text-[16px] font-semibold text-gray-900">
           {displayName}
         </p>
-        <span className="text-[15px] text-gray-600 tabular-nums flex-shrink-0">
+        <span className="text-[15px] text-gray-600 tabular-nums shrink-0">
           {fmtPrice(Number(product.price))}
         </span>
         <button
@@ -1649,7 +1649,7 @@ export function CustomizationSheet({
               <div
                 className={cn(
                   "w-10 h-1 rounded-full",
-                  hasHero ? "bg-white/85 shadow-sm" : "bg-gray-300",
+                  hasHero ? "bg-white/85 shadow-xs" : "bg-gray-300",
                 )}
               />
             </div>
@@ -1677,7 +1677,7 @@ export function CustomizationSheet({
   );
 
   const sheetFooter = isPreview ? null : (
-    <div className="border-t border-gray-100 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div className="border-t border-gray-100 shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="px-5 py-4">
         {unavailable ? (
           <p
@@ -1718,7 +1718,7 @@ export function CustomizationSheet({
             <div className="flex flex-1 gap-2">
               <button
                 onClick={onViewCart ?? onClose}
-                className="flex-1 h-[52px] rounded-2xl font-bold text-[15px] bg-[#05c8a7] text-[#04241E] transition-all duration-200 active:scale-[0.98]"
+                className="flex-1 h-[52px] rounded-2xl font-bold text-[15px] bg-brand-500 text-[#04241E] transition-all duration-200 active:scale-[0.98]"
               >
                 ✓ {locale === "es" ? "Ver carrito" : "View cart"}
               </button>
@@ -1741,7 +1741,7 @@ export function CustomizationSheet({
               // ~195px wide on a 375px phone next to the stepper: 14px keeps
               // "Choose 2 more · $12.50" whole; 16px would cut the count.
               className={cn(
-                "flex-1 min-w-0 h-[52px] px-3 flex items-center justify-center gap-1.5 rounded-2xl font-bold whitespace-nowrap bg-[#05c8a7] text-[#04241E] transition-all duration-200 active:scale-[0.98] shadow-sm hover:bg-[#04b096]",
+                "flex-1 min-w-0 h-[52px] px-3 flex items-center justify-center gap-1.5 rounded-2xl font-bold whitespace-nowrap bg-brand-500 text-[#04241E] transition-all duration-200 active:scale-[0.98] shadow-xs hover:bg-[#04b096]",
                 isValid && !optionsPending ? "text-[16px]" : "text-[14px]",
                 optionsPending && modifiersLoading && "opacity-70",
               )}
@@ -1757,7 +1757,7 @@ export function CustomizationSheet({
                     ? t.updateItem
                     : t.add}
               </span>
-              <span className="flex-shrink-0 tabular-nums">
+              <span className="shrink-0 tabular-nums">
                 · {fmtPrice(unitPrice * qty)}
               </span>
             </button>
@@ -1784,7 +1784,7 @@ export function CustomizationSheet({
     </div>
   ) : (
     <div className="flex flex-1 min-h-0">
-      <div className="w-[380px] flex-shrink-0 border-r border-gray-100 overflow-y-auto">
+      <div className="w-[380px] shrink-0 border-r border-gray-100 overflow-y-auto">
         {renderHeroMedia(true)}
         <div className={hasHero ? "pt-1" : "pt-6"}>{heroText}</div>
       </div>

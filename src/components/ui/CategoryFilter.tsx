@@ -72,11 +72,11 @@ export function CategoryFilter({
   return (
     <div className={`relative ${className}`}>
       <div
-        className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-[#050505] to-transparent transition-opacity duration-200 ${showLeftFade ? 'opacity-100' : 'opacity-0'}`}
+        className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-linear-to-r from-[#050505] to-transparent transition-opacity duration-200 ${showLeftFade ? 'opacity-100' : 'opacity-0'}`}
         aria-hidden
       />
       <div
-        className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-[#050505] to-transparent transition-opacity duration-200 ${showRightFade ? 'opacity-100' : 'opacity-0'}`}
+        className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-linear-to-l from-[#050505] to-transparent transition-opacity duration-200 ${showRightFade ? 'opacity-100' : 'opacity-0'}`}
         aria-hidden
       />
 
@@ -105,7 +105,7 @@ export function CategoryFilter({
             onClick={() => onChange(active === cat.id ? null : cat.id)}
           />
         ))}
-        <div className="flex-shrink-0 w-2" aria-hidden />
+        <div className="shrink-0 w-2" aria-hidden />
       </nav>
     </div>
   );
@@ -130,20 +130,20 @@ const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(function PillB
       onClick={onClick}
       aria-pressed={active}
       className={`
-        group flex-shrink-0 snap-start
+        group shrink-0 snap-start
         inline-flex items-center gap-1.5
         px-4 py-2 rounded-full
         text-sm font-medium
         transition-all duration-200
         active:scale-[0.96]
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]
+        focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]
         ${active
           ? 'bg-emerald-500/12 text-emerald-300 ring-1 ring-emerald-500/30 shadow-[0_0_20px_-6px_rgba(16,185,129,0.4)]'
-          : 'text-gray-400 ring-1 ring-white/[0.06] hover:text-white hover:ring-white/15 hover:bg-white/[0.03]'}
+          : 'text-gray-400 ring-1 ring-white/6 hover:text-white hover:ring-white/15 hover:bg-white/3'}
       `}
     >
       {icon && (
-        <span className="text-base flex-shrink-0" aria-hidden>
+        <span className="text-base shrink-0" aria-hidden>
           {icon}
         </span>
       )}

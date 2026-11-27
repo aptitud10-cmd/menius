@@ -631,7 +631,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
   // ── Entregado ──
   if (deliveryStep === 'delivered') {
     return (
-      <div className="min-h-[100dvh] flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>
+      <div className="min-h-dvh flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>
         <main className="flex-1 w-full max-w-md mx-auto px-5 flex flex-col items-center justify-center text-center gap-3 py-10">
           <span className="w-20 h-20 rounded-full grid place-items-center" style={{ background: C.green, color: C.greenInk }}>
             <Check className="w-10 h-10" strokeWidth={3} aria-hidden />
@@ -657,12 +657,12 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>
+    <div className="min-h-dvh flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>
       <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-4 flex flex-col gap-3">
 
         {orderCancelled && (
           <div role="alert" className="flex items-start gap-3 rounded-2xl p-4" style={{ background: C.redSoft, color: C.red }}>
-            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden />
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden />
             <div>
               <p className="text-[15px] font-bold">{t.cancelled}</p>
               <p className="text-[13px] mt-0.5">{t.cancelledSub}</p>
@@ -674,7 +674,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
           <button type="button" onClick={() => setOfflineBannerDismissed(true)}
             className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold"
             style={{ background: C.amberSoft, color: C.amber }}>
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: C.amber }} />
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: C.amber }} />
             {t.offline}
           </button>
         )}
@@ -704,7 +704,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
           {deliveryStep === 'start' || gpsStatus === 'idle' ? (
             <span className="text-[12px] font-bold px-2.5 py-1 rounded-full" style={{ background: C.line, color: C.sub }}>{t.gpsOff}</span>
           ) : gpsStatus === 'sharing' ? (
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ background: C.greenSoft, color: C.greenDeep }}>
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap shrink-0" style={{ background: C.greenSoft, color: C.greenDeep }}>
               <span className="relative flex w-2 h-2">
                 <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: C.green }} />
                 <span className="relative inline-flex rounded-full w-2 h-2" style={{ background: C.greenDeep }} />
@@ -730,7 +730,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
           <>
             {cashBlock(t.collect)}
             {deliveryAddress && (
-              <section className="rounded-[18px] p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
+              <section className="rounded-2xl p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
                 <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>
                   {t.deliverTo}{info?.customerName ? ` ${info.customerName}` : ''}
                 </p>
@@ -740,7 +740,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
               </section>
             )}
             {itemCount > 0 && (
-              <section className="rounded-[18px] p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
+              <section className="rounded-2xl p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
                 <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>{t.inBag(itemCount)}</p>
                 <ul className="grid gap-1 text-[14px]">
                   {info!.items.map((it, i) => (
@@ -756,7 +756,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
         {/* 2. En camino */}
         {deliveryStep === 'picked_up' && deliveryAddress && (
           <>
-            <section className="rounded-[18px] p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
+            <section className="rounded-2xl p-4 grid gap-2 bg-white" style={{ border: `1px solid ${C.line}` }}>
               <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>{t.deliverAt}</p>
               <p className="font-display text-[22px] font-extrabold leading-tight">{deliveryAddress}</p>
               {phoneLine}
@@ -793,7 +793,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
             {/* Lo que sigue. Si va a otra primero (la más cercana, la que conoce),
                 la toca y pasa a ser la actual: así "Llegué" avisa al cliente correcto. */}
             {route && route.upcoming.length > 0 && (
-              <section className="rounded-[18px] bg-white overflow-hidden" style={{ border: `1px solid ${C.line}` }}>
+              <section className="rounded-2xl bg-white overflow-hidden" style={{ border: `1px solid ${C.line}` }}>
                 <p className="px-4 pt-3 pb-1 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: C.faint }}>
                   {t.en ? 'Then · going to another first? Tap it' : 'Después · ¿vas a otra primero? Tócala'}
                 </p>
@@ -803,9 +803,9 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
                       <button type="button" onClick={() => route.onGoTo(u.token)}
                         className="w-full min-h-[52px] px-4 py-2 flex items-center gap-2 text-left text-[14px] border-t active:bg-black/5"
                         style={{ borderColor: C.line }}>
-                        <b className="tabular-nums flex-shrink-0">{u.shortNum}</b>
+                        <b className="tabular-nums shrink-0">{u.shortNum}</b>
                         <span className="truncate flex-1" style={{ color: C.sub }}>{u.address}</span>
-                        <span className="flex-shrink-0 text-[13px] font-bold" style={{ color: C.ink }}>{t.en ? 'Go first' : 'Ir primero'} ›</span>
+                        <span className="shrink-0 text-[13px] font-bold" style={{ color: C.ink }}>{t.en ? 'Go first' : 'Ir primero'} ›</span>
                       </button>
                     </li>
                   ))}
@@ -896,7 +896,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
 
       {/* Ruta: "Llegué" con el GPS al lado de otra parada */}
       {wrongStop && route && (
-        <div className="fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label={t.en ? 'Which stop are you at?' : '¿En qué parada estás?'}>
+        <div className="fixed inset-0 z-90" role="dialog" aria-modal="true" aria-label={t.en ? 'Which stop are you at?' : '¿En qué parada estás?'}>
           <button type="button" aria-label={t.close} className="absolute inset-0 w-full h-full" style={{ background: 'rgba(14,20,18,0.45)' }} onClick={() => setWrongStop(null)} />
           <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-3xl px-4 pt-3 grid gap-2 max-w-md mx-auto" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
             <span className="w-10 h-1 rounded-full mx-auto mb-1" style={{ background: C.line }} />
@@ -920,7 +920,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
 
       {/* Problema en la entrega */}
       {problemOpen && (
-        <div className="fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label={t.problemTitle}>
+        <div className="fixed inset-0 z-90" role="dialog" aria-modal="true" aria-label={t.problemTitle}>
           <button type="button" aria-label={t.close} className="absolute inset-0 w-full h-full" style={{ background: 'rgba(14,20,18,0.45)' }} onClick={() => setProblemOpen(false)} />
           <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-3xl px-4 pt-3 grid gap-2 max-w-md mx-auto" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
             <span className="w-10 h-1 rounded-full mx-auto mb-1" style={{ background: C.line }} />
@@ -958,7 +958,7 @@ export function DriverTrackClient({ token, lang, route, startExtra, driver }: {
           role="dialog"
           aria-modal="true"
           aria-label={t.pocketBtn}
-          className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center select-none"
+          className="fixed inset-0 z-100 bg-black flex flex-col items-center justify-center select-none"
           style={{ touchAction: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
           onContextMenu={(e) => e.preventDefault()}
           onPointerDown={startPocketHold}
@@ -1013,7 +1013,7 @@ function RouteAdvance({ onDone }: { onDone: () => void }) {
     onDone();
   }, [onDone]);
   return (
-    <div className="min-h-[100dvh] grid place-items-center" style={{ background: C.surface }}>
+    <div className="min-h-dvh grid place-items-center" style={{ background: C.surface }}>
       <Loader2 className="w-7 h-7 animate-spin" style={{ color: C.sub }} aria-hidden />
     </div>
   );
@@ -1030,7 +1030,7 @@ function PrimaryButton({ children, loading, onClick, tone }: {
       type="button"
       onClick={onClick}
       disabled={loading}
-      className="w-full h-16 rounded-[18px] text-[18px] font-extrabold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
+      className="w-full h-16 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
       style={tone === 'green' ? { background: C.green, color: C.greenInk } : { background: C.black, color: '#fff' }}
     >
       {loading ? <Loader2 className="w-6 h-6 animate-spin" aria-hidden /> : children}
@@ -1095,7 +1095,7 @@ function SwipeToConfirm({ loading, disabled, onConfirm, label }: {
 
   if (loading) {
     return (
-      <div className="w-full h-16 rounded-[18px] grid place-items-center" style={{ background: C.greenSoft, color: C.greenDeep }}>
+      <div className="w-full h-16 rounded-2xl grid place-items-center" style={{ background: C.greenSoft, color: C.greenDeep }}>
         <Loader2 className="w-6 h-6 animate-spin" aria-hidden />
       </div>
     );
@@ -1105,12 +1105,12 @@ function SwipeToConfirm({ loading, disabled, onConfirm, label }: {
   return (
     <div
       ref={trackRef}
-      className="relative w-full h-16 rounded-[18px] overflow-hidden select-none touch-none"
+      className="relative w-full h-16 rounded-2xl overflow-hidden select-none touch-none"
       style={{ background: disabled ? C.line : C.greenSoft, userSelect: 'none' }}
       aria-disabled={disabled}
     >
       <div
-        className="absolute inset-y-0 left-0 rounded-[18px]"
+        className="absolute inset-y-0 left-0 rounded-2xl"
         style={{
           width: progress > 0 && !disabled ? `calc(${progress * 100}% + ${THUMB_SIZE / 2}px)` : '0px',
           background: 'rgba(5,200,167,0.25)',
@@ -1126,7 +1126,7 @@ function SwipeToConfirm({ loading, disabled, onConfirm, label }: {
       <div
         role="button"
         aria-label={label}
-        className={`absolute top-[5px] bottom-[5px] flex items-center justify-center rounded-[14px] ${disabled ? '' : 'cursor-grab active:cursor-grabbing'}`}
+        className={`absolute top-[5px] bottom-[5px] flex items-center justify-center rounded-xl ${disabled ? '' : 'cursor-grab active:cursor-grabbing'}`}
         style={{
           width: THUMB_SIZE,
           left: `${5 + progress * getTrackWidth()}px`,

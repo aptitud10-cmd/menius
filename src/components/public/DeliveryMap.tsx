@@ -150,7 +150,7 @@ function MapFallback({ deliveryAddress, restaurantAddress, locale }: DeliveryMap
   const gmapsEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed&z=15`;
   return (
     <div>
-      <div className="w-full h-[var(--map-h,16rem)] overflow-hidden">
+      <div className="w-full h-(--map-h,16rem) overflow-hidden">
         <iframe
           src={gmapsEmbedUrl}
           width="100%"
@@ -466,7 +466,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
   // Los minutos van en el bloque grande del seguimiento; el mapa no los repite.
   return (
-    <div className="w-full h-[var(--map-h,16rem)] overflow-hidden">
+    <div className="w-full h-(--map-h,16rem) overflow-hidden">
       <div ref={containerRef} className="w-full h-full" />
     </div>
   );
@@ -519,7 +519,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   // llamada) y sube por onEtaUpdate al bloque grande del seguimiento.
 
   if (!geocodingDone) {
-    return <div className="w-full h-[var(--map-h,16rem)] animate-pulse" style={{ background: 'var(--tk-surface, #f3f4f6)' }} />;
+    return <div className="w-full h-(--map-h,16rem) animate-pulse" style={{ background: 'var(--tk-surface, #f3f4f6)' }} />;
   }
 
   if (!restaurantCoords || !MAPBOX_TOKEN || liveFailed) {

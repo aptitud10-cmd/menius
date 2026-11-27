@@ -104,7 +104,7 @@ export const ProductListItem = memo(function ProductListItem({
       onClick={open}
       onKeyDown={handleKey}
       className={cn(
-        'flex items-start gap-3 px-4 py-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900',
+        'flex items-start gap-3 px-4 py-3.5 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-900',
         outOfStock ? 'opacity-60' : 'cursor-pointer active:bg-ink-50'
       )}
     >
@@ -153,7 +153,7 @@ export const ProductListItem = memo(function ProductListItem({
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-[#05c8a7] text-[#04241E] text-[12px] font-extrabold flex items-center justify-center tabular-nums"
+              className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-brand-500 text-[#04241E] text-[12px] font-extrabold flex items-center justify-center tabular-nums"
               aria-label={`${cartQty} ${t.addedToCart}`}
             >
               {cartQty}
@@ -185,12 +185,12 @@ export const ProductListItem = memo(function ProductListItem({
               type="button"
               onClick={handleQuickAdd}
               aria-label={justAdded ? t.addedToCart : t.ariaAdd(displayName)}
-              className="absolute -right-2 -bottom-2 w-11 h-11 flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+              className="absolute -right-2 -bottom-2 w-11 h-11 flex items-center justify-center rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-900"
             >
               <span
                 className={cn(
                   'w-[34px] h-[34px] rounded-full flex items-center justify-center shadow-[0_1px_4px_rgba(0,0,0,0.18)] pointer-events-none transition-colors',
-                  justAdded ? 'bg-[#05c8a7] text-[#04241E]' : 'bg-white text-ink-950'
+                  justAdded ? 'bg-brand-500 text-[#04241E]' : 'bg-white text-ink-950'
                 )}
               >
                 {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-[18px] h-[18px]" aria-hidden="true" />}

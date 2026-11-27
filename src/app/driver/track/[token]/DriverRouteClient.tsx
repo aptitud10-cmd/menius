@@ -470,9 +470,9 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
   // Aviso arriba (se sumó / no se pudo / va en el próximo viaje). Se cierra solo o tocándolo.
   const toast = joinedNote && (
     <button type="button" onClick={() => setJoinedNote(null)} role="status"
-      className="fixed inset-x-3 z-[80] max-w-md mx-auto flex items-start gap-2 rounded-2xl px-4 py-3 text-left text-[14px] font-bold shadow-lg"
+      className="fixed inset-x-3 z-80 max-w-md mx-auto flex items-start gap-2 rounded-2xl px-4 py-3 text-left text-[14px] font-bold shadow-lg"
       style={{ top: 'max(0.75rem, env(safe-area-inset-top))', ...(joinedNote.tone === 'ok' ? { background: C.greenSoft, color: C.greenDeep } : { background: C.redSoft, color: C.red }) }}>
-      {joinedNote.tone === 'ok' ? <Check className="w-4 h-4 mt-0.5 flex-shrink-0" strokeWidth={3} aria-hidden /> : <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />}
+      {joinedNote.tone === 'ok' ? <Check className="w-4 h-4 mt-0.5 shrink-0" strokeWidth={3} aria-hidden /> : <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />}
       {joinedNote.text}
     </button>
   );
@@ -481,12 +481,12 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
   const openOld = r.filter((t) => t !== token && !isDone(stops[t]));
   const blockedCard = blockedNew && openOld.length > 0 && (
     <>
-    <div className="fixed inset-0 z-[79] bg-black/45" aria-hidden />
+    <div className="fixed inset-0 z-79 bg-black/45" aria-hidden />
     <div role="alertdialog" aria-modal="true" aria-labelledby="drv-blocked-title"
-      className="fixed inset-x-3 z-[80] max-w-md mx-auto rounded-2xl bg-white px-4 py-4 grid gap-3 shadow-xl"
+      className="fixed inset-x-3 z-80 max-w-md mx-auto rounded-2xl bg-white px-4 py-4 grid gap-3 shadow-xl"
       style={{ top: 'max(0.75rem, env(safe-area-inset-top))', border: `1px solid ${C.line}` }}>
       <p id="drv-blocked-title" className="flex items-start gap-2 text-[15px] font-bold" style={{ color: C.ink }}>
-        <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: C.orange }} aria-hidden />
+        <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: C.orange }} aria-hidden />
         {en
           ? `You still have a trip on the way: ${openOld.map((t) => shortNum(stops[t]?.orderNumber)).join(', ')} not delivered.`
           : `Todavía tienes un viaje en camino: ${openOld.map((t) => shortNum(stops[t]?.orderNumber)).join(', ')} sin entregar.`}
@@ -561,7 +561,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
               <p className="font-display text-[32px] font-extrabold leading-none tabular-nums mt-1">{money(cashTotal, cur)}</p>
             </div>
           )}
-          <ul className="rounded-[18px] bg-white divide-y" style={{ border: `1px solid ${C.line}` }}>
+          <ul className="rounded-2xl bg-white divide-y" style={{ border: `1px solid ${C.line}` }}>
             {r.map((t) => {
               const s = stops[t];
               return (
@@ -575,7 +575,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
                         : (en ? 'Delivered' : 'Entregado')}
                     </span>
                   </span>
-                  <span className="tabular-nums font-bold flex-shrink-0" style={{ color: s.collectCash && s.delivered ? C.ink : C.faint }}>
+                  <span className="tabular-nums font-bold shrink-0" style={{ color: s.collectCash && s.delivered ? C.ink : C.faint }}>
                     {s.collectCash ? money(s.total, s.currency) : (en ? 'Paid' : 'Pagado')}
                   </span>
                 </li>
@@ -584,7 +584,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
           </ul>
           {returned.length > 0 && (
             <p className="flex items-start gap-2 rounded-2xl px-4 py-3 text-[13px] font-semibold" style={{ background: C.redSoft, color: C.red }}>
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
               {en ? 'Return the cancelled bags to the restaurant.' : 'Devuelve al restaurante las bolsas de los pedidos cancelados.'}
             </p>
           )}
@@ -628,8 +628,8 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
           {r.map((t, i) => {
             const s = stops[t];
             return (
-              <li key={t} className="rounded-[18px] bg-white p-3 pl-4 flex items-center gap-3" style={{ border: `1px solid ${C.line}` }}>
-                <span className="w-8 h-8 rounded-full grid place-items-center text-[14px] font-extrabold flex-shrink-0" style={{ background: C.ink, color: '#fff' }}>{i + 1}</span>
+              <li key={t} className="rounded-2xl bg-white p-3 pl-4 flex items-center gap-3" style={{ border: `1px solid ${C.line}` }}>
+                <span className="w-8 h-8 rounded-full grid place-items-center text-[14px] font-extrabold shrink-0" style={{ background: C.ink, color: '#fff' }}>{i + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-bold truncate">{shortNum(s?.orderNumber)}{s?.customerName ? ` · ${s.customerName}` : ''}</span>
                   <span className="block text-[13px] leading-snug" style={{ color: C.sub }}>{s?.address ?? '…'}</span>
@@ -641,7 +641,7 @@ export function DriverRouteClient({ token, lang }: { token: string; lang: string
                 </span>
                 <button type="button" aria-label={en ? `Remove ${shortNum(s?.orderNumber)} from the trip` : `Quitar ${shortNum(s?.orderNumber)} del viaje`}
                   onClick={() => remove(t)}
-                  className="w-11 h-11 rounded-xl grid place-items-center flex-shrink-0 active:scale-95 transition-transform"
+                  className="w-11 h-11 rounded-xl grid place-items-center shrink-0 active:scale-95 transition-transform"
                   style={{ border: `1px solid ${C.line}`, color: C.sub }}>
                   <X className="w-4 h-4" aria-hidden />
                 </button>
@@ -707,7 +707,7 @@ function WhoAreYou({ en, restaurantName, team, onPick }: {
           <div className="flex gap-2">
             <input id="drv-name" value={typed} onChange={(e) => setTyped(e.target.value)} maxLength={60} autoComplete="given-name"
               placeholder={en ? 'e.g. Carlos' : 'Ej. Carlos'}
-              className="flex-1 min-w-0 h-14 rounded-2xl bg-white px-4 text-[16px] font-semibold outline-none" style={{ border: `1px solid ${C.line}` }} />
+              className="flex-1 min-w-0 h-14 rounded-2xl bg-white px-4 text-[16px] font-semibold outline-hidden" style={{ border: `1px solid ${C.line}` }} />
             <button type="submit" disabled={!typed.trim()} className="h-14 px-5 rounded-2xl text-[16px] font-extrabold disabled:opacity-40" style={{ background: C.ink, color: '#fff' }}>
               {en ? 'Go' : 'Listo'}
             </button>
@@ -721,11 +721,11 @@ function WhoAreYou({ en, restaurantName, team, onPick }: {
 // ── Piezas ──
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-[100dvh] flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>{children}</div>;
+  return <div className="min-h-dvh flex flex-col font-sans" style={{ background: C.surface, color: C.ink }}>{children}</div>;
 }
 function Spinner() {
   return (
-    <div className="min-h-[100dvh] grid place-items-center" style={{ background: C.surface }}>
+    <div className="min-h-dvh grid place-items-center" style={{ background: C.surface }}>
       <Loader2 className="w-7 h-7 animate-spin" style={{ color: C.sub }} aria-hidden />
     </div>
   );
@@ -740,7 +740,7 @@ function Dock({ children }: { children: React.ReactNode }) {
 function BigButton({ children, onClick, loading }: { children: React.ReactNode; onClick: () => void; loading: boolean }) {
   return (
     <button type="button" onClick={onClick} disabled={loading}
-      className="w-full h-16 rounded-[18px] text-[18px] font-extrabold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
+      className="w-full h-16 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
       style={{ background: C.green, color: C.greenInk }}>
       {loading ? <Loader2 className="w-6 h-6 animate-spin" aria-hidden /> : children}
     </button>

@@ -86,7 +86,7 @@ export function PackSelector({
               className={`relative flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all duration-200 active:scale-[0.97] ${
                 isSelected
                   ? 'border-green-500 bg-green-50 shadow-md shadow-green-100'
-                  : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                  : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-xs'
               } ${pack.is_featured ? 'ring-2 ring-amber-400 ring-offset-1' : ''}`}
             >
               {/* Popular badge */}

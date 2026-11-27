@@ -131,7 +131,7 @@ export function PanelPinCard() {
         {c.title}
       </h2>
       <p className="text-xs text-gray-500 leading-relaxed flex items-start gap-1.5 mb-4">
-        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-px" />
+        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-px" />
         {c.note}
       </p>
 

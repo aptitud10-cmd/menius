@@ -292,7 +292,7 @@ export function OrderReceipt({
               <button
                 onClick={printerConnected ? handleDisconnect : handleConnect}
                 className={cn(
-                  'px-2 py-1 rounded text-xs font-medium transition-colors',
+                  'px-2 py-1 rounded-sm text-xs font-medium transition-colors',
                   printerConnected
                     ? 'text-red-500 hover:bg-red-50'
                     : 'text-indigo-600 hover:bg-indigo-50',
@@ -317,7 +317,7 @@ export function OrderReceipt({
               <button
                 onClick={btConnected ? handleBtDisconnect : handleBtConnect}
                 className={cn(
-                  'px-2 py-1 rounded text-xs font-medium transition-colors',
+                  'px-2 py-1 rounded-sm text-xs font-medium transition-colors',
                   btConnected
                     ? 'text-red-500 hover:bg-red-50'
                     : 'text-indigo-600 hover:bg-indigo-50',

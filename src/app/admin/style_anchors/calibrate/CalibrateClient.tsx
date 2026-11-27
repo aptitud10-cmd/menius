@@ -131,7 +131,7 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
         <div className="flex items-center gap-3">
           <Link
             href="/admin/style_anchors"
-            className="px-4 py-2 rounded-xl border border-white/[0.08] text-gray-400 text-sm font-medium hover:text-white hover:bg-white/[0.04] transition-colors"
+            className="px-4 py-2 rounded-xl border border-white/8 text-gray-400 text-sm font-medium hover:text-white hover:bg-white/4 transition-colors"
           >
             ← Back to list
           </Link>
@@ -173,7 +173,7 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
             return (
               <section
                 key={a.id}
-                className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-6 py-5 flex items-center gap-5"
+                className="rounded-2xl border border-emerald-500/20 bg-emerald-500/4 px-6 py-5 flex items-center gap-5"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -201,7 +201,7 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
             return (
               <section
                 key={a.id}
-                className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-5 flex items-center gap-5"
+                className="rounded-2xl border border-white/6 bg-white/2 px-6 py-5 flex items-center gap-5"
               >
                 <div className="w-24 h-18 rounded-lg bg-gray-900 flex items-center justify-center text-xs text-gray-600" style={{ aspectRatio: '4/3' }}>
                   Pending
@@ -222,7 +222,7 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
             );
           }
           return (
-            <section key={a.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+            <section key={a.id} className="rounded-2xl border border-white/8 bg-white/2 p-5">
               <div className="flex items-center justify-between mb-4 gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <h3 className="text-base font-semibold">{a.display_name}</h3>
@@ -244,7 +244,7 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
                     type="button"
                     disabled={savingSlug === a.category_slug || isRegenerating}
                     onClick={() => pickCandidate(a.category_slug, url)}
-                    className="group relative rounded-xl overflow-hidden border-2 border-white/[0.06] hover:border-emerald-400/60 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                    className="group relative rounded-xl overflow-hidden border-2 border-white/6 hover:border-emerald-400/60 transition-colors disabled:opacity-50 disabled:cursor-wait"
                     style={{ aspectRatio: '4/3' }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

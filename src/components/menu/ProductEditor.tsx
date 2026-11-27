@@ -448,7 +448,7 @@ export function ProductEditor({
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => router.push('/app/menu/products')}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -462,7 +462,7 @@ export function ProductEditor({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {isEditing && (
               <button
                 onClick={handleDelete}
@@ -538,7 +538,7 @@ export function ProductEditor({
         <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-4">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center justify-between text-sm">
             <span>{error}</span>
-            <button onClick={() => setError('')} className="p-1 hover:bg-red-100 rounded">
+            <button onClick={() => setError('')} className="p-1 hover:bg-red-100 rounded-sm">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -596,7 +596,7 @@ export function ProductEditor({
 
               {imagePreview ? (
                 <div className="relative group">
-                  <div className="relative w-full aspect-[16/9] rounded-lg overflow-hidden bg-gray-100">
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
                     <Image
                       src={imagePreview}
                       alt="Preview"
@@ -634,7 +634,7 @@ export function ProductEditor({
                   </div>
                 </div>
               ) : (
-                <div className="w-full aspect-[16/9] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-3">
+                <div className="w-full aspect-video border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-3">
                   <ImagePlus className="w-8 h-8 text-gray-400" />
                   <div className="flex items-center gap-2 flex-wrap justify-center">
                     <button
@@ -704,12 +704,12 @@ export function ProductEditor({
                       aria-checked={form.hide_image}
                       onClick={() => setForm(prev => ({ ...prev, hide_image: !prev.hide_image }))}
                       className={cn(
-                        'relative w-11 h-6 rounded-full transition-colors flex-shrink-0 mt-0.5',
+                        'relative w-11 h-6 rounded-full transition-colors shrink-0 mt-0.5',
                         form.hide_image ? 'bg-emerald-500' : 'bg-gray-300',
                       )}
                     >
                       <span className={cn(
-                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs',
                         form.hide_image && 'translate-x-5',
                       )} />
                     </button>
@@ -727,7 +727,7 @@ export function ProductEditor({
                   {anchorUrl ? (
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md overflow-hidden flex-shrink-0">
+                        <div className="w-6 h-6 rounded-md overflow-hidden shrink-0">
                           <Image src={anchorUrl} alt="anchor" width={24} height={24} className="w-full h-full object-cover" unoptimized />
                         </div>
                         <span className="text-xs text-emerald-700 font-medium flex items-center gap-1">
@@ -737,7 +737,7 @@ export function ProductEditor({
                             : `Referencia de estilo activa para "${selectedCategory.name}"`}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {lastGeneratedUrl && lastGeneratedUrl !== anchorUrl && (
                           <button
                             onClick={handleSetAnchor}
@@ -765,7 +765,7 @@ export function ProductEditor({
                       <button
                         onClick={handleSetAnchor}
                         disabled={anchorSaving}
-                        className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+                        className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
                       >
                         {anchorSaving
                           ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -872,7 +872,7 @@ export function ProductEditor({
                     )}
                   >
                     <span className={cn(
-                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs',
                       form.is_active && 'translate-x-5',
                     )} />
                   </button>
@@ -894,7 +894,7 @@ export function ProductEditor({
                     )}
                   >
                     <span className={cn(
-                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs',
                       form.in_stock && 'translate-x-5',
                     )} />
                   </button>
@@ -916,7 +916,7 @@ export function ProductEditor({
                     )}
                   >
                     <span className={cn(
-                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs',
                       form.is_featured && 'translate-x-5',
                     )} />
                   </button>
@@ -938,7 +938,7 @@ export function ProductEditor({
                     )}
                   >
                     <span className={cn(
-                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs',
                       form.is_new && 'translate-x-5',
                     )} />
                   </button>
@@ -960,7 +960,7 @@ export function ProductEditor({
                     )}
                   >
                     <span className={cn(
-                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs',
                       form.dine_in_only && 'translate-x-5',
                     )} />
                   </button>
@@ -1072,12 +1072,12 @@ export function ProductEditor({
                   aria-checked={form.track_inventory}
                   onClick={() => setForm(prev => ({ ...prev, track_inventory: !prev.track_inventory }))}
                   className={cn(
-                    'relative w-11 h-6 rounded-full transition-colors flex-shrink-0',
+                    'relative w-11 h-6 rounded-full transition-colors shrink-0',
                     form.track_inventory ? 'bg-emerald-500' : 'bg-gray-300',
                   )}
                 >
                   <span className={cn(
-                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs',
                     form.track_inventory && 'translate-x-5',
                   )} />
                 </button>
@@ -1171,7 +1171,7 @@ export function ProductEditor({
                         : { ...prev, available_from: '', available_until: '' },
                     )
                   }
-                  className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 flex-shrink-0"
+                  className="w-4 h-4 rounded-sm border-gray-300 text-emerald-500 focus:ring-emerald-400 shrink-0"
                 />
               </label>
               {(form.available_from || form.available_until) && (

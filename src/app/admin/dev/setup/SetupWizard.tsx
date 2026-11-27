@@ -127,8 +127,8 @@ export default function SetupWizard() {
             </div>
 
             {/* STEP 1: Database */}
-            <section className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+            <section className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${dbReady ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                     {dbReady ? '✓' : '1'}
@@ -150,7 +150,7 @@ export default function SetupWizard() {
               <div className="p-5 space-y-3">
                 {dbChecks.map(([key, info]) => (
                   <div key={key} className="flex items-center gap-3">
-                    <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${data.checks[key] ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    <span className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${data.checks[key] ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                       {data.checks[key] ? '✓' : '✗'}
                     </span>
                     <div>
@@ -161,19 +161,19 @@ export default function SetupWizard() {
                 ))}
 
                 {!dbReady && (
-                  <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                  <div className="mt-4 pt-4 border-t border-white/6">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs text-gray-400">
                         1. Copia el SQL de abajo → 2. Abre Supabase SQL Editor → 3. Pégalo y ejecuta → 4. Vuelve y refresca
                       </p>
                       <button
                         onClick={copySQL}
-                        className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg border border-white/[0.1] text-gray-300 hover:bg-white/[0.06] transition-colors"
+                        className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:bg-white/6 transition-colors"
                       >
                         {copied ? '✓ Copiado!' : '📋 Copiar SQL'}
                       </button>
                     </div>
-                    <pre className="text-[10px] font-mono text-gray-500 bg-black/40 rounded-xl p-3 overflow-auto max-h-48 border border-white/[0.06]">
+                    <pre className="text-[10px] font-mono text-gray-500 bg-black/40 rounded-xl p-3 overflow-auto max-h-48 border border-white/6">
                       {data.migrationSql}
                     </pre>
                   </div>
@@ -182,8 +182,8 @@ export default function SetupWizard() {
             </section>
 
             {/* STEP 2: Indexing */}
-            <section className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+            <section className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/6 flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${data.indexedFiles > 0 ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                   {data.indexedFiles > 0 ? '✓' : '2'}
                 </span>
@@ -202,7 +202,7 @@ export default function SetupWizard() {
                     <button
                       onClick={() => triggerIndex(true)}
                       disabled={indexing || !dbReady}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-white/[0.1] text-gray-400 hover:text-white hover:border-white/[0.2] transition-colors disabled:opacity-40"
+                      className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-40"
                     >
                       {indexing ? '⏳ Indexando…' : '↺ Re-indexar todo'}
                     </button>
@@ -232,8 +232,8 @@ export default function SetupWizard() {
             </section>
 
             {/* STEP 3: Environment variables */}
-            <section className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+            <section className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/6 flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${coreEnvReady ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                   {coreEnvReady ? '✓' : '3'}
                 </span>
@@ -242,7 +242,7 @@ export default function SetupWizard() {
               <div className="p-5 space-y-3">
                 {envChecks.map(([key, info]) => (
                   <div key={key} className="flex items-center gap-3">
-                    <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${data.checks[key] ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'}`}>
+                    <span className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${data.checks[key] ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'}`}>
                       {data.checks[key] ? '✓' : '!'}
                     </span>
                     <div className="flex-1">
@@ -250,11 +250,11 @@ export default function SetupWizard() {
                       <span className="text-xs text-gray-500 ml-2">{info.desc}</span>
                     </div>
                     {!data.checks[key] && (
-                      <span className="text-[10px] text-orange-400 flex-shrink-0">Falta</span>
+                      <span className="text-[10px] text-orange-400 shrink-0">Falta</span>
                     )}
                   </div>
                 ))}
-                <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                <div className="mt-3 pt-3 border-t border-white/6">
                   <p className="text-xs text-gray-500">
                     Las marcadas en naranja son opcionales — el tool funciona sin ellas pero con capacidades reducidas.
                     Las críticas son: <span className="text-white font-mono">ANTHROPIC_API_KEY</span>, <span className="text-white font-mono">GITHUB_TOKEN</span>, <span className="text-white font-mono">VOYAGE_API_KEY</span>.
@@ -264,8 +264,8 @@ export default function SetupWizard() {
             </section>
 
             {/* STEP 4: GitHub Webhook */}
-            <section className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+            <section className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/6 flex items-center gap-2">
                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${data.checks.github_webhook_secret ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
                   4
                 </span>
@@ -284,8 +284,8 @@ export default function SetupWizard() {
                     { label: 'Events', value: 'Just the push event' },
                   ].map(row => (
                     <div key={row.label} className="flex items-start gap-3 text-xs">
-                      <span className="text-gray-500 w-28 flex-shrink-0">{row.label}:</span>
-                      <code className="text-gray-200 bg-white/[0.04] px-2 py-0.5 rounded">{row.value}</code>
+                      <span className="text-gray-500 w-28 shrink-0">{row.label}:</span>
+                      <code className="text-gray-200 bg-white/4 px-2 py-0.5 rounded-sm">{row.value}</code>
                     </div>
                   ))}
                 </div>
@@ -293,7 +293,7 @@ export default function SetupWizard() {
                   href="https://github.com/aptitud10-cmd/menius/settings/hooks/new"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-block mt-2 text-xs px-3 py-1.5 rounded-lg border border-white/[0.1] text-gray-300 hover:bg-white/[0.06] transition-colors"
+                  className="inline-block mt-2 text-xs px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:bg-white/6 transition-colors"
                 >
                   Abrir GitHub Webhooks ↗
                 </a>

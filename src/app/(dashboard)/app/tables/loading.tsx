@@ -13,7 +13,7 @@ export default function TablesLoading() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="bg-white rounded-2xl border border-gray-200 p-5">
             <div className="flex items-center justify-between mb-4">
-              <div className="h-5 w-24 bg-gray-100 rounded" />
+              <div className="h-5 w-24 bg-gray-100 rounded-sm" />
               <div className="h-6 w-12 bg-gray-100 rounded-full" />
             </div>
             <div className="w-32 h-32 mx-auto bg-gray-100 rounded-xl mb-4" />

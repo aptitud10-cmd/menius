@@ -47,7 +47,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   active: { label: 'Activo', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
   cancelled: { label: 'Cancelado', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
   past_due: { label: 'Vencido', color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
-  none: { label: 'Sin sub', color: 'text-gray-500 bg-white/[0.04] border-white/[0.08]' },
+  none: { label: 'Sin sub', color: 'text-gray-500 bg-white/4 border-white/8' },
 };
 
 function timeAgo(iso: string) {
@@ -188,9 +188,9 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-gray-100">
       {/* Sticky Top Bar */}
-      <div className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#070707]/80 backdrop-blur-xl">
+      <div className="sticky top-0 z-30 border-b border-white/6 bg-[#070707]/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center gap-4">
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <Shield className="w-5 h-5 text-purple-400" />
             <span className="text-sm font-semibold text-white">MENIUS Admin</span>
           </div>
@@ -201,12 +201,12 @@ export default function AdminPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar restaurante, slug o email…"
-              className="w-full px-3 py-1.5 text-sm bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/40 transition-colors"
+              className="w-full px-3 py-1.5 text-sm bg-white/4 border border-white/8 rounded-lg text-white placeholder:text-gray-600 focus:outline-hidden focus:border-purple-500/40 transition-colors"
             />
           </div>
 
           <div className="flex items-center gap-1.5 ml-auto">
-            <Link href="/admin/alerts" className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+            <Link href="/admin/alerts" className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 hover:bg-white/8 text-xs text-gray-300 hover:text-white transition-colors">
               <Bell className="w-3.5 h-3.5" /> Alertas
               {urgentCount > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[10px] font-bold">
@@ -214,23 +214,23 @@ export default function AdminPage() {
                 </span>
               )}
             </Link>
-            <Link href="/admin/metrics" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+            <Link href="/admin/metrics" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 hover:bg-white/8 text-xs text-gray-300 hover:text-white transition-colors">
               <TrendingUp className="w-3.5 h-3.5" /> Métricas
             </Link>
-            <Link href="/admin/health" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+            <Link href="/admin/health" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 hover:bg-white/8 text-xs text-gray-300 hover:text-white transition-colors">
               <Activity className="w-3.5 h-3.5" /> Salud
             </Link>
 
-            <span className="w-px h-5 bg-white/[0.08] mx-1" />
+            <span className="w-px h-5 bg-white/8 mx-1" />
 
-            <Link href="/admin/users" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+            <Link href="/admin/users" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 hover:bg-white/8 text-xs text-gray-300 hover:text-white transition-colors">
               <UserPlus className="w-3.5 h-3.5" /> Usuarios
             </Link>
-            <Link href="/admin/support" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+            <Link href="/admin/support" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 hover:bg-white/8 text-xs text-gray-300 hover:text-white transition-colors">
               <Mail className="w-3.5 h-3.5" /> Soporte
             </Link>
 
-            <span className="w-px h-5 bg-white/[0.08] mx-1" />
+            <span className="w-px h-5 bg-white/8 mx-1" />
 
             <Link href="/admin/marketing" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-xs text-purple-200 transition-colors">
               <Megaphone className="w-3.5 h-3.5" /> Marketing
@@ -242,9 +242,9 @@ export default function AdminPage() {
               <Sparkles className="w-3.5 h-3.5" /> Onboarding AI
             </Link>
 
-            <span className="w-px h-5 bg-white/[0.08] mx-1" />
+            <span className="w-px h-5 bg-white/8 mx-1" />
 
-            <Link href="/app" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-400 hover:text-white transition-colors">
+            <Link href="/app" className="px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 hover:bg-white/8 text-xs text-gray-400 hover:text-white transition-colors">
               Mi Dashboard →
             </Link>
           </div>
@@ -270,7 +270,7 @@ export default function AdminPage() {
         {/* Alerts */}
         {data.trialExpiringSoon > 0 && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-6">
-            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
             <p className="text-sm text-amber-300">
               <strong>{data.trialExpiringSoon}</strong> restaurante{data.trialExpiringSoon > 1 ? 's' : ''} con trial que vence en 3 días o menos.
             </p>
@@ -279,7 +279,7 @@ export default function AdminPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Plans distribution */}
-          <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+          <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-5">
             <h3 className="text-sm font-semibold text-white mb-4">Por plan</h3>
             <div className="space-y-3">
               {Object.entries(data.planCounts).map(([plan, count]) => (
@@ -295,7 +295,7 @@ export default function AdminPage() {
           </div>
 
           {/* Status distribution */}
-          <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+          <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-5">
             <h3 className="text-sm font-semibold text-white mb-4">Por estado</h3>
             <div className="space-y-3">
               {Object.entries(data.statusCounts).map(([status, count]) => {
@@ -311,14 +311,14 @@ export default function AdminPage() {
           </div>
 
           {/* Weekly signups */}
-          <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+          <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-5">
             <h3 className="text-sm font-semibold text-white mb-4">Registros por semana</h3>
             <div className="space-y-3">
               {data.weeklySignups.map(w => (
                 <div key={w.week} className="flex items-center justify-between">
                   <span className="text-sm text-gray-400">{w.week}</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div className="w-24 h-2 bg-white/6 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-purple-500 rounded-full"
                         style={{ width: `${Math.max(5, (w.count / Math.max(...data.weeklySignups.map(x => x.count), 1)) * 100)}%` }}
@@ -333,8 +333,8 @@ export default function AdminPage() {
         </div>
 
         {/* Activity feed widget */}
-        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden mb-6">
-          <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden mb-6">
+          <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-purple-400" />
               <h3 className="text-sm font-semibold text-white">Actividad reciente</h3>
@@ -348,20 +348,20 @@ export default function AdminPage() {
               Ver todo →
             </Link>
           </div>
-          <div className="divide-y divide-white/[0.03]">
+          <div className="divide-y divide-white/3">
             {feed.length === 0 ? (
               <p className="px-5 py-4 text-xs text-gray-600">Cargando actividad…</p>
             ) : feed.slice(0, 8).map(event => (
-              <div key={event.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors group">
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${SEV_DOT[event.severity]}`} />
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-white/[0.04] ${SEV_COLOR[event.severity]}`}>
+              <div key={event.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/2 transition-colors group">
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${SEV_DOT[event.severity]}`} />
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-white/4 ${SEV_COLOR[event.severity]}`}>
                   {EVENT_ICON[event.type]}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-200 font-medium truncate">{event.title}</p>
                   <p className="text-[10px] text-gray-600 truncate">{event.restaurant_name ?? event.subtitle}</p>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[10px] text-gray-600">{timeAgo(event.created_at)}</span>
                   {event.restaurant_id && (
                     <Link
@@ -378,14 +378,14 @@ export default function AdminPage() {
         </div>
 
         {/* Restaurants table */}
-        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
-          <div className="px-5 py-4 border-b border-white/[0.06]">
+        <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/6">
             <h3 className="text-sm font-semibold text-white">Restaurantes recientes</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/[0.06] text-gray-500 text-xs uppercase tracking-wider">
+                <tr className="border-b border-white/6 text-gray-500 text-xs uppercase tracking-wider">
                   <th className="text-left px-5 py-3 font-medium">Restaurante</th>
                   <th className="text-left px-5 py-3 font-medium">Dueño</th>
                   <th className="text-left px-5 py-3 font-medium">Plan</th>
@@ -404,7 +404,7 @@ export default function AdminPage() {
                   const trial = daysLeft(r.trial_end);
                   const isNew = (Date.now() - new Date(r.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
                   return (
-                    <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                    <tr key={r.id} className="border-b border-white/4 hover:bg-white/2">
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
                           <div>
@@ -453,7 +453,7 @@ export default function AdminPage() {
                           </button>
                           <Link
                             href={`/admin/restaurant?id=${r.id}`}
-                            className="text-xs px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white transition-colors"
+                            className="text-xs px-2 py-1 rounded-lg bg-white/4 border border-white/8 text-gray-400 hover:text-white transition-colors"
                           >
                             Detalle
                           </Link>
@@ -491,7 +491,7 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
   const c = colors[color] ?? colors.purple;
 
   return (
-    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-4">
+    <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-4">
       <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center mb-3`}>
         <span className={c.text}>{icon}</span>
       </div>

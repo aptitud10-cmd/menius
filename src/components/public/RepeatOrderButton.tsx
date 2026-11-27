@@ -155,7 +155,7 @@ export default function RepeatOrderButton({ restaurantId, locale, suppressed = f
           It used to float mid-screen over the product cards with no way to get
           rid of it — hence the explicit dismiss control. */}
       <div
-        className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center rounded-full bg-[#05c8a7] text-[#04241E] shadow-lg shadow-black/15"
+        className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center rounded-full bg-brand-500 text-[#04241E] shadow-lg shadow-black/15"
         style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
       >
         <button
@@ -164,7 +164,7 @@ export default function RepeatOrderButton({ restaurantId, locale, suppressed = f
           className="flex items-center gap-2 pl-5 pr-3 py-3 rounded-l-full hover:bg-[#04b096] transition-colors active:scale-95"
           data-testid="repeat-order-btn"
         >
-          <RotateCcw className="w-4 h-4 flex-shrink-0" />
+          <RotateCcw className="w-4 h-4 shrink-0" />
           {/* whitespace-nowrap: without it "Repeat last order" wraps to two lines
               inside the pill and the shape goes lumpy. */}
           <span className="text-sm font-semibold whitespace-nowrap">
@@ -217,7 +217,7 @@ export default function RepeatOrderButton({ restaurantId, locale, suppressed = f
 
             {data.some_unavailable && (
               <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-amber-50 text-amber-800 text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 {t.repeatSomeUnavailable}
               </div>
             )}
@@ -270,7 +270,7 @@ export default function RepeatOrderButton({ restaurantId, locale, suppressed = f
                   <button
                     type="button"
                     onClick={() => setShowSheet(false)}
-                    className="w-full py-3.5 rounded-xl bg-[#05c8a7] text-[#04241E] font-bold text-base hover:bg-[#04b096] transition-colors"
+                    className="w-full py-3.5 rounded-xl bg-brand-500 text-[#04241E] font-bold text-base hover:bg-[#04b096] transition-colors"
                     data-testid="repeat-order-browse-btn"
                   >
                     {t.repeatBrowseMenu}
@@ -283,7 +283,7 @@ export default function RepeatOrderButton({ restaurantId, locale, suppressed = f
                   type="button"
                   onClick={handleRepeatAll}
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl bg-[#05c8a7] text-[#04241E] font-bold text-base hover:bg-[#04b096] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-xl bg-brand-500 text-[#04241E] font-bold text-base hover:bg-[#04b096] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   data-testid="repeat-order-confirm-btn"
                 >
                   {loading ? (

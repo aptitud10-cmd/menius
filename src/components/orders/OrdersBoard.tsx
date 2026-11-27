@@ -281,15 +281,15 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
     <div className="min-w-0 overflow-x-hidden">
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div className="rounded-2xl border border-amber-500/[0.15] bg-amber-500/[0.06] p-4">
+        <div className="rounded-2xl border border-amber-500/15 bg-amber-500/6 p-4">
           <p className="text-xs text-gray-500 font-medium">{t.orders_pendingPlural}</p>
           <p className="text-2xl font-bold text-amber-500 mt-1">{pendingCount}</p>
         </div>
-        <div className="rounded-2xl border border-violet-500/[0.15] bg-violet-500/[0.06] p-4">
+        <div className="rounded-2xl border border-violet-500/15 bg-violet-500/6 p-4">
           <p className="text-xs text-gray-500 font-medium">{t.orders_preparing}</p>
           <p className="text-2xl font-bold text-violet-500 mt-1">{preparingCount}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-500/[0.15] bg-emerald-500/[0.06] p-4">
+        <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/6 p-4">
           <p className="text-xs text-gray-500 font-medium">{t.orders_salesToday}</p>
           <p className="text-2xl font-bold text-emerald-500 mt-1">{formatPrice(todayTotal, currency)}</p>
         </div>
@@ -309,7 +309,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t.orders_searchPlaceholder}
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
           />
         </div>
 
@@ -317,7 +317,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
         <button
           onClick={() => setShowHistory((s) => !s)}
           className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0',
+            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0',
             showHistory ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
           )}
         >
@@ -326,7 +326,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
         </button>
 
         {/* Notification + print controls */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {!hasPermission && (
             <button onClick={requestPermission} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-600 border border-amber-200">
               <BellRing className="w-3.5 h-3.5" />
@@ -363,7 +363,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       {/* Controls bar — row 2: filters + export */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide">
         {/* Date filter */}
-        <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1 flex-shrink-0">
+        <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1 shrink-0">
           {(['today', '7', '30', 'all'] as const).map((key) => (
             <button
               key={key}
@@ -385,7 +385,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="flex-shrink-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          className="shrink-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-white text-gray-700 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
         >
           <option value="all">{t.orders_allTypes}</option>
           <option value="dine_in">{t.orders_dineIn}</option>
@@ -443,18 +443,18 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-bold">{order.order_number}</span>
-                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold',
+                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded-sm font-semibold',
                     order.status !== 'cancelled' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
                   )}>
                     {statusLabel(t, order.status, locale)}
                   </span>
                   {ORDER_TYPE_META[order.order_type ?? ''] && (
-                    <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold', ORDER_TYPE_META[order.order_type!].color)}>
+                    <span className={cn('text-[10px] px-1.5 py-0.5 rounded-sm font-semibold', ORDER_TYPE_META[order.order_type!].color)}>
                       {orderTypeLabel(t, order.order_type)}
                     </span>
                   )}
                   {PAYMENT_META[order.payment_method ?? ''] && (
-                    <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold', PAYMENT_META[order.payment_method!].color)}>
+                    <span className={cn('text-[10px] px-1.5 py-0.5 rounded-sm font-semibold', PAYMENT_META[order.payment_method!].color)}>
                       {paymentLabel(t, order.payment_method)}
                     </span>
                   )}
@@ -497,9 +497,9 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
                     key={status}
                     onClick={() => setMobileTab(status)}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold flex-shrink-0 transition-all',
+                      'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold shrink-0 transition-all',
                       isActive
-                        ? `${config.bg} ${config.color} shadow-sm`
+                        ? `${config.bg} ${config.color} shadow-xs`
                         : 'bg-gray-100 text-gray-500'
                     )}
                   >
@@ -618,7 +618,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       {/* Status update error toast */}
       {statusError && (
         <div className="fixed bottom-20 md:bottom-6 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl bg-red-600 text-white text-sm font-medium shadow-xl animate-in slide-in-from-bottom-2">
-          <XCircle className="w-4 h-4 flex-shrink-0" />
+          <XCircle className="w-4 h-4 shrink-0" />
           {statusError}
         </div>
       )}
@@ -643,7 +643,7 @@ function OrderCard({
 
   return (
     <div className={cn(
-      'bg-white rounded-xl border p-3.5 transition-all text-gray-900 cursor-pointer hover:shadow-sm',
+      'bg-white rounded-xl border p-3.5 transition-all text-gray-900 cursor-pointer hover:shadow-xs',
       isNew ? 'border-emerald-500/40 ring-2 ring-emerald-500/20 animate-pulse' : 'border-gray-200',
       isBulkSelected && 'ring-2 ring-indigo-500/30 border-indigo-300'
     )} onClick={onDetail}>
@@ -667,12 +667,12 @@ function OrderCard({
       {/* Badges: order type + payment */}
       <div className="flex flex-wrap gap-1 mb-2">
         {typeMeta && (
-          <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold', typeMeta.color)}>
+          <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-semibold', typeMeta.color)}>
             <typeMeta.icon className="w-2.5 h-2.5" /> {orderTypeLabel(t, order.order_type)}
           </span>
         )}
         {payMeta && (
-          <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold', payMeta.color)}>
+          <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-semibold', payMeta.color)}>
             <payMeta.icon className="w-2.5 h-2.5" /> {paymentLabel(t, order.payment_method)}
           </span>
         )}
@@ -680,21 +680,21 @@ function OrderCard({
 
       {(order.customer_name || order.customer_phone) && (
         <div className="flex items-center gap-1.5 text-sm text-gray-600 mb-1.5">
-          <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+          <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
           <span className="font-medium truncate">{order.customer_name}</span>
         </div>
       )}
 
       {order.order_type === 'dine_in' && order.table_name && (
         <div className="flex items-center gap-1.5 text-xs text-blue-600 mb-1.5">
-          <Utensils className="w-3 h-3 flex-shrink-0" />
+          <Utensils className="w-3 h-3 shrink-0" />
           <span className="font-medium truncate">{order.table_name}</span>
         </div>
       )}
 
       {order.delivery_address && (
         <div className="flex items-start gap-1.5 text-xs text-gray-500 mb-1.5">
-          <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0 mt-0.5" />
+          <MapPin className="w-3 h-3 text-gray-400 shrink-0 mt-0.5" />
           <span className="truncate">{order.delivery_address}</span>
         </div>
       )}
@@ -739,7 +739,7 @@ function OrderCard({
 
       {order.notes && (expanded || isNew) && (
         <div className="flex items-start gap-1 text-[11px] text-amber-700 bg-amber-50 rounded-lg px-2 py-1 mb-1.5">
-          <StickyNote className="w-3 h-3 flex-shrink-0 mt-0.5" />
+          <StickyNote className="w-3 h-3 shrink-0 mt-0.5" />
           <span className="italic">{order.notes}</span>
         </div>
       )}
@@ -829,7 +829,7 @@ function OrderDetailModal({
       <div className="fixed inset-0 bg-black/30 z-50" onClick={onClose} />
       <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-white z-50 shadow-2xl flex flex-col animate-slide-in-right">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
           <div>
             <h2 className="font-bold text-lg text-gray-900">{order.order_number}</h2>
             <p className="text-xs text-gray-500 mt-0.5">{new Date(order.created_at).toLocaleString('es-MX')}</p>
@@ -892,7 +892,7 @@ function OrderDetailModal({
             )}
             {order.delivery_address && (
               <div className="flex items-start gap-2 text-sm text-gray-700">
-                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" /> {order.delivery_address}
+                <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> {order.delivery_address}
               </div>
             )}
             {trackingUrl && (
@@ -947,7 +947,7 @@ function OrderDetailModal({
                           </p>
                         ))}
                         {item.notes && (
-                          <p className="text-xs text-amber-600 mt-1 italic bg-amber-50 rounded px-2 py-1">&quot;{item.notes}&quot;</p>
+                          <p className="text-xs text-amber-600 mt-1 italic bg-amber-50 rounded-sm px-2 py-1">&quot;{item.notes}&quot;</p>
                         )}
                       </div>
                       <span className="font-bold text-sm text-gray-900 tabular-nums ml-3">{formatPrice(Number(item.line_total), currency)}</span>
@@ -981,7 +981,7 @@ function OrderDetailModal({
         </div>
 
         {/* Footer actions */}
-        <div className="border-t border-gray-200 px-5 py-3 flex items-center gap-2 flex-shrink-0">
+        <div className="border-t border-gray-200 px-5 py-3 flex items-center gap-2 shrink-0">
           <button onClick={onPrint} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
             <Printer className="w-4 h-4" /> {t.orders_print}
           </button>

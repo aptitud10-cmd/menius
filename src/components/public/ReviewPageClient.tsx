@@ -93,7 +93,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
 
   if (submitted && issueMode) {
     return (
-      <div lang={en ? 'en' : 'es'} className="min-h-[100dvh] bg-[#f5f5f3] flex flex-col items-center justify-center px-6 text-center">
+      <div lang={en ? 'en' : 'es'} className="min-h-dvh bg-[#f5f5f3] flex flex-col items-center justify-center px-6 text-center">
         <div className="max-w-sm w-full">
           <h1 className="font-menu text-[34px] leading-tight text-gray-900 mb-2">{en ? 'Thanks for telling us' : 'Gracias por contarnos'}</h1>
           <p className="text-[15px] text-gray-600 mb-8">
@@ -103,7 +103,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
           </p>
           <Link
             href={`/${restaurantSlug}`}
-            className="flex items-center justify-center w-full h-12 rounded-full bg-[#05c8a7] text-[#04241E] font-semibold text-[15px] hover:bg-[#04b096] transition-colors"
+            className="flex items-center justify-center w-full h-12 rounded-full bg-brand-500 text-[#04241E] font-semibold text-[15px] hover:bg-[#04b096] transition-colors"
           >
             {t.backToMenu}
           </Link>
@@ -114,7 +114,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
 
   if (submitted) {
     return (
-      <div lang={en ? 'en' : 'es'} className="min-h-[100dvh] bg-[#f5f5f3] flex flex-col items-center justify-center px-6 text-center">
+      <div lang={en ? 'en' : 'es'} className="min-h-dvh bg-[#f5f5f3] flex flex-col items-center justify-center px-6 text-center">
         <div className="max-w-sm w-full">
           <div className="flex justify-center gap-1 mb-5" aria-label={starAria(rating)} role="img">
             {[1, 2, 3, 4, 5].map((s) => (
@@ -137,7 +137,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
                   href={googleReviewUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full h-12 rounded-full bg-[#05c8a7] text-[#04241E] font-semibold text-[15px] hover:bg-[#04b096] transition-colors"
+                  className="flex items-center justify-center gap-2 w-full h-12 rounded-full bg-brand-500 text-[#04241E] font-semibold text-[15px] hover:bg-[#04b096] transition-colors"
                 >
                   {t.reviewGoogleCta}
                   <ExternalLink className="w-4 h-4" aria-hidden="true" />
@@ -150,7 +150,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
               className={
                 googleReviewUrl
                   ? 'flex items-center justify-center w-full h-12 rounded-full border border-gray-300 text-gray-900 font-semibold text-[15px] hover:bg-white transition-colors'
-                  : 'flex items-center justify-center w-full h-12 rounded-full bg-[#05c8a7] text-[#04241E] font-semibold text-[15px] hover:bg-[#04b096] transition-colors'
+                  : 'flex items-center justify-center w-full h-12 rounded-full bg-brand-500 text-[#04241E] font-semibold text-[15px] hover:bg-[#04b096] transition-colors'
               }
             >
               {t.backToMenu}
@@ -162,7 +162,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
   }
 
   return (
-    <div lang={en ? 'en' : 'es'} className="min-h-[100dvh] bg-[#f5f5f3] flex flex-col">
+    <div lang={en ? 'en' : 'es'} className="min-h-dvh bg-[#f5f5f3] flex flex-col">
       <header className="bg-white border-b border-gray-200 pt-[env(safe-area-inset-top)]">
         <div className="max-w-md mx-auto h-14 px-2 flex items-center gap-1">
           <Link
@@ -197,7 +197,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
                   type="button"
                   onClick={() => { setReason(reason === r ? null : r); setError(''); }}
                   aria-pressed={reason === r}
-                  className={`min-h-[44px] px-4 rounded-full text-[15px] font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] ${reason === r ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'}`}
+                  className={`min-h-[44px] px-4 rounded-full text-[15px] font-medium border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${reason === r ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'}`}
                 >
                   {r}
                 </button>
@@ -216,7 +216,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
                   onMouseEnter={() => setHovered(s)}
                   aria-label={starAria(s)}
                   aria-pressed={rating === s}
-                  className="rounded-xl transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                  className="rounded-xl transition-transform active:scale-90 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   <svg
                     className={`w-12 h-12 transition-colors duration-100 ${s <= displayRating ? 'text-amber-400' : 'text-gray-300'}`}
@@ -234,7 +234,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
           )}
 
           {!issueMode && (
-          <div className="bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#05c8a7] focus-within:ring-2 focus-within:ring-[#05c8a7]/20">
+          <div className="bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20">
             <label htmlFor="review-name" className="block text-[13px] font-semibold text-gray-600 mb-1">
               {t.reviewYourName}
             </label>
@@ -246,12 +246,12 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
               onChange={(e) => setName(e.target.value)}
               maxLength={100}
               placeholder={t.reviewAnonymousPlaceholder}
-              className="w-full text-base text-gray-900 placeholder:text-[#6B6B74] bg-transparent focus:outline-none"
+              className="w-full text-base text-gray-900 placeholder:text-[#6B6B74] bg-transparent focus:outline-hidden"
             />
           </div>
           )}
 
-          <div className="bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#05c8a7] focus-within:ring-2 focus-within:ring-[#05c8a7]/20">
+          <div className="bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20">
             <label htmlFor="review-comment" className="block text-[13px] font-semibold text-gray-600 mb-1">
               {issueMode ? (en ? 'Anything else? (optional)' : '¿Algo más? (opcional)') : t.reviewComments}
             </label>
@@ -262,7 +262,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
               maxLength={500}
               rows={3}
               placeholder={issueMode ? (en ? 'e.g. the fries were missing' : 'Ej.: faltaron las papas') : t.reviewTellUs}
-              className="w-full text-base text-gray-900 placeholder:text-[#6B6B74] bg-transparent focus:outline-none resize-none"
+              className="w-full text-base text-gray-900 placeholder:text-[#6B6B74] bg-transparent focus:outline-hidden resize-none"
             />
           </div>
 
@@ -273,7 +273,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
           <button
             type="submit"
             disabled={submitting || (!issueMode && rating === 0)}
-            className="w-full h-[52px] rounded-full bg-[#05c8a7] text-[#04241E] font-semibold text-base hover:bg-[#04b096] active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-[52px] rounded-full bg-brand-500 text-[#04241E] font-semibold text-base hover:bg-[#04b096] active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? t.reviewSubmitting : issueMode ? (en ? 'Send to the restaurant' : 'Enviar al restaurante') : t.reviewSubmit}
           </button>

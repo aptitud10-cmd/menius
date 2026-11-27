@@ -130,7 +130,7 @@ export function BulkAIImageGenerate({ products, categories, onComplete, onClose 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget && !running) onClose(); }}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget && !running) onClose(); }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -203,7 +203,7 @@ export function BulkAIImageGenerate({ products, categories, onComplete, onClose 
                     )}
                   >
                     {/* Thumbnail */}
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
                       {item.resultUrl ? (
                         <Image src={item.resultUrl} alt={item.product.name} width={40} height={40} className="w-full h-full object-cover" />
                       ) : (
@@ -222,7 +222,7 @@ export function BulkAIImageGenerate({ products, categories, onComplete, onClose 
                             <p className="text-sm font-medium text-gray-800 truncate">{item.product.name}</p>
                             {catName && anchoredCategories.has(catName) && (
                               <span title={isEs ? 'Categoría con referencia de estilo' : 'Category has style reference'}>
-                                <Anchor className="w-3 h-3 text-purple-500 flex-shrink-0" />
+                                <Anchor className="w-3 h-3 text-purple-500 shrink-0" />
                               </span>
                             )}
                           </div>
@@ -234,7 +234,7 @@ export function BulkAIImageGenerate({ products, categories, onComplete, onClose 
                     </div>
 
                     {/* Status icon */}
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       {item.status === 'generating' && (
                         <Loader2 className="w-4 h-4 text-purple-500 animate-spin" />
                       )}

@@ -7,7 +7,7 @@
  */
 export default function MenuLoading() {
   return (
-    <div className="min-h-[100dvh] bg-[#f5f5f3] overflow-hidden" aria-busy="true">
+    <div className="min-h-dvh bg-[#f5f5f3] overflow-hidden" aria-busy="true">
       {/* Desktop header: name · search · status (phone overlays it on the cover). */}
       <div className="hidden lg:flex h-12 bg-white border-b border-gray-100 items-center gap-6 px-6">
         <div className="skeleton h-4 w-36 rounded-md" />
@@ -23,23 +23,23 @@ export default function MenuLoading() {
 
       {/* Phone/tablet: info row + category pills. */}
       <div className="lg:hidden h-11 bg-white border-b border-gray-100 px-4 flex items-center gap-2">
-        <div className="skeleton h-3.5 w-52 rounded" />
-        <div className="skeleton h-3.5 w-10 rounded ml-auto" />
+        <div className="skeleton h-3.5 w-52 rounded-sm" />
+        <div className="skeleton h-3.5 w-10 rounded-sm ml-auto" />
       </div>
       <div className="lg:hidden h-14 px-4 flex items-center gap-2 overflow-hidden">
-        <div className="skeleton w-6 h-5 rounded flex-shrink-0 mr-2" />
+        <div className="skeleton w-6 h-5 rounded-sm shrink-0 mr-2" />
         {[120, 96, 88, 72, 110].map((w, i) => (
-          <div key={i} className="skeleton h-11 rounded-xl flex-shrink-0" style={{ width: w }} />
+          <div key={i} className="skeleton h-11 rounded-xl shrink-0" style={{ width: w }} />
         ))}
       </div>
 
       <div className="lg:flex max-w-[1440px] mx-auto">
         {/* Desktop: category sidebar. */}
-        <div className="hidden lg:block w-[224px] xl:w-[232px] flex-shrink-0 border-r border-gray-100 px-3 pt-5 space-y-2">
+        <div className="hidden lg:block w-[224px] xl:w-[232px] shrink-0 border-r border-gray-100 px-3 pt-5 space-y-2">
           {Array.from({ length: 12 }, (_, i) => (
             <div key={i} className="flex items-center justify-between h-10 px-3">
-              <div className="skeleton h-3.5 rounded" style={{ width: 70 + ((i * 37) % 60) }} />
-              <div className="skeleton h-3 w-5 rounded" />
+              <div className="skeleton h-3.5 rounded-sm" style={{ width: 70 + ((i * 37) % 60) }} />
+              <div className="skeleton h-3 w-5 rounded-sm" />
             </div>
           ))}
         </div>
@@ -50,13 +50,13 @@ export default function MenuLoading() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100">
-                <div className="skeleton w-full aspect-square lg:aspect-[16/9]" />
+                <div className="skeleton w-full aspect-square lg:aspect-video" />
                 <div className="p-3 lg:p-4 space-y-2">
-                  <div className="skeleton h-4 w-4/5 rounded" />
-                  <div className="skeleton h-3 w-full rounded" />
-                  <div className="skeleton h-3 w-2/3 rounded" />
+                  <div className="skeleton h-4 w-4/5 rounded-sm" />
+                  <div className="skeleton h-3 w-full rounded-sm" />
+                  <div className="skeleton h-3 w-2/3 rounded-sm" />
                   <div className="flex items-center justify-between pt-2">
-                    <div className="skeleton h-5 w-16 rounded" />
+                    <div className="skeleton h-5 w-16 rounded-sm" />
                     <div className="skeleton w-10 h-10 lg:w-20 lg:h-9 rounded-full" />
                   </div>
                 </div>
@@ -66,11 +66,11 @@ export default function MenuLoading() {
         </div>
 
         {/* Desktop xl: the cart column. */}
-        <div className="hidden xl:block w-[340px] flex-shrink-0 border-l border-gray-100 px-4 pt-6 space-y-4">
+        <div className="hidden xl:block w-[340px] shrink-0 border-l border-gray-100 px-4 pt-6 space-y-4">
           <div className="skeleton h-5 w-28 rounded-md" />
           <div className="skeleton h-11 w-full rounded-full" />
-          <div className="skeleton h-3.5 w-40 rounded" />
-          <div className="skeleton h-3.5 w-56 rounded" />
+          <div className="skeleton h-3.5 w-40 rounded-sm" />
+          <div className="skeleton h-3.5 w-56 rounded-sm" />
         </div>
       </div>
     </div>

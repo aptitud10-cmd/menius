@@ -73,7 +73,7 @@ export function OrderSheet({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
               {/* En el celular el nombre baja a dos líneas en vez de cortarse ("Maria Gon…"). */}
-              <h2 className="font-bold text-[22px] sm:text-[26px] leading-tight tracking-[-0.02em] line-clamp-2 sm:line-clamp-1 break-words">{order.customer_name || '—'}</h2>
+              <h2 className="font-bold text-[22px] sm:text-[26px] leading-tight tracking-[-0.02em] line-clamp-2 sm:line-clamp-1 wrap-break-word">{order.customer_name || '—'}</h2>
               <KindTag order={order} T={T} />
             </div>
             <p className="text-[16px] font-medium tabular-nums" style={{ color: C.sub }}>

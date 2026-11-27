@@ -107,8 +107,8 @@ export default async function StoreLegalPage(props: PageProps) {
   const other: Doc = doc === 'refunds' ? 'privacy' : 'refunds';
 
   return (
-    <div className="min-h-[100dvh] bg-white text-[#111114]">
-      <header className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-black/[0.07]">
+    <div className="min-h-dvh bg-white text-[#111114]">
+      <header className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-black/[0.07]">
         <div className="max-w-[680px] mx-auto px-4 h-14 flex items-center gap-3">
           <LegalBackButton slug={store.slug} menuLabel={c.back} checkoutLabel={c.backCheckout} />
           <span className="ml-auto flex items-center gap-2 min-w-0">

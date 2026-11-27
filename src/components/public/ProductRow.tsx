@@ -117,18 +117,18 @@ export const ProductRow = memo(function ProductRow({
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="mt-px min-w-[20px] h-5 px-1.5 rounded-full bg-[#05c8a7] text-[#04241E] text-[11px] font-extrabold flex items-center justify-center tabular-nums leading-none flex-shrink-0"
+              className="mt-px min-w-[20px] h-5 px-1.5 rounded-full bg-brand-500 text-[#04241E] text-[11px] font-extrabold flex items-center justify-center tabular-nums leading-none shrink-0"
             >
               {cartQty}
             </motion.span>
           )}
           {outOfStock && (
-            <span className="mt-1 text-[11px] font-bold text-ink-700 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
+            <span className="mt-1 text-[11px] font-bold text-ink-700 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none shrink-0">
               {labelSoldOut}
             </span>
           )}
           {!outOfStock && product.is_new && (
-            <span className="mt-0.5 text-[12px] font-semibold text-ink-700 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none flex-shrink-0">
+            <span className="mt-0.5 text-[12px] font-semibold text-ink-700 bg-ink-100 px-1.5 py-0.5 rounded-full leading-none shrink-0">
               {t.productNew}
             </span>
           )}
@@ -163,7 +163,7 @@ export const ProductRow = memo(function ProductRow({
       </div>
 
       {/* "$12.95+" when there are options, like the cards — no separate "From". */}
-      <div className="flex flex-col items-end flex-shrink-0 leading-none">
+      <div className="flex flex-col items-end shrink-0 leading-none">
         <span className={cn(
           'text-[15px] font-bold tabular-nums leading-none',
           outOfStock ? 'text-ink-300 line-through' : 'text-ink-950'
@@ -177,7 +177,7 @@ export const ProductRow = memo(function ProductRow({
           secondary action pushed the product name off the left edge. */}
       {SHOW_FAVORITES && <button
         onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
-        className="w-9 h-11 -my-2 flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] rounded-full"
+        className="w-9 h-11 -my-2 flex items-center justify-center shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-full"
         aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
         aria-pressed={isFav}
       >
@@ -185,7 +185,7 @@ export const ProductRow = memo(function ProductRow({
       </button>}
 
       {outOfStock ? (
-        <div className="w-8 h-8 rounded-full bg-ink-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-ink-100 flex items-center justify-center shrink-0">
           <Ban className="w-3.5 h-3.5 text-ink-300" />
         </div>
       ) : (
@@ -193,12 +193,12 @@ export const ProductRow = memo(function ProductRow({
         <button
           onClick={handleAddClick}
           aria-label={justAdded ? t.addedToCart : (hasModifiers ? t.ariaCustomize(displayName) : t.ariaAdd(displayName))}
-          className="relative z-10 w-11 h-11 -my-2 flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7] rounded-full"
+          className="relative z-10 w-11 h-11 -my-2 flex items-center justify-center shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-brand-500 rounded-full"
         >
           <span
             className={cn(
               'w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 pointer-events-none',
-              justAdded ? 'bg-[#05c8a7] text-[#04241E]' : 'bg-[#e6faf7] text-[#047a65] hover:bg-[#d0f7f1]'
+              justAdded ? 'bg-brand-500 text-[#04241E]' : 'bg-[#e6faf7] text-[#047a65] hover:bg-[#d0f7f1]'
             )}
           >
             {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}

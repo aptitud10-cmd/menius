@@ -61,7 +61,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
   return (
     <motion.header
       className={cn(
-        'flex-shrink-0 z-40 bg-white/95 backdrop-blur-md border-b',
+        'shrink-0 z-40 bg-white/95 backdrop-blur-md border-b',
         isScrolled ? 'border-gray-200 shadow-[0_1px_12px_rgba(0,0,0,0.07)]' : 'border-gray-100'
       )}
       animate={{ boxShadow: isScrolled ? '0 1px 12px rgba(0,0,0,0.07)' : '0 0 0 transparent' }}
@@ -72,7 +72,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
         {backUrl && (
           <Link
             href={backUrl}
-            className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="Back"
           >
             <ArrowLeft className="w-5 h-5 text-gray-700" />
@@ -87,7 +87,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
           animate={{ opacity: showName ? 1 : 0 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
           aria-hidden={!showName}
-          className="flex items-center flex-shrink-0 min-w-0"
+          className="flex items-center shrink-0 min-w-0"
         >
           <span className="font-bold text-gray-900 truncate text-base max-w-[260px]">
             {restaurant.name}
@@ -113,7 +113,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
               }}
               placeholder={searchPlaceholder}
               aria-label={searchPlaceholder}
-              className="w-full pl-9 pr-10 py-2 rounded-lg bg-gray-50 border border-gray-200 text-base focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder-gray-600 [&::-webkit-search-cancel-button]:hidden"
+              className="w-full pl-9 pr-10 py-2 rounded-lg bg-gray-50 border border-gray-200 text-base focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-gray-600 [&::-webkit-search-cancel-button]:hidden"
             />
             {searchQuery && (
               <button
@@ -128,7 +128,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
         </div>
 
         {/* Right side */}
-        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
           {isOwner && (
             <Link
               href="/app"
@@ -150,7 +150,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
             'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-semibold',
             open ? 'bg-[#e6faf7] text-[#047a65]' : 'bg-red-50 text-red-600'
           )}>
-            <span className={cn('w-1.5 h-1.5 rounded-full', open ? 'bg-[#05c8a7]' : 'bg-red-500')} />
+            <span className={cn('w-1.5 h-1.5 rounded-full', open ? 'bg-brand-500' : 'bg-red-500')} />
             {open ? openLabel : closedLabel}
           </span>
 

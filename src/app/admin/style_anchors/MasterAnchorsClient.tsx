@@ -82,9 +82,9 @@ export function MasterAnchorsClient({ initialAnchors }: { initialAnchors: Master
           return (
             <div
               key={a.id}
-              className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden"
+              className="rounded-2xl bg-white/2 border border-white/6 overflow-hidden"
             >
-              <div className="aspect-[4/3] bg-gray-900 relative">
+              <div className="aspect-4/3 bg-gray-900 relative">
                 {a.anchor_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -112,7 +112,7 @@ export function MasterAnchorsClient({ initialAnchors }: { initialAnchors: Master
                       onChange={(e) => setAliasDraft(e.target.value)}
                       rows={3}
                       placeholder="comma-separated, e.g.: omelette, omelet, tortilla francesa"
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/[0.08] text-xs text-white placeholder:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/8 text-xs text-white placeholder:text-gray-600 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-400/60"
                     />
                     <div className="flex gap-2">
                       <button
@@ -126,7 +126,7 @@ export function MasterAnchorsClient({ initialAnchors }: { initialAnchors: Master
                       <button
                         type="button"
                         onClick={() => setEditingAliasesFor(null)}
-                        className="px-3 py-1.5 rounded-lg border border-white/[0.08] text-gray-400 text-xs font-semibold hover:bg-white/[0.04] transition-colors"
+                        className="px-3 py-1.5 rounded-lg border border-white/8 text-gray-400 text-xs font-semibold hover:bg-white/4 transition-colors"
                       >
                         Cancel
                       </button>
@@ -146,7 +146,7 @@ export function MasterAnchorsClient({ initialAnchors }: { initialAnchors: Master
                         setAliasDraft(a.aliases.join(', '));
                         setEditingAliasesFor(a.id);
                       }}
-                      className="px-3 py-1.5 rounded-lg border border-white/[0.08] text-gray-400 text-xs font-medium hover:text-white hover:bg-white/[0.04] transition-colors"
+                      className="px-3 py-1.5 rounded-lg border border-white/8 text-gray-400 text-xs font-medium hover:text-white hover:bg-white/4 transition-colors"
                     >
                       Edit aliases
                     </button>

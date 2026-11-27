@@ -270,7 +270,7 @@ export function BulkImageUpload({ products, onComplete, onClose }: BulkImageUplo
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-5 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="border-t border-gray-200 px-5 py-3 flex items-center justify-between shrink-0">
           <div className="text-xs text-gray-500">
             {uploading && (
               <span className="flex items-center gap-1.5">
@@ -343,7 +343,7 @@ function EntryRow({
       )}
     >
       {/* Preview */}
-      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0">
         <Image src={entry.preview} alt="" aria-hidden="true" fill sizes="48px" className="object-cover" />
         {entry.status === 'uploading' && (
           <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
@@ -385,7 +385,7 @@ function EntryRow({
 
       {/* Match selector */}
       {entry.status === 'pending' && (
-        <div className="relative flex-shrink-0">
+        <div className="relative shrink-0">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
             className={cn(
@@ -396,11 +396,11 @@ function EntryRow({
             )}
           >
             {matchedProduct ? (
-              <><Link2 className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{matchedProduct.name}</span></>
+              <><Link2 className="w-3 h-3 shrink-0" /> <span className="truncate">{matchedProduct.name}</span></>
             ) : (
-              <><Unlink className="w-3 h-3 flex-shrink-0" /> Vincular</>
+              <><Unlink className="w-3 h-3 shrink-0" /> Vincular</>
             )}
-            <ChevronDown className="w-3 h-3 flex-shrink-0" />
+            <ChevronDown className="w-3 h-3 shrink-0" />
           </button>
 
           {showDropdown && (
@@ -425,15 +425,15 @@ function EntryRow({
                     )}
                   >
                     {p.image_url ? (
-                      <div className="relative w-6 h-6 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                      <div className="relative w-6 h-6 rounded-sm overflow-hidden bg-gray-100 shrink-0">
                         <Image src={p.image_url} alt="" aria-hidden="true" fill sizes="24px" className="object-cover" />
                       </div>
                     ) : (
-                      <div className="w-6 h-6 rounded bg-gray-100 flex-shrink-0" />
+                      <div className="w-6 h-6 rounded-sm bg-gray-100 shrink-0" />
                     )}
                     <span className="truncate">{p.name}</span>
                     {!p.image_url && (
-                      <span className="ml-auto text-[9px] text-amber-500 font-medium flex-shrink-0">sin foto</span>
+                      <span className="ml-auto text-[9px] text-amber-500 font-medium shrink-0">sin foto</span>
                     )}
                   </button>
                 ))}
@@ -445,14 +445,14 @@ function EntryRow({
 
       {/* Done badge */}
       {entry.status === 'done' && (
-        <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium flex-shrink-0">
+        <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium shrink-0">
           <Check className="w-3.5 h-3.5" /> Subida
         </span>
       )}
 
       {/* Remove */}
       {(entry.status === 'pending' || entry.status === 'error') && (
-        <button onClick={onRemove} className="p-1 rounded hover:bg-gray-100 text-gray-400 flex-shrink-0">
+        <button onClick={onRemove} className="p-1 rounded-sm hover:bg-gray-100 text-gray-400 shrink-0">
           <X className="w-3.5 h-3.5" />
         </button>
       )}

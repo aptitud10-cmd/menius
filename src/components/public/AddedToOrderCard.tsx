@@ -119,17 +119,17 @@ export function AddedToOrderCard({ uid, takeFocus = false, onClose, onViewOrder,
         setPaused(false);
       }}
       style={{ top: pos.top, right: pos.right }}
-      className="hidden md:block fixed z-[45] w-[360px] rounded-[18px] bg-white border border-gray-100 shadow-[0_18px_48px_rgba(0,0,0,0.16)] p-3.5"
+      className="hidden md:block fixed z-45 w-[360px] rounded-2xl bg-white border border-gray-100 shadow-[0_18px_48px_rgba(0,0,0,0.16)] p-3.5"
     >
       <div className="flex items-center gap-2 mb-3">
-        <span className="w-[22px] h-[22px] rounded-full bg-[#05c8a7] grid place-items-center flex-shrink-0" aria-hidden="true">
+        <span className="w-[22px] h-[22px] rounded-full bg-brand-500 grid place-items-center shrink-0" aria-hidden="true">
           <Check className="w-3.5 h-3.5 text-[#04241E]" strokeWidth={3.2} />
         </span>
         <p className="flex-1 text-[15px] font-semibold text-gray-900">{t.addedToYourOrder}</p>
         <button
           type="button"
           onClick={undo}
-          className="h-8 px-2 rounded-lg text-[13px] font-semibold text-[#047a65] hover:bg-[#e6faf7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+          className="h-8 px-2 rounded-lg text-[13px] font-semibold text-[#047a65] hover:bg-[#e6faf7] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           {t.cartUndo}
         </button>
@@ -137,15 +137,15 @@ export function AddedToOrderCard({ uid, takeFocus = false, onClose, onViewOrder,
           type="button"
           onClick={onClose}
           aria-label={t.close}
-          className="w-8 h-8 grid place-items-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+          className="w-8 h-8 grid place-items-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex items-center gap-3 p-2.5 rounded-[14px] bg-gray-50">
+      <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
         {thumb ? (
-          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
+          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 shrink-0">
             <Image src={thumb.src} alt="" fill sizes="56px" unoptimized={thumb.option} className="object-cover" />
           </div>
         ) : (
@@ -158,7 +158,7 @@ export function AddedToOrderCard({ uid, takeFocus = false, onClose, onViewOrder,
           </p>
           {detail && <p className="text-[13px] text-gray-600 leading-snug truncate mt-0.5">{detail}</p>}
         </div>
-        <p className="text-[14px] font-semibold text-gray-900 tabular-nums flex-shrink-0">{fmtPrice(item.lineTotal)}</p>
+        <p className="text-[14px] font-semibold text-gray-900 tabular-nums shrink-0">{fmtPrice(item.lineTotal)}</p>
       </div>
 
       <div className="flex gap-2 mt-3">
@@ -166,14 +166,14 @@ export function AddedToOrderCard({ uid, takeFocus = false, onClose, onViewOrder,
           ref={viewOrderRef}
           type="button"
           onClick={onViewOrder}
-          className="flex-1 h-11 rounded-[14px] border-[1.5px] border-gray-300 bg-white text-[14px] font-semibold text-gray-900 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+          className="flex-1 h-11 rounded-xl border-[1.5px] border-gray-300 bg-white text-[14px] font-semibold text-gray-900 hover:bg-gray-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           {t.viewOrder}
         </button>
         <button
           type="button"
           onClick={onCheckout}
-          className="flex-[1.3] h-11 rounded-[14px] bg-[#05c8a7] text-[14px] font-bold text-[#04241E] hover:bg-[#04b096] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#05c8a7]"
+          className="flex-[1.3] h-11 rounded-xl bg-brand-500 text-[14px] font-bold text-[#04241E] hover:bg-[#04b096] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-500"
         >
           {t.placeOrder} · <span className="tabular-nums">{fmtPrice(cartTotal)}</span>
         </button>

@@ -90,7 +90,7 @@ export function MercadoPagoSettings({ restaurantId, mpEnabled, hasMpToken, local
           href="https://developers.mercadopago.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap flex-shrink-0"
+          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap shrink-0"
         >
           {t.docsLink} <ExternalLink className="w-3 h-3" />
         </a>
@@ -102,7 +102,7 @@ export function MercadoPagoSettings({ restaurantId, mpEnabled, hasMpToken, local
           onClick={() => setEnabled(e => !e)}
           className={`relative w-11 h-6 rounded-full transition-colors ${enabled ? 'bg-blue-500' : 'bg-gray-200'}`}
         >
-          <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : ''}`} />
+          <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${enabled ? 'translate-x-5' : ''}`} />
         </div>
         <span className="text-sm font-medium text-gray-700">{t.enableLabel}</span>
       </label>
@@ -119,7 +119,7 @@ export function MercadoPagoSettings({ restaurantId, mpEnabled, hasMpToken, local
             value={token}
             onChange={e => setToken(e.target.value)}
             placeholder={hasToken ? '••••••••••••••••••••••••' : t.tokenPlaceholder}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-mono pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-mono pr-10 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
           />
           <button
             type="button"

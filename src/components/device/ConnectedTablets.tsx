@@ -106,14 +106,14 @@ export function ConnectedTablets() {
         </h2>
       </div>
       <p className="text-xs text-gray-500 leading-relaxed flex items-start gap-1.5 mb-4">
-        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-px" />
+        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-px" />
         {c.note}
       </p>
 
       <ul className="divide-y divide-gray-100">
         {tablets.map((t, i) => (
           <li key={t.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-            <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0">
               <Tablet className="w-4 h-4 text-gray-500" />
             </div>
             <div className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ export function ConnectedTablets() {
               type="button"
               onClick={() => disconnect(t.id)}
               disabled={busyId === t.id}
-              className={`flex-shrink-0 min-h-[40px] px-3 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
+              className={`shrink-0 min-h-[40px] px-3 rounded-xl text-sm font-semibold border transition-colors disabled:opacity-50 ${
                 confirmId === t.id
                   ? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
                   : 'border-gray-200 text-gray-700 hover:bg-gray-50'

@@ -622,7 +622,7 @@ export function RestaurantSettings({
           <button
             onClick={() => logoRef.current?.click()}
             disabled={uploadingLogo}
-            className="relative w-20 h-20 rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 flex-shrink-0 active:opacity-80 transition-opacity"
+            className="relative w-20 h-20 rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 shrink-0 active:opacity-80 transition-opacity"
             aria-label={locale === 'en' ? 'Upload icon' : 'Subir icono'}
           >
             {logoUrl ? (
@@ -673,7 +673,7 @@ export function RestaurantSettings({
           const preview = trackerBrand(brandColor || null);
           return (
             <div className="flex flex-wrap items-center gap-3">
-              <label className="relative w-11 h-11 rounded-full overflow-hidden border border-gray-200 cursor-pointer flex-shrink-0" style={{ background: brandColor || '#ffffff' }}>
+              <label className="relative w-11 h-11 rounded-full overflow-hidden border border-gray-200 cursor-pointer shrink-0" style={{ background: brandColor || '#ffffff' }}>
                 <span className="sr-only">{locale === 'en' ? 'Pick a color' : 'Elegir color'}</span>
                 <input
                   type="color"
@@ -720,7 +720,7 @@ export function RestaurantSettings({
         </p>
         <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
         {coverUrl ? (
-          <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden bg-gray-100 group">
+          <div className="relative w-full aspect-3/1 rounded-xl overflow-hidden bg-gray-100 group">
             <Image src={coverUrl} alt="Banner" fill className="object-cover" sizes="(max-width: 640px) 100vw, 640px" />
             <div className="absolute inset-0 bg-black/25 md:bg-black/0 md:group-hover:bg-black/40 transition-colors flex items-center justify-center gap-3">
               <button
@@ -743,7 +743,7 @@ export function RestaurantSettings({
           <button
             onClick={() => coverRef.current?.click()}
             disabled={uploadingCover}
-            className="w-full aspect-[3/1] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors disabled:opacity-50"
+            className="w-full aspect-3/1 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors disabled:opacity-50"
           >
             {uploadingCover ? (
               <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -806,13 +806,13 @@ export function RestaurantSettings({
             disabled={!onlinePaymentsAllowed || brandingSaving === 'saving'}
             onClick={toggleBranding}
             className={cn(
-              'relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50',
+              'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50',
               hideBranding ? 'bg-emerald-600' : 'bg-gray-300',
             )}
           >
             <span
               className={cn(
-                'inline-block h-5 w-5 rounded-full bg-white shadow transition-transform',
+                'inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
                 hideBranding ? 'translate-x-6' : 'translate-x-1',
               )}
             />
@@ -867,7 +867,7 @@ export function RestaurantSettings({
               value={form.country_code}
               onChange={(e) => handleCountryChange(e.target.value)}
               disabled={regionLocked}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
             >
               <option value="">{locale === 'en' ? '— Select country —' : '— Selecciona tu país —'}</option>
               {COUNTRY_CONFIG_LIST.map((c) => (
@@ -896,7 +896,7 @@ export function RestaurantSettings({
             <select
               value={form.timezone}
               onChange={(e) => handleChange('timezone', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
             >
               {timezoneOptions.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -909,7 +909,7 @@ export function RestaurantSettings({
               value={form.currency}
               onChange={(e) => handleChange('currency', e.target.value)}
               disabled={regionLocked}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
             >
               {UNIQUE_CURRENCIES.map((c) => (
                 <option key={c.currency} value={c.currency}>
@@ -935,7 +935,7 @@ export function RestaurantSettings({
                     : [newLocale, ...prev.available_locales],
                 }));
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
             >
               {SUPPORTED_LOCALES.map((l) => (
                 <option key={l.code} value={l.code}>{l.flag} {l.label}</option>
@@ -972,7 +972,7 @@ export function RestaurantSettings({
               value={form.country_code}
               onChange={(e) => handleCountryChange(e.target.value)}
               disabled={regionLocked}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 disabled:bg-gray-50 disabled:text-gray-500"
             >
               <option value="">{locale === 'en' ? '— No country / custom —' : '— Sin país / personalizado —'}</option>
               {getCountryList().map((c) => (
@@ -999,7 +999,7 @@ export function RestaurantSettings({
                   }));
                   setSaved(false);
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
               >
                 <option value="">— Select state —</option>
                 {getUsStateList().map((s) => (
@@ -1026,7 +1026,7 @@ export function RestaurantSettings({
                     setSaved(false);
                   }
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
               >
                 <option value="">— Select your city to auto-fill combined rate —</option>
                 {US_CITY_TAX_RATES[form.state_code].map((c) => (
@@ -1036,7 +1036,7 @@ export function RestaurantSettings({
                 ))}
               </select>
               <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2 flex gap-1.5 items-start">
-                <span className="flex-shrink-0 mt-0.5">⚠️</span>
+                <span className="shrink-0 mt-0.5">⚠️</span>
                 <span>
                   Rates are approximate and may change. Verify your exact combined rate at{' '}
                   <a
@@ -1068,7 +1068,7 @@ export function RestaurantSettings({
                 setForm((prev) => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }));
                 setSaved(false);
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
             />
           </div>
 
@@ -1086,7 +1086,7 @@ export function RestaurantSettings({
                 setSaved(false);
               }}
               placeholder="IVA, Sales Tax, VAT…"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
             />
           </div>
         </div>
@@ -1187,7 +1187,7 @@ export function RestaurantSettings({
                       }));
                       setSaved(false);
                     }}
-                    className="ml-0.5 p-0.5 rounded hover:bg-gray-200 transition-colors"
+                    className="ml-0.5 p-0.5 rounded-sm hover:bg-gray-200 transition-colors"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -1202,7 +1202,7 @@ export function RestaurantSettings({
             <select
               id="add-locale-select"
               defaultValue=""
-              className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
             >
               <option value="" disabled>{t.settings_addLanguageSelect}</option>
               {SUPPORTED_LOCALES.filter((l) => !form.available_locales.includes(l.code)).map((l) => (
@@ -1269,7 +1269,7 @@ export function RestaurantSettings({
                     }));
                     setSaved(false);
                   }}
-                  className="w-4 h-4 rounded border-gray-300 bg-gray-50 text-emerald-600 focus:ring-emerald-500/30"
+                  className="w-4 h-4 rounded-sm border-gray-300 bg-gray-50 text-emerald-600 focus:ring-emerald-500/30"
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-700">{opt.label}</span>
@@ -1295,7 +1295,7 @@ export function RestaurantSettings({
                   value={form.estimated_delivery_minutes}
                   onChange={(e) => { setForm((prev) => ({ ...prev, estimated_delivery_minutes: e.target.value })); setSaved(false); }}
                   placeholder="Ej: 30"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
                 />
               </div>
               <div>
@@ -1310,7 +1310,7 @@ export function RestaurantSettings({
                   value={form.delivery_fee}
                   onChange={(e) => { setForm((prev) => ({ ...prev, delivery_fee: e.target.value })); setSaved(false); }}
                   placeholder="0.00"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
                 />
               </div>
               <div>
@@ -1327,7 +1327,7 @@ export function RestaurantSettings({
                   value={form.delivery_min_order}
                   onChange={(e) => { setForm((prev) => ({ ...prev, delivery_min_order: e.target.value })); setSaved(false); }}
                   placeholder="0.00"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
                 />
                 <p className="text-[10px] text-gray-400 mt-1">
                   {locale === 'en'
@@ -1389,13 +1389,13 @@ export function RestaurantSettings({
                     step={sliderStep}
                     value={displayVal}
                     onChange={e => onChangeDisplay(e.target.value)}
-                    className="w-16 px-2 py-1.5 rounded-lg border border-gray-200 text-sm text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    className="w-16 px-2 py-1.5 rounded-lg border border-gray-200 text-sm text-center text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
                   />
                   <span className="text-xs text-gray-500">{unit}</span>
                 </div>
               </div>
               <div className="mt-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex items-center gap-3">
-                <div className="relative flex-shrink-0" style={{ width: 56, height: 56 }}>
+                <div className="relative shrink-0" style={{ width: 56, height: 56 }}>
                   <div className="absolute inset-0 rounded-full border-2 border-emerald-400 bg-emerald-100/60" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-lg">🏪</span>
@@ -1468,7 +1468,7 @@ export function RestaurantSettings({
                     }));
                     setSaved(false);
                   }}
-                  className="w-4 h-4 rounded border-gray-300 bg-gray-50 text-emerald-600 focus:ring-emerald-500/30"
+                  className="w-4 h-4 rounded-sm border-gray-300 bg-gray-50 text-emerald-600 focus:ring-emerald-500/30"
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-700">{opt.label}</span>
@@ -1565,7 +1565,7 @@ export function RestaurantSettings({
                   value={wompiForm.public_key}
                   onChange={(e) => setWompiForm((p) => ({ ...p, public_key: e.target.value }))}
                   placeholder={locale === 'en' ? 'Public key (pub_prod_…)' : 'Llave pública (pub_prod_…)'}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-400/40"
                   autoComplete="off"
                 />
                 <input
@@ -1573,7 +1573,7 @@ export function RestaurantSettings({
                   value={wompiForm.integrity_secret}
                   onChange={(e) => setWompiForm((p) => ({ ...p, integrity_secret: e.target.value }))}
                   placeholder={locale === 'en' ? 'Integrity secret (prod_integrity_…)' : 'Secreto de integridad (prod_integrity_…)'}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-400/40"
                   autoComplete="new-password"
                 />
                 <input
@@ -1581,14 +1581,14 @@ export function RestaurantSettings({
                   value={wompiForm.events_secret}
                   onChange={(e) => setWompiForm((p) => ({ ...p, events_secret: e.target.value }))}
                   placeholder={locale === 'en' ? 'Events secret (prod_events_…)' : 'Secreto de eventos (prod_events_…)'}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-400/40"
                   autoComplete="new-password"
                 />
                 <p className="text-[11px] text-gray-400">
                   {locale === 'en'
                     ? 'Also set the events URL in your Wompi dashboard: '
                     : 'Configurá también la URL de eventos en tu panel de Wompi: '}
-                  <code className="text-[10px] bg-gray-100 px-1 py-0.5 rounded">{appUrl}/api/payments/wompi-webhook</code>
+                  <code className="text-[10px] bg-gray-100 px-1 py-0.5 rounded-sm">{appUrl}/api/payments/wompi-webhook</code>
                 </p>
                 <div className="flex gap-2">
                   {wompiEditing && (
@@ -1726,14 +1726,14 @@ export function RestaurantSettings({
                     type="time"
                     value={hours[day.key].open}
                     onChange={(e) => handleHourChange(day.key, 'open', e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
                   />
                   <span className="text-gray-500 text-sm">{t.settings_timeTo}</span>
                   <input
                     type="time"
                     value={hours[day.key].close}
                     onChange={(e) => handleHourChange(day.key, 'close', e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
                   />
                   {crossesMidnight(hours[day.key].open, hours[day.key].close) && (
                     <span className="basis-full text-[11px] text-gray-500">
@@ -1753,7 +1753,7 @@ export function RestaurantSettings({
                 )}
                 <button
                   onClick={() => toggleClosed(day.key)}
-                  className={`text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].closed ? 'bg-gray-50 text-gray-500 hover:bg-gray-100' : 'bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.12]'}`}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].closed ? 'bg-gray-50 text-gray-500 hover:bg-gray-100' : 'bg-red-500/8 text-red-400 hover:bg-red-500/12'}`}
                 >
                   {hours[day.key].closed ? t.settings_openDay : t.settings_closeDay}
                 </button>
@@ -1801,7 +1801,7 @@ export function RestaurantSettings({
                 value={form.notification_email}
                 onChange={(e) => { setForm((prev) => ({ ...prev, notification_email: e.target.value })); setSaved(false); }}
                 placeholder="owner@mirestaurante.com"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
               />
               <p className="text-[11px] text-gray-500 mt-1">
                 {t.settings_emailNotificationDesc}
@@ -1817,7 +1817,7 @@ export function RestaurantSettings({
 
       {/* Save */}
       {error && (
-        <div className="px-4 py-2.5 rounded-xl bg-red-500/[0.06] text-red-400 border border-red-500/[0.1] text-sm">{error}</div>
+        <div className="px-4 py-2.5 rounded-xl bg-red-500/6 text-red-400 border border-red-500/10 text-sm">{error}</div>
       )}
 
       <div className="flex items-center gap-3">
@@ -1850,7 +1850,7 @@ function Field({
 }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean;
 }) {
-  const cls = 'w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-500';
+  const cls = 'w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-500';
   return (
     <div>
       <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
@@ -1992,8 +1992,8 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
                 {verifyResult && !verifyResult.verified && (
                   <div className="flex items-start gap-1.5 min-w-0 flex-1">
                     {verifyResult.code === 'PENDING_ACTIVATION' || verifyResult.code === 'ISSUING_CERT'
-                      ? <Clock className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                      : <XCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />}
+                      ? <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      : <XCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />}
                     <span className={cn('text-[11px]', verifyResult.code === 'PENDING_ACTIVATION' || verifyResult.code === 'ISSUING_CERT' ? 'text-emerald-700' : 'text-amber-700')}>{statusText(verifyResult)}</span>
                   </div>
                 )}

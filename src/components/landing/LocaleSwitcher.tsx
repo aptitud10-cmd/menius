@@ -14,7 +14,7 @@ export function LocaleSwitcher({ locale }: { locale: LandingLocale }) {
       <button
         onClick={() => switchLocale('es')}
         aria-label="Español"
-        className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'es' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}
+        className={`px-1.5 py-0.5 rounded-sm transition-colors ${locale === 'es' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}
       >
         ES
       </button>
@@ -22,7 +22,7 @@ export function LocaleSwitcher({ locale }: { locale: LandingLocale }) {
       <button
         onClick={() => switchLocale('en')}
         aria-label="English"
-        className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'en' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}
+        className={`px-1.5 py-0.5 rounded-sm transition-colors ${locale === 'en' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}
       >
         EN
       </button>

@@ -517,7 +517,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   return (
     <div className="flex-1 min-h-0 flex flex-col select-none" style={{ background: C.bg, color: C.ink }}>
       {/* ── Barra superior ── */}
-      <header className="flex items-center gap-[clamp(10px,1.4vw,22px)] px-[clamp(12px,1.5vw,24px)] h-[clamp(56px,4.6vw,72px)] border-b flex-shrink-0" style={{ borderColor: C.line }}>
+      <header className="flex items-center gap-[clamp(10px,1.4vw,22px)] px-[clamp(12px,1.5vw,24px)] h-[clamp(56px,4.6vw,72px)] border-b shrink-0" style={{ borderColor: C.line }}>
         <div className="leading-tight min-w-0">
           <p className="text-[clamp(17px,1.4vw,24px)] font-extrabold tracking-tight">{T.kitchen}</p>
           <p className="text-[12px] font-semibold truncate max-w-[180px]" style={{ color: C.mute }}>{restaurantName}</p>
@@ -565,14 +565,14 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
       {audioBlocked && (
         <button type="button" onClick={() => playSound('success')}
-          className="flex items-center justify-center gap-2 py-2 text-[15px] font-bold flex-shrink-0 w-full"
+          className="flex items-center justify-center gap-2 py-2 text-[15px] font-bold shrink-0 w-full"
           style={{ background: C.warn, color: '#0c0d0f' }}>
           <VolumeX className="w-4 h-4" /> {T.soundBlocked}
         </button>
       )}
 
       {(!online || queuedCount > 0) && (
-        <div className="flex items-center justify-center gap-2 py-2 text-[15px] font-bold flex-shrink-0" style={{ background: C.late, color: '#fff' }}>
+        <div className="flex items-center justify-center gap-2 py-2 text-[15px] font-bold shrink-0" style={{ background: C.late, color: '#fff' }}>
           <WifiOff className="w-4 h-4" /> {!online ? T.offline : ''}{!online && queuedCount > 0 ? ' — ' : ''}{queuedCount > 0 ? T.queued(queuedCount) : ''}
         </div>
       )}
@@ -606,7 +606,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         </main>
 
         {/* ── All Day ── */}
-        <aside className="hidden md:flex flex-col w-[clamp(210px,17vw,320px)] flex-shrink-0 border-l px-[clamp(12px,1.2vw,20px)] py-4" style={{ borderColor: C.line }}>
+        <aside className="hidden md:flex flex-col w-[clamp(210px,17vw,320px)] shrink-0 border-l px-[clamp(12px,1.2vw,20px)] py-4" style={{ borderColor: C.line }}>
           <p className="text-[12px] font-extrabold tracking-[0.14em] mb-2" style={{ color: C.mute }}>{T.allDay}</p>
           <div className="flex-1 min-h-0 overflow-y-auto">
             {allDay.map(([name, qty]) => (
@@ -760,11 +760,11 @@ function Ticket({ v, T, isEn, isNew, isSelected, struck, onToggleItem, onLongPre
         <div className="min-w-0">
           <p className="text-[clamp(26px,2.3vw,40px)] font-black tracking-tight leading-none tabular-nums">#{shortOrderNumber(order.order_number)}</p>
           <p className="mt-1.5 flex items-center gap-2 text-[clamp(13px,1vw,16px)] font-bold min-w-0">
-            <span className="text-[11px] font-extrabold tracking-[0.06em] px-1.5 py-0.5 rounded-md flex-shrink-0" style={{ background: chipBg }}>{channel}</span>
+            <span className="text-[11px] font-extrabold tracking-[0.06em] px-1.5 py-0.5 rounded-md shrink-0" style={{ background: chipBg }}>{channel}</span>
             {who && <span className="truncate opacity-90">{who}</span>}
           </p>
         </div>
-        <div className="text-right leading-none flex-shrink-0">
+        <div className="text-right leading-none shrink-0">
           <p className="text-[clamp(26px,2.3vw,40px)] font-black tabular-nums tracking-tight" style={timing.state === 'ok' ? { color: C.ok } : undefined}>{timing.timer}</p>
           <p className="mt-1.5 text-[13px] font-bold opacity-85">
             {timing.state === 'late' ? T.lateBy(timing.lateMin)
@@ -776,7 +776,7 @@ function Ticket({ v, T, isEn, isNew, isSelected, struck, onToggleItem, onLongPre
 
       {allergies.length > 0 && (
         <div className="flex gap-2 items-start px-4 py-2.5 text-[clamp(15px,1.15vw,19px)] font-extrabold leading-snug border-y" style={{ background: '#3a0d0d', color: '#ffb4b4', borderColor: '#5c1414' }}>
-          <span className="text-[11px] font-black tracking-[0.06em] px-1.5 py-1 rounded-md flex-shrink-0 mt-0.5 flex items-center gap-1" style={{ background: C.late, color: '#fff' }}>
+          <span className="text-[11px] font-black tracking-[0.06em] px-1.5 py-1 rounded-md shrink-0 mt-0.5 flex items-center gap-1" style={{ background: C.late, color: '#fff' }}>
             <AlertTriangle className="w-3 h-3" /> {T.allergy}
           </span>
           <span className="min-w-0">{allergies.join(' · ')}</span>
@@ -803,7 +803,7 @@ function Ticket({ v, T, isEn, isNew, isSelected, struck, onToggleItem, onLongPre
           </p>
         )}
         <button onClick={onBump}
-          className="h-[clamp(56px,4.4vw,72px)] rounded-[14px] text-[clamp(18px,1.5vw,24px)] font-black tracking-[0.05em] flex items-center justify-center gap-2.5 active:scale-[0.98] transition-transform touch-manipulation"
+          className="h-[clamp(56px,4.4vw,72px)] rounded-xl text-[clamp(18px,1.5vw,24px)] font-black tracking-wider flex items-center justify-center gap-2.5 active:scale-[0.98] transition-transform touch-manipulation"
           style={{ background: C.ink, color: C.bg }}>
           {T.ready} <Check className="w-6 h-6" strokeWidth={3} />
         </button>
@@ -866,7 +866,7 @@ function CancelledTicket({ order, T, onDismiss }: { order: Order; T: T; onDismis
         ))}
       </div>
       <div className="px-4 pb-4 pt-1 mt-auto">
-        <button onClick={onDismiss} className="w-full h-14 rounded-[14px] text-[18px] font-black" style={{ background: C.ink, color: C.bg }}>{T.ok}</button>
+        <button onClick={onDismiss} className="w-full h-14 rounded-xl text-[18px] font-black" style={{ background: C.ink, color: C.bg }}>{T.ok}</button>
       </div>
     </article>
   );
@@ -893,18 +893,18 @@ function HistorySheet({ orders, now, T, isEn, onClose, onRecall, onPrint }: {
             const cancelled = o.status === 'cancelled';
             return (
               <div key={o.id} className="flex items-center gap-3 py-3 border-b" style={{ borderColor: C.line }}>
-                <span className="text-[20px] font-black tabular-nums w-16 flex-shrink-0" style={{ color: cancelled ? C.late : C.ink }}>#{shortOrderNumber(o.order_number)}</span>
+                <span className="text-[20px] font-black tabular-nums w-16 shrink-0" style={{ color: cancelled ? C.late : C.ink }}>#{shortOrderNumber(o.order_number)}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[15px] font-bold truncate">{items.map((i) => `${i.qty} ${i.name}`).join(' · ')}</p>
                   <p className="text-[13px] font-semibold" style={{ color: C.mute }}>
                     {shortCustomerName(o.customer_name) ?? ''} · {T.status[o.status] ?? o.status} · {at}
                   </p>
                 </div>
-                <button onClick={() => onPrint(o)} aria-label={T.reprint} className="w-11 h-11 rounded-xl grid place-items-center flex-shrink-0" style={{ background: '#23262b', color: C.sub }}>
+                <button onClick={() => onPrint(o)} aria-label={T.reprint} className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ background: '#23262b', color: C.sub }}>
                   <Printer className="w-5 h-5" />
                 </button>
                 {o.status === 'ready' && (
-                  <button onClick={() => onRecall(o.id)} className="h-11 px-4 rounded-xl text-[14px] font-extrabold flex items-center gap-1.5 flex-shrink-0" style={{ background: C.ink, color: C.bg }}>
+                  <button onClick={() => onRecall(o.id)} className="h-11 px-4 rounded-xl text-[14px] font-extrabold flex items-center gap-1.5 shrink-0" style={{ background: C.ink, color: C.bg }}>
                     <Undo2 className="w-4 h-4" /> {T.recall}
                   </button>
                 )}
@@ -929,7 +929,7 @@ function Stat({ n, label, color }: { n: number; label: string; color?: string })
 function IconBtn({ children, onClick, label, active, danger }: { children: React.ReactNode; onClick: () => void; label: string; active?: boolean; danger?: boolean }) {
   return (
     <button onClick={onClick} aria-label={label} title={label}
-      className="w-11 h-11 rounded-xl grid place-items-center border flex-shrink-0 touch-manipulation"
+      className="w-11 h-11 rounded-xl grid place-items-center border shrink-0 touch-manipulation"
       style={{ background: active && danger ? '#3a0d0d' : '#15171a', borderColor: C.line, color: active && danger ? '#ffb4b4' : C.sub }}>
       {children}
     </button>
@@ -944,7 +944,7 @@ function Sheet({ children, onClose, title, wide }: { children: React.ReactNode; 
         style={{ background: '#17191d', borderColor: C.line, color: C.ink }}>
         <div className="flex items-start justify-between gap-3 mb-2">
           {title ? <h2 className="text-[20px] font-extrabold leading-snug">{title}</h2> : <span />}
-          <button onClick={onClose} className="w-10 h-10 -mt-1 -mr-1 rounded-xl grid place-items-center flex-shrink-0" style={{ color: C.sub }} aria-label="Close"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="w-10 h-10 -mt-1 -mr-1 rounded-xl grid place-items-center shrink-0" style={{ color: C.sub }} aria-label="Close"><X className="w-5 h-5" /></button>
         </div>
         {children}
       </div>

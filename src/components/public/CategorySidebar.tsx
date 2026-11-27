@@ -98,7 +98,7 @@ export const CategorySidebar = memo(function CategorySidebar({
                 )}
               </div>
               <span className={cn(
-                'text-[13px] tabular-nums flex-shrink-0 mt-0.5 relative z-10',
+                'text-[13px] tabular-nums shrink-0 mt-0.5 relative z-10',
                 available
                   ? isActive ? 'text-white/75' : 'text-ink-600'
                   : 'text-ink-300'
@@ -126,7 +126,7 @@ export const CategorySidebar = memo(function CategorySidebar({
                     <span className="truncate flex-1">
                       {tName(sub, locale, defaultLocale)}
                     </span>
-                    <span className="text-[13px] tabular-nums text-ink-600 flex-shrink-0">
+                    <span className="text-[13px] tabular-nums text-ink-600 shrink-0">
                       {items.length}
                     </span>
                   </button>

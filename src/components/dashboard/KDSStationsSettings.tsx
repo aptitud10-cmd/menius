@@ -122,10 +122,10 @@ export function KDSStationsSettings({ initialStations, restaurantId }: Props) {
         <div className="space-y-2 mb-5">
           {stations.map((s, idx) => (
             <div key={s.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-              <GripVertical className="w-4 h-4 text-gray-300 flex-shrink-0" />
-              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+              <GripVertical className="w-4 h-4 text-gray-300 shrink-0" />
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
               <span className="flex-1 text-sm font-medium text-gray-800 truncate">{s.name}</span>
-              <div className="flex items-center gap-0.5 flex-shrink-0">
+              <div className="flex items-center gap-0.5 shrink-0">
                 <button onClick={() => handleMove(s.id, 'up')} disabled={idx === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30">
                   <ChevronUp className="w-4 h-4" />
                 </button>
@@ -159,7 +159,7 @@ export function KDSStationsSettings({ initialStations, restaurantId }: Props) {
             placeholder={isEn ? 'e.g. Grill, Bar, Salads…' : 'Ej: Parrilla, Barra, Ensaladas…'}
             className="dash-input flex-1"
           />
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             {PRESET_COLORS.map(c => (
               <button
                 key={c}
@@ -172,7 +172,7 @@ export function KDSStationsSettings({ initialStations, restaurantId }: Props) {
           <button
             onClick={handleAdd}
             disabled={!newName.trim() || adding || isPending}
-            className="dash-btn-primary flex-shrink-0"
+            className="dash-btn-primary shrink-0"
           >
             {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             <span className="hidden sm:inline">{isEn ? 'Add' : 'Agregar'}</span>

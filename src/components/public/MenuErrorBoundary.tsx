@@ -66,7 +66,7 @@ export class MenuErrorBoundary extends Component<Props, State> {
     if (this.props.inline) {
       return (
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span className="flex-1">{somethingWentWrong}.</span>
           <button
             onClick={this.handleRetry}

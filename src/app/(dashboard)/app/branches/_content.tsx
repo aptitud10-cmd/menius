@@ -104,7 +104,7 @@ export default function BranchesContent() {
       {needsMigration && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
           <p className="font-bold mb-1">{en ? 'Migration required for advanced multi-branch' : 'Migración requerida para multi-sucursales avanzado'}</p>
-          <p className="text-xs">{en ? 'Run' : 'Ejecuta'} <code className="font-mono bg-amber-100 px-1 rounded">supabase/migration-multi-location.sql</code> {en ? 'to enable branch linking.' : 'para habilitar la vinculación de sucursales.'}</p>
+          <p className="text-xs">{en ? 'Run' : 'Ejecuta'} <code className="font-mono bg-amber-100 px-1 rounded-sm">supabase/migration-multi-location.sql</code> {en ? 'to enable branch linking.' : 'para habilitar la vinculación de sucursales.'}</p>
         </div>
       )}
 
@@ -124,17 +124,17 @@ export default function BranchesContent() {
                 value={form.name}
                 onChange={e => handleNameChange(e.target.value)}
                 placeholder={en ? 'e.g. Downtown Branch' : 'Ej. Sucursal Centro'}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
               />
             </div>
             <div>
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Slug (URL) *</label>
               <div className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-200 focus-within:border-gray-900 bg-white">
-                <span className="text-xs text-gray-400 flex-shrink-0">{appUrl}/</span>
+                <span className="text-xs text-gray-400 shrink-0">{appUrl}/</span>
                 <input
                   value={form.slug}
                   onChange={e => setForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
-                  className="flex-1 text-sm focus:outline-none min-w-0"
+                  className="flex-1 text-sm focus:outline-hidden min-w-0"
                 />
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function BranchesContent() {
                 value={form.address}
                 onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
                 placeholder={en ? 'e.g. 123 Main St' : 'Ej. Av. Principal 123'}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
               />
             </div>
             <div>
@@ -154,7 +154,7 @@ export default function BranchesContent() {
                 onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                 placeholder="+1 555 123 4567"
                 type="tel"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
               />
             </div>
           </div>
@@ -185,7 +185,7 @@ export default function BranchesContent() {
         ) : branches.map(b => (
           <div key={b.id} className="bg-white rounded-2xl border border-gray-200 p-5">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
                 <Store className="w-6 h-6 text-gray-400" />
               </div>
               <span className={cn('flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full', b.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600')}>
@@ -197,7 +197,7 @@ export default function BranchesContent() {
             <p className="text-xs font-mono text-gray-400 mb-3">/{b.slug}</p>
             {b.address && (
               <div className="flex items-start gap-1.5 text-xs text-gray-500 mb-1">
-                <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span className="line-clamp-2">{b.address}</span>
               </div>
             )}

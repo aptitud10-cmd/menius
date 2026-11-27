@@ -198,7 +198,7 @@ export function OnboardingChecklist({
 
   if (allComplete) {
     return (
-      <div className="relative rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-5">
+      <div className="relative rounded-2xl border border-emerald-500/20 bg-emerald-500/4 p-5">
         <button
           onClick={handleDismiss}
           className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
@@ -207,7 +207,7 @@ export function OnboardingChecklist({
           <X className="w-4 h-4" />
         </button>
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/[0.12] flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/12 flex items-center justify-center shrink-0">
             <PartyPopper className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
@@ -280,9 +280,9 @@ export function OnboardingChecklist({
       >
         <div
           className={cn(
-            "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
             step.completed
-              ? "bg-emerald-500/[0.12]"
+              ? "bg-emerald-500/12"
               : isNext
                 ? accentColor === "violet"
                   ? "bg-violet-100"
@@ -324,7 +324,7 @@ export function OnboardingChecklist({
             {isNext && !isOptional && (
               <span
                 className={cn(
-                  "text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0",
+                  "text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0",
                   accentColor === "violet"
                     ? "text-violet-700 bg-violet-100"
                     : "text-emerald-700 bg-emerald-100",
@@ -334,12 +334,12 @@ export function OnboardingChecklist({
               </span>
             )}
             {isOptional && (
-              <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+              <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full shrink-0">
                 {t.onboarding_optional}
               </span>
             )}
             {!step.completed && timeEst && (
-              <span className="text-[10px] text-gray-400 flex-shrink-0">
+              <span className="text-[10px] text-gray-400 shrink-0">
                 {timeEst}
               </span>
             )}
@@ -357,7 +357,7 @@ export function OnboardingChecklist({
         {!step.completed && (
           <ChevronRight
             className={cn(
-              "w-4 h-4 flex-shrink-0 transition-all",
+              "w-4 h-4 shrink-0 transition-all",
               isNext
                 ? accentColor === "violet"
                   ? "text-violet-600 group-hover:translate-x-0.5"
@@ -375,7 +375,7 @@ export function OnboardingChecklist({
       className={cn(
         "rounded-2xl border overflow-hidden",
         isNewUser
-          ? "border-violet-200 bg-white shadow-sm shadow-violet-100"
+          ? "border-violet-200 bg-white shadow-xs shadow-violet-100"
           : "border-gray-200 bg-white",
       )}
     >
@@ -383,7 +383,7 @@ export function OnboardingChecklist({
       <div
         className={cn(
           "p-5 pb-4",
-          isNewUser && "bg-gradient-to-br from-violet-50 to-white",
+          isNewUser && "bg-linear-to-br from-violet-50 to-white",
         )}
       >
         {isNewUser && (

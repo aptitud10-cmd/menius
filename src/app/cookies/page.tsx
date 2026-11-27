@@ -33,7 +33,7 @@ function ContentEs() {
         <strong>No requieren tu consentimiento</strong> ya que son necesarias
         para proveer el servicio.
       </p>
-      <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+      <div className="overflow-x-auto rounded-xl border border-white/6">
         <table>
           <thead>
             <tr>
@@ -80,7 +80,7 @@ function ContentEs() {
         Estas cookies mejoran la funcionalidad de la Plataforma recordando tus
         preferencias.
       </p>
-      <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+      <div className="overflow-x-auto rounded-xl border border-white/6">
         <table>
           <thead>
             <tr>
@@ -121,7 +121,7 @@ function ContentEs() {
         Cuando realizas un pago, Stripe puede establecer cookies propias para
         procesar la transacción de forma segura y prevenir fraudes.
       </p>
-      <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+      <div className="overflow-x-auto rounded-xl border border-white/6">
         <table>
           <thead>
             <tr>
@@ -304,7 +304,7 @@ function ContentEn() {
         <strong>They do not require your consent</strong> as they are necessary
         to provide the service.
       </p>
-      <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+      <div className="overflow-x-auto rounded-xl border border-white/6">
         <table>
           <thead>
             <tr>
@@ -350,7 +350,7 @@ function ContentEn() {
         These cookies enhance the Platform&apos;s functionality by remembering
         your preferences.
       </p>
-      <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+      <div className="overflow-x-auto rounded-xl border border-white/6">
         <table>
           <thead>
             <tr>
@@ -391,7 +391,7 @@ function ContentEn() {
         When you make a payment, Stripe may set its own cookies to process the
         transaction securely and prevent fraud.
       </p>
-      <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+      <div className="overflow-x-auto rounded-xl border border-white/6">
         <table>
           <thead>
             <tr>

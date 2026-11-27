@@ -108,7 +108,7 @@ export default function ApiKeysContent() {
       {newRawKey && (
         <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5">
           <div className="flex items-start gap-3 mb-3">
-            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-bold text-amber-800">{en ? 'Copy your API Key now!' : '¡Copia tu API Key ahora!'}</p>
               <p className="text-xs text-amber-700 mt-0.5">{en ? "You won't see it again. Store it somewhere safe." : 'No volverás a verla completa. Guárdala en un lugar seguro.'}</p>
@@ -118,7 +118,7 @@ export default function ApiKeysContent() {
             <code className="flex-1 text-xs font-mono text-gray-800 break-all">{newRawKey}</code>
             <button
               onClick={() => handleCopy(newRawKey)}
-              className="flex-shrink-0 p-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+              className="shrink-0 p-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </button>
@@ -142,7 +142,7 @@ export default function ApiKeysContent() {
               onChange={e => setNewKeyName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
               placeholder={en ? 'e.g. POS Integration, Custom Webhook…' : 'Ej. Integración POS, Webhook custom…'}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
             />
             <button
               onClick={handleCreate}
@@ -177,14 +177,14 @@ export default function ApiKeysContent() {
           <div className="divide-y divide-gray-100">
             {keys.map(k => (
               <div key={k.id} className={cn('flex items-center gap-4 px-5 py-4', !k.is_active && 'opacity-50')}>
-                <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
                   <Key className="w-4 h-4 text-gray-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 truncate">{k.name}</p>
                   <p className="text-xs text-gray-400 font-mono">{k.prefix}…</p>
                 </div>
-                <div className="text-right flex-shrink-0">
+                <div className="text-right shrink-0">
                   <p className="text-xs text-gray-400">
                     {en ? 'Created' : 'Creada'} {new Date(k.created_at).toLocaleDateString(en ? 'en-US' : 'es-MX')}
                   </p>
@@ -197,7 +197,7 @@ export default function ApiKeysContent() {
                 <button
                   onClick={() => handleDelete(k.id)}
                   disabled={deletingId === k.id}
-                  className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                  className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
                 >
                   {deletingId === k.id
                     ? <RefreshCw className="w-4 h-4 animate-spin" />

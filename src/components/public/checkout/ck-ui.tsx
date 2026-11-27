@@ -19,7 +19,7 @@ export function CkGroup({ children, className }: { children: ReactNode; classNam
   return (
     <div
       className={cn(
-        'bg-white rounded-[18px] overflow-hidden [&>.ck-row+.ck-row]:border-t [&>.ck-row+.ck-row]:border-black/[0.09]',
+        'bg-white rounded-2xl overflow-hidden [&>.ck-row+.ck-row]:border-t [&>.ck-row+.ck-row]:border-black/9',
         ckShadow,
         className,
       )}
@@ -62,7 +62,7 @@ export function CkRow({ icon, label, value, sub, need, muted, onClick, trailing,
         <span
           className={cn(
             'block text-base font-medium tracking-[-0.01em] truncate',
-            need && 'text-[#047a65] before:content-[""] before:inline-block before:w-[7px] before:h-[7px] before:rounded-full before:bg-[#05c8a7] before:mr-[7px] before:align-[2px]',
+            need && 'text-[#047a65] before:content-[""] before:inline-block before:w-[7px] before:h-[7px] before:rounded-full before:bg-brand-500 before:mr-[7px] before:align-[2px]',
             muted && 'text-[#6b6b74] font-normal',
             !need && !muted && 'text-[#111114]',
           )}
@@ -83,7 +83,7 @@ export function CkRow({ icon, label, value, sub, need, muted, onClick, trailing,
         onClick={onClick}
         role={checked === undefined ? undefined : 'checkbox'}
         aria-checked={checked}
-        className={cn(cls, 'transition-colors active:bg-[#f5f5f8] [@media(hover:hover)]:hover:bg-[#f5f5f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#05c8a7]')}
+        className={cn(cls, 'transition-colors active:bg-[#f5f5f8] [@media(hover:hover)]:hover:bg-[#f5f5f8] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500')}
       >
         {body}
       </button>
@@ -129,7 +129,7 @@ export function CkSegmented<T extends string>({
           aria-checked={o.value === value}
           onClick={() => onChange(o.value)}
           className={cn(
-            'relative z-[1] py-[11px] text-[14.5px] font-semibold rounded-[9px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]',
+            'relative z-1 py-[11px] text-[14.5px] font-semibold rounded-[9px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500',
             o.value === value ? 'text-[#111114]' : 'text-[#4f4f57]',
           )}
         >
@@ -150,7 +150,7 @@ export function CkCheckMark({ checked }: { checked: boolean }) {
       aria-hidden="true"
       className={cn(
         'w-6 h-6 rounded-[7px] grid place-items-center transition-[background-color,box-shadow] duration-150',
-        checked ? 'bg-[#05c8a7]' : 'bg-white shadow-[inset_0_0_0_2px_rgba(17,17,20,.22)]',
+        checked ? 'bg-brand-500' : 'bg-white shadow-[inset_0_0_0_2px_rgba(17,17,20,.22)]',
       )}
     >
       <svg viewBox="0 0 24 24" className={cn('w-3.5 h-3.5 transition-opacity duration-150', checked ? 'opacity-100' : 'opacity-0')} fill="none" stroke="#04241e" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
@@ -163,7 +163,7 @@ export function CkCheckMark({ checked }: { checked: boolean }) {
 /** Botón principal: verde de la marca, 56px. */
 export function ckCtaClass(disabled?: boolean) {
   return cn(
-    'w-full h-14 rounded-2xl bg-[#05c8a7] text-[#04241e] text-[17px] font-semibold tracking-[-0.01em] flex items-center justify-center gap-2 transition-[transform,filter,opacity] duration-150 active:scale-[0.985] [@media(hover:hover)]:hover:brightness-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#047a65] focus-visible:ring-offset-2',
+    'w-full h-14 rounded-2xl bg-brand-500 text-[#04241e] text-[17px] font-semibold tracking-[-0.01em] flex items-center justify-center gap-2 transition-[transform,filter,opacity] duration-150 active:scale-[0.985] [@media(hover:hover)]:hover:brightness-[1.04] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#047a65] focus-visible:ring-offset-2',
     disabled && 'opacity-50 pointer-events-none',
   );
 }
@@ -177,7 +177,7 @@ export function CkFields({ children, error }: { children: ReactNode; error?: boo
   return (
     <div
       className={cn(
-        'grid bg-[#f5f5f8] rounded-[14px] overflow-hidden [&>*+*]:border-t [&>*+*]:border-black/[0.09]',
+        'grid bg-[#f5f5f8] rounded-xl overflow-hidden [&>*+*]:border-t [&>*+*]:border-black/9',
         error && 'shadow-[inset_0_0_0_1.5px_#c4321b]',
       )}
     >
@@ -305,7 +305,7 @@ export function CkSheet({
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-x-0 top-0 h-[100dvh] z-[60] flex items-end min-[860px]:items-center justify-center"
+          className="fixed inset-x-0 top-0 h-dvh z-60 flex items-end min-[860px]:items-center justify-center"
           style={vp ? { top: vp.top, height: vp.height } : undefined}
         >
           <motion.div
@@ -325,7 +325,7 @@ export function CkSheet({
             tabIndex={-1}
             onKeyDown={onKeyDown}
             className={cn(
-              'relative w-full bg-white overflow-y-auto overscroll-contain focus:outline-none',
+              'relative w-full bg-white overflow-y-auto overscroll-contain focus:outline-hidden',
               // % del contenedor (= lo visible), no dvh: dvh no descuenta el teclado en iOS.
               'rounded-t-[22px] max-h-[92%] px-[18px] pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]',
               'min-[860px]:w-[460px] min-[860px]:rounded-[20px] min-[860px]:pb-[22px] min-[860px]:max-h-[85vh]',
@@ -335,7 +335,7 @@ export function CkSheet({
             exit={desktop ? { opacity: 0, scale: 0.97 } : { y: '100%' }}
             transition={{ duration: desktop ? Math.min(dur, 0.25) : dur, ease }}
           >
-            <div className="w-9 h-[5px] rounded-full bg-black/[0.09] mx-auto mb-1.5 min-[860px]:invisible" aria-hidden="true" />
+            <div className="w-9 h-[5px] rounded-full bg-black/9 mx-auto mb-1.5 min-[860px]:invisible" aria-hidden="true" />
             <div className="flex items-start justify-between gap-3">
               <h2 id={titleId} className="text-xl font-semibold tracking-[-0.02em] text-[#111114] mt-1.5 mb-1">{title}</h2>
               <button
@@ -343,7 +343,7 @@ export function CkSheet({
                 onClick={onClose}
                 aria-label={closeLabel}
                 // Se ve de 32 px; la zona de toque (after) mide 44 px.
-                className="relative w-8 h-8 mt-1 rounded-full bg-[#f5f5f8] grid place-items-center text-[#4f4f57] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] after:absolute after:-inset-1.5 after:content-['']"
+                className="relative w-8 h-8 mt-1 rounded-full bg-[#f5f5f8] grid place-items-center text-[#4f4f57] shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 after:absolute after:-inset-1.5 after:content-['']"
               >
                 <X className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
@@ -367,7 +367,7 @@ export function CkChoice({ title, sub, selected, onClick, disabled }: { title: s
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'w-full grid grid-cols-[1fr_auto] items-center gap-3 p-3.5 text-left rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] disabled:opacity-50',
+        'w-full grid grid-cols-[1fr_auto] items-center gap-3 p-3.5 text-left rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-50',
         selected ? 'bg-[#e2f7f3] shadow-[inset_0_0_0_1.5px_#05c8a7]' : 'bg-[#f5f5f8]',
       )}
     >

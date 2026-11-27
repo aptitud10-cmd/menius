@@ -365,7 +365,7 @@ export default function BillingPage() {
       {/* ─── Checkout banners ─── */}
       {banner === 'success' && (
         <div className="mb-6 flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-4 animate-fade-in">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <p className="text-sm font-medium text-emerald-800 flex-1">
             {t.billing_subscriptionActivated}
           </p>
@@ -376,7 +376,7 @@ export default function BillingPage() {
       )}
       {banner === 'cancel' && (
         <div className="mb-6 flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-200 p-4 animate-fade-in">
-          <XCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          <XCircle className="w-5 h-5 text-amber-600 shrink-0" />
           <p className="text-sm font-medium text-amber-800 flex-1">
             {t.billing_processCancelled}
           </p>
@@ -389,7 +389,7 @@ export default function BillingPage() {
       {/* ─── Error ─── */}
       {error && (
         <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 border border-red-200 p-4">
-          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700 flex-1">{error}</p>
           <button onClick={() => setError(null)} className="text-red-300 hover:text-red-500">
             <X className="w-4 h-4" />
@@ -400,14 +400,14 @@ export default function BillingPage() {
       {/* ─── Current plan card ─── always shown, even on free ─── */}
       {planInfo && statusInfo && (
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white mb-6">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400" />
 
           <div className="p-6 sm:p-8">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               {/* Left: plan info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 text-white">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
@@ -526,7 +526,7 @@ export default function BillingPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {(locale === 'en' ? (planInfo.features_en ?? planInfo.features) : planInfo.features).slice(0, 6).map((f) => (
                       <div key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                        <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                        <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                         {f}
                       </div>
                     ))}
@@ -540,7 +540,7 @@ export default function BillingPage() {
                   <button
                     onClick={handlePortal}
                     disabled={actionLoading !== null}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 transition-all shadow-sm"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 transition-all shadow-xs"
                   >
                     <ExternalLink className="w-4 h-4" />
                     {actionLoading === 'portal' ? t.billing_redirecting : t.billing_manageSubscription}
@@ -550,7 +550,7 @@ export default function BillingPage() {
                   <button
                     onClick={() => handlePlanSelect('pro', 'monthly')}
                     disabled={actionLoading !== null}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
                   >
                     <CreditCard className="w-4 h-4" />
                     {actionLoading === 'pro' ? t.billing_redirecting : (locale === 'en' ? 'Upgrade to Pro' : 'Subir a Pro')}
@@ -560,7 +560,7 @@ export default function BillingPage() {
                   <button
                     onClick={() => handlePlanSelect('pro', 'monthly')}
                     disabled={actionLoading !== null}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
                   >
                     <CreditCard className="w-4 h-4" />
                     {actionLoading === 'pro' ? t.billing_redirecting : t.billing_subscribeNow}
@@ -630,12 +630,12 @@ export default function BillingPage() {
           : null;
 
         return (
-          <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50 mb-6">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+          <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-300 bg-linear-to-br from-emerald-50 to-teal-50 mb-6">
+            <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400" />
             <div className="p-6 sm:p-8">
               {/* Header */}
               <div className="flex items-start gap-4 mb-6">
-                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <div className="shrink-0 w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
@@ -719,7 +719,7 @@ export default function BillingPage() {
                             {fmtUSD(priceUSD)}/{locale === 'en' ? 'mo' : 'mes'} · 0%
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-2 shrink-0">
                           {wouldSave && savings !== null ? (
                             <>
                               <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
@@ -806,7 +806,7 @@ export default function BillingPage() {
             </div>
             {/* Current rate badge */}
             <span className={cn(
-              'flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border',
+              'shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border',
               commissions.commissionBps === 0
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : commissions.commissionBps <= 100
@@ -879,7 +879,7 @@ export default function BillingPage() {
               </div>
             ) : (
               <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
                   <Check className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div>
@@ -1010,7 +1010,7 @@ export default function BillingPage() {
 
       {/* ─── Cancel subscription confirmation modal ─── */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowCancelModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs" onClick={() => setShowCancelModal(false)}>
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setShowCancelModal(false)}

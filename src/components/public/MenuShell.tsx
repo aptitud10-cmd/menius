@@ -2262,12 +2262,12 @@ export function MenuShell({
         key={product.id}
         type="button"
         onClick={() => openProductFromSearch(product)}
-        className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+        className="w-full flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
       >
         {!showsAsRow(product) && product.image_url && (
           <div
             className={cn(
-              "relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0",
+              "relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 shrink-0",
               unavailable && "opacity-50",
             )}
           >
@@ -2307,7 +2307,7 @@ export function MenuShell({
         </div>
         <span
           className={cn(
-            "text-[15px] font-semibold tabular-nums flex-shrink-0",
+            "text-[15px] font-semibold tabular-nums shrink-0",
             unavailable ? "text-gray-600" : "text-gray-900",
           )}
         >
@@ -2347,7 +2347,7 @@ export function MenuShell({
         <button
           type="button"
           onClick={onClear}
-          className="mt-5 h-11 px-5 rounded-full border border-gray-300 text-[14px] font-semibold text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+          className="mt-5 h-11 px-5 rounded-full border border-gray-300 text-[14px] font-semibold text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           {t.clearSearch}
         </button>
@@ -2613,7 +2613,7 @@ export function MenuShell({
       onClick={() => handleCategorySelect(id)}
       style={{ touchAction: "manipulation" }}
       className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
+        "shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
         isActive
           ? "bg-gray-900 text-white"
           : "bg-white/70 text-gray-700 active:bg-gray-200",
@@ -2812,7 +2812,7 @@ export function MenuShell({
       }}
       style={{ touchAction: "manipulation" }}
       className={cn(
-        "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
+        "shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
         showFavs
           ? "bg-gray-900 text-white"
           : "bg-white/70 text-gray-700 active:bg-gray-200",
@@ -2825,7 +2825,7 @@ export function MenuShell({
 
   const filterDivider = hasMounted && favIds.length > 0 && (
     <div
-      className="flex-shrink-0 self-center w-px h-5 bg-gray-200 mx-1"
+      className="shrink-0 self-center w-px h-5 bg-gray-200 mx-1"
       aria-hidden
     />
   );
@@ -2851,13 +2851,13 @@ export function MenuShell({
         <button
           onClick={() => setShowCatSheet(true)}
           style={{ touchAction: "manipulation" }}
-          className="flex-shrink-0 flex items-center justify-center w-11 h-11 ml-1 rounded-lg text-gray-600 active:bg-gray-200 transition-colors"
+          className="shrink-0 flex items-center justify-center w-11 h-11 ml-1 rounded-lg text-gray-600 active:bg-gray-200 transition-colors"
           aria-label={t.browseCategoriesAriaLabel}
         >
           <AlignJustify className="w-[18px] h-[18px]" />
         </button>
         {/* Vertical divider */}
-        <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" aria-hidden />
+        <div className="w-px h-5 bg-gray-200 mx-1 shrink-0" aria-hidden />
         <div
           ref={mobilePillsRefCb}
           className="py-1 px-2 flex gap-1.5 overflow-x-auto scrollbar-hide flex-1 overscroll-x-contain"
@@ -2888,7 +2888,7 @@ export function MenuShell({
               aria-current={todayActive ? "true" : undefined}
               style={{ touchAction: "manipulation" }}
               className={cn(
-                "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
+                "shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
                 todayActive ? "bg-gray-900 text-white" : "bg-white/70 text-gray-700 active:bg-gray-200",
               )}
             >
@@ -2911,7 +2911,7 @@ export function MenuShell({
               }}
               style={{ touchAction: "manipulation" }}
               className={cn(
-                "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
+                "shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[15px] font-medium whitespace-nowrap",
                 // One active state for every tab (2026-11-16): the amber Popular
                 // pill was a second accent competing with the menu's green.
                 !activeCatFilter && !showFavs && !activeDiet && !todayActive
@@ -2944,19 +2944,19 @@ export function MenuShell({
                 mainRef.current?.scrollTo({ top: 0, behavior: "smooth" })
               }
               style={{ touchAction: "manipulation" }}
-              className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-[7px] rounded-lg text-[15px] font-semibold whitespace-nowrap bg-brand-500 text-[#04241E] shadow-sm active:bg-brand-600"
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-[7px] rounded-lg text-[15px] font-semibold whitespace-nowrap bg-brand-500 text-[#04241E] shadow-xs active:bg-brand-600"
               aria-label={t.backToTop}
             >
               <ArrowUp className="w-3.5 h-3.5" strokeWidth={2.5} />
-              <span className="max-w-[7rem] truncate">{t.backToTop}</span>
+              <span className="max-w-28 truncate">{t.backToTop}</span>
             </button>
           )}
           {/* Spacer so last pill doesn't sit under the fade */}
-          <div className="w-8 flex-shrink-0" aria-hidden="true" />
+          <div className="w-8 shrink-0" aria-hidden="true" />
         </div>
         {/* Right-side fade gradient — outside scroll container so absolute isn't clipped */}
         <div
-          className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#f5f5f3] to-transparent z-10"
+          className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-linear-to-l from-[#f5f5f3] to-transparent z-10"
           aria-hidden="true"
         />
       </div>
@@ -2966,7 +2966,7 @@ export function MenuShell({
   const dietaryPills = availableDietTags.length > 0 && (
     <div
       ref={dietPillsRefCb}
-      className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2 -mx-0"
+      className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2 mx-0"
       style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
     >
       {availableDietTags.map((tag) => {
@@ -2980,9 +2980,9 @@ export function MenuShell({
             aria-pressed={isActive}
             style={{ touchAction: "manipulation" }}
             className={cn(
-              "flex-shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full text-[14px] font-medium whitespace-nowrap border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]",
+              "shrink-0 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full text-[14px] font-medium whitespace-nowrap border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500",
               isActive
-                ? "bg-[#05c8a7] border-[#05c8a7] text-[#04241E] font-semibold"
+                ? "bg-brand-500 border-brand-500 text-[#04241E] font-semibold"
                 : "bg-white border-gray-200 text-gray-800 hover:bg-gray-50 active:bg-gray-100",
             )}
           >
@@ -3001,19 +3001,19 @@ export function MenuShell({
 
   return (
     <StoreConfigProvider value={storeConfig}>
-      <div className="relative h-[100dvh] flex flex-col bg-[#f5f5f3] lg:bg-[#f8f8f8] overflow-hidden overscroll-none">
+      <div className="relative h-dvh flex flex-col bg-[#f5f5f3] lg:bg-[#f8f8f8] overflow-hidden overscroll-none">
         {/* Skip to main content — visible on keyboard focus only */}
         <a
           href="#menu-main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[200] focus:bg-white focus:text-gray-900 focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:text-sm"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-200 focus:bg-white focus:text-gray-900 focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:text-sm"
         >
           {t.skipToMenu}
         </a>
 
         <div
           className={cn(
-            "lg:flex-shrink-0 lg:relative",
-            hasCover ? "absolute inset-x-0 top-0 z-40" : "flex-shrink-0",
+            "lg:shrink-0 lg:relative",
+            hasCover ? "absolute inset-x-0 top-0 z-40" : "shrink-0",
           )}
         >
           <MenuHeader
@@ -3045,7 +3045,7 @@ export function MenuShell({
           ref={mainRefCb}
           id="main-content"
           tabIndex={-1}
-          className={`flex-1 overflow-y-auto overscroll-contain outline-none max-w-[1440px] w-full mx-auto ${cartCount > 0 ? "pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-[env(safe-area-inset-bottom)]"}`}
+          className={`flex-1 overflow-y-auto overscroll-contain outline-hidden max-w-[1440px] w-full mx-auto ${cartCount > 0 ? "pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0" : "pb-[env(safe-area-inset-bottom)]"}`}
           style={
             {
               overscrollBehavior: "contain",
@@ -3065,7 +3065,7 @@ export function MenuShell({
               {isDemo && (
                 <a
                   href="/demo"
-                  className="hidden lg:flex absolute top-3 left-3 z-10 items-center justify-center w-9 h-9 rounded-full bg-orange-500/80 backdrop-blur-sm hover:bg-orange-500 transition-colors shadow-lg"
+                  className="hidden lg:flex absolute top-3 left-3 z-10 items-center justify-center w-9 h-9 rounded-full bg-orange-500/80 backdrop-blur-xs hover:bg-orange-500 transition-colors shadow-lg"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -3105,7 +3105,7 @@ export function MenuShell({
               />
 
               {/* Desktop: gradient + info overlay */}
-              <div className="hidden lg:block absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+              <div className="hidden lg:block absolute inset-0 bg-linear-to-t from-black/75 via-black/20 to-transparent" />
 
               {/* Mobile: nombre + rating overlaid at bottom of banner */}
               <div className="lg:hidden absolute bottom-0 left-0 right-0 px-4 pb-4">
@@ -3118,7 +3118,7 @@ export function MenuShell({
                   {restaurant.name}
                 </h1>
                 {restaurant.description && (
-                  <p className="text-sm text-white/85 mt-0.5 line-clamp-1 drop-shadow-sm">
+                  <p className="text-sm text-white/85 mt-0.5 line-clamp-1 drop-shadow-xs">
                     {restaurant.description}
                   </p>
                 )}
@@ -3128,10 +3128,10 @@ export function MenuShell({
                     onClick={() => setShowReviews(true)}
                     disabled={!recentReviews?.length}
                     aria-haspopup="dialog"
-                    className="flex items-center gap-1.5 mt-1.5 -ml-1 px-1 min-h-[32px] rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    className="flex items-center gap-1.5 mt-1.5 -ml-1 px-1 min-h-[32px] rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white"
                   >
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400 drop-shadow-sm" aria-hidden="true" />
-                    <span className="text-sm font-bold text-white drop-shadow-sm tabular-nums">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400 drop-shadow-xs" aria-hidden="true" />
+                    <span className="text-sm font-bold text-white drop-shadow-xs tabular-nums">
                       {reviewStats.average}
                     </span>
                     <span className="text-[13px] text-white/90 underline underline-offset-2 decoration-white/50">
@@ -3166,12 +3166,12 @@ export function MenuShell({
                       type="button"
                       onClick={() => setShowInfo(true)}
                       aria-haspopup="dialog"
-                      className="group flex items-center gap-4 mt-2 text-[15px] text-white/90 hover:text-white text-left rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                      className="group flex items-center gap-4 mt-2 text-[15px] text-white/90 hover:text-white text-left rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white"
                       style={{ textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}
                     >
                       {restaurant.address && (
                         <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                          <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" />
                           <span className="truncate max-w-[240px]">
                             {restaurant.address}
                           </span>
@@ -3195,7 +3195,7 @@ export function MenuShell({
                             dh.open === "00:00" && dh.close === "23:59";
                           return (
                             <span className="inline-flex items-center gap-1.5 font-semibold text-white">
-                              <Clock className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                              <Clock className="w-4 h-4 shrink-0" aria-hidden="true" />
                               {is24h ? t.open24h : hoursRangeLabel(dh.open, dh.close, locale)}
                             </span>
                           );
@@ -3213,7 +3213,7 @@ export function MenuShell({
                     onClick={() => setShowReviews(true)}
                     disabled={!recentReviews?.length}
                     aria-haspopup="dialog"
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/35 backdrop-blur-sm border border-white/20 flex-shrink-0 hover:bg-black/45 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/35 backdrop-blur-xs border border-white/20 shrink-0 hover:bg-black/45 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white"
                   >
                     <Star className="w-4 h-4 text-amber-400 fill-amber-400" aria-hidden="true" />
                     <span className="text-sm font-bold text-white tabular-nums">
@@ -3254,10 +3254,10 @@ export function MenuShell({
                   type="button"
                   onClick={() => setShowInfo(true)}
                   aria-haspopup="dialog"
-                  className="lg:hidden w-full flex items-center gap-2 px-4 min-h-[44px] bg-white border-b border-gray-100 text-left text-[14px] text-gray-700 active:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#05c8a7]"
+                  className="lg:hidden w-full flex items-center gap-2 px-4 min-h-[44px] bg-white border-b border-gray-100 text-left text-[14px] text-gray-700 active:bg-gray-50 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
                 >
                   <Clock
-                    className="w-4 h-4 text-[#047a65] flex-shrink-0"
+                    className="w-4 h-4 text-[#047a65] shrink-0"
                     aria-hidden="true"
                   />
                   <span className="min-w-0 truncate">
@@ -3267,7 +3267,7 @@ export function MenuShell({
                     {today && street && " · "}
                     {street}
                   </span>
-                  <span className="ml-auto flex items-center flex-shrink-0 font-semibold text-[#047a65]">
+                  <span className="ml-auto flex items-center shrink-0 font-semibold text-[#047a65]">
                     {t.infoShort}
                     <ChevronRight className="w-4 h-4" aria-hidden="true" />
                   </span>
@@ -3285,7 +3285,7 @@ export function MenuShell({
               role="status"
               className="flex items-start gap-2.5 px-4 lg:px-8 py-3 bg-[#fff6e0] border-b border-[#f1e0b6] text-[14px] leading-snug text-[#5c3a00]"
             >
-              <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+              <Clock className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
               <p className="min-w-0">
                 <span className="font-semibold">{storeNotice.title}</span>
                 {storeNotice.when && <span> · {storeNotice.when}{storeNotice.hint ? "." : ""}</span>}
@@ -3323,7 +3323,7 @@ export function MenuShell({
               ref={(el) => {
                 sidebarRef.current = el;
               }}
-              className="hidden lg:flex flex-col w-[224px] xl:w-[232px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
+              className="hidden lg:flex flex-col w-[224px] xl:w-[232px] shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
             >
               <CategorySidebar
                 categories={sidebarCats}
@@ -3350,7 +3350,7 @@ export function MenuShell({
               <div
                 ref={desktopPillsRef}
                 className={cn(
-                  "hidden sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100",
+                  "hidden sticky top-0 z-20 bg-white/95 backdrop-blur-xs border-b border-gray-100",
                   availableDietTags.length > 0 && "lg:block",
                 )}
               >
@@ -3367,7 +3367,7 @@ export function MenuShell({
                         {restaurant.name}
                       </h1>
                       {reviewStats && reviewStats.total > 0 && (
-                        <div className="flex items-center gap-1 flex-shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
                           <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                           <span className="text-sm font-bold text-gray-900 tabular-nums">
                             {reviewStats.average}
@@ -3389,7 +3389,7 @@ export function MenuShell({
                 {/* Reorder banner — shown when customer has a previous order here */}
                 {showReorderBanner && (
                   <div className="mx-4 lg:mx-8 mt-3 lg:mt-5 flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6]">
-                    <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center shrink-0">
                       <RotateCcw
                         className="w-4 h-4 text-[#047a65]"
                         strokeWidth={2.5}
@@ -3409,13 +3409,13 @@ export function MenuShell({
                       onClick={handleReorder}
                       disabled={reorderLoading}
                       aria-busy={reorderLoading || undefined}
-                      className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-[#05c8a7] text-[#04241E] text-xs font-bold active:scale-95 transition-transform disabled:opacity-60"
+                      className="shrink-0 px-3.5 py-2 rounded-xl bg-brand-500 text-[#04241E] text-xs font-bold active:scale-95 transition-transform disabled:opacity-60"
                     >
                       {t.addToCart}
                     </button>
                     <button
                       onClick={dismissReorder}
-                      className="flex-shrink-0 -mr-2 w-10 h-10 flex items-center justify-center rounded-full text-[#047a65] hover:bg-[#d0f7f1] transition-colors"
+                      className="shrink-0 -mr-2 w-10 h-10 flex items-center justify-center rounded-full text-[#047a65] hover:bg-[#d0f7f1] transition-colors"
                       aria-label={t.cancel}
                     >
                       <X className="w-4 h-4" />
@@ -3426,7 +3426,7 @@ export function MenuShell({
                 {/* Table context banner — shown when customer arrives via table QR */}
                 {hasMounted && activeTableName && !tableBannerDismissed && (
                   <div className="mx-4 lg:mx-8 mt-3 lg:mt-5 flex items-center gap-3 pl-4 pr-1 py-1.5 rounded-2xl bg-[#e6faf7] border border-[#b3efe6]">
-                    <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center shrink-0">
                       <UtensilsCrossed
                         className="w-4 h-4 text-[#047a65]"
                         strokeWidth={2.25}
@@ -3443,7 +3443,7 @@ export function MenuShell({
                     </p>
                     <button
                       onClick={() => setTableBannerDismissed(true)}
-                      className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl text-[#047a65] hover:bg-[#d0f7f1] transition-colors"
+                      className="shrink-0 w-11 h-11 flex items-center justify-center rounded-xl text-[#047a65] hover:bg-[#d0f7f1] transition-colors"
                       aria-label={t.dismiss}
                     >
                       <X className="w-4 h-4" aria-hidden="true" />
@@ -3473,7 +3473,7 @@ export function MenuShell({
                           )}
                         </div>
                         {reviewStats && reviewStats.total > 0 && (
-                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 flex-shrink-0">
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 shrink-0">
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                             <span className="text-sm font-bold text-gray-900 tabular-nums">
                               {reviewStats.average}
@@ -3488,7 +3488,7 @@ export function MenuShell({
                         <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
                           {restaurant.address && (
                             <span className="inline-flex items-center gap-1.5">
-                              <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate max-w-[280px]">
                                 {restaurant.address}
                               </span>
@@ -3514,7 +3514,7 @@ export function MenuShell({
                                 <span
                                   className={`inline-flex items-center gap-1.5 ${is24h ? "text-[#047a65] font-medium" : ""}`}
                                 >
-                                  <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                                  <Clock className="w-3.5 h-3.5 shrink-0" />
                                   {is24h
                                     ? t.open24h
                                     : hoursRangeLabel(dh.open, dh.close, locale)}
@@ -3858,13 +3858,13 @@ export function MenuShell({
                               <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                                 {t.forYouLastOrder}
                               </p>
-                              <div className="flex items-center rounded-2xl border border-gray-100 bg-white shadow-sm">
+                              <div className="flex items-center rounded-2xl border border-gray-100 bg-white shadow-xs">
                               <button
                                 onClick={handleClick}
                                 className="min-w-0 flex-1 flex items-center gap-3 p-2.5 active:scale-[0.98] transition-transform text-left"
                               >
                                 {src && (
-                                  <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                                  <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                                     <Image
                                       src={src}
                                       alt={item.name}
@@ -3883,13 +3883,13 @@ export function MenuShell({
                                     {fmtPrice(item.price)}
                                   </span>
                                 </div>
-                                <span className="flex-shrink-0 rounded-full bg-[#05c8a7]/10 px-3 py-1.5 text-xs font-bold text-[#047a65]">
+                                <span className="shrink-0 rounded-full bg-brand-500/10 px-3 py-1.5 text-xs font-bold text-[#047a65]">
                                   {t.orderReorder}
                                 </span>
                               </button>
                               <button
                                 onClick={dismissLastDish}
-                                className="flex-shrink-0 mr-1 w-11 h-11 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+                                className="shrink-0 mr-1 w-11 h-11 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
                                 aria-label={t.dismiss}
                               >
                                 <X className="w-4 h-4" />
@@ -3988,7 +3988,7 @@ export function MenuShell({
                                     {isLocked && (
                                       <div className="absolute inset-0 z-10 rounded-2xl bg-white/70 backdrop-blur-[2px] flex items-center justify-center">
                                         <div
-                                          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm"
+                                          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-xs"
                                           role="status"
                                           aria-live="polite"
                                         >
@@ -4269,10 +4269,10 @@ export function MenuShell({
                           return (
                             <div
                               key={review.id}
-                              className="flex-shrink-0 w-[260px] snap-start bg-white rounded-xl border border-gray-100 p-4 shadow-sm"
+                              className="shrink-0 w-[260px] snap-start bg-white rounded-xl border border-gray-100 p-4 shadow-xs"
                             >
                               <div className="flex items-center gap-2 mb-2">
-                                <div className="w-8 h-8 rounded-full bg-[#d0f7f1] flex items-center justify-center text-xs font-bold text-[#047a65] flex-shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-[#d0f7f1] flex items-center justify-center text-xs font-bold text-[#047a65] shrink-0">
                                   {review.customer_name.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -4325,7 +4325,7 @@ export function MenuShell({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {restaurant.address && (
                           <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center shrink-0">
                               <MapPin className="w-4 h-4 text-[#047a65]" />
                             </div>
                             <div>
@@ -4401,7 +4401,7 @@ export function MenuShell({
                               restaurant.operating_hours?.[todayKey];
                             return (
                               <div className="flex items-start gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
+                                <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center shrink-0">
                                   <Clock className="w-4 h-4 text-[#047a65]" />
                                 </div>
                                 <div>
@@ -4432,7 +4432,7 @@ export function MenuShell({
 
                         {restaurant.phone && (
                           <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center shrink-0">
                               <svg
                                 className="w-4 h-4 text-[#047a65]"
                                 fill="none"
@@ -4463,7 +4463,7 @@ export function MenuShell({
 
                         {restaurant.google_business_url && (
                           <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center shrink-0">
                               <ExternalLink className="w-4 h-4 text-[#047a65]" aria-hidden="true" />
                             </div>
                             <div>
@@ -4541,7 +4541,7 @@ export function MenuShell({
           >
             <button
               onClick={() => setShowSubcatSheet(true)}
-              className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-900/95 text-white text-[13px] font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.25)] backdrop-blur-sm active:scale-95 transition-transform"
+              className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-900/95 text-white text-[13px] font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.25)] backdrop-blur-xs active:scale-95 transition-transform"
             >
               <AlignJustify className="w-4 h-4" aria-hidden="true" />
               {groupNameFromId(activeCatFilter!)}
@@ -4554,11 +4554,11 @@ export function MenuShell({
         {ordersLeft === 0 ? (
           /* Limit reached — generic "paused" bar, no mention of billing */
           <div className="fixed bottom-0 left-0 right-0 z-30 xl:hidden pointer-events-none">
-            <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
+            <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-linear-to-t from-white via-white/95 to-transparent">
               <div className="max-w-lg mx-auto pointer-events-auto">
                 <div className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-100 text-gray-500 text-sm font-semibold">
                   <svg
-                    className="w-4 h-4 flex-shrink-0"
+                    className="w-4 h-4 shrink-0"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -4578,11 +4578,11 @@ export function MenuShell({
         ) : (
           cartCount > 0 && (
             <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden pointer-events-none">
-              <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
+              <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-linear-to-t from-white via-white/95 to-transparent">
                 <div className="max-w-lg mx-auto pointer-events-auto">
                   <button
                     onClick={() => setOpen(true)}
-                    className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-[#05c8a7] text-[#04241E] shadow-[0_8px_30px_rgba(5,200,167,0.4)] active:scale-[0.98] transition-transform"
+                    className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-brand-500 text-[#04241E] shadow-[0_8px_30px_rgba(5,200,167,0.4)] active:scale-[0.98] transition-transform"
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative">
@@ -4639,7 +4639,7 @@ export function MenuShell({
               <motion.div
                 ref={cartPanelRef}
                 tabIndex={-1}
-                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col outline-none md:rounded-none md:w-[400px] xl:w-[440px] md:h-full md:pt-[max(12px,env(safe-area-inset-top))]"
+                className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col outline-hidden md:rounded-none md:w-[400px] xl:w-[440px] md:h-full md:pt-[max(12px,env(safe-area-inset-top))]"
                 style={
                   isTabletUp
                     ? undefined
@@ -4665,7 +4665,7 @@ export function MenuShell({
               >
                 {/* Drag handle + hidden title for screen readers */}
                 <div
-                  className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing md:hidden"
+                  className="flex justify-center pt-3 pb-1 shrink-0 cursor-grab active:cursor-grabbing md:hidden"
                   onPointerDown={(e) => cartDragControls.start(e)}
                   style={{ touchAction: "none" }}
                 >
@@ -4840,8 +4840,8 @@ export function MenuShell({
                 // "View cart" from a product opened here) but still over the
                 // header/pills (z-40) and cart bar (z-30).
                 customization || searchBehindSheet || isOpen
-                  ? "z-[45]"
-                  : "z-[70]",
+                  ? "z-45"
+                  : "z-70",
               )}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -4856,7 +4856,7 @@ export function MenuShell({
                       setSearchQuery("");
                     }}
                     aria-label={t.closeSearch}
-                    className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                    className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                   >
                     <ArrowLeft
                       className="w-5 h-5 text-gray-800"
@@ -4875,7 +4875,7 @@ export function MenuShell({
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={t.searchPlaceholder}
                       aria-label={t.searchPlaceholder}
-                      className="w-full h-11 pl-9 pr-11 rounded-xl bg-gray-50 border border-gray-200 text-[16px] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder:text-gray-600 [&::-webkit-search-cancel-button]:hidden"
+                      className="w-full h-11 pl-9 pr-11 rounded-xl bg-gray-50 border border-gray-200 text-[16px] focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-gray-600 [&::-webkit-search-cancel-button]:hidden"
                       autoFocus
                     />
                     {searchQuery && (
@@ -4885,7 +4885,7 @@ export function MenuShell({
                           mobileSearchInputRef.current?.focus();
                         }}
                         aria-label={t.clearSearch}
-                        className="absolute right-0 top-0 w-11 h-11 flex items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                        className="absolute right-0 top-0 w-11 h-11 flex items-center justify-center rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                       >
                         <X className="w-4 h-4 text-gray-600" aria-hidden="true" />
                       </button>
@@ -4913,7 +4913,7 @@ export function MenuShell({
                                 setActiveCatFilter(cat.id);
                                 setActiveCategory(cat.id);
                               }}
-                              className="h-10 px-4 rounded-full border border-gray-200 text-[14px] text-gray-800 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                              className="h-10 px-4 rounded-full border border-gray-200 text-[14px] text-gray-800 active:bg-gray-100 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                             >
                               {tName(cat, locale, defaultLocale)}
                             </button>
@@ -4938,7 +4938,7 @@ export function MenuShell({
                     <div>
                       <div className="mb-2 px-2 flex items-start gap-2">
                         <Sparkles
-                          className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5"
+                          className="w-4 h-4 text-brand-600 shrink-0 mt-0.5"
                           aria-hidden="true"
                         />
                         <div className="min-w-0">
@@ -4958,7 +4958,7 @@ export function MenuShell({
                   ) : naturalSearch.loading ? (
                     <div className="pt-12 flex flex-col items-center text-center" role="status">
                       <span
-                        className="w-6 h-6 rounded-full border-2 border-gray-300 border-t-[#05c8a7] animate-spin"
+                        className="w-6 h-6 rounded-full border-2 border-gray-300 border-t-brand-500 animate-spin"
                         aria-hidden="true"
                       />
                       <p className="mt-3 text-[14px] text-gray-600">{t.searching}</p>
@@ -5003,9 +5003,9 @@ export function MenuShell({
         </AnimatePresence>
 
         {toastName && !addedUid && !isOpen && (
-          <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] left-0 right-0 lg:bottom-8 z-[60] flex justify-center px-4 pointer-events-none">
+          <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] left-0 right-0 lg:bottom-8 z-60 flex justify-center px-4 pointer-events-none">
             <div className="pointer-events-auto flex items-center gap-2.5 max-w-full min-h-[52px] pl-4 pr-1.5 py-1.5 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl">
-              <span className="w-5 h-5 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
+              <span className="w-5 h-5 rounded-full bg-brand-500 flex items-center justify-center shrink-0">
                 <svg
                   className="w-3 h-3 text-white"
                   fill="none"
@@ -5026,7 +5026,7 @@ export function MenuShell({
               <button
                 type="button"
                 onClick={undoQuickAdd}
-                className="flex-shrink-0 h-10 px-3 rounded-xl text-[#5BE3C9] font-semibold hover:bg-white/10 active:bg-white/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                className="shrink-0 h-10 px-3 rounded-xl text-[#5BE3C9] font-semibold hover:bg-white/10 active:bg-white/15 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 {t.cartUndo}
               </button>
@@ -5036,10 +5036,10 @@ export function MenuShell({
 
         {/* ── Stock-out alert: item in cart just went 86'd ── */}
         {stockOutAlert && (
-          <div className="fixed top-4 left-4 right-4 z-[70] flex justify-center pointer-events-none">
+          <div className="fixed top-4 left-4 right-4 z-70 flex justify-center pointer-events-none">
             <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-red-600 text-white text-sm font-semibold shadow-xl max-w-sm w-full">
               <AlertCircle
-                className="w-4 h-4 flex-shrink-0"
+                className="w-4 h-4 shrink-0"
                 aria-hidden="true"
               />
               <span className="flex-1">

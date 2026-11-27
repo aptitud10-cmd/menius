@@ -41,7 +41,7 @@ export function EventCtaSection({
   const hasSelection = selectedCategory && selectedPack;
 
   return (
-    <section className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-center">
+    <section className="bg-linear-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-center">
       {/* Icon */}
       <div className="inline-flex items-center justify-center w-12 h-12 bg-white/10 rounded-xl mb-4">
         <CalendarIcon className="w-6 h-6 text-white" />

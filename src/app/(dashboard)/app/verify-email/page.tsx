@@ -28,7 +28,7 @@ export default function VerifyEmailPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/[0.1] mb-5">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/10 mb-5">
           <Mail className="w-8 h-8 text-blue-500" />
         </div>
         <h1 className="text-2xl font-extrabold text-gray-900 mb-2 font-heading">

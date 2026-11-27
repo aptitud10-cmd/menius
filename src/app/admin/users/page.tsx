@@ -25,7 +25,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   active: { label: 'Activo', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
   cancelled: { label: 'Cancelado', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
   past_due: { label: 'Vencido', color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
-  none: { label: 'Sin sub', color: 'text-gray-500 bg-white/[0.04] border-white/[0.08]' },
+  none: { label: 'Sin sub', color: 'text-gray-500 bg-white/4 border-white/8' },
 };
 
 const PLAN_LABELS: Record<string, string> = {
@@ -112,7 +112,7 @@ export default function AdminUsersPage() {
           </div>
           <button
             onClick={load}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-gray-400 hover:text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/4 border border-white/8 text-sm text-gray-400 hover:text-white transition-colors"
           >
             <RefreshCw className="w-4 h-4" /> Actualizar
           </button>
@@ -126,13 +126,13 @@ export default function AdminUsersPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {newThisWeek.map(u => (
-                <div key={u.id} className="bg-[#0a0a0a] rounded-xl border border-white/[0.06] p-4">
+                <div key={u.id} className="bg-[#0a0a0a] rounded-xl border border-white/6 p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0">
                       <p className="text-white font-semibold truncate">{u.name}</p>
                       <p className="text-gray-600 text-xs">/{u.slug}</p>
                     </div>
-                    <span className="text-lg flex-shrink-0">{CURRENCY_FLAG[u.currency] ?? '🌍'}</span>
+                    <span className="text-lg shrink-0">{CURRENCY_FLAG[u.currency] ?? '🌍'}</span>
                   </div>
                   {u.owner_name && <p className="text-gray-400 text-sm">{u.owner_name}</p>}
                   {u.owner_email && (
@@ -140,7 +140,7 @@ export default function AdminUsersPage() {
                       <a href={`mailto:${u.owner_email}`} className="text-indigo-400 text-xs hover:text-indigo-300 truncate">
                         {u.owner_email}
                       </a>
-                      <button onClick={() => copyEmail(u.owner_email)} className="text-gray-600 hover:text-gray-400 flex-shrink-0">
+                      <button onClick={() => copyEmail(u.owner_email)} className="text-gray-600 hover:text-gray-400 shrink-0">
                         {copied === u.owner_email ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                       </button>
                     </div>
@@ -160,19 +160,19 @@ export default function AdminUsersPage() {
         )}
 
         {/* Search + table */}
-        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
-          <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-3">
+        <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/6 flex items-center gap-3">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2 mr-auto">
               <Store className="w-4 h-4 text-gray-500" /> Todos los restaurantes
             </h3>
-            <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 w-72">
-              <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
+            <div className="flex items-center gap-2 bg-white/4 border border-white/8 rounded-xl px-3 py-2 w-72">
+              <Search className="w-4 h-4 text-gray-500 shrink-0" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Buscar por nombre, email, slug…"
-                className="bg-transparent text-sm text-white placeholder-gray-600 outline-none flex-1"
+                className="bg-transparent text-sm text-white placeholder-gray-600 outline-hidden flex-1"
               />
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function AdminUsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/[0.06] text-gray-500 text-xs uppercase tracking-wider">
+                <tr className="border-b border-white/6 text-gray-500 text-xs uppercase tracking-wider">
                   <th className="text-left px-5 py-3 font-medium">Restaurante</th>
                   <th className="text-left px-5 py-3 font-medium">Dueño / Email</th>
                   <th className="text-left px-5 py-3 font-medium">País</th>
@@ -204,7 +204,7 @@ export default function AdminUsersPage() {
                   const trial = daysLeft(r.trial_end);
                   const isNew = Date.now() - new Date(r.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
                   return (
-                    <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                    <tr key={r.id} className="border-b border-white/4 hover:bg-white/2">
                       <td className="px-5 py-3">
                         <p className="text-white font-medium flex items-center gap-1.5">
                           {r.name}

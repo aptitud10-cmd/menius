@@ -194,7 +194,7 @@ export default function AnalyticsPage() {
                   type="date"
                   value={customStart}
                   onChange={(e) => setCustomStart(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-lg text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  className="px-2.5 py-1.5 rounded-lg text-sm border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50"
                 />
               </div>
               <div className="flex items-center gap-1.5">
@@ -203,7 +203,7 @@ export default function AnalyticsPage() {
                   type="date"
                   value={customEnd}
                   onChange={(e) => setCustomEnd(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-lg text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  className="px-2.5 py-1.5 rounded-lg text-sm border border-gray-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50"
                 />
               </div>
               <button
@@ -283,8 +283,8 @@ export default function AnalyticsPage() {
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-semibold text-sm text-gray-900">{t.analytics_salesByDay}</h2>
           <div className="flex items-center gap-4 text-xs text-gray-500">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> {t.analytics_income}</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/40" /> {t.analytics_ordersLegend}</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-xs bg-emerald-500" /> {t.analytics_income}</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-xs bg-emerald-500/40" /> {t.analytics_ordersLegend}</span>
           </div>
         </div>
         {salesByDay.length === 0 ? (
@@ -335,7 +335,7 @@ export default function AnalyticsPage() {
               </div>
               {(locale === 'en' ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']).map((day, dow) => (
                 <div key={dow} className="flex items-center gap-1 mb-0.5">
-                  <span className="text-[10px] text-gray-400 w-7 flex-shrink-0 text-right pr-1">{day}</span>
+                  <span className="text-[10px] text-gray-400 w-7 shrink-0 text-right pr-1">{day}</span>
                   <div className="flex flex-1 gap-px">
                     {weeklyHeatmap[dow].map((count, hour) => {
                       const intensity = count === 0 ? 0 : 0.15 + (count / maxHeatmap) * 0.85;
@@ -343,7 +343,7 @@ export default function AnalyticsPage() {
                         <div
                           key={hour}
                           title={`${day} ${hour.toString().padStart(2, '0')}:00 — ${count} ${locale === 'en' ? 'orders' : 'órdenes'}`}
-                          className="flex-1 h-5 rounded-sm cursor-default transition-opacity"
+                          className="flex-1 h-5 rounded-xs cursor-default transition-opacity"
                           style={{ backgroundColor: count === 0 ? '#F3F4F6' : `rgba(16,185,129,${intensity})` }}
                         />
                       );
@@ -354,7 +354,7 @@ export default function AnalyticsPage() {
               <div className="flex items-center justify-end gap-2 mt-2">
                 <span className="text-[10px] text-gray-400">{locale === 'en' ? 'Less' : 'Menos'}</span>
                 {[0.1, 0.3, 0.5, 0.75, 1].map((i) => (
-                  <div key={i} className="w-4 h-4 rounded-sm" style={{ backgroundColor: `rgba(16,185,129,${i})` }} />
+                  <div key={i} className="w-4 h-4 rounded-xs" style={{ backgroundColor: `rgba(16,185,129,${i})` }} />
                 ))}
                 <span className="text-[10px] text-gray-400">{locale === 'en' ? 'More' : 'Más'}</span>
               </div>
@@ -496,10 +496,10 @@ export default function AnalyticsPage() {
                 return (
                   <div key={p.name} className="flex items-center gap-3 group">
                     <span className={cn(
-                      'w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold flex-shrink-0',
-                      i === 0 ? 'bg-amber-500/[0.1] text-amber-400' :
+                      'w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold shrink-0',
+                      i === 0 ? 'bg-amber-500/10 text-amber-400' :
                       i === 1 ? 'bg-gray-100 text-gray-500' :
-                      i === 2 ? 'bg-orange-500/[0.1] text-orange-400' :
+                      i === 2 ? 'bg-orange-500/10 text-orange-400' :
                       'bg-gray-50 text-gray-500'
                     )}>
                       {i + 1}
@@ -507,7 +507,7 @@ export default function AnalyticsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="text-sm text-gray-700 font-medium truncate">{p.name}</h4>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
                           {hasMargin && (
                             <span className={`text-xs font-semibold ${marginColor}`}>
                               {p.margin!.toFixed(0)}% margen
@@ -520,7 +520,7 @@ export default function AnalyticsPage() {
                         <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                           <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                         </div>
-                        <span className="text-xs text-gray-500 flex-shrink-0">{p.qty}u</span>
+                        <span className="text-xs text-gray-500 shrink-0">{p.qty}u</span>
                       </div>
                     </div>
                   </div>
@@ -544,10 +544,10 @@ function KPICard({
   color: string;
 }) {
   const colorMap: Record<string, { bg: string; icon: string }> = {
-    emerald: { bg: 'bg-emerald-500/[0.1]', icon: 'text-emerald-400' },
-    blue: { bg: 'bg-blue-500/[0.1]', icon: 'text-blue-400' },
-    violet: { bg: 'bg-violet-500/[0.1]', icon: 'text-violet-400' },
-    amber: { bg: 'bg-amber-500/[0.1]', icon: 'text-amber-400' },
+    emerald: { bg: 'bg-emerald-500/10', icon: 'text-emerald-400' },
+    blue: { bg: 'bg-blue-500/10', icon: 'text-blue-400' },
+    violet: { bg: 'bg-violet-500/10', icon: 'text-violet-400' },
+    amber: { bg: 'bg-amber-500/10', icon: 'text-amber-400' },
   };
 
   const c = colorMap[color] ?? colorMap.blue;
@@ -561,7 +561,7 @@ function KPICard({
         {change !== undefined && change !== null && (
           <span className={cn(
             'flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full',
-            change >= 0 ? 'bg-emerald-500/[0.1] text-emerald-400' : 'bg-red-500/[0.1] text-red-400'
+            change >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
           )}>
             {change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
             {Math.abs(change).toFixed(0)}%

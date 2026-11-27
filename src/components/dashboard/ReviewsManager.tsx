@@ -260,7 +260,7 @@ export function ReviewsManager({
                   !r.is_visible && "opacity-50",
                 )}
               >
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600">
                   {r.customer_name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -345,7 +345,7 @@ export function ReviewsManager({
                                   },
                                 }))
                               }
-                              className="w-full text-sm text-gray-700 border border-purple-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+                              className="w-full text-sm text-gray-700 border border-purple-300 rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-purple-400 resize-none"
                               placeholder="Escribe tu respuesta..."
                             />
                             <div className="flex items-center gap-2">
@@ -382,7 +382,7 @@ export function ReviewsManager({
                   onClick={() => toggleVisibility(r.id)}
                   disabled={isPending}
                   className={cn(
-                    "p-2 rounded-lg transition-colors flex-shrink-0",
+                    "p-2 rounded-lg transition-colors shrink-0",
                     r.is_visible
                       ? "hover:bg-red-50 text-gray-400 hover:text-red-500"
                       : "hover:bg-emerald-50 text-gray-400 hover:text-emerald-500",

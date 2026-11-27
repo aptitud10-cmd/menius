@@ -1687,7 +1687,7 @@ export function CounterView({
                 <p className="text-[16px] font-semibold">{s.label}</p>
                 <p className="text-[14px]" style={{ color: C.sub }}>{s.desc}</p>
               </div>
-              <div className="ml-auto w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-semibold tabular-nums flex-shrink-0" style={{ background: C.fill, color: C.sub }}>
+              <div className="ml-auto w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-semibold tabular-nums shrink-0" style={{ background: C.fill, color: C.sub }}>
                 {i + 1}
               </div>
             </div>
@@ -1722,7 +1722,7 @@ export function CounterView({
       {/* ── Modo demo: banda fija + resumen al terminar ── */}
       {demo.active && <DemoBanner T={T} onExit={exitDemo} />}
       {demo.finished && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center p-6" style={{ background: C.scrim }}>
+        <div className="fixed inset-0 z-65 flex items-center justify-center p-6" style={{ background: C.scrim }}>
           <div role="dialog" aria-modal="true" className="w-full max-w-[460px] rounded-[28px] p-7 flex flex-col items-center gap-2 text-center" style={RAISED}>
             <span className="w-16 h-16 rounded-2xl inline-flex items-center justify-center mb-2" style={{ background: C.accent, color: C.onAccent }}>
               <CheckCircle className="w-9 h-9" />
@@ -1967,12 +1967,12 @@ export function CounterView({
           <div className="fixed inset-0 z-40" style={{ background: C.scrim }} onClick={() => setSidebarOpen(false)} />
           <aside className="fixed left-0 top-0 bottom-0 w-[340px] max-w-[90vw] z-50 flex flex-col"
             style={{ background: C.raised, color: C.ink, boxShadow: `1px 0 0 ${C.raisedEdge}, 24px 0 48px rgba(0,0,0,.28)`, paddingTop: 'env(safe-area-inset-top)' }}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[color:var(--kds-line)]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-(--kds-line)">
               <div>
-                <p className="text-[19px] font-bold tracking-[-0.01em] text-[color:var(--kds-ink)]">{restaurantName}</p>
+                <p className="text-[19px] font-bold tracking-[-0.01em] text-(--kds-ink)">{restaurantName}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className={cn('w-2 h-2 rounded-full', !isPaused && 'animate-pulse')} style={{ background: isPaused ? C.warnBar : C.status }} />
-                  <span className="text-[15px] font-medium text-[color:var(--kds-sub)]">
+                  <span className="text-[15px] font-medium text-(--kds-sub)">
                     {isPaused ? `${t.paused_status} (${pauseLeftMins} min)` : t.online_status}
                   </span>
                 </div>
@@ -1986,7 +1986,7 @@ export function CounterView({
 
               {/* Pedidos de esta tablet */}
               <SidebarSection title={t.en ? 'Orders on this tablet' : 'Pedidos en esta tablet'} icon={<Bell className="w-4 h-4" />}>
-                <div className="px-3 rounded-xl border border-[color:var(--kds-line)]">
+                <div className="px-3 rounded-xl border border-(--kds-line)">
                   <ToggleRow
                     label={t.en ? 'Auto-accept orders' : 'Aceptar pedidos solos'}
                     desc={t.en ? 'After 30 s, with the default time. Turn on in one tablet only.' : 'A los 30 s, con el tiempo por defecto. Actívalo en una sola tablet.'}
@@ -2005,23 +2005,23 @@ export function CounterView({
                     else setPrinterModalOpen(true);
                     setSidebarOpen(false);
                   }}
-                  className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+                  className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-(--kds-line) hover:border-(--kds-line-strong) transition-colors text-left"
                 >
-                  <Printer className="w-5 h-5 text-[color:var(--kds-sub)]" />
-                  <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
+                  <Printer className="w-5 h-5 text-(--kds-sub)" />
+                  <span className="text-[16px] font-semibold text-(--kds-ink)">{t.en ? 'Printer' : 'Impresora'}</span>
                 </button>
                 {/* Sonido y colores: se usa poco, vive en el menú y no en la barra de arriba (Pedro 2026-11-14). */}
                 <button
                   onClick={() => { setSidebarOpen(false); setCustomizeOpen(true); }}
-                  className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+                  className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-(--kds-line) hover:border-(--kds-line-strong) transition-colors text-left"
                 >
-                  <Palette className="w-5 h-5 text-[color:var(--kds-sub)]" />
-                  <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{T.customize}</span>
+                  <Palette className="w-5 h-5 text-(--kds-sub)" />
+                  <span className="text-[16px] font-semibold text-(--kds-ink)">{T.customize}</span>
                 </button>
                 {!tabletMode && !isDevice && (
-                  <a href="/app/counter/tablet" className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left">
-                    <Settings2 className="w-5 h-5 text-[color:var(--kds-sub)]" />
-                    <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Full-screen tablet mode' : 'Modo tablet a pantalla completa'}</span>
+                  <a href="/app/counter/tablet" className="w-full mt-2 flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-(--kds-line) hover:border-(--kds-line-strong) transition-colors text-left">
+                    <Settings2 className="w-5 h-5 text-(--kds-sub)" />
+                    <span className="text-[16px] font-semibold text-(--kds-ink)">{t.en ? 'Full-screen tablet mode' : 'Modo tablet a pantalla completa'}</span>
                   </a>
                 )}
               </SidebarSection>
@@ -2029,19 +2029,19 @@ export function CounterView({
               {/* Auto-print */}
               <SidebarSection title={t.autoPrint} icon={<Printer className="w-4 h-4" />}>
                 {cloud.active ? (
-                  <div className="px-3 py-3 rounded-xl border border-[color:var(--kds-line)] flex items-start gap-3">
+                  <div className="px-3 py-3 rounded-xl border border-(--kds-line) flex items-start gap-3">
                     <span className="mt-1.5 w-2.5 h-2.5 rounded-full flex-none" style={{ background: cloud.offline ? C.critical : C.accent }} />
                     <span className="min-w-0">
-                      <span className="block text-[16px] font-semibold text-[color:var(--kds-ink)]">
+                      <span className="block text-[16px] font-semibold text-(--kds-ink)">
                         {cloud.offline ? (t.en ? 'Counter printer disconnected' : 'Impresora del mostrador desconectada') : (t.en ? 'Counter printer online' : 'Impresora del mostrador en línea')}
                       </span>
-                      <span className="block text-[14px] text-[color:var(--kds-sub)]">
+                      <span className="block text-[14px] text-(--kds-sub)">
                         {t.en ? 'Tickets print by themselves on accept. Print from an order to reprint.' : 'El ticket sale solo al aceptar. "Imprimir" en un pedido lo reimprime.'}
                       </span>
                     </span>
                   </div>
                 ) : (
-                <div className="px-3 rounded-xl border border-[color:var(--kds-line)]">
+                <div className="px-3 rounded-xl border border-(--kds-line)">
                   <ToggleRow
                     label={t.autoPrint}
                     desc={t.en ? 'Print when accepting' : 'Imprimir al aceptar'}
@@ -2071,23 +2071,23 @@ export function CounterView({
                 <button
                   type="button"
                   onClick={() => { setSidebarOpen(false); setView('menu'); }}
-                  className="w-full flex items-center justify-between px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] text-left text-[16px] font-semibold text-[color:var(--kds-ink)]"
+                  className="w-full flex items-center justify-between px-3 min-h-[52px] rounded-xl border border-(--kds-line) text-left text-[16px] font-semibold text-(--kds-ink)"
                 >
                   {t.en ? 'Mark items sold out in Menu' : 'Marcar platos agotados en Menú'}
-                  <ChevronRight className="w-5 h-5 flex-shrink-0 text-[color:var(--kds-sub)]" />
+                  <ChevronRight className="w-5 h-5 shrink-0 text-(--kds-sub)" />
                 </button>
               </SidebarSection>
 
               {/* Today summary */}
               <SidebarSection title={t.todaySummary} icon={<History className="w-4 h-4" />}>
-                <div className="px-3 py-3 rounded-xl bg-[var(--kds-fill)] space-y-1">
+                <div className="px-3 py-3 rounded-xl bg-(--kds-fill) space-y-1">
                   <div className="flex justify-between text-[16px]">
-                    <span className="text-[color:var(--kds-sub)]">{t.todayOrders}</span>
-                    <span className="font-bold text-[color:var(--kds-ink)]">{todayOrdersCount}</span>
+                    <span className="text-(--kds-sub)">{t.todayOrders}</span>
+                    <span className="font-bold text-(--kds-ink)">{todayOrdersCount}</span>
                   </div>
                   <div className="flex justify-between text-[16px]">
-                    <span className="text-[color:var(--kds-sub)]">{t.en ? 'Sales' : 'Ventas'}</span>
-                    <span className="font-bold text-[color:var(--kds-ink)]">{fmt(todayRevenue, currency)}</span>
+                    <span className="text-(--kds-sub)">{t.en ? 'Sales' : 'Ventas'}</span>
+                    <span className="font-bold text-(--kds-ink)">{fmt(todayRevenue, currency)}</span>
                   </div>
                 </div>
               </SidebarSection>
@@ -2098,9 +2098,9 @@ export function CounterView({
               <SidebarSection title={t.shiftTitle} icon={<Wallet className="w-4 h-4" />}>
                 {activeShift ? (
                   <div className="space-y-2">
-                    <div className="px-3 py-3 rounded-xl bg-[var(--kds-fill)] space-y-1">
+                    <div className="px-3 py-3 rounded-xl bg-(--kds-fill) space-y-1">
                       <p className="text-[16px] font-semibold flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ background: C.status }} />{t.shiftOpened} · {shiftDuration}</p>
-                      <p className="text-[15px] text-[color:var(--kds-sub)]">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</p>
+                      <p className="text-[15px] text-(--kds-sub)">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</p>
                     </div>
                     <button
                       onClick={() => { setShiftCloseCash(''); setShiftNotes(''); setShiftModal('close'); }}
@@ -2139,7 +2139,7 @@ export function CounterView({
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-[14px] text-[color:var(--kds-sub)]">
+                <p className="mt-2 text-[14px] text-(--kds-sub)">
                   {t.en ? 'Only this tablet. Tickets and customer messages stay in the store language.' : 'Solo en esta tablet. Los tickets y los avisos al cliente siguen en el idioma de la tienda.'}
                 </p>
               </SidebarSection>
@@ -2151,14 +2151,14 @@ export function CounterView({
                   setSidebarOpen(false);
                   setHelp({ orderNumber: null });
                 }}
-                className="w-full flex items-center gap-3 px-3 min-h-[56px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+                className="w-full flex items-center gap-3 px-3 min-h-[56px] rounded-xl border border-(--kds-line) hover:border-(--kds-line-strong) transition-colors text-left"
               >
-                <LifeBuoy className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                <LifeBuoy className="w-5 h-5 text-(--kds-sub)" />
                 <span className="flex-1 min-w-0">
-                  <span className="block text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Help and support' : 'Ayuda y soporte'}</span>
-                  <span className="block text-[14px] text-[color:var(--kds-sub)]">{t.en ? 'Guides, WhatsApp and email' : 'Guías, WhatsApp y email'}</span>
+                  <span className="block text-[16px] font-semibold text-(--kds-ink)">{t.en ? 'Help and support' : 'Ayuda y soporte'}</span>
+                  <span className="block text-[14px] text-(--kds-sub)">{t.en ? 'Guides, WhatsApp and email' : 'Guías, WhatsApp y email'}</span>
                 </span>
-                <ChevronRight className="w-5 h-5 text-[color:var(--kds-sub)]" />
+                <ChevronRight className="w-5 h-5 text-(--kds-sub)" />
               </button>
 
               {/* Panel del dueño: escondido al final del menú. Apagado en la tablet
@@ -2175,10 +2175,10 @@ export function CounterView({
                 <SidebarSection title={t.en ? 'This tablet' : 'Esta tablet'} icon={<Settings2 className="w-4 h-4" />}>
                   <button
                     onClick={() => getCounterAppBridge()?.openPrinterSettings?.()}
-                    className="w-full flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-[color:var(--kds-line)] hover:border-[color:var(--kds-line-strong)] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 min-h-[52px] rounded-xl border border-(--kds-line) hover:border-(--kds-line-strong) transition-colors text-left"
                   >
-                    <Printer className="w-5 h-5 text-[color:var(--kds-sub)]" />
-                    <span className="text-[16px] font-semibold text-[color:var(--kds-ink)]">{t.en ? 'Printer' : 'Impresora'}</span>
+                    <Printer className="w-5 h-5 text-(--kds-sub)" />
+                    <span className="text-[16px] font-semibold text-(--kds-ink)">{t.en ? 'Printer' : 'Impresora'}</span>
                   </button>
                   {/* Two taps instead of confirm(): JS dialogs need a WebChromeClient the
                       app doesn't install, and a stray tap must not unpair the till. */}
@@ -2289,7 +2289,7 @@ export function CounterView({
             onClose={() => setEditItemsModal(null)}
             closeLabel={t.en ? 'Close' : 'Cerrar'}
           />
-          <div className="px-6 pb-3 flex-shrink-0">
+          <div className="px-6 pb-3 shrink-0">
             <input
               type="search"
               value={editSearch}
@@ -2313,7 +2313,7 @@ export function CounterView({
                         <p className="flex items-center gap-2 text-[17px] font-semibold" style={p.in_stock === false ? { color: C.sub } : undefined}>
                           <span className="truncate">{p.name}</span>
                           {p.in_stock === false && (
-                            <span className="flex-shrink-0 text-[15px] font-bold" style={{ color: C.destructive }}>86</span>
+                            <span className="shrink-0 text-[15px] font-bold" style={{ color: C.destructive }}>86</span>
                           )}
                         </p>
                         <p className="text-[15px] tabular-nums" style={{ color: C.sub }}>{fmt(Number(p.price), currency)}</p>
@@ -2323,7 +2323,7 @@ export function CounterView({
                         onClick={() => handleAddItem(editItemsModal.orderId, p.id)}
                         disabled={editSaving}
                         aria-label={`${t.en ? 'Add' : 'Agregar'} ${p.name}`}
-                        className="w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 flex-shrink-0"
+                        className="w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 shrink-0"
                         style={p.in_stock === false ? { background: C.fill, color: C.ink } : { background: C.accent, color: C.onAccent }}
                       >
                         <Plus className="w-5 h-5" strokeWidth={2.4} />
@@ -2336,7 +2336,7 @@ export function CounterView({
               </ul>
             )}
           </div>
-          <div className="px-6 pt-3 pb-6 flex-shrink-0" style={{ boxShadow: `0 -1px 0 ${C.line}` }}>
+          <div className="px-6 pt-3 pb-6 shrink-0" style={{ boxShadow: `0 -1px 0 ${C.line}` }}>
             <ModalButton tone="fill" className="w-full" onClick={() => setEditItemsModal(null)}>
               {t.en ? 'Done' : 'Listo'}
             </ModalButton>
@@ -2394,7 +2394,7 @@ export function CounterView({
               );
             })()}
           </div>
-          <div className="px-6 pt-4 pb-6 flex gap-3 flex-shrink-0">
+          <div className="px-6 pt-4 pb-6 flex gap-3 shrink-0">
             <ModalButton tone="fill" onClick={() => { setCancelModal(null); setRefundRequired(false); }} className={refundRequired && isDevice ? 'flex-1' : 'flex-none min-w-[96px]'}>
               {t.no}
             </ModalButton>
@@ -2496,7 +2496,7 @@ export function CounterView({
                 value={shiftNotes}
                 onChange={e => setShiftNotes(e.target.value)}
                 rows={2}
-                className="w-full px-4 py-3 rounded-xl text-[17px] outline-none focus:ring-2 resize-none"
+                className="w-full px-4 py-3 rounded-xl text-[17px] outline-hidden focus:ring-2 resize-none"
                 style={MODAL_INPUT_STYLE}
               />
             </label>
@@ -2560,7 +2560,7 @@ export function CounterView({
           {/* En la app Android window.print() no hace nada (el WebView no imprime):
               el botón solo aparece en el navegador. */}
           {!inApp && (
-            <div className="px-6 pt-4 pb-6 flex-shrink-0" style={{ boxShadow: `0 -1px 0 ${C.line}` }}>
+            <div className="px-6 pt-4 pb-6 shrink-0" style={{ boxShadow: `0 -1px 0 ${C.line}` }}>
               <ModalButton tone="fill" className="w-full" onClick={() => { window.print(); }}>
                 <Printer className="w-5 h-5" /> {t.shiftPrint}
               </ModalButton>
@@ -2776,7 +2776,7 @@ function StatusHistory({ orderId, t, preview }: { orderId: string; t: ReturnType
                 const last = i === history.length - 1;
                 return (
                   <li key={row.id} className="flex items-stretch gap-3">
-                    <div className="flex flex-col items-center flex-shrink-0 pt-[7px]">
+                    <div className="flex flex-col items-center shrink-0 pt-[7px]">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ background: last ? C.accent : C.lineStrong }} />
                       {!last && <div className="w-px flex-1 mt-1" style={{ background: C.line }} />}
                     </div>
@@ -2785,7 +2785,7 @@ function StatusHistory({ orderId, t, preview }: { orderId: string; t: ReturnType
                         <span className="text-[16px] font-semibold first-letter:uppercase inline-block">{label}</span>
                         {row.note && <span className="text-[15px] ml-1.5" style={{ color: C.sub }}>· {row.note}</span>}
                       </span>
-                      <span className="text-[15px] tabular-nums flex-shrink-0" style={{ color: C.sub }}>{ts}</span>
+                      <span className="text-[15px] tabular-nums shrink-0" style={{ color: C.sub }}>{ts}</span>
                     </div>
                   </li>
                 );
@@ -2816,8 +2816,8 @@ function SidebarSection({
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[color:var(--kds-sub)]">{icon}</span>
-        <p className="text-[15px] font-semibold text-[color:var(--kds-sub)]">{title}</p>
+        <span className="text-(--kds-sub)">{icon}</span>
+        <p className="text-[15px] font-semibold text-(--kds-sub)">{title}</p>
       </div>
       {children}
     </div>
@@ -2834,7 +2834,7 @@ const CLOSED_KEEP_MS = 12 * 3600_000;
 // (título 22/700, cuerpo 16–17, botones 52 px 17/600, inputs 17 px para que iOS no haga zoom).
 // ══════════════════════════════════════════════════════════════════════════════
 
-const MODAL_INPUT = 'w-full h-[52px] px-4 rounded-xl text-[17px] outline-none focus:ring-2';
+const MODAL_INPUT = 'w-full h-[52px] px-4 rounded-xl text-[17px] outline-hidden focus:ring-2';
 /** Sin las flechitas del input numérico (en una tablet no sirven y ocupan lugar). */
 const NO_SPIN = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 const MODAL_INPUT_STYLE = {
@@ -2848,9 +2848,9 @@ function CounterModal({ label, onClose, tall = false, children }: {
   label: string; onClose: () => void; tall?: boolean; children: React.ReactNode;
 }) {
   return (
-    // z-[65]: por encima de la alerta de pedidos nuevos (z-[60]); si no, "Rechazar" desde la
+    // z-65: por encima de la alerta de pedidos nuevos (z-[60]); si no, "Rechazar" desde la
     // alerta con otro pedido en cola abría el motivo DEBAJO y el rechazo no se podía confirmar.
-    <div className="fixed inset-0 z-[65] flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label={label}
+    <div className="fixed inset-0 z-65 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label={label}
       style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
       <div aria-hidden className="absolute inset-0" style={{ background: C.scrim }} onClick={onClose} />
       <div className={cn('relative w-full max-w-[480px] rounded-[28px] flex flex-col overflow-hidden', tall ? 'h-[min(720px,100%)]' : 'max-h-full')} style={RAISED}>
@@ -2864,7 +2864,7 @@ function ModalHeader({ title, subtitle, icon, onClose, closeLabel }: {
   title: string; subtitle?: string; icon?: React.ReactNode; onClose: () => void; closeLabel: string;
 }) {
   return (
-    <div className="flex items-start gap-3 px-6 pt-6 pb-4 flex-shrink-0">
+    <div className="flex items-start gap-3 px-6 pt-6 pb-4 shrink-0">
       {icon && <span className="flex-none pt-0.5">{icon}</span>}
       <div className="flex-1 min-w-0">
         <h2 className="text-[22px] font-bold tracking-[-0.015em] leading-tight">{title}</h2>

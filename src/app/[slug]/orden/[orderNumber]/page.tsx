@@ -155,7 +155,7 @@ export default async function OrderTrackingPage(props: PageProps) {
   if (!restaurant) {
     if (paidSuccess) {
       return (
-        <div className="min-h-[100dvh] bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
+        <div className="min-h-dvh bg-[#F2F2F6] flex flex-col items-center justify-center px-6 text-center">
           <div className="max-w-sm w-full">
             <div className="w-20 h-20 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 className="w-10 h-10 text-[#047a65]" />
@@ -170,7 +170,7 @@ export default async function OrderTrackingPage(props: PageProps) {
             </p>
             <Link
               href={`/${params.slug}`}
-              className="block w-full py-3.5 rounded-2xl bg-[#05c8a7] text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
+              className="block w-full py-3.5 rounded-2xl bg-brand-500 text-[#04241E] font-bold text-sm hover:bg-[#04b096] transition-colors"
             >
               {en ? 'Back to menu' : 'Volver al menú'}
             </Link>

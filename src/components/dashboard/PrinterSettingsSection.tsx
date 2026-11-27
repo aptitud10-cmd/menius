@@ -26,7 +26,7 @@ export function PrinterSettingsSection({ locale }: PrinterSettingsSectionProps) 
         role="switch"
         aria-checked={cfg[key] as boolean}
         onClick={() => toggle(key)}
-        className={`relative inline-flex h-6 w-11 rounded-full transition-colors focus:outline-none ${
+        className={`relative inline-flex h-6 w-11 rounded-full transition-colors focus:outline-hidden ${
           cfg[key] ? 'bg-emerald-500' : 'bg-gray-200'
         }`}
       >

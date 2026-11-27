@@ -5,7 +5,7 @@ import { Sparkles, Copy, CheckCircle2, Loader2, Clock, Lightbulb, Image as Image
 import { cn } from '@/lib/utils';
 
 const PLATFORMS = [
-  { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
+  { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'bg-linear-to-r from-purple-500 to-pink-500' },
   { value: 'facebook', label: 'Facebook', icon: Facebook, color: 'bg-blue-600' },
   { value: 'twitter', label: 'X / Twitter', icon: Twitter, color: 'bg-white/10' },
   { value: 'linkedin', label: 'LinkedIn', icon: Linkedin, color: 'bg-blue-700' },
@@ -78,7 +78,7 @@ export function AdminSocialMedia() {
             return (
               <button key={p.value} onClick={() => setPlatform(p.value)}
                 className={cn('flex items-center gap-2.5 p-3.5 rounded-xl border-2 transition-all',
-                  platform === p.value ? 'border-purple-500 bg-purple-500/[0.08]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]')}>
+                  platform === p.value ? 'border-purple-500 bg-purple-500/8' : 'border-white/6 bg-white/2 hover:border-white/12')}>
                 <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-white', p.color)}>
                   <Icon className="w-4 h-4" />
                 </div>
@@ -90,7 +90,7 @@ export function AdminSocialMedia() {
       </div>
 
       {/* Config + generate */}
-      <div className="bg-purple-500/[0.08] border border-purple-500/20 rounded-xl p-5 space-y-4">
+      <div className="bg-purple-500/8 border border-purple-500/20 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-purple-400" /> Generar post para {selectedPlatform.label}
         </h3>
@@ -100,7 +100,7 @@ export function AdminSocialMedia() {
           <div>
             <label className="text-xs text-gray-500 mb-1.5 block">Tipo de post</label>
             <select value={postType} onChange={(e) => setPostType(e.target.value)}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500/30">
+              className="w-full bg-white/4 border border-white/8 rounded-xl px-3.5 py-2.5 text-sm text-gray-300 focus:outline-hidden focus:ring-1 focus:ring-purple-500/30">
               {POST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
@@ -108,7 +108,7 @@ export function AdminSocialMedia() {
             <label className="text-xs text-gray-500 mb-1.5 block">Instrucciones extra</label>
             <input type="text" value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)}
               placeholder="Ej: Enfocarse en la función de IA..."
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30" />
+              className="w-full bg-white/4 border border-white/8 rounded-xl px-3.5 py-2.5 text-sm text-gray-300 placeholder-gray-600 focus:outline-hidden focus:ring-1 focus:ring-purple-500/30" />
           </div>
         </div>
 
@@ -125,7 +125,7 @@ export function AdminSocialMedia() {
       {/* Generated post */}
       {post && (
         <div className="space-y-4">
-          <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-5">
+          <div className="bg-[#0a0a0a] border border-white/6 rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Caption</p>
               <button onClick={() => copyToClipboard(post.hashtags ? `${post.caption}\n\n${post.hashtags}` : post.caption, 'caption')}
@@ -135,14 +135,14 @@ export function AdminSocialMedia() {
             </div>
             <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{post.caption}</p>
             {post.hashtags && (
-              <div className="mt-4 pt-3 border-t border-white/[0.06]">
+              <div className="mt-4 pt-3 border-t border-white/6">
                 <p className="text-xs text-purple-400 leading-relaxed">{post.hashtags}</p>
               </div>
             )}
           </div>
 
           {post.hookVariant && (
-            <div className="bg-amber-500/[0.06] border border-amber-500/15 rounded-xl p-4">
+            <div className="bg-amber-500/6 border border-amber-500/15 rounded-xl p-4">
               <p className="text-xs font-medium text-amber-400 mb-2">Variante A/B del hook</p>
               <p className="text-xs text-amber-200/80 leading-relaxed">{post.hookVariant}</p>
               <button onClick={() => copyToClipboard(post.hookVariant, 'hook')}
@@ -153,22 +153,22 @@ export function AdminSocialMedia() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-4">
+            <div className="bg-[#0a0a0a] border border-white/6 rounded-xl p-4">
               <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-2"><ImageIcon className="w-3.5 h-3.5" aria-hidden /> Idea de imagen</div>
               <p className="text-xs text-gray-400 leading-relaxed">{post.imageIdea}</p>
             </div>
-            <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-4">
+            <div className="bg-[#0a0a0a] border border-white/6 rounded-xl p-4">
               <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-2"><Clock className="w-3.5 h-3.5" /> Mejor hora</div>
               <p className="text-xs text-gray-400 leading-relaxed">{post.bestTime}</p>
             </div>
-            <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-4">
+            <div className="bg-[#0a0a0a] border border-white/6 rounded-xl p-4">
               <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-2"><Lightbulb className="w-3.5 h-3.5" /> Tip profesional</div>
               <p className="text-xs text-gray-400 leading-relaxed">{post.tip}</p>
             </div>
           </div>
 
           <button onClick={handleGenerate} disabled={generating}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-purple-500/30 text-purple-400 hover:bg-purple-500/[0.06] text-sm font-medium transition-colors disabled:opacity-50">
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-purple-500/30 text-purple-400 hover:bg-purple-500/6 text-sm font-medium transition-colors disabled:opacity-50">
             <Sparkles className="w-4 h-4" /> Generar otra versión
           </button>
         </div>

@@ -18,7 +18,7 @@ export default function MenuError({
   useEffect(() => { setEn(!/^es/i.test(navigator.language || '')); }, []);
 
   return (
-    <div className="min-h-[100dvh] bg-[#f5f5f3] flex flex-col items-center justify-center p-6">
+    <div className="min-h-dvh bg-[#f5f5f3] flex flex-col items-center justify-center p-6">
       <div className="text-center max-w-xs w-full">
         {/* Icon */}
         <div className="w-20 h-20 mx-auto mb-5 rounded-3xl bg-red-50 flex items-center justify-center">

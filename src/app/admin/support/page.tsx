@@ -122,13 +122,13 @@ export default function AdminSupportPage() {
             {RETENTION_USERS.map(user => {
               const state = sendStates[user.key] ?? { status: 'idle' };
               return (
-                <div key={user.key} className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+                <div key={user.key} className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-5">
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div>
                       <p className="text-white font-semibold">{user.restaurantName}</p>
                       <p className="text-gray-500 text-xs mt-0.5">{user.ownerName} · {user.to}</p>
                     </div>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full border flex-shrink-0 ${user.badgeColor}`}>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full border shrink-0 ${user.badgeColor}`}>
                       {user.badge}
                     </span>
                   </div>
@@ -137,13 +137,13 @@ export default function AdminSupportPage() {
 
                   {state.status === 'done' && (
                     <div className="flex items-center gap-2 text-sm text-emerald-400 mb-3">
-                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      <CheckCircle className="w-4 h-4 shrink-0" />
                       {state.msg}
                     </div>
                   )}
                   {state.status === 'error' && (
                     <div className="flex items-center gap-2 text-sm text-red-400 mb-3">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <AlertCircle className="w-4 h-4 shrink-0" />
                       {state.msg}
                     </div>
                   )}
@@ -161,7 +161,7 @@ export default function AdminSupportPage() {
                       href={`https://menius.app/${user.restaurantSlug}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-gray-400 hover:text-white transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/4 border border-white/8 text-xs text-gray-400 hover:text-white transition-colors"
                     >
                       <ExternalLink className="w-3 h-3" /> Ver menú
                     </a>
@@ -175,7 +175,7 @@ export default function AdminSupportPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Custom email composer */}
           <div className="lg:col-span-2">
-            <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6">
+            <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-6">
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <Send className="w-4 h-4 text-blue-400" /> Enviar email personalizado
               </h2>
@@ -187,7 +187,7 @@ export default function AdminSupportPage() {
                     value={composeTo}
                     onChange={e => setComposeTo(e.target.value)}
                     placeholder="usuario@ejemplo.com"
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/50 transition-colors"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/4 border border-white/8 text-sm text-white placeholder-gray-600 outline-hidden focus:border-blue-500/50 transition-colors"
                   />
                 </div>
                 <div>
@@ -197,7 +197,7 @@ export default function AdminSupportPage() {
                     value={composeSubject}
                     onChange={e => setComposeSubject(e.target.value)}
                     placeholder="Ej: Seguimiento de tu cuenta en MENIUS"
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/50 transition-colors"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/4 border border-white/8 text-sm text-white placeholder-gray-600 outline-hidden focus:border-blue-500/50 transition-colors"
                   />
                 </div>
                 <div>
@@ -207,12 +207,12 @@ export default function AdminSupportPage() {
                     onChange={e => setComposeBody(e.target.value)}
                     rows={6}
                     placeholder="Hola [nombre],&#10;&#10;Vimos que te registraste recientemente en MENIUS…"
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/50 transition-colors resize-none"
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/4 border border-white/8 text-sm text-white placeholder-gray-600 outline-hidden focus:border-blue-500/50 transition-colors resize-none"
                   />
                 </div>
                 {customSend.status !== 'idle' && (
                   <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${customSend.status === 'done' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : customSend.status === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : ''}`}>
-                    {customSend.status === 'done' ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : customSend.status === 'error' ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> : <Loader2 className="w-4 h-4 animate-spin" />}
+                    {customSend.status === 'done' ? <CheckCircle className="w-4 h-4 shrink-0" /> : customSend.status === 'error' ? <AlertCircle className="w-4 h-4 shrink-0" /> : <Loader2 className="w-4 h-4 animate-spin" />}
                     {customSend.msg ?? 'Enviando…'}
                   </div>
                 )}
@@ -230,16 +230,16 @@ export default function AdminSupportPage() {
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+            <div className="bg-[#0a0a0a] rounded-2xl border border-white/6 p-5">
               <h3 className="text-sm font-semibold text-white mb-3">Accesos rápidos</h3>
               <div className="space-y-1">
-                <Link href="/admin/users" className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors text-sm text-gray-400 hover:text-white">
+                <Link href="/admin/users" className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/4 transition-colors text-sm text-gray-400 hover:text-white">
                   <Users className="w-4 h-4 text-indigo-400" /> Ver todos los usuarios
                 </Link>
-                <a href="https://resend.com/emails" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors text-sm text-gray-400 hover:text-white">
+                <a href="https://resend.com/emails" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/4 transition-colors text-sm text-gray-400 hover:text-white">
                   <Mail className="w-4 h-4 text-blue-400" /> Panel de Resend <ExternalLink className="w-3 h-3 ml-auto" />
                 </a>
-                <a href="https://app.crisp.chat" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors text-sm text-gray-400 hover:text-white">
+                <a href="https://app.crisp.chat" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/4 transition-colors text-sm text-gray-400 hover:text-white">
                   <MessageSquare className="w-4 h-4 text-emerald-400" /> Crisp Live Chat <ExternalLink className="w-3 h-3 ml-auto" />
                 </a>
               </div>

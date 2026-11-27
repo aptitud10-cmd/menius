@@ -83,7 +83,7 @@ export default async function DashboardLayout({
     <DashboardLocaleProvider defaultLocale={defaultLocale}>
       <DashToastProvider>
         <DashboardScrollFix />
-        <div className="min-h-[100dvh] bg-gray-50 text-gray-900 flex overflow-x-hidden">
+        <div className="min-h-dvh bg-gray-50 text-gray-900 flex overflow-x-hidden">
           {/* Sidebar */}
           <aside className="hidden md:flex flex-col w-[260px] bg-white border-r border-gray-200 sticky top-0 h-dvh">
             {/* Logo + restaurant */}
@@ -122,7 +122,7 @@ export default async function DashboardLayout({
             {/* User profile + sound toggle + notification bell */}
             <div className="px-4 py-4 border-t border-gray-100 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold shrink-0">
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -145,7 +145,7 @@ export default async function DashboardLayout({
             <header className="md:hidden bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-between sticky top-0 z-30">
               <div className="flex items-center gap-2 min-w-0">
                 <Link href="/app" className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm font-bold tracking-tight text-gray-900 flex-shrink-0">
+                  <span className="text-sm font-bold tracking-tight text-gray-900 shrink-0">
                     MENIUS
                   </span>
                 </Link>

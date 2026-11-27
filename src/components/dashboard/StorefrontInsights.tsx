@@ -95,7 +95,7 @@ export function StorefrontInsights({ data, locale, fmt }: { data: StorefrontStat
                         {nf(s.value)}
                         {s.of != null && <span className={cn('ml-1.5 text-xs font-medium', last ? 'text-emerald-700/80' : 'text-gray-500')}>{pct(s.value, s.of)}%</span>}
                       </p>
-                      <div className="h-1.5 rounded-full bg-black/[0.04] mt-3">
+                      <div className="h-1.5 rounded-full bg-black/4 mt-3">
                         <div className={cn('h-1.5 rounded-full', last ? 'bg-emerald-600' : 'bg-emerald-500')} style={{ width: `${Math.max(2, pct(s.value, f.visits))}%` }} />
                       </div>
                     </div>

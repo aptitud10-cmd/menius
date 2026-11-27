@@ -121,7 +121,7 @@ export function OwnerHighlights({ data, locale, fmt }: { data: OwnerInsights; lo
                     <div
                       key={h.hour}
                       title={`${hourRange(h.hour, en)} · ${h.avgMinutes} min`}
-                      className={slow ? 'flex-1 rounded-sm bg-amber-500' : 'flex-1 rounded-sm bg-gray-300'}
+                      className={slow ? 'flex-1 rounded-xs bg-amber-500' : 'flex-1 rounded-xs bg-gray-300'}
                       style={{ height: `${Math.max(10, (h.avgMinutes / max) * 100)}%` }}
                     />
                   );
@@ -194,7 +194,7 @@ export function OwnerHighlights({ data, locale, fmt }: { data: OwnerInsights; lo
                 const tone = dow === weekdays.best.dow ? 'bg-emerald-500' : dow === weekdays.worst.dow ? 'bg-red-400' : 'bg-gray-300';
                 return (
                   <div key={dow} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-                    <div className={`w-full rounded-sm ${tone}`} style={{ height: `${Math.max(4, (d.avg / max) * 100)}%` }} title={`${DAY_NAMES[lang][dow]} · ${fmt(d.avg)}`} />
+                    <div className={`w-full rounded-xs ${tone}`} style={{ height: `${Math.max(4, (d.avg / max) * 100)}%` }} title={`${DAY_NAMES[lang][dow]} · ${fmt(d.avg)}`} />
                     <span className="text-[10px] text-gray-500">{DAY_INITIALS[lang][dow]}</span>
                   </div>
                 );

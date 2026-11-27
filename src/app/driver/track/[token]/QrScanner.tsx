@@ -103,7 +103,7 @@ export function QrScanner({ en, onToken, onClose, message, items }: {
   }, [en]);
 
   return (
-    <div className="fixed inset-0 z-[95] bg-black flex flex-col" role="dialog" aria-modal="true" aria-label={en ? 'Scan the order QR' : 'Escanear el QR del pedido'}>
+    <div className="fixed inset-0 z-95 bg-black flex flex-col" role="dialog" aria-modal="true" aria-label={en ? 'Scan the order QR' : 'Escanear el QR del pedido'}>
       <div className="flex items-center justify-between px-4 pt-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
         <p className="text-white text-[16px] font-bold">{en ? 'Scan each ticket you take' : 'Escanea cada ticket que llevas'}</p>
         <button type="button" onClick={onClose} aria-label={en ? 'Close' : 'Cerrar'} className="w-11 h-11 rounded-full grid place-items-center bg-white/15 text-white">
@@ -132,7 +132,7 @@ export function QrScanner({ en, onToken, onClose, message, items }: {
             </p>
             <p className="text-white text-[16px] font-extrabold truncate tabular-nums">{items.join('  ·  ')}</p>
           </div>
-          <button type="button" onClick={onClose} className="h-14 px-7 rounded-2xl bg-white text-gray-950 text-[17px] font-extrabold flex-shrink-0 active:scale-[0.98] transition-transform">
+          <button type="button" onClick={onClose} className="h-14 px-7 rounded-2xl bg-white text-gray-950 text-[17px] font-extrabold shrink-0 active:scale-[0.98] transition-transform">
             {en ? 'Done' : 'Listo'}
           </button>
         </div>

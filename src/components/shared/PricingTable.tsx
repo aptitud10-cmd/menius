@@ -34,7 +34,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
           {/* Sliding indicator */}
           <div
             className={cn(
-              'absolute top-1 bottom-1 rounded-full bg-white shadow-sm transition-all duration-300 ease-out',
+              'absolute top-1 bottom-1 rounded-full bg-white shadow-xs transition-all duration-300 ease-out',
               interval === 'monthly' ? 'left-1 w-[calc(50%-4px)]' : 'left-[50%] w-[calc(50%-4px)]',
             )}
           />
@@ -88,7 +88,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
               className={cn(
                 'relative rounded-2xl flex flex-col transition-all duration-300',
                 isPopular
-                  ? 'p-[2px] bg-gradient-to-b from-emerald-400 via-teal-400 to-cyan-400 shadow-xl shadow-emerald-100/40 sm:scale-[1.03] z-10'
+                  ? 'p-[2px] bg-linear-to-b from-emerald-400 via-teal-400 to-cyan-400 shadow-xl shadow-emerald-100/40 sm:scale-[1.03] z-10'
                   : '',
                 isBusiness && !isPopular
                   ? 'bg-gray-900 text-white shadow-xl'
@@ -104,12 +104,12 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
             >
               {/* Inner container for gradient-bordered card */}
               <div className={cn(
-                'flex flex-col flex-1 rounded-[14px] p-6',
+                'flex flex-col flex-1 rounded-xl p-6',
                 isPopular ? 'bg-white' : '',
               )}>
                 {/* Badges */}
                 {isPopular && (
-                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[11px] font-bold rounded-full uppercase tracking-wider shadow-md">
+                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-linear-to-r from-emerald-600 to-teal-600 text-white text-[11px] font-bold rounded-full uppercase tracking-wider shadow-md">
                     {locale === 'en' ? 'Most popular' : 'Más popular'}
                   </span>
                 )}
@@ -184,7 +184,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
                         <li key={f} className="flex items-start gap-2.5">
                           <Check
                             className={cn(
-                              'w-4 h-4 flex-shrink-0 mt-0.5',
+                              'w-4 h-4 shrink-0 mt-0.5',
                               isPopular ? 'text-emerald-600' : isBusiness ? 'text-emerald-400' : 'text-emerald-600',
                             )}
                             strokeWidth={2.5}
@@ -201,7 +201,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
                         <li key={f} className="flex items-start gap-2.5 opacity-50">
                           <X
                             className={cn(
-                              'w-4 h-4 flex-shrink-0 mt-0.5',
+                              'w-4 h-4 shrink-0 mt-0.5',
                               isBusiness ? 'text-gray-500' : 'text-gray-400',
                             )}
                             strokeWidth={2}
@@ -239,7 +239,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
                           ? 'bg-gray-800 text-gray-500 cursor-default'
                           : 'bg-gray-100 text-gray-400 cursor-default'
                         : isPopular
-                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-200/40'
+                          ? 'bg-linear-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-200/40'
                           : isBusiness
                             ? 'bg-white text-gray-900 hover:bg-gray-100 font-bold'
                             : 'bg-gray-900 text-white hover:bg-gray-800',

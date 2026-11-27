@@ -109,7 +109,7 @@ export function AdminBulkRegenerate({ restaurantId, onClose }: Props) {
     : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
 
         {/* Header */}
@@ -161,7 +161,7 @@ export function AdminBulkRegenerate({ restaurantId, onClose }: Props) {
                 </div>
                 <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-600 transition-all duration-500"
+                    className="h-full rounded-full bg-linear-to-r from-violet-500 to-purple-600 transition-all duration-500"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -192,7 +192,7 @@ export function AdminBulkRegenerate({ restaurantId, onClose }: Props) {
               {/* Current batch */}
               {phase === 'running' && progress.currentBatch && (
                 <div className="flex items-start gap-2 px-3 py-2.5 bg-purple-50 rounded-xl border border-purple-100">
-                  <Loader2 className="w-3.5 h-3.5 text-purple-500 animate-spin flex-shrink-0 mt-0.5" />
+                  <Loader2 className="w-3.5 h-3.5 text-purple-500 animate-spin shrink-0 mt-0.5" />
                   <p className="text-xs text-purple-700 leading-relaxed truncate">
                     {progress.currentBatch}
                   </p>
@@ -202,7 +202,7 @@ export function AdminBulkRegenerate({ restaurantId, onClose }: Props) {
               {/* Done banner */}
               {phase === 'done' && (
                 <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                   <p className="text-sm font-semibold text-emerald-800">
                     ¡Listo! {progress.generated} imágenes generadas.
                     {progress.failed > 0 && ` ${progress.failed} fallaron.`}

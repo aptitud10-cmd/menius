@@ -1300,7 +1300,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   if (!hasMounted) {
     return (
-      <div className="h-[100dvh] bg-[#f5f5f5] flex flex-col">
+      <div className="h-dvh bg-[#f5f5f5] flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
           <div className="h-5 w-24 skeleton rounded-full" />
         </header>
@@ -1333,7 +1333,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   if (items.length === 0 && step !== 'confirmation') {
     return (
-      <div className="h-[100dvh] bg-gray-50 flex flex-col">
+      <div className="h-dvh bg-gray-50 flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
           <button onClick={goBack} aria-label={t.backToMenu} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -1348,7 +1348,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
           <h2 className="text-lg font-bold text-gray-900 mb-1">{t.cartEmpty}</h2>
           <p className="text-sm text-gray-500 text-center mb-6">{t.cartEmptyDesc}</p>
-          <button onClick={goBack} className="px-6 py-3 rounded-xl bg-[#05c8a7] text-[#04241E] font-semibold text-sm active:scale-[0.98] transition-all">
+          <button onClick={goBack} className="px-6 py-3 rounded-xl bg-brand-500 text-[#04241E] font-semibold text-sm active:scale-[0.98] transition-all">
             {t.backToMenu}
           </button>
         </main>
@@ -1395,7 +1395,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     const restaurantInitial = restaurant.name.charAt(0).toUpperCase();
 
     return (
-      <div className="h-[100dvh] flex flex-col" style={{ backgroundColor: '#f6f9fc' }}>
+      <div className="h-dvh flex flex-col" style={{ backgroundColor: '#f6f9fc' }}>
 
         {/* Stripe-style header */}
         <div className="w-full bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -1424,7 +1424,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             {/* Merchant info — like Stripe shows brand + amount */}
             <div className="flex flex-col items-center text-center gap-3 pb-2">
               {/* Logo */}
-              <div className="w-14 h-14 rounded-2xl bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden">
+              <div className="w-14 h-14 rounded-2xl bg-white border border-gray-200 shadow-xs flex items-center justify-center overflow-hidden">
                 {restaurant.logo_url ? (
                   <Image src={restaurant.logo_url} alt={restaurant.name} width={56} height={56} className="object-cover w-full h-full rounded-2xl" />
                 ) : (
@@ -1438,7 +1438,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             </div>
 
             {/* Order summary — collapsible like Stripe */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs">
               <button
                 onClick={() => setSummaryOpen((o) => !o)}
                 aria-expanded={summaryOpen}
@@ -1478,7 +1478,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 type="text"
                 defaultValue="Test User"
                 placeholder={t.cardFullNamePlaceholder}
-                className="w-full px-3.5 py-3 rounded-lg border border-gray-300 focus:border-[#635BFF] focus:ring-2 focus:ring-[#635BFF]/20 focus:outline-none text-sm text-gray-900 bg-white transition-all"
+                className="w-full px-3.5 py-3 rounded-lg border border-gray-300 focus:border-[#635BFF] focus:ring-2 focus:ring-[#635BFF]/20 focus:outline-hidden text-sm text-gray-900 bg-white transition-all"
               />
             </div>
 
@@ -1487,7 +1487,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                 {t.cardInformation}
               </label>
-              <div className="rounded-lg border border-gray-300 overflow-hidden shadow-sm focus-within:border-[#635BFF] focus-within:ring-2 focus-within:ring-[#635BFF]/20 transition-all bg-white">
+              <div className="rounded-lg border border-gray-300 overflow-hidden shadow-xs focus-within:border-[#635BFF] focus-within:ring-2 focus-within:ring-[#635BFF]/20 transition-all bg-white">
                 {/* Card number row */}
                 <div className="flex items-center px-3.5 py-3 border-b border-gray-200">
                   <input
@@ -1497,7 +1497,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     onChange={(e) => setDemoCardNum(formatCardNum(e.target.value))}
                     placeholder="1234 1234 1234 1234"
                     maxLength={19}
-                    className="flex-1 text-base font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
+                    className="flex-1 text-base font-mono tracking-wider text-gray-900 bg-transparent focus:outline-hidden placeholder-gray-400"
                   />
                   <div className="ml-2 shrink-0 h-5 flex items-center">
                     {isVisa && <VisaSvg />}
@@ -1522,7 +1522,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       onChange={(e) => setDemoExpiry(formatExpiry(e.target.value))}
                       placeholder="MM / YY"
                       maxLength={7}
-                      className="w-full text-base font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
+                      className="w-full text-base font-mono tracking-wider text-gray-900 bg-transparent focus:outline-hidden placeholder-gray-400"
                     />
                   </div>
                   <div className="flex-1 px-3.5 py-3 flex items-center gap-2">
@@ -1533,7 +1533,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       onChange={(e) => setDemoCVC(e.target.value.replace(/\D/g, '').slice(0, isAmex ? 4 : 3))}
                       placeholder={isAmex ? '1234' : 'CVC'}
                       maxLength={isAmex ? 4 : 3}
-                      className="flex-1 text-base font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
+                      className="flex-1 text-base font-mono tracking-wider text-gray-900 bg-transparent focus:outline-hidden placeholder-gray-400"
                     />
                     <svg className="w-5 h-5 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                       <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -1605,11 +1605,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   // Mientras navega al seguimiento: la misma superficie, sin pantalla intermedia.
   if (step === 'confirmation' && orderNumber && orderId && orderId !== 'demo-order-id' && !awaitingPayment) {
-    return <div className="h-[100dvh] bg-[#f2f2f6]" aria-busy="true" />;
+    return <div className="h-dvh bg-[#f2f2f6]" aria-busy="true" />;
   }
   if (step === 'confirmation') {
     return (
-      <div className="h-[100dvh] bg-white flex flex-col">
+      <div className="h-dvh bg-white flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex justify-between items-center">
           <span className="text-sm font-semibold text-gray-900">{restaurant.name}</span>
           <button onClick={goBack} className="text-sm text-[#047a65] font-medium">{t.backToMenu}</button>
@@ -1639,7 +1639,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     <span className="font-semibold text-gray-900">{item.qty}×</span>{' '}
                     {item.name}{item.variant ? <span className="text-[#6b6b74]"> ({item.variant})</span> : ''}
                   </span>
-                  <span className="text-sm font-semibold text-gray-900 tabular-nums flex-shrink-0">{fmtPrice(item.lineTotal)}</span>
+                  <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0">{fmtPrice(item.lineTotal)}</span>
                 </div>
               ))}
               <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
@@ -1659,7 +1659,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           {/* Estimated time badge — shown for delivery and pickup */}
           {!!confirmedEta && (orderType === 'delivery' || orderType === 'pickup') && (
             <div className="flex items-center gap-2 mb-5 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-100">
-              <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="12" cy="12" r="10"/><path strokeLinecap="round" d="M12 6v6l4 2"/>
               </svg>
               <p className="text-sm text-amber-700 font-medium">
@@ -1685,7 +1685,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   'w-full py-3.5 rounded-xl font-semibold text-sm disabled:opacity-50 transition-colors flex items-center justify-center gap-2',
                   isColombianRestaurant
                     ? 'bg-[#FDDA24] text-[#002C76] hover:bg-[#f5d01e]'
-                    : 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096]'
+                    : 'bg-brand-500 text-[#04241E] hover:bg-[#04b096]'
                 )}
               >
                 {payLoading ? (
@@ -1741,11 +1741,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 className={cn(
                   'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation no-underline',
                   paymentMethod === 'cash'
-                    ? 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096] active:bg-[#04b096]'
+                    ? 'bg-brand-500 text-[#04241E] hover:bg-[#04b096] active:bg-[#04b096]'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-200'
                 )}
               >
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 {t.trackOrderLive}
@@ -1775,7 +1775,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     window.open(`https://wa.me/?text=${msg}`, '_blank');
                   }, 1500);
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-[#05c8a7] hover:text-[#047a65] transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:border-brand-500 hover:text-[#047a65] transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -1890,7 +1890,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // React 18 no tipa `inert`; como atributo string llega igual al DOM.
   const behindSheet = (activeSheet ? { inert: '' } : {}) as Record<string, string>;
   const fieldLabelCls = 'absolute left-3.5 top-2 text-xs text-[#6b6b74] pointer-events-none';
-  const fieldInputCls = 'w-full bg-transparent border-0 text-[#111114] text-[17px] leading-tight pt-[23px] pb-2 px-3.5 outline-none placeholder:text-[#9a9aa2]';
+  const fieldInputCls = 'w-full bg-transparent border-0 text-[#111114] text-[17px] leading-tight pt-[23px] pb-2 px-3.5 outline-hidden placeholder:text-[#9a9aa2]';
 
   const itemsList = items.map((item, idx) => {
     // "Cheeseburger" + Deluxe → "Cheeseburger Deluxe", como en el carrito y el ticket.
@@ -1900,7 +1900,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     return (
       <div key={`${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`} className="grid grid-cols-[52px_1fr_auto] min-[860px]:grid-cols-[64px_1fr_auto] gap-3 items-start">
         {thumb ? (
-          <div className="relative w-[52px] h-[52px] min-[860px]:w-16 min-[860px]:h-16 rounded-xl min-[860px]:rounded-[14px] overflow-hidden bg-[#e9e9ee]">
+          <div className="relative w-[52px] h-[52px] min-[860px]:w-16 min-[860px]:h-16 rounded-xl min-[860px]:rounded-xl overflow-hidden bg-[#e9e9ee]">
             <Image
               src={thumb.src}
               alt=""
@@ -1916,7 +1916,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           // Sin foto: el mismo cuadrito con ícono que el carrito (antes, un cuadro gris vacío).
           <ProductGlyph
             name={item.product.name}
-            className="w-[52px] h-[52px] min-[860px]:w-16 min-[860px]:h-16 rounded-xl min-[860px]:rounded-[14px]"
+            className="w-[52px] h-[52px] min-[860px]:w-16 min-[860px]:h-16 rounded-xl min-[860px]:rounded-xl"
           />
         )}
         <div className="min-w-0">
@@ -1929,7 +1929,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               {modLines.map((line, k) => (
                 // Recargo solo en los agregados opcionales (Pedro 2026-11-22); en "elegí uno"
                 // (tamaño, estilo) el precio ya está en el del plato. Pegado al texto, no flotando.
-                <p key={k} className={cn('text-[13px] text-[#4f4f57] leading-snug break-words', line.indent && 'pl-3')}>
+                <p key={k} className={cn('text-[13px] text-[#4f4f57] leading-snug wrap-break-word', line.indent && 'pl-3')}>
                   {line.indent && <span className="text-[#9a9aa2]">↳ </span>}{line.text}
                   {line.addon && line.price > 0 && <span className="tabular-nums text-[#6b6b74]"> +{fmtPrice(line.price)}</span>}
                 </p>
@@ -1952,7 +1952,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               }}
               aria-label={confirmingRemove ? t.removeItem : t.decreaseQuantity}
               className={cn(
-                'h-9 min-w-[44px] rounded-full text-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]',
+                'h-9 min-w-[44px] rounded-full text-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500',
                 confirmingRemove ? 'px-3 text-[13.5px] font-semibold text-[#c4321b]' : 'text-[#4f4f57]',
               )}
             >
@@ -1963,7 +1963,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               type="button"
               onClick={() => updateQty(idx, item.qty + 1)}
               aria-label={t.increaseQuantity}
-              className="h-9 min-w-[44px] rounded-full text-lg text-[#4f4f57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+              className="h-9 min-w-[44px] rounded-full text-lg text-[#4f4f57] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               +
             </button>
@@ -1997,7 +1997,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       {tipAmount > 0 && (
         <div className="flex justify-between"><span>{t.tipLabel}</span><span>{fmtPrice(tipAmount)}</span></div>
       )}
-      <div className="flex justify-between items-center pt-2.5 mt-0.5 border-t border-black/[0.09] text-lg font-semibold text-[#111114]">
+      <div className="flex justify-between items-center pt-2.5 mt-0.5 border-t border-black/9 text-lg font-semibold text-[#111114]">
         <span className="flex items-center gap-2">
           {t.total}
           {quoteLoading && <span className="w-3 h-3 rounded-full border-2 border-[#d4d4da] border-t-[#4f4f57] animate-spin" aria-hidden="true" />}
@@ -2057,7 +2057,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             aria-checked={opt.active}
             onClick={opt.onSelect}
             className={cn(
-              'grid content-center gap-px min-h-[52px] px-0.5 rounded-xl transition-[background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] focus-visible:ring-offset-1',
+              'grid content-center gap-px min-h-[52px] px-0.5 rounded-xl transition-[background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1',
               opt.active ? 'bg-[#e2f7f3] shadow-[inset_0_0_0_1.5px_#05c8a7]' : 'bg-[#f5f5f8]',
             )}
           >
@@ -2076,7 +2076,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 aria-pressed={tipChoice.mode === m}
                 onClick={() => setTipChoice({ ...tipChoice, mode: m })}
                 className={cn(
-                  'w-10 h-10 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]',
+                  'w-10 h-10 rounded-[9px] text-sm font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500',
                   tipChoice.mode === m ? 'bg-white text-[#111114] shadow-[0_1px_3px_rgba(0,0,0,.12)]' : 'text-[#4f4f57]',
                 )}
               >
@@ -2092,7 +2092,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             placeholder={tipChoice.mode === '$' ? '0.00' : '18'}
             value={tipChoice.value}
             onChange={(e) => setTipChoice({ ...tipChoice, value: e.target.value.replace(/[^0-9.,]/g, '').slice(0, 6) })}
-            className="flex-1 min-w-0 h-[46px] rounded-xl bg-[#f5f5f8] px-3.5 text-base tabular-nums text-[#111114] outline-none focus:shadow-[inset_0_0_0_1.5px_#05c8a7]"
+            className="flex-1 min-w-0 h-[46px] rounded-xl bg-[#f5f5f8] px-3.5 text-base tabular-nums text-[#111114] outline-hidden focus:shadow-[inset_0_0_0_1.5px_#05c8a7]"
           />
           {tipChoice.mode === '%' && tipAmount > 0 && (
             <span className="text-sm font-semibold text-[#111114] tabular-nums shrink-0">= {fmtPrice(tipAmount)}</span>
@@ -2172,9 +2172,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             disabled={submitting || items.length === 0}
           />
           <div className="flex items-center gap-3 py-0.5" aria-hidden="true">
-            <div className="flex-1 h-px bg-black/[0.09]" />
+            <div className="flex-1 h-px bg-black/9" />
             <span className="text-[12.5px] text-[#6b6b74] font-medium uppercase tracking-wide">{locale === 'en' ? 'or' : 'o'}</span>
-            <div className="flex-1 h-px bg-black/[0.09]" />
+            <div className="flex-1 h-px bg-black/9" />
           </div>
         </div>
       )}
@@ -2201,7 +2201,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   );
 
   return (
-    <div className="h-[100dvh] bg-[#f2f2f6] flex flex-col text-[#111114] antialiased">
+    <div className="h-dvh bg-[#f2f2f6] flex flex-col text-[#111114] antialiased">
       {/* Honeypot — invisible para personas, los bots lo llenan */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', visibility: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
         <label>Website</label>
@@ -2213,7 +2213,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           type="button"
           onClick={goBack}
           aria-label={t.backToMenu}
-          className={cn('relative w-9 h-9 rounded-full bg-white grid place-items-center text-[#111114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] after:absolute after:-inset-1 after:content-[""]', ckShadow)}
+          className={cn('relative w-9 h-9 rounded-full bg-white grid place-items-center text-[#111114] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 after:absolute after:-inset-1 after:content-[""]', ckShadow)}
         >
           <ChevronLeft className="w-[18px] h-[18px]" aria-hidden="true" />
         </button>
@@ -2237,7 +2237,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               onClick={() => setDetailsOpen((v) => !v)}
               aria-expanded={detailsOpen}
               aria-controls="ck-items"
-              className="min-[860px]:hidden mt-2 inline-flex items-center gap-2 py-1.5 text-[15px] font-medium text-[#047a65] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] rounded-lg"
+              className="min-[860px]:hidden mt-2 inline-flex items-center gap-2 py-1.5 text-[15px] font-medium text-[#047a65] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
             >
               {thumbs.length > 0 && (
                 <span className="inline-flex" aria-hidden="true">
@@ -2429,7 +2429,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                               aria-checked={cashChange === c.v}
                               onClick={() => setCashChange(cashChange === c.v ? null : c.v)}
                               className={cn(
-                                'px-3.5 py-2 rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]',
+                                'px-3.5 py-2 rounded-full text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500',
                                 cashChange === c.v ? 'bg-[#111114] text-white' : 'bg-[#f5f5f8] text-[#111114]',
                               )}
                             >
@@ -2502,8 +2502,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               // Franja del color de la página bajo la tarjeta + degradé arriba:
               // lo que scrollea por detrás se desvanece en vez de asomar cortado
               // entre la tarjeta y el borde (iPad acostado, pantallas bajas).
-              <div className="sticky bottom-0 mt-1 -mb-5 pb-5 bg-[#f2f2f6] before:content-[''] before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-b before:from-[#f2f2f6]/0 before:to-[#f2f2f6] before:pointer-events-none">
-                <div className="bg-white rounded-[18px] p-4 shadow-[0_0_0_1px_rgba(17,17,20,.09),0_12px_32px_rgba(17,17,20,.10)]">
+              <div className="sticky bottom-0 mt-1 -mb-5 pb-5 bg-[#f2f2f6] before:content-[''] before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-linear-to-b before:from-[#f2f2f6]/0 before:to-[#f2f2f6] before:pointer-events-none">
+                <div className="bg-white rounded-2xl p-4 shadow-[0_0_0_1px_rgba(17,17,20,.09),0_12px_32px_rgba(17,17,20,.10)]">
                   {ctaBlock}
                 </div>
               </div>
@@ -2593,7 +2593,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               type="checkbox"
               checked={marketingOptIn}
               onChange={(e) => setMarketingOptIn(e.target.checked)}
-              className="w-[22px] h-[22px] shrink-0 accent-[#05c8a7]"
+              className="w-[22px] h-[22px] shrink-0 accent-brand-500"
             />
             <span>{t.marketingOptInLabel.replace('{name}', restaurant.name)}</span>
           </label>
@@ -2603,7 +2603,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             type="checkbox"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-[22px] h-[22px] shrink-0 accent-[#05c8a7]"
+            className="w-[22px] h-[22px] shrink-0 accent-brand-500"
           />
           <span>
             {t.rememberMeLabel}{' · '}

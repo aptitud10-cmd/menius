@@ -65,7 +65,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   return (
     <header
       className={cn(
-        'flex-shrink-0 z-40 transition-colors duration-300',
+        'shrink-0 z-40 transition-colors duration-300',
         // Push content below the iOS notch / Dynamic Island. The inset is 0 on
         // devices without a notch (and on desktop), so this never adds dead space
         // where it isn't needed.
@@ -77,13 +77,13 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
     >
       <div className="relative flex items-center h-12 px-2">
         {/* Left: Back */}
-        <div className="flex items-center flex-shrink-0">
+        <div className="flex items-center shrink-0">
           {backUrl && (
             <Link
               href={backUrl}
               className={cn(
                 'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
-                isTransparent ? 'bg-black/30 backdrop-blur-sm active:bg-black/50' : 'active:bg-gray-100'
+                isTransparent ? 'bg-black/30 backdrop-blur-xs active:bg-black/50' : 'active:bg-gray-100'
               )}
               aria-label={t.goBack}
             >
@@ -98,7 +98,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
         <span className={cn(
           'absolute left-0 right-0 text-center font-extrabold text-[20px] tracking-[-0.03em] px-16 md:px-56 truncate pointer-events-none',
           !showName && 'invisible',
-          isTransparent ? 'text-white drop-shadow' : 'text-gray-900'
+          isTransparent ? 'text-white drop-shadow-sm' : 'text-gray-900'
         )}>
           {restaurant.name}
           {closed && (
@@ -109,7 +109,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
         </span>
 
         {/* Right: Loyalty badge + Dashboard + Search */}
-        <div className="ml-auto flex items-center flex-shrink-0">
+        <div className="ml-auto flex items-center shrink-0">
           {loyaltyPoints != null && loyaltyPoints > 0 && (
             <span className={cn(
               'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold mr-1',
@@ -123,7 +123,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
               href="/app"
               className={cn(
                 'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
-                isTransparent ? 'bg-black/30 backdrop-blur-sm active:bg-black/50' : 'active:bg-gray-100'
+                isTransparent ? 'bg-black/30 backdrop-blur-xs active:bg-black/50' : 'active:bg-gray-100'
               )}
               aria-label="Dashboard"
             >
@@ -143,7 +143,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
             onClick={onToggleSearch}
             className={cn(
               'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
-              isTransparent ? 'bg-black/30 backdrop-blur-sm active:bg-black/50' : 'active:bg-gray-100'
+              isTransparent ? 'bg-black/30 backdrop-blur-xs active:bg-black/50' : 'active:bg-gray-100'
             )}
             aria-label={t.searchProducts}
           >

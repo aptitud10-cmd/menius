@@ -56,14 +56,14 @@ const MessageItem = memo(function MessageItem({ msg }: { msg: Message }) {
       <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed ${
         msg.role === 'user'
           ? 'bg-purple-600 text-white rounded-br-md'
-          : 'bg-white/[0.05] border border-white/[0.06] text-gray-300 rounded-bl-md'
+          : 'bg-white/5 border border-white/6 text-gray-300 rounded-bl-md'
       }`}>
         {msg.role === 'assistant' ? (
           <div className="whitespace-pre-wrap">
             {msg.text.split('\n').map((line, i, arr) => (
               <span key={i}>{formatAIText(line)}{i < arr.length - 1 && <br />}</span>
             ))}
-            {msg.streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-purple-400 animate-pulse rounded-sm align-middle" />}
+            {msg.streaming && <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-purple-400 animate-pulse rounded-xs align-middle" />}
           </div>
         ) : (
           <span>{msg.text}</span>
@@ -103,12 +103,12 @@ function ChatPanel({
   headerExtra?: React.ReactNode;
 }) {
   return (
-    <div className="relative bg-[#0c0c0c] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden h-full">
+    <div className="relative bg-[#0c0c0c] border border-white/8 rounded-2xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden h-full">
       {headerExtra}
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] bg-gradient-to-r from-purple-500/[0.08] to-transparent flex-shrink-0">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/6 bg-linear-to-r from-purple-500/8 to-transparent shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-linear-to-br from-purple-500 to-purple-600 flex items-center justify-center shrink-0">
           <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
@@ -117,16 +117,16 @@ function ChatPanel({
           <h3 className="text-sm font-semibold text-white leading-tight">{t.chat_title}</h3>
           <p className="text-[11px] text-gray-500 leading-tight">{t.chat_subtitle}</p>
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {messages.length > 0 && (
             <button onClick={onNewConversation}
-              className="px-2 py-1 rounded-lg text-[10px] font-medium text-gray-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-all"
+              className="px-2 py-1 rounded-lg text-[10px] font-medium text-gray-400 hover:text-white bg-white/4 hover:bg-white/8 border border-white/6 transition-all"
               title={t.chat_newConversation}>
               {t.chat_newConversation}
             </button>
           )}
           <button onClick={onClose}
-            className="w-10 h-10 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center transition-colors"
+            className="w-10 h-10 rounded-xl bg-white/6 hover:bg-white/12 flex items-center justify-center transition-colors"
             aria-label={isEn ? 'Close chat' : 'Cerrar chat'}>
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -139,7 +139,7 @@ function ChatPanel({
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 scrollbar-hide">
         {messages.length === 0 && (
           <div className="text-center py-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-3">
+            <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-3">
               <svg className="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
               </svg>
@@ -155,7 +155,7 @@ function ChatPanel({
             <div className="flex flex-wrap gap-1.5">
               {quickQuestions.map((q) => (
                 <button key={q} onClick={() => onQuickSend(q)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white hover:bg-purple-500/10 hover:border-purple-500/20 transition-all">
+                  className="text-xs px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 text-gray-400 hover:text-white hover:bg-purple-500/10 hover:border-purple-500/20 transition-all">
                   {q}
                 </button>
               ))}
@@ -170,9 +170,9 @@ function ChatPanel({
             <div key={msg.id} ref={isLastAI ? lastAiMsgRef : undefined}>
               {isFirstNew && visibleMessages.some(m => m.pastSession) && (
                 <div className="flex items-center gap-2 my-3">
-                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <div className="flex-1 h-px bg-white/6" />
                   <span className="text-[10px] text-gray-600 font-medium uppercase tracking-wider">{isEn ? 'New conversation' : 'Nueva conversación'}</span>
-                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <div className="flex-1 h-px bg-white/6" />
                 </div>
               )}
               <MessageItem msg={msg} />
@@ -182,7 +182,7 @@ function ChatPanel({
 
         {loading && !messages.some(m => m.streaming) && (
           <div className="flex justify-start">
-            <div className="bg-white/[0.05] border border-white/[0.06] rounded-2xl rounded-bl-md px-4 py-3">
+            <div className="bg-white/5 border border-white/6 rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                 <div className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -196,7 +196,7 @@ function ChatPanel({
       </div>
 
       {/* Input area */}
-      <div className="flex-shrink-0 border-t border-white/[0.06] px-3 py-2.5 bg-[#080808]">
+      <div className="shrink-0 border-t border-white/6 px-3 py-2.5 bg-[#080808]">
         <form onSubmit={onSubmit} className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -205,10 +205,10 @@ function ChatPanel({
             onChange={(e) => onInput(e.target.value)}
             placeholder={t.chat_placeholder}
             disabled={loading}
-            className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30 focus:border-purple-500/20 transition-all disabled:opacity-50"
+            className="flex-1 bg-white/4 border border-white/8 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:ring-1 focus:ring-purple-500/30 focus:border-purple-500/20 transition-all disabled:opacity-50"
           />
           <button type="submit" disabled={!input.trim() || loading}
-            className="w-10 h-10 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:bg-white/[0.04] disabled:text-gray-600 text-white flex items-center justify-center transition-all disabled:cursor-not-allowed flex-shrink-0">
+            className="w-10 h-10 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:bg-white/4 disabled:text-gray-600 text-white flex items-center justify-center transition-all disabled:cursor-not-allowed shrink-0">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
             </svg>
@@ -560,7 +560,7 @@ export function AIChatWidget() {
         {/* Mobile launcher button — sits above the MobileBottomNav (~56px) + gap.
             Se oculta cuando el chat está abierto: con open, su ícono X se solapaba
             con el botón enviar del panel (misma esquina inferior derecha). */}
-        <div className={`fixed bottom-[max(84px,calc(80px_+_env(safe-area-inset-bottom)))] right-4 z-50 ${open ? 'hidden' : ''}`}>
+        <div className={`fixed bottom-[max(84px,calc(80px+env(safe-area-inset-bottom)))] right-4 z-50 ${open ? 'hidden' : ''}`}>
           {showProactive && !open && (
             <div className="absolute bottom-full right-0 mb-2 pointer-events-none">
               <div className="bg-gray-900 text-white text-xs px-3 py-2 rounded-xl shadow-xl whitespace-nowrap border border-white/10">
@@ -573,8 +573,8 @@ export function AIChatWidget() {
             onClick={handleOpen}
             className={`relative w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 ${
               open
-                ? 'bg-[#1a1a1a] border border-white/[0.15]'
-                : 'bg-gradient-to-br from-purple-600 to-purple-700 shadow-purple-500/25'
+                ? 'bg-[#1a1a1a] border border-white/15'
+                : 'bg-linear-to-br from-purple-600 to-purple-700 shadow-purple-500/25'
             }`}
             aria-label={open ? (isEn ? 'Close assistant' : 'Cerrar asistente') : (isEn ? 'Open AI assistant' : 'Abrir asistente IA')}
           >
@@ -616,8 +616,8 @@ export function AIChatWidget() {
             onClick={handleOpen}
             className={`relative w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center motion-reduce:transition-none transition-all duration-300 hover:scale-105 ${
               open
-                ? 'bg-[#1a1a1a] border border-white/[0.15] hover:bg-[#252525]'
-                : 'bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-purple-500/25'
+                ? 'bg-[#1a1a1a] border border-white/15 hover:bg-[#252525]'
+                : 'bg-linear-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-purple-500/25'
             }`}
             aria-label={open ? (isEn ? 'Close assistant' : 'Cerrar asistente') : (isEn ? 'Open AI assistant' : 'Abrir asistente IA')}
           >

@@ -73,7 +73,7 @@ export function BlogGrid({ posts, categories, locale = 'es' }: BlogGridProps) {
     <>
       {/* Categories — auto-hides on scroll-down for mobile */}
       <section
-        className={`sticky top-16 z-40 bg-[#050505]/80 backdrop-blur-2xl border-b border-white/[0.04] transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}
+        className={`sticky top-16 z-40 bg-[#050505]/80 backdrop-blur-2xl border-b border-white/4 transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}
       >
         <div className="max-w-5xl mx-auto">
           <CategoryFilter
@@ -134,7 +134,7 @@ export function BlogGrid({ posts, categories, locale = 'es' }: BlogGridProps) {
                   <p className="text-sm text-gray-500 leading-relaxed flex-1 line-clamp-3">
                     {post.description}
                   </p>
-                  <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between">
+                  <div className="mt-4 pt-4 border-t border-white/6 flex items-center justify-between">
                     <span className="text-xs text-gray-600">{formatDate(post.date, locale)}</span>
                     <span className="text-xs font-medium text-emerald-400 group-hover:text-emerald-300 transition-colors">
                       {ui.read}
@@ -152,7 +152,7 @@ export function BlogGrid({ posts, categories, locale = 'es' }: BlogGridProps) {
 
         {/* CTA */}
         <div className="mt-20 relative text-center rounded-2xl overflow-hidden p-10 md:p-14">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-blue-600/10 rounded-2xl" />
+          <div className="absolute inset-0 bg-linear-to-br from-emerald-600/10 to-blue-600/10 rounded-2xl" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
           <div className="relative z-10">
             <h2 className="text-2xl md:text-4xl font-semibold text-white tracking-tight mb-4">

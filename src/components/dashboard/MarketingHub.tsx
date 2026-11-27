@@ -47,7 +47,7 @@ export function MarketingHub(props: Props) {
               className={cn(
                 'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-1 justify-center',
                 activeTab === tab.id
-                  ? 'bg-white text-gray-900 shadow-sm'
+                  ? 'bg-white text-gray-900 shadow-xs'
                   : 'text-gray-500 hover:text-gray-700'
               )}
             >

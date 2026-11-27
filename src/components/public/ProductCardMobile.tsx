@@ -106,7 +106,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
     >
 
       {/* Image */}
-      <div className={cn('relative w-full bg-ink-100 flex-shrink-0 overflow-hidden', wide ? 'aspect-[16/9] md:aspect-square' : 'aspect-square')}>
+      <div className={cn('relative w-full bg-ink-100 shrink-0 overflow-hidden', wide ? 'aspect-video md:aspect-square' : 'aspect-square')}>
 
         {showImage ? (
           <>
@@ -129,7 +129,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             />
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-ink-50 to-ink-100">
+          <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-ink-50 to-ink-100">
             <UtensilsCrossed className="w-9 h-9 text-ink-300" aria-hidden="true" />
           </div>
         )}
@@ -143,13 +143,13 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         )}
         {!outOfStock && (() => {
           const rank = showsPopularityBadge(product) ? product.popularity_rank : null;
-          if (rank === 1) return <span className="absolute top-2 left-2 text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-sm">{t.popularityTop1}</span>;
-          if (rank != null && rank <= 3) return <span className="absolute top-2 left-2 text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-sm">Top {rank}</span>;
-          if (product.is_new) return <span className="absolute top-2 left-2 text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-sm">{t.productNew}</span>;
+          if (rank === 1) return <span className="absolute top-2 left-2 text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-xs">{t.popularityTop1}</span>;
+          if (rank != null && rank <= 3) return <span className="absolute top-2 left-2 text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-xs">Top {rank}</span>;
+          if (product.is_new) return <span className="absolute top-2 left-2 text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-xs">{t.productNew}</span>;
           return null;
         })()}
         {!outOfStock && showDineInOnly && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-sm">
+          <span className="absolute bottom-2 right-2 inline-flex items-center text-[12px] font-semibold px-2 py-1 rounded-full leading-none bg-white/95 text-ink-950 shadow-xs">
             {t.dineInOnlyBadge}
           </span>
         )}
@@ -159,7 +159,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             key={cartQty}
             initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="absolute bottom-2 left-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-[#05c8a7] text-[#04241E] text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
+            className="absolute bottom-2 left-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-brand-500 text-[#04241E] text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
           >
             {cartQty}
           </motion.span>
@@ -172,7 +172,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
           aria-pressed={isFav}
         >
-          <span className="w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm">
+          <span className="w-7 h-7 rounded-full bg-white/85 backdrop-blur-xs flex items-center justify-center shadow-xs">
             <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-ink-400')} />
           </span>
         </button>}
@@ -216,7 +216,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             )}
           </div>
           {outOfStock ? (
-            <div className="w-9 h-9 rounded-full bg-ink-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-ink-100 flex items-center justify-center shrink-0">
               <Ban className="w-4 h-4 text-ink-300" />
             </div>
           ) : (
@@ -224,12 +224,12 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             <button
               onClick={handleAddClick}
               aria-label={justAdded ? t.addedToCart : (hasModifiers ? t.ariaCustomize(displayName) : t.ariaAdd(displayName))}
-              className="relative z-10 w-11 h-11 flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]"
+              className="relative z-10 w-11 h-11 flex items-center justify-center shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-brand-500"
             >
               <span
                 className={cn(
                   'w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-300 shadow-md pointer-events-none',
-                  justAdded ? 'bg-[#05c8a7] text-[#04241E] scale-110' : 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096]'
+                  justAdded ? 'bg-brand-500 text-[#04241E] scale-110' : 'bg-brand-500 text-[#04241E] hover:bg-[#04b096]'
                 )}
               >
                 {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}

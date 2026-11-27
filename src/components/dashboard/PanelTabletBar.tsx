@@ -121,7 +121,7 @@ export function PanelTabletBar({ restaurantId }: { restaurantId: string }) {
 
   return (
     <div
-      className="fixed left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-32px)] max-w-[640px] bottom-20 md:bottom-5"
+      className="fixed left-1/2 -translate-x-1/2 z-60 w-[calc(100%-32px)] max-w-[640px] bottom-20 md:bottom-5"
       style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
       role={alert ? 'alert' : 'status'}
     >

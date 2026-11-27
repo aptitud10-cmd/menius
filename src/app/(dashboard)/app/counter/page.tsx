@@ -160,7 +160,7 @@ export default function CounterHubPage() {
         <ol className="space-y-4">
           {installSteps.map((text, i) => (
             <li key={i} className="flex gap-4">
-              <span className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center flex-shrink-0">
+              <span className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center shrink-0">
                 {i + 1}
               </span>
               <p className="text-sm text-gray-600 leading-relaxed pt-0.5">{text}</p>
@@ -207,7 +207,7 @@ export default function CounterHubPage() {
 
         {/* WiFi note */}
         <div className="mt-6 flex items-start gap-3 p-3.5 rounded-xl bg-blue-50 border border-blue-100">
-          <Wifi className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+          <Wifi className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
           <p className="text-xs text-blue-700 leading-relaxed">
             <span className="font-semibold">{t.counter_hub_wifiLabel}</span>{' '}
             {t.counter_hub_wifiNote}
@@ -276,7 +276,7 @@ function ApkQRCode({ url }: { url: string }) {
 function Spec({ text }: { text: string }) {
   return (
     <li className="flex items-center gap-2">
-      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
       <span>{text}</span>
     </li>
   );
@@ -285,7 +285,7 @@ function Spec({ text }: { text: string }) {
 function HardwareSpec({ label, value }: { label: string; value: string }) {
   return (
     <li className="flex items-start justify-between gap-2 text-sm">
-      <span className="text-gray-400 flex-shrink-0">{label}</span>
+      <span className="text-gray-400 shrink-0">{label}</span>
       <span className="text-gray-700 text-right">{value}</span>
     </li>
   );
@@ -304,7 +304,7 @@ function PrinterModel({
 }) {
   return (
     <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${highlight ? 'bg-white border border-purple-200' : 'bg-purple-50/60'}`}>
-      <Printer className={`w-4 h-4 mt-0.5 flex-shrink-0 ${highlight ? 'text-purple-600' : 'text-purple-400'}`} />
+      <Printer className={`w-4 h-4 mt-0.5 shrink-0 ${highlight ? 'text-purple-600' : 'text-purple-400'}`} />
       <div className="min-w-0">
         <p className={`text-xs font-semibold ${highlight ? 'text-purple-900' : 'text-purple-800'}`}>{name}</p>
         <p className="text-[11px] text-purple-600 mt-0.5">{conn} · {best}</p>

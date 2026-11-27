@@ -134,7 +134,7 @@ export default function PrintersContent({ initialPrinters, initialStatus }: { in
           <h1 className="dash-heading">{t.title}</h1>
           <p className="text-sm text-gray-600 mt-1">{t.sub}</p>
         </div>
-        <button onClick={add} disabled={busy === 'add'} className="dash-btn-primary flex-shrink-0">
+        <button onClick={add} disabled={busy === 'add'} className="dash-btn-primary shrink-0">
           {busy === 'add' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} {t.add}
         </button>
       </div>
@@ -142,7 +142,7 @@ export default function PrintersContent({ initialPrinters, initialStatus }: { in
       {reveal && (
         <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 space-y-3">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-bold text-amber-900">{t.urlTitle}</p>
               <p className="text-xs text-amber-800 mt-0.5">{t.urlSub}</p>
@@ -150,7 +150,7 @@ export default function PrintersContent({ initialPrinters, initialStatus }: { in
           </div>
           <div className="flex items-center gap-2 bg-white rounded-xl border border-amber-200 px-4 py-3">
             <code className="flex-1 text-xs font-mono text-gray-900 break-all">{reveal.url}</code>
-            <button onClick={() => copy(reveal.url)} className="flex-shrink-0 p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors" aria-label="Copy">
+            <button onClick={() => copy(reveal.url)} className="shrink-0 p-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors" aria-label="Copy">
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
@@ -177,7 +177,7 @@ export default function PrintersContent({ initialPrinters, initialStatus }: { in
           return (
             <div key={p.id} className={cn('bg-white rounded-2xl border border-gray-200 p-5 space-y-4', !p.is_active && 'opacity-60')}>
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
                   <PrinterIcon className="w-5 h-5 text-gray-700" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -195,7 +195,7 @@ export default function PrintersContent({ initialPrinters, initialStatus }: { in
                     </p>
                   ) : null}
                 </div>
-                <label className="flex items-center gap-2 text-[13px] font-semibold text-gray-800 cursor-pointer flex-shrink-0">
+                <label className="flex items-center gap-2 text-[13px] font-semibold text-gray-800 cursor-pointer shrink-0">
                   <input type="checkbox" className="w-4 h-4 accent-emerald-600" checked={p.is_active} disabled={busy === `save-${p.id}`}
                     onChange={(e) => save(p, { is_active: e.target.checked })} />
                   {t.active}

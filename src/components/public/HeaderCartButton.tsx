@@ -44,11 +44,11 @@ export function HeaderCartButton({
       aria-label={t.openOrderAria(count)}
       className={cn(
         'inline-flex items-center gap-2 h-10 pl-3 pr-3.5 rounded-full text-[14px] font-semibold whitespace-nowrap transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#05c8a7]',
+        'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-500',
         filled
-          ? 'bg-[#05c8a7] text-[#04241E] hover:bg-[#04b096] shadow-[0_2px_8px_rgba(5,200,167,0.35)]'
+          ? 'bg-brand-500 text-[#04241E] hover:bg-[#04b096] shadow-[0_2px_8px_rgba(5,200,167,0.35)]'
           : overPhoto
-            ? 'bg-white/90 text-gray-900 backdrop-blur-sm hover:bg-white'
+            ? 'bg-white/90 text-gray-900 backdrop-blur-xs hover:bg-white'
             : 'bg-gray-100 text-gray-800 hover:bg-gray-200',
         className,
       )}

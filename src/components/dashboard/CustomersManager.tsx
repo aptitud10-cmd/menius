@@ -181,14 +181,14 @@ export function CustomersManager({ currency }: Props) {
             placeholder={t.customers_searchPlaceholder}
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-emerald-500/30"
           />
         </div>
         <div className="relative">
           <select
             value={sortBy}
             onChange={e => { setSortBy(e.target.value as SortKey); setPage(1); }}
-            className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+            className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm text-gray-700 focus:outline-hidden focus:ring-1 focus:ring-emerald-500/30"
           >
             <option value="last_order_at">{t.customers_sortLastOrder}</option>
             <option value="total_spent">{t.customers_sortMostSpent}</option>
@@ -287,7 +287,7 @@ export function CustomersManager({ currency }: Props) {
                     <td className="px-4 py-3">
                       <p className="text-gray-900 font-medium truncate max-w-[200px]">
                         {(c.incident_count ?? 0) > 0 && (
-                          <span className="mr-1.5 inline-block px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-50 text-red-600 border border-red-200 align-middle">
+                          <span className="mr-1.5 inline-block px-1.5 py-0.5 text-[10px] font-bold rounded-sm bg-red-50 text-red-600 border border-red-200 align-middle">
                             ⚠ {c.incident_count}
                           </span>
                         )}
@@ -440,7 +440,7 @@ export function CustomersManager({ currency }: Props) {
 
           {selected.address && (
             <div className="flex items-start gap-2 text-sm text-gray-400">
-              <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
               <span>{selected.address}</span>
             </div>
           )}
@@ -454,7 +454,7 @@ export function CustomersManager({ currency }: Props) {
               value={editTags}
               onChange={e => setEditTags(e.target.value)}
               placeholder={t.customers_tagsPlaceholder}
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-emerald-500/30"
             />
           </div>
 
@@ -465,7 +465,7 @@ export function CustomersManager({ currency }: Props) {
               onChange={e => setEditNotes(e.target.value)}
               rows={3}
               placeholder={t.customers_notesPlaceholder}
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 resize-none"
+              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-emerald-500/30 resize-none"
             />
           </div>
 

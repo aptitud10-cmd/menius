@@ -74,7 +74,7 @@ export default function DataPrivacyPage() {
       {/* Export Section */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
             <Shield className="w-5 h-5 text-blue-500" />
           </div>
           <div>
@@ -87,7 +87,7 @@ export default function DataPrivacyPage() {
         <ul className="space-y-1 text-xs text-gray-500 ml-13 pl-1">
           {[t.data_restaurantInfo, t.data_fullMenu, t.data_orderHistory, t.data_customerBase, t.data_subscriptionData].map(item => (
             <li key={item} className="flex items-center gap-2">
-              <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0" />
+              <span className="w-1 h-1 rounded-full bg-gray-400 shrink-0" />
               {item}
             </li>
           ))}
@@ -105,7 +105,7 @@ export default function DataPrivacyPage() {
       {/* Delete Section */}
       <div className="bg-white border border-red-200 rounded-2xl p-6 space-y-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5 text-red-500" />
           </div>
           <div>
@@ -130,7 +130,7 @@ export default function DataPrivacyPage() {
               value={confirmation}
               onChange={e => { setConfirmation(e.target.value); setDeleteError(''); }}
               placeholder={confirmWord}
-              className="w-full bg-white border border-red-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400/30 font-mono"
+              className="w-full bg-white border border-red-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-red-400/30 font-mono"
             />
             {deleteError && (
               <p className="text-xs text-red-600">{deleteError}</p>

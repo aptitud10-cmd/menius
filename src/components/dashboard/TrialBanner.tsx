@@ -49,7 +49,7 @@ export function TrialBanner({ initialSub }: { initialSub?: SubInfo | null } = {}
             : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200',
         )}
       >
-        <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+        <Clock className="w-3.5 h-3.5 shrink-0" />
         <span className="flex-1 leading-snug">
           <span className="block font-semibold">
             {daysLeft === 0
@@ -68,7 +68,7 @@ export function TrialBanner({ initialSub }: { initialSub?: SubInfo | null } = {}
               : (isEn ? "Subscribe to Pro, or you'll move to Free when it ends" : 'Suscríbete a Pro o al terminar pasarás a Free')}
           </span>
         </span>
-        <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+        <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
       </Link>
     );
   }
@@ -87,14 +87,14 @@ export function TrialBanner({ initialSub }: { initialSub?: SubInfo | null } = {}
       href="/app/billing"
       className="mx-3 mb-2 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors group"
     >
-      <Zap className="w-3.5 h-3.5 flex-shrink-0" />
+      <Zap className="w-3.5 h-3.5 shrink-0" />
       <span className="flex-1 leading-snug">
         {isEn ? 'Free plan · cash only' : 'Plan gratuito · solo efectivo'}
       </span>
       <span className="text-[10px] font-semibold bg-emerald-600 text-white px-1.5 py-0.5 rounded-full group-hover:bg-emerald-700 transition-colors">
         {isEn ? 'Upgrade' : 'Mejorar'}
       </span>
-      <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+      <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
     </Link>
   );
 }

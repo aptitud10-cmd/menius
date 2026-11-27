@@ -124,7 +124,7 @@ export function CustomizePanel({
           </p>
         )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 flex flex-col gap-5 [&>*]:shrink-0">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 flex flex-col gap-5 *:shrink-0">
           {tab === 'sound' && (
             <>
               {/* Cuatro sonidos, uno por tipo de local; Firma (el oficial) arriba y destacado. */}

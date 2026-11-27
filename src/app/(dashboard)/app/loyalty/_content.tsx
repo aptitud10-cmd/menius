@@ -112,7 +112,7 @@ export default function LoyaltyContent() {
         <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6">
           <p className="text-sm font-bold text-amber-800 mb-2">{en ? 'Migration required' : 'Migración requerida'}</p>
           <p className="text-sm text-amber-700 mb-4">
-            {en ? 'Run' : 'Ejecuta'} <code className="font-mono bg-amber-100 px-1.5 py-0.5 rounded">supabase/migration-loyalty.sql</code> {en ? 'in your Supabase SQL Editor to activate the loyalty system.' : 'en tu base de datos Supabase para activar el sistema de lealtad.'}
+            {en ? 'Run' : 'Ejecuta'} <code className="font-mono bg-amber-100 px-1.5 py-0.5 rounded-sm">supabase/migration-loyalty.sql</code> {en ? 'in your Supabase SQL Editor to activate the loyalty system.' : 'en tu base de datos Supabase para activar el sistema de lealtad.'}
           </p>
           <pre className="text-xs bg-gray-900 text-emerald-400 p-3 rounded-xl overflow-x-auto">
             {en ? `-- In Supabase SQL Editor:\n-- Paste the content of migration-loyalty.sql` : `-- En Supabase SQL Editor:\n-- Pega el contenido de migration-loyalty.sql`}
@@ -158,13 +158,13 @@ export default function LoyaltyContent() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit flex-wrap">
-        <button onClick={() => setActiveTab('config')} className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === 'config' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500')}>
+        <button onClick={() => setActiveTab('config')} className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === 'config' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500')}>
           <span className="flex items-center gap-1.5"><Settings2 className="w-3.5 h-3.5" /> {en ? 'Settings' : 'Configuración'}</span>
         </button>
-        <button onClick={() => setActiveTab('members')} className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === 'members' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500')}>
+        <button onClick={() => setActiveTab('members')} className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === 'members' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500')}>
           <span className="flex items-center gap-1.5"><Gift className="w-3.5 h-3.5" /> {en ? 'Members' : 'Miembros'} ({totalMembers})</span>
         </button>
-        <button onClick={() => setActiveTab('leaderboard')} className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === 'leaderboard' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500')}>
+        <button onClick={() => setActiveTab('leaderboard')} className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === 'leaderboard' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500')}>
           <span className="flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" /> {en ? 'Top Customers' : 'Top Clientes'}</span>
         </button>
       </div>
@@ -181,7 +181,7 @@ export default function LoyaltyContent() {
               onClick={() => setConfig(c => c ? { ...c, enabled: !c.enabled } : c)}
               className={cn('w-12 h-6 rounded-full transition-colors relative', config.enabled ? 'bg-emerald-500' : 'bg-gray-200')}
             >
-              <span className={cn('absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all', config.enabled ? 'left-[calc(100%-1.375rem)]' : 'left-0.5')} />
+              <span className={cn('absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all', config.enabled ? 'left-[calc(100%-1.375rem)]' : 'left-0.5')} />
             </button>
           </div>
 
@@ -196,7 +196,7 @@ export default function LoyaltyContent() {
                 step="0.1"
                 value={config.points_per_peso}
                 onChange={e => setConfig(c => c ? { ...c, points_per_peso: parseFloat(e.target.value) || 1 } : c)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
               />
               <p className="text-xs text-gray-400 mt-1">{en ? 'e.g. 1 = 1 point per $1 spent' : 'Ej: 1 = 1 punto por cada $1 gastado'}</p>
             </div>
@@ -207,7 +207,7 @@ export default function LoyaltyContent() {
                 min="1"
                 value={config.min_redeem_points}
                 onChange={e => setConfig(c => c ? { ...c, min_redeem_points: parseInt(e.target.value) || 100 } : c)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
               />
             </div>
             <div>
@@ -218,7 +218,7 @@ export default function LoyaltyContent() {
                 step="0.01"
                 value={config.peso_per_point}
                 onChange={e => setConfig(c => c ? { ...c, peso_per_point: parseFloat(e.target.value) || 0.1 } : c)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
               />
               <p className="text-xs text-gray-400 mt-1">{en ? 'e.g. 0.10 = 10 points = $1' : 'Ej: 0.10 = 10 puntos equivalen a $1'}</p>
             </div>
@@ -229,7 +229,7 @@ export default function LoyaltyContent() {
                 min="0"
                 value={config.welcome_points}
                 onChange={e => setConfig(c => c ? { ...c, welcome_points: parseInt(e.target.value) || 0 } : c)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
               />
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function LoyaltyContent() {
                     min="0"
                     value={config.referral_points_referrer}
                     onChange={e => setConfig(c => c ? { ...c, referral_points_referrer: parseInt(e.target.value) || 0 } : c)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
                   />
                   <p className="text-xs text-gray-400 mt-1">{en ? 'Points when their friend orders' : 'Puntos cuando su amigo ordena'}</p>
                 </div>
@@ -269,7 +269,7 @@ export default function LoyaltyContent() {
                     min="0"
                     value={config.referral_points_referee}
                     onChange={e => setConfig(c => c ? { ...c, referral_points_referee: parseInt(e.target.value) || 0 } : c)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
                   />
                   <p className="text-xs text-gray-400 mt-1">{en ? 'Points for the new member' : 'Puntos para el nuevo miembro'}</p>
                 </div>
@@ -302,7 +302,7 @@ export default function LoyaltyContent() {
               const pct = Math.round((a.lifetime_points / maxPts) * 100);
               return (
                 <div key={a.id} className={cn('bg-white rounded-2xl border p-4 flex items-center gap-4', i === 0 ? 'border-amber-200 bg-amber-50/40' : i === 1 ? 'border-gray-200' : 'border-gray-100')}>
-                  <div className="w-10 flex-shrink-0 text-center">
+                  <div className="w-10 shrink-0 text-center">
                     {medal ? (
                       <span className="text-2xl">{medal}</span>
                     ) : (
@@ -312,7 +312,7 @@ export default function LoyaltyContent() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-sm font-bold text-gray-900 truncate">{a.customer_name ?? (en ? 'No name' : 'Sin nombre')}</p>
-                      <p className="text-sm font-black text-amber-600 tabular-nums ml-2 flex-shrink-0">⭐ {a.lifetime_points.toLocaleString()}</p>
+                      <p className="text-sm font-black text-amber-600 tabular-nums ml-2 shrink-0">⭐ {a.lifetime_points.toLocaleString()}</p>
                     </div>
                     <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
@@ -373,13 +373,13 @@ export default function LoyaltyContent() {
                           value={adjustPoints}
                           onChange={e => setAdjustPoints(e.target.value)}
                           placeholder={en ? 'Points (e.g. -50 or +100)' : 'Puntos (ej. -50 o +100)'}
-                          className="w-36 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                          className="w-36 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
                         />
                         <input
                           value={adjustNote}
                           onChange={e => setAdjustNote(e.target.value)}
                           placeholder={en ? 'Note (optional)' : 'Nota (opcional)'}
-                          className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                          className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:border-gray-900"
                         />
                         <button
                           onClick={adjustAccount}

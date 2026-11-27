@@ -10,7 +10,7 @@ export default function DriverOfflinePage() {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] bg-gray-950 flex flex-col items-center justify-center p-6 text-white">
+    <div className="min-h-dvh bg-gray-950 flex flex-col items-center justify-center p-6 text-white">
       <div className="w-full max-w-sm space-y-6 text-center">
         <div className="w-20 h-20 rounded-full bg-amber-500/15 flex items-center justify-center mx-auto">
           <svg className="w-10 h-10 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -31,19 +31,19 @@ export default function DriverOfflinePage() {
 
         <div className="bg-gray-900 rounded-2xl p-4 text-left space-y-2">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
             <span className="text-xs text-gray-300">
               {en ? 'GPS continues to work offline' : 'El GPS continúa funcionando sin conexión'}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
             <span className="text-xs text-gray-300">
               {en ? 'Status updates queued for sync' : 'Actualizaciones guardadas para sincronizar'}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
             <span className="text-xs text-gray-300">
               {en ? 'No deliveries will be lost' : 'Ninguna entrega se perderá'}
             </span>

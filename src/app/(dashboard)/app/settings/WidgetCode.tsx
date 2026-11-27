@@ -50,7 +50,7 @@ export function WidgetCode({ slug, isEn = false }: WidgetCodeProps) {
         <button
           onClick={handleCopy}
           aria-label={isEn ? 'Copy code' : 'Copiar código'}
-          className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors shadow-sm"
+          className="absolute top-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors shadow-xs"
         >
           {copied ? (
             <>

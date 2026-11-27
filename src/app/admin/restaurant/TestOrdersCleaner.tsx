@@ -78,7 +78,7 @@ export function TestOrdersCleaner({ restaurantId, slug, fmt, onDone }: {
 
   return (
     <div className="bg-[#0d0d0d] border border-white/[0.07] rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between gap-3 flex-wrap">
+      <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between gap-3 flex-wrap">
         <div>
           <p className="text-sm font-semibold text-white">Pedidos de prueba</p>
           <p className="text-xs text-gray-600 mt-0.5">Solo admin. Los cobrados con tarjeta no se pueden borrar: se cancelan o reembolsan.</p>
@@ -87,7 +87,7 @@ export function TestOrdersCleaner({ restaurantId, slug, fmt, onDone }: {
           {rows && deletable.length > 0 && (
             <button type="button" disabled={busy}
               onClick={() => setSel(allOn ? new Set() : new Set(deletable.map((r) => r.id)))}
-              className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-gray-300 hover:text-white disabled:opacity-50">
+              className="px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 text-xs text-gray-300 hover:text-white disabled:opacity-50">
               {allOn ? 'Quitar selección' : `Seleccionar todos (${deletable.length})`}
             </button>
           )}
@@ -98,33 +98,33 @@ export function TestOrdersCleaner({ restaurantId, slug, fmt, onDone }: {
             </button>
           ) : (
             <button type="button" disabled={busy} onClick={load}
-              className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-gray-300 hover:text-white disabled:opacity-50">
+              className="px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 text-xs text-gray-300 hover:text-white disabled:opacity-50">
               {busy ? 'Cargando…' : 'Ver pedidos'}
             </button>
           )}
         </div>
       </div>
       {msg && (
-        <p className={`px-5 py-2.5 text-xs border-b border-white/[0.06] ${msg.ok ? 'text-emerald-400' : 'text-red-400'}`}>{msg.text}</p>
+        <p className={`px-5 py-2.5 text-xs border-b border-white/6 ${msg.ok ? 'text-emerald-400' : 'text-red-400'}`}>{msg.text}</p>
       )}
       {rows && (
         rows.length === 0 ? (
           <p className="px-5 py-6 text-sm text-gray-700 text-center">Sin pedidos</p>
         ) : (
-          <div className="max-h-[420px] overflow-y-auto divide-y divide-white/[0.04]">
+          <div className="max-h-[420px] overflow-y-auto divide-y divide-white/4">
             {rows.map((r) => (
-              <label key={r.id} className={`px-5 py-2.5 flex items-center gap-3 ${r.deletable ? 'cursor-pointer hover:bg-white/[0.02]' : 'opacity-50'}`}>
+              <label key={r.id} className={`px-5 py-2.5 flex items-center gap-3 ${r.deletable ? 'cursor-pointer hover:bg-white/2' : 'opacity-50'}`}>
                 <input type="checkbox" disabled={!r.deletable || busy} checked={sel.has(r.id)} onChange={() => toggle(r.id)}
-                  className="w-4 h-4 accent-red-500 flex-shrink-0" />
+                  className="w-4 h-4 accent-red-500 shrink-0" />
                 <span className="flex-1 min-w-0 text-sm text-white truncate">
                   #{r.order_number}
                   {r.customer_name && <span className="text-gray-500"> · {r.customer_name}</span>}
                 </span>
-                <span className="text-xs text-gray-600 flex-shrink-0">
+                <span className="text-xs text-gray-600 shrink-0">
                   {new Date(r.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 </span>
-                <span className="text-[10px] text-gray-500 w-16 text-right flex-shrink-0">{r.deletable ? r.status : 'cobrado'}</span>
-                <span className="text-sm font-bold text-white tabular-nums w-20 text-right flex-shrink-0">{fmt(Number(r.total || 0))}</span>
+                <span className="text-[10px] text-gray-500 w-16 text-right shrink-0">{r.deletable ? r.status : 'cobrado'}</span>
+                <span className="text-sm font-bold text-white tabular-nums w-20 text-right shrink-0">{fmt(Number(r.total || 0))}</span>
               </label>
             ))}
           </div>

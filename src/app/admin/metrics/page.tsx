@@ -59,7 +59,7 @@ const SUB_STATUS: Record<string, { label: string; cls: string }> = {
   trialing: { label: 'Trial', cls: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
   past_due: { label: 'Vencido', cls: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
   canceled: { label: 'Cancelado', cls: 'text-red-400 bg-red-500/10 border-red-500/20' },
-  none: { label: 'Free', cls: 'text-gray-500 bg-white/[0.03] border-white/[0.06]' },
+  none: { label: 'Free', cls: 'text-gray-500 bg-white/3 border-white/6' },
 };
 
 const REFRESH_INTERVAL = 60; // seconds
@@ -74,7 +74,7 @@ function KpiCard({
 }) {
   const up = delta !== undefined && delta >= 0;
   return (
-    <div className="relative bg-[#0d0d0d] border border-white/[0.07] rounded-2xl p-5 overflow-hidden group hover:border-white/[0.12] transition-colors">
+    <div className="relative bg-[#0d0d0d] border border-white/[0.07] rounded-2xl p-5 overflow-hidden group hover:border-white/12 transition-colors">
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ background: `radial-gradient(circle at 0% 0%, ${accent}08 0%, transparent 60%)` }}
@@ -122,7 +122,7 @@ function BarChart({ data }: { data: MonthlyTrend[] }) {
                 }}
               />
               {d.mrr > 0 && (
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+                <div className="absolute -top-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded-sm whitespace-nowrap z-10">
                   ${d.mrr.toFixed(0)}
                 </div>
               )}
@@ -143,7 +143,7 @@ function FunnelBar({ label, value, total, color }: { label: string; value: numbe
         <span className="text-xs text-gray-400">{label}</span>
         <span className="text-xs font-mono text-gray-300">{value.toLocaleString()} <span className="text-gray-600">({pct.toFixed(0)}%)</span></span>
       </div>
-      <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
+      <div className="h-2 bg-white/4 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${pct}%`, background: color }}
@@ -212,7 +212,7 @@ export default function MetricsDashboard() {
   return (
     <div className="min-h-screen bg-[#050505] text-gray-100">
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="border-b border-white/[0.06] bg-[#070707]/80 backdrop-blur-xl sticky top-0 z-10">
+      <div className="border-b border-white/6 bg-[#070707]/80 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
@@ -243,7 +243,7 @@ export default function MetricsDashboard() {
             <button
               onClick={fetchMetrics}
               disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-gray-400 hover:text-white hover:border-white/[0.14] transition-all disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/4 border border-white/8 text-xs text-gray-400 hover:text-white hover:border-white/[0.14] transition-all disabled:opacity-40"
             >
               <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Cargando…' : `${countdown}s`}
@@ -257,7 +257,7 @@ export default function MetricsDashboard() {
         {/* ── Errors ──────────────────────────────────────────────────────── */}
         {error && (
           <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <AlertTriangle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         )}
@@ -361,7 +361,7 @@ export default function MetricsDashboard() {
                     color="#a855f7"
                   />
                 </div>
-                <div className="mt-5 pt-4 border-t border-white/[0.05] grid grid-cols-2 gap-3">
+                <div className="mt-5 pt-4 border-t border-white/5 grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-[10px] text-gray-600 mb-0.5">Conversión</p>
                     <p className="text-lg font-bold text-purple-400">{metrics.conversionRate}%</p>
@@ -392,7 +392,7 @@ export default function MetricsDashboard() {
                           <span className="text-xs text-gray-400">{PLAN_LABELS[plan.toLowerCase()] ?? plan}</span>
                           <span className="text-xs font-mono text-gray-300">{count} <span className="text-gray-600">({pct}%)</span></span>
                         </div>
-                        <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-white/4 rounded-full overflow-hidden">
                           <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />
                         </div>
                       </div>
@@ -470,7 +470,7 @@ export default function MetricsDashboard() {
 
             {/* ── Row 4: Top restaurants table ────────────────────────────── */}
             <div className="bg-[#0d0d0d] border border-white/[0.07] rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+              <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Target className="w-4 h-4 text-purple-400" />
                   <p className="text-sm font-semibold text-white">Top restaurantes (últimos 30 días)</p>
@@ -480,7 +480,7 @@ export default function MetricsDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/[0.04] text-gray-600 text-[10px] uppercase tracking-wider">
+                    <tr className="border-b border-white/4 text-gray-600 text-[10px] uppercase tracking-wider">
                       <th className="text-left px-5 py-3 font-medium">#</th>
                       <th className="text-left px-5 py-3 font-medium">Restaurante</th>
                       <th className="text-left px-5 py-3 font-medium">Plan</th>
@@ -496,7 +496,7 @@ export default function MetricsDashboard() {
                       const planColor = PLAN_COLORS[r.plan_id] ?? '#6b7280';
                       const isNew = (Date.now() - new Date(r.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
                       return (
-                        <tr key={r.id} className="border-b border-white/[0.03] hover:bg-white/[0.015] transition-colors">
+                        <tr key={r.id} className="border-b border-white/3 hover:bg-white/1.5 transition-colors">
                           <td className="px-5 py-3 text-gray-600 font-mono text-xs">{String(i + 1).padStart(2, '0')}</td>
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-2">
@@ -535,7 +535,7 @@ export default function MetricsDashboard() {
                             <div className="flex items-center justify-end gap-2">
                               <Link
                                 href={`/admin/restaurant?id=${r.id}`}
-                                className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-500 hover:text-white transition-colors"
+                                className="text-[10px] px-2 py-0.5 rounded-md bg-white/4 border border-white/8 text-gray-500 hover:text-white transition-colors"
                               >
                                 Detalle
                               </Link>
@@ -570,7 +570,7 @@ export default function MetricsDashboard() {
                 { label: 'En trial ahora', value: String(metrics.trialingSubscriptions), icon: '⏳' },
                 { label: 'Avg órdenes/restaurante', value: String(metrics.avgOrdersPerRestaurant), icon: '📊' },
               ].map(item => (
-                <div key={item.label} className="bg-[#0d0d0d] border border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-3">
+                <div key={item.label} className="bg-[#0d0d0d] border border-white/6 rounded-xl px-4 py-3 flex items-center gap-3">
                   <span className="text-lg">{item.icon}</span>
                   <div>
                     <p className="text-white font-bold text-base tabular-nums">{item.value}</p>

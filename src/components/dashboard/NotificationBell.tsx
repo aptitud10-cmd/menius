@@ -276,7 +276,7 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
                   >
                     <div
                       className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5",
+                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
                         cfg.bg,
                       )}
                     >
@@ -295,7 +295,7 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
                           {notif.title}
                         </p>
                         {!notif.is_read && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0 mt-1.5" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 mt-1.5" />
                         )}
                       </div>
                       {notif.body && (

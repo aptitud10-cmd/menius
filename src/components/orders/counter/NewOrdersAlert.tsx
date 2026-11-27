@@ -55,7 +55,7 @@ export function NewOrdersAlert({
       role="dialog"
       aria-modal="true"
       aria-label={T.newOrders(queue.length)}
-      className="fixed inset-0 z-[60] flex flex-col"
+      className="fixed inset-0 z-60 flex flex-col"
       style={{
         background: flash.on ? C.accent : C.bg,
         color: C.ink,
@@ -135,7 +135,7 @@ function AlertBody({
           {total > 1 && <span className="text-[19px] font-medium tabular-nums" style={onBg(C.sub)}>{T.ofN(index, total)}</span>}
         </div>
 
-        <h1 className="mt-1 font-bold leading-[1.05] tracking-[-0.03em] text-[40px] min-[880px]:text-[56px] break-words" style={onBg(C.ink)}>
+        <h1 className="mt-1 font-bold leading-[1.05] tracking-[-0.03em] text-[40px] min-[880px]:text-[56px] wrap-break-word" style={onBg(C.ink)}>
           {order.customer_name || '—'}
         </h1>
 
@@ -160,7 +160,7 @@ function AlertBody({
         {order.notes?.trim() && (isAllergyText(order.notes)
           ? <AllergyBlock T={T} text={order.notes} size="lg" />
           : (
-            <p className="text-[18px] min-[880px]:text-[19px] font-semibold rounded-[14px] px-4 py-2.5 leading-snug" style={{ background: C.surface, color: C.ink }}>
+            <p className="text-[18px] min-[880px]:text-[19px] font-semibold rounded-xl px-4 py-2.5 leading-snug" style={{ background: C.surface, color: C.ink }}>
               <span className="font-medium" style={{ color: C.sub }}>{T.orderNote}:</span> {stripNoteLabel(order.notes)}
             </p>
           ))}

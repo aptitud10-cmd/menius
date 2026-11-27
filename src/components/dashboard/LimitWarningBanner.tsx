@@ -84,7 +84,7 @@ export function LimitWarningBanner() {
           : 'bg-amber-50 text-amber-700 border-amber-200'
       }`}
     >
-      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
       <div className="flex-1 leading-snug">
         <p className="font-semibold">
           {isFull

@@ -1,6 +1,62 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Mismas carpetas que el `content` de Tailwind 3: sin esto la v4 recorre todo el
+   repo (scripts, docs, apps/) y genera clases que la web no usa (+20% de CSS). */
+@import 'tailwindcss' source(none);
+@source '../app';
+@source '../components';
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-display), var(--font-inter), system-ui, sans-serif;
+  --font-menu: var(--font-serif), Georgia, Times New Roman, serif;
+  --font-heading: var(--font-inter), system-ui, sans-serif;
+  --font-sidebar: var(--font-inter), system-ui, sans-serif;
+
+  --color-ink-50: #faf9f7;
+  --color-ink-100: #f5f4f1;
+  --color-ink-200: #e8e6e1;
+  --color-ink-300: #d4d1ca;
+  --color-ink-400: #a8a49b;
+  --color-ink-500: #7d7970;
+  --color-ink-600: #5c5952;
+  --color-ink-700: #44413c;
+  --color-ink-800: #2b2926;
+  --color-ink-900: #1a1917;
+  --color-ink-950: #0f0e0d;
+
+  --color-brand-50: #effefb;
+  --color-brand-100: #c7fff2;
+  --color-brand-200: #90ffe5;
+  --color-brand-300: #51f7d5;
+  --color-brand-400: #1de4c0;
+  --color-brand-500: #05c8a7;
+  --color-brand-600: #00a189;
+  --color-brand-700: #058070;
+  --color-brand-800: #0a655a;
+  --color-brand-900: #0d544b;
+  --color-brand-950: #00332f;
+
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 /* ── Design tokens — single source of truth for brand color ──
    Brand: #05c8a7 (turquoise-green). ALL color values in this file

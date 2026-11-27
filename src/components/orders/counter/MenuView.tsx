@@ -89,7 +89,7 @@ const MenuRow = memo(function MenuRow({ p, sub, busy, query, cut, T, fmt, onPric
           const r = e.currentTarget.getBoundingClientRect();
           onAskOut(p, { top: r.top, bottom: r.bottom, right: r.right });
         }}
-        className="flex-none w-[128px] min-[600px]:w-[168px] h-14 rounded-[14px] text-[16px] min-[600px]:text-[17px] font-bold disabled:opacity-60"
+        className="flex-none w-[128px] min-[600px]:w-[168px] h-14 rounded-xl text-[16px] min-[600px]:text-[17px] font-bold disabled:opacity-60"
         style={out ? { background: C.inverse, color: C.onInverse } : { background: C.fill, color: C.ink }}>
         {out ? T.mBack : T.mOutBtn}
       </button>
@@ -450,11 +450,11 @@ export const MenuView = memo(function MenuView({ T, currency, onGoToday }: {
   );
 
   const searchBox = (
-    <label className="relative flex items-center gap-2.5 h-14 rounded-[14px] px-3.5 focus-within:ring-2"
+    <label className="relative flex items-center gap-2.5 h-14 rounded-xl px-3.5 focus-within:ring-2"
       style={{ background: C.surface, boxShadow: `inset 0 0 0 1px ${C.lineStrong}`, ['--tw-ring-color' as string]: C.ink }}>
       <Search className="w-5 h-5 flex-none" strokeWidth={2.2} style={{ color: C.sub }} />
       <input value={rawQuery} onChange={(e) => setQuery(e.target.value)} placeholder={T.mSearch} aria-label={T.mSearch}
-        className="flex-1 min-w-0 bg-transparent outline-none text-[18px]" style={{ color: C.ink }} />
+        className="flex-1 min-w-0 bg-transparent outline-hidden text-[18px]" style={{ color: C.ink }} />
       {rawQuery && (
         <button type="button" onClick={() => setQuery('')} aria-label={T.close}
           className="flex-none w-11 h-11 -mr-2 rounded-full inline-flex items-center justify-center" style={{ background: C.fill, color: C.ink }}>
@@ -466,7 +466,7 @@ export const MenuView = memo(function MenuView({ T, currency, onGoToday }: {
 
   const outButton = (
     <button type="button" onClick={toggleOut} aria-pressed={mode.kind === 'out'}
-      className="flex items-center gap-2.5 h-14 rounded-[14px] px-3.5 text-[18px] font-semibold whitespace-nowrap"
+      className="flex items-center gap-2.5 h-14 rounded-xl px-3.5 text-[18px] font-semibold whitespace-nowrap"
       style={{ background: C.surface, color: C.ink, boxShadow: mode.kind === 'out' ? `inset 0 0 0 2px ${C.destructive}` : undefined }}>
       <Ban className="w-5 h-5 flex-none" strokeWidth={2.4} style={{ color: C.destructive }} />
       {T.mOut}
@@ -485,7 +485,7 @@ export const MenuView = memo(function MenuView({ T, currency, onGoToday }: {
       <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 px-6" style={{ background: C.bg }}>
         <p className="text-[18px] font-medium" style={{ color: C.sub }}>{loadFailed ? T.mLoadFailed : T.mLoading}</p>
         {loadFailed && (
-          <button type="button" onClick={load} className="h-14 px-6 rounded-[14px] text-[17px] font-bold" style={{ background: C.inverse, color: C.onInverse }}>
+          <button type="button" onClick={load} className="h-14 px-6 rounded-xl text-[17px] font-bold" style={{ background: C.inverse, color: C.onInverse }}>
             {T.mRetry}
           </button>
         )}
@@ -542,7 +542,7 @@ export const MenuView = memo(function MenuView({ T, currency, onGoToday }: {
           {searchBox}
           {outButton}
         </div>
-        <div className="flex gap-2 overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-1 [scrollbar-width:none]">
+        <div className="flex gap-2 overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-1 scrollbar-none">
           {ordered.map((c) => {
             const on = mode.kind === 'all' && shownCat === c.id;
             return (
@@ -623,7 +623,7 @@ export const MenuView = memo(function MenuView({ T, currency, onGoToday }: {
       )}
 
       {undoPin && (
-        <PinPad en={en} title={T.pPinTitle} layer="z-[56]" onUnlocked={undoPin}
+        <PinPad en={en} title={T.pPinTitle} layer="z-56" onUnlocked={undoPin}
           onClose={() => { setUndoPin(null); showToast({ text: T.pNotUndone, tone: 'error' }); }} />
       )}
 
@@ -662,12 +662,12 @@ function SoldOutPop({ T, cut, pop, onClose, onPick }: {
   const below = pop.rect.bottom + 8 + 210 < vh;
   const place: React.CSSProperties = below ? { top: pop.rect.bottom + 8 } : { bottom: vh - pop.rect.top + 8 };
 
-  const opt = 'w-full min-h-[64px] mt-2 rounded-[14px] flex items-center gap-3.5 px-4 py-2.5 text-left';
+  const opt = 'w-full min-h-[64px] mt-2 rounded-xl flex items-center gap-3.5 px-4 py-2.5 text-left';
   return (
     <>
       <button type="button" aria-label={T.close} onClick={onClose} className="fixed inset-0 z-40 cursor-default" style={{ background: 'rgba(0,0,0,.18)' }} />
       <div role="dialog" aria-modal="true" aria-label={T.mPopTitle(pop.item.name)}
-        className="fixed z-[41] rounded-[20px] p-4"
+        className="fixed z-41 rounded-[20px] p-4"
         style={{ ...place, left, width, background: C.raised, color: C.ink, boxShadow: `0 0 0 1px ${C.raisedEdge}, 0 24px 48px rgba(0,0,0,.28)` }}>
         <h3 className="mx-1 mt-0.5 mb-1 text-[18px] font-bold leading-snug">{T.mPopTitle(pop.item.name)}</h3>
         <button type="button" onClick={() => onPick(true)} className={opt} style={{ background: C.inverse, color: C.onInverse }}>

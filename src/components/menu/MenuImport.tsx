@@ -387,7 +387,7 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={onClose} />
       <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -463,8 +463,8 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
               )}
 
               {error && (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/[0.06] border border-red-500/[0.15]">
-                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/6 border border-red-500/15">
+                  <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-red-400">{error}</p>
                     <p className="text-xs text-red-400/70 mt-1">Asegúrate de que la foto sea clara y legible.</p>
@@ -521,7 +521,7 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
                             className="flex items-center gap-3 p-3 cursor-pointer"
                             onClick={() => toggleItem(globalIdx)}
                           >
-                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
                               item.selected ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'
                             }`}>
                               {item.selected && <Check className="w-3 h-3 text-white" />}
@@ -545,11 +545,11 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
                                 <p className="text-[11px] text-emerald-600 mt-1">{detailsSummary(item)}</p>
                               )}
                             </div>
-                            <span className="text-sm font-bold text-gray-700 flex-shrink-0">{fmtPrice(item.price)}</span>
+                            <span className="text-sm font-bold text-gray-700 shrink-0">{fmtPrice(item.price)}</span>
                             {details && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); toggleExpand(globalIdx); }}
-                                className="p-1 rounded-md hover:bg-gray-100 flex-shrink-0"
+                                className="p-1 rounded-md hover:bg-gray-100 shrink-0"
                               >
                                 {expanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                               </button>

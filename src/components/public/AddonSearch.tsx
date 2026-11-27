@@ -210,7 +210,7 @@ export function AddonSearch({
           aria-label={t.addonSearchLabel}
           aria-controls={resultsId}
           /* text-base (16px): con menos, iOS Safari hace zoom al enfocar. */
-          className="w-full h-12 pl-11 pr-11 rounded-2xl border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:border-[#05c8a7] focus:ring-1 focus:ring-[#05c8a7] [&::-webkit-search-cancel-button]:hidden"
+          className="w-full h-12 pl-11 pr-11 rounded-2xl border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-hidden focus:border-brand-500 focus:ring-1 focus:ring-brand-500 [&::-webkit-search-cancel-button]:hidden"
         />
         {query && (
           <button
@@ -255,7 +255,7 @@ export function AddonSearch({
                           {many ? t.addonSearchAboveShort : t.addonSearchAbove(question)}
                         </span>
                       </span>
-                      <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-700 flex-shrink-0">
+                      <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-700 shrink-0">
                         <ArrowUp className="w-4 h-4" aria-hidden="true" />
                         {t.addonSearchGoTo}
                       </span>
@@ -277,8 +277,8 @@ export function AddonSearch({
                     <span
                       aria-hidden="true"
                       className={cn(
-                        "w-[22px] h-[22px] rounded-md flex items-center justify-center flex-shrink-0 transition-colors",
-                        on ? "bg-[#05c8a7]" : "border-2 border-gray-300 bg-white",
+                        "w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors",
+                        on ? "bg-brand-500" : "border-2 border-gray-300 bg-white",
                       )}
                     >
                       {on ? (
@@ -291,7 +291,7 @@ export function AddonSearch({
                       {name}
                     </span>
                     {price !== 0 && (
-                      <span className="text-[15px] text-gray-700 tabular-nums flex-shrink-0">
+                      <span className="text-[15px] text-gray-700 tabular-nums shrink-0">
                         {price > 0 ? "+" : ""}
                         {fmtPrice(price)}
                       </span>
@@ -337,12 +337,12 @@ export function AddonSearch({
                         </span>
                       </span>
                       {open ? (
-                        <span className="inline-flex items-center gap-1 min-h-[36px] px-3.5 rounded-full bg-gray-100 text-[14px] font-semibold text-gray-700 flex-shrink-0">
+                        <span className="inline-flex items-center gap-1 min-h-[36px] px-3.5 rounded-full bg-gray-100 text-[14px] font-semibold text-gray-700 shrink-0">
                           <X className="w-4 h-4" aria-hidden="true" />
                           {t.addonSearchPickCancel}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 min-h-[36px] px-3.5 rounded-full bg-[#e6faf7] text-[14px] font-semibold text-[#047a65] flex-shrink-0">
+                        <span className="inline-flex items-center gap-1 min-h-[36px] px-3.5 rounded-full bg-[#e6faf7] text-[14px] font-semibold text-[#047a65] shrink-0">
                           <Plus className="w-4 h-4" aria-hidden="true" />
                           {t.addonSearchAddToOrder}
                         </span>
@@ -437,7 +437,7 @@ export function AddonSearch({
 
       {sentToOrder.length > 0 && (
         <div className="mt-3 flex items-center gap-2 rounded-2xl bg-[#e6faf7] px-4 py-2.5" role="status">
-          <Check className="w-4 h-4 text-[#047a65] flex-shrink-0" strokeWidth={3} aria-hidden="true" />
+          <Check className="w-4 h-4 text-[#047a65] shrink-0" strokeWidth={3} aria-hidden="true" />
           <p className="flex-1 min-w-0 text-[14px] leading-snug text-[#04241E]">
             {t.addonSearchSentToOrder(sentToOrder.join(", "))}
           </p>
@@ -453,7 +453,7 @@ export function AddonSearch({
             <button
               type="button"
               onClick={onUnqueue}
-              className="flex-shrink-0 min-h-[40px] px-2 text-[13px] font-semibold text-[#047a65] underline underline-offset-2"
+              className="shrink-0 min-h-[40px] px-2 text-[13px] font-semibold text-[#047a65] underline underline-offset-2"
             >
               {t.addonSearchUnqueue}
             </button>
@@ -472,7 +472,7 @@ export function AddonSearch({
                   type="button"
                   onClick={() => onToggle(group, o)}
                   aria-label={t.addonSearchRemove(name)}
-                  className="inline-flex items-center gap-1.5 min-h-[40px] pl-3.5 pr-2.5 rounded-full bg-[#05c8a7] text-[#04241E] text-[14px] font-semibold"
+                  className="inline-flex items-center gap-1.5 min-h-[40px] pl-3.5 pr-2.5 rounded-full bg-brand-500 text-[#04241E] text-[14px] font-semibold"
                 >
                   {name}
                   {price !== 0 && (
