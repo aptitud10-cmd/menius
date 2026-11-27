@@ -15,6 +15,7 @@ import {
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { useDashboardLocale } from "@/hooks/use-dashboard-locale";
 import { cn } from "@/lib/utils";
+import { uniqueTopic } from '@/lib/supabase/realtime-topic';
 
 interface DashNotification {
   id: string;
@@ -120,7 +121,7 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
   useEffect(() => {
     const supabase = getSupabaseBrowser();
     const channel = supabase
-      .channel(`dash-notifs:${restaurantId}`)
+      .channel(uniqueTopic(`dash-notifs:${restaurantId}`))
       .on(
         "postgres_changes",
         {

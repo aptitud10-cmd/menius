@@ -10,6 +10,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { formatPrice } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { isAwaitingOnlinePayment } from '@/lib/order-state';
+import { uniqueTopic } from '@/lib/supabase/realtime-topic';
 
 type OrderLite = {
   id: string; order_number: string; customer_name: string; total: number;
@@ -148,7 +149,7 @@ function OrderNotifierInner({ restaurantId, currency }: OrderNotifierProps) {
     const supabase = getSupabaseBrowser();
 
     const channel = supabase
-      .channel(`global-orders:${restaurantId}`)
+      .channel(uniqueTopic(`global-orders:${restaurantId}`))
       .on(
         'postgres_changes',
         {

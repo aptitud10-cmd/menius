@@ -7,6 +7,7 @@ import {
   type CounterSettings, type CounterSettingsPatch, type CounterSettingsRow,
 } from '@/lib/counter-settings';
 import { saveCounterSettings, type SaveCounterSettingsResult } from '@/lib/actions/counter-settings';
+import { uniqueTopic } from '@/lib/supabase/realtime-topic';
 
 /**
  * Sonido / colores / volumen del Counter, sincronizados en vivo entre todas las
@@ -27,7 +28,7 @@ export function useCounterSettings(restaurantId: string, initial: CounterSetting
         .then(({ data, error }: { data: unknown; error: unknown }) => { if (!error) setSettings(rowToSettings(data as CounterSettingsRow | null)); });
     };
     const channel = supabase
-      .channel(`counter-settings:${restaurantId}`)
+      .channel(uniqueTopic(`counter-settings:${restaurantId}`))
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'counter_settings', filter: `restaurant_id=eq.${restaurantId}` },

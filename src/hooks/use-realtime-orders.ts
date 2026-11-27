@@ -5,6 +5,7 @@ import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { Order } from '@/types';
 import { isAwaitingOnlinePayment, OPEN_ORDER_STATUSES, olderOpenOrdersFilter } from '@/lib/order-state';
 import type { RealtimePostgresChangesPayload, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
+import { uniqueTopic } from '@/lib/supabase/realtime-topic';
 
 interface UseRealtimeOrdersOptions {
   restaurantId: string;
@@ -207,7 +208,7 @@ export function useRealtimeOrders({
     const supabase = getSupabaseBrowser();
 
     const channel = supabase
-      .channel(`orders:${restaurantId}`)
+      .channel(uniqueTopic(`orders:${restaurantId}`))
       .on(
         'postgres_changes',
         {

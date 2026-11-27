@@ -90,6 +90,7 @@ import { DietIcon } from "./DietIcon";
 import { prettyPhone, telHref } from "@/lib/phone-format";
 import { usablePaymentMethods } from "@/lib/payments/online-ready";
 import { DEEP_LINK_ATTR } from "./DeepLinkGuard";
+import { uniqueTopic } from '@/lib/supabase/realtime-topic';
 interface ReviewStats {
   average: number;
   total: number;
@@ -571,7 +572,7 @@ export function MenuShell({
     void loadSupabaseBrowser().then((supabase) => {
     if (cancelled) return;
     const channel = supabase
-      .channel(`products-stock-${restaurant.id}`)
+      .channel(uniqueTopic(`products-stock-${restaurant.id}`))
       .on(
         "postgres_changes",
         {
@@ -648,7 +649,7 @@ export function MenuShell({
       if (cancelled) return;
       client = supabase;
       channel = supabase
-        .channel(`restaurant-pause:${restaurant.id}`)
+        .channel(uniqueTopic(`restaurant-pause:${restaurant.id}`))
         .on(
           "postgres_changes",
           {

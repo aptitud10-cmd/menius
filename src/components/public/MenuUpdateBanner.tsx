@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { RefreshCw } from 'lucide-react';
 import { loadSupabaseBrowser } from '@/lib/supabase/browser-lazy';
 import { getTranslations } from '@/lib/translations';
+import { uniqueTopic } from '@/lib/supabase/realtime-topic';
 
 interface MenuUpdateBannerProps {
   restaurantId: string;
@@ -29,7 +30,7 @@ export function MenuUpdateBanner({ restaurantId, locale, initialPausedUntil = nu
     void loadSupabaseBrowser().then((supabase) => {
     if (cancelled) return;
     const channel = supabase
-      .channel(`menu-updates:${restaurantId}`)
+      .channel(uniqueTopic(`menu-updates:${restaurantId}`))
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'restaurants', filter: `id=eq.${restaurantId}` },
