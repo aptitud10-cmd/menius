@@ -13,7 +13,7 @@ function ContactBlock({ locale, compact }: { locale: LandingLocale; compact?: bo
   return (
     <div className={compact ? 'mt-5 space-y-1.5' : 'space-y-2'}>
       <p className={compact ? 'text-[13px] text-gray-300' : 'text-sm text-gray-200 font-medium'}>
-        {en ? 'Talk to a real person' : 'Habla con una persona'}
+        {en ? 'Talk to us' : 'Habla con nosotros'}
       </p>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1">
         {SUPPORT_CONTACT.phoneE164 && (

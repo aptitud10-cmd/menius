@@ -46,7 +46,7 @@ const T: Record<LandingV2Locale, {
 }> = {
   en: {
     badge: 'Support',
-    h1: 'Talk to a real person.',
+    h1: 'Talk to us.',
     h1Voice: 'In English or Spanish.',
     lead: 'Call us, send a WhatsApp or write an email. We help with your menu, the Counter tablet, the printer and card payments.',
     ctaWrite: 'Send us a message',
@@ -68,7 +68,7 @@ const T: Record<LandingV2Locale, {
         n: '02',
         title: 'AI photos',
         where: ['Products', 'a dish', 'Generate with AI'],
-        desc: 'For dishes without a photo, included in Pro. If you’d rather have photos of your real dishes, our team does them for $10 per dish.',
+        desc: 'For dishes without a photo, included in Pro. If you’d rather use your real dishes, send us phone photos and we enhance them for $10 per dish.',
         link: { href: '/ai-fotos', label: 'How AI photos work' },
       },
       {
@@ -87,7 +87,7 @@ const T: Record<LandingV2Locale, {
       },
     ],
     assistB: 'Already have an account?',
-    assistT: ' The assistant in your dashboard explains how to do things in MENIUS and answers questions about your sales. For everything else, a person answers.',
+    assistT: ' The assistant in your dashboard explains how to do things in MENIUS and answers questions about your sales. For everything else, call or write to us.',
     assistCta: 'Open the assistant',
     faqTitle: 'Common questions',
     faqAll: 'See all questions',
@@ -98,7 +98,7 @@ const T: Record<LandingV2Locale, {
       },
       {
         q: 'How do I add photos to my dishes?',
-        a: 'Open the dish in Menu → Products and upload your own photo. For dishes without one, Pro can create an AI photo with Generate with AI. If you’d rather we handle it, our setup team enhances photos of your real dishes for $10 per dish.',
+        a: 'Open the dish in Menu → Products and upload your own photo. For dishes without one, Pro can create an AI photo with Generate with AI. If you’d rather we handle it, send us phone photos of your dishes and we enhance them with AI for $10 per dish.',
       },
       {
         q: 'What tablet and printer do I need?',
@@ -114,7 +114,7 @@ const T: Record<LandingV2Locale, {
       },
     ],
     formTitle: 'Write to us',
-    formLead: 'A person reads every message and answers by email.',
+    formLead: 'We read every message and reply by email.',
     points: [
       { b: 'Monday to Friday, 9 am to 7 pm ET.', t: ' Weekends, by email.' },
       { b: 'Your information is private', t: ' and never shared.' },
@@ -153,7 +153,7 @@ const T: Record<LandingV2Locale, {
   },
   es: {
     badge: 'Soporte',
-    h1: 'Habla con una persona real.',
+    h1: 'Habla con nosotros.',
     h1Voice: 'En inglés o en español.',
     lead: 'Llámanos, escríbenos por WhatsApp o mándanos un email. Te ayudamos con tu menú, la tablet Counter, la impresora y los pagos con tarjeta.',
     ctaWrite: 'Envíanos un mensaje',
@@ -175,7 +175,7 @@ const T: Record<LandingV2Locale, {
         n: '02',
         title: 'Fotos con IA',
         where: ['Productos', 'un plato', 'Generar con IA'],
-        desc: 'Para los platos sin foto, incluido en Pro. Si prefieres fotos de tus platos reales, nuestro equipo las hace por $10 por plato.',
+        desc: 'Para los platos sin foto, incluido en Pro. Si prefieres tus platos reales, nos mandas fotos del celular y las mejoramos por $10 por plato.',
         link: { href: '/ai-fotos', label: 'Cómo funcionan las fotos con IA' },
       },
       {
@@ -194,7 +194,7 @@ const T: Record<LandingV2Locale, {
       },
     ],
     assistB: '¿Ya tienes cuenta?',
-    assistT: ' El asistente de tu panel te explica cómo hacer cada cosa en MENIUS y responde preguntas sobre tus ventas. Para todo lo demás, te atiende una persona.',
+    assistT: ' El asistente de tu panel te explica cómo hacer cada cosa en MENIUS y responde preguntas sobre tus ventas. Para todo lo demás, llámanos o escríbenos.',
     assistCta: 'Abrir el asistente',
     faqTitle: 'Preguntas comunes',
     faqAll: 'Ver todas las preguntas',
@@ -205,7 +205,7 @@ const T: Record<LandingV2Locale, {
       },
       {
         q: '¿Cómo agrego fotos a mis platos?',
-        a: 'Abre el plato en Menú → Productos y sube tu propia foto. Para los platos sin foto, Pro puede crear una con IA desde Generar con IA. Si prefieres que nos encarguemos, nuestro equipo de configuración mejora fotos de tus platos reales por $10 por plato.',
+        a: 'Abre el plato en Menú → Productos y sube tu propia foto. Para los platos sin foto, Pro puede crear una con IA desde Generar con IA. Si prefieres que nos encarguemos, nos mandas fotos de tus platos sacadas con el celular y las mejoramos con IA por $10 por plato.',
       },
       {
         q: '¿Qué tablet e impresora necesito?',
@@ -221,7 +221,7 @@ const T: Record<LandingV2Locale, {
       },
     ],
     formTitle: 'Escríbenos',
-    formLead: 'Una persona lee cada mensaje y te responde por email.',
+    formLead: 'Leemos cada mensaje y te respondemos por email.',
     points: [
       { b: 'Lunes a viernes, de 9 am a 7 pm, hora del Este.', t: ' Fines de semana, por email.' },
       { b: 'Tu información es privada', t: ' y nunca se comparte.' },

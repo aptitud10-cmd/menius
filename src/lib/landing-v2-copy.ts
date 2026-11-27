@@ -169,7 +169,7 @@ const en: LandingV2Copy = {
     h1Voice: 'without the app cut.',
     leadWide: `Delivery apps take up to 30% of every order. Orders from your own page go straight to your counter. ${pro} a month, 0% commission.`,
     leadPhone: `Apps take up to 30%. Here, orders go straight to your counter. ${pro} a month, 0% commission.`,
-    talk: 'Talk to a real person',
+    talk: 'Talk to us',
     cue: 'Order #021 just came in at The Grill House. Follow it to the front door.',
     counterAlt: 'The Counter tablet with a new delivery order from Maria Gonzalez, ready to accept',
     photoAlt: 'The Counter tablet and the ticket printer on a restaurant counter',
@@ -241,7 +241,7 @@ const en: LandingV2Copy = {
     diffs: [
       { b: 'No contract', t: 'Month-to-month. Leave any month.' },
       { b: 'Your customer list', t: 'Names and phones stay with you.' },
-      { b: 'A real person', t: 'We set it up and pick up the phone.' },
+      { b: 'Support by phone', t: 'We set it up and answer your calls.' },
     ],
     cmpHead: ['MENIUS Pro', 'Uber Eats / DoorDash', 'ChowNow'],
     cmpRows: [
@@ -264,7 +264,7 @@ const en: LandingV2Copy = {
       { h: 'We train your staff.', p: 'On-site or by video call, in English or Spanish.' },
       { h: 'You go live.', p: 'In 3 to 14 days, depending on your menu.' },
     ],
-    talk: 'Talk to a real person',
+    talk: 'Talk to us',
     tiersTitle: 'One-time setup, by menu size',
     tiers: ['Up to 80 dishes', '81 to 200 dishes', '201 dishes or more'],
     free: 'Free with the annual plan.',
@@ -293,7 +293,7 @@ const en: LandingV2Copy = {
   faq: {
     label: 'Any time',
     h2: 'Questions owners ask.',
-    side: 'Not here? A person answers, in English or Spanish.',
+    side: 'Not here? Call or write to us, in English or Spanish.',
     items: [
       { q: 'Do I have to leave Uber Eats or DoorDash?', a: 'No. Keep them to reach new customers. MENIUS is for the people who already know you: your link goes on bags, receipts and your Google profile.' },
       { q: 'Who pays the card fees?', a: 'You pay Stripe’s standard fee, about 2.9% + 30¢ per card payment, like any card terminal. MENIUS takes 0%, and your customer pays no extra service fee.' },
@@ -353,7 +353,7 @@ const es: LandingV2Copy = {
     h1Voice: 'sin pagar comisión.',
     leadWide: `Las apps de delivery se quedan con hasta el 30% de cada pedido. Los pedidos de tu propia página llegan directo a tu mostrador. ${pro} al mes, 0% de comisión.`,
     leadPhone: `Las apps cobran hasta el 30%. Aquí, los pedidos llegan directo a tu mostrador. ${pro} al mes, 0% de comisión.`,
-    talk: 'Habla con una persona real',
+    talk: 'Habla con nosotros',
     cue: 'Acaba de entrar el pedido #021 en The Grill House. Síguelo hasta la puerta.',
     counterAlt: 'La tablet Counter con un pedido nuevo de delivery de Maria Gonzalez, listo para aceptar',
     photoAlt: 'La tablet Counter y la impresora de tickets en el mostrador de un restaurante',
@@ -425,7 +425,7 @@ const es: LandingV2Copy = {
     diffs: [
       { b: 'Sin contrato', t: 'Mes a mes. Te vas el mes que quieras.' },
       { b: 'Tu lista de clientes', t: 'Los nombres y teléfonos se quedan contigo.' },
-      { b: 'Una persona real', t: 'Lo configuramos y contestamos el teléfono.' },
+      { b: 'Soporte por teléfono', t: 'Lo configuramos y te atendemos por teléfono.' },
     ],
     cmpHead: ['MENIUS Pro', 'Uber Eats / DoorDash', 'ChowNow'],
     cmpRows: [
@@ -448,7 +448,7 @@ const es: LandingV2Copy = {
       { h: 'Capacitamos a tu equipo.', p: 'En tu local o por videollamada, en inglés o en español.' },
       { h: 'Empiezas a vender.', p: 'Listo en 3 a 14 días, según tu menú.' },
     ],
-    talk: 'Habla con una persona real',
+    talk: 'Habla con nosotros',
     tiersTitle: 'Configuración única, según el tamaño del menú',
     tiers: ['Hasta 80 platos', 'De 81 a 200 platos', '201 platos o más'],
     free: 'Gratis con el plan anual.',
@@ -477,7 +477,7 @@ const es: LandingV2Copy = {
   faq: {
     label: 'Cuando quieras',
     h2: 'Lo que preguntan los dueños.',
-    side: '¿No está aquí? Te responde una persona, en inglés o en español.',
+    side: '¿No está aquí? Llámanos o escríbenos, en inglés o en español.',
     items: [
       { q: '¿Tengo que dejar Uber Eats o DoorDash?', a: 'No. Quédate con ellas para llegar a clientes nuevos. MENIUS es para la gente que ya te conoce: tu enlace va en las bolsas, en los recibos y en tu perfil de Google.' },
       { q: '¿Quién paga las comisiones de tarjeta?', a: 'Tú pagas la tarifa estándar de Stripe, cerca de 2.9% + 30¢ por pago con tarjeta, como con cualquier terminal. MENIUS cobra 0% y tu cliente no paga ningún cargo extra por servicio.' },

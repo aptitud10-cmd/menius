@@ -129,7 +129,7 @@ const t = {
     faqTitle: "Preguntas sobre el servicio",
     heroCta: "Solicitar Setup Profesional",
     seePackages: "Ver los paquetes",
-    talk: "Habla con una persona real",
+    talk: "Habla con nosotros",
     freeAnnual: "Gratis con el plan anual.",
     faqs: [
       {
@@ -138,7 +138,7 @@ const t = {
       },
       {
         q: "¿Cómo generan las fotos de los platos?",
-        a: "Partimos de fotos reales de tus platos y las mejoramos con inteligencia artificial para que se vean como una sesión profesional. Las fotos son opcionales: $10 por plato.",
+        a: "Nos mandas fotos de tus platos sacadas con el celular y las mejoramos con inteligencia artificial para que se vean como una sesión profesional. Las fotos son opcionales: $10 por plato.",
       },
       {
         q: "¿Puedo hacer cambios después?",
@@ -266,7 +266,7 @@ const t = {
     faqTitle: "Service FAQ",
     heroCta: "Request Professional Setup",
     seePackages: "See the packages",
-    talk: "Talk to a real person",
+    talk: "Talk to us",
     freeAnnual: "Free with the annual plan.",
     faqs: [
       {
@@ -275,7 +275,7 @@ const t = {
       },
       {
         q: "How do you generate the food photos?",
-        a: "We start from real photos of your dishes and enhance them with AI so they look like a professional shoot. Photos are optional: $10 per dish.",
+        a: "You send us phone photos of your dishes and we enhance them with AI so they look like a professional shoot. Photos are optional: $10 per dish.",
       },
       {
         q: "Can I make changes later?",

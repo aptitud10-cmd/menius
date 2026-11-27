@@ -27,13 +27,13 @@ export async function generateMetadata({
     ? {
         title: "Support",
         description:
-          "Talk to a real person by phone, WhatsApp or email, in English or Spanish. Quick guides for your menu, AI photos, the Counter tablet and card payments.",
+          "Call, WhatsApp or email us, in English or Spanish. Quick guides for your menu, AI photos, the Counter tablet and card payments.",
         alternates: { canonical: "/support" },
       }
     : {
         title: "Soporte",
         description:
-          "Habla con una persona real por teléfono, WhatsApp o email, en inglés o en español. Guías rápidas para tu menú, las fotos con IA, la tablet Counter y los pagos con tarjeta.",
+          "Llámanos, escríbenos por WhatsApp o por email, en inglés o en español. Guías rápidas para tu menú, las fotos con IA, la tablet Counter y los pagos con tarjeta.",
         alternates: { canonical: "/support" },
       };
 }

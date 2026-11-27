@@ -192,7 +192,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Reseñas de clientes',
       'Tablet de pedidos para tu equipo',
       'Exportar reportes PDF / CSV',
-      'Soporte de una persona real por teléfono, WhatsApp o email',
+      'Soporte por teléfono, WhatsApp o email',
     ],
     features_en: [
       'Unlimited products and categories',
@@ -210,7 +210,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Customer reviews',
       'Order tablet for your staff',
       'Export PDF / CSV reports',
-      'Support from a real person by phone, WhatsApp or email',
+      'Support by phone, WhatsApp or email',
     ],
     excluded: [],
     excluded_en: [],

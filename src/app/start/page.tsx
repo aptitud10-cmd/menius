@@ -161,7 +161,7 @@ const T: Record<LandingV2Locale, {
     ],
     setupCta: 'See Professional Setup',
     askTitle: 'Stuck on a step?',
-    askText: 'Call us or send a WhatsApp. A real person answers, in English or Spanish.',
+    askText: 'Call us or send a WhatsApp. We answer in English or Spanish.',
     askSupport: 'More ways to get help',
   },
   es: {
@@ -256,7 +256,7 @@ const T: Record<LandingV2Locale, {
     ],
     setupCta: 'Ver el Setup profesional',
     askTitle: '¿Te trabaste en un paso?',
-    askText: 'Llámanos o escríbenos por WhatsApp. Te atiende una persona real, en inglés o en español.',
+    askText: 'Llámanos o escríbenos por WhatsApp. Te atendemos en inglés o en español.',
     askSupport: 'Más formas de pedir ayuda',
   },
 };

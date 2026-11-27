@@ -26,12 +26,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return locale === 'en'
     ? {
         title: 'AI photos for your menu',
-        description: 'In your MENIUS dashboard, AI creates a photo of a dish from its name, description and category. Included in Pro. Professional photos of your real dishes are an optional service at $10 per dish.',
+        description: 'In your MENIUS dashboard, AI creates a photo of a dish from its name, description and category. Included in Pro. Send us phone photos of your real dishes and we enhance them for $10 per dish (optional).',
         alternates: { canonical: '/ai-fotos' },
       }
     : {
         title: 'Fotos con IA para tu menú',
-        description: 'En tu panel de MENIUS, la IA crea la foto de un plato a partir de su nombre, su descripción y su categoría. Incluido en Pro. Las fotos profesionales de tus platos reales son un servicio opcional de $10 por plato.',
+        description: 'En tu panel de MENIUS, la IA crea la foto de un plato a partir de su nombre, su descripción y su categoría. Incluido en Pro. Si nos mandas fotos de tus platos reales sacadas con el celular, las mejoramos por $10 por plato (opcional).',
         alternates: { canonical: '/ai-fotos' },
       };
 }
@@ -87,12 +87,12 @@ const T: Record<LandingV2Locale, {
       {
         tag: 'Optional',
         title: 'Professional photos',
-        for: 'Our team does it, with Professional Setup.',
+        for: 'You send us phone photos; we do the rest.',
         price: '$10',
         priceWord: false,
         unit: 'per dish',
         items: [
-          'We start from real photos of your dishes',
+          'You send us photos of your dishes, taken with your phone',
           'We enhance them with AI so they look like a professional shoot',
           'Optional: you choose which dishes',
         ],
@@ -156,12 +156,12 @@ const T: Record<LandingV2Locale, {
       {
         tag: 'Opcional',
         title: 'Fotos profesionales',
-        for: 'Las hace nuestro equipo, con el Setup profesional.',
+        for: 'Nos mandas fotos del celular; nosotros hacemos el resto.',
         price: '$10',
         priceWord: false,
         unit: 'por plato',
         items: [
-          'Partimos de fotos reales de tus platos',
+          'Nos mandas fotos de tus platos, sacadas con el celular',
           'Las mejoramos con IA para que se vean como una sesión profesional',
           'Opcional: tú eliges qué platos',
         ],
