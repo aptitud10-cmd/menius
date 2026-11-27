@@ -595,7 +595,9 @@ export function ProductEditor({
               />
 
               {imagePreview ? (
-                <div className="relative group">
+                // tabIndex: en táctil (sin hover desde Tailwind 4) tocar la foto la
+                // enfoca y muestra los botones; con teclado también se ven.
+                <div className="relative group" tabIndex={0}>
                   <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
                     <Image
                       src={imagePreview}
@@ -605,7 +607,7 @@ export function ProductEditor({
                       unoptimized={imagePreview.startsWith('blob:')}
                     />
                   </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2 flex-wrap p-2">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2 flex-wrap p-2">
                     <button
                       onClick={() => fileRef.current?.click()}
                       className="px-3 py-2 bg-white rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
