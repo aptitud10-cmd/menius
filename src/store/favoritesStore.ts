@@ -8,6 +8,8 @@ interface FavoritesState {
   getIds: (restaurantId: string) => string[];
 }
 
+const NO_IDS: string[] = [];
+
 export const useFavoritesStore = create<FavoritesState>()(
   persist(
     (set, get) => ({
@@ -26,7 +28,8 @@ export const useFavoritesStore = create<FavoritesState>()(
         }),
       isFav: (restaurantId, productId) =>
         (get().byRestaurant[restaurantId] ?? []).includes(productId),
-      getIds: (restaurantId) => get().byRestaurant[restaurantId] ?? [],
+      // Mismo array vacío siempre: un [] nuevo en un selector re-renderiza sin fin (zustand 5).
+      getIds: (restaurantId) => get().byRestaurant[restaurantId] ?? NO_IDS,
     }),
     {
       name: 'menius-favs',
