@@ -112,6 +112,8 @@ Anton y Bricolage se oponen en el eje correcto: Anton es **vertical, cerrado, si
 
 El mono como tercera voz no rompe la armonía porque tiene un territorio de uso encapsulado y funcional. Tres fuentes es el máximo: cualquier cuarta se prohíbe.
 
+> **Actualización 2026-11-10 (decisión de Pedro tras la auditoría visual):** el territorio del mono se amplía a **botones, eyebrows y labels** (`ORDER ONLINE`, `THE MENU`, `ADDRESS`). La implementación ya lo usaba así y funciona como voz de "panel/instrumental" coherente con el reloj. Sigue prohibido en párrafos y descripciones, que van en Bricolage. Piso de tamaño: 12px en todo texto mono.
+
 ### Detalles tipográficos
 
 | Propiedad | Valor |
@@ -360,7 +362,7 @@ Al leer este documento, `disenador-mobile`, `disenador-tablet` y quien haga desk
 
 - **¿Sensación primaria?** Noche cálida, ventana encendida, lugar que nunca cierra. Digno y obrero, no cool.
 - **¿Paleta y dónde?** `#0B0B0C` fondo, `#1A1917` superficies, `#F2B441` **solo** lo accionable/encendido, `#B8422E` solo wordmark y alertas, `#F4F1EA` texto, `#A8A29A` secundario, `#2C2A27` bordes.
-- **¿Tipografía?** Anton mayúsculas para display, Bricolage Grotesque para todo lo demás, JetBrains Mono solo para reloj/horarios/estado.
+- **¿Tipografía?** Anton mayúsculas para display, Bricolage Grotesque para todo lo demás, JetBrains Mono para reloj/horarios/estado y botones/eyebrows/labels (ampliado 2026-11-10).
 - **¿Motion?** Casi nada. Un punto que pulsa, reveals de 480ms, hover en tiles. Sin librerías.
 - **¿Layout base?** Editorial de columna ancha con desbordes; bento solo en categorías (6 tiles); mobile en columna única siempre.
 - **¿Qué evito?** Los 14 anti-patrones de arriba, empezando por retro de los 50 y por imágenes generadas en contexto documental.

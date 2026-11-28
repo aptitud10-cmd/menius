@@ -45,6 +45,8 @@ const ANGLE = `The camera is at a 35-degree THREE-QUARTER angle looking ACROSS t
 const VESSELS = {
   plate: 'one single large plain white ceramic plate',
   bowl: 'one single plain white ceramic bowl, sitting on a small plain white saucer plate',
+  // A $2.95 plain bagel on a dinner plate reads as an empty plate.
+  small: 'one single small plain white ceramic side plate',
 };
 
 const build = ({ subject, plate, styling, vessel = 'plate' }) => `NOT CGI, NOT 3D render, NOT illustration — this is a REAL photograph. NO cooking equipment visible, NO text or logos, NO human hands, NO cutlery in use.
@@ -349,6 +351,34 @@ const ITEMS = {
     subject: '"Avocado Toast with Smoked Salmon".',
     plate: 'two large slices of toasted seven-grain bread spread thickly with chunky smashed green avocado, folded ribbons of silky smoked salmon and a soft poached egg with a dusting of black pepper on each slice, halved RED and YELLOW cherry tomatoes scattered over them, a generous side salad of mixed greens (frisee, radicchio, arugula, cucumber) beside them, and one small white cup of house vinaigrette.',
     styling: 'Silky smoked salmon clearly visible. NO capers, NO chili flakes.' },
+
+  // ── Batch 4 — replacements for the six absurd legacy photos (2026-11-10) ───
+  // The old admin-regen images put an omelette in a whisky glass, a burrito and
+  // a guacamole in tumblers, a bagel balanced on a bottle. Plain, honest plates.
+  'two-eggs-any-style': { batch: 4, name: 'Two Eggs, Any Style',
+    subject: '"Two Eggs, Any Style" — two fried eggs with home fries.',
+    plate: `${EGGS} and ${HOME_FRIES}.`,
+    styling: 'Yolks glossy and domed. The home fries are IRREGULAR BROKEN CHUNKS and torn half-slices of potato of all different sizes — absolutely NOT dice, NOT cubes, NOT squares. NO meat, NO toast on the plate (toast comes on a separate plate and is NOT shown).' },
+  'chorizo-avocado-omelette': { batch: 4, name: 'Chorizo Avocado Omelette',
+    subject: '"Chorizo Avocado Omelette" — chorizo, peppers, onions and pepper jack omelette topped with avocado, salsa and sour cream, with home fries.',
+    plate: `${OMELETTE('crumbled red chorizo sausage, diced green and red peppers, onions and melted pepper jack cheese')}; on top of the omelette a fan of fresh green avocado slices, a spoonful of chunky red salsa, a dollop of white sour cream and a light sprinkle of chopped cilantro; and ${HOME_FRIES} beside it.`,
+    styling: 'The avocado, salsa and sour cream sit ON TOP of the omelette, not beside it. NO toast on the plate.' },
+  'south-border-burrito': { batch: 4, name: 'South of the Border Burrito',
+    subject: '"South of the Border Burrito" — breakfast burrito with scrambled eggs, chili and cheddar jack, with sour cream, salsa and home fries.',
+    plate: `one large flour-tortilla breakfast burrito cut in half on the diagonal, the cut face showing fluffy yellow scrambled egg, dark-red beef chili with beans and melted orange-and-white cheddar jack cheese; one small white ramekin of sour cream and one small white ramekin of red salsa; and ${HOME_FRIES}.`,
+    styling: 'The CUT FACE of the burrito faces the camera so the filling is visible. The burrito lies FLAT on the plate — NO glass, NO cup, NO tumbler anywhere.' },
+  'hand-rolled-bagel': { batch: 4, name: 'Hand-Rolled Water Bagel', vessel: 'small',
+    subject: '"Hand-Rolled Water Bagel" — one plain New York water bagel.',
+    plate: 'one plain hand-rolled New York water bagel with a glossy, blistered golden-brown crust, sliced in half horizontally, the two halves resting slightly offset on the plate so the soft chewy white crumb of the cut side shows.',
+    styling: 'Plain bagel — NO seeds, NO topping, NO cream cheese, NO butter. It lies flat on the plate — NO bottle, NO glass, NO stand.' },
+  'fresh-melon': { batch: 4, name: 'Fresh Melon',
+    subject: '"Fresh Melon" — a plate of fresh sliced melon.',
+    plate: 'a generous fan of fresh melon wedges: juicy bright-orange cantaloupe and pale-green honeydew, cut in long crescent wedges with the rind on, overlapping on the plate.',
+    styling: 'Fruit glistening and fresh. NO egg, NO yolk, NO sauce, NO mint garnish, NO other fruit.' },
+  'guacamole-dip': { batch: 4, name: 'Guacamole Dip',
+    subject: '"Guacamole Dip" — fresh guacamole with tortilla chips, sour cream and homemade salsa.',
+    plate: 'one wide white bowl of chunky fresh green guacamole (visible pieces of avocado, tomato and onion) in the centre of the plate, surrounded by a generous ring of golden triangular corn TORTILLA CHIPS, with one small white ramekin of sour cream and one small white ramekin of homemade red salsa on the plate.',
+    styling: 'Guacamole bright green and chunky. Everything sits on the plate — NO glass, NO tumbler, NO cocktail, NO lime wedge, NO wooden board.' },
 };
 
 if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
